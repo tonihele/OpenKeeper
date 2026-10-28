@@ -20,15 +20,6 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.TreeMap;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
@@ -36,7 +27,11 @@ import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
-import toniarts.openkeeper.game.logic.*;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.ServerGameEventService;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
+import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.NavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
@@ -49,11 +44,21 @@ import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
-import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+
+import java.io.IOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 
 /**
  * The game controller, runs the game simulation itself
@@ -79,6 +84,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private GameTimeController gameTimer;
     private INavigationService navigationService;
     private PositionSystem positionSystem;
+    private GameEventService gameEventService;
 
     private GameResult gameResult = null;
     private TaskManager taskManager;
@@ -114,9 +120,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // The players
         setupPlayers();
 
+        gameEventService = new ServerGameEventService(entityData, playerService);
         gameTimer = new GameTimeController();
         // The world
-        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer);
+        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer, gameEventService);
 
         positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData,
                 gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
@@ -387,6 +394,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     @Override
     public IGameWorldController getGameWorldController() {
         return gameWorldController;
+    }
+
+    @Override
+    public GameEventService getGameEventService() {
+        return gameEventService;
     }
 
     @Override
