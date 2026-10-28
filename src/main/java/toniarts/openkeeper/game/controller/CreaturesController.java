@@ -23,19 +23,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.stream.Collectors;
-import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -57,11 +44,11 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
-import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
@@ -74,14 +61,29 @@ import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.stream.Collectors;
 
 /**
  * This is a controller that controls all the game objects in the world TODO: Hmm, should this be more a
@@ -514,6 +516,8 @@ public final class CreaturesController implements ICreaturesController {
         } else {
             entityData.removeComponent(entityId, Regeneration.class);
         }
+
+        gameController.getGameEventService().emit(GameEventType.CREATURE_LEVEL_UP, entityId);
     }
 
     private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack, Regeneration regeneration) {
@@ -622,7 +626,7 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
     }
 
     @Override
@@ -652,6 +656,16 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+
+    public EntityId getPossessedCreature(short playerId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
+        try {
+            return entities.isEmpty() ? null : entities.iterator().next().getId();
+        } finally {
+            entities.release();
+        }
+    }
+
     public void healCreatures(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
         for (Entity entity : entities) {
@@ -674,6 +688,22 @@ public final class CreaturesController implements ICreaturesController {
         }
     }
 
+    @Override
+    public void spawnCreatures(short creatureId, short playerId, int level, int amount) {
+        IRoomController dungeonHeart = gameController.getPlayerController(playerId).getRoomControl().getDungeonHeart();
+        if (!(dungeonHeart instanceof ICreatureEntrance entrance)) {
+            logger.log(Level.WARNING, "Player {0} has no dungeon heart to spawn creatures at!", playerId);
+            return;
+        }
+
+        Point entranceCoordinate = entrance.getEntranceCoordinate();
+        Vector2f position = new Vector2f(entranceCoordinate.x, entranceCoordinate.y);
+        int creatureLevel = Math.clamp(level, 1, Utils.MAX_CREATURE_LEVEL);
+        for (int i = 0; i < amount; i++) {
+            spawnCreature(creatureId, playerId, creatureLevel, position, SpawnType.PLACE);
+        }
+    }
+    
     @Override
     public void angerEnemyCreatures(short playerId) {
         EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);
