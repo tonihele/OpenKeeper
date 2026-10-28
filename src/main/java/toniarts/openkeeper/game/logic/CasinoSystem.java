@@ -21,19 +21,25 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CasinoDisco;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -52,23 +58,31 @@ public final class CasinoSystem implements IGameLogicUpdatable {
      */
     private static final double DISCO_DURATION_SECONDS = 90;
 
+    /**
+     * How often the fireworks go off during the disco, as in DK II
+     */
+    private static final double FIREWORKS_INTERVAL_SECONDS = 12;
+
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
     private final IGameTimer gameTimer;
+    private final GameEventService gameEventService;
+    private final Random random = new Random();
     private final int payTimeMissedAngerPercentage;
     private final EntitySet bigWinners;
     private final EntitySet discos;
 
     public CasinoSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
-            IEntityPositionLookup entityPositionLookup, IGameTimer gameTimer,
+            IEntityPositionLookup entityPositionLookup, IGameTimer gameTimer, GameEventService gameEventService,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.creaturesController = creaturesController;
         this.mapController = mapController;
         this.entityPositionLookup = entityPositionLookup;
         this.gameTimer = gameTimer;
+        this.gameEventService = gameEventService;
         payTimeMissedAngerPercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT_MISSED_ANGER_PERCENTAGE_MODIFIER).getValue();
 
         bigWinners = entityData.getEntities(CasinoBigWinner.class, Owner.class, Position.class);
@@ -96,22 +110,39 @@ public final class CasinoSystem implements IGameLogicUpdatable {
 
         // The disco is over after its time, or when nobody is left in the Casino
         discos.applyChanges();
+        double gameTime = gameTimer.getGameTime();
         for (Entity disco : discos) {
-            if (gameTimer.getGameTime() - disco.get(CasinoDisco.class).startTime > DISCO_DURATION_SECONDS
-                    || !hasCreatures(disco.getId())) {
+            double discoTime = gameTime - disco.get(CasinoDisco.class).startTime;
+            if (discoTime > DISCO_DURATION_SECONDS || !hasCreatures(disco.getId())) {
                 entityData.removeComponent(disco.getId(), CasinoDisco.class);
+                RoomComponent room = entityData.getComponent(disco.getId(), RoomComponent.class);
+                gameEventService.emit(GameEventType.CASINO_DISCO_END, ThingFlag.ROOM, room.roomId, room.location);
+            } else if ((long) (discoTime / FIREWORKS_INTERVAL_SECONDS) > (long) ((discoTime - tpf) / FIREWORKS_INTERVAL_SECONDS)) {
+                fireworks(disco.getId());
             }
         }
     }
 
     private void startDisco(Entity bigWinner) {
         creaturesController.createController(bigWinner.getId()).getStateMachine().changeState(CreatureState.CELEBRATING);
+        gameEventService.emit(GameEventType.CASINO_JACKPOT, bigWinner.get(Position.class).position);
+        gameEventService.emitToPlayer(GameEventType.CASINO_JACKPOT_ANNOUNCED, bigWinner.get(Owner.class).ownerId);
 
         IRoomController casino = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(bigWinner.get(Position.class).position));
         if (casino != null && casino.hasObjectControl(ObjectType.GAMBLER)
                 && entityData.getComponent(casino.getEntityId(), CasinoDisco.class) == null) {
             entityData.setComponent(casino.getEntityId(), new CasinoDisco(gameTimer.getGameTime()));
+            RoomComponent room = entityData.getComponent(casino.getEntityId(), RoomComponent.class);
+            gameEventService.emit(GameEventType.CASINO_DISCO_START, ThingFlag.ROOM, room.roomId, room.location);
         }
+    }
+
+    /**
+     * Fireworks go off over a random tile of the Casino
+     */
+    private void fireworks(EntityId casinoId) {
+        List<Point> tiles = mapController.getRoomController(casinoId).getRoomInstance().getCoordinates();
+        gameEventService.emit(GameEventType.CASINO_FIREWORKS, tiles.get(random.nextInt(tiles.size())));
     }
 
     private void payTimeMissed(Entity bigWinner) {

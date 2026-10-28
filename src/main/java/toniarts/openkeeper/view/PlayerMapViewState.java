@@ -26,9 +26,15 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventListener;
+import com.simsilica.event.EventType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -64,6 +70,9 @@ import java.util.function.Consumer;
  */
 public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
 
+    private static final int CASINO_JACKPOT_EFFECT = 91;
+    private static final int CASINO_FIREWORKS_EFFECT = 320;
+
     private Main app;
     private AppStateManager stateManager;
     private final IMapInformation mapInformation;
@@ -78,6 +87,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private MapTileEffectTracker tileEffects;
     private final FogOfWarController fogOfWarController;
     private final GameEventSoundPlayer gameEventSoundPlayer;
+    private final EventListener<GameEvent> casinoEffectsListener = this::onCasinoEvent;
 
     // Tile updates (the fog seeding, fog changes from the server) that came
     // while the map was still loading. Render thread only
@@ -179,7 +189,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         flashTileControl = new FlashTileViewState(mapLoader);
 
-        gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile,
+        gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile, fogOfWarController::isExplored,
                 speech -> stateManager.getState(SoundState.class)
                         .attachMentorSpeech(speech, () -> {
                             SystemMessageState messages = stateManager.getState(SystemMessageState.class);
@@ -213,6 +223,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Sounds
         this.gameEventSoundPlayer.register();
+        EventBus.addListener(ClientEvents.GAME_EVENT, casinoEffectsListener);
 
         // Tile flash state
         this.stateManager.attach(flashTileControl);
@@ -247,6 +258,11 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Sounds
         this.gameEventSoundPlayer.unregister();
+        EventBus.removeListener(ClientEvents.GAME_EVENT, casinoEffectsListener);
+        SoundState soundState = stateManager.getState(SoundState.class);
+        if (soundState != null) {
+            soundState.setMusicVolumeFactor(1f);
+        }
 
         // The actual map data
         mapRoomContainer.stop();
@@ -273,10 +289,28 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
         mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
         mapLoader.getLightRules().update(tpf, app.getCamera());
+        // The level music is turned down as much as the loudest disco is heard
+        SoundState soundState = stateManager.getState(SoundState.class);
+        if (soundState != null) {
+            soundState.setMusicVolumeFactor(1f - gameEventSoundPlayer.updateDiscoMusic() / 100f);
+        }
     }
 
     public MapViewController getMapLoader() {
         return mapLoader;
+    }
+
+    /**
+     * The visual effects of the Casino's jackpot party, the sounds are played by {@link GameEventSoundPlayer}.
+     */
+    private void onCasinoEvent(EventType<GameEvent> type, GameEvent event) {
+        if (event.type == GameEventType.CASINO_JACKPOT) {
+            app.enqueue(() -> effectManager.load(worldNode, WorldUtils.pointToVector3f(event.position).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                    CASINO_JACKPOT_EFFECT, false));
+        } else if (event.type == GameEventType.CASINO_FIREWORKS) {
+            app.enqueue(() -> effectManager.load(worldNode, WorldUtils.pointToVector3f(event.position).addLocal(0, WorldUtils.TILE_HEIGHT, 0),
+                    CASINO_FIREWORKS_EFFECT, false));
+        }
     }
 
     /**

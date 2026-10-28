@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -36,11 +37,13 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -51,6 +54,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The Casino's jackpot party: the big winner celebrates, its Casino goes into
@@ -61,6 +65,7 @@ class CasinoSystemTest {
 
     private static final short KEEPER = 3;
     private static final short ENEMY = 4;
+    private static final Point CENTRE = new Point(6, 6);
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
@@ -68,6 +73,7 @@ class CasinoSystemTest {
     private final List<EntityId> creatures = new ArrayList<>();
     private final RoomInstance roomInstance = new RoomInstance(new Room());
     private final EntityId casinoId = entityData.createEntity();
+    private final List<String> events = new ArrayList<>();
     private double gameTime = 50;
     private CasinoSystem casinoSystem;
 
@@ -80,8 +86,49 @@ class CasinoSystemTest {
                 roomInstance.addCoordinate(new Point(x, y));
             }
         }
-        entityData.setComponent(casinoId, new Owner(KEEPER, KEEPER));
-        casinoSystem = new CasinoSystem(entityData, creaturesController(), mapController(), entitiesByTile(), () -> gameTime, gameSettings);
+        entityData.setComponents(casinoId, new Owner(KEEPER, KEEPER), new RoomComponent((short) 0, false, CENTRE));
+        casinoSystem = new CasinoSystem(entityData, creaturesController(), mapController(), entitiesByTile(), () -> gameTime,
+                gameEventService(), gameSettings);
+    }
+
+    @Test
+    void theJackpotAndTheStartOfTheDiscoAreEvents() {
+        EntityId bigWinner = creature(KEEPER, new Point(6, 6));
+        entityData.setComponent(bigWinner, new CasinoBigWinner(240, 1000, 0));
+
+        casinoSystem.processTick(0.25f);
+
+        assertEquals(List.of("CASINO_JACKPOT " + new Point(6, 6), "CASINO_JACKPOT_ANNOUNCED " + KEEPER, "CASINO_DISCO_START " + CENTRE), events);
+    }
+
+    @Test
+    void fireworksGoOffEvery12SecondsOfTheDisco() {
+        creature(KEEPER, new Point(6, 6));
+        entityData.setComponent(casinoId, new CasinoDisco(50));
+
+        gameTime = 61.75;
+        casinoSystem.processTick(0.25f);
+        assertEquals(List.of(), events);
+
+        gameTime = 62;
+        casinoSystem.processTick(0.25f);
+        assertEquals(1, events.size());
+        assertTrue(events.get(0).startsWith("CASINO_FIREWORKS "));
+
+        gameTime = 62.25;
+        casinoSystem.processTick(0.25f);
+        assertEquals(1, events.size());
+    }
+
+    @Test
+    void theEndOfTheDiscoIsAnEvent() {
+        creature(KEEPER, new Point(6, 6));
+        entityData.setComponent(casinoId, new CasinoDisco(50));
+
+        gameTime = 140.25;
+        casinoSystem.processTick(0.25f);
+
+        assertEquals(List.of("CASINO_DISCO_END " + CENTRE), events);
     }
 
     @Test
@@ -138,6 +185,18 @@ class CasinoSystemTest {
         assertEquals(2000, entityData.getComponent(bigWinner, CreatureMood.class).other);
         assertEquals(2000, entityData.getComponent(otherCreature, CreatureMood.class).other);
         assertEquals(1000, entityData.getComponent(enemyCreature, CreatureMood.class).other);
+    }
+
+    /**
+     * Records the events as "TYPE place" or "TYPE player"
+     */
+    private GameEventService gameEventService() {
+        return (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+            Object where = "emitToPlayer".equals(method.getName()) ? args[1]
+                    : args[args.length - 1] instanceof Vector3f position ? WorldUtils.vectorToPoint(position) : args[args.length - 1];
+            events.add(args[0] + " " + where);
+            return null;
+        });
     }
 
     private EntityId creature(short ownerId, Point tile) {
