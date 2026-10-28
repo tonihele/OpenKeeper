@@ -28,7 +28,6 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
-import toniarts.openkeeper.game.component.CreatureLairPlacement;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -1028,7 +1027,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, AttackTarget.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
-        entityData.removeComponent(entity, CreatureLairPlacement.class);
 
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
@@ -1148,6 +1146,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean torture = false;
         boolean imprison = false;
         CreatureState creatureState = null;
+        CreatureState targetState = null;
         // TODO: Evict & sacrifice
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
@@ -1176,7 +1175,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
-            requestLairRestAfterDrop(roomController, entity, owner.ownerId, tortureOrImprisonment);
+            targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
         // Show the fall animation right away, before the position brings the model back to the map
@@ -1190,10 +1189,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
         entityData.setComponent(entity, new Position(0, pos));
 
-        // If we got state, add it
-        if (creatureState != null) {
+        // Retain a manual rest target in AI while falling; AI updates wait for landing.
+        if (creatureState != null || targetState != null) {
             CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureComponent.creatureId));
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
+                    creatureState != null ? creatureState : CreatureState.FALLEN,
+                    creatureComponent.creatureId, targetState));
         }
 
         // Add the dropping component to the creature
@@ -1219,15 +1220,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     /**
-     * Records a rest request for a non-captive drop into an owned Lair.
-     * The creature controller checks the assigned bed after landing and getting up.
+     * Requests rest for a non-captive drop into an owned Lair. The creature
+     * controller validates its current room and assigned bed after getting up.
      */
-    private void requestLairRestAfterDrop(IRoomController roomController, EntityId entity, short ownerId, boolean captive) {
-        if (!captive && roomController.getOwnerId() == ownerId
+    private CreatureState getLairRestTarget(IRoomController roomController, EntityId entity, short ownerId, boolean captive) {
+        return !captive && roomController.getOwnerId() == ownerId
                 && roomController.hasObjectControl(ObjectType.LAIR)
-                && entityData.getComponent(entity, CreatureSleep.class) != null) {
-            entityData.setComponent(entity, new CreatureLairPlacement(roomController.getEntityId()));
-        }
+                && entityData.getComponent(entity, CreatureSleep.class) != null
+                        ? CreatureState.GO_TO_SLEEP : null;
     }
 
     private void dropGold(EntityId entity, IRoomController roomController, short playerId, Point tile, Vector2f coordinates) {

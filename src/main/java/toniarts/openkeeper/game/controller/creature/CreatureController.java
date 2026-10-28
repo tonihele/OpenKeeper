@@ -32,7 +32,6 @@ import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
-import toniarts.openkeeper.game.component.CreatureLairPlacement;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -371,12 +370,6 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean goToSleepAfterLairDrop() {
-        CreatureLairPlacement placement = entityData.getComponent(entityId, CreatureLairPlacement.class);
-        if (placement == null) {
-            return false;
-        }
-        // This is a one-shot room assignment, consumed only after landing/getting up.
-        entityData.removeComponent(entityId, CreatureLairPlacement.class);
         if (shouldFleeOrAttack()) {
             return false;
         }
@@ -388,9 +381,9 @@ public final class CreatureController extends EntityController implements ICreat
         Stored bed = entityData.getComponent(sleep.lairObjectId, Stored.class);
         if (room == null || room.isDestroyed() || room.isRemoved()
                 || room.getOwnerId() != getOwnerId()
-                || !placement.roomId.equals(room.getEntityId())
+                || !room.hasObjectControl(AbstractRoomController.ObjectType.LAIR)
                 || bed == null || bed.objectType != AbstractRoomController.ObjectType.LAIR
-                || !placement.roomId.equals(bed.room)) {
+                || !room.getEntityId().equals(bed.room)) {
             return false;
         }
         // Native manual placement bypasses the autonomous debt/retry gates.
@@ -970,6 +963,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void processTick(float tpf) {
+        // A manual drop can already carry its target in AI, but no state may
+        // enter or advance until the fall system has finished landing.
+        if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+            return;
+        }
 
         /**
          * Hmm, I'm not sure how to do this, this is not ideal either, how to

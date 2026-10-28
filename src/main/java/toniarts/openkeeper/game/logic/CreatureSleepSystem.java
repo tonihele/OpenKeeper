@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -70,6 +71,9 @@ public final class CreatureSleepSystem implements IGameLogicUpdatable {
         entities.applyChanges();
         double gameTime = gameTimer.getGameTime();
         for (Entity entity : entities) {
+            if (entityData.getComponent(entity.getId(), CreatureFall.class) != null) {
+                continue;
+            }
             CreatureSleep sleep = entity.get(CreatureSleep.class);
             CreatureAi ai = entity.get(CreatureAi.class);
             Creature creature = kwdFile.getCreature(

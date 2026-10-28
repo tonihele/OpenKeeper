@@ -32,7 +32,6 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
-import toniarts.openkeeper.game.component.CreatureLairPlacement;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -146,7 +145,7 @@ class CreatureControllerTest {
     @Test
     void manualLairDropWaitsForGetUpThenHealsWithoutDebt() {
         try (Fixture f = new Fixture(9)) {
-            f.data.setComponent(f.entity, new CreatureLairPlacement(f.room));
+            f.data.setComponent(f.entity, new CreatureAi(0, CreatureState.FALLEN, (short) 6, CreatureState.GO_TO_SLEEP));
             f.data.setComponent(f.entity, new Position(0, new Vector3f(3, WorldUtils.FLOOR_HEIGHT, 4)));
             f.data.setComponent(f.entity, new CreatureFall());
             f.fall.processTick(0);
@@ -154,14 +153,12 @@ class CreatureControllerTest {
             assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
             f.tick();
             assertEquals(CreatureState.GETTING_UP, f.state());
-            assertNotNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
             assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
             // Rebuild from entity state while getting up, as after loading a save.
             f.controller = f.controllers.get();
             f.tick();
             assertEquals(CreatureState.WORK, f.state());
             assertEquals(TaskType.GO_TO_SLEEP, f.controller.getAssignedTask().getTaskType());
-            assertNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
             assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
             f.tick();
             assertEquals(CreatureState.SLEEPING, f.state());
@@ -184,10 +181,59 @@ class CreatureControllerTest {
     }
 
     @Test
+    void airborneTargetWaitsForLandingWithoutRunningAiOrAccumulatingFatigue() {
+        try (Fixture f = new Fixture(9)) {
+            f.time = 50;
+            f.data.setComponents(f.entity,
+                    new CreatureAi(0, CreatureState.FALLEN, (short) 6, CreatureState.GO_TO_SLEEP),
+                    new Position(0, new Vector3f(3, WorldUtils.FLOOR_HEIGHT + 1, 4)),
+                    new CreatureFall());
+            f.fall.processTick(.25f);
+            f.tick();
+            assertNotNull(f.data.getComponent(f.entity, CreatureFall.class));
+            assertNull(f.state());
+            assertEquals(0, f.sleepAssignments);
+            assertEquals(0, f.sleep().sleepNeed);
+            assertNull(f.data.getComponent(f.entity, TaskComponent.class));
+            assertEquals(250, f.health());
+            assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+            // A save/load while airborne must keep the target and delay entry as well.
+            f.controller = f.controllers.get();
+            f.tick();
+            assertNull(f.state());
+            assertEquals(0, f.sleep().sleepNeed);
+            f.fall.processTick(.25f);
+            assertNull(f.data.getComponent(f.entity, CreatureFall.class));
+            f.tick();
+            assertEquals(CreatureState.GETTING_UP, f.state());
+            assertEquals(0, f.sleepAssignments);
+            f.tick();
+            assertEquals(CreatureState.WORK, f.state());
+            assertEquals(1, f.sleepAssignments);
+            assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+        }
+    }
+
+    @Test
+    void ordinaryLandingWithoutAiDoesNotRequestManualRest() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.removeComponent(f.entity, CreatureAi.class);
+            f.data.setComponent(f.entity, new CreatureFall());
+            f.fall.processTick(0);
+            assertEquals(CreatureState.FALLEN, f.data.getComponent(f.entity, CreatureAi.class).getCreatureState());
+            assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
+            f.tick();
+            f.tick();
+            assertEquals(CreatureState.IDLE, f.state());
+            assertEquals(0, f.sleepAssignments);
+        }
+    }
+
+    @Test
     void landingWithoutStunUsesTargetBeforeEnteringIdle() {
         try (Fixture f = new Fixture(9)) {
             f.data.getComponent(f.entity, CreatureComponent.class).stunDuration = 0;
-            f.data.setComponent(f.entity, new CreatureLairPlacement(f.room));
+            f.data.setComponent(f.entity, new CreatureAi(0, CreatureState.FALLEN, (short) 6, CreatureState.GO_TO_SLEEP));
             f.data.setComponent(f.entity, new CreatureFall());
             f.fall.processTick(0);
             assertEquals(CreatureState.IDLE, f.data.getComponent(f.entity, CreatureAi.class).getCreatureState());
@@ -202,12 +248,11 @@ class CreatureControllerTest {
     @Test
     void rejectedTargetFallsBackToIdleWithoutRetryingRequest() {
         try (Fixture f = new Fixture(9)) {
-            f.data.setComponent(f.entity, new CreatureLairPlacement(f.data.createEntity()));
+            f.data.setComponent(f.bed, new Stored(f.data.createEntity(), ObjectType.LAIR));
             f.data.setComponent(f.entity, new CreatureAi(0, CreatureState.IDLE, (short) 6, CreatureState.GO_TO_SLEEP));
             f.tick();
             assertEquals(CreatureState.IDLE, f.state());
             assertNull(f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
-            assertNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
             assertEquals(0, f.sleepAssignments);
         }
     }
@@ -216,14 +261,14 @@ class CreatureControllerTest {
     void manualRequestRejectsAnotherRoomRemovedBedOrNonSleeper() {
         for (int scenario = 0; scenario < 3; scenario++) {
             try (Fixture f = new Fixture(scenario == 2 ? 0 : 9)) {
-                EntityId dropRoom = scenario == 0 ? f.data.createEntity() : f.room;
-                f.data.setComponent(f.entity, new CreatureLairPlacement(dropRoom));
+                if (scenario == 0) {
+                    f.data.setComponent(f.bed, new Stored(f.data.createEntity(), ObjectType.LAIR));
+                }
                 if (scenario == 1) {
                     f.data.removeEntity(f.bed);
                 }
                 assertFalse(f.controller.goToSleepAfterLairDrop());
                 assertEquals(0, f.sleepAssignments);
-                assertNull(f.data.getComponent(f.entity, CreatureLairPlacement.class));
             }
         }
     }
@@ -340,6 +385,7 @@ class CreatureControllerTest {
                 case "getEntityId" -> room;
                 case "getOwnerId" -> (short) 3;
                 case "isDestroyed", "isRemoved" -> false;
+                case "hasObjectControl" -> args[0] == ObjectType.LAIR;
                 default -> throw new UnsupportedOperationException(method);
             });
             IMapController map = proxy(IMapController.class, (method, args) -> switch (method) {
