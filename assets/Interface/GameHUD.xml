@@ -95,7 +95,7 @@
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
+                            <panel id="payDay" childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
                                     <onHover name="simpleHintEx" hintText="${menu.2144}" targetElement="tooltip" />

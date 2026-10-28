@@ -532,7 +532,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     String getTooltipText(String text) {
         int dungeonHealth = 0;
-        int paydayCost = 0;
+        int paydayCost = screen.getPayDayCost();
 
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));

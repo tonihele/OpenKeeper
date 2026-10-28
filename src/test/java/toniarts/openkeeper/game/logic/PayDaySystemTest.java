@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PayDayClock;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
@@ -234,6 +235,80 @@ class PayDaySystemTest {
 
         assertNull(entityData.getComponent(knight, CreaturePay.class));
         assertEquals(0, gold(knight));
+    }
+
+    @Test
+    void theClockIsEmptyBeforeItStarts() {
+        payDaySystem.start();
+        addCreature(KEEPER, IMP, 0, true);
+
+        tick(0);
+
+        assertEquals(new PayDayClock(0, 0, 0), payDayClock(KEEPER));
+        assertEquals(0f, payDayClock(KEEPER).getTimeLeftFraction());
+    }
+
+    @Test
+    void theClockCountsDownToThePayDayAndShowsItsCost() {
+        payDaySystem.start();
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        addCreature(KEEPER, GOBLIN, 300, false);
+
+        tick(0);
+        assertEquals(new PayDayClock(FIRST_PAY_DAY, FIRST_PAY_DAY, WAGE + 300), payDayClock(KEEPER));
+        assertEquals(1f, payDayClock(KEEPER).getTimeLeftFraction());
+
+        tick(FIRST_PAY_DAY / 4.0);
+        assertEquals(0.75f, payDayClock(KEEPER).getTimeLeftFraction());
+    }
+
+    @Test
+    void theClockStartsAgainOnPayDay() {
+        payDaySystem.start();
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+
+        tick(0);
+        tick(FIRST_PAY_DAY - 1);
+        assertEquals(1, payDayClock(KEEPER).timeLeft);
+
+        tick(FIRST_PAY_DAY);
+        assertEquals(new PayDayClock(FREQUENCY, FREQUENCY, WAGE), payDayClock(KEEPER));
+    }
+
+    @Test
+    void theCostLeavesOutWhoIsNotPaidOnTheNextPayDay() {
+        payDaySystem.start();
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        EntityId prisoner = addCreature(KEEPER, GOBLIN, 300, false);
+        entityData.setComponent(prisoner, new CreatureImprisoned());
+        addCreature(Player.GOOD_PLAYER_ID, GOBLIN, 200, false);
+
+        tick(0);
+
+        // Joins too close to the pay day, it is paid on the one after
+        tick(FIRST_PAY_DAY - CUT_OFF + 1);
+        addCreature(KEEPER, GOBLIN, 100, false);
+        tick(FIRST_PAY_DAY - CUT_OFF + 2);
+
+        assertEquals(WAGE, payDayClock(KEEPER).cost);
+    }
+
+    @Test
+    void onlyTheKeepersHaveAClock() {
+        payDaySystem.start();
+        assertEquals(1, entityData.getEntities(PayDayClock.class).size());
+
+        payDaySystem.stop();
+        assertEquals(0, entityData.getEntities(PayDayClock.class).size());
+    }
+
+    private PayDayClock payDayClock(short keeperId) {
+        for (var entity : entityData.getEntities(PayDayClock.class, Owner.class)) {
+            if (entity.get(Owner.class).ownerId == keeperId) {
+                return entity.get(PayDayClock.class);
+            }
+        }
+        return null;
     }
 
     private void tick(double time) {
