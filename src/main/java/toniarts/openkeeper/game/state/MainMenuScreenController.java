@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.state;
 
-import com.jme3.audio.AudioData;
-import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyNames;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
@@ -54,7 +52,9 @@ import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -67,12 +67,10 @@ import toniarts.openkeeper.gui.nifty.table.TableControl;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableBuilder;
 import toniarts.openkeeper.gui.nifty.table.player.PlayerTableRow;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
@@ -99,9 +97,6 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
     private static final String OBJECTIVE_IMAGE_URL = "Textures/Obj_Shots/%s-%d.png";
-    private static final String BRIEFING_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2";
-    private static final String DEBRIEFING_WIN_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2";
-    private static final String DEBRIEFING_DEFEAT_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d003.mp2";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -145,10 +140,32 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         this.state = state;
         this.nifty = nifty;
 
-        SoundCategory sc = SoundsLoader.load(GlobalCategory.FRONT_END);
-        String filename = sc.getGroup(GlobalType.FRONT_END_CKICK).getFiles().get(0).getFilename();
-        this.nifty.registerSound(SOUND_MENU_ID, AssetsConverter.SOUNDS_FOLDER + File.separator + filename);
-        this.nifty.registerSound(SOUND_BUTTON_ID, "Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2");
+        String menuSound = SoundManager.getSoundAssetPath(GlobalCategory.FRONT_END, GlobalType.FRONT_END_CKICK);
+        if (menuSound != null) {
+            this.nifty.registerSound(SOUND_MENU_ID, menuSound);
+        }
+        String buttonSound = SoundManager.getSoundAssetPath(GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK);
+        if (buttonSound != null) {
+            this.nifty.registerSound(SOUND_BUTTON_ID, buttonSound);
+        }
+    }
+
+    /**
+     * Plays the mentor speech of a campaign level.
+     *
+     * @param level the 1-based level number
+     * @param index {@code 0} for the briefing, {@code 1} for winning and
+     * {@code 2} for losing
+     * @return a sound handle, {@code 0} if there is no such speech
+     */
+    private int playLevelSpeech(int level, int index) {
+        MentorType speech = MentorType.forLevel(level, index);
+        if (speech == null) {
+            logger.log(Logger.Level.WARNING, "No mentor speech {0} for level {1}", new Object[]{index, level});
+            return 0;
+        }
+
+        return SoundManager.playSound(SoundCategory.SPEECH_MENTOR, speech.getId());
     }
 
     @Override
@@ -1323,14 +1340,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 }
 
                 // Play some tunes!!
-                AudioNode audioNode = new AudioNode(state.assetManager,
-                        AssetUtils.getCanonicalAssetKey(String.format(BRIEFING_SPEECH_URL, lvl.getLevel())),
-                        AudioData.DataType.Buffer);
-                audioNode.setLooping(false);
-                audioNode.setDirectional(false);
-                audioNode.setPositional(false);
-                audioNode.play();
-                state.setLevelBriefing(audioNode);
+                state.setLevelBriefing(playLevelSpeech(lvl.getLevel(), 0));
             }
         }
     }
@@ -1383,15 +1393,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         // Play debriefing narration
         if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
-            String speech = AssetUtils.getCanonicalAssetKey(String.format(levelWon ? DEBRIEFING_WIN_SPEECH_URL : DEBRIEFING_DEFEAT_SPEECH_URL, lvl.getLevel()));
-            AudioNode audioNode = new AudioNode(state.assetManager,
-                    AssetUtils.getCanonicalAssetKey(speech),
-                    AudioData.DataType.Buffer);
-            audioNode.setLooping(false);
-            audioNode.setDirectional(false);
-            audioNode.setPositional(false);
-            audioNode.play();
-            state.setLevelDebriefing(audioNode);
+            state.setLevelDebriefing(playLevelSpeech(lvl.getLevel(), levelWon ? 1 : 2));
         }
 
         goToScreen(SCREEN_DEBRIEFING_ID);
