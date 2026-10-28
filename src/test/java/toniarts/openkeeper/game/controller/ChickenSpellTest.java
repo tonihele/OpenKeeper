@@ -76,7 +76,7 @@ class ChickenSpellTest {
             }
             default -> null;
         });
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 100, null, null, null, null, creaturesController);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> 100, null, null, null, null, creaturesController, null);
     }
 
     @Test

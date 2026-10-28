@@ -136,7 +136,7 @@ class CreatureChickenTest {
     private CreatureController controller(Creature creature) {
         ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                 new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> null);
-        return new CreatureController(entity, entityData, creature, null, null, () -> NOW, null, null, null, null, levelInfo, null, null);
+        return new CreatureController(entity, entityData, creature, null, null, () -> NOW, null, null, null, null, levelInfo, null, null, null);
     }
 
     private static ICreatureController creature(AtomicBoolean chicken, AtomicBoolean wandered, AtomicReference<CreatureState> state) {
