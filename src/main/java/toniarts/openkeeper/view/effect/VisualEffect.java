@@ -35,6 +35,7 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -168,7 +169,7 @@ public class VisualEffect {
                 break;
 
             case PROCEDURAL_MESH:
-                model = AssetUtils.createProceduralMesh(resource);
+                model = ProceduralMeshFactory.create(resource, assetManager);
                 break;
 
             case MESH_COLLECTION:
@@ -478,7 +479,7 @@ public class VisualEffect {
 
         Node model;
         if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
-            model = (Node) AssetUtils.createProceduralMesh(resource);
+            model = ProceduralMeshFactory.create(resource, assetManager);
         } else {
             model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
         }
