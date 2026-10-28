@@ -34,10 +34,21 @@ public final class PayDayClock implements EntityComponent {
     public int period;
     public int cost;
 
+    /**
+     * For serialization
+     */
     public PayDayClock() {
-        // For serialization
     }
 
+    /**
+     * The pay day as the HUD shows it
+     *
+     * @param timeLeft whole seconds to the next pay day, 0 while the clock
+     * hasn't started
+     * @param period seconds from the last pay day (or the start of the clock)
+     * to the next
+     * @param cost what the next pay day costs
+     */
     public PayDayClock(int timeLeft, int period, int cost) {
         this.timeLeft = timeLeft;
         this.period = period;
