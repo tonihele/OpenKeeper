@@ -144,6 +144,22 @@ class CasinoSystemTest {
     }
 
     @Test
+    void theKeepersOtherCreaturesInTheCasinoStartDancingAtTheJackpot() {
+        EntityId bigWinner = creature(KEEPER, new Point(6, 6));
+        entityData.setComponent(bigWinner, new CasinoBigWinner(240, 1000, 0));
+        EntityId gambler = creature(KEEPER, new Point(5, 7));
+        EntityId enemyCreature = creature(ENEMY, new Point(7, 5));
+        EntityId otherCreature = creature(KEEPER, new Point(10, 10));
+
+        casinoSystem.processTick(0.25f);
+
+        assertEquals(CreatureState.CELEBRATING, stateMachines.get(bigWinner).getCurrentState());
+        assertEquals(CreatureState.DANCING, stateMachines.get(gambler).getCurrentState());
+        assertNull(stateMachines.get(enemyCreature));
+        assertNull(stateMachines.get(otherCreature));
+    }
+
+    @Test
     void theDiscoIsOverAfter90Seconds() {
         creature(KEEPER, new Point(6, 6));
         entityData.setComponent(casinoId, new CasinoDisco(50));
@@ -214,10 +230,14 @@ class CasinoSystemTest {
             }
             StateMachine<ICreatureController, CreatureState> stateMachine = stateMachines.computeIfAbsent((EntityId) args[0], id -> new DefaultStateMachine<>());
             return Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (creatureProxy, creatureMethod, creatureArgs) -> {
-                if ("getStateMachine".equals(creatureMethod.getName())) {
-                    return stateMachine;
-                }
-                throw new UnsupportedOperationException(creatureMethod.getName());
+                return switch (creatureMethod.getName()) {
+                    case "getStateMachine" ->
+                        stateMachine;
+                    case "goToDisco" ->
+                        true;
+                    default ->
+                        throw new UnsupportedOperationException(creatureMethod.getName());
+                };
             });
         });
     }
