@@ -572,6 +572,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         return formatTooltipText(result);
     }
 
+    /**
+     * {@inheritDoc}
+     */
     @Override
     public String formatTooltipText(String text) {
         return state.getTooltipText(text);

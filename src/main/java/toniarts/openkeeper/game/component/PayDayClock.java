@@ -64,12 +64,19 @@ public final class PayDayClock implements EntityComponent {
         return period > 0 ? Math.clamp((float) timeLeft / period, 0f, 1f) : 0f;
     }
 
+    /**
+     * The same clock, so that the system only sets it again when the HUD
+     * would show something else
+     */
     @Override
     public boolean equals(Object obj) {
         return obj instanceof PayDayClock other && timeLeft == other.timeLeft && period == other.period
                 && cost == other.cost;
     }
 
+    /**
+     * Goes with {@link #equals(Object)}
+     */
     @Override
     public int hashCode() {
         return 31 * (31 * timeLeft + period) + cost;
