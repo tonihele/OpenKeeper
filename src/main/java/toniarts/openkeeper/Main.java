@@ -72,7 +72,11 @@ import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
+ import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
@@ -81,7 +85,6 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.video.MovieState;
@@ -347,6 +350,21 @@ public final class Main extends SimpleApplication {
     }
 
     /**
+     * Advances the sound engine once per frame, independent of the state that
+     * happens to be active.
+     */
+    @Override
+    public void update() {
+        super.update();
+
+        // The player camera sets the listener itself, it listens from where it looks at, not from where it hovers
+        if (getCamera() != null && stateManager.getState(PlayerCameraState.class) == null) {
+            SoundManager.setListener(WorldUtils.vectorToPoint(getCamera().getLocation()));
+        }
+        SoundManager.tick();
+    }
+
+    /**
      * Turns the window into a borderless window that covers the primary
      * monitor. The monitor's current mode is kept, so there is no video mode
      * switch and the window is not minimised when it loses the focus.
@@ -398,6 +416,8 @@ public final class Main extends SimpleApplication {
                     // Asset loaders
                     // Sound
                     getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
+                    SoundManager.init(Main.this);
+                    applySoundSettings();
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
 
@@ -486,7 +506,7 @@ public final class Main extends SimpleApplication {
 
             private void loadSounds() {
                 for (String cat : GlobalCategory.getCategories()) {
-                    SoundsLoader.load(cat);
+                    SoundCategory.load(cat, true);
                 }
             }
 
@@ -512,6 +532,16 @@ public final class Main extends SimpleApplication {
         float musicVolume = s.getFloat(Settings.Setting.MASTER_VOLUME) * s.getFloat(Settings.Setting.MUSIC_VOLUME);
         nifty.getSoundSystem().setMusicVolume(s.getBoolean(Settings.Setting.VOICE_ENABLED) ? musicVolume : 0);
         nifty.getSoundSystem().setSoundVolume(s.getFloat(Settings.Setting.MASTER_VOLUME));
+    }
+
+    /**
+     * Feeds the sound engine with the volume settings of the game.
+     */
+    public static void applySoundSettings() {
+        Settings s = getUserSettings();
+
+        SoundManager.applyVolumes(s.getFloat(Settings.Setting.MASTER_VOLUME), s.getFloat(Settings.Setting.MUSIC_VOLUME),
+                s.getFloat(Settings.Setting.VOICE_VOLUME), s.getFloat(Settings.Setting.SFX_VOLUME));
     }
 
     public byte[] getGameUiXml() {
