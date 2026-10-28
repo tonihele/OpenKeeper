@@ -135,16 +135,19 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      *
      * @param point tile coordinate
      * @param playerId for the player
+     * @param creature the worker, its efficiency scales the work
      */
-    void applyClaimTile(Point point, short playerId);
+    void applyClaimTile(Point point, short playerId, ICreatureController creature);
 
     /**
      * Heal a tile
      *
      * @param point the point
      * @param playerId the player applying the healing
+     * @param creature the worker, its efficiency scales the work, {@code null}
+     * if nobody is working
      */
-    void healTile(Point point, short playerId);
+    void healTile(Point point, short playerId, ICreatureController creature);
 
     /**
      * Alter terrain type

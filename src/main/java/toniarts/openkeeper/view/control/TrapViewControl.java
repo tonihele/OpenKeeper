@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -100,6 +101,9 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
                 AssetUtils.setBlueprint(assetManager, spatial);
             } else {
                 // TODO: Unblueprint?
+                if (current != null && spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
+                    ThingSounds.play(getDataObject().getSoundCategory(), ThingSounds.MANUFACTURED, spatial.getWorldTranslation());
+                }
             }
         }
         currentState = target;
