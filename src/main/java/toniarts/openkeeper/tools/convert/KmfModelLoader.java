@@ -581,6 +581,8 @@ public final class KmfModelLoader implements AssetLoader {
         // Read the flags & stuff
         if (kmfMaterial.getFlag().contains(MaterialFlag.HAS_ALPHA)) {
             material.setTransparent(true);
+            // Native alpha draws retain depth tests but do not write depth.
+            material.getAdditionalRenderState().setDepthWrite(false);
             material.setFloat("AlphaDiscardThreshold", 0.1f);
             material.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
         }
