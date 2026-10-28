@@ -1417,24 +1417,22 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
         if (roomConstructor != null) {
-            return roomConstructor.construct(fogOfWarInformation, deformer);
+            // Vertex ambient: the room's own terrain type, used
+            // by RoomConstructor to pre-swap its floor/wall materials to
+            // Vertex BEFORE it batches them (jME forbids re-materialling
+            // after batching).
+            Terrain roomTerrain = kwdFile.getTerrain(roomInstance.getRoom().getTerrainId());
+            roomConstructor.setAmbient(getVertexAmbient(roomTerrain, roomInstance.getOwnerId()));
+
+            Spatial roomNode = roomConstructor.construct(fogOfWarInformation, deformer);
+            List<Material> materials = roomConstructor.getLightingMaterials();
+            if (!materials.isEmpty()) {
+                lightRules.bindMaterials(materials);
+            }
+
+            return roomNode;
         }
         return null;
-    }
-
-        // Vertex ambient: the room's own terrain type, used
-        // by RoomConstructor to pre-swap its floor/wall materials to
-        // Vertex BEFORE it batches them (jME forbids re-materialling
-        // after batching).
-        Terrain roomTerrain = kwdFile.getTerrain(roomInstance.getRoom().getTerrainId());
-        roomConstructor.setAmbient(getVertexAmbient(roomTerrain, roomInstance.getOwnerId()));
-
-        Spatial roomNode = roomConstructor.construct(fogOfWarInformation);
-        List<Material> materials = roomConstructor.getLightingMaterials();
-        if (!materials.isEmpty()) {
-            lightRules.bindMaterials(materials);
-        }
-        return roomNode;
     }
 
     /**
