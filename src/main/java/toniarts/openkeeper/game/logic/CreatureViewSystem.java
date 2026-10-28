@@ -169,7 +169,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case CLAIM_WALL:
                 return Creature.AnimationType.SLEEPING;
             case DIG_TILE:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return Creature.AnimationType.DIG;
             case TRAIN:
                 return Creature.AnimationType.MELEE_ATTACK;
             case RESEARCH:

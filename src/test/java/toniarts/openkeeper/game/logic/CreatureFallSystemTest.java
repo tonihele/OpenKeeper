@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.logic;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import org.junit.jupiter.api.Test;
@@ -27,6 +28,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -35,7 +37,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 class CreatureFallSystemTest {
 
     private final DefaultEntityData entityData = new DefaultEntityData();
-    private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData, () -> 0);
+    private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData, () -> 0,
+            (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
 
     @Test
     void droppedCreatureLandsStunned() {
