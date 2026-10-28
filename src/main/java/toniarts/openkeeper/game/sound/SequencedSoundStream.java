@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.sound;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import java.io.BufferedInputStream;
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
@@ -33,11 +32,10 @@ import toniarts.openkeeper.audio.plugins.decoder.MpxReader;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 
 /**
- * An endless stream of 16 bit little endian PCM that plays a
- * {@link SoundSequencer} gaplessly. Each sound is decoded as it plays and cut
- * to its exact length, so consecutive music segments join without clicks.
- * Silence is produced while a linked sequence is stopped and between sequenced
- * one shots.<br>
+ * An endless stream of 16 bit little endian PCM that plays the music of a
+ * {@link SoundSequencer} gaplessly. Each segment is decoded as it plays and cut
+ * to its exact length, so consecutive segments join without clicks. Silence is
+ * produced while the music is stopped.<br>
  * The stream is read on the audio thread, the intensity supplier must be
  * thread safe.
  *
@@ -66,14 +64,13 @@ public final class SequencedSoundStream extends InputStream {
     private boolean exactLength;
     private float volume;
     private long silenceFrames;
-    private long framesToNextStart;
     private byte[] sourceBuffer = new byte[0];
     private volatile boolean closed;
 
     /**
      * @param assetManager asset manager to load the converted sounds from
      * @param sequencer the sequence to play
-     * @param intensity current intensity (0-100)
+     * @param intensity current music intensity (0-100)
      * @param channels output channels, sounds are up- or down-mixed to this
      */
     public SequencedSoundStream(AssetManager assetManager, SoundSequencer sequencer, IntSupplier intensity, int channels) {
@@ -115,7 +112,6 @@ public final class SequencedSoundStream extends InputStream {
                 continue;
             }
             written += got;
-            framesToNextStart -= got;
         }
         return written * frameSize;
     }
@@ -157,10 +153,6 @@ public final class SequencedSoundStream extends InputStream {
         sourceBytesLeft -= bytes;
         if (sourceBytesLeft < sourceFrameSize) {
             endSource();
-            if (!sequencer.isLinked()) {
-                // The caller counts these frames off framesToNextStart only after we return
-                silenceFrames = Math.max(0, framesToNextStart - toRead);
-            }
         }
         return toRead;
     }
@@ -190,33 +182,33 @@ public final class SequencedSoundStream extends InputStream {
     }
 
     private void startNext() {
-        SoundEntry entry = sequencer.next(intensity.getAsInt());
-        SoundFile file = entry != null ? sequencer.pickFile(entry) : null;
-        if (file == null) {
+        SoundEventGroup group = sequencer.next(intensity.getAsInt());
+        SoundSample sample = group != null ? group.pickSample() : null;
+        if (sample == null || sample.getAssetPath() == null) {
             silenceFrames = millisToFrames(RETRY_MILLIS);
             return;
         }
 
-        volume = sequencer.pickVolume(entry);
-        framesToNextStart = millisToFrames(sequencer.pickStartDelay(entry));
+        volume = SoundRng.volume(group) / 100f;
         try {
-            openSource(file);
+            openSource(sample);
         } catch (Exception e) {
-            logger.log(Level.WARNING, "Failed to play " + file.getFilename(), e);
+            logger.log(Level.WARNING, "Failed to play " + sample.getAssetPath(), e);
             endSource();
             silenceFrames = millisToFrames(1000);
         }
     }
 
-    private void openSource(SoundFile file) throws Exception {
-        String path = AssetsConverter.SOUNDS_FOLDER + File.separator + file.getFilename();
+    private void openSource(SoundSample sample) throws Exception {
+        String path = AssetsConverter.SOUNDS_FOLDER + '/' + sample.getAssetPath();
         source = new BufferedInputStream(assetManager.locateAsset(new AssetKey<>(path)).openStream());
         MpxReader reader = new MpxReader();
         MediaInformation info = reader.readInformation(source, true);
         decoder = reader.getDecoder(source, true);
         sourceChannels = (int) info.get(AudioInformation.I_CHANNEL_NUMBER);
-        exactLength = file.getPcmBytes() > 0;
-        sourceBytesLeft = exactLength ? file.getPcmBytes() : Long.MAX_VALUE;
+        int pcmBytes = sample.getArchive() != null ? sample.getArchive().getClipPcmBytes(sample.getClip()) : 0;
+        exactLength = pcmBytes > 0;
+        sourceBytesLeft = exactLength ? pcmBytes : Long.MAX_VALUE;
     }
 
     private void endSource() {

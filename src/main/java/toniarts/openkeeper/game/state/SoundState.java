@@ -18,19 +18,15 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
-import com.jme3.audio.AudioData.DataType;
 import com.jme3.audio.AudioKey;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import com.jme3.audio.AudioStream;
-import java.io.File;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayDeque;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.Iterator;
 import java.util.Queue;
-import java.util.Random;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -39,11 +35,11 @@ import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.MusicLevel;
 import toniarts.openkeeper.game.sound.SequencedSoundStream;
 import toniarts.openkeeper.game.sound.SoundCategory;
-import toniarts.openkeeper.game.sound.SoundGroup;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundEvent;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.SoundSequencer;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 
 /**
  * This state plays different sounds
@@ -70,29 +66,34 @@ public final class SoundState extends AbstractPauseAwareState {
     }
 
     private static final Logger logger = System.getLogger(SoundState.class.getName());
-    
+
     private Main app;
     private AppStateManager stateManager;
-    private AudioNode speechNode = null;
+    private int speechHandle = SoundEngine.NO_HANDLE;
+    private int backgroundHandle = SoundEngine.NO_HANDLE;
     private IKwdFile kwdFile;
 
     /**
-     * Music group per level sound track, as in DK II (track 0 plays track 1).
-     * The game refers to a track 2 (group 344) that does not exist in the data.
+     * AMBIENCE(341) | OPTIONS_MUSIC(838) | MUSIC(343, 345) | maybe ONE_SHOT_ATMOS(746)
+     */
+    private final BackgroundState backgroundState = new BackgroundState("MUSIC");
+    private final Queue<Speech> speechQueue = new ArrayDeque<>();
+
+    /**
+     * Music event per level sound track, as in DK II (track 0 plays track 1).
+     * The game refers to a track 2 (event 344) that does not exist in the data.
      */
     private static final int[] MUSIC_TRACKS = {GlobalType.MUSIC_TRACK_1.getId(), GlobalType.MUSIC_TRACK_1.getId(),
         344, GlobalType.MUSIC_TRACK_3.getId()};
 
     /**
-     * The background sound layers currently playing. Each one is an endless
-     * stream following a sequenced sound group: AMBIENCE(341),
-     * OPTIONS_MUSIC(838), MUSIC(343, 345), ONE_SHOT_ATMOS(746)
+     * The in-game music: the level's track, played gaplessly and driven by the
+     * music level
      */
-    private final List<AudioNode> backgroundNodes = new ArrayList<>();
-    private final List<SequencedSoundStream> backgroundStreams = new ArrayList<>();
     private final MusicLevel musicLevel = new MusicLevel();
-    private final Random random = new Random();
-    private final Queue<Speech> speechQueue = new ArrayDeque<>();
+    private boolean levelMusic;
+    private AudioNode musicNode;
+    private SequencedSoundStream musicStream;
 
     public SoundState(boolean enabled) {
         this.setEnabled(enabled);
@@ -117,21 +118,20 @@ public final class SoundState extends AbstractPauseAwareState {
 
         if (isInitialized()) {
             app.enqueue(() -> {
-                if (speechNode != null && speechNode.getStatus() != AudioSource.Status.Stopped) {
-                    if (enabled) {
-                        speechNode.play();
-                    } else {
-                        speechNode.pause();
-                    }
+                SoundManager.setPaused(!enabled);
+                if (speechHandle != SoundEngine.NO_HANDLE) {
+                    SoundManager.stopSound(speechHandle);
+                    speechHandle = SoundEngine.NO_HANDLE;
                 }
-
-                for (AudioNode backgroundNode : backgroundNodes) {
-                    if (backgroundNode.getStatus() != AudioSource.Status.Stopped) {
-                        if (enabled) {
-                            backgroundNode.play();
-                        } else {
-                            backgroundNode.pause();
-                        }
+                if (backgroundHandle != SoundEngine.NO_HANDLE) {
+                    SoundManager.stopSound(backgroundHandle);
+                    backgroundHandle = SoundEngine.NO_HANDLE;
+                }
+                if (musicNode != null) {
+                    if (enabled) {
+                        musicNode.play();
+                    } else {
+                        musicNode.pause();
                     }
                 }
             });
@@ -142,40 +142,34 @@ public final class SoundState extends AbstractPauseAwareState {
         this.kwdFile = kwdFile;
     }
 
-    /**
-     * Plays all the groups of a background category, replacing the current
-     * background
-     *
-     * @param category the category
-     */
     public void changeBackground(Background category) {
-        SoundCategory sc = SoundsLoader.load(category.getName());
-        if (sc == null) {
-            logger.log(Level.WARNING, "Background category {0} not found", category.getName());
-            return;
-        }
+        backgroundState.setCategory(category.getName());
         app.enqueue(() -> {
-            stopBackground();
-            for (SoundGroup group : sc.getGroups().values()) {
-                startBackground(group, category == Background.MUSIC || category == Background.OPTIONS);
+            levelMusic = false;
+            stopMusic();
+            if (backgroundHandle != SoundEngine.NO_HANDLE) {
+                SoundManager.stopSound(backgroundHandle);
+                backgroundHandle = SoundEngine.NO_HANDLE;
             }
         });
     }
 
     /**
-     * Starts the in-game background of the current level: the level's music
-     * track, the ambience and the atmospheric one shots. The music level starts
-     * silent, so only the ambience is heard until the first fight.
+     * Starts the music of the current level, replacing the background. The
+     * music level starts silent, so the music begins with the first fight.
      */
     public void startLevelBackground() {
         int track = kwdFile != null ? kwdFile.getGameLevel().getSoundTrack() : 0;
         app.enqueue(() -> {
-            stopBackground();
+            levelMusic = true;
+            if (backgroundHandle != SoundEngine.NO_HANDLE) {
+                SoundManager.stopSound(backgroundHandle);
+                backgroundHandle = SoundEngine.NO_HANDLE;
+            }
+            stopMusic();
             musicLevel.set(MusicLevel.SILENT);
             musicLevel.update();
-            startBackground(GlobalCategory.MUSIC, track < MUSIC_TRACKS.length ? MUSIC_TRACKS[track] : 0, true);
-            startBackground(GlobalCategory.AMBIENCE, GlobalType.AMBIENCE.getId(), false);
-            startBackground(GlobalCategory.ONE_SHOT_ATMOS, GlobalType.ONE_SHOT_ATMOS.getId(), false);
+            startMusic(track < MUSIC_TRACKS.length ? MUSIC_TRACKS[track] : 0);
         });
     }
 
@@ -189,49 +183,46 @@ public final class SoundState extends AbstractPauseAwareState {
         return musicLevel;
     }
 
-    private void startBackground(String category, int groupId, boolean music) {
-        SoundCategory sc = SoundsLoader.load(category);
-        SoundGroup group = sc != null ? sc.getGroup(groupId) : null;
-        if (group == null) {
-            logger.log(Level.WARNING, "Background sound group {0} of category {1} not found", groupId, category);
+    private void startMusic(int eventId) {
+        if (!Main.getUserSettings().getBoolean(Settings.Setting.MUSIC_ENABLED)) {
             return;
         }
-        startBackground(group, music);
-    }
-
-    private void startBackground(SoundGroup group, boolean music) {
-        Settings settings = Main.getUserSettings();
-        if (!settings.getBoolean(music ? Settings.Setting.MUSIC_ENABLED : Settings.Setting.SFX_ENABLED)
-                || group.getFiles().isEmpty()) {
+        SoundCategory category = SoundManager.loadCategory(GlobalCategory.MUSIC);
+        SoundEvent event = category != null ? category.getEvent(eventId) : null;
+        if (event == null) {
+            logger.log(Level.WARNING, "Music event {0} not found", eventId);
             return;
         }
 
-        int channels = group.isLinked() ? 2 : 1;
-        SequencedSoundStream in = new SequencedSoundStream(app.getAssetManager(),
-                new SoundSequencer(group.getEntries(), random), musicLevel::getIntensity, channels);
+        musicStream = new SequencedSoundStream(app.getAssetManager(), new SoundSequencer(event),
+                musicLevel::getIntensity, 2);
         AudioStream stream = new AudioStream();
-        stream.setupFormat(channels, 16, SequencedSoundStream.SAMPLE_RATE);
-        stream.updateData(in, -1);
-
-        AudioNode node = new AudioNode(stream, new AudioKey(group.getCategory().getName() + "/" + group.getId(), true));
-        node.setLooping(false);
-        node.setPositional(false);
-        node.setVolume(settings.getFloat(Settings.Setting.MASTER_VOLUME)
-                * settings.getFloat(music ? Settings.Setting.MUSIC_VOLUME : Settings.Setting.SFX_VOLUME));
-        backgroundNodes.add(node);
-        backgroundStreams.add(in);
-        node.play();
+        stream.setupFormat(2, 16, SequencedSoundStream.SAMPLE_RATE);
+        stream.updateData(musicStream, -1);
+        musicNode = new AudioNode(stream, new AudioKey(GlobalCategory.MUSIC + "/" + eventId, true));
+        musicNode.setPositional(false);
+        musicNode.setLooping(false);
+        musicNode.setVolume(getMusicGain());
+        musicNode.play();
     }
 
-    private void stopBackground() {
-        for (AudioNode node : backgroundNodes) {
-            node.stop();
+    private void stopMusic() {
+        if (musicNode != null) {
+            musicNode.stop();
+            musicNode = null;
         }
-        for (SequencedSoundStream in : backgroundStreams) {
-            in.close();
+        if (musicStream != null) {
+            musicStream.close();
+            musicStream = null;
         }
-        backgroundNodes.clear();
-        backgroundStreams.clear();
+    }
+
+    private static float getMusicGain() {
+        SoundEngine engine = SoundManager.getEngine();
+        if (engine == null) {
+            return 1.0f;
+        }
+        return engine.getMasterVolume() / 100f * engine.getChannelVolume(SoundManager.CHANNEL_MUSIC) / 100f;
     }
 
     /**
@@ -261,45 +252,41 @@ public final class SoundState extends AbstractPauseAwareState {
             return;
         }
 
-        try {
-            SoundCategory sc = SoundsLoader.load(soundCategory, false);
-            if (sc == null) {
-                throw new RuntimeException("Sound category " + soundCategory + " not found");
-            }
-
-            String file = AssetsConverter.SOUNDS_FOLDER + File.separator
-                    + sc.getGroup(speechId).getFiles().get(0).getFilename();
-            speechQueue.add(new Speech(speechId, file, listener));
-        } catch (RuntimeException e) {
-            logger.log(Level.WARNING, "Failed to attach speech from category " + soundCategory + " with id " + speechId, e);
+        if (SoundCategory.load(soundCategory, false) == null) {
+            logger.log(Level.WARNING, "Sound category {0} not found", soundCategory);
+            return;
         }
+
+        speechQueue.add(new Speech(soundCategory, speechId, listener));
     }
 
     private void playSpeech(Speech speech) {
-        speechNode = new AudioNode(app.getAssetManager(), speech.file, DataType.Buffer);
-        if (speechNode == null) {
-            logger.log(Level.WARNING, "Audio file {0} not found", speech.file);
+        speechHandle = SoundManager.playSound(speech.soundCategory(), speech.speechId());
+        if (speechHandle == SoundEngine.NO_HANDLE) {
+            logger.log(Level.WARNING, "Failed to attach speech from category {0} with id {1}",
+                    new Object[]{speech.soundCategory(), speech.speechId()});
             return;
         }
-        speechNode.setLooping(false);
-        speechNode.setPositional(false);
-        float volume = Main.getUserSettings().getFloat(Settings.Setting.MASTER_VOLUME)
-                * Main.getUserSettings().getFloat(Settings.Setting.VOICE_VOLUME);
-        speechNode.setVolume(volume);
-        app.enqueue(() -> {
-            speechNode.play();
-            if (speech.listener != null) {
-                speech.listener.onStart();
-            }
-        });
+        if (speech.listener != null) {
+            speech.listener.onStart();
+        }
     }
 
     public void stopSpeech() {
         app.enqueue(() -> {
-            if (speechNode != null) {
-                speechNode.stop();
+            if (speechHandle != SoundEngine.NO_HANDLE) {
+                SoundManager.stopSound(speechHandle);
+                speechHandle = SoundEngine.NO_HANDLE;
             }
         });
+    }
+
+    private void playBackground() {
+        if (!Main.getUserSettings().getBoolean(Settings.Setting.MUSIC_ENABLED)) {
+            return;
+        }
+
+        backgroundHandle = SoundManager.playSound(backgroundState.getCategory(), backgroundState.getNext());
     }
 
     @Override
@@ -309,27 +296,75 @@ public final class SoundState extends AbstractPauseAwareState {
         }
 
         if (!speechQueue.isEmpty()) {
-            if (speechNode == null || speechNode.getStatus() == AudioSource.Status.Stopped) {
+            if (speechHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(speechHandle)) {
+                speechHandle = SoundEngine.NO_HANDLE;
                 playSpeech(speechQueue.poll());
             }
         }
 
         musicLevel.update();
+        if (levelMusic) {
+            if (musicNode != null && musicNode.getStatus() == AudioSource.Status.Playing) {
+                musicNode.setVolume(getMusicGain());
+            }
+        } else if (backgroundHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(backgroundHandle)) {
+            backgroundHandle = SoundEngine.NO_HANDLE;
+            playBackground();
+        }
 
         super.update(tpf);
     }
 
     @Override
     public void cleanup() {
-        stopBackground();
+        stopMusic();
 
         super.cleanup();
+    }
+
+    private static final class BackgroundState {
+
+        private String category;
+        private SoundCategory sc;
+        private Iterator<SoundEvent> itEvent;
+
+        public BackgroundState(String category) {
+            this.setCategory(category);
+        }
+
+        public final synchronized void setCategory(String category) {
+            this.category = category;
+            this.sc = SoundCategory.load(category, true);
+            if (sc == null) {
+                throw new RuntimeException("Category " + category + " does not exist");
+            }
+
+            if (this.sc.getEvents().isEmpty()) {
+                throw new RuntimeException("We have no events in category " + category);
+            }
+
+            itEvent = null;
+        }
+
+        public synchronized String getCategory() {
+            return category;
+        }
+
+        /**
+         * @return the next event to play, cycling through the category
+         */
+        public synchronized int getNext() {
+            if (itEvent == null || !itEvent.hasNext()) {
+                itEvent = sc.getEvents().values().iterator();
+            }
+            return itEvent.next().getId();
+        }
     }
 
     /**
          * Simple wrapper for a speech to play
          */
-        private record Speech(int speechId, String file, ISpeechListener listener) {
+    private record Speech(String soundCategory, int speechId, ISpeechListener listener) {
 
     }
 

@@ -16,119 +16,108 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SoundSequencerTest {
 
-    private static SoundEntry entry(SoundEntry.Link... links) {
-        SoundEntry entry = new SoundEntry(100, 100, 0, 0);
-        entry.getLinks().addAll(List.of(links));
-        return entry;
+    private Random previousRandom;
+
+    @BeforeEach
+    void seedRandom() {
+        previousRandom = SoundRng.getRandom();
+        SoundRng.setRandom(new Random(1));
     }
 
-    private static SoundEntry.Link link(int target, int min, int max) {
-        return new SoundEntry.Link(target, min, max);
+    @AfterEach
+    void restoreRandom() {
+        SoundRng.setRandom(previousRandom);
     }
 
     /**
-     * Entry 0 is the entry point to 1 (calm) or 3 (intense), 1 and 2 loop and
-     * jump to 3 when intense, 3 loops only when intense
+     * Groups whose links are given as {target (1-based), min, max} triplets,
+     * resolved like the parser does
      */
-    private static List<SoundEntry> music() {
-        return List.of(
-                entry(link(1, 20, 39), link(3, 40, 100)),
-                entry(link(2, 20, 39), link(3, 40, 100)),
-                entry(link(1, 20, 39), link(3, 40, 100)),
-                entry(link(3, 40, 100)));
+    private static List<SoundEventGroup> groups(int[]... linksPerGroup) {
+        List<SoundEventGroup> groups = new ArrayList<>();
+        for (int[] links : linksPerGroup) {
+            List<SoundLink> groupLinks = new ArrayList<>();
+            for (int i = 0; i < links.length; i += 3) {
+                groupLinks.add(new SoundLink(links[i], links[i + 1], links[i + 2]));
+            }
+            groups.add(new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, List.of(), groupLinks));
+        }
+        for (SoundEventGroup group : groups) {
+            for (SoundLink link : group.getLinks()) {
+                link.setTarget(groups.get(link.getGroupIndex() - 1));
+            }
+        }
+        return groups;
+    }
+
+    /**
+     * Group 1 is the entry point to 2 (calm) or 4 (intense), 2 and 3 loop and
+     * jump to 4 when intense, 4 loops only when intense
+     */
+    private static List<SoundEventGroup> music() {
+        return groups(
+                new int[]{2, 20, 39, 4, 40, 100},
+                new int[]{3, 20, 39, 4, 40, 100},
+                new int[]{2, 20, 39, 4, 40, 100},
+                new int[]{4, 40, 100});
     }
 
     @Test
-    void startsFromTheLinksOfTheFirstEntry() {
-        List<SoundEntry> entries = music();
+    void startsFromTheLinksOfTheFirstGroup() {
+        List<SoundEventGroup> groups = music();
 
-        assertSame(entries.get(1), new SoundSequencer(entries, new Random(1)).next(20));
-        assertSame(entries.get(3), new SoundSequencer(entries, new Random(1)).next(80));
+        assertSame(groups.get(1), new SoundSequencer(groups).next(20));
+        assertSame(groups.get(3), new SoundSequencer(groups).next(80));
     }
 
     @Test
-    void followsLinksMatchingTheIntensity() {
-        List<SoundEntry> entries = music();
-        SoundSequencer sequencer = new SoundSequencer(entries, new Random(1));
+    void followsLinksMatchingTheProperty() {
+        List<SoundEventGroup> groups = music();
+        SoundSequencer sequencer = new SoundSequencer(groups);
 
-        assertSame(entries.get(1), sequencer.next(20));
-        assertSame(entries.get(2), sequencer.next(39));
-        assertSame(entries.get(1), sequencer.next(20));
-        assertSame(entries.get(3), sequencer.next(40));
-        assertSame(entries.get(3), sequencer.next(100));
+        assertSame(groups.get(1), sequencer.next(20));
+        assertSame(groups.get(2), sequencer.next(39));
+        assertSame(groups.get(1), sequencer.next(20));
+        assertSame(groups.get(3), sequencer.next(40));
+        assertSame(groups.get(3), sequencer.next(100));
     }
 
     @Test
-    void staysSilentWithoutMatchAndResumesFromTheFirstEntry() {
-        List<SoundEntry> entries = music();
-        SoundSequencer sequencer = new SoundSequencer(entries, new Random(1));
+    void staysSilentWithoutMatchAndResumesFromTheFirstGroup() {
+        List<SoundEventGroup> groups = music();
+        SoundSequencer sequencer = new SoundSequencer(groups);
 
         assertNull(sequencer.next(0));
-        assertSame(entries.get(3), sequencer.next(60));
+        assertSame(groups.get(3), sequencer.next(60));
         assertNull(sequencer.next(20));
         assertNull(sequencer.next(19));
-        assertSame(entries.get(1), sequencer.next(20));
+        assertSame(groups.get(1), sequencer.next(20));
     }
 
     @Test
     void picksUniformlyAndRepeatedLinksWeighMore() {
-        List<SoundEntry> entries = List.of(
-                entry(link(1, 0, 100), link(2, 0, 100), link(1, 0, 100)),
-                entry(),
-                entry());
-        Map<SoundEntry, Integer> counts = new HashMap<>();
-        Random random = new Random(42);
+        List<SoundEventGroup> groups = groups(new int[]{2, 0, 100, 3, 0, 100, 2, 0, 100}, new int[0], new int[0]);
+        Map<SoundEventGroup, Integer> counts = new HashMap<>();
         for (int i = 0; i < 30000; i++) {
-            counts.merge(new SoundSequencer(entries, random).next(50), 1, Integer::sum);
+            counts.merge(new SoundSequencer(groups).next(50), 1, Integer::sum);
         }
 
-        assertEquals(20000, counts.get(entries.get(1)), 600);
-        assertEquals(10000, counts.get(entries.get(2)), 600);
-    }
-
-    @Test
-    void unlinkedGroupsPlayRandomEntriesWithDelays() {
-        SoundEntry entry = new SoundEntry(21, 21, 8000, 20000);
-        SoundSequencer sequencer = new SoundSequencer(List.of(entry), new Random(3));
-
-        assertFalse(sequencer.isLinked());
-        assertSame(entry, sequencer.next(0));
-        assertSame(entry, sequencer.next(100));
-        for (int i = 0; i < 1000; i++) {
-            int delay = sequencer.pickStartDelay(entry);
-            assertTrue(delay >= 8250 && delay < 20250, "delay " + delay);
-        }
-        assertEquals(0.21f, sequencer.pickVolume(entry), 0.0001f);
-    }
-
-    @Test
-    void picksFilesByCumulativeWeight() {
-        SoundEntry entry = new SoundEntry(100, 100, 0, 0);
-        SoundFile rare = new SoundFile(null, 0, "rare", 0, 0x0fff);
-        SoundFile common = new SoundFile(null, 1, "common", 0, 0xffff);
-        entry.getFiles().addAll(List.of(rare, common));
-        SoundSequencer sequencer = new SoundSequencer(List.of(entry), new Random(5));
-
-        int rareCount = 0;
-        for (int i = 0; i < 16000; i++) {
-            if (sequencer.pickFile(entry) == rare) {
-                rareCount++;
-            }
-        }
-        assertEquals(1000, rareCount, 150);
+        assertEquals(20000, counts.get(groups.get(1)), 600);
+        assertEquals(10000, counts.get(groups.get(2)), 600);
     }
 }

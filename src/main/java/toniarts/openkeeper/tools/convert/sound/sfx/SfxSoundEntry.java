@@ -26,8 +26,8 @@ public final class SfxSoundEntry {
 
     private final SfxEEEntry parent;
     protected int index;
-    protected int weight;
-    protected int duration;
+    protected int unknown_1;
+    protected int unknown_2;
     protected int archiveId;
 
     public SfxSoundEntry(SfxEEEntry parent) {
@@ -54,25 +54,6 @@ public final class SfxSoundEntry {
      */
     public int getArchiveId() {
         return archiveId;
-    }
-
-    /**
-     * Cumulative selection weight (0-65535) when an entry has several sounds
-     *
-     * @return weight
-     */
-    public int getWeight() {
-        return weight;
-    }
-
-    /**
-     * Playing time of the sound in milliseconds. Sequenced sounds (music)
-     * advance after this time.
-     *
-     * @return duration in milliseconds
-     */
-    public int getDuration() {
-        return duration;
     }
 
     @Override

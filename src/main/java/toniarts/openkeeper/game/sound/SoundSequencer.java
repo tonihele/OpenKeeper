@@ -18,119 +18,56 @@ package toniarts.openkeeper.game.sound;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
+import javax.annotation.Nullable;
 
 /**
- * Decides which entry of a sound group plays next, as DK II does for its
- * sequenced backgrounds.<br>
- * Linked groups (music, ambience): the next entry is picked uniformly among the
- * current entry's links that match the current intensity. If none matches, the
- * sequence goes silent; it resumes from the links of the first entry, which
- * acts only as an entry point and is not played itself. Weighting is done in
- * the data by repeating a link.<br>
- * Other groups (one shot atmosphere): a random entry is played and the next one
- * starts a random delay after the previous one started.
+ * Picks the segments of a property linked sound event, the music, as DK II
+ * does. When a segment ends, the next one is picked uniformly among the current
+ * group's links that match the property (the music intensity); the data weighs
+ * a link by repeating it. If no link matches, the music goes silent. It resumes
+ * from the links of the first group, which is only an entry point.
  *
  * @see <a href="https://github.com/Dethware/DK2/blob/master/docs/runtime-behaviour.md#the-linked-streaming-player">How DK II plays its dynamic music</a>
  */
 public final class SoundSequencer {
 
-    /**
-     * The next start comes this much later than the entry's delay says
-     */
-    public static final int START_DELAY_PADDING = 250;
+    private final List<SoundEventGroup> groups;
+    @Nullable
+    private SoundEventGroup current;
 
-    private final List<SoundEntry> entries;
-    private final Random random;
-    private final boolean linked;
-    private int current = -1;
-
-    /**
-     * @param entries the entries of the sound group, in order
-     * @param random random source
-     */
-    public SoundSequencer(List<SoundEntry> entries, Random random) {
-        this.entries = entries;
-        this.random = random;
-        this.linked = entries.stream().anyMatch(entry -> !entry.getLinks().isEmpty());
+    public SoundSequencer(SoundEvent event) {
+        this(event.getGroups());
     }
 
-    public boolean isLinked() {
-        return linked;
+    SoundSequencer(List<SoundEventGroup> groups) {
+        this.groups = groups;
     }
 
     /**
      * Advances the sequence
      *
-     * @param intensity the current intensity (0-100), only used by linked
-     * groups
-     * @return the entry to play, or null to stay silent
+     * @param property the current property (the music intensity, 0-100)
+     * @return the group to play next, or null to stay silent
      */
-    public SoundEntry next(int intensity) {
-        if (entries.isEmpty()) {
+    @Nullable
+    public SoundEventGroup next(int property) {
+        if (groups.isEmpty()) {
             return null;
         }
-        if (!linked) {
-            current = random.nextInt(entries.size());
-            return entries.get(current);
-        }
 
-        SoundEntry from = entries.get(current < 0 ? 0 : current);
-        List<SoundEntry.Link> matchingLinks = new ArrayList<>();
-        for (SoundEntry.Link link : from.getLinks()) {
-            if (link.matches(intensity)) {
+        SoundEventGroup from = current != null ? current : groups.get(0);
+        List<SoundLink> matchingLinks = new ArrayList<>();
+        for (SoundLink link : from.getLinks()) {
+            if (link.getTarget() != null && link.matchesProperty(property)) {
                 matchingLinks.add(link);
             }
         }
         if (matchingLinks.isEmpty()) {
-            current = -1;
+            current = null;
             return null;
         }
 
-        current = matchingLinks.get(random.nextInt(matchingLinks.size())).target();
-        return entries.get(current);
-    }
-
-    /**
-     * Picks one of the entry's sounds by their cumulative weights
-     *
-     * @param entry the entry
-     * @return the sound, or null if the entry has none
-     */
-    public SoundFile pickFile(SoundEntry entry) {
-        List<SoundFile> files = entry.getFiles();
-        if (files.isEmpty()) {
-            return null;
-        }
-        int r = random.nextInt(0x10000);
-        for (SoundFile file : files) {
-            if (r <= file.getWeight()) {
-                return file;
-            }
-        }
-        return files.get(0);
-    }
-
-    /**
-     * @param entry the entry
-     * @return volume picked from the entry's range, 0.0-1.0
-     */
-    public float pickVolume(SoundEntry entry) {
-        return pickInRange(entry.getMinVolume(), entry.getMaxVolume()) / 100f;
-    }
-
-    /**
-     * @param entry the entry just started
-     * @return milliseconds from the entry's start to the next entry's start
-     */
-    public int pickStartDelay(SoundEntry entry) {
-        return START_DELAY_PADDING + pickInRange(entry.getMinDelay(), entry.getMaxDelay());
-    }
-
-    private int pickInRange(int min, int max) {
-        if (max <= min) {
-            return min;
-        }
-        return min + random.nextInt(max - min);
+        current = matchingLinks.get(SoundRng.nextInt(matchingLinks.size())).getTarget();
+        return current;
     }
 }
