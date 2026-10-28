@@ -98,7 +98,7 @@ class ReaperDamageTest {
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> name.equals("getLevelData") ? kwdFile : unsupported(name));
         return new HealthSystem(entityData, stub(IEntityPositionLookup.class, (name, args) -> unsupported(name)), gameSettings,
                 stub(ICreaturesController.class, (name, args) -> unsupported(name)), levelInfo, List.of(),
-                stub(IMapController.class, (name, args) -> unsupported(name)),
+                stub(IMapController.class, (name, args) -> unsupported(name)), () -> 0.0,
                 stub(GameEventService.class, (name, args) -> null));
     }
 
