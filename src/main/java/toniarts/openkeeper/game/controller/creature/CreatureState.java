@@ -85,6 +85,13 @@ public enum CreatureState implements State<ICreatureController> {
                 return; // Found work
             }
 
+            // See if we want to gamble
+            if (entity.goGambling()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return; // Found work
+            }
+
             // Find work
             entity.findWork((foundWork) -> {
                 if (foundWork || (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury())) {

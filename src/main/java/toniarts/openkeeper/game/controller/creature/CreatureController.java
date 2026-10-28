@@ -1337,6 +1337,15 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean goGambling() {
+
+        // As in the original, the wish only depends on the gold held, the stake is the money mode one
+        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID && getGold() > Math.abs(
+                gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
+                && taskManager.assignTask(this, Creature.JobType.DRINK);
+    }
+
+    @Override
     public void eat(IEntityController target) {
 
         // Ok, first we destroy the entity we are eating so that nobody else gets it
