@@ -34,8 +34,8 @@ import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
 
@@ -106,7 +106,8 @@ class PortalSpawnCooldownTest {
         setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
         setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 30);
         CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
-                stub(ILevelInfo.class, (method, args) -> level), map, stub(GameEventService.class, (method, args) -> null));
+                stub(ILevelInfo.class, (method, args) -> level), map,
+                stub(GameEventService.class, (method, args) -> null));
         timer.processTick(109.5f);
         system.processTick(109.5f);
         RoomInstance room = new RoomInstance(portalDefinition);
