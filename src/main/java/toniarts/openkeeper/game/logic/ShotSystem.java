@@ -53,6 +53,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
     private final IMapInformation<?> mapInformation;
     private final Map<Short, IPlayerController> playerControllers;
     private final EntitySet shots;
+    private final Vector3f halfway = new Vector3f();
 
     public ShotSystem(EntityData entityData, IKwdFile kwdFile, IShotsController shotsController,
             IEntityPositionLookup entityPositionLookup, IMapInformation<?> mapInformation,
@@ -93,7 +94,13 @@ public final class ShotSystem implements IGameLogicUpdatable {
             }
         }
 
-        Vector3f newPosition = move(position, flight.velocity);
+        Vector3f velocity = flight.velocity;
+        if (thing == null && findThingHit(shot, flight, halfway.set(velocity).multLocal(0.5f).addLocal(position)) != null) {
+
+            // A thing halfway along the move, the move ends there so that the shot can't step over it (0x4ABD60)
+            velocity = velocity.mult(0.5f);
+        }
+        Vector3f newPosition = move(position, velocity);
         if (newPosition == null && shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
             entityData.removeEntity(entity.getId());
             return;

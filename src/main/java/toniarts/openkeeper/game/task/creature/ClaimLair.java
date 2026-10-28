@@ -64,14 +64,17 @@ public final class ClaimLair extends AbstractCapacityCriticalRoomTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
+        // DKII keeps creatures without a bed object in "Making a home".
+        if (creature.getCreature().getLairObjectId() == 0) {
+            return;
+        }
+
         // Create a lair
         IRoomObjectControl control = getRoomObjectControl();
         EntityId lairId = (EntityId) control.addItem(creature.getEntityId(), getTaskLocation());
         if (lairId != null) {
             creature.setCreatureLair(lairId);
         }
-
-        // This is a one timer
         executed = true;
     }
 

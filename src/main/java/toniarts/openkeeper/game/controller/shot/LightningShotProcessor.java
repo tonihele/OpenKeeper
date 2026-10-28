@@ -22,9 +22,9 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
-import toniarts.openkeeper.game.component.KnockedDown;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
@@ -50,12 +50,15 @@ public final class LightningShotProcessor implements IShotProcessor {
     private final IGameTimer gameTimer;
     private final IKwdFile kwdFile;
     private final IMapController mapController;
+    private final ICreaturesController creaturesController;
 
-    public LightningShotProcessor(EntityData entityData, IGameTimer gameTimer, IKwdFile kwdFile, IMapController mapController) {
+    public LightningShotProcessor(EntityData entityData, IGameTimer gameTimer, IKwdFile kwdFile, IMapController mapController,
+            ICreaturesController creaturesController) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
         this.kwdFile = kwdFile;
         this.mapController = mapController;
+        this.creaturesController = creaturesController;
     }
 
     @Override
@@ -74,7 +77,7 @@ public final class LightningShotProcessor implements IShotProcessor {
         // imprisoned creatures and the Horned Reaper are hurt but stay on their feet
         CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
         Creature creature = creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId) : null;
-        if (creature == null || !creature.getFlags3().contains(Creature.CreatureFlag3.UNK_1)) {
+        if (creature == null || !creature.getFlags3().contains(Creature.CreatureFlag3.IS_IMMUNE_TO_LIGHTNING)) {
             int damage = request.shotData1();
             if (isOnWater(targetPosition)) {
                 damage *= 2;
@@ -82,7 +85,7 @@ public final class LightningShotProcessor implements IShotProcessor {
             EntityController.setDamage(entityData, target, damage);
 
             if (creature != null && canBeKnockedDown(target, creature)) {
-                entityData.setComponent(target, new KnockedDown());
+                creaturesController.createController(target).knockDown();
             }
         }
 
