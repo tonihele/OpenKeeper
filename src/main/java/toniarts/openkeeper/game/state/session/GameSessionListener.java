@@ -19,11 +19,15 @@ package toniarts.openkeeper.game.state.session;
 import com.jme3.math.Vector3f;
 import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityId;
-import java.util.Collection;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.utils.Point;
+
+import java.util.Collection;
 
 /**
  * The game callbacks the server sends to the client
@@ -90,6 +94,10 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      */
     @Asynchronous
     public void onGameEnded(boolean win);
+
+    @Asynchronous(reliable = false)
+    void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId,
+                   EntityId entity, Point position);
 
     /**
      * The client should play a speech

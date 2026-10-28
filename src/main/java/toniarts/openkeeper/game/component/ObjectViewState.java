@@ -31,16 +31,28 @@ public final class ObjectViewState implements EntityComponent {
     public GameObject.State state;
     public GameObjectAnimState animState = GameObjectAnimState.MESH_RESOURCE;
     public boolean visible;
+    /**
+     * Creature definition ID used to select this lair bed's visual variant.
+     * Zero means no creature-specific appearance. This is a creature type ID,
+     * not the entity ID of an owning creature; the gameplay association is
+     * stored in {@link CreatureSleep#lairObjectId}.
+     */
+    public short lairCreatureTypeId;
 
     public ObjectViewState() {
         // For serialization
     }
 
     public ObjectViewState(short objectId, GameObject.State state, GameObjectAnimState animState, boolean visible) {
+        this(objectId, state, animState, visible, (short) 0);
+    }
+
+    public ObjectViewState(short objectId, GameObject.State state, GameObjectAnimState animState, boolean visible, short lairCreatureTypeId) {
         this.objectId = objectId;
         this.state = state;
         this.animState = animState;
         this.visible = visible;
+        this.lairCreatureTypeId = lairCreatureTypeId;
     }
 
     @Override
