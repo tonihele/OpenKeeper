@@ -103,7 +103,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private PauseMenuSettings pauseMenuSettings;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
-    
+
     private static final Logger logger = System.getLogger(PlayerScreenController.class.getName());
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
@@ -211,8 +211,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         boolean toggled = element.getUserData("toggle");
         if (toggled) {
             element.setMarginTop(new SizeValue(0, SizeValueType.Pixel));
+            playSound(GlobalCategory.GUI_BUTTON_TAB_ROOMS, String.valueOf(GlobalType.GUI_BUTTON_REVEAL.getId()));
         } else {
             element.setMarginTop(new SizeValue(156, SizeValueType.Pixel));
+            playSound(GlobalCategory.GUI_BUTTON_SIZE, String.valueOf(GlobalType.GUI_BUTTON_SIZE_HIDE.getId()));
         }
         element.setUserData("toggle", !toggled);
         element.getParent().layoutElements();
@@ -220,6 +222,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void toggleObjective() {
+        playSound(GlobalCategory.OPTIONS, String.valueOf(GlobalType.OPTIONS_CLICK_10.getId()));
         Element element = nifty.getScreen(SCREEN_HUD_ID).findElementById("objective");
         if (element.isVisible()) {
             element.hide();
@@ -299,7 +302,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         // build menu items
         // FIXME id="#image" and "#text" already exist
         for (GameMenu item : page.items) {
-            new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action) {
+            new IconTextBuilder("menu-" + NiftyIdCreator.generate(), String.format("Textures/GUI/Options/%s.png", item.id), item.title, item.action,
+                    GlobalCategory.OPTIONS, "i-back".equals(item.id) ? GlobalType.OPTIONS_CLICK_11.getId() : GlobalType.OPTIONS_CLICK_10.getId()) {
                 {
                 }
             }.build(item.parent);
