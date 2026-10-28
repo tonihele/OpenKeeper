@@ -29,12 +29,13 @@ import java.util.Random;
 
 /**
  * A lightning bolt from above, striking down at the origin. The bolt is a
- * jagged line drawn as ribbons that turn to face the camera, so it looks the
- * same from every angle. It comes in two layers, a thin bright core and a
+ * jagged line in the local X-Y plane, drawn as ribbons along X, so a
+ * {@link LightningBoltControl} turning it about Y to the camera makes it look
+ * the same from every angle. It comes in two layers, a thin bright core and a
  * wide dim glow around it.
  * <p>
- * The line is re-rolled to make the bolt flicker, and the ribbons are turned
- * to the camera every frame. Both only rewrite the existing buffers.
+ * The line is re-rolled to make the bolt flicker, that only rewrites the
+ * existing buffers.
  */
 public final class LightningBoltMesh extends Mesh {
 
@@ -69,10 +70,6 @@ public final class LightningBoltMesh extends Mesh {
     private final FloatBuffer positions;
     private final FloatBuffer colors;
 
-    private final Vector3f direction = new Vector3f();
-    private final Vector3f toCamera = new Vector3f();
-    private final Vector3f side = new Vector3f();
-
     /**
      * Creates a straight bolt, call {@link #randomizePath(Random)} to give it
      * its shape
@@ -100,12 +97,12 @@ public final class LightningBoltMesh extends Mesh {
         getBuffer(VertexBuffer.Type.Color).setUsage(VertexBuffer.Usage.Stream);
 
         setIntensity(1f);
-        faceCamera(new Vector3f(0, height / 2, 1));
+        updatePositions();
 
-        // The ribbons are turned while rendering, when the bound may no longer change. So use one that
-        // covers every shape the bolt can take, and a hair more for rounding
+        // The shape changes all the time, so use one bound that covers every shape the bolt can take, and a hair
+        // more for rounding
         float reach = jitter + LAYER_HALF_WIDTHS[LAYER_HALF_WIDTHS.length - 1] + BOUND_MARGIN;
-        setBound(new BoundingBox(new Vector3f(0, height / 2, 0), reach, height / 2 + reach, reach));
+        setBound(new BoundingBox(new Vector3f(0, height / 2, 0), reach, height / 2 + reach, BOUND_MARGIN));
     }
 
     /**
@@ -117,38 +114,23 @@ public final class LightningBoltMesh extends Mesh {
     public void randomizePath(Random random) {
         float step = jitter * STEP_SHARE_OF_JITTER;
         float x = 0;
-        float z = 0;
         for (int i = 1; i < path.length; i++) {
             x = FastMath.clamp(x + (random.nextFloat() * 2 - 1) * step, -jitter, jitter);
-            z = FastMath.clamp(z + (random.nextFloat() * 2 - 1) * step, -jitter, jitter);
-            path[i].set(x, getHeightAt(i), z);
+            path[i].set(x, getHeightAt(i), 0);
         }
+        updatePositions();
     }
 
     /**
-     * Turns the ribbons to face the camera
-     *
-     * @param camera the camera location in the local space of the bolt
+     * Lays the ribbons along the line, each spreads sideways along X
      */
-    public void faceCamera(Vector3f camera) {
+    private void updatePositions() {
         int vertex = 0;
-        int last = path.length - 1;
         for (float halfWidth : LAYER_HALF_WIDTHS) {
-            for (int i = 0; i < path.length; i++) {
-                Vector3f point = path[i];
-                path[Math.min(i + 1, last)].subtract(path[Math.max(i - 1, 0)], direction);
-                camera.subtract(point, toCamera);
-                direction.cross(toCamera, side);
-                if (side.lengthSquared() < FastMath.ZERO_TOLERANCE) {
-
-                    // Looking straight along the bolt, any side will do
-                    side.set(Vector3f.UNIT_X);
-                }
-                side.normalizeLocal().multLocal(halfWidth);
-
-                putPosition(vertex++, point.x - side.x, point.y - side.y, point.z - side.z);
+            for (Vector3f point : path) {
+                putPosition(vertex++, point.x - halfWidth, point.y, point.z);
                 putPosition(vertex++, point.x, point.y, point.z);
-                putPosition(vertex++, point.x + side.x, point.y + side.y, point.z + side.z);
+                putPosition(vertex++, point.x + halfWidth, point.y, point.z);
             }
         }
         getBuffer(VertexBuffer.Type.Position).setUpdateNeeded();

@@ -154,6 +154,20 @@ class ShotSystemTest {
     }
 
     @Test
+    void shotDoesNotStepOverACreatureHalfwayAlongItsMove() {
+        EntityId enemy = createCreature(ENEMY_ID, new Vector3f(1.45f, 1, 1));
+        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+        assertTrue(hits.isEmpty());
+        assertEquals(1.45f, positionOf(shot).x, DELTA);
+
+        shotSystem.processTick(0.25f);
+        assertEquals(1, hits.size());
+        assertEquals(enemy, hits.get(0)[1]);
+    }
+
+    @Test
     void shotFliesThroughItsOwnersCreatures() {
         createCreature(PLAYER_ID, new Vector3f(2, 1, 1));
         EntityId shot = createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);

@@ -17,9 +17,6 @@
 package toniarts.openkeeper.game.state.loop;
 
 import com.simsilica.es.EntityData;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -28,6 +25,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.trap.TrapEffects;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.fogofwar.IBlocksSight;
 import toniarts.openkeeper.game.logic.*;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -37,6 +35,10 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameLoop;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
 
 /**
  *
@@ -68,6 +70,7 @@ public final class GameLoopManager {
         final IEntityPositionLookup positionSystem = gameController.getEntityLookupService();
         final Map<Short, IPlayerController> playerControllers = gameController.getPlayerControllers();
         final ITaskManager taskManager = gameController.getTaskManager();
+        final GameEventService gameEventService = gameController.getGameEventService();
 
         // Game logic
         final GameLogicManager gameLogicThread = new GameLogicManager(
@@ -81,19 +84,20 @@ public final class GameLoopManager {
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
-                        levelInfo, playerControllers.values(), gameWorldController.getMapController()),
-                new KnockdownSystem(entityData, gameWorldController.getCreaturesController()),
+                        levelInfo, playerControllers.values(), gameWorldController.getMapController(), gameEventService),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 (IGameLogicUpdatable) gameController,
-                new CreatureSpawnSystem(gameWorldController.getCreaturesController(), playerControllers.values(),
-                        gameSettings, levelInfo, gameWorldController.getMapController()),
+                new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
+                        gameSettings, levelInfo, gameWorldController.getMapController(), gameEventService),
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
                         playerControllers.values(), gameSettings, levelInfo, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
+                new PossessedSystem(playerControllers.values(), entityData, gameController,
+                        gameWorldController.getCreaturesController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
@@ -116,11 +120,13 @@ public final class GameLoopManager {
                 new DungeonHeartConstruction(
                         entityData,
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)),
-                new CreatureFallSystem(entityData));
+                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData)), GameLoop.INTERVAL_FPS_60, "Steering"));
+        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData),
+                new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
+                        positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }
 
     private static IBlocksSight solidTilesBlockSight(IMapController mapController) {
