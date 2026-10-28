@@ -19,20 +19,28 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
+import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.component.Damage;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.Shot;
-import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ShotsControllerTest {
@@ -48,6 +56,7 @@ class ShotsControllerTest {
     private final ShotsController shotsController;
 
     ShotsControllerTest() {
+        shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
@@ -62,14 +71,43 @@ class ShotsControllerTest {
                     throw new UnsupportedOperationException(method.getName());
                 });
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, null, null, objectsController, null);
+        // A map without tiles, no strike lands on water
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(), new Class<?>[]{IMapDataInformation.class},
+                (proxy, method, args) -> null);
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
+                (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
+
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null, gameEventService);
+    }
+
+    @Test
+    void keeperLightningStrikes() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(ShotFixtures.THUNDERBOLT_ID, 150, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(150, entityData.getComponent(creature, Damage.class).damage);
+        assertEquals(1, countShotEntities());
+    }
+
+    @Test
+    void creatureLightningIsLeftToTheCreature() {
+        EntityId creature = createCreature();
+        EntityId mistress = createCreature();
+
+        // The creature applies its own damage for now, the shot must not hit a second time
+        shotsController.createShot(ShotFixtures.THUNDERBOLT_ID, 300, 0, PLAYER_ID, new Vector3f(), creature, mistress);
+
+        assertNull(entityData.getComponent(creature, Damage.class));
+        assertEquals(0, countShotEntities());
     }
 
     @Test
     void healingShotTakesTheDamageAway() {
         EntityId creature = entityData.createEntity();
 
-        shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(), creature);
+        shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(), creature, null);
 
         assertEquals(-50, entityData.getComponent(creature, Damage.class).damage);
     }
@@ -78,7 +116,7 @@ class ShotsControllerTest {
     void objectShotCreatesTheObjectForThePlayer() {
         Vector3f position = new Vector3f(1.5f, 1f, 2.5f);
 
-        shotsController.createShot(CREATE_OBJECT_ID, 7, 0, PLAYER_ID, position, null);
+        shotsController.createShot(CREATE_OBJECT_ID, 7, 0, PLAYER_ID, position, null, null);
 
         assertEquals(1, loadedObjects.size());
         assertEquals((short) 7, loadedObjects.get(0)[0]);
@@ -88,13 +126,27 @@ class ShotsControllerTest {
 
     @Test
     void notImplementedProcessTypeDoesNothing() {
-        shotsController.createShot(SIGHT_OF_EVIL_ID, 5, 0, PLAYER_ID, new Vector3f(), null);
+        shotsController.createShot(SIGHT_OF_EVIL_ID, 5, 0, PLAYER_ID, new Vector3f(), null, null);
 
+        assertEquals(0, countShotEntities());
         assertTrue(loadedObjects.isEmpty());
     }
 
     private void addShot(short shotId, Shot.ProcessType processType) {
         shotsById.put(shotId, ShotFixtures.shot(shotId, processType, 0, EnumSet.noneOf(Shot.ShotProcessFlag.class)));
+    }
+
+    private EntityId createCreature() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Position(0, new Vector3f(1.5f, 1f, 1.5f)), new CreatureComponent());
+        return creature;
+    }
+
+    private int countShotEntities() {
+        EntitySet shots = entityData.getEntities(ShotViewState.class);
+        int count = shots.size();
+        shots.release();
+        return count;
     }
 
 }
