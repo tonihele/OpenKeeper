@@ -14,9 +14,13 @@ import toniarts.openkeeper.tools.convert.map.Room;
 
 /** Read-only inspection of the definitions used by the current preview. */
 public final class EffectInspector {
+    /** Distinguishes linked effect definitions from particle definitions. */
     public enum Kind { EFFECT, PARTICLE }
+    /** A navigable definition reference with the role shown in the inspector. */
     public record Link(Kind kind, int id, String label) { }
+    /** Immutable inspector text and links for one selected definition. */
     public record Details(String title, List<String> fields, List<Link> links) {
+        /** Copies collections so a rendered inspection cannot change underneath the UI. */
         public Details {
             fields = List.copyOf(fields);
             links = List.copyOf(links);
@@ -25,61 +29,29 @@ public final class EffectInspector {
 
     private final IKwdFile data;
 
+    /**
+     * Creates an inspector over the currently loaded level definitions.
+     *
+     * @param data source of effect definitions and their creature, room and object references
+     */
     public EffectInspector(IKwdFile data) {
         this.data = data;
     }
 
+    /**
+     * Describes a selected definition without changing preview playback.
+     *
+     * @param selection creature, room, object, effect, particle, or an unsupported selection
+     * @return inspector text and links, with a selection prompt for unsupported values
+     */
     public Details describe(Object selection) {
         List<String> fields = new ArrayList<>();
         List<Link> links = new ArrayList<>();
         String title;
         if (selection instanceof Effect e) {
-            title = "Effect " + e.getEffectId() + ": " + e.getName();
-            fields.add("Used by: " + references(data, e.getEffectId()));
-            fields.add("Generator: " + e.getGenerationType());
-            fields.add("Count per update: " + e.getElementsPerTurn());
-            fields.add("Generator lifetime: " + life(e.getMinHp(), e.getMaxHp()));
-            fields.add("Flags: " + e.getFlags());
-            fields.add("Generated slots: " + e.getGenerateIds());
-            fields.add("Circular path: " + e.getCircularPathRate() + "; whirlpool: " + e.getWhirlpoolRate());
-            fields.add("Origin: " + e.getInnerOriginRange() + " to " + e.getOuterOriginRange()
-                    + "; height: " + e.getLowerHeightLimit() + " to " + e.getUpperHeightLimit());
-            fields.add("Light fade duration field: " + e.getFadeDuration());
-            for (int id : e.getGenerateIds()) {
-                if (e.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) particle(links, id, "Generated particle");
-                else if (e.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) effect(links, id, "Generated effect");
-            }
-            effect(links, e.getNextEffectId(), "Next effect");
-            effect(links, e.getDeathEffectId(), "Death effect");
-            effect(links, e.getHitSolidEffectId(), "Solid hit");
-            effect(links, e.getHitWaterEffectId(), "Water hit");
-            effect(links, e.getHitLavaEffectId(), "Lava hit");
+            title = describeEffect(e, fields, links);
         } else if (selection instanceof EffectElement e) {
-            title = "Particle " + e.getEffectElementId() + ": " + e.getName();
-            fields.add("Particle lifetime: " + life(e.getMinHp(), e.getMaxHp()));
-            fields.add("Flags: " + e.getFlags());
-            fields.add("Particle fade percentage field: " + e.getFadePercentage());
-            fields.add("Horizontal speed: " + range(e.getMinSpeedXy(), e.getMaxSpeedXy()));
-            fields.add("Vertical speed: " + range(e.getMinSpeedYz(), e.getMaxSpeedYz()));
-            fields.add("Scale: " + range(e.getMinScale(), e.getMaxScale()));
-            fields.add("RGB: " + e.getColor().getRed() + ", " + e.getColor().getGreen() + ", " + e.getColor().getBlue());
-            ArtResource art = e.getArtResource();
-            if (art != null) {
-                fields.add("Texture / art: " + art.getName() + " (" + art.getType() + ")");
-                if (art.getDataKeys().contains(ArtResource.KEY_FRAMES)) {
-                    fields.add("Frames: " + art.getData(ArtResource.KEY_FRAMES));
-                }
-                fields.add("Texture flags: " + art.getFlags());
-                if (art.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
-                    fields.add("Texture animation: " + (art.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)
-                            ? "does not loop" : "loops"));
-                }
-            }
-            effect(links, e.getNextEffectId(), "Next effect");
-            particle(links, e.getDeathElementId(), "Death particle");
-            particle(links, e.getHitSolidElementId(), "Solid hit");
-            particle(links, e.getHitWaterElementId(), "Water hit");
-            particle(links, e.getHitLavaElementId(), "Lava hit");
+            title = describeParticle(e, fields, links);
         } else if (selection instanceof Creature c) {
             title = "Creature: " + c.getName();
             fields.add("Entrance effect ID: " + c.getEntranceEffectId());
@@ -102,6 +74,57 @@ public final class EffectInspector {
         return new Details(title, fields, links);
     }
 
+    private String describeEffect(Effect e, List<String> fields, List<Link> links) {
+        fields.add("Used by: " + references(data, e.getEffectId()));
+        fields.add("Generator: " + e.getGenerationType());
+        fields.add("Count per update: " + e.getElementsPerTurn());
+        fields.add("Generator lifetime: " + life(e.getMinHp(), e.getMaxHp()));
+        fields.add("Flags: " + e.getFlags());
+        fields.add("Generated slots: " + e.getGenerateIds());
+        fields.add("Circular path: " + e.getCircularPathRate() + "; whirlpool: " + e.getWhirlpoolRate());
+        fields.add("Origin: " + e.getInnerOriginRange() + " to " + e.getOuterOriginRange()
+                + "; height: " + e.getLowerHeightLimit() + " to " + e.getUpperHeightLimit());
+        fields.add("Light fade duration field: " + e.getFadeDuration());
+        for (int id : e.getGenerateIds()) {
+            if (e.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) particle(links, id, "Generated particle");
+            else if (e.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) effect(links, id, "Generated effect");
+        }
+        effect(links, e.getNextEffectId(), "Next effect");
+        effect(links, e.getDeathEffectId(), "Death effect");
+        effect(links, e.getHitSolidEffectId(), "Solid hit");
+        effect(links, e.getHitWaterEffectId(), "Water hit");
+        effect(links, e.getHitLavaEffectId(), "Lava hit");
+        return "Effect " + e.getEffectId() + ": " + e.getName();
+    }
+
+    private String describeParticle(EffectElement e, List<String> fields, List<Link> links) {
+        fields.add("Particle lifetime: " + life(e.getMinHp(), e.getMaxHp()));
+        fields.add("Flags: " + e.getFlags());
+        fields.add("Particle fade percentage field: " + e.getFadePercentage());
+        fields.add("Horizontal speed: " + range(e.getMinSpeedXy(), e.getMaxSpeedXy()));
+        fields.add("Vertical speed: " + range(e.getMinSpeedYz(), e.getMaxSpeedYz()));
+        fields.add("Scale: " + range(e.getMinScale(), e.getMaxScale()));
+        fields.add("RGB: " + e.getColor().getRed() + ", " + e.getColor().getGreen() + ", " + e.getColor().getBlue());
+        ArtResource art = e.getArtResource();
+        if (art != null) {
+            fields.add("Texture / art: " + art.getName() + " (" + art.getType() + ")");
+            if (art.getDataKeys().contains(ArtResource.KEY_FRAMES)) {
+                fields.add("Frames: " + art.getData(ArtResource.KEY_FRAMES));
+            }
+            fields.add("Texture flags: " + art.getFlags());
+            if (art.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+                fields.add("Texture animation: " + (art.getFlags().contains(ArtResource.ArtResourceFlag.DOESNT_LOOP)
+                        ? "does not loop" : "loops"));
+            }
+        }
+        effect(links, e.getNextEffectId(), "Next effect");
+        particle(links, e.getDeathElementId(), "Death particle");
+        particle(links, e.getHitSolidElementId(), "Solid hit");
+        particle(links, e.getHitWaterElementId(), "Water hit");
+        particle(links, e.getHitLavaElementId(), "Lava hit");
+        return "Particle " + e.getEffectElementId() + ": " + e.getName();
+    }
+
     private void effect(List<Link> links, int id, String role) {
         if (id == 0) return;
         Effect effect = data.getEffect(id);
@@ -114,6 +137,13 @@ public final class EffectInspector {
         links.add(new Link(Kind.PARTICLE, id, role + ": " + id + (element == null ? " (missing)" : " - " + element.getName())));
     }
 
+    /**
+     * Finds authored creature, room and object references to an effect.
+     *
+     * @param data currently loaded definitions
+     * @param id effect ID to find
+     * @return comma-separated reference labels, or {@code None} when unused
+     */
     public static String references(IKwdFile data, int id) {
         List<String> references = new ArrayList<>();
         for (Creature c : data.getCreatureList()) if (c.getEntranceEffectId() == id) references.add(c.getName() + " entrance");

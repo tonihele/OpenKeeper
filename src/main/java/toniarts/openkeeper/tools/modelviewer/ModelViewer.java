@@ -668,30 +668,34 @@ public final class ModelViewer extends SimpleApplication {
                 break;
             }
             case EFFECTS: {
-                // Load the selected effect
-                Node spat = new Node();
-                Effect effect = (Effect) selection;
-                effectManagerState.setEnabled(true);
-                if (overlayEnabled) {
-                    Spatial overlay = PORTAL_OVERLAY.equals(overlayModel)
-                            ? new RoomsLoader().loadPortalContext(assetManager, getKwdFile())
-                            : AssetUtils.loadAsset(assetManager, overlayModel, null);
-                    overlay.setName("Overlay model");
-                    spat.attachChild(overlay);
-                }
-                // Overlay models retain their authored origin; the assembled Portal's origin
-                // is its pit base, matching the traced native Portal effect anchor (Y=0).
-                // Keep the elevated anchor for isolated effects that need room to fall.
-                Vector3f anchor = overlayEnabled ? new Vector3f()
-                        : new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0);
-                effectManagerState.loadSingleEffect(spat, anchor, effect.getEffectId(), false);
-                setupModel(spat, false);
-
-                screen.setupItem(effect, null);
+                previewEffect((Effect) selection);
                 break;
             }
         }
 
+    }
+
+    /** Builds an effect preview and its optional model overlay at the chosen origin. */
+    private void previewEffect(Effect effect) {
+        // Load the selected effect
+        Node spat = new Node();
+        effectManagerState.setEnabled(true);
+        if (overlayEnabled) {
+            Spatial overlay = PORTAL_OVERLAY.equals(overlayModel)
+                    ? new RoomsLoader().loadPortalContext(assetManager, getKwdFile())
+                    : AssetUtils.loadAsset(assetManager, overlayModel, null);
+            overlay.setName("Overlay model");
+            spat.attachChild(overlay);
+        }
+        // Overlay models retain their authored origin; the assembled Portal's origin
+        // is its pit base, matching the traced native Portal effect anchor (Y=0).
+        // Keep the elevated anchor for isolated effects that need room to fall.
+        Vector3f anchor = overlayEnabled ? new Vector3f()
+                : new Vector3f(0, WorldUtils.FLOOR_HEIGHT + WorldUtils.TILE_HEIGHT, 0);
+        effectManagerState.loadSingleEffect(spat, anchor, effect.getEffectId(), false);
+        setupModel(spat, false);
+
+        screen.setupItem(effect, null);
     }
 
     List<String> getOverlayModels() {

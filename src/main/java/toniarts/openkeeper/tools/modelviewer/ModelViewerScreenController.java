@@ -308,38 +308,7 @@ public final class ModelViewerScreenController implements ScreenController {
             element.markForRemoval();
         }
 
-        Element el = null;
-        if (showEffectDetails) {
-            el = createEffectInspector(panel);
-        } else if (item instanceof Creature) {
-            ControlBuilder cb = createCreatureControl((Creature) item);
-            el = cb.build(panel);
-        } else if (item instanceof Room) {
-            ControlBuilder cb = createRoomControl((Room) item);
-            el = cb.build(panel);
-        } else if (item instanceof Terrain) {
-            ControlBuilder cb = createTerrainControl((Terrain) item);
-            el = cb.build(panel);
-        } else if (item instanceof Shot) {
-            ControlBuilder cb = createShotControl((Shot) item);
-            el = cb.build(panel);
-        } else if (item instanceof GameLevel) {
-            ControlBuilder cb = createGameLevelControl((GameLevel) item);
-            el = cb.build(panel);
-        } else if (item instanceof GameObject) {
-            ControlBuilder cb = createObjectControl((GameObject) item);
-            el = cb.build(panel);
-        } else if (item instanceof Trap) {
-            ControlBuilder cb = createTrapControl((Trap) item);
-            el = cb.build(panel);
-        } else if (item instanceof Door) {
-            ControlBuilder cb = createDoorControl((Door) item);
-            el = cb.build(panel);
-        } else if (item instanceof Effect) {
-            ControlBuilder cb = createEffectControl((Effect) item);
-            el = cb.build(panel);
-        }
-
+        Element el = showEffectDetails ? createEffectInspector(panel) : createItemDetails(panel, item);
         if (el != null) {
             DropDown<SoundFile> dropDown = (DropDown<SoundFile>) el.findNiftyControl(ID_SOUNDS, DropDown.class);
             if (dropDown != null) {
@@ -352,6 +321,22 @@ public final class ModelViewerScreenController implements ScreenController {
         //panel.addChild(el);
         panel.layoutElements();
         panel.reactivate();
+    }
+
+    /** Creates the ordinary property controls for a selected asset definition. */
+    private Element createItemDetails(Element panel, Object item) {
+        return switch (item) {
+            case Creature creature -> createCreatureControl(creature).build(panel);
+            case Room room -> createRoomControl(room).build(panel);
+            case Terrain terrain -> createTerrainControl(terrain).build(panel);
+            case Shot shot -> createShotControl(shot).build(panel);
+            case GameLevel level -> createGameLevelControl(level).build(panel);
+            case GameObject object -> createObjectControl(object).build(panel);
+            case Trap trap -> createTrapControl(trap).build(panel);
+            case Door door -> createDoorControl(door).build(panel);
+            case Effect effect -> createEffectControl(effect).build(panel);
+            case null, default -> null;
+        };
     }
 
     private Element createEffectInspector(Element panel) {
