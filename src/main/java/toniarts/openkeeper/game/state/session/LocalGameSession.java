@@ -14,23 +14,12 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import toniarts.openkeeper.utils.Point;
-import java.io.ByteArrayOutputStream;
-import java.io.FileNotFoundException;
-import java.io.IOException;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
-import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
@@ -42,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 
+import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.lang.System.Logger;
@@ -409,6 +399,27 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSpawnCreatureCheatTriggered(creatureId, level, amount, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSetPossessedMovement(direction, rotation, speedMode, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void endPossession() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onEndPossession(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void castKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onCastKeeperSpell(keeperSpellId, target, tile, position, PLAYER_ID);
@@ -509,6 +520,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onGameEnded(win);
+            }
+        }
+    }
+
+    @Override
+    public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
+        if (playerId == null || playerId == PLAYER_ID) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             }
         }
     }
