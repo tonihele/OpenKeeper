@@ -30,6 +30,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.TorchPlacement;
 
 /**
  * The background sounds of a level: the ambience bed, the distant noises, the
@@ -203,7 +204,7 @@ public final class AmbienceState extends AbstractPauseAwareState {
         if (floor == null || floor.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             return false;
         }
-        for (Point wall : MapViewController.getTorchWallCandidates(p.x, p.y)) {
+        for (Point wall : TorchPlacement.getTorchWallCandidates(p.x, p.y)) {
             Terrain wallTerrain = getExploredTerrain(data, fogOfWar, wall.x, wall.y);
             if (wallTerrain == null || !wallTerrain.getFlags().contains(Terrain.TerrainFlag.TORCH)) {
                 continue;

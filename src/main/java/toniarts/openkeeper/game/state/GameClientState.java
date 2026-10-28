@@ -383,7 +383,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
-                        false,
+                        true, // Built, but hidden until the viewer possesses a creature
                         () -> {
                             synchronized (mapDataLoadingObject) {
                                 mapDataLoaded = true;
@@ -805,6 +805,18 @@ public final class GameClientState extends AbstractPauseAwareState {
     public void setPossessedCreature(EntityId entityId) {
         if (playerMapViewState != null) {
             playerMapViewState.setPossessedCreature(entityId);
+        }
+    }
+
+    /**
+     * Shows or hides the map ceiling, which is only wanted while possessing a
+     * creature
+     *
+     * @param visible show the ceiling
+     */
+    public void setCeilingVisible(boolean visible) {
+        if (playerMapViewState != null) {
+            playerMapViewState.setCeilingVisible(visible);
         }
     }
 
