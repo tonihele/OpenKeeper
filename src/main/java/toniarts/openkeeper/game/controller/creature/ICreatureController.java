@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.Point;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -134,6 +136,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void executeAssignedTask();
 
     public Creature getCreature();
+
+    /**
+     * Tells that something happened to the creature type, e.g. it claimed a tile
+     *
+     * @param type the event
+     * @param location the tile where it happened
+     */
+    public void fireEvent(GameEventType type, Point location);
 
     public void addGold(int amount);
 
@@ -264,6 +274,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param possessed should the creature be posessed or AI driven
      */
     public void setPossession(boolean possessed);
+
+    /**
+     * Sets the movement intent for a possessed creature, as steered by its keeper
+     *
+     * @param direction movement direction on the map plane, may be a zero vector
+     * @param rotation the wanted rotation
+     * @param speedMode one of {@link toniarts.openkeeper.game.component.PossessedMovement}'s speed constants
+     */
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
 
     /**
      * Converts creature to another player's bidding
