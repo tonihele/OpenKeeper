@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert.map;
 import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.PortalViewState;
+import toniarts.openkeeper.game.event.GameEventService;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumMap;
@@ -258,8 +259,8 @@ class PortalSpawnCooldownTest {
             setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, 10);
             setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
             setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 30);
-            system = new CreatureSpawnSystem(spawner, List.of(player), settings,
-                    stub(ILevelInfo.class, (method, args) -> level), map);
+            system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
+                    stub(ILevelInfo.class, (method, args) -> level), map, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
             timer.processTick(initialTime);
             system.processTick(initialTime);
             RoomInstance room = new RoomInstance(portalDefinition);

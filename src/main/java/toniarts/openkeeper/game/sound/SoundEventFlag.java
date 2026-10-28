@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2026 OpenKeeper
+ * Copyright (C) 2014-2025 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,20 +14,32 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.component;
+package toniarts.openkeeper.game.sound;
 
-import com.simsilica.es.EntityComponent;
+import toniarts.openkeeper.tools.convert.IFlagEnum;
 
 /**
- * Tagging component for a creature that has just been knocked off its feet,
- * by a lightning strike for example. The creature falls back and gets up again
- * like it does after being dropped from the hand. Consumed by the
- * {@link toniarts.openkeeper.game.logic.KnockdownSystem}.
+ * Event flag bits as stored in {@code SFX.map}.
  */
-public final class KnockedDown implements EntityComponent {
+public enum SoundEventFlag implements IFlagEnum {
 
-    public KnockedDown() {
-        // For serialization
+    DEFERRED(0x0001),
+    SEGMENTED(0x0002),
+    REPEATING(0x0004),
+    LOOP_EACH(0x0008),
+    LINEAR_SEQUENCE(0x0010),
+    BACKEND_EVENT(0x0020),
+    HEAD_RELATIVE(0x0200),
+    PROPERTY_LINKS(0x0400);
+
+    private final long flagValue;
+
+    SoundEventFlag(long flagValue) {
+        this.flagValue = flagValue;
     }
 
+    @Override
+    public long getFlagValue() {
+        return flagValue;
+    }
 }

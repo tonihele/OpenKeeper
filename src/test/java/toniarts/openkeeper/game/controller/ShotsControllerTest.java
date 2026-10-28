@@ -21,6 +21,17 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
+import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
@@ -83,8 +94,9 @@ class ShotsControllerTest {
                 (proxy, method, args) -> null);
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
                 (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null, gameEventService);
     }
 
     @Test
