@@ -294,6 +294,37 @@ class PayDaySystemTest {
     }
 
     @Test
+    void aCreatureComingLaterStartsTheClock() {
+        payDaySystem.start();
+        tick(0);
+        tick(30);
+        assertEquals(0, payDayClock(KEEPER).timeLeft);
+
+        // E.g. out of the portal
+        addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(31);
+
+        assertEquals(new PayDayClock(FIRST_PAY_DAY, FIRST_PAY_DAY, WAGE), payDayClock(KEEPER));
+    }
+
+    @Test
+    void aNeutralCreatureJoiningStartsTheClock() {
+        payDaySystem.start();
+        EntityId goblin = addCreature(Player.NEUTRAL_PLAYER_ID, GOBLIN, WAGE, false);
+        tick(0);
+        tick(30);
+        assertEquals(0, payDayClock(KEEPER).timeLeft);
+
+        // Found on the map, it joins the keeper
+        entityData.setComponent(goblin, new Owner(KEEPER, KEEPER));
+        tick(31);
+        assertEquals(new PayDayClock(FIRST_PAY_DAY, FIRST_PAY_DAY, WAGE), payDayClock(KEEPER));
+
+        tick(31 + FIRST_PAY_DAY);
+        assertEquals(500, treasury);
+    }
+
+    @Test
     void onlyTheKeepersHaveAClock() {
         payDaySystem.start();
         assertEquals(1, entityData.getEntities(PayDayClock.class).size());
