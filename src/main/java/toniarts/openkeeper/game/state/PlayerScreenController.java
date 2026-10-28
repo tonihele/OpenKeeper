@@ -165,8 +165,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     /**
      * The ring round the pay day coin shows the time left to the next pay day,
-     * it empties clockwise from the top towards the pay day (DKII.EXE
-     * 0x415000). Like in the original, the ring is behind the coin and shows
+     * it empties counterclockwise towards the pay day (DKII.EXE 0x415000).
+     * Like in the original, the ring is behind the coin and shows
      * through its six windows. Drawn over the HUD, so the coin is drawn again
      * over the ring, and it is made again each time the HUD comes back.
      */
@@ -181,7 +181,6 @@ public final class PlayerScreenController implements IPlayerScreenController {
         payDayRing = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
             {
                 parameter("image", "Textures/GUI/Windows/payday-Hp.png");
-                parameter("counterClockwise", "true");
                 parameter("frontImage", "Textures/GUI/Windows/payday-BG.png");
             }
         }.build(payDay).getControl(ResearchEffectControl.class);

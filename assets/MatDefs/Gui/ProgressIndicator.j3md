@@ -5,7 +5,6 @@ MaterialDef ProgressIndicator {
         Color Color (Color)
         Boolean VertexColor (UseVertexColor)
         Float Progress
-        Boolean CounterClockwise
     }
 
     Technique {
@@ -19,7 +18,6 @@ MaterialDef ProgressIndicator {
         Defines {
             TEXTURE : Texture
             VERTEX_COLOR : VertexColor
-            COUNTER_CLOCKWISE : CounterClockwise
         }
     }
 

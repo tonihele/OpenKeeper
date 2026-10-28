@@ -49,17 +49,6 @@ public final class ProgressIndicatorPicture extends Picture {
         getMaterial().setColor("Color", new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f));
     }
 
-    /**
-     * Sets which way the progress goes from the top, by default clockwise
-     *
-     * @param assetManager the asset manager
-     * @param counterClockwise does the progress go counterclockwise
-     */
-    public void setCounterClockwise(AssetManager assetManager, boolean counterClockwise) {
-        initMaterial(assetManager);
-        getMaterial().setBoolean("CounterClockwise", counterClockwise);
-    }
-
     public void setProgress(AssetManager assetManager, float progress) {
         initMaterial(assetManager);
 

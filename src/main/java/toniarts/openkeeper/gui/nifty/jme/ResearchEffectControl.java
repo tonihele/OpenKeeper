@@ -43,7 +43,6 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
     private Color color;
     private String image;
     private String frontImage;
-    private boolean counterClockwise;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -57,9 +56,6 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
         if (image.isEmpty()) {
             image = null;
         }
-
-        // Which way the progress goes from the top
-        counterClockwise = parameter.getAsBoolean("counterClockwise", false);
 
         // An image drawn over the progress, e.g. a frame the progress shows through
         frontImage = parameter.get("frontImage");
@@ -110,7 +106,6 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
-        picture.setCounterClockwise(assetManager, counterClockwise);
         picture.setProgress(assetManager, research);
 
         // Set the color or the picture

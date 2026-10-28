@@ -15,9 +15,6 @@ void main() {
     vec2 uv = texCoord.xy;
     uv -= vec2(0.5, 0.5);
     float sweep = (-atan(uv.x,-uv.y) + PI) / (2.*PI);
-    #ifdef COUNTER_CLOCKWISE
-      sweep = 1. - sweep;
-    #endif
 
     #ifdef TEXTURE
       if (sweep < m_Progress) {
