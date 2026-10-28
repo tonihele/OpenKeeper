@@ -14,6 +14,7 @@
 
     <!-- custom effects -->
     <registerEffect name="textGlow" class="toniarts.openkeeper.gui.nifty.effect.TextGlowEffect" />
+    <registerEffect name="engineSound" class="toniarts.openkeeper.gui.nifty.effect.EngineSoundEffect" />
 
     <style id="text">
         <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />
@@ -25,7 +26,8 @@
         <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
         <effect>
             <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-            <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
+            <onStartHover neverStopRendering="true" name="engineSound" category="FRONT_END" event="0x30F"/>
+            <onClick neverStopRendering="true" name="engineSound" category="FRONT_END" event="0x30A"/>
         </effect>
     </style>
     <style id="menuTextDisabled">

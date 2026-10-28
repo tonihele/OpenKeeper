@@ -27,6 +27,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -72,6 +74,9 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -94,6 +99,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 
@@ -107,6 +113,13 @@ public final class CreatureController extends EntityController implements ICreat
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
+    /**
+     * Possessed movement speed relative to walking forward
+     */
+    private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
+    private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
+    private static final float SPEED_MULTIPLIER = 2f;
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -115,6 +128,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
     private final IShotsController shotsController;
+    private final GameEventService gameEventService;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -123,7 +137,7 @@ public final class CreatureController extends EntityController implements ICreat
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController, GameEventService gameEventService) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -134,6 +148,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
+        this.gameEventService = gameEventService;
         this.stateMachine = new DefaultStateMachine<>(this);
     }
 
@@ -676,6 +691,7 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // Set the damage
                 setDamage(attackTarget, creatureMeleeAttack.damage);
+                gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -690,18 +706,55 @@ public final class CreatureController extends EntityController implements ICreat
                 }
                 stateMachine.changeState(CreatureState.CAST_SPELL);
 
-                // TODO: What is the alternative shot all about?
-                toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId);
-                if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
-                        getOwnerId(), getShotPosition(attack.get().creatureSpellId, attackTarget), attackTarget, entityId, attack.get().range)) {
-                    shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget, entityId);
-
-                    // TODO: Of course not like that, the shot is created and it does what it does
-                    // Set the damage
-                    setDamage(attackTarget, creatureSpell.getShotData1());
-                }
+                // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
+                entityData.setComponent(entityId, new CastShot(attack.get().creatureSpellId, attackTarget, attack.get().range,
+                        gameTimer.getGameTime() + getShotDelay(attack.get().creatureSpellId)));
             }
         }
+    }
+
+    @Override
+    public void releaseCastShot() {
+        CastShot castShot = entityData.getComponent(entityId, CastShot.class);
+        if (castShot == null || gameTimer.getGameTime() < castShot.releaseTime) {
+            return;
+        }
+
+        entityData.removeComponent(entityId, CastShot.class);
+
+        // TODO: What is the alternative shot all about?
+        toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(castShot.creatureSpellId);
+        if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+                getOwnerId(), getShotPosition(castShot.creatureSpellId, castShot.target), castShot.target, entityId, castShot.range)) {
+            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
+
+            // TODO: Of course not like that, the shot is created and it does what it does
+            // Set the damage
+            setDamage(castShot.target, creatureSpell.getShotData1());
+        }
+    }
+
+    @Override
+    public void cancelCastShot() {
+        entityData.removeComponent(entityId, CastShot.class);
+    }
+
+    /**
+     * How long into the cast the shot leaves. It leaves at the end of the cast
+     * at the latest, so that a cast always fires.
+     *
+     * @param creatureSpellId the spell cast
+     * @return the time from the start of the cast
+     */
+    private double getShotDelay(short creatureSpellId) {
+        double castTime = getAnimationTime(creature, Creature.AnimationType.CAST_SPELL);
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getCreatureSpellId() == creatureSpellId) {
+                return Math.min(spell.getShotDelay(), castTime);
+            }
+        }
+
+        return 0;
     }
 
     /**
@@ -1109,6 +1162,11 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void fireEvent(GameEventType type, Point location) {
+        gameEventService.emit(type, ThingFlag.CREATURE, creature.getCreatureId(), location);
+    }
+
+    @Override
     public void stopCreature() {
         entityData.removeComponent(entityId, Navigation.class);
     }
@@ -1495,28 +1553,64 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    @Override
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        // Use the level scaled speeds, same as the AI movement does
+        Creature.Attributes attributes = creature.getAttributes();
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        float walkSpeed = creatureComponent != null ? creatureComponent.speed : attributes.getSpeed();
+        float runSpeed = creatureComponent != null ? creatureComponent.runSpeed : attributes.getRunSpeed();
+        float speed = switch (speedMode) {
+            case PossessedMovement.SPEED_RUN -> runSpeed;
+            case PossessedMovement.SPEED_CREEP -> attributes.getShuffleSpeed();
+            default -> walkSpeed;
+        };
+        Vector2f normalizedDirection = direction.lengthSquared() > 0 ? direction.normalize() : new Vector2f();
+        if (normalizedDirection.lengthSquared() > 0) {
+
+            // Backing up and strafing are slower than walking forward, relative to the facing
+            Vector2f facing = new Vector2f(FastMath.sin(rotation), FastMath.cos(rotation));
+            float forward = normalizedDirection.dot(facing);
+            float sideways = normalizedDirection.x * facing.y - normalizedDirection.y * facing.x;
+            speed *= new Vector2f(forward * (forward < 0 ? POSSESSED_BACKWARD_SPEED_FACTOR : 1f),
+                    sideways * POSSESSED_STRAFE_SPEED_FACTOR).length();
+        }
+        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
+    }
+
     private void startPossession() {
+        if (entityData.getComponent(entityId, Possessed.class) != null) {
+            return;
+        }
+
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         int manaDrain = creatureComponent != null ? creatureComponent.posessionManaCost : 0;
         Mana mana = entityData.getComponent(entityId, Mana.class);
-        entityData.setComponent(entityId, new Mana(mana != null ? -manaDrain - mana.manaGeneration : -manaDrain));
+        entityData.setComponent(entityId, new Mana(mana != null ? mana.manaGeneration - manaDrain : -manaDrain));
         entityData.setComponent(entityId, new Possessed(manaDrain, gameTimer.getGameTime()));
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, Navigation.class);
+        unassingCurrentTask();
     }
 
     private void endPossession() {
-        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.IDLE, getCreature().getCreatureId()));
+        Possessed possessed = entityData.getComponent(entityId, Possessed.class);
+        if (possessed == null) {
+            return;
+        }
 
         // Return the mana flow
-        Possessed possessed = entityData.getComponent(entityId, Possessed.class);
         Mana mana = entityData.getComponent(entityId, Mana.class);
-        int manaGeneration = mana.manaGeneration + possessed.manaDrain;
+        int manaGeneration = (mana != null ? mana.manaGeneration : 0) + possessed.manaDrain;
         if (manaGeneration == 0) {
             entityData.removeComponent(entityId, Mana.class);
         } else {
             entityData.setComponent(entityId, new Mana(manaGeneration));
         }
+
+        entityData.removeComponent(entityId, PossessedMovement.class);
+        entityData.removeComponent(entityId, Possessed.class);
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.IDLE, getCreature().getCreatureId()));
     }
 
     @Override
@@ -1540,4 +1634,17 @@ public final class CreatureController extends EntityController implements ICreat
         getStateMachine().changeState(CreatureState.IDLE);
     }
 
+    @Override
+    public boolean equals(Object obj) {
+        if (!(obj instanceof CreatureController that)) {
+            return false;
+        }
+
+        return Objects.equals(entityId, that.entityId);
+    }
+
+    @Override
+    public int hashCode() {
+        return 31 * super.hashCode() + Objects.hashCode(entityId);
+    }
 }

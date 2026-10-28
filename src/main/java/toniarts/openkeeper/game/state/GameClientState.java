@@ -22,17 +22,7 @@ import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.game.data.CampaignLevel;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
-import javax.annotation.Nullable;
+import com.simsilica.event.EventBus;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
@@ -40,8 +30,10 @@ import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
-import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -53,17 +45,27 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
 import javax.annotation.Nullable;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * The game client state
@@ -99,6 +101,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     private final CampaignLevel campaignLevel;
 
     private PlayerMapViewState playerMapViewState;
+    private AmbienceState ambienceState;
+    private RoomSoundState roomSoundState;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
@@ -176,6 +180,14 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachRelatedAppStates() {
+        if (ambienceState != null) {
+            stateManager.detach(ambienceState);
+            ambienceState = null;
+        }
+        if (roomSoundState != null) {
+            stateManager.detach(roomSoundState);
+            roomSoundState = null;
+        }
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
         stateManager.detach(effectManagerState);
@@ -464,6 +476,15 @@ public final class GameClientState extends AbstractPauseAwareState {
             app.enqueue(() -> {
                 playerState.setEnabled(true);
 
+                // The background sounds of the level
+                if (playerMapViewState != null) {
+                    ambienceState = new AmbienceState(kwdFile, playerMapViewState);
+                    stateManager.attach(ambienceState);
+                }
+
+                roomSoundState = new RoomSoundState(gameClientService.getEntityData(), kwdFile);
+                stateManager.attach(roomSoundState);
+
                 // Release the lock and enter to the game phase
                 synchronized (loadingObject) {
                     gameStarted = true;
@@ -554,11 +575,22 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
+            GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
+            logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
+            EventBus.publish(ClientEvents.GAME_EVENT, event);
+        }
+
+        @Override
         public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                // The speech is played from the queue, the HUD might not be there (yet / anymore)
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState != null) {
+                    systemMessageState.addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                }
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);
                 }
@@ -709,9 +741,25 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void setPossession(EntityId target) {
+            // Runs on the network thread; PlayerState applies the possession
+            // (including the fog-of-war bypass) on the render thread
             playerState.setPossession(target);
             setPossessedCreature(target);
+            if (ambienceState != null) {
+                ambienceState.setPossessing(target != null);
+            }
         }
+    }
+
+    /**
+     * Gets the entity view state of this game. Look this up instead of asking
+     * the state manager by class, the main menu's entity view state is a
+     * {@link PlayerEntityViewState} too and may be found first.
+     *
+     * @return the game's entity view state, {@code null} if not loaded
+     */
+    public PlayerEntityViewState getEntityViewState() {
+        return playerModelViewState;
     }
 
     public IMapInformation getMapClientService() {
@@ -740,7 +788,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     /**
      * Tells the local fog-of-war module which creature (if any) the viewer is
      * currently possessing, so it can bypass fog for the first-person view
-     * and keep exploring the possessed creature's tile (§2/§6.9).
+     * and keep exploring the possessed creature's tile
      *
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */
