@@ -61,4 +61,9 @@ class SystemMessageTargetTest {
             throw new AssertionError("A position target has no entity to look up");
         }));
     }
+
+    @Test
+    void messageWithoutPlaceHasNothingToZoomTo() {
+        assertNull(SystemMessageTarget.ofPosition(null).resolve(entityId -> null));
+    }
 }
