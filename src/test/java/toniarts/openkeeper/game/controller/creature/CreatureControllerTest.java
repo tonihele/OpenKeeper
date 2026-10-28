@@ -45,6 +45,8 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
@@ -66,6 +68,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureControllerTest {
 
@@ -150,6 +153,7 @@ class CreatureControllerTest {
             f.data.setComponent(f.entity, new CreatureFall());
             f.fall.processTick(0);
             assertNull(f.data.getComponent(f.entity, CreatureFall.class));
+            assertEquals(List.of(GameEventType.CREATURE_LAND), f.events);
             assertEquals(CreatureState.GO_TO_SLEEP, f.data.getComponent(f.entity, CreatureAi.class).getTargetState());
             f.tick();
             assertEquals(CreatureState.GETTING_UP, f.state());
@@ -191,6 +195,7 @@ class CreatureControllerTest {
             f.fall.processTick(.25f);
             f.tick();
             assertNotNull(f.data.getComponent(f.entity, CreatureFall.class));
+            assertTrue(f.events.isEmpty());
             assertNull(f.state());
             assertEquals(0, f.sleepAssignments);
             assertEquals(0, f.sleep().sleepNeed);
@@ -365,12 +370,17 @@ class CreatureControllerTest {
         final CreatureMoodSystem moodSystem;
         final HealthSystem healthSystem;
         final CreatureFallSystem fall;
+        final List<GameEventType> events = new java.util.ArrayList<>();
+        final GameEventService eventService = proxy(GameEventService.class, (method, args) -> {
+            events.add((GameEventType) args[0]);
+            return null;
+        });
         int sleepAssignments;
         int oldJobUnassignments;
         double time;
 
         Fixture(int timeSleep) {
-            fall = new CreatureFallSystem(data, () -> time);
+            fall = new CreatureFallSystem(data, () -> time, eventService);
             Creature definition = CreatureSleepFixtures.sleeper(timeSleep);
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
@@ -420,7 +430,7 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, null, null, null);
+                    settings, null, lookup, map, null, null, null, eventService);
             controller = controllers.get();
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
@@ -430,7 +440,7 @@ class CreatureControllerTest {
             });
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
-            healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time);
+            healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);
         }
 
         void startWork(TaskType type) {

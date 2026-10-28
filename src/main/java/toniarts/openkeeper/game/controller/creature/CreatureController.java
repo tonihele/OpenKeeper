@@ -72,6 +72,9 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -89,7 +92,13 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -119,6 +128,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
     private final IShotsController shotsController;
+    private final GameEventService gameEventService;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -127,7 +137,7 @@ public final class CreatureController extends EntityController implements ICreat
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController, GameEventService gameEventService) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -138,6 +148,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
+        this.gameEventService = gameEventService;
         this.stateMachine = new DefaultStateMachine<>(this) {
             @Override
             public void changeState(CreatureState newState) {
@@ -705,6 +716,7 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // Set the damage
                 setDamage(attackTarget, creatureMeleeAttack.damage);
+                gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -1097,6 +1109,11 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public Creature getCreature() {
         return creature;
+    }
+
+    @Override
+    public void fireEvent(GameEventType type, Point location) {
+        gameEventService.emit(type, ThingFlag.CREATURE, creature.getCreatureId(), location);
     }
 
     @Override
