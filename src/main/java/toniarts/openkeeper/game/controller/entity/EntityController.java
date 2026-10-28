@@ -152,31 +152,32 @@ public class EntityController implements IEntityController {
 
     protected void removeFromRoomStrorage() {
         Stored roomStorage = entityData.getComponent(entityId, Stored.class);
-        Position position = entityData.getComponent(entityId, Position.class);
-        removeRoomStorage(roomStorage, position, entityId);
+        removeRoomStorage(roomStorage, entityId);
     }
 
     protected void removeLair() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         if (creatureSleep != null && creatureSleep.lairObjectId != null) {
             Stored roomStorage = entityData.getComponent(creatureSleep.lairObjectId, Stored.class);
-            Position position = entityData.getComponent(creatureSleep.lairObjectId, Position.class);
-            removeRoomStorage(roomStorage, position, creatureSleep.lairObjectId);
+            removeRoomStorage(roomStorage, creatureSleep.lairObjectId);
         }
     }
 
-    private void removeRoomStorage(Stored roomStorage, Position position, EntityId entityId) {
+    private void removeRoomStorage(Stored roomStorage, EntityId entityId) {
         if (roomStorage == null) {
             return;
         }
-        if (position == null) {
-            logger.log(Level.WARNING, () -> "Entity died and is part of room storage (" + roomStorage + ") but hasn't got location!");
+
+        // The room is the one the object is stored in, not necessarily the one under it (a chicken can wander off)
+        IRoomController roomController = mapController.getRoomController(roomStorage.room);
+        if (roomController == null) {
+            logger.log(Level.WARNING, () -> "Entity is part of room storage (" + roomStorage + ") but the room is gone!");
             return;
         }
-
-        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
         IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
-        roomObjectControl.removeItem(entityId);
+        if (roomObjectControl != null) {
+            roomObjectControl.removeItem(entityId);
+        }
     }
 
     private void removeAttacks() {
