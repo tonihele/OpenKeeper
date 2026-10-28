@@ -94,7 +94,6 @@ import toniarts.openkeeper.view.text.TextParser;
 // TODO: States, now only selection
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
-    private static final int SPELL_POSSESSION_ID = 2;
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
     private Main app;
@@ -123,12 +122,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable = false;
 
     /**
-     * Counts down while the one-shot slap cursor animation
-     * ({@link CursorFactory.CursorType#SLAP}) plays after a creature/chicken
-     * is slapped, so the cursor can revert to normal once it has finished
-     * instead of staying on the slap cursor.
+     * A cursor animation the hand plays once as a reaction, a slap or a drop,
+     * before the normal cursor comes back
      */
-    private float slapCursorTimeRemaining = 0f;
+    private CursorFactory.CursorType reactionCursor;
+    private float reactionCursorTimeRemaining = 0f;
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
@@ -194,6 +192,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             app.getInputManager().removeRawInputListener(inputListener);
             inputListenerAdded = false;
             keys.clear();
+
+            // We are no longer around to keep it updated (e.g. entering possession
+            // mode), so drop any leftover held-item/spell icon and cursor image
+            // rather than leaving them frozen on screen
+            keeperHandState.setSpellIcon(null, true);
+            keeperHandState.setVisible(false);
+            inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
         }
     }
 
@@ -233,10 +238,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             updateInteractiveObjectOnCursor();
         }
 
-        if (slapCursorTimeRemaining > 0) {
-            slapCursorTimeRemaining -= tpf;
-            if (slapCursorTimeRemaining <= 0) {
-                slapCursorTimeRemaining = 0;
+        if (reactionCursorTimeRemaining > 0) {
+            reactionCursorTimeRemaining -= tpf;
+            if (reactionCursorTimeRemaining <= 0) {
+                reactionCursorTimeRemaining = 0;
+                reactionCursor = null;
                 updateCursor();
             }
         }
@@ -502,13 +508,28 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     protected void updateCursor() {
         keeperHandState.setVisible(false);
-        if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
-            if (slapCursorTimeRemaining > 0) {
 
-                // Play the slap reaction once, then fall through to normal cursor logic
-                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.SLAP, assetManager));
+        // Show the spell's icon next to the cursor while it's selected for casting,
+        // the same way a grabbed creature or object is shown
+        boolean showSpellIcon = !isOnGui && interactionState.getType() == Type.SPELL;
+        if (showSpellIcon) {
+            KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(interactionState.getItemId());
+            boolean castable = isOnMap() && canCastSpell(keeperSpell, interactiveControl, selectionHandler.getPointedTileIndex());
+            keeperHandState.setSpellIcon(keeperSpell.getGuiIcon(), castable);
+        } else {
+            keeperHandState.setSpellIcon(null, true);
+        }
+
+        if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
+            if (reactionCursor != null) {
+
+                // Play the reaction once, then fall through to normal cursor logic
+                inputManager.setMouseCursor(CursorFactory.getCursor(reactionCursor, assetManager));
             } else if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
+                if (showSpellIcon) {
+                    keeperHandState.setVisible(true);
+                }
             } else if (selectionHandler.isActive() && isTaggable) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.HOLD_PICKAXE_TAGGING, assetManager));
             } else if (isTaggable) {
@@ -521,9 +542,20 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             } else {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.IDLE, assetManager));
             }
-        } else if (keeperHandState.getItem() != null) {
+        } else if (keeperHandState.getItem() != null || showSpellIcon) {
             keeperHandState.setVisible(true);
         }
+    }
+
+    /**
+     * Plays a cursor animation once, the normal cursor comes back after it.
+     * Takes effect with the next cursor update
+     *
+     * @param cursor the animation to play
+     */
+    private void playReactionCursor(CursorFactory.CursorType cursor) {
+        reactionCursor = cursor;
+        reactionCursorTimeRemaining = CursorFactory.getAnimationDuration(cursor, assetManager);
     }
 
     private void initializeInput() {
@@ -593,17 +625,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         private void onLeftMouseButtonPressed() {
             if (interactionState.getType() == Type.SPELL) {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
-                //TODO correct interactiveControl.isPickable
-                /*if (interactiveControl != null && interactionState.getItemId() == SPELL_POSSESSION_ID
-                        && interactiveControl.isPickable(player.getPlayerId())) {
-                    CreatureControl cc = interactiveControl.getSpatial().getControl(CreatureControl.class);
-                    if (cc != null) {
-                        onPossession(cc);
-                        // Reset the state
-                        // TODO disable selection box
-                        setInteractionState(Type.NONE, 0);
-                    }
-                }*/
             } else if (interactionState.getType() == Type.TRAP) {
                 Point p = selectionHandler.getPointedTileIndex();
                 if (isTrapPlacementValid(p)) {
@@ -688,6 +709,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
                     if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
+
+                        // Show the hand letting go of it, the updateCursor() call below picks it up
+                        CursorFactory.CursorType dropCursor = entityViewControl.getDropCursor();
+                        if (dropCursor != null) {
+                            playReactionCursor(dropCursor);
+                        }
                     }
                     //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
 //                    IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
@@ -708,7 +735,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                     // Flash the slap cursor once; the updateCursor() call below
                     // picks it up, and update(tpf) reverts it once it elapses
-                    slapCursorTimeRemaining = CursorFactory.getAnimationDuration(CursorFactory.CursorType.SLAP, assetManager);
+                    playReactionCursor(CursorFactory.CursorType.SLAP);
                 } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                     interactiveControl.interact(player.getPlayerId());
@@ -897,8 +924,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     protected abstract void onInteractionStateChange(InteractionState interactionState);
 
-    protected abstract void onPossession(EntityId creature);
-
     private final class InteractionKeeperHandState extends KeeperHandState {
 
         private InteractionKeeperHandState() {
@@ -932,6 +957,24 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 case SELL, ROOM, DOOR, TRAP -> true;
                 default -> false;
             };
+        }
+
+        @Override
+        protected boolean isBlock(Point tile) {
+
+            // Beyond the edge there is nothing to see through to
+            IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
+            if (mapTile == null) {
+                return true;
+            }
+
+            // Whatever the fog hides is drawn as plain rock, see MapViewController
+            IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
+            if (fogOfWarInformation != null && !fogOfWarInformation.isVisible(tile)) {
+                return true;
+            }
+
+            return mapInformation.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID);
         }
 
         @Override

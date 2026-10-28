@@ -9,7 +9,7 @@
             <image filename="Textures/Cancel-Over.png" width="$width" heigth="$height" visibleToMouse="false">
                 <effect>
                     <onHover name="changeImage" active="Textures/Cancel-Click.png" inactive="Textures/Cancel-Over.png" />
-                    <onClick neverStopRendering="true" name="playSound" sound="buttonClick"/>
+                    <onClick neverStopRendering="true" name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30E"/>
                 </effect>
                 <interact onClick="$click"/>
             </image>
@@ -24,7 +24,7 @@
             <image filename="Textures/Confirm-Over.png" width="$width" heigth="$height" visibleToMouse="false">
                 <effect>
                     <onHover name="changeImage" active="Textures/Confirm-Click.png" inactive="Textures/Confirm-Over.png" />
-                    <onClick neverStopRendering="true" name="playSound" sound="buttonClick"/>
+                    <onClick neverStopRendering="true" name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30D"/>
                 </effect>
                 <interact onClick="$click"/>
             </image>
@@ -413,6 +413,7 @@
             <effect>
                 <onStartHover name="nop" onStartEffect="startHover()" />
                 <onEndHover name="nop" onStartEffect="endHover()" />
+                <onClick name="nop" onStartEffect="click()" neverStopRendering="true" />
             </effect>
         </panel>
     </controlDefinition>
@@ -514,6 +515,7 @@
                 <onHover name="simpleHintEx" hintText="$tooltip" targetElement="tooltip" />
                 <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                 <onCustom name="imageOverlay" filename="$activeImage" customKey="select" post="true" neverStopRendering="true" />
+                <onCustom name="colorBar" color="#000000AA" customKey="unaffordable" post="true" neverStopRendering="true" />
             </effect>
             <interact onClick="$click" />
         </image>
