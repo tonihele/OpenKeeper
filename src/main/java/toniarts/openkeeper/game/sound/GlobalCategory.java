@@ -55,6 +55,9 @@ public final class GlobalCategory {
     public static final String MULTI_PLAYER = "MULTI_PLAYER";
     public static final String MUSIC = "MUSIC";
     public static final String ONE_SHOT_ATMOS = "ONE_SHOT_ATMOS";
+    public static final String OBJECT_FE_MAP = "OBJECT_FE_MAP";
+    public static final String OBJECT_FE_PARCHMENT = "OBJECT_FE_PARCHMENT";
+    public static final String ROOM_HERO_GATE = "ROOM_HERO_GATE";
     public static final String OPTIONS_MUSIC = "OPTIONS_MUSIC";
     public static final String OPTIONS_SPEECH = "OPTIONS_SPEECH";
     public static final String OPTIONS = "OPTIONS";
