@@ -23,6 +23,7 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.effect.EffectGeometry;
+import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
 
 /**
  *
@@ -63,7 +64,7 @@ public final class UniversalArtResourceLoader {
                 break;
 
             case PROCEDURAL_MESH:
-                result = AssetUtils.createProceduralMesh(resource);
+                result = ProceduralMeshFactory.create(resource, assetManager);
                 break;
 
             case ALPHA:

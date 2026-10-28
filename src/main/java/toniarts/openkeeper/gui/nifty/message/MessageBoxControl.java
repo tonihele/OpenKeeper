@@ -25,7 +25,10 @@ import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.state.IPlayerScreenController;
+import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
 /**
@@ -76,6 +79,7 @@ public final class MessageBoxControl extends AbstractController {
     }
 
     public void dismissMessage() {
+        NiftyUtils.playSound(nifty, GlobalCategory.OPTIONS, GlobalType.OPTIONS_CLICK_11.getId());
         if (this.systemMessage != null) {
             this.systemMessage.dismissMessage();
         }
@@ -83,6 +87,7 @@ public final class MessageBoxControl extends AbstractController {
     }
 
     public void closeMessage() {
+        NiftyUtils.playSound(nifty, GlobalCategory.OPTIONS, GlobalType.OPTIONS_CLICK_10.getId());
         this.hide();
     }
 
