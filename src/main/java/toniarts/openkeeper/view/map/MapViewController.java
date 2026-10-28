@@ -1232,6 +1232,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         List<Spatial> walls = new ArrayList<>(WallDirection.values().length);
         for (WallDirection direction : WallDirection.values()) {
             Spatial wall = getWallSpatial(tile, direction);
+            if (wall instanceof BatchNode batched && deformer != null) {
+                wall = unbatch(batched);
+            }
             if (wall != null) {
                 wall.rotate(0, direction.getAngle(), 0);
                 sideTileNode.attachChild(wall);
@@ -1248,6 +1251,32 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 deformer.apply(wall, pageNode.getParent());
             }
         }
+    }
+
+    /**
+     * The room wall end pieces come out of the room constructor already
+     * batched. A batch keeps its vertices in world space and refreshes them
+     * from the original meshes, so it can't be bent afterwards: take the
+     * pieces out of it, the page batch merges them like any other wall.
+     */
+    private static Node unbatch(BatchNode batched) {
+        Node result = new Node(batched.getName());
+        result.setLocalTransform(batched.getLocalTransform());
+        for (Spatial child : new ArrayList<>(batched.getChildren())) {
+            if (child instanceof Geometry geometry && !geometry.isGrouped()) {
+                continue; // The merged result
+            }
+            child.depthFirstTraversal(new SceneGraphVisitor() {
+                @Override
+                public void visit(Spatial spatial) {
+                    if (spatial instanceof Geometry geometry && geometry.isGrouped()) {
+                        geometry.unassociateFromGroupNode();
+                    }
+                }
+            });
+            result.attachChild(child);
+        }
+        return result;
     }
 
     public void flashTile(boolean enabled, List<Point> points) {

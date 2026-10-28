@@ -279,6 +279,9 @@ public final class TerrainDeformer {
     }
 
     private void deformGeometry(Geometry geometry, Spatial space) {
+        // The normals are left as they were: bending them tilts the walls away
+        // from the torches (which stay where they are), and the lighting takes
+        // those walls for unlit
         Mesh original = geometry.getMesh();
         VertexBuffer positionBuffer = original.getBuffer(Type.Position);
         if (positionBuffer == null || positionBuffer.getFormat() != VertexBuffer.Format.Float
@@ -299,7 +302,6 @@ public final class TerrainDeformer {
         geometry.setMesh(mesh);
 
         FloatBuffer positions = (FloatBuffer) mesh.getBuffer(Type.Position).getData();
-        FloatBuffer normals = vectorBuffer(mesh, Type.Normal);
         FloatBuffer tangents = vectorBuffer(mesh, Type.Tangent);
 
         Vector3f scale = toSpace.getScale();
@@ -312,7 +314,6 @@ public final class TerrainDeformer {
         Vector3f moved = new Vector3f();
         Vector3f vector = new Vector3f();
         Matrix3f jacobian = new Matrix3f();
-        Matrix3f normalMatrix = new Matrix3f();
         int count = positions.limit() / 3;
         for (int i = 0; i < count; i++) {
             local.set(positions.get(3 * i), positions.get(3 * i + 1), positions.get(3 * i + 2));
@@ -321,15 +322,6 @@ public final class TerrainDeformer {
             toSpace.transformInverseVector(moved, local);
             positions.put(3 * i, local.x).put(3 * i + 1, local.y).put(3 * i + 2, local.z);
 
-            if (normals != null) {
-                // A normal goes through the inverse transpose of the field
-                vector.set(normals.get(3 * i), normals.get(3 * i + 1), normals.get(3 * i + 2));
-                rotation.mult(vector.multLocal(inverseScale), vector);
-                normalMatrix.set(jacobian).invertLocal().transposeLocal();
-                normalMatrix.mult(vector, vector);
-                inverseRotation.mult(vector, vector).multLocal(scale).normalizeLocal();
-                normals.put(3 * i, vector.x).put(3 * i + 1, vector.y).put(3 * i + 2, vector.z);
-            }
             if (tangents != null) {
                 // And a tangent through the field itself
                 vector.set(tangents.get(4 * i), tangents.get(4 * i + 1), tangents.get(4 * i + 2));
@@ -341,9 +333,6 @@ public final class TerrainDeformer {
         }
 
         mesh.getBuffer(Type.Position).updateData(positions);
-        if (normals != null) {
-            mesh.getBuffer(Type.Normal).updateData(normals);
-        }
         if (tangents != null) {
             mesh.getBuffer(Type.Tangent).updateData(tangents);
         }
