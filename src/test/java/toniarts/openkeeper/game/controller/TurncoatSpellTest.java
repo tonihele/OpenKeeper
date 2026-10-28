@@ -75,11 +75,11 @@ class TurncoatSpellTest {
             case "createController" -> {
                 EntityId entity = (EntityId) args[0];
                 Creature targetCreature = kwdFile.getCreature(entityData.getComponent(entity, CreatureComponent.class).creatureId);
-                yield new CreatureController(entity, entityData, targetCreature, null, null, gameTimer, null, null, null, null, levelInfo, null, null);
+                yield new CreatureController(entity, entityData, targetCreature, null, null, gameTimer, null, null, null, null, levelInfo, null, null, null);
             }
             default -> null;
         });
-        shotsController = new ShotsController(kwdFile, entityData, null, gameTimer, null, null, null, null, creaturesController);
+        shotsController = new ShotsController(kwdFile, entityData, null, gameTimer, null, null, null, null, creaturesController, null);
     }
 
     @Test

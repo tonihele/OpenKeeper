@@ -130,7 +130,7 @@ class CreatureTurncoatAllegianceTest {
         });
 
         return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), null, null, null, null,
-                creaturesController, entityPositionLookup, null, levelInfo, null, null);
+                creaturesController, entityPositionLookup, null, levelInfo, null, null, null);
     }
 
     private static ICreatureController creatureController(EntityId entity) {

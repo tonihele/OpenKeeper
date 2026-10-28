@@ -21,11 +21,10 @@ import de.lessvoid.nifty.controls.Label;
 import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.spi.sound.SoundHandle;
 import de.lessvoid.nifty.tools.SizeValue;
-import java.io.File;
+import java.util.HashSet;
+import java.util.Set;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.game.sound.SoundFile;
-import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
+import toniarts.openkeeper.game.sound.SoundManager;
 
 /**
  * Utility class for Nifty related stuff
@@ -33,6 +32,8 @@ import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class NiftyUtils {
+
+    private static final Set<String> REGISTERED_SOUNDS = new HashSet<>();
 
     private NiftyUtils() {
     }
@@ -51,20 +52,29 @@ public final class NiftyUtils {
 
     @Nullable
     public static SoundHandle getSoundHandler(Nifty nifty, String category, int id) {
-        SoundFile file = SoundsLoader.getAudioFile(category, id);
-        if (file == null) {
+        String assetPath = SoundManager.getSoundAssetPath(category, id);
+        if (assetPath == null) {
             return null;
         }
 
-        SoundHandle soundHandler = nifty.getSoundSystem().getSound(file.toString());
-        if (soundHandler == null) {
-            String filename = AssetsConverter.SOUNDS_FOLDER + File.separator + file.getFilename();
-            if (nifty.getSoundSystem().addSound(file.toString(), filename)) {
-                soundHandler = nifty.getSoundSystem().getSound(file.toString());
-            }
+        // Nifty logs a warning for every unknown sound, so remember what has been added
+        SoundHandle soundHandler = null;
+        if (REGISTERED_SOUNDS.contains(assetPath) || nifty.getSoundSystem().addSound(assetPath, assetPath)) {
+            REGISTERED_SOUNDS.add(assetPath);
+            soundHandler = nifty.getSoundSystem().getSound(assetPath);
         }
 
         return soundHandler;
+    }
+
+    /**
+     * Plays a GUI sound right away
+     */
+    public static void playSound(Nifty nifty, String category, int id) {
+        SoundHandle soundHandler = getSoundHandler(nifty, category, id);
+        if (soundHandler != null) {
+            soundHandler.play();
+        }
     }
 
 }
