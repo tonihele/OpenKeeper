@@ -540,7 +540,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     private ArtResource firstPersonMeleeResource; // 1027
     private int unk6; // 107b
     private final Map<OffsetType, Vector3f> animationOffsets = HashMap.newHashMap(8);
-    private X1323 x1323[];
+    private Footstep footstepFrames[];
     private int uniqueNameTextId;
     private int x14e1[]; // 14e1
     private int firstPersonSpecialAbility1Count; // 14e9, available uses or something, not really sure
@@ -1430,12 +1430,12 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         this.animationOffsets.put(type, new Vector3f(x, y, z));
     }
 
-    public X1323[] getX1323() {
-        return x1323;
+    public Footstep[] getFootstepFrames() {
+        return footstepFrames;
     }
 
-    protected void setX1323(X1323[] x1323) {
-        this.x1323 = x1323;
+    protected void setFootstepFrames(Footstep[] footstepFrames) {
+        this.footstepFrames = footstepFrames;
     }
 
     public int getUniqueNameTextId() {
@@ -1800,25 +1800,28 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public static final class X1323 {
+    /**
+     * Footstep marks of an animation, in frames of the animation, 0 for none
+     */
+    public static final class Footstep {
 
-        private int x00;
-        private int x02;
+        private int left;
+        private int right;
 
-        public int getX00() {
-            return x00;
+        public int getLeft() {
+            return left;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setLeft(int left) {
+            this.left = left;
         }
 
-        public int getX02() {
-            return x02;
+        public int getRight() {
+            return right;
         }
 
-        protected void setX02(int x02) {
-            this.x02 = x02;
+        protected void setRight(int right) {
+            this.right = right;
         }
     }
 

@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.SoundState;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -281,9 +282,18 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
 
         updateEdgeScroll(tpf);
 
-        // Update audio listener position
-        app.getListener().setLocation(app.getCamera().getLocation());
+        // Update audio listener position. The camera hovers high up and behind what it looks at, and the more
+        // it is zoomed out the further behind. Listen from right above the look at point instead, so that
+        // the rooms and creatures on the screen do not get further away as you zoom out.
+        Vector3f listenerLocation = app.getCamera().getLocation().clone();
+        if (app.getCamera().getDirection().y < -0.01f) {
+            Vector3f lookAt = camera.getLookAt();
+            listenerLocation.x = lookAt.x;
+            listenerLocation.z = lookAt.z;
+        }
+        app.getListener().setLocation(listenerLocation);
         app.getListener().setRotation(app.getCamera().getRotation());
+        SoundManager.setListener(WorldUtils.vectorToPoint(listenerLocation));
     }
 
     private void updateEdgeScroll(float tpf) {
