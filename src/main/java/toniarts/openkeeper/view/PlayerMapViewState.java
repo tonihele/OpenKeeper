@@ -280,14 +280,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         return mapLoaded;
     }
 
-    /**
-     * The map is built on a separate thread, anything that wants to look at
-     * the map data before the map is up should wait for this.
-     */
-    public boolean isMapLoaded() {
-        return mapLoaded;
-    }
-
     public AssetManager getAssetManager() {
         return assetManager;
     }

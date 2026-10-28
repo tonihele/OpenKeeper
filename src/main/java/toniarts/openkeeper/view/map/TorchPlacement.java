@@ -17,6 +17,8 @@
 package toniarts.openkeeper.view.map;
 
 import com.jme3.math.Vector3f;
+
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -28,7 +30,7 @@ import toniarts.openkeeper.view.map.WallSection.WallDirection;
  * Where wall torches, and the lights that go with them, are placed. Pure
  * functions of the tile coordinates and terrain data.
  */
-final class TorchPlacement {
+public final class TorchPlacement {
 
     private static final List<WallDirection> NO_TORCH_DIRECTIONS = List.of();
     private static final List<WallDirection> HORIZONTAL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.SOUTH);
@@ -85,6 +87,25 @@ final class TorchPlacement {
             default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
         return new Vector3f(floor.x - 0.5f + u, height, floor.y - 0.5f + v);
+    }
+
+    /**
+     * The tiles that may carry a torch for the floor tile, in the order the
+     * torch is looked for. The tile has a torch if one of these is a torch wall.
+     *
+     * @return the neighbouring tiles, empty if the floor tile has no torch
+     */
+    public static List<Point> getTorchWallCandidates(int x, int y) {
+        List<Point> result = new ArrayList<>(4);
+        for (WallDirection direction : getTorchDirections(x, y)) {
+            result.add(switch (direction) {
+                case NORTH -> new Point(x, y - 1);
+                case WEST -> new Point(x - 1, y);
+                case SOUTH -> new Point(x, y + 1);
+                case EAST -> new Point(x + 1, y);
+            });
+        }
+        return result;
     }
 
     /**
