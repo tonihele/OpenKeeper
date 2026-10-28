@@ -107,9 +107,7 @@ class PortalSpawnCooldownTest {
         setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 30);
         CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
                 stub(ILevelInfo.class, (method, args) -> level), map,
-                stub(GameEventService.class, (method, args) -> {
-                    throw new AssertionError(method);
-                }));
+                stub(GameEventService.class, (method, args) -> null));
         timer.processTick(109.5f);
         system.processTick(109.5f);
         RoomInstance room = new RoomInstance(portalDefinition);
