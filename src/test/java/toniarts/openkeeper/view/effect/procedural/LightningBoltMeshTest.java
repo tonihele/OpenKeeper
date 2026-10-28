@@ -46,18 +46,19 @@ class LightningBoltMeshTest {
             assertEquals(HEIGHT, mesh.getPoint(SEGMENTS).y, EPSILON);
             for (int i = 0; i < mesh.getPointCount(); i++) {
                 Vector3f point = mesh.getPoint(i);
-                assertTrue(Math.abs(point.x) <= JITTER && Math.abs(point.z) <= JITTER, "Point " + i + " wandered off: " + point);
+                assertTrue(Math.abs(point.x) <= JITTER, "Point " + i + " wandered off: " + point);
+                assertEquals(0f, point.z, "The bolt stays in its plane");
                 assertEquals(HEIGHT * i / SEGMENTS, point.y, EPSILON);
             }
         }
     }
 
     @Test
-    void ribbonsFaceTheCamera() {
+    void ribbonsSpreadAlongX() {
         LightningBoltMesh mesh = new LightningBoltMesh(SEGMENTS, HEIGHT, JITTER);
 
-        // A straight bolt seen from the side, the ribbons spread across the line of sight
-        mesh.faceCamera(new Vector3f(10f, HEIGHT / 2, 0f));
+        // The billboard turns the bolt's plane to the camera, so the ribbons only need to spread within it
+        mesh.randomizePath(new Random(3));
 
         FloatBuffer positions = (FloatBuffer) mesh.getBuffer(VertexBuffer.Type.Position).getData();
         for (int layer = 0; layer < LAYERS; layer++) {
@@ -69,22 +70,9 @@ class LightningBoltMeshTest {
                 Vector3f otherEdge = getVertex(positions, first + 2);
 
                 assertEquals(mesh.getPoint(i), centre);
-                assertEquals(0f, edge.x - centre.x, EPSILON);
-                assertEquals(halfWidth, Math.abs(edge.z - centre.z), EPSILON);
-                assertEquals(-(edge.z - centre.z), otherEdge.z - centre.z, EPSILON);
+                assertEquals(new Vector3f(centre.x - halfWidth, centre.y, centre.z), edge);
+                assertEquals(new Vector3f(centre.x + halfWidth, centre.y, centre.z), otherEdge);
             }
-        }
-    }
-
-    @Test
-    void ribbonsSurviveLookingStraightDownTheBolt() {
-        LightningBoltMesh mesh = new LightningBoltMesh(SEGMENTS, HEIGHT, JITTER);
-
-        mesh.faceCamera(new Vector3f(0f, 10f, 0f));
-
-        FloatBuffer positions = (FloatBuffer) mesh.getBuffer(VertexBuffer.Type.Position).getData();
-        for (int i = 0; i < positions.limit(); i++) {
-            assertTrue(Float.isFinite(positions.get(i)), "Vertex component " + i + " is " + positions.get(i));
         }
     }
 
@@ -137,7 +125,6 @@ class LightningBoltMeshTest {
 
         for (int roll = 0; roll < 100; roll++) {
             mesh.randomizePath(random);
-            mesh.faceCamera(new Vector3f(random.nextFloat() * 20 - 10, random.nextFloat() * 20 - 10, random.nextFloat() * 20 - 10));
 
             FloatBuffer positions = (FloatBuffer) mesh.getBuffer(VertexBuffer.Type.Position).getData();
             for (int vertex = 0; vertex < mesh.getVertexCount(); vertex++) {

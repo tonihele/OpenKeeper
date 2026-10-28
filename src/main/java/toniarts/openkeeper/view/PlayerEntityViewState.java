@@ -45,9 +45,11 @@ import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -145,6 +147,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
+    private Spatial hiddenSpatial;
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -265,6 +268,47 @@ public class PlayerEntityViewState extends AbstractAppState {
         return root;
     }
 
+    /**
+     * Gets the model of an entity
+     *
+     * @param entityId the entity
+     * @return the model, or {@code null} if the entity has no model (yet)
+     */
+    public Spatial getEntitySpatial(EntityId entityId) {
+        IEntityViewControl control = entityViewControls.get(entityId);
+        return control != null ? control.getSpatial() : null;
+    }
+
+    /**
+     * Gets the view control of an entity, already holding the locally
+     * resolved game data for the entity (e.g. the {@link Creature} for a
+     * creature entity), so callers don't need to query the server for it
+     *
+     * @param entityId the entity
+     * @return the view control, or {@code null} if the entity has no view
+     * (yet)
+     */
+    public IEntityViewControl getEntityViewControl(EntityId entityId) {
+        return entityViewControls.get(entityId);
+    }
+
+    /**
+     * Hides the model of an entity regardless of fog of war, i.e. the creature
+     * we are looking out of while possessing it
+     *
+     * @param entityId the entity to hide, {@code null} to show the previously
+     * hidden one again
+     */
+    public void setHiddenEntity(EntityId entityId) {
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Inherit);
+        }
+        hiddenSpatial = entityId != null ? getEntitySpatial(entityId) : null;
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Always);
+        }
+    }
+
     private Spatial createObjectModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
@@ -279,7 +323,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser != null ? textParser.getObjectTextParser() : null, mapData);
+                Creature lairCreatureType = objectViewState.lairCreatureTypeId != 0
+                        ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
+                boolean uniqueCreatureBed = lairCreatureType != null
+                        && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
+                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
+                        uniqueCreatureBed);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -292,6 +343,18 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
         nodeObjects.attachChild(result);
         return result;
+    }
+
+    private boolean isWater(Vector3f position) {
+        if (mapData == null) {
+            return false;
+        }
+        IMapTileInformation tile = mapData.getTile(WorldUtils.vectorToPoint(position));
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.WATER);
     }
 
     private Spatial createCreatureModel(Entity e) {
@@ -309,7 +372,8 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                control.setWaterCheck(this::isWater);
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
@@ -496,6 +560,10 @@ public class PlayerEntityViewState extends AbstractAppState {
      * with no exceptions.
      */
     private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
+        if (object == hiddenSpatial) {
+            object.setCullHint(Spatial.CullHint.Always);
+            return;
+        }
         boolean visible = baseVisible;
         if (visible) {
             visible = fogOfWarInformation.isVisible(tile);
