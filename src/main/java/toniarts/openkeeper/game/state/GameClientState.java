@@ -102,6 +102,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
     private TextParser textParser;
+    private volatile PendingTransition pendingTransition;
 
     /**
      * Single use game states
@@ -201,6 +202,12 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerModelViewState = null;
         minimapPanelState = null;
         fullscreenMapState = null;
+    }
+
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+        gameSessionListener.startPendingTransition();
     }
 
     @Override
@@ -562,27 +569,24 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onDoTransition(short pathId, Vector3f start) {
 
-            // Called from the game logic thread, the camera and the scene belong to the render thread
-            app.enqueue(() -> doTransitionOnRenderThread(pathId, start));
+            // Called from the game logic thread, the camera and the scene belong to the render thread.
+            // update() starts it once the camera state is initialized.
+            pendingTransition = new PendingTransition(pathId, start);
         }
 
         /**
-         * Starts the camera transition. Must be called on the render thread.
-         * If the camera state isn't initialized yet (the level script ran
-         * before the state got attached), try again on the next frame, as long
-         * as the game is running.
-         *
-         * @param pathId the camera path to follow
-         * @param start the start location
+         * Starts the pending camera transition, if any, once the camera state
+         * is initialized. Must be called on the render thread.
          */
-        private void doTransitionOnRenderThread(short pathId, Vector3f start) {
+        private void startPendingTransition() {
+            PendingTransition pending = pendingTransition;
             PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
-            if (cameraState == null || !cameraState.isInitialized()) {
-                if (isInitialized()) {
-                    app.enqueue(() -> doTransitionOnRenderThread(pathId, start));
-                }
+            if (pending == null || cameraState == null || !cameraState.isInitialized()) {
                 return;
             }
+            pendingTransition = null;
+            short pathId = pending.pathId();
+            Vector3f start = pending.start();
 
             // TODO: Refactor
             cameraState.doTransition(pathId, start, new CinematicEventListener() {
@@ -780,6 +784,13 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     public GameSessionClientService getGameClientService() {
         return gameClientService;
+    }
+
+    /**
+     * A camera path transition waiting for the camera state to initialize.
+     */
+    private record PendingTransition(short pathId, Vector3f start) {
+
     }
 
 }
