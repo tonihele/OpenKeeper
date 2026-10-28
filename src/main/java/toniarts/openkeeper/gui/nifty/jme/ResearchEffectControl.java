@@ -20,6 +20,7 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.texture.Texture2D;
+import com.jme3.ui.Picture;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Parameters;
 import de.lessvoid.nifty.elements.Element;
@@ -36,10 +37,13 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
     public static final String CONTROL_NAME = "researchEffect";
 
     private ProgressIndicatorPicture picture;
+    private Picture frontPicture;
     private boolean initialized = false;
     private float research = 0;
     private Color color;
     private String image;
+    private String frontImage;
+    private boolean counterClockwise;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -53,6 +57,12 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
         if (image.isEmpty()) {
             image = null;
         }
+
+        // Which way the progress goes from the top
+        counterClockwise = parameter.getAsBoolean("counterClockwise", false);
+
+        // An image drawn over the progress, e.g. a frame the progress shows through
+        frontImage = parameter.get("frontImage");
 
         // Sanity check
         if (color == null && image == null) {
@@ -76,6 +86,9 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
     protected void cleanup() {
         if (initialized) {
             getApp().getGuiNode().detachChild(picture);
+            if (frontPicture != null) {
+                getApp().getGuiNode().detachChild(frontPicture);
+            }
         }
     }
 
@@ -97,6 +110,7 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
+        picture.setCounterClockwise(assetManager, counterClockwise);
         picture.setProgress(assetManager, research);
 
         // Set the color or the picture
@@ -110,6 +124,18 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
 
         // Attach to scene
         getApp().getGuiNode().attachChild(picture);
+        if (frontImage != null) {
+            frontPicture = new Picture("ResearchIndicatorFront");
+            frontPicture.setImage(assetManager, frontImage, true);
+            frontPicture.setHeight(getControlHeight());
+            frontPicture.setWidth(getControlWidth());
+            frontPicture.setPosition(getControlX(), getControlY());
+
+            // The GUI is drawn by depth, in front of the progress
+            frontPicture.move(0, 0, 1);
+            frontPicture.addControl(new SimpleJmeControl(this));
+            getApp().getGuiNode().attachChild(frontPicture);
+        }
     }
 
 }
