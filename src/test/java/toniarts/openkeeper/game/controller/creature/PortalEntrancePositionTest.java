@@ -37,7 +37,7 @@ class PortalEntrancePositionTest {
         setter.setAccessible(true);
         setter.invoke(creature, Creature.OffsetType.PORTAL_ENTRANCE, x, y, z);
         var controller = new CreatureController(id, data, creature, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, null);
         controller.completeDungeonEntrance();
         var result = data.getComponent(id, Position.class);
         assertEquals(13 + x, result.position.x);
