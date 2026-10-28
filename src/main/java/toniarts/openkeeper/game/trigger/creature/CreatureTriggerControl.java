@@ -80,7 +80,9 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_CONVERTED:
-                return instanceControl.getOwnerId() != getPlayerId();
+                // A creature that has died or been removed has no owner left to compare
+                return instanceControl != null && !instanceControl.isDead()
+                        && instanceControl.getOwnerId() != getPlayerId();
             case CREATURE_CLAIMED:
                 if (instanceControl != null) {
                     return instanceControl.isClaimed();
