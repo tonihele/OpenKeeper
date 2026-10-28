@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
@@ -134,6 +135,20 @@ public final class CasinoSystem implements IGameLogicUpdatable {
             entityData.setComponent(casino.getEntityId(), new CasinoDisco(gameTimer.getGameTime()));
             RoomComponent room = entityData.getComponent(casino.getEntityId(), RoomComponent.class);
             gameEventService.emit(GameEventType.CASINO_DISCO_START, ThingFlag.ROOM, room.roomId, room.location);
+
+            // As in DK II (0x4D6AA0), the keeper's other creatures in the Casino start dancing at once, the tired ones too
+            for (Point p : casino.getRoomInstance().getCoordinates()) {
+                for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(p)) {
+                    Owner owner = entityData.getComponent(entityId, Owner.class);
+                    if (!entityId.equals(bigWinner.getId()) && owner != null && owner.ownerId == bigWinner.get(Owner.class).ownerId
+                            && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+                        ICreatureController creature = creaturesController.createController(entityId);
+                        if (creature.goToDisco()) {
+                            creature.getStateMachine().changeState(CreatureState.DANCING);
+                        }
+                    }
+                }
+            }
         }
     }
 
