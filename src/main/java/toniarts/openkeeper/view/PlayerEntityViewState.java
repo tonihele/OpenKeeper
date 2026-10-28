@@ -539,7 +539,6 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
-        object.getControl(IEntityViewControl.class).setTargetState(viewState.state);
 
         Creature creature = kwdFile.getCreature(viewState.creatureId);
         applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
