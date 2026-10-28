@@ -107,8 +107,6 @@ class DestroyRoomTileTest {
         task.executeTask(hero, 2.0f);
         assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);
 
-        // The tile is the keeper's claimed path now, with the health of one
-        assertEquals(RoomTileWorld.CLAIMED_PATH_HEALTH, world.health);
         assertFalse(task.isValid(hero));
         task.executeTask(hero, 3.0f);
         assertEquals(List.of(RoomTileWorld.TILE), world.destroyedTiles);

@@ -159,9 +159,6 @@ public final class DestroyRoomTile extends AbstractTileTask {
         // The room loses the tile, it turns to the keeper's claimed path
         int roomsBefore = countRooms(room, ownerId);
         gameWorldController.destroyRoomTiles(List.of(getTaskLocation()));
-        Terrain terrain = mapController.getTerrain(tile);
-        tile.setMaxHealth(terrain.getMaxHealth());
-        tile.setHealth(terrain.getStartingHealth());
         if (messages != null) {
             messages.roomLost(ownerId, room, roomsBefore, countRooms(room, ownerId), getTaskLocation());
         }
