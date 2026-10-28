@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -31,10 +32,12 @@ import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureMoodFixtures;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -110,9 +113,33 @@ public class CreatureMoodSystemTest {
             }));
         }
 
-        CreatureMoodSystem system = new CreatureMoodSystem(entityData, kwdFile, controllers);
+        CreatureMoodSystem system = new CreatureMoodSystem(entityData, kwdFile, controllers, () -> 0.0,
+                Map.of(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
+                        CreatureSleepFixtures.variable(
+                                Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550)));
         system.processTick(0.25f);
         system.stop();
     }
 
+    @Test
+    public void lairRecoveryChangesOnlySharedOtherAnger() {
+        CreatureMood mood = new CreatureMood(100, 200, 300, 400, 500, 600);
+
+        CreatureMood updated = CreatureMoodSystem.recoverInLair(mood, -550);
+
+        assertEquals(100, updated.general);
+        assertEquals(200, updated.noFood);
+        assertEquals(300, updated.noLair);
+        assertEquals(400, updated.noWork);
+        assertEquals(500, updated.noPay);
+        assertEquals(50, updated.other);
+    }
+
+    @Test
+    public void lairRecoveryCannotMakeAngerNegative() {
+        CreatureMood updated = CreatureMoodSystem.recoverInLair(
+                new CreatureMood(0, 0, 0, 0, 0, 100), -550);
+
+        assertEquals(0, updated.other);
+    }
 }

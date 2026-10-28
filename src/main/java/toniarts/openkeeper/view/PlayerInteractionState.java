@@ -77,6 +77,8 @@ import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.selection.SelectionArea;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
@@ -119,12 +121,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isInteractable = false;
 
     /**
-     * Counts down while the one-shot slap cursor animation
-     * ({@link CursorFactory.CursorType#SLAP}) plays after a creature/chicken
-     * is slapped, so the cursor can revert to normal once it has finished
-     * instead of staying on the slap cursor.
+     * A cursor animation the hand plays once as a reaction, a slap or a drop,
+     * before the normal cursor comes back
      */
-    private float slapCursorTimeRemaining = 0f;
+    private CursorFactory.CursorType reactionCursor;
+    private float reactionCursorTimeRemaining = 0f;
 
     private RawInputListener inputListener;
     private boolean inputListenerAdded = false;
@@ -235,11 +236,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
         }
+        updateCursorLight();
 
-        if (slapCursorTimeRemaining > 0) {
-            slapCursorTimeRemaining -= tpf;
-            if (slapCursorTimeRemaining <= 0) {
-                slapCursorTimeRemaining = 0;
+        if (reactionCursorTimeRemaining > 0) {
+            reactionCursorTimeRemaining -= tpf;
+            if (reactionCursorTimeRemaining <= 0) {
+                reactionCursorTimeRemaining = 0;
+                reactionCursor = null;
                 updateCursor();
             }
         }
@@ -495,6 +498,49 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return points;
     }
 
+    /**
+     * The cursor light: follows
+     * the point on the world directly under the mouse (continuous, not
+     * snapped to tile centres -- see LightRules.updateCursorLight for the
+     * deviation), hidden in build mode / off the world / off the map,
+     * black (not hidden) over the map border or unexplored ground.
+     */
+    private void updateCursorLight() {
+        PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+        // The map loader thread mutates the light list until the map is loaded
+        if (mapViewState == null || !mapViewState.isMapLoaded()) {
+            return;
+        }
+        LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+
+        boolean visible = isOnMap && !isOnGui && interactionState.getType() != Type.ROOM;
+        Point p = selectionHandler.getPointedTileIndex();
+        boolean onBorder = false;
+        if (visible) {
+            int width = mapInformation.getMapData().getWidth();
+            int height = mapInformation.getMapData().getHeight();
+            onBorder = p.x < 1 || p.y < 1 || p.x >= width - 1 || p.y >= height - 1;
+        }
+
+        // Over open ground the light is lowered to reach the things standing
+        // there. The mouse ray is cast to the light's own height, else the
+        // light sits off towards the camera, under the pointer
+        // Unexplored ground (incl. the perceived claim scan) is drawn as rock,
+        // so it gets the rock height even where the real tile is open
+        IFogOfWarInformation fogOfWar = gameClientState.getFogOfWarInformation();
+        boolean overSolid = !visible || mapInformation.isSolid(p)
+                || (fogOfWar != null && !fogOfWar.isExplored(p));
+        float height = overSolid ? LightConstants.CURSOR_LIGHT_HEIGHT : LightConstants.CURSOR_LIGHT_HEIGHT_OPEN;
+        Vector2f pointed = selectionHandler.getPointedPositionAtHeight(height);
+        Vector3f position = new Vector3f(pointed.x, height, pointed.y);
+
+        // Border tiles: light stays on but black. Over unexplored
+        // ground it stays white: the hand lights the fog it points at, which
+        // is otherwise completely black (a deviation from the original).
+        boolean explored = visible && !onBorder;
+         lightRules.updateCursorLight(visible, position, explored);
+    }
+
     private boolean isOnMap() {
         if (isOnGui) {
             return false;
@@ -518,10 +564,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         if (Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)) {
-            if (slapCursorTimeRemaining > 0) {
+            if (reactionCursor != null) {
 
-                // Play the slap reaction once, then fall through to normal cursor logic
-                inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.SLAP, assetManager));
+                // Play the reaction once, then fall through to normal cursor logic
+                inputManager.setMouseCursor(CursorFactory.getCursor(reactionCursor, assetManager));
             } else if (isOnGui || isInteractable || interactionState.getType() == Type.SPELL) {
                 inputManager.setMouseCursor(CursorFactory.getCursor(CursorFactory.CursorType.POINTER, assetManager));
                 if (showSpellIcon) {
@@ -542,6 +588,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         } else if (keeperHandState.getItem() != null || showSpellIcon) {
             keeperHandState.setVisible(true);
         }
+    }
+
+    /**
+     * Plays a cursor animation once, the normal cursor comes back after it.
+     * Takes effect with the next cursor update
+     *
+     * @param cursor the animation to play
+     */
+    private void playReactionCursor(CursorFactory.CursorType cursor) {
+        reactionCursor = cursor;
+        reactionCursorTimeRemaining = CursorFactory.getAnimationDuration(cursor, assetManager);
     }
 
     private void initializeInput() {
@@ -658,7 +715,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // The server only marks a tile selected if its real, hidden terrain is
                 // actually taggable - fog can't reach it to know any better. Locally,
                 // still-unexplored tiles in this drag should look tagged regardless,
-                // until exploration reveals whether that's really true (§8.5).
+                // until exploration reveals whether that's really true.
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
             } else if (interactionState.getType() == Type.ROOM
                     && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
@@ -684,6 +741,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
                     if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
+
+                        // Show the hand letting go of it, the updateCursor() call below picks it up
+                        CursorFactory.CursorType dropCursor = entityViewControl.getDropCursor();
+                        if (dropCursor != null) {
+                            playReactionCursor(dropCursor);
+                        }
                     }
                     //MapTile tile = gameClientState.getMapClientService().getMapData().getTile(p);
 //                    IEntityControl.DroppableStatus status = keeperHand.peek().getDroppableStatus(tile, player.getPlayerId());
@@ -704,7 +767,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
                     // Flash the slap cursor once; the updateCursor() call below
                     // picks it up, and update(tpf) reverts it once it elapses
-                    slapCursorTimeRemaining = CursorFactory.getAnimationDuration(CursorFactory.CursorType.SLAP, assetManager);
+                    playReactionCursor(CursorFactory.CursorType.SLAP);
                 } else if (interactiveControl != null && interactiveControl.isInteractable(player.getPlayerId())) {
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                     interactiveControl.interact(player.getPlayerId());
@@ -907,6 +970,24 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 case SELL, ROOM, DOOR, TRAP -> true;
                 default -> false;
             };
+        }
+
+        @Override
+        protected boolean isBlock(Point tile) {
+
+            // Beyond the edge there is nothing to see through to
+            IMapTileInformation mapTile = mapInformation.getMapData().getTile(tile);
+            if (mapTile == null) {
+                return true;
+            }
+
+            // Whatever the fog hides is drawn as plain rock, see MapViewController
+            IFogOfWarInformation fogOfWarInformation = gameClientState.getFogOfWarInformation();
+            if (fogOfWarInformation != null && !fogOfWarInformation.isVisible(tile)) {
+                return true;
+            }
+
+            return mapInformation.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID);
         }
 
         @Override
