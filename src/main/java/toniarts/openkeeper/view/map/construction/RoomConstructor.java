@@ -6,11 +6,15 @@
 package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.BatchNode;
+import com.jme3.scene.Geometry;
 import com.jme3.scene.Node;
+import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +42,16 @@ public abstract class RoomConstructor {
     protected final boolean[][] map;
     protected final Point start;
 
+    /**
+     * This room's vertex ambient, set by
+     * the caller (see {@code MapViewController.handleRoom}) before
+     * {@link #construct()}/{@link #getWallSpatial} run, since it's needed
+     * to build the Vertex materials this class pre-swaps its geometry
+     * onto BEFORE batching it (jME forbids re-materialling afterwards).
+     */
+    private ColorRGBA ambient = ColorRGBA.Black;
+    private final List<Material> lightingMaterials = new ArrayList<>();
+
     // Per-tile floor pieces attached via attachFloorTile(), keyed by their world
     // tile point. A room instance is found and built as a whole (see
     // MapViewController#findRoom), covering every physically-connected tile regardless
@@ -56,6 +70,19 @@ public abstract class RoomConstructor {
         this.start = roomInstance.getMatrixStartPoint();
     }
 
+    public void setAmbient(ColorRGBA ambient) {
+        this.ambient = ambient;
+    }
+
+    /**
+     * The Vertex materials {@link #construct()} swapped its floor/wall
+     * geometry onto, for the caller to register with {@code LightRules}. Only populated after {@link #construct()}
+     * has run.
+     */
+    public List<Material> getLightingMaterials() {
+        return lightingMaterials;
+    }
+
     /**
      * Constructs the room
      *
@@ -71,6 +98,7 @@ public abstract class RoomConstructor {
         if (floorNode != null) {
             floorNode.setName("Floor");
             floorNode.setShadowMode(getFloorShadowMode());
+            applyLighting(floorNode, lightingMaterials);
             hideUnexploredFloorTiles(fogOfWarInformation);
             floorNode.batch();
             root.attachChild(floorNode);
@@ -81,11 +109,35 @@ public abstract class RoomConstructor {
         if (wallNode != null) {
             wallNode.setName("Wall");
             wallNode.setShadowMode(getWallShadowMode());
+            applyLighting(wallNode, lightingMaterials);
             wallNode.batch();
             root.attachChild(wallNode);
         }
 
         return root;
+    }
+
+    /**
+     * Swaps every geometry under {@code node} to a Vertex material.
+     * Must run before {@code node.batch()},
+     * see the class-level note on {@link #ambient}. {@code outMaterials}
+     * is a separate list per call site (not always {@link
+     * #lightingMaterials}) so a single per-tile wall corner piece (see
+     * {@link #getWallSpatial}) doesn't also end up double-registered as
+     * part of the whole room's region.
+     */
+    private void applyLighting(Node node, List<Material> outMaterials) {
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
+                geometry.setMaterial(vertex);
+                outMaterials.add(vertex);
+            }
+        });
     }
 
     /**
@@ -178,89 +230,79 @@ public abstract class RoomConstructor {
     }
 
     public Spatial getWallSpatial(Point p, WallSection.WallDirection direction) {
-        float yAngle = FastMath.PI;
         ArtResource artResource = roomInstance.getRoom().getCompleteResource();
         String resource = artResource.getName();
 
         for (WallSection section : roomInstance.getWallSections()) {
-
             if (section.direction() != direction) {
                 continue;
             }
 
-            int sectionSize = section.coordinates().size();
-            for (int i = 0; i < sectionSize; i++) {
-                // skip others
-                if (!p.equals(section.coordinates().get(i))) {
-                    continue;
-                }
-
-                Spatial spatial;
-                if (i == 0 || i == (sectionSize - 1)) {
-                    Vector3f moveFirst;
-                    Vector3f moveSecond;
-                    if (section.direction() == WallSection.WallDirection.WEST
-                            || section.direction() == WallSection.WallDirection.SOUTH) {
-                        moveFirst = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
-                        moveSecond = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
-                    } else { // NORTH, EAST
-                        moveFirst = new Vector3f(-WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
-                        moveSecond = new Vector3f(WorldUtils.TILE_WIDTH / 4, 0, -3 * WorldUtils.TILE_WIDTH / 4);
-                    }
-
-                    spatial = new BatchNode();
-                    int firstPiece = (i == 0 ? 4 : 6);
-                    if (firstPiece == 4 && (section.direction() == WallSection.WallDirection.EAST
-                            || section.direction() == WallSection.WallDirection.NORTH)) {
-                        firstPiece = 5; // The sorting direction forces us to do this
-                    }
-
-                    // Load the piece
-                    Spatial part = AssetUtils.loadModel(assetManager, resource + firstPiece, artResource);
-                    part.move(moveFirst);
-                    part.rotate(0, yAngle, 0);
-                    ((BatchNode) spatial).attachChild(part);
-
-                    // Second
-                    int secondPiece = (i == (sectionSize - 1) ? 5 : 6);
-                    if (secondPiece == 5 && (section.direction() == WallSection.WallDirection.EAST
-                            || section.direction() == WallSection.WallDirection.NORTH)) {
-                        secondPiece = 4; // The sorting direction forces us to do this
-                    }
-
-                    part = AssetUtils.loadModel(assetManager, resource + secondPiece, artResource);
-                    part.move(moveSecond);
-                    part.rotate(0, yAngle, 0);
-                    ((BatchNode) spatial).attachChild(part);
-
-                    ((BatchNode) spatial).batch();
-                } else {
-                    // Complete walls, 8, 7, 8, 7 and so forth
-                    spatial = AssetUtils.loadModel(assetManager, resource + getWallIndex(i), artResource);
-                    spatial.rotate(0, yAngle, 0);
-
-                    switch (section.direction()) {
-                        case WEST:
-                            spatial.move(-WorldUtils.TILE_WIDTH, 0, 0);
-                            break;
-                        case SOUTH:
-                            spatial.move(0, 0, WorldUtils.TILE_WIDTH);
-                            break;
-                        case EAST:
-                            spatial.move(WorldUtils.TILE_WIDTH, 0, 0);
-                            break;
-                        default:
-                            // NORTH
-                            spatial.move(0, 0, -WorldUtils.TILE_WIDTH);
-                            break;
-                    }
-                }
-
-                return spatial;
+            int index = section.coordinates().indexOf(p);
+            if (index < 0) {
+                continue;
             }
+
+            int sectionSize = section.coordinates().size();
+            if (index == 0 || index == (sectionSize - 1)) {
+                return createWallEnd(resource, artResource, direction, index == 0, index == (sectionSize - 1));
+            }
+
+            // Complete walls, 8, 7, 8, 7 and so forth
+            return createWallMiddle(resource + getWallIndex(index), artResource, direction);
         }
 
         return null;
+    }
+
+    private Spatial createWallEnd(String resource, ArtResource artResource, WallSection.WallDirection direction,
+            boolean first, boolean last) {
+        boolean flipped = direction == WallSection.WallDirection.EAST
+                || direction == WallSection.WallDirection.NORTH;
+        float quarter = WorldUtils.TILE_WIDTH / 4;
+        float back = -3 * WorldUtils.TILE_WIDTH / 4;
+        Vector3f moveFirst = new Vector3f(flipped ? -quarter : quarter, 0, back);
+        Vector3f moveSecond = new Vector3f(flipped ? quarter : -quarter, 0, back);
+
+        // The sorting direction forces us to swap the end pieces
+        int firstPiece = first ? (flipped ? 5 : 4) : 6;
+        int secondPiece = last ? (flipped ? 4 : 5) : 6;
+
+        BatchNode spatial = new BatchNode();
+        spatial.attachChild(loadWallPart(resource + firstPiece, artResource, moveFirst));
+        spatial.attachChild(loadWallPart(resource + secondPiece, artResource, moveSecond));
+
+        // Pre-swap to Vertex before batching (see the class-level
+        // note on `ambient`) -- MapViewController.applyTerrainLighting
+        // recognizes and collects the already-swapped result for
+        // per-tile light registration, it doesn't re-swap it.
+        applyLighting(spatial, new ArrayList<>());
+        spatial.batch();
+        return spatial;
+    }
+
+    private Spatial loadWallPart(String model, ArtResource artResource, Vector3f move) {
+        Spatial part = AssetUtils.loadModel(assetManager, model, artResource);
+        part.move(move);
+        part.rotate(0, FastMath.PI, 0);
+        return part;
+    }
+
+    private Spatial createWallMiddle(String model, ArtResource artResource, WallSection.WallDirection direction) {
+        Spatial spatial = AssetUtils.loadModel(assetManager, model, artResource);
+        spatial.rotate(0, FastMath.PI, 0);
+
+        switch (direction) {
+            case WEST ->
+                spatial.move(-WorldUtils.TILE_WIDTH, 0, 0);
+            case SOUTH ->
+                spatial.move(0, 0, WorldUtils.TILE_WIDTH);
+            case EAST ->
+                spatial.move(WorldUtils.TILE_WIDTH, 0, 0);
+            default ->
+                spatial.move(0, 0, -WorldUtils.TILE_WIDTH); // NORTH
+        }
+        return spatial;
     }
 
     /**
