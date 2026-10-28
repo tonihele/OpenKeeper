@@ -1,0 +1,19 @@
+// The game logic, the server side. It must not depend on the client.
+plugins {
+    id 'java-library'
+    id 'java-test-fixtures'
+}
+
+dependencies {
+    api "org.jmonkeyengine:jme3-core:$jmonkeyengine_version"
+    api "org.jmonkeyengine:jme3-networking:$jmonkeyengine_version"
+    api "com.badlogicgames.gdx:gdx-ai:1.8.2"
+    api "javax.vecmath:vecmath:1.5.2"
+    api "com.simsilica:zay-es:1.6.0"
+    api "com.simsilica:zay-es-net:1.6.0"
+    api "com.simsilica:sio2:1.8.0"
+    api "com.simsilica:sim-ethereal:1.8.0"
+
+    // The @Nullable and @Nonnull annotations, they came along with Nifty before the split
+    compileOnly "com.google.code.findbugs:jsr305:2.0.2"
+}

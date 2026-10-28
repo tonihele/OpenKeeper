@@ -1,0 +1,60 @@
+import java.text.SimpleDateFormat
+
+// The game itself, the start point of the application
+plugins {
+    id 'application'
+    id 'maven-publish'
+}
+
+application {
+    applicationName = 'OpenKeeper'
+    mainClass = 'toniarts.openkeeper.Main'
+    if (System.getProperty("os.name").toLowerCase().contains("mac")) {
+        applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper", "-XstartOnFirstThread"]
+    }
+    else {
+        applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
+    }
+}
+
+// The game finds its assets and settings from the folder it is started in
+tasks.named("run", JavaExec) {
+    workingDir = rootProject.projectDir
+}
+
+tasks.register("modelViewer", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
+    workingDir = rootProject.projectDir
+}
+
+dependencies {
+    implementation project(':core')
+    implementation "org.jmonkeyengine:jme3-desktop:$jmonkeyengine_version"
+    implementation "org.jmonkeyengine:jme3-plugins:$jmonkeyengine_version"
+    implementation "org.jmonkeyengine:jme3-effects:$jmonkeyengine_version"
+    implementation "org.jmonkeyengine:jme3-lwjgl3:$jmonkeyengine_version"
+    implementation "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
+
+    // The fakes and fixtures of the game logic tests
+    testImplementation(testFixtures(project(':core')))
+
+    // Assets sub-project
+    runtimeOnly project(':assets')
+}
+
+jar {
+    manifest {
+        attributes(
+            'Implementation-Title': rootProject.name,
+            'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
+            'Main-Class': application.mainClass,
+            'Built-By': System.properties['user.name'],
+            'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
+            'Created-By': "Gradle ${gradle.gradleVersion}",
+            'Build-JDK': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
+            'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
+        )
+    }
+}

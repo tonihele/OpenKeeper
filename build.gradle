@@ -1,10 +1,5 @@
-import java.text.SimpleDateFormat
-
 plugins {
-    id 'java'
-    id 'application'
     id 'eclipse'
-    id 'maven-publish'
     id 'idea'
 }
 
@@ -20,31 +15,6 @@ allprojects {
         maven { url = "https://oss.sonatype.org/content/repositories/snapshots/" }
         maven { url = "https://oss.sonatype.org/content/repositories/releases/" }
         maven { url = "https://jitpack.io" }
-    }
-}
-
-application {
-    applicationName = 'OpenKeeper'
-    mainClass = 'toniarts.openkeeper.Main'
-    if (System.getProperty("os.name").toLowerCase().contains("mac")) {
-        applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper", "-XstartOnFirstThread"]
-    }
-    else {
-        applicationDefaultJvmArgs = ["-Dvisualvm.display.name=OpenKeeper"]
-    }
-}
-
-tasks.register("modelViewer", JavaExec) {
-    group = ApplicationPlugin.APPLICATION_GROUP
-    classpath = sourceSets.main.runtimeClasspath
-    mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
-}
-
-configurations.configureEach {
-    resolutionStrategy.dependencySubstitution {
-        substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
-        substitute module('com.github.nifty-gui:nifty-default-controls') using module('com.github.tonihele.nifty-gui:nifty-default-controls:1.4-SNAPSHOT')
-        substitute module('com.github.nifty-gui:nifty-style-black') using module('com.github.tonihele.nifty-gui:nifty-style-black:1.4-SNAPSHOT')
     }
 }
 
@@ -69,74 +39,55 @@ project(":assets") {
     }
 }
 
-dependencies {
-    implementation fileTree(dir: 'lib', include: ['*.jar'])
-    implementation "org.jmonkeyengine:jme3-core:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-desktop:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-plugins:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-effects:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-networking:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-lwjgl3:$jmonkeyengine_version"
-    implementation "org.jmonkeyengine:jme3-niftygui:$jmonkeyengine_version"
-    implementation "com.badlogicgames.gdx:gdx-ai:1.8.2"
-    implementation "javax.vecmath:vecmath:1.5.2"
-    implementation "com.simsilica:zay-es:1.6.0"
-    implementation "com.simsilica:zay-es-net:1.6.0"
-    implementation "com.simsilica:sio2:1.8.0"
-    implementation "com.simsilica:sim-ethereal:1.8.0"
+// The game logic (core) and the game itself (client)
+configure([project(":core"), project(":client")]) {
+    apply plugin: "java"
+    apply plugin: "eclipse"
+    apply plugin: "idea"
 
-    testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
-    testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.14.4"
-
-    // Assets sub-project
-    runtimeOnly project(':assets')
-}
-
-test {
-    useJUnitPlatform()
-}
-
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(25)
+    configurations.configureEach {
+        resolutionStrategy.dependencySubstitution {
+            substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
+            substitute module('com.github.nifty-gui:nifty-default-controls') using module('com.github.tonihele.nifty-gui:nifty-default-controls:1.4-SNAPSHOT')
+            substitute module('com.github.nifty-gui:nifty-style-black') using module('com.github.tonihele.nifty-gui:nifty-style-black:1.4-SNAPSHOT')
+        }
     }
-}
 
-jar {
-    manifest {
-        attributes(
-            'Implementation-Title': project.name,
-            'Class-Path': configurations.runtimeClasspath.files.collect { it.getName() }.join(' '),
-            'Main-Class': application.mainClass,
-            'Built-By': System.properties['user.name'],
-            'Build-Timestamp': new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSSZ").format(new Date()),
-            'Created-By': "Gradle ${gradle.gradleVersion}",
-            'Build-JDK': "${System.properties['java.version']} (${System.properties['java.vendor']} ${System.properties['java.vm.version']})",
-            'Build-OS': "${System.properties['os.name']} ${System.properties['os.arch']} ${System.properties['os.version']}"
-        )
+    dependencies {
+        testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
+        testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.14.4"
     }
-}
 
-eclipse {
-    classpath {
-        downloadSources=true
+    test {
+        useJUnitPlatform()
     }
-    project {
-        natures 'org.springsource.ide.eclipse.gradle.core.nature'
-    }
-}
 
-idea {
-    module {
-        downloadJavadoc = true
-        downloadSources = true
+    java {
+        toolchain {
+            languageVersion = JavaLanguageVersion.of(25)
+        }
     }
-}
 
-compileJava {
-    // disable the warnings
-    options.compilerArgs += ["-Xlint:deprecation"]
-    //options.compilerArgs += ["-Xlint:unchecked"]
+    eclipse {
+        classpath {
+            downloadSources=true
+        }
+        project {
+            natures 'org.springsource.ide.eclipse.gradle.core.nature'
+        }
+    }
+
+    idea {
+        module {
+            downloadJavadoc = true
+            downloadSources = true
+        }
+    }
+
+    compileJava {
+        // disable the warnings
+        options.compilerArgs += ["-Xlint:deprecation"]
+    }
 }
 
 wrapper {
