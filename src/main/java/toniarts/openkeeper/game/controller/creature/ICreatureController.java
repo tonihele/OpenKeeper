@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.Point;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -65,6 +66,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isNeedForSleep();
 
     public boolean goToSleep();
+
+    /**
+     * Handles the manual rest target after landing and getting up. Rest can be
+     * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     *
+     * @return whether a sleep task was assigned
+     */
+    public boolean goToSleepAfterLairDrop();
 
     public void findWork(Consumer<Boolean> workResult);
 
@@ -142,6 +151,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public Creature getCreature();
 
+    /**
+     * Tells that something happened to the creature type, e.g. it claimed a tile
+     *
+     * @param type the event
+     * @param location the tile where it happened
+     */
+    public void fireEvent(GameEventType type, Point location);
+
     public void addGold(int amount);
 
     public int getObjectiveTargetActionPointId();
@@ -182,6 +199,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isStateTimeExceeded();
 
     public void sleep();
+
+    /**
+     * Knocks the creature off its feet, it falls back and gets up again like
+     * after being dropped from the hand. Whatever it was doing is dropped. A
+     * creature already down stays down longer. Does nothing to a creature
+     * that is not on its own feet to begin with, i.e. in hand, falling,
+     * possessed or out cold.
+     */
+    public void knockDown();
 
     /**
      * Set a target for us to follow

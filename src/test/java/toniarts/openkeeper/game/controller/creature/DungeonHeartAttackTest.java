@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapData;
 import toniarts.openkeeper.game.map.IMapTileController;
@@ -281,7 +282,8 @@ class DungeonHeartAttackTest {
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
 
         return new CreatureController(entity, entityData, creatures.get(creatureComponent.creatureId), navigationService,
-                null, gameTimer, Map.of(), creaturesController, positionLookup, mapController, levelInfo, objectsController, null);
+                null, gameTimer, Map.of(), creaturesController, positionLookup, mapController, levelInfo, objectsController, null,
+                stub(GameEventService.class, (name, args) -> null));
     }
 
     @FunctionalInterface
