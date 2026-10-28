@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.SummonReaperFixtures;
@@ -97,7 +98,8 @@ class ReaperDamageTest {
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> name.equals("getLevelData") ? kwdFile : unsupported(name));
         return new HealthSystem(entityData, stub(IEntityPositionLookup.class, (name, args) -> unsupported(name)), gameSettings,
                 stub(ICreaturesController.class, (name, args) -> unsupported(name)), levelInfo, List.of(),
-                stub(IMapController.class, (name, args) -> unsupported(name)));
+                stub(IMapController.class, (name, args) -> unsupported(name)),
+                stub(GameEventService.class, (name, args) -> null));
     }
 
     private interface Answer {
