@@ -25,6 +25,12 @@ public final class ShotFixtures {
      */
     public static final short THUNDERBOLT_ID = 21;
 
+    /**
+     * Shot 1 as it ships in the original data, the Warlock's and the Wizard's
+     * fireball
+     */
+    public static final short FIREBALL_ID = 1;
+
     private ShotFixtures() {
     }
 
@@ -35,7 +41,33 @@ public final class ShotFixtures {
         shot.setProcessType(processType);
         shot.setHealth(health);
         shot.setShotProcessFlags(processFlags);
+        shot.setFlags(EnumSet.noneOf(Shot.ShotFlag.class));
         return shot;
+    }
+
+    /**
+     * The fireball, with the values of the original data
+     */
+    public static Shot fireball() {
+        Shot shot = shot(FIREBALL_ID, Shot.ProcessType.NONE, 60, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setSpeed(0.9f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.HIT_THING);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
+                Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    public static GameLevel gameLevel(int ticksPerSecond) {
+        GameLevel gameLevel = new GameLevel();
+        gameLevel.setTicksPerSec(ticksPerSecond);
+        return gameLevel;
+    }
+
+    public static void setSize(Creature creature, float width, float height) {
+        creature.getAttributes().setWidth(width);
+        creature.getAttributes().setHeight(height);
     }
 
     /**

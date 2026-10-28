@@ -29,6 +29,8 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -40,6 +42,9 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.RoomComponent;
+import toniarts.openkeeper.game.component.PortalViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -60,9 +65,11 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.effect.VisualEffect;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
@@ -133,6 +140,12 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
+    private final PortalEffectContainer portalEffectContainer;
+    private final PortalLightContainer portalLightContainer;
+    private final List<TransientEffect> transientEffects = new ArrayList<>();
+
+    private record TransientEffect(EntityId source, Node node, Point tile, VisualEffect visualEffect) {
+    }
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -142,6 +155,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
@@ -195,6 +209,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         shotModelContainer = new ShotModelContainer(entityData);
+        portalEffectContainer = new PortalEffectContainer(entityData);
+        portalLightContainer = new PortalLightContainer(entityData, rootNode, this.fogOfWarInformation);
     }
 
     @Override
@@ -213,6 +229,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        portalEffectContainer.start();
+        portalLightContainer.start();
     }
 
     @Override
@@ -225,6 +243,16 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        portalEffectContainer.update();
+        portalLightContainer.update(tpf);
+        transientEffects.removeIf(effect -> {
+            if (effect.node().getQuantity() == 0) {
+                effect.node().removeFromParent();
+                return true;
+            }
+            applyFogCullHint(effect.node(), effect.tile(), true);
+            return false;
+        });
     }
 
     @Override
@@ -235,6 +263,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         shotModelContainer.stop();
+        portalEffectContainer.stop();
+        portalLightContainer.stop();
+        transientEffects.forEach(effect -> {
+            effect.visualEffect().removeEffect();
+            effect.node().removeFromParent();
+        });
+        transientEffects.clear();
 
         // Detach entities
         rootNode.detachChild(root);
@@ -447,6 +482,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
         }
+        if (shotViewState.velocity != null) {
+            Node flyingShot = new Node(result.getName());
+            flyingShot.attachChild(result);
+            flyingShot.addControl(new ShotFlightControl(shotViewState.velocity));
+            addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), flyingShot);
+            result = flyingShot;
+        }
         nodeShots.attachChild(result);
 
         Vector3f position = e.get(Position.class).position;
@@ -455,6 +497,25 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
 
         return result;
+    }
+
+    /**
+     * A flying shot drags its general effect along, like the fire trail of the
+     * cannon ball. DKII.EXE moves the effect with the shot every turn
+     * (0x4AB180). The effect lasts as long as the shot flies.
+     */
+    private void addShotTrail(EntityId entityId, Shot shot, Node flyingShot) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        // The effect generates its elements every turn it lives, the fire around the cannon ball for one
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), false);
+        if (trail != null) {
+            trail.generateThroughoutLifetime();
+            shotTrails.put(entityId, trail);
+        }
     }
 
     /**
@@ -577,6 +638,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     private void removeModel(Spatial spatial, Entity e) {
+        removeTransientEffects(e.getId());
         spatial.removeFromParent();
 
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());
@@ -643,6 +705,13 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "CreatureModelContainer.addObject({0})", e);
             Spatial result = createCreatureModel(e);
             updateObject(result, e);
+            CreatureViewState viewState = e.get(CreatureViewState.class);
+            if (viewState.state == Creature.AnimationType.ENTRANCE) {
+                Creature creature = kwdFile.getCreature(viewState.creatureId);
+                Owner owner = entityData.getComponent(e.getId(), Owner.class);
+                loadTransientEffect(e.getId(), e.get(Position.class).position.clone().setY(WorldUtils.UNDERFLOOR_HEIGHT),
+                        creature.getEntranceEffectId(), owner.ownerId, false);
+            }
             return result;
         }
 
@@ -721,6 +790,67 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
     }
 
+    private void loadTransientEffect(EntityId source, Vector3f location, int effectId, short ownerId, boolean continuousGeneration) {
+        if (effectId == 0) {
+            return;
+        }
+        Node anchor = new Node("Portal effect");
+        anchor.setLocalTranslation(location);
+        root.attachChild(anchor);
+        Point tile = WorldUtils.vectorToPoint(location);
+        applyFogCullHint(anchor, tile, true);
+        VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(anchor, null, effectId, false, ownerId);
+        if (continuousGeneration) {
+            visualEffect.generateThroughoutLifetime();
+        }
+        transientEffects.add(new TransientEffect(source, anchor, tile, visualEffect));
+    }
+
+    private void removeTransientEffects(EntityId source) {
+        transientEffects.removeIf(effect -> {
+            if (effect.source().equals(source)) {
+                effect.visualEffect().removeEffect();
+                effect.node().removeFromParent();
+                return true;
+            }
+            return false;
+        });
+    }
+
+    private final class PortalEffectContainer extends EntityContainer<double[]> {
+        PortalEffectContainer(EntityData ed) {
+            super(ed, PortalViewState.class, RoomComponent.class, Owner.class);
+        }
+
+        @Override
+        protected double[] addObject(Entity e) {
+            double[] previous = {-1};
+            updateObject(previous, e);
+            return previous;
+        }
+
+        @Override
+        protected void updateObject(double[] previous, Entity e) {
+            double preparationTime = e.get(PortalViewState.class).preparationTime;
+            RoomComponent room = e.get(RoomComponent.class);
+            if (room.destroyed || preparationTime < 0) {
+                removeObject(previous, e);
+            } else if (preparationTime != previous[0]) {
+                List<Integer> effects = kwdFile.getRoomById(room.roomId).getEffects();
+                if (effects.size() > 2) {
+                    loadTransientEffect(e.getId(), WorldUtils.pointToVector3f(room.location),
+                            effects.get(2), e.get(Owner.class).ownerId, true);
+                }
+            }
+            previous[0] = preparationTime;
+        }
+
+        @Override
+        protected void removeObject(double[] previous, Entity e) {
+            removeTransientEffects(e.getId());
+        }
+    }
+
     /**
      * Watches for room-tied effects (currently only the hero gate's gem
      * holder swirl) and spawns them - fires identically regardless of
@@ -783,6 +913,10 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+            VisualEffect trail = shotTrails.remove(e.getId());
+            if (trail != null) {
+                trail.removeEffect();
+            }
             removeModel(object, e);
         }
     }
