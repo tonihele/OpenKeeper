@@ -25,6 +25,8 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -39,11 +41,13 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IGameTimer gameTimer;
+    private final GameEventService gameEventService;
     private final EntitySet fallEntities;
 
-    public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer) {
+    public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
+        this.gameEventService = gameEventService;
 
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
     }
@@ -63,6 +67,9 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
+
+                // The landing, on touchdown (hand drops and conjured creatures alike)
+                gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
 
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
