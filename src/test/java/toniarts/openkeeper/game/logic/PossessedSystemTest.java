@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -40,6 +41,8 @@ class PossessedSystemTest {
 
     private final EntityData entityData = new DefaultEntityData();
 
+    private int swings;
+
     private <T> T stub(Class<T> type, Function<String, Object> answer) {
         return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
                 (proxy, method, args) -> answer.apply(method.getName())));
@@ -47,7 +50,10 @@ class PossessedSystemTest {
 
     private PossessedSystem system(Runnable onSwing) {
         ICreatureController controller = stub(ICreatureController.class, name -> {
-            onSwing.run();
+            if ("executePossessedAttack".equals(name)) {
+                swings++;
+                onSwing.run();
+            }
             return null;
         });
         ICreaturesController creatures = stub(ICreaturesController.class, name -> controller);
@@ -62,7 +68,30 @@ class PossessedSystemTest {
 
         system(() -> { }).processTick(0.1f);
 
+        assertEquals(1, swings);
         assertNull(entityData.getComponent(creature, PossessedAttack.class));
+    }
+
+    @Test
+    void heldAttackIsKept() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(0, 0), new PossessedAttack(true, 1));
+
+        system(() -> { }).processTick(0.1f);
+
+        assertEquals(1, swings);
+        assertTrue(entityData.getComponent(creature, PossessedAttack.class).held);
+    }
+
+    @Test
+    void quickClickDuringSwingInSameTickIsKept() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(0, 0), new PossessedAttack(false, 1));
+
+        // A press and release written in the same game tick get the same press time
+        system(() -> entityData.setComponent(creature, new PossessedAttack(false, 1))).processTick(0.1f);
+
+        assertNotNull(entityData.getComponent(creature, PossessedAttack.class));
     }
 
     @Test

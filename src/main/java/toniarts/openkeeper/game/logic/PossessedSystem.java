@@ -104,10 +104,10 @@ public final class PossessedSystem extends GameTimeCounter {
             creaturesController.createController(entity.getId()).executePossessedAttack();
 
             // A released attack only had this one swing
-            // The session thread may have written a new press meanwhile, so check the live component
+            // The session thread may have written a new press meanwhile, so only remove the very same released press
             PossessedAttack attack = entity.get(PossessedAttack.class);
             PossessedAttack live = entityData.getComponent(entity.getId(), PossessedAttack.class);
-            if (!attack.held && live != null && !live.held && live.pressTime == attack.pressTime) {
+            if (!attack.held && live == attack) {
                 entityData.removeComponent(entity.getId(), PossessedAttack.class);
             }
         }
