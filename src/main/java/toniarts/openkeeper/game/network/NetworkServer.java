@@ -103,7 +103,8 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
-import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.chat.ChatHostedService;
 import toniarts.openkeeper.game.network.game.GameHostedService;
 import toniarts.openkeeper.game.network.lobby.LobbyHostedService;
@@ -167,6 +168,10 @@ public final class NetworkServer {
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
 
+            // Events
+            Serializer.registerClass(GameEventType.class, new EnumSerializer());
+            Serializer.registerClass(GameEvent.ThingFlag.class, new EnumSerializer());
+
             // Our entity components
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
@@ -226,7 +231,6 @@ public final class NetworkServer {
             Serializer.registerClass(Senses.class, new FieldSerializer());
             Serializer.registerClass(ShotViewState.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
-            Serializer.registerClass(ThingFlag.class, new EnumSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());
