@@ -164,7 +164,7 @@ class CreatureCombatTest {
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
 
         return new CreatureController(entity, entityData, creatures.get(creatureComponent.creatureId), navigationService,
-                null, gameTimer, Map.of(), creaturesController, positionLookup, null, levelInfo, null, null);
+                null, gameTimer, Map.of(), creaturesController, positionLookup, null, levelInfo, null, null, stub(toniarts.openkeeper.game.event.GameEventService.class, (name, args) -> null));
     }
 
     @FunctionalInterface
