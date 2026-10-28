@@ -24,6 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.map.RoomFactory;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 
@@ -32,6 +37,30 @@ import toniarts.openkeeper.view.effect.EffectManagerState;
  * @author ArchDemon
  */
 public final class RoomsLoader implements ILoader<Room> {
+
+    /** Assemble the Portal exactly as the map renderer does, centered on its pit. */
+    public Spatial loadPortalContext(AssetManager assetManager, IKwdFile data) {
+        Room portal = data.getRooms().stream()
+                .filter(room -> "Portal".equals(room.getName()))
+                .findFirst().orElseThrow(() -> new IllegalStateException("No Portal room definition"));
+        RoomInstance instance = new RoomInstance(portal);
+        for (int y = -1; y <= 1; y++) {
+            for (int x = -1; x <= 1; x++) {
+                instance.addCoordinate(new Point(x, y));
+            }
+        }
+        // A viewer has no unexplored tiles or gameplay fog state.
+        IFogOfWarInformation visible = new IFogOfWarInformation() {
+            @Override public boolean isVisible(Point p) { return true; }
+            @Override public boolean isExplored(Point p) { return true; }
+            @Override public boolean isPerceived(Point p) { return true; }
+            @Override public boolean isHighlightable(Point p) { return false; }
+            @Override public boolean isPendingTagged(Point p) { return false; }
+        };
+        Spatial room = RoomFactory.constructRoom(instance, assetManager, data).construct(visible);
+        room.setName("Portal room context");
+        return room;
+    }
 
     @Override
     public Spatial load(AssetManager assetManager, Room object) {
