@@ -36,7 +36,9 @@ public interface IShotsController {
      * @param playerId owner of the shot
      * @param position coordinate of the shot origin
      * @param target shot target, can be null
+     * @param shooter the creature firing the shot, {@code null} when a keeper
+     * casts it
      */
-    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target);
+    public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter);
 
 }
