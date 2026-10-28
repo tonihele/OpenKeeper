@@ -795,7 +795,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
             CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
             if (lair.equals(sleep.lairObjectId)) {
-                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                CreatureSleep updated = new CreatureSleep(sleep);
+                updated.lairObjectId = null;
+                entityData.setComponent(creature, updated);
                 break;
             }
         }
@@ -1113,6 +1115,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                notifySlap(entity, playerId);
             }
             return;
         }
@@ -1184,6 +1187,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean torture = false;
         boolean imprison = false;
         CreatureState creatureState = null;
+        CreatureState targetState = null;
 
         // Creatures dropped into a temple's pool are sacrificed
         if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
@@ -1220,6 +1224,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+            targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
         // Show the fall animation right away, before the position brings the model back to the map
@@ -1233,11 +1238,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
         entityData.setComponent(entity, new Position(0, pos));
 
-        // If we got state, add it
-        if (creatureState != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureComponent.creatureId));
-        }
+        restoreDroppedCreatureAi(entity, creatureState, targetState);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
@@ -1263,6 +1264,27 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
+    }
+
+    /** Restores captive AI or a pending rest target; falling creatures wait for landing. */
+    private void restoreDroppedCreatureAi(EntityId entity, CreatureState creatureState, CreatureState targetState) {
+        if (creatureState != null || targetState != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
+                    creatureState != null ? creatureState : CreatureState.FALLEN,
+                    creatureComponent.creatureId, targetState));
+        }
+    }
+
+    /**
+     * Requests rest for a non-captive drop into an owned Lair. The creature
+     * controller validates its current room and assigned bed after getting up.
+     */
+    private CreatureState getLairRestTarget(IRoomController roomController, EntityId entity, short ownerId, boolean captive) {
+        return !captive && roomController.getOwnerId() == ownerId
+                && roomController.hasObjectControl(ObjectType.LAIR)
+                && entityData.getComponent(entity, CreatureSleep.class) != null
+                        ? CreatureState.GO_TO_SLEEP : null;
     }
 
     private void dropGold(EntityId entity, IRoomController roomController, short playerId, Point tile, Vector2f coordinates) {
