@@ -73,7 +73,7 @@ public final class SightOfEvilReveal {
     }
 
     private static int clamp(int value, int size) {
-        return Math.max(0, Math.min(value, size - 1));
+        return Math.max(0, Math.min(value, size));
     }
 
     /**

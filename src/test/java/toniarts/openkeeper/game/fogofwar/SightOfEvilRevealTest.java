@@ -94,6 +94,17 @@ class SightOfEvilRevealTest {
     }
 
     @Test
+    void lastColumnAndRowOfTheMapCanBeRevealed() {
+        SightOfEvilReveal corner = new SightOfEvilReveal(38, 38, 5, DURATION, 40, 40);
+
+        assertEquals(40, corner.getMaxX());
+        assertEquals(40, corner.getMaxY());
+        assertTrue(corner.isRevealed(39, 38, 24));
+        assertTrue(corner.isRevealed(38, 39, 24));
+        assertTrue(corner.isRevealed(39, 39, 24));
+    }
+
+    @Test
     void zeroRadiusRevealsNothing() {
         SightOfEvilReveal none = new SightOfEvilReveal(20, 20, 0, DURATION, 40, 40);
 
