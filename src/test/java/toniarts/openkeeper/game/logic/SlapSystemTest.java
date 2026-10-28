@@ -29,16 +29,19 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -46,6 +49,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /**
  * Slapping the Casino's big winner makes it drop a quarter of its winnings and
@@ -132,6 +136,9 @@ class SlapSystemTest {
             if ("getCreature".equals(method.getName())) {
                 return creature;
             }
+            if ("getGameLevel".equals(method.getName())) {
+                return CreatureSleepFixtures.level(4);
+            }
             throw new UnsupportedOperationException(method.getName());
         });
     }
@@ -161,4 +168,44 @@ class SlapSystemTest {
         });
     }
 
+    @Test
+    void slapWhileSleepingRemovesOneAuthoredUnitAndPreservesBed() {
+        EntityId bed = new EntityId(7);
+        CreatureSleep sleep = new CreatureSleep(bed, 10, 12, 36);
+
+        CreatureSleep updated = SlapSystem.applySleepingSlap(
+                sleep, CreatureState.SLEEPING, 9, 4);
+
+        assertSame(bed, updated.lairObjectId);
+        assertEquals(10, updated.lastSleepTime);
+        assertEquals(12, updated.sleepStartTime);
+        assertEquals(27, updated.sleepNeed);
+    }
+
+    @Test
+    void sleepingSlapUsesConfiguredRateAndPreservesRetryClock() {
+        CreatureSleep sleep = new CreatureSleep(null, 0, 0, 72);
+        sleep.lastSleepAttemptTime = 12;
+        CreatureSleep updated = SlapSystem.applySleepingSlap(sleep, CreatureState.SLEEPING, 9, 8);
+        assertEquals(54, updated.sleepNeed);
+        assertEquals(12, updated.lastSleepAttemptTime);
+    }
+
+    @Test
+    void slapClampsRemainingDebtAtZero() {
+        CreatureSleep sleep = new CreatureSleep(null, 0, 0, 4);
+
+        CreatureSleep updated = SlapSystem.applySleepingSlap(
+                sleep, CreatureState.SLEEPING, 9, 4);
+
+        assertEquals(0, updated.sleepNeed);
+    }
+
+    @Test
+    void slapOutsideSleepLeavesDebtUntouched() {
+        CreatureSleep sleep = new CreatureSleep(null, 0, 0, 36);
+
+        assertSame(sleep, SlapSystem.applySleepingSlap(
+                sleep, CreatureState.IDLE, 9, 4));
+    }
 }
