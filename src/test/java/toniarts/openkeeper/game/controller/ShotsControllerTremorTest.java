@@ -42,7 +42,7 @@ class ShotsControllerTremorTest {
     void castingTremorStartsATremorForShotData1Seconds() {
         IGameTimer gameTimer = () -> 100;
         ShotsController shotsController = new ShotsController(kwdFile(), entityData, null, gameTimer,
-                null, null, null, null, null);
+                null, null, null, null, null, null);
 
         // Shot data 1 is the duration in seconds, shot data 2 the radius in tiles
         shotsController.createShot(TREMOR_SHOT_ID, 5, 3, Player.KEEPER1_ID, new Vector3f(12.4f, 0, 7.6f), null, null);
