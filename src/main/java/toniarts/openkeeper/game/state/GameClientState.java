@@ -106,6 +106,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
+    private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
     private TextParser textParser;
 
@@ -194,6 +195,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
+        if (musicLevelState != null) {
+            stateManager.detach(musicLevelState);
+        }
     }
 
     /**
@@ -216,6 +220,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerModelViewState = null;
         minimapPanelState = null;
         fullscreenMapState = null;
+        musicLevelState = null;
         effectManagerState = null;
     }
 
@@ -470,15 +475,20 @@ public final class GameClientState extends AbstractPauseAwareState {
             // Release loading state from memory
             loadingState = null;
 
-            stateManager.getState(SoundState.class).setKwdFile(kwdFile);
-            stateManager.getState(SoundState.class).setEnabled(true);
+            SoundState soundState = stateManager.getState(SoundState.class);
+            soundState.setKwdFile(kwdFile);
+            soundState.setEnabled(true);
+            soundState.startLevelBackground();
 
             app.enqueue(() -> {
+                musicLevelState = new MusicLevelState(gameClientService.getEntityData(), players.get(playerId), kwdFile);
+                stateManager.attach(musicLevelState);
                 playerState.setEnabled(true);
 
                 // The background sounds of the level
                 if (playerMapViewState != null) {
-                    ambienceState = new AmbienceState(kwdFile, playerMapViewState);
+                    ambienceState = new AmbienceState(kwdFile, playerMapViewState,
+                            stateManager.getState(SoundState.class).getMusicLevel()::getIntensity);
                     stateManager.attach(ambienceState);
                 }
 

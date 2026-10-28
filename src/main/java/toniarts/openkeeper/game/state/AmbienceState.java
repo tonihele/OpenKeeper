@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.state;
 
+import java.util.function.IntSupplier;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -61,10 +62,19 @@ public final class AmbienceState extends AbstractPauseAwareState {
     private Point nearestTorch;
     private long lastScan;
     private volatile boolean possessing;
+    private final IntSupplier musicIntensity;
 
     public AmbienceState(IKwdFile kwdFile, PlayerMapViewState mapViewState) {
+        this(kwdFile, mapViewState, () -> 0);
+    }
+
+    /**
+     * @param musicIntensity the current music intensity, the ambience follows it
+     */
+    public AmbienceState(IKwdFile kwdFile, PlayerMapViewState mapViewState, IntSupplier musicIntensity) {
         this.kwdFile = kwdFile;
         this.mapViewState = mapViewState;
+        this.musicIntensity = musicIntensity;
     }
 
     @Override
@@ -105,7 +115,7 @@ public final class AmbienceState extends AbstractPauseAwareState {
         if (driver == null || driverEngine != engine) {
             stopDriver();
             driverEngine = engine;
-            driver = new AmbienceDriver(engine, SoundManager::loadCategory);
+            driver = new AmbienceDriver(engine, SoundManager::loadCategory, musicIntensity);
         }
 
         long now = System.nanoTime() / 1_000_000L;
