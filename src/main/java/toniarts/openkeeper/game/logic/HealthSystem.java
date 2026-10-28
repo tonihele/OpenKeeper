@@ -21,11 +21,6 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -52,10 +47,18 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Manages and monitors thing healthiness. Beeb... beeb... beeeeeeeeeeeeeeeeeeeb :)
@@ -74,6 +77,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
+    private final GameEventService gameEventService;
 
     private final EntitySet healthEntities;
     private final EntitySet damageEntities;
@@ -86,13 +90,15 @@ public final class HealthSystem extends GameTimeCounter {
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, ILevelInfo levelInfo,
-            Collection<IPlayerController> playerControllers, IMapController mapController) {
+            Collection<IPlayerController> playerControllers, IMapController mapController,
+            GameEventService gameEventService) {
 
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
         this.levelInfo = levelInfo;
         this.mapController = mapController;
+        this.gameEventService = gameEventService;
         entityIds = new SafeArrayList<>(EntityId.class);
 
         playerControllersById = HashMap.newHashMap(playerControllers.size());
@@ -276,6 +282,9 @@ public final class HealthSystem extends GameTimeCounter {
         if (entity != null) {
             Damage damage = entity.get(Damage.class);
             delta -= damage.damage;
+            if (damage.damage > 0) {
+                gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+            }
 
             // Remove the damage
             entityData.removeComponent(entityId, Damage.class);
@@ -358,6 +367,10 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private void processDeath(EntityId entityId) {
+        if (entityData.getComponent(entityId, Death.class) == null
+                && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
+        }
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, ChickenAi.class);
