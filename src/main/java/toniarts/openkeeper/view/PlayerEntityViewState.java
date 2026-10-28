@@ -52,6 +52,7 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
@@ -411,6 +412,18 @@ public class PlayerEntityViewState extends AbstractAppState {
         return result;
     }
 
+    private boolean isWater(Vector3f position) {
+        if (mapData == null) {
+            return false;
+        }
+        IMapTileInformation tile = mapData.getTile(WorldUtils.vectorToPoint(position));
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.WATER);
+    }
+
     private Spatial createCreatureModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
@@ -426,7 +439,8 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                control.setWaterCheck(this::isWater);
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);

@@ -21,8 +21,6 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
-import com.jme3.audio.AudioNode;
-import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
@@ -39,13 +37,19 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.controller.GameController;
-import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
+import toniarts.openkeeper.game.sound.FrontEndSounds;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.ConnectionState.ConnectionErrorListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.LobbyClientService;
@@ -61,15 +65,16 @@ import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -80,8 +85,6 @@ import java.lang.System.Logger.Level;
 import java.util.Collections;
 
 import static toniarts.openkeeper.Main.getDkIIFolder;
-import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
-import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 
 /**
  * The main menu state
@@ -100,8 +103,9 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
-    private AudioNode levelBriefing;
-    private AudioNode levelDebriefing;
+    private final FrontEndSounds frontEndSounds = new FrontEndSounds();
+    private int levelBriefing = SoundEngine.NO_HANDLE;
+    private int levelDebriefing = SoundEngine.NO_HANDLE;
     private boolean pendingDebriefing;
     private Camera storedCamera;
 
@@ -174,7 +178,7 @@ public final class MainMenuState extends AbstractAppState {
         AssetUtils.prewarmAssets(frontEndKwd, assetManager, app);
 
         // Load 3D Front end sound
-        SoundsLoader.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
+        SoundCategory.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         mainMenuEntityData = new DefaultEntityData();
@@ -311,6 +315,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         // Clear sound
+        frontEndSounds.stop();
         clearLevelBriefingNarration();
 
         // Detach our start menu
@@ -383,6 +388,7 @@ public final class MainMenuState extends AbstractAppState {
         stateManager.getState(SoundState.class).setEnabled(true);
 
         if (enabled) {
+            frontEndSounds.start();
 
             // If this is the first time, we might have to load the menu
             if (menuNode == null) {
@@ -409,6 +415,7 @@ public final class MainMenuState extends AbstractAppState {
                 initializeMainMenu();
             }
         } else {
+            frontEndSounds.stop();
 
             // Save the camera position so that we can restore it (e.g. for the debriefing screen) when re-enabling the menu
             storedCamera = app.getCamera().clone();
@@ -678,7 +685,7 @@ public final class MainMenuState extends AbstractAppState {
         }
     }
 
-    protected void setLevelBriefing(AudioNode levelBriefing) {
+    protected void setLevelBriefing(int levelBriefing) {
         this.levelBriefing = levelBriefing;
     }
 
@@ -688,13 +695,13 @@ public final class MainMenuState extends AbstractAppState {
     protected void clearLevelBriefingNarration() {
 
         // Quit playing the sound
-        if (levelBriefing != null && levelBriefing.getStatus() == AudioSource.Status.Playing) {
-            levelBriefing.stop();
+        if (levelBriefing != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(levelBriefing);
         }
-        levelBriefing = null;
+        levelBriefing = SoundEngine.NO_HANDLE;
     }
 
-    protected void setLevelDebriefing(AudioNode levelDebriefing) {
+    protected void setLevelDebriefing(int levelDebriefing) {
         this.levelDebriefing = levelDebriefing;
     }
 
@@ -704,10 +711,10 @@ public final class MainMenuState extends AbstractAppState {
     protected void clearLevelDebriefingNarration() {
 
         // Quit playing the sound
-        if (levelDebriefing != null && levelDebriefing.getStatus() == AudioSource.Status.Playing) {
-            levelDebriefing.stop();
+        if (levelDebriefing != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(levelDebriefing);
         }
-        levelDebriefing = null;
+        levelDebriefing = SoundEngine.NO_HANDLE;
     }
 
     /**
@@ -897,6 +904,11 @@ public final class MainMenuState extends AbstractAppState {
 
         @Override
         public void endGame(boolean win, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

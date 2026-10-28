@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapInformation;
+import toniarts.openkeeper.game.sound.GameEventSoundPlayer;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.modelviewer.Debug;
@@ -47,7 +48,6 @@ import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapViewController;
 
-import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -61,8 +61,6 @@ import java.util.function.Consumer;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
-    
-    private static final Logger logger = System.getLogger(PlayerMapViewState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -77,6 +75,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final MapRoomContainer mapRoomContainer;
     private short[][] lastTerrainIds;
     private final FogOfWarController fogOfWarController;
+    private final GameEventSoundPlayer gameEventSoundPlayer;
 
     // Creature vision (and the initial fog seeding) can produce tile updates
     // before MapViewController.load() has built its scene graph - queue those
@@ -84,11 +83,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private volatile boolean mapLoaded = false;
     private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
     private final Object tileUpdateLock = new Object();
-
-    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier) {
-        this(app, kwdFile, assetManager, players, entityData, playerId, ceilingEnabled, loadCompleteNotifier, (entityId) -> {
-        });
-    }
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
@@ -188,6 +182,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         flashTileControl = new FlashTileViewState(mapLoader);
 
+        gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile);
+
         // Start collecting the map entities
         mapRoomContainer.start();
         mapTileContainer.start();
@@ -202,6 +198,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Effects
         this.stateManager.attach(effectManager);
+
+        // Sounds
+        this.gameEventSoundPlayer.register();
 
         // Tile flash state
         this.stateManager.attach(flashTileControl);
@@ -230,6 +229,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Effects
         stateManager.detach(effectManager);
+
+        // Sounds
+        this.gameEventSoundPlayer.unregister();
 
         // The actual map data
         mapRoomContainer.stop();
@@ -273,6 +275,14 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
      * touches {@code LightRules} on the render thread (entity/effect flat
      * lighting) must gate on this the same way {@link #update(float)} above
      * does, or it races those writes with a {@code ConcurrentModificationException}.
+     */
+    public boolean isMapLoaded() {
+        return mapLoaded;
+    }
+
+    /**
+     * The map is built on a separate thread, anything that wants to look at
+     * the map data before the map is up should wait for this.
      */
     public boolean isMapLoaded() {
         return mapLoaded;

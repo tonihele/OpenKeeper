@@ -27,22 +27,27 @@ import com.jme3.scene.Node;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import toniarts.openkeeper.game.event.GameEvent;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.Set;
 import java.util.function.Supplier;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.GameController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
+
+import java.util.Collections;
 
 /**
  * Our current map loader only functions with the game data. This creates fake
@@ -264,6 +269,11 @@ public final class MapLoaderAppState extends AbstractAppState {
 
         @Override
         public void endGame(boolean win, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
     }

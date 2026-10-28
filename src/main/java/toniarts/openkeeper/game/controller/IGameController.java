@@ -17,13 +17,14 @@
 package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityId;
-import java.util.Collection;
-import java.util.Map;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.tools.convert.map.Variable;
+
+import java.util.Map;
 
 /**
  * Game controller. Controls the game
@@ -75,6 +76,8 @@ public interface IGameController {
     public IEntityPositionLookup getEntityLookupService();
 
     public IGameWorldController getGameWorldController();
+
+    GameEventService getGameEventService();
 
     /**
      * Set player possession mode on/off
