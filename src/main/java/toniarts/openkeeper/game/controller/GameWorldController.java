@@ -252,7 +252,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 for (IRoomController roomController : mapController.getRoomControllers()) {
                     if (roomController.getRoomInstance().getOwnerId() == playerId && roomController.canStoreGold()) {
                         RoomGoldControl control = roomController.getObjectControl(ObjectType.GOLD);
-                        moneyLeft = control.addItem(sum, p);
+                        moneyLeft = control.addItem(moneyLeft, p);
                         if (moneyLeft == 0) {
                             break;
                         }
