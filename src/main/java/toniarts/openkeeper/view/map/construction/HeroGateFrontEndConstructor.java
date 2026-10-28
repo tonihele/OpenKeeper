@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.map.construction;
 
-import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
@@ -71,6 +70,11 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             Map.entry(13, Set.of(13, 16)),
             Map.entry(17, Set.of(17, 18)));
 
+    /**
+     * Name of the node holding the creature that shows the MPD progress
+     */
+    public static final String MPD_CREATURE_NODE_NAME = "MpdCreature";
+
     private final IKwdFile kwdFile;
 
     public HeroGateFrontEndConstructor(AssetManager assetManager, RoomInstance roomInstance, IKwdFile kwdFile) {
@@ -95,17 +99,6 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
 
             switch (i) {
 
-                case 2:
-
-                    // The light beams, I dunno, there are maybe several of these here
-                    // FIXME beams is a visual effect of gem holder ???
-                    float yAngle = -FastMath.PI;
-                    Spatial obj = loadObject("3dfe_beams", assetManager, start, p);
-                    obj.rotate(0, yAngle, 0).move(0, 0.4f, 0.1f);
-                    root.attachChild(obj);
-                    animate(obj, false);
-
-                    break;
                 case 7:
                     showMpdProgress(root, start, p);
 
@@ -244,26 +237,6 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
         return object;
     }
 
-    private void animate(Spatial object, final boolean randomizeAnimation) {
-
-        // Animate
-        object.breadthFirstTraversal(spatial -> {
-            var animComposer = spatial.getControl(AnimComposer.class);
-            if (animComposer != null) {
-                // creates a ClipAction that starts the animation
-                var action = animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
-
-		        if (randomizeAnimation) {
-                    animComposer.setGlobalSpeed(FastMath.nextRandomInt(6, 10) / 10f);
-                    animComposer.setTime(FastMath.nextRandomFloat() * action.getLength());
-		        }
-
-		        // Don't batch animated objects, seems not to work
-		        object.setBatchHint(Spatial.BatchHint.Never);
-		    }
-		});
-    }
-
     private void showMpdProgress(BatchNode root, Point start, Point p) {
         String creatureName = "";
 
@@ -291,7 +264,7 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
             return;
         }
 
-        final Node mpdObj = new Node(creature.getName());
+        final Node mpdObj = new Node(MPD_CREATURE_NODE_NAME);
 
         // The idle animations to rotate between
         CreatureRandomAnimationControl animationControl = new CreatureRandomAnimationControl(creature, assetManager,
