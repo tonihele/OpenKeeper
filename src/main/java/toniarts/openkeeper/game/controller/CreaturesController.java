@@ -524,39 +524,73 @@ public final class CreaturesController implements ICreaturesController {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureExperience.level);
         Creature.Attributes attributes = creature.getAttributes();
-        creatureComponent.height = attributes.getHeight() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEIGHT_TILES).getValue() : 100) / 100);
+        creatureComponent.height = scaleByLevel(attributes.getHeight(), getStatPercent(stats, Variable.CreatureStats.StatType.HEIGHT_TILES));
         if (healthComponent != null) {
             int prevMaxHealth = healthComponent.maxHealth;
-            healthComponent.maxHealth = attributes.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
+            healthComponent.maxHealth = scaleByLevel(attributes.getHp(), getStatPercent(stats, Variable.CreatureStats.StatType.HEALTH));
             healthComponent.health = healthComponent.maxHealth * healthComponent.health / prevMaxHealth;
-            regeneration.ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
+            regeneration.ownLandHealthIncrease = scaleByLevel(attributes.getOwnLandHealthIncrease(), getStatPercent(stats, Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND));
         }
-        creatureComponent.fear = attributes.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
-        threatComponent.threat = attributes.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
-        creatureComponent.pay = attributes.getPay() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.PAY).getValue() : 100) / 100);
-        goldComponent.maxGold = attributes.getMaxGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MAX_GOLD_HELD).getValue() : 100) / 100);
-        creatureComponent.hungerFill = attributes.getHungerFill() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS).getValue() : 100) / 100);
-        creatureComponent.manaGenPrayer = attributes.getManaGenPrayer() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND).getValue() : 100) / 100);
-        creatureExperience.experienceToNextLevel = attributes.getExpForNextLevel() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL).getValue() : 100) / 100);
-        creatureExperience.experiencePerSecond = attributes.getExpPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureExperience.experiencePerSecondTraining = attributes.getExpPerSecondTraining() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.researchPerSecond = attributes.getResearchPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.manufacturePerSecond = attributes.getManufacturePerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.decomposeValue = attributes.getDecomposeValue() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DECOMPOSE_VALUE).getValue() : 100) / 100);
-        creatureComponent.speed = attributes.getSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.runSpeed = attributes.getRunSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.tortureTimeToConvert = attributes.getTortureTimeToConvert() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS).getValue() : 100) / 100);
-        creatureComponent.posessionManaCost = attributes.getPossessionManaCost() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND).getValue() : 100) / 100);
+        creatureComponent.fear = scaleByLevel(attributes.getFear(), getStatPercent(stats, Variable.CreatureStats.StatType.FEAR));
+        threatComponent.threat = scaleByLevel(attributes.getThreat(), getStatPercent(stats, Variable.CreatureStats.StatType.THREAT));
+        creatureComponent.pay = scaleByLevel(attributes.getPay(), getStatPercent(stats, Variable.CreatureStats.StatType.PAY));
+        goldComponent.maxGold = scaleByLevel(attributes.getMaxGoldHeld(), getStatPercent(stats, Variable.CreatureStats.StatType.MAX_GOLD_HELD));
+        creatureComponent.hungerFill = scaleByLevel(attributes.getHungerFill(), getStatPercent(stats, Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS));
+        creatureComponent.manaGenPrayer = scaleByLevel(attributes.getManaGenPrayer(), getStatPercent(stats, Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND));
+        creatureExperience.experienceToNextLevel = scaleByLevel(attributes.getExpForNextLevel(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL));
+        creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
+        creatureExperience.experiencePerSecondTraining = scaleByLevel(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
+        creatureComponent.researchPerSecond = scaleByLevel(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
+        creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
+        creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
+        creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
+        creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));
+        creatureComponent.tortureTimeToConvert = scaleByLevel(attributes.getTortureTimeToConvert(), getStatPercent(stats, Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS));
+        creatureComponent.posessionManaCost = scaleByLevel(attributes.getPossessionManaCost(), getStatPercent(stats, Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND));
         if (sensesComponent != null) {
-            sensesComponent.distanceCanHear = attributes.getDistanceCanHear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES).getValue() : 100) / 100);
+            sensesComponent.distanceCanHear = scaleByLevel(attributes.getDistanceCanHear(), getStatPercent(stats, Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES));
         }
-        goldComponent.gold = attributes.getInitialGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.INITIAL_GOLD_HELD).getValue() : 100) / 100);
-        creatureMeleeAttack.damage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
-        creatureMeleeAttack.rechargeTime = creature.getMeleeRecharge() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS).getValue() : 100) / 100);
+        goldComponent.gold = scaleByLevel(attributes.getInitialGoldHeld(), getStatPercent(stats, Variable.CreatureStats.StatType.INITIAL_GOLD_HELD));
+        creatureMeleeAttack.damage = scaleByLevel(creature.getMeleeDamage(), getStatPercent(stats, Variable.CreatureStats.StatType.MELEE_DAMAGE));
+        creatureMeleeAttack.rechargeTime = scaleByLevel(creature.getMeleeRecharge(), getStatPercent(stats, Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS));
 
         // FIXME: We should know when we run and when we walk and set the speed
         // Steering
         //setMaxLinearSpeed(speed);
+    }
+
+    /**
+     * Get the level percentage of a creature stat
+     *
+     * @param stats the creature stats of the level, may be {@code null}
+     * @param statType the stat
+     * @return the percentage, 100 if there are no stats for the level
+     */
+    private static int getStatPercent(Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats, Variable.CreatureStats.StatType statType) {
+        return stats != null ? stats.get(statType).getValue() : 100;
+    }
+
+    /**
+     * Scale a creature attribute by its level percentage. Multiply first, the
+     * percentages are not multiples of 100 (e.g. 125 for level 2 health)
+     *
+     * @param value the base value from the creature record
+     * @param percent the level percentage
+     * @return the scaled value
+     */
+    static int scaleByLevel(int value, int percent) {
+        return value * percent / 100;
+    }
+
+    /**
+     * Scale a creature attribute by its level percentage
+     *
+     * @param value the base value from the creature record
+     * @param percent the level percentage
+     * @return the scaled value
+     */
+    static float scaleByLevel(float value, int percent) {
+        return value * percent / 100f;
     }
 
     @Override
