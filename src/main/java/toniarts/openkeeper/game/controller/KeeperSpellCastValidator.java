@@ -120,15 +120,23 @@ public final class KeeperSpellCastValidator {
                 }
             }
             case ENEMY_CREATURES -> {
-                if (owner == null) {
+                if (creature == null || owner == null) {
                     return false;
                 }
                 if (!player.isEnemy(owner)) {
                     return false;
                 }
             }
-            case OWN_CREATURES, POSESSION -> {
+            case OWN_CREATURES -> {
                 if (creature == null || owner == null || owner != playerId) {
+                    return false;
+                }
+            }
+            case POSESSION -> {
+
+                // The Horned Reaper can't be possessed
+                if (creature == null || owner == null || owner != playerId
+                        || creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
                     return false;
                 }
             }
