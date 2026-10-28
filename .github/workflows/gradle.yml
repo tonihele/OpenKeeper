@@ -27,7 +27,7 @@ jobs:
     - uses: actions/upload-artifact@v4
       with:
         name: distribution
-        path: build/distributions/OpenKeeper.zip
+        path: client/build/distributions/OpenKeeper.zip
     - uses: marvinpinto/action-automatic-releases@latest
       if: github.ref_name == 'master'
       with:
@@ -36,4 +36,4 @@ jobs:
         prerelease: true
         title: "Development Build"
         files: |
-          build/distributions/OpenKeeper.zip
+          client/build/distributions/OpenKeeper.zip

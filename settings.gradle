@@ -3,4 +3,4 @@ plugins {
 }
 
 rootProject.name = 'OpenKeeper'
-include 'assets'
+include 'assets', 'core', 'client'
