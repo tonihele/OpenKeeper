@@ -1,0 +1,123 @@
+// Dungeon Keeper II lighting model, reproduced
+// exactly, including its out-of-range behaviour.
+//
+// F(n) = 0.25 + 16/n     for n in 0..255   (F(0) = +infinity)
+// F(n) = n - 256         for n >= 256       (the original runs off the end
+//                                            of its table into a
+//                                            neighbouring one -- kept on
+//                                            purpose, not a bug fix target)
+float dkFalloff(float n) {
+    if (n < 0.5) {
+        // n == 0: the table is +infinity here. Any sufficiently large value
+        // works, since the caller immediately clamps the contribution to
+        // the light colour ("(k > 1) ? C : C*k" saturation).
+        return 1e6;
+    }
+    if (n < 256.0) {
+        return 0.25 + 16.0 / n;
+    }
+    return n - 256.0;
+}
+
+// Monotonic variant used by the cursor light (and the "needs smooth
+// falloff" sources): drops dkFalloff's n >= 256 "n - 256" limb so the
+// contribution can never re-saturate beyond the 4-tile regime -- the
+// cursor glow fades out as one smooth circle instead of forming the
+// dark-gap + second full-brightness band that large-radius lights pick
+// up from the out-of-range table. Deliberate deviation from the
+// exact falloff for this light only; keep in sync with
+// SceneLights.dkFalloffMonotonic.
+float dkFalloffMonotonic(float n) {
+    if (n < 0.5) {
+        return 1e6;
+    }
+    return 0.25 + 16.0 / n;
+}
+
+// Loose tail stretched past every light's radius (a deliberate deviation
+// from the original falloff). The original falloff cuts the contribution
+// to exactly 0 at the radius surface, so a small radius pool (torches
+// and terrain lights sit at 1.5 tiles) saturates up to its edge and then
+// stops dead -- the neighbouring tiles read as flat, harsh unlit blocks.
+// Instead of that hard surface, dkPointLightContribution fades across
+// [radius, radius + DK_SOFT_FALLOFF_TAIL_TILES]: the near-field k is
+// still > 1, so the saturated core keeps its exact-falloff look, but the tail
+// grades into the adjacent tiles so they mix in their lit neighbours'
+// light. Must match LightConstants.SOFT_FALLOFF_TAIL_TILES and SceneLights'
+// reach test / computeFlatLight.
+#define DK_SOFT_FALLOFF_TAIL_TILES 0.1
+
+// One point light's additive per-vertex contribution
+// (per-vertex/Gouraud evaluation mode). `lightColor` is already 0..1 and
+// `intensity` is the source's effective (flicker-scaled) intensity --
+// note the surface normal is deliberately dotted against the
+// un-normalized light vector `d` (not its normalized direction): this is
+// how the falloff and "1 tile from a torch is full colour" combine, not a
+// mistake to "fix" into a normalized Lambert term.
+vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
+        float radius, vec3 lightColor, float intensity, bool smoothFalloff) {
+    vec3 d = lightPos - worldPos;
+    float d2 = dot(d, d);
+    float r2 = (radius + DK_SOFT_FALLOFF_TAIL_TILES) * (radius + DK_SOFT_FALLOFF_TAIL_TILES);
+    if (r2 <= 0.0 || d2 >= r2) {
+        return vec3(0.0);
+    }
+
+    // Side faces turned away from the light stay dark. Upward-facing surfaces
+    // (floors and the tops of walls / rock) are lit from either side: a wall
+    // top sits above the light's height, so a signed dot would leave it black
+    // instead of inheriting the colour of the torches and terrain lights.
+    float facing = dot(worldNormal, d);
+    float lam = (worldNormal.y > 0.5 ? abs(facing) : max(facing, 0.0)) * intensity;
+
+    float n = floor(16.0 * d2);
+    float f = smoothFalloff ? dkFalloffMonotonic(n) : dkFalloff(n);
+    float k = (r2 - d2) * f * (1.0 / r2) * lam;
+    return lightColor * min(k, 1.0);
+}
+
+// Soft-knee compression of the FINAL summed colour (ambient + every
+// light's contribution), applied once per channel right before the
+// diffuse multiply -- NOT per-light. Each light's own saturation
+// ("(k > 1) ? C : C*k") is left exactly as the original does; this only
+// stops several already-saturated overlapping lights (e.g. a
+// torch-lined corridor) from stacking straight to flat white. Below
+// DK_SOFTCLAMP_KNEE the value passes through unchanged; above it, the
+// excess is compressed so the total asymptotically approaches
+// DK_SOFTCLAMP_CEILING instead of hitting the hardware's hard [0,1] clip.
+#define DK_SOFTCLAMP_KNEE 0.85
+#define DK_SOFTCLAMP_CEILING 1.0
+
+// Not part of the original model -- a deliberate deviation from "the mesh
+// base colour" (black) outside every light's reach: keeps torch-less
+// ground dim rather than a flat black void. 0 means off: objects and
+// walkable terrain are black wherever no light reaches.
+#define DK_MIN_AMBIENT_FLOOR 0.0
+
+// Compresses a single channel value.
+float dkSoftClampValue(float x) {
+    if (x <= DK_SOFTCLAMP_KNEE) {
+        return x;
+    }
+    float span = DK_SOFTCLAMP_CEILING - DK_SOFTCLAMP_KNEE;
+    float excess = x - DK_SOFTCLAMP_KNEE;
+    return DK_SOFTCLAMP_CEILING - (span * span) / (excess + span);
+}
+
+// Hue-preserving: the whole colour is scaled by what the BRIGHTEST channel
+// needs, instead of clamping every channel on its own. Per-channel clamping
+// clipped an already-orange torch-lit floor to its saturated red, so a
+// further red light (a red keeper's imp) added nothing but green and blue
+// and made the floor look LESS red. Scaling keeps the ratios, so extra red
+// stays visible as a shift towards red.
+// floorScale scales the minimum ambient floor: 1 = normal, 0 = none (fog of
+// war: unexplored ground is completely black unless a light reaches it).
+vec3 dkSoftClampFloor(vec3 sum, float floorScale) {
+    float peak = max(max(sum.r, sum.g), sum.b);
+    vec3 colour = peak > DK_SOFTCLAMP_KNEE ? sum * (dkSoftClampValue(peak) / peak) : sum;
+    return max(colour, vec3(DK_MIN_AMBIENT_FLOOR * floorScale));
+}
+
+vec3 dkSoftClamp(vec3 sum) {
+    return dkSoftClampFloor(sum, 1.0);
+}

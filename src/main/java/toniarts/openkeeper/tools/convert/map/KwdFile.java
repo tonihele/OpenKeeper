@@ -683,7 +683,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             terrain.setSideResource(readArtResource(reader));
             terrain.setTopResource(readArtResource(reader));
             terrain.setTaggedTopResource(readArtResource(reader));
-            terrain.setStringIds(readStringId(reader));
+            terrain.setSlabLight(readLight(reader));
             terrain.setDepth(reader.readIntegerAsFloat());
             terrain.setLightHeight(reader.readIntegerAsFloat());
             terrain.setFlags(reader.readIntegerAsFlag(Terrain.TerrainFlag.class));
@@ -1068,7 +1068,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             room.setTerrainId(reader.readUnsignedByte());
             room.setTileConstruction(reader.readByteAsEnum(Room.TileConstruction.class));
             room.setCreatedCreatureId(reader.readUnsignedByte());
-            room.setTorchColor(readColor(reader)); // This is the editor is rather weird
+            room.setTorchColor(readColor(reader)); // The editor stores it without the flag, see Room.RoomFlag.TORCH_COLOR_*
             List<Short> roomObjects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 short objectId = reader.readUnsignedByte();
