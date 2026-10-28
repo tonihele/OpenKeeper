@@ -77,6 +77,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean doDroppedJob();
 
+    /**
+     * Handles the manual rest target after landing and getting up. Rest can be
+     * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     *
+     * @return whether a sleep task was assigned
+     */
+    public boolean goToSleepAfterLairDrop();
+
     public void findWork(Consumer<Boolean> workResult);
 
     public boolean isWorker();
