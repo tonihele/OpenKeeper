@@ -30,7 +30,6 @@ import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.Node;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
@@ -707,18 +706,6 @@ public final class AssetUtils {
                 }
             }
         });
-    }
-
-    /**
-     * Generate procedural mesh TODO: procedural mesh
-     *
-     * @param resource
-     * @return generated mesh
-     */
-    public static Spatial createProceduralMesh(ArtResource resource) {
-        int id = resource.getData(ArtResource.KEY_ID);
-
-        return new Node();
     }
 
     /**
