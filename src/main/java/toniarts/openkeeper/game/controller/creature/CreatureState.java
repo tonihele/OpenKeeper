@@ -297,6 +297,7 @@ public enum CreatureState implements State<ICreatureController> {
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
                     || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.GUARD
                     || task.getTaskType() == TaskType.GAMBLE
                     || task.getTaskType() == TaskType.MANUFACTURE)
                     && ((entity.isHungry() && entity.goToEat())
@@ -314,6 +315,17 @@ public enum CreatureState implements State<ICreatureController> {
                     && entity.goToCollectPay()) {
                 entity.navigateToAssignedTask();
                 return;
+            }
+
+            // A guard never finishes its duty, so a creature that took it up while no lair was
+            // to be had (a Dark Elf prefers it) looks for a home now and then
+            if (task != null && task.getTaskType() == TaskType.GUARD && entity.needsLair() && !entity.hasLair()
+                    && entity.isTimeToReEvaluate()) {
+                entity.resetReEvaluationTimer();
+                if (entity.findLair()) {
+                    entity.navigateToAssignedTask();
+                    return;
+                }
             }
 
             // Check validity

@@ -1170,7 +1170,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, Navigation.class);
         entityData.removeComponent(entity, Position.class);
         entityData.removeComponent(entity, CreatureAi.class);
-        entityData.removeComponent(entity, TaskComponent.class);
+
+        // The task component stays, the AI system gives the task up when it sees the AI go. Without that the
+        // task (a lair or guard post, a bench) stays reserved for a creature that is no longer there
         entityData.removeComponent(entity, CreatureRecuperating.class);
         entityData.removeComponent(entity, CreatureTortured.class);
         entityData.removeComponent(entity, CreatureImprisoned.class);
