@@ -40,7 +40,7 @@ class ShotsControllerSightOfEvilTest {
     @Test
     void castingSightOfEvilRevealsTheAreaToTheCaster() {
         ShotsController shotsController = new ShotsController(kwdFile(), new DefaultEntityData(), null, null,
-                null, mapController(), null, null, null);
+                null, mapController(), null, null, null, null);
 
         // Shot data 1 is the radius, the shot lifetime is the duration
         shotsController.createShot(SIGHT_OF_EVIL_SHOT_ID, 7, 0, Player.KEEPER2_ID, new Vector3f(12.4f, 0, 7.6f), null, null);
@@ -51,7 +51,7 @@ class ShotsControllerSightOfEvilTest {
     @Test
     void noRadiusNoReveal() {
         ShotsController shotsController = new ShotsController(kwdFile(), new DefaultEntityData(), null, null,
-                null, mapController(), null, null, null);
+                null, mapController(), null, null, null, null);
 
         shotsController.createShot(SIGHT_OF_EVIL_SHOT_ID, 0, 0, Player.KEEPER2_ID, new Vector3f(12.4f, 0, 7.6f), null, null);
 
