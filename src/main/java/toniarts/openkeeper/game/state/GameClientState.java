@@ -32,6 +32,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.atomic.AtomicReference;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -102,7 +103,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
     private TextParser textParser;
-    private volatile PendingTransition pendingTransition;
+    private final AtomicReference<PendingTransition> pendingTransition = new AtomicReference<>();
 
     /**
      * Single use game states
@@ -571,7 +572,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // Called from the game logic thread, the camera and the scene belong to the render thread.
             // update() starts it once the camera state is initialized.
-            pendingTransition = new PendingTransition(pathId, start);
+            pendingTransition.set(new PendingTransition(pathId, start.clone()));
         }
 
         /**
@@ -579,12 +580,14 @@ public final class GameClientState extends AbstractPauseAwareState {
          * is initialized. Must be called on the render thread.
          */
         private void startPendingTransition() {
-            PendingTransition pending = pendingTransition;
             PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
-            if (pending == null || cameraState == null || !cameraState.isInitialized()) {
+            if (cameraState == null || !cameraState.isInitialized()) {
                 return;
             }
-            pendingTransition = null;
+            PendingTransition pending = pendingTransition.getAndSet(null);
+            if (pending == null) {
+                return;
+            }
             short pathId = pending.pathId();
             Vector3f start = pending.start();
 
