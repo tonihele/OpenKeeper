@@ -64,7 +64,7 @@ public final class RoomControllerFactory {
 
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3 -> {
-                return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController);
+                return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
             }
             case HERO_GATE -> {
                 return new HeroGateController(entity, entityData, kwdFile, roomInstance, objectsController);

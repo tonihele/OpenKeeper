@@ -35,6 +35,10 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
+import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -77,7 +81,7 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private final short ownerId;
     private boolean infinite;
-    private PointLight light;
+    private Spatial lightTarget;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.
@@ -95,6 +99,11 @@ public class VisualEffect {
         this(effectManagerState, node, location, effect, infinite, Player.NEUTRAL_PLAYER_ID);
     }
 
+    /**
+     * @param ownerId the player the effect belongs to, used for the colour of
+     * {@code PLAYER_COLOURED} effect lights; {@code null} if none (the
+     * light then takes the fallback player colour)
+     */
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite, short ownerId) {
         this.effect = effect;
         this.kwdFile = effectManagerState.getKwdFile();
@@ -138,11 +147,8 @@ public class VisualEffect {
         }
 
         // Light
-        light = getLight(effect.getLight());
-        if (light != null) {
-            model.addLight(light);
-        }
-
+        lightTarget = model;
+        applyEffectLight(effect.getLight());
         // Elements/effects
         generateChildren();
 
@@ -168,7 +174,7 @@ public class VisualEffect {
                 break;
 
             case PROCEDURAL_MESH:
-                model = AssetUtils.createProceduralMesh(resource);
+                model = ProceduralMeshFactory.create(resource, assetManager);
                 break;
 
             case MESH_COLLECTION:
@@ -206,8 +212,7 @@ public class VisualEffect {
             model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
 
         } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
-
-             AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+            AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
             if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
@@ -238,7 +243,11 @@ public class VisualEffect {
     }
 
     private void handleEffectHit(Vector3f location) {
-        IMapTileInformation tile = effectManagerState.getPlayerMapViewState().getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        if (mapViewState == null) {
+            return;
+        }
+        IMapTileInformation tile = mapViewState.getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
         if (tile == null) {
             logger.log(Level.WARNING, "Effect hit error");
             return;
@@ -478,7 +487,7 @@ public class VisualEffect {
 
         Node model;
         if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
-            model = (Node) AssetUtils.createProceduralMesh(resource);
+            model = ProceduralMeshFactory.create(resource, assetManager);
         } else {
             model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
         }
@@ -560,7 +569,11 @@ public class VisualEffect {
     }
 
     private void handleElementHit(EffectElement element, Vector3f location) {
-        IMapTileInformation tile = effectManagerState.getPlayerMapViewState().getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        if (mapViewState == null) {
+            return;
+        }
+        IMapTileInformation tile = mapViewState.getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
         if (tile == null) {
             logger.log(Level.WARNING, "Effect hit error");
             return;
@@ -586,19 +599,27 @@ public class VisualEffect {
         removeEffect();
     }
 
-    private PointLight getLight(Light effectLight) {
-        if (effectLight == null) {
-            return null;
+    /**
+     * The thing-light formula, applied to this effect
+     * (owner = the effect itself). Fade modulators are left to
+     * the effect system to trigger via {@code LightSource.startFade}.
+     * {@code PLAYER_COLOURED} lights take the colour of the effect's owner.
+     */
+    private void applyEffectLight(Light effectLight) {
+        LightRules lightRules = getLightRules();
+        if (lightRules == null) {
+            return;
         }
+        if (!LightConstants.isLightEnabled(effectLight)) {
+            lightRules.removeThingLight(this);
+            return;
+        }
+        lightRules.addThingLight(this, effectNode.getWorldTranslation(), effectLight, ownerId,
+                LightConstants.EFFECT_LIGHT_INTENSITY, LightConstants.OBJECT_LIGHTS_PULSE);
+    }
 
-        PointLight realLight = new PointLight();
-        realLight.setColor(new ColorRGBA(effectLight.getColor().getRed() / 255f,
-                effectLight.getColor().getGreen() / 255f,
-                effectLight.getColor().getBlue() / 255f,
-                effectLight.getColor().getAlpha() / 255f));
-        realLight.setRadius(effectLight.getRadius());
-        realLight.setPosition(new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z));
-        return realLight;
+    private LightRules getLightRules() {
+        return effectManagerState.getLightRules();
     }
 
     /**
@@ -611,6 +632,14 @@ public class VisualEffect {
     public boolean update(float tpf) {
         updateCircularPath(tpf);
 
+        // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
+        // own position is set once at construction and never moves.
+        LightRules lightRules = getLightRules();
+        if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
+            AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);
+        }
+        lightMeshElements(lightRules);
+
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
 
@@ -621,10 +650,33 @@ public class VisualEffect {
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS) && effectElements.isEmpty()
                 && effect.getDeathEffectId() != 0 && !deathEffectSpawned) {
             deathEffectSpawned = true;
-            addEffect(effect.getDeathEffectId(), null);
+            if (kwdFile.getEffect(effect.getDeathEffectId()) == effect) {
+                // Dies into itself (e.g. "3dfe lightbeam light"), i.e. it just loops. Nesting a copy each time
+                // would grow the scene graph by a level per cycle until it overflows the stack, so restart instead.
+                infinite = true;
+            } else {
+                addEffect(effect.getDeathEffectId(), null);
+            }
         }
 
         return handleEffectCompletion();
+    }
+
+    /**
+     * Lights the spawned mesh elements (dig rock / gold debris...). They move
+     * on their own, so each one is vertex lit; they need no thing light of their own to be lit.
+     */
+    private void lightMeshElements(LightRules lightRules) {
+        if (lightRules == null) {
+            return;
+        }
+        for (Spatial element : effectElements.keySet()) {
+            if (element instanceof EffectEmitter emitter) {
+                for (Spatial instance : emitter.getChildren()) {
+                    AssetUtils.applyVertexLight(assetManager, instance, lightRules, false);
+                }
+            }
+        }
     }
 
     private void updateCircularPath(float tpf) {
@@ -684,18 +736,29 @@ public class VisualEffect {
      */
     private boolean handleEffectCompletion() {
         if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
+            LightRules lightRules = getLightRules();
             // If infitine, just restart
             if (infinite) {
-                if (light != null) {
-                    effectNode.removeLight(light);
+                if (lightRules != null) {
+                    lightRules.removeThingLight(this);
                 }
                 load();
             } else {
+                if (lightRules != null) {
+                    lightRules.removeThingLight(this);
+                }
                 effectNode.removeFromParent();
                 return false;
             }
         }
         return true;
+    }
+
+    /**
+     * @return the node everything of this effect hangs from, for placing it
+     */
+    public Node getEffectNode() {
+        return effectNode;
     }
 
     public void removeEffect() {

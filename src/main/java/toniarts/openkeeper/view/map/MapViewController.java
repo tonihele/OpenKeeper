@@ -23,10 +23,12 @@ import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
+ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.*;
 import com.jme3.texture.Texture;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.common.EntityInstance;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -40,6 +42,9 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
@@ -48,6 +53,7 @@ import toniarts.openkeeper.view.map.construction.WaterConstructor;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.FloatBuffer;
 import java.util.*;
 
 /**
@@ -59,39 +65,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     private static final Logger logger = System.getLogger(MapViewController.class.getName());
 
-    /**
-     * Used where no fog of war applies (main menu map preview, model viewer):
-     * everything is simply always visible.
-     */
-    private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
-        @Override
-        public boolean isVisible(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isExplored(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isPerceived(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isHighlightable(Point p) {
-            return true;
-        }
-
-        @Override
-        public boolean isPendingTagged(Point p) {
-            return false;
-        }
-    };
-
     public final static ColorRGBA COLOR_FLASH = new ColorRGBA(0.8f, 0, 0, 1);
-    private final static ColorRGBA COLOR_TAG = new ColorRGBA(0.6f, 0.6f, 1, 1);
+    /**
+     * The original's tile highlight: a base colour
+     * added to the tile's lighting, plus a flat additive overlay pass. Tagged =
+     * (128, 128, 200) and the BlueTexture (63, 64, 255); flashing = pure red
+     * and the RedTexture (255, 64, 65).
+     */
+    private final static ColorRGBA TAG_BASE = new ColorRGBA(128 / 255f, 128 / 255f, 200 / 255f, 1);
+    private final static ColorRGBA TAG_OVERLAY = new ColorRGBA(63 / 255f, 64 / 255f, 1f, 1);
+    private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
+    private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
@@ -99,11 +83,19 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final static String MAP_NODE = "Map";
     private final static String TERRAIN_NODE = "Terrain";
     private final static String ROOM_NODE = "Rooms";
-    private static final List<WallDirection> NO_TORCH_DIRECTIONS = List.of();
-    private static final List<WallDirection> HORIZONTAL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.SOUTH);
-    private static final List<WallDirection> VERTICAL_TORCH_DIRECTIONS = List.of(WallDirection.WEST, WallDirection.EAST);
-    private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
-            WallDirection.SOUTH, WallDirection.EAST);
+    /**
+     * Terrain type 38, "Claim Scan" -- the stand-in for a tile the local
+     * player has perceived but not yet explored, when the tile is owned or
+     * a room.
+     */
+    private static final short CLAIM_SCAN_TERRAIN_ID = 38;
+    /**
+     * Room ids the portal light is hard-coded
+     * to -- {@code KwdFile.ROOM_PORTAL_ID} is private, so this is its own
+     * copy rather than reaching into that class.
+     */
+    private static final short ROOM_PORTAL_ID = 3;
+    private static final short ROOM_HERO_PORTAL_ID = 25;
     private final boolean torchesEnabled;
     private final boolean ceilingEnabled;
     private List<Node> pages;
@@ -113,6 +105,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final IMapInformation mapClientService;
     private final IFogOfWarInformation fogOfWarInformation;
     private Terrain unexploredPlaceholderTerrain;
+    private Terrain claimScanTerrain;
+    private boolean claimScanTerrainResolved;
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
@@ -128,14 +122,33 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
+    private final LightRules lightRules;
+    private final boolean litSolidTerrain;
+    private boolean terrainAmbientEnabled = LightConstants.TERRAIN_AMBIENT_ENABLED;
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled, boolean ceilingEnabled) {
-        this(assetManager, kwdFile, mapClientService, ALWAYS_VISIBLE, playerId, torchesEnabled, ceilingEnabled);
+        this(assetManager, kwdFile, mapClientService, IFogOfWarInformation.ALWAYS_VISIBLE, playerId, torchesEnabled, ceilingEnabled);
     }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled, boolean ceilingEnabled) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled, false, ceilingEnabled);
+    }
+
+    /**
+     * Map viewer set-up: no fog of war, and solid rock lit like any other tile
+     * (minimum ambient floor) instead of staying black where no light reaches.
+     */
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            short playerId, boolean torchesEnabled, boolean litSolidTerrain, boolean ceilingEnabled) {
+        this(assetManager, kwdFile, mapClientService, IFogOfWarInformation.ALWAYS_VISIBLE, playerId, torchesEnabled, litSolidTerrain, ceilingEnabled);
+    }
+
+    private MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled,
+            boolean litSolidTerrain, boolean ceilingEnabled) {
+        this.litSolidTerrain = litSolidTerrain;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.mapClientService = mapClientService;
@@ -143,6 +156,14 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this.playerId = playerId;
         this.torchesEnabled = torchesEnabled;
         this.ceilingEnabled = ceilingEnabled;
+
+        // Lighting consults the same local-viewer fog as the renderer
+        // (cursor colour, terrain-light selection)
+        this.lightRules = new LightRules(fogOfWarInformation);
+    }
+
+    public LightRules getLightRules() {
+        return lightRules;
     }
 
     @Override
@@ -150,6 +171,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         long startTime = System.nanoTime();
         
+        lightRules.initAmbientMap(getMapData().getWidth(), getMapData().getHeight());
+
         //Create a root
         map = new Node(MAP_NODE);
         Node terrain = new Node(TERRAIN_NODE);
@@ -185,6 +208,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             ((BatchNode) page.getChild(FLOOR_INDEX)).batch();
             ((BatchNode) page.getChild(WALL_INDEX)).batch();
             ((BatchNode) page.getChild(TOP_INDEX)).batch();
+            bindPageBatchMaterials(page);
         }
         map.attachChild(terrain);
 
@@ -205,20 +229,54 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Resolves the terrain to render for a tile. An unexplored tile always
+     * Resolves the terrain to render for a tile. An unexplored tile normally
      * renders as generic, undifferentiated solid rock - regardless of what
      * it actually is - matching the classic Dungeon Keeper look: what you
      * haven't dug into yet reads as plain rock, diggable like any other,
-     * until you actually reveal it.
+     * until you actually reveal it. The one exception is
+     * {@link #isClaimScanTile(IMapTileInformation)}: a perceived-but-
+     * unexplored tile that is owned or a room substitutes the Claim Scan
+     * terrain instead, so it still looks like anonymous rock but glows
+     * (handleTerrainLight) to signal something is there.
      */
     private Terrain getTerrain(IMapTileInformation tile) {
         if (!fogOfWarInformation.isVisible(tile.getLocation())) {
+            if (isClaimScanTile(tile)) {
+                Terrain claimScan = getClaimScanPlaceholderTerrain();
+                if (claimScan != null) {
+                    return claimScan;
+                }
+            }
             Terrain placeholder = getUnexploredPlaceholderTerrain();
             if (placeholder != null) {
                 return placeholder;
             }
         }
         return kwdFile.getTerrain(tile.getTerrainId());
+    }
+
+    /**
+     * A tile the local player has perceived
+     * (but not explored) shows the Claim Scan stand-in instead of plain rock
+     * when it's owned by someone, or its real terrain is a room - i.e. when
+     * the rock placeholder would otherwise be hiding a claimed area.
+     */
+    private boolean isClaimScanTile(IMapTileInformation tile) {
+        if (!fogOfWarInformation.isPerceived(tile.getLocation())) {
+            return false;
+        }
+        if (tile.getOwnerId() != Player.NEUTRAL_PLAYER_ID) {
+            return true;
+        }
+        return kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM);
+    }
+
+    private Terrain getClaimScanPlaceholderTerrain() {
+        if (!claimScanTerrainResolved) {
+            claimScanTerrain = kwdFile.getTerrain(CLAIM_SCAN_TERRAIN_ID);
+            claimScanTerrainResolved = true;
+        }
+        return claimScanTerrain;
     }
 
     private Terrain getUnexploredPlaceholderTerrain() {
@@ -285,6 +343,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
         Spatial surface = Water.construct(assetManager, batches);
+        if (surface instanceof Geometry geometry && AssetUtils.isVertexMaterial(geometry.getMaterial())) {
+            lightRules.bindMaterials(List.of(geometry.getMaterial()));
+        }
         map.attachChild(surface);
         return surface;
     }
@@ -352,11 +413,15 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         Node surface = new Node("Ceiling");
+        List<Material> ceilingMaterials = new ArrayList<>();
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
-            surface.attachChild(Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue()));
+            Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue());
+            surface.attachChild(ceilingGeometry);
+            ceilingMaterials.add(ceilingGeometry.getMaterial());
         }
+        lightRules.bindMaterials(ceilingMaterials);
         if (!ceilingVisible) {
             surface.setCullHint(Spatial.CullHint.Always);
         }
@@ -487,6 +552,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Batch
         for (BatchNode batchNode : nodesNeedBatching) {
             batchNode.batch();
+            // Re-batching creates new batched geometries/materials in place,
+            // so the page's region registration must be refreshed
+            if (batchNode.getParent() instanceof Node page) {
+                bindPageBatchMaterials(page);
+            }
         }
 
         // A newly fog-revealed water/lava batch needs its merged surface rebuilt
@@ -540,42 +610,70 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 Material material = geometry.getMaterial().clone();
                 geometry.setMaterial(material);
 
-                // Decay
                 if (terrain.getFlags().contains(Terrain.TerrainFlag.DECAY)) {
-
-                    List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
-                    if (textures != null) {
-
-                        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
-                        // Now we have a random starting texture...
-                        int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
-                        String diffuseTexture = textures.get(textureIndex);
-                        String diffuseTextureKey = AssetUtils.getCanonicalAssetKey(diffuseTexture);
-                        String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
-                        if(!diffuseTextureKey.equals(currentTexture)) {
-                            try {
-                                Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
-                                material.setTexture("DiffuseMap", texture);
-
-                                AssetUtils.assignMapsToMaterial(assetManager, material);
-                            } catch (Exception e) {
-                                logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
-                            }
-                        }
-                    }
+                    applyDecayTexture(material, spatial, tile, terrain);
                 }
-                if (isFlashing(tile)) {
-                    material.setColor("Ambient", COLOR_FLASH);
-                    material.setBoolean("UseMaterialColors", true);
-                }
-                if (tagged) {
-                    material.setColor("Ambient", COLOR_TAG);
-                    material.setBoolean("UseMaterialColors", true);
-                }
-
+                applyHighlight(material, isFlashing(tile), tagged);
             }
 
         });
+    }
+
+    private void applyDecayTexture(Material material, Spatial spatial, IMapTileInformation tile, Terrain terrain) {
+        List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
+        if (textures == null) {
+            return;
+        }
+
+        // FIXME: This doesn't sit well with the material thinking (meaning we produce the actual material files)
+        // Now we have a random starting texture...
+        int textureIndex = Math.round((textures.size() - 1) * (1 - tile.getHealthPercent() / 100f));
+        String diffuseTexture = textures.get(textureIndex);
+        String diffuseTextureKey = AssetUtils.getCanonicalAssetKey(diffuseTexture);
+        String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
+        if (diffuseTextureKey.equals(currentTexture)) {
+            return;
+        }
+        try {
+            Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
+            material.setTexture("DiffuseMap", texture);
+
+            AssetUtils.assignMapsToMaterial(assetManager, material);
+        } catch (Exception e) {
+            logger.log(Level.WARNING, "Error applying decay texture: {0} to {1} terrain! ({2})", new Object[]{diffuseTexture, terrain.getName(), e.getMessage()});
+        }
+    }
+
+    private static void applyHighlight(Material material, boolean flashing, boolean tagged) {
+        // Vertex's Ambient is replaced by the per-tile ambient map,
+        // so the highlight goes through its own additive Tint instead
+        if (AssetUtils.isVertexMaterial(material)) {
+            // A flashing tile overrides a tagged one (as in the original)
+            if (flashing) {
+                material.setColor("Tint", FLASH_BASE);
+                material.setColor("TintOverlay", FLASH_OVERLAY);
+            } else if (tagged) {
+                material.setColor("Tint", TAG_BASE);
+                material.setColor("TintOverlay", TAG_OVERLAY);
+            }
+            return;
+        }
+        if (flashing) {
+            setAmbientColour(material, COLOR_FLASH);
+        }
+        if (tagged) {
+            setAmbientColour(material, TAG_BASE);
+        }
+    }
+
+    private static void setAmbientColour(Material material, ColorRGBA colour) {
+        material.setColor("Ambient", colour);
+        // Vertex (jME's CommonMat-parameter-free def) has no
+        // UseMaterialColors; guard like AssetUtils does so the flag
+        // is only flipped on defs that declare it
+        if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+            material.setBoolean("UseMaterialColors", true);
+        }
     }
 
     private boolean isFlashing(final IMapTileInformation tile) {
@@ -627,6 +725,32 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 pageBatch.attachChild(new Node((x + pageX * PAGE_SQUARE_SIZE) + "_" + (y + pageY * PAGE_SQUARE_SIZE)));
             }
         }
+    }
+
+    /**
+     * Hooks the Vertex materials of a page's batched geometry up to the lighting
+     */
+    private void bindPageBatchMaterials(Node page) {
+        if (page == null) {
+            return;
+        }
+        List<Material> materials = new ArrayList<>();
+        // The merged batch geometries are the batch node's direct Geometry
+        for (int i = 0; i <= TOP_INDEX; i++) {
+            if (!(page.getChild(i) instanceof BatchNode batchNode)) {
+                continue;
+            }
+            for (Spatial child : batchNode.getChildren()) {
+                // Only Vertex materials take the shared light data;
+                // Flat things are lit CPU-side per thing
+                if (child instanceof Geometry geometry && geometry.getMesh() != null
+                        && geometry.getMaterial() != null
+                        && AssetUtils.isVertexMaterial(geometry.getMaterial())) {
+                    materials.add(geometry.getMaterial());
+                }
+            }
+        }
+        lightRules.bindMaterials(materials);
     }
 
     private Spatial getWallSpatial(IMapTileInformation tile, WallDirection direction) {
@@ -746,38 +870,55 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Point p = tile.getLocation();
         Node pageNode = getPageNode(p, root);
 
-        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128)
-        if (torchesEnabled && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+        // This tile is about to be rebuilt -- drop its old torch/terrain
+        // lights before (re)creating them below
+        lightRules.clearTileLights(p);
+
+        handleSlabLight(p, terrain, tile.getOwnerId());
+
+        // Per-tile ambient and explored flag into the texture the shader blends across tile borders
+        lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()),
+                fogOfWarInformation.isExplored(p));
+
+        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
+        // explored ground: a tile that is merely perceived (claim scan) shows no torches
+        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             handleTorch(tile, pageNode);
         }
 
         // Room
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+        boolean isRoomTile = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM);
+        RoomInstance roomInstance = null;
+        if (isRoomTile) {
 
             // Construct the actual room
             Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-            handleRoom(p, room, null);
+            roomInstance = handleRoom(p, room, null);
 
             // Swap the terrain if this is a bridge
-            terrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
-            if (terrain == null) {
+            Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
+            if (bridgeTerrain == null) {
+                // Ordinary room on land: the room constructor builds the geometry,
+                // but the tile still carries the room terrain's own light
+                handleTerrainLight(tile, terrain, true, roomInstance);
                 return;
             }
+            terrain = bridgeTerrain;
         }
+
+        handleTerrainLight(tile, terrain, isRoomTile, roomInstance);
 
         handleTop(tile, terrain, pageNode);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            handleSide(tile, pageNode);
+            handleSide(tile, pageNode, terrain);
         }
     }
 
     private void handleTorch(IMapTileInformation tile, Node pageNode) {
 
-        // The rooms actually contain the torch model resource, but it is always the same,
-        // and sometimes even null and there is still a torch. So I don't think they are used
         // DKII places at most one torch per tile. At corners, the direction order makes the
         // perpendicular wall skip this tile and resume on the next eligible tile in its run.
-        for (WallDirection direction : getTorchDirections(tile.getX(), tile.getY())) {
+        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY())) {
             Point neighbor = switch (direction) {
                 case NORTH -> new Point(tile.getX(), tile.getY() - 1);
                 case WEST -> new Point(tile.getX() - 1, tile.getY());
@@ -792,18 +933,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
     }
 
-    static List<WallDirection> getTorchDirections(int x, int y) {
-        boolean horizontal = x % 2 != 0;
-        boolean vertical = y % 2 == 0;
-
-        if (horizontal) {
-            return vertical ? ALL_TORCH_DIRECTIONS : HORIZONTAL_TORCH_DIRECTIONS;
-        }
-        return vertical ? VERTICAL_TORCH_DIRECTIONS : NO_TORCH_DIRECTIONS;
-    }
-
     private void addTorch(IMapTileInformation tile, Node pageNode, WallDirection direction, Terrain wallTerrain) {
-        String name = "Torch1";
+        String name = "Torch1"; // null: no model, the light is still added (Hero gate frontend)
         float height = wallTerrain.getLightHeight();
         float angleY;
         Vector3f position;
@@ -828,23 +959,77 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             default -> throw new IllegalStateException("Unexpected torch direction: " + direction);
         }
 
+        // Torch colour/intensity/radius: the room's
+        // own values if this tile is in a room, else the global defaults.
+        int red;
+        int green;
+        int blue;
+        float intensity;
+        float radius;
+        float lightHeight;
+        float maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
+
         // Room wall torches are defined by the room type. Resolve the room directly from
         // terrain because ordinary RoomInstances are registered after torches are handled.
         if (getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             Room room = kwdFile.getRoomByTerrain(tile.getTerrainId());
+            // A room only has a torch model if it names one; otherwise it gets
+            // the light but no model. torchColor == 0 (below) removes the torch entirely
             ArtResource torch = room.getTorch();
-            if (torch == null) {
+            if (torch != null && torch.getName() != null && !torch.getName().isEmpty()) {
+                name = torch.getName();
+            } else {
+                name = null;
+            }
+            position.y = room.getTorchHeight();
+            lightHeight = room.getTorchHeight();
+
+            Color torchColor = room.getTorchColor();
+            if (torchColor == null) {
                 return;
             }
-            name = torch.getName();
-            position.y = room.getTorchHeight();
+            // Each TORCH_COLOR_* room flag adds its channel's full value on top of the stored colour
+            int torchRed = LightConstants.withBonus(torchColor.getRed(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_RED), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            int torchGreen = LightConstants.withBonus(torchColor.getGreen(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            int torchBlue = LightConstants.withBonus(torchColor.getBlue(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
+                return; // A room with torchColor == 0 has no torches
+            }
+            torchRed = Math.min(torchRed, LightConstants.TORCH_MAX_CHANNEL);
+            torchGreen = Math.min(torchGreen, LightConstants.TORCH_MAX_CHANNEL);
+            torchBlue = Math.min(torchBlue, LightConstants.TORCH_MAX_CHANNEL);
+            // Only an unowned room shows its own (mostly green) torch colour
+            red = torchRed;
+            green = torchGreen;
+            blue = torchBlue;
+            intensity = room.getTorchIntensity() / 128f;
+            radius = room.getTorchRadius();
+            maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
+        } else {
+            red = LightConstants.getDefaultTorchLightRed(kwdFile);
+            green = LightConstants.getDefaultTorchLightGreen(kwdFile);
+            blue = LightConstants.getDefaultTorchLightBlue(kwdFile);
+            intensity = LightConstants.getDefaultTorchLightIntensity(kwdFile);
+            radius = LightConstants.getDefaultTorchLightRadiusTiles(kwdFile);
+            lightHeight = LightConstants.getDefaultTorchLightHeightTiles(kwdFile);
         }
 
+        if (name != null) {
+            attachTorchModel(tile, pageNode, name, angleY, position);
+        }
+
+        // The light sits inside the floor tile, hugging the wall face
+        // (the model is placed separately above), and stays small
+        lightRules.addTorchLight(tile.getLocation(), TorchPlacement.getTorchLightPosition(tile.getLocation(), direction, lightHeight),
+                red, green, blue, intensity, Math.min(radius, maxRadius));
+    }
+
+    private void attachTorchModel(IMapTileInformation tile, Node pageNode, String name, float angleY, Vector3f position) {
         Spatial spatial = AssetUtils.loadModel(assetManager, name, null);
         spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
         spatial.rotate(0, angleY, 0);
-        Vector3f intendedLocalPos = WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position);
-        spatial.setLocalTranslation(intendedLocalPos);
+        Vector3f worldPosition = WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position);
+        spatial.setLocalTranslation(worldPosition);
 
         Node parent = (Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX));
         // This tile node can still carry a translation left over from when this
@@ -868,7 +1053,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return null;
         }
         Terrain terrain = getTerrain(tile);
-        return terrain.getFlags().contains(Terrain.TerrainFlag.TORCH) ? terrain : null;
+        return TorchPlacement.hasTorches(terrain) ? terrain : null;
     }
 
     private RoomInstance handleRoom(Point p, Room room, Thing.Room thing) {
@@ -888,7 +1073,51 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // Add to registry
         roomNodes.put(roomInstance, roomNode);
+
+        // Portal light
+        if (room.getRoomId() == ROOM_PORTAL_ID || room.getRoomId() == ROOM_HERO_PORTAL_ID) {
+            Point center = getRoomCenterTile(roomInstance);
+            // Tile (x, y) is centred on (x, y) in world space, not (x + 0.5, y + 0.5)
+            Vector3f position = new Vector3f(center.x, 0.49f, center.y);
+            //lightRules.addPortalLight(roomInstance, position);
+        }
+
         return roomInstance;
+    }
+
+    /**
+     * The centroid of a room's coordinates, used as its "centre tile"
+     *.
+     */
+    /**
+     * The room tile closest to the centroid: for a non-convex room the plain
+     * centroid can fall outside the room, but the portal light belongs on a
+     * real room tile.
+     */
+    static Point getRoomCenterTile(RoomInstance roomInstance) {
+        Point centroid = getRoomCenter(roomInstance);
+        Point best = centroid;
+        double bestDistance = Double.MAX_VALUE;
+        for (Point coordinate : roomInstance.getCoordinates()) {
+            double distance = centroid.distance(coordinate);
+            if (distance < bestDistance) {
+                bestDistance = distance;
+                best = coordinate;
+            }
+        }
+        return best;
+    }
+
+    private static Point getRoomCenter(RoomInstance roomInstance) {
+        long sumX = 0;
+        long sumY = 0;
+        List<Point> coordinates = roomInstance.getCoordinates();
+        for (Point coordinate : coordinates) {
+            sumX += coordinate.x;
+            sumY += coordinate.y;
+        }
+        int count = coordinates.size();
+        return new Point((int) (sumX / count), (int) (sumY / count));
     }
 
     /**
@@ -945,11 +1174,18 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         topTileNode.attachChild(spatial);
+        applyTerrainLighting(topTileNode, terrain, tile.getOwnerId());
+        // setTileMaterialToGeometries (tag/flash/decay tint) may clone a
+        // fresh Material past this point - register whatever's actually on
+        // the geometries afterwards, not applyTerrainLighting's now possibly
+        // stale list, or LightRules would keep pushing light updates onto an
+        // orphaned Material no longer attached to anything on screen.
         setTileMaterialToGeometries(tile, topTileNode);
+        lightRules.bindMaterials(collectMaterials(topTileNode));
         AssetUtils.translateToTile(topTileNode, p);
     }
 
-    private void handleSide(IMapTileInformation tile, Node pageNode) {
+    private void handleSide(IMapTileInformation tile, Node pageNode, Terrain terrain) {
         Point p = tile.getLocation();
         Node sideTileNode = getTileNode(p, (Node) pageNode.getChild(WALL_INDEX));
 
@@ -961,7 +1197,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
 
+        applyTerrainLighting(sideTileNode, terrain, tile.getOwnerId());
         setTileMaterialToGeometries(tile, sideTileNode);
+        lightRules.bindMaterials(collectMaterials(sideTileNode));
         AssetUtils.translateToTile(sideTileNode, p);
     }
 
@@ -1131,14 +1369,278 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         RoomConstructor roomConstructor = RoomFactory.constructRoom(roomInstance, assetManager, kwdFile);
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
-        if (roomConstructor != null) {
-            return roomConstructor.construct(fogOfWarInformation);
+        if (roomConstructor == null) {
+            return null;
         }
-        return null;
+
+        // Vertex ambient: the room's own terrain type, used
+        // by RoomConstructor to pre-swap its floor/wall materials to
+        // Vertex BEFORE it batches them (jME forbids re-materialling
+        // after batching).
+        Terrain roomTerrain = kwdFile.getTerrain(roomInstance.getRoom().getTerrainId());
+        roomConstructor.setAmbient(getVertexAmbient(roomTerrain, roomInstance.getOwnerId()));
+
+        Spatial roomNode = roomConstructor.construct(fogOfWarInformation);
+        List<Material> materials = roomConstructor.getLightingMaterials();
+        if (!materials.isEmpty()) {
+            lightRules.bindMaterials(materials);
+        }
+        return roomNode;
     }
 
     /**
-     * Sets material lighting accorting to the terrain setting
+     * Handle the terrain-light source for a tile: a positioned {@code LightSource}, not a material
+     * constant, so it illuminates its surroundings like a torch does.
+     * <p>
+     * {@code terrain} is whatever {@link #getTerrain(IMapTileInformation)}
+     * already resolved for this tile's mesh (real terrain, the Claim Scan
+     * stand-in, or the plain rock stand-in) - the fog decision lives there,
+     * not here, so mesh and light can never disagree about what a tile is.
+     */
+    private void handleTerrainLight(IMapTileInformation tile, Terrain terrain, boolean isRoomTile, RoomInstance roomInstance) {
+        Point p = tile.getLocation();
+        Terrain lightingTerrain = isRoomTile
+                ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
+                : terrain;
+        boolean useClaimScanColour = false;
+        boolean perceivedUnexplored = false;
+
+        // Perceived-but-unexplored, non-room tile: terrains that
+        // reveal through fog keep their own light, everything else glows as
+        // Claim Scan. The mesh keeps its rock stand-in (see getTerrain()); only
+        // the light looks at the real terrain. Tests explored, not isVisible():
+        // isVisible() is already true for a perceived reveal-through-fog tile
+        // (Impenetrable Rock, water, lava), which must glow like any other.
+        if (!isRoomTile && !fogOfWarInformation.isExplored(p) && fogOfWarInformation.isPerceived(p)) {
+            perceivedUnexplored = true;
+            Terrain real = kwdFile.getTerrain(tile.getTerrainId());
+            lightingTerrain = real.getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR)
+                    ? real
+                    : getClaimScanPlaceholderTerrain();
+            // Gold/gems (goldValue != 0) keep their own colour through the rock;
+            // the rest take the CLAIM_SCAN_LIGHT_* colour.
+            useClaimScanColour = lightingTerrain != null && lightingTerrain.getGoldValue() == 0;
+        }
+
+        if (lightingTerrain == null || !lightingTerrain.getFlags().contains(Terrain.TerrainFlag.TERRAIN_LIGHT)
+                || !isTerrainLightEnabled(isRoomTile, perceivedUnexplored)) {
+            return;
+        }
+
+        boolean claimScan = useClaimScanColour || lightingTerrain.getTerrainId() == CLAIM_SCAN_TERRAIN_ID;
+        int[] rgb = claimScan ? getClaimScanLightColour() : getTerrainLightColour(lightingTerrain);
+
+        // Tile (x, y) is centred on (x, y) in world space
+        Vector3f position = new Vector3f(p.x, lightingTerrain.getLightHeight(), p.y);
+        LightSource light = lightRules.addTerrainLight(p, position, rgb[0], rgb[1], rgb[2],
+                claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY
+                        : isRoomTile ? LightConstants.ROOM_TERRAIN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
+        // Water and lava must not tint the colour of a torch that lights the same ground
+        EnumSet<Terrain.TerrainFlag> flags = lightingTerrain.getFlags();
+        light.setYieldsToTorches(flags.contains(Terrain.TerrainFlag.WATER) || flags.contains(Terrain.TerrainFlag.LAVA));
+    }
+
+    /**
+     * Only the claim-scan / perceived glow is kept; room and ordinary
+     * terrain lights are switched off (see LightConstants)
+     */
+    private static boolean isTerrainLightEnabled(boolean isRoomTile, boolean perceivedUnexplored) {
+        if (isRoomTile) {
+            return LightConstants.ROOM_LIGHTING_ENABLED;
+        }
+        return perceivedUnexplored || LightConstants.EXPLORED_TERRAIN_LIGHTS_ENABLED;
+    }
+
+    /**
+     * The stand-in's own baked colour is always overridden by these level variables.
+     */
+    private int[] getClaimScanLightColour() {
+        return new int[]{LightConstants.getClaimScanLightRed(kwdFile),
+            LightConstants.getClaimScanLightGreen(kwdFile),
+            LightConstants.getClaimScanLightBlue(kwdFile)};
+    }
+
+    private static int[] getTerrainLightColour(Terrain terrain) {
+        Color c = terrain.getTerrainLight();
+        EnumSet<Terrain.TerrainFlag> flags = terrain.getFlags();
+        return new int[]{
+            LightConstants.withBonus(c.getRed(), flags.contains(Terrain.TerrainFlag.TERRAIN_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS),
+            LightConstants.withBonus(c.getGreen(), flags.contains(Terrain.TerrainFlag.TERRAIN_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS),
+            LightConstants.withBonus(c.getBlue(), flags.contains(Terrain.TerrainFlag.TERRAIN_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS)};
+    }
+
+    /**
+     * Slab light: enabled when the terrain's own
+     * {@code Light} block has a non-zero colour. Not used by stock terrain.
+     * {@code PLAYER_COLOURED} uses the slab owner's colour.
+     */
+    private void handleSlabLight(Point p, Terrain terrain, short ownerId) {
+        Light light = terrain.getSlabLight();
+        if (light == null || light.getColor() == null) {
+            return;
+        }
+        Color c = light.getColor();
+        if (c.getRed() == 0 && c.getGreen() == 0 && c.getBlue() == 0) {
+            return;
+        }
+        EnumSet<Light.LightFlag> flags = light.getFlags();
+        int red = LightConstants.withBonus(c.getRed(), flags.contains(Light.LightFlag.COLOR_RED), LightConstants.OVER_BRIGHT_BONUS);
+        int green = LightConstants.withBonus(c.getGreen(), flags.contains(Light.LightFlag.COLOR_GREEN), LightConstants.OVER_BRIGHT_BONUS);
+        int blue = LightConstants.withBonus(c.getBlue(), flags.contains(Light.LightFlag.COLOR_BLUE), LightConstants.OVER_BRIGHT_BONUS);
+        if (flags.contains(Light.LightFlag.PLAYER_COLOURED)) {
+            int[] player = LightConstants.getPlayerLightColour(ownerId);
+            red = Math.max(LightConstants.PLAYER_COLOURED_MIN, red * player[0] / 255);
+            green = Math.max(LightConstants.PLAYER_COLOURED_MIN, green * player[1] / 255);
+            blue = Math.max(LightConstants.PLAYER_COLOURED_MIN, blue * player[2] / 255);
+        }
+        Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
+        Vector3f position = new Vector3f(p.x + offset.x, offset.y, p.y + offset.z);
+        lightRules.addSlabLight(p, position, red, green, blue, light.getRadius(),
+                flags.contains(Light.LightFlag.PULSE), flags.contains(Light.LightFlag.FLICKER));
+    }
+
+    /**
+     * All 8 neighbours belong to the same room instance.
+     */
+    private boolean isInteriorRoomSlab(Point p, RoomInstance roomInstance) {
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                if (dx == 0 && dy == 0) {
+                    continue;
+                }
+                if (!roomInstance.hasCoordinate(new Point(p.x + dx, p.y + dy))) {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * Swaps every geometry under {@code node}'s Flat material (created by
+     * KmfModelLoader) for a Vertex material carrying this tile's
+     * per-terrain-type vertex ambient, and returns them
+     * so the caller can register them with {@link LightRules} -- terrain
+     * lights and global ambient are pushed
+     * into these materials continuously by {@link SceneLights}, since they
+     * change with flicker/pulse/settings.
+     */
+    private List<Material> applyTerrainLighting(Node node, Terrain terrain, short ownerId) {
+        List<Material> materials = new ArrayList<>();
+        ColorRGBA ambient = getVertexAmbient(terrain, ownerId);
+        boolean solid = terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof BatchNode batchNode) {
+                    // Room-wall corner pieces (RoomConstructor.getWallSpatial)
+                    // pre-swap themselves to Vertex before their own
+                    // internal batch() call (jME forbids re-materialling
+                    // after batching, whether per-geometry or via
+                    // BatchNode.setMaterial) -- just collect the result here.
+                    Material existing = firstGeometryMaterial(batchNode);
+                    if (existing != null && AssetUtils.isVertexMaterial(existing)) {
+                        materials.add(existing);
+                    }
+                    return; // traversal still descends; children are isBatched() and skipped below
+                }
+                if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
+                if (solid && !litSolidTerrain) {
+                    vertex.setFloat("MinLight", 0f);
+                } else if (solid) {
+                    vertex.setFloat("RockFloor", LightConstants.LIT_SOLID_ROCK_MIN_LIGHT);
+                }
+                if (solid && !litSolidTerrain) {
+                    // The ambient map is sampled bilinearly: keep the neighbouring floor's ambient off the wall
+                    vertex.setFloat("AmbientScale", 0f);
+                }
+                geometry.setMaterial(vertex);
+                materials.add(vertex);
+            }
+        });
+        return materials;
+    }
+
+    private static Material firstGeometryMaterial(Node node) {
+        Material[] result = new Material[1];
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (result[0] == null && spatial instanceof Geometry geometry) {
+                    result[0] = geometry.getMaterial();
+                }
+            }
+        });
+        return result[0];
+    }
+
+    /**
+     * Gathers whatever Material each Geometry under {@code node} currently
+     * carries - called after {@link #applyTerrainLighting} (Vertex
+     * conversion) and {@link #setTileMaterialToGeometries} (tag/flash/decay
+     * tint, which clones a fresh Material for a tagged/flashing/decaying
+     * tile) have both already run, so this always matches what's actually
+     * rendered instead of a pre-clone reference.
+     */
+    private static List<Material> collectMaterials(Node node) {
+        List<Material> materials = new ArrayList<>();
+        node.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (spatial instanceof BatchNode batchNode) {
+                    Material existing = firstGeometryMaterial(batchNode);
+                    if (existing != null && AssetUtils.isVertexMaterial(existing)) {
+                        materials.add(existing);
+                    }
+                    return;
+                }
+                if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                materials.add(geometry.getMaterial());
+            }
+        });
+        return materials;
+    }
+
+    /**
+     * Overrides {@link LightConstants#TERRAIN_AMBIENT_ENABLED}; call before
+     * the map is loaded (the ambient is baked into the materials).
+     */
+    public void setTerrainAmbientEnabled(boolean terrainAmbientEnabled) {
+        this.terrainAmbientEnabled = terrainAmbientEnabled;
+    }
+
+    private ColorRGBA getVertexAmbient(Terrain terrain, short ownerId) {
+        if (!LightConstants.ROOM_LIGHTING_ENABLED && terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            return ColorRGBA.Black; // no per-room ambient, see LightConstants.ROOM_LIGHTING_ENABLED
+        }
+        if (!terrainAmbientEnabled
+                || (!litSolidTerrain && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID))) {
+            // see LightConstants.TERRAIN_AMBIENT_ENABLED; solid tiles (rock, walls) get none unless lit solid rock is on
+            return ColorRGBA.Black;
+        }
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_LIGHT)) {
+            Color c = terrain.getAmbientLight();
+            int r = LightConstants.withBonus(c.getRed(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            int g = LightConstants.withBonus(c.getGreen(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            int b = LightConstants.withBonus(c.getBlue(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
+            return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
+        }
+
+        // Player-coloured (claimed) paths and walls get no owner tint here: they
+        // are lit by the torches and other lights only. The owner tint that used
+        // to be added as ambient made a red keeper's claimed tiles read red.
+        return ColorRGBA.Black;
+    }
+
+    /**
+     * Material tweak used for {@link Water}'s own material, which does not
+     * come from a KMF model. {@code UseMaterialColors} is false there, so the
+     * parameters have no visible effect.
      *
      * @param material the material to adjust
      * @param terrain the terrain data
@@ -1181,7 +1683,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             material.setColor("Specular", new ColorRGBA(r / 255f, g / 255f, b / 255f, 0));
         }
         material.setColor("Diffuse", ColorRGBA.White);
-        material.setBoolean("UseMaterialColors", false); // Hmm...
+        if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+            material.setBoolean("UseMaterialColors", false); // Hmm...
+        }
     }
 
     /**
@@ -1192,13 +1696,18 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     protected void removeRoomInstances(RoomInstance... instances) {
         for (RoomInstance instance : instances) {
-            roomsNode.detachChild(roomNodes.get(instance));
-            roomNodes.remove(instance);
+            // A room that has no visuals is registered with no node
+            Spatial roomNode = roomNodes.remove(instance);
+            if (roomNode != null) {
+                roomsNode.detachChild(roomNode);
+            }
 
             roomActuals.remove(instance);
             for (Point p : instance.getCoordinates()) {
                 roomCoordinates.remove(p);
             }
+
+            lightRules.removeRoomLight(instance);
         }
     }
 
@@ -1240,7 +1749,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
 
             List<Point> section = getRoomWalls(p, roomInstance, direction);
-            if (section != null) {
+            if (!section.isEmpty()) {
 
                 // Add section
                 sections.add(new WallSection(direction, section));
@@ -1260,79 +1769,59 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     private List<Point> getRoomWalls(Point p, RoomInstance roomInstance, WallDirection wallDirection) {
 
+        // A missing direction is treated as WEST
+        WallDirection direction = wallDirection != null ? wallDirection : WallDirection.WEST;
+
         // See if the starting point has a wall to the given direction
-        IMapTileInformation tile;
-        if (null == wallDirection) {
-            tile = getMapData().getTile(p.x + 1, p.y); // West
-        } else
-            tile = switch (wallDirection) {
-                case NORTH ->
-                    getMapData().getTile(p.x, p.y + 1);
-                case EAST ->
-                    getMapData().getTile(p.x - 1, p.y);
-                case SOUTH ->
-                    getMapData().getTile(p.x, p.y - 1);
-                default ->
-                    getMapData().getTile(p.x + 1, p.y); // West
-            };
-
+        Point wallPoint = getWallNeighbour(p, direction);
+        IMapTileInformation tile = getMapData().getTile(wallPoint.x, wallPoint.y);
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-
-            // Found wallable
-            List<Point> wallPoints = new ArrayList<>();
-            wallPoints.add(p);
-
-            // Traverse possible directions, well one direction, "to the right"
-            List<Point> adjacentWallPoints = null;
-            if (null == wallDirection) {
-                Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
-                RoomInstance instance = roomCoordinates.get(nextPoint);
-                if (instance != null && instance.equals(roomInstance)) {
-                    adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                }
-            } else
-                switch (wallDirection) {
-                    case NORTH -> {
-                        Point nextPoint = new Point(p.x + 1, p.y); // East
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                    case EAST -> {
-                        Point nextPoint = new Point(p.x, p.y + 1); // South
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                    case SOUTH -> {
-                        Point nextPoint = new Point(p.x + 1, p.y); // East, sorting, so right is left now
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                    default -> {
-                        Point nextPoint = new Point(p.x, p.y + 1); // South, sorting, so right is left now
-                        RoomInstance instance = roomCoordinates.get(nextPoint);
-                        if (instance != null && instance.equals(roomInstance)) {
-                            adjacentWallPoints = getRoomWalls(nextPoint, roomInstance, wallDirection);
-                        }
-                    }
-                }
-
-            // Add the point(s)
-            if (adjacentWallPoints != null) {
-                wallPoints.addAll(adjacentWallPoints);
-            }
-
-            return wallPoints;
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || !terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
+            return Collections.emptyList();
         }
 
-        return null;
+        // Found wallable
+        List<Point> wallPoints = new ArrayList<>();
+        wallPoints.add(p);
+
+        // Traverse possible directions, well one direction, "to the right"
+        Point nextPoint = getNextWallPoint(p, direction);
+        RoomInstance instance = roomCoordinates.get(nextPoint);
+        if (instance != null && instance.equals(roomInstance)) {
+            wallPoints.addAll(getRoomWalls(nextPoint, roomInstance, wallDirection));
+        }
+
+        return wallPoints;
+    }
+
+    /**
+     * The tile on the wall side of the room tile
+     */
+    private static Point getWallNeighbour(Point p, WallDirection direction) {
+        return switch (direction) {
+            case NORTH ->
+                new Point(p.x, p.y + 1);
+            case EAST ->
+                new Point(p.x - 1, p.y);
+            case SOUTH ->
+                new Point(p.x, p.y - 1);
+            default ->
+                new Point(p.x + 1, p.y); // West
+        };
+    }
+
+    /**
+     * The next tile along the wall ("to the right", sorting forces the
+     * directions to be what they are)
+     */
+    private static Point getNextWallPoint(Point p, WallDirection direction) {
+        return switch (direction) {
+            case NORTH, SOUTH ->
+                new Point(p.x + 1, p.y); // East
+            default ->
+                new Point(p.x, p.y + 1); // South
+        };
     }
 
     /**
