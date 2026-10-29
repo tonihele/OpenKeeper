@@ -472,12 +472,16 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, false);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, boolean pursuingAttackTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path), pursuingAttackTarget));
         return false;
     }
 
@@ -724,14 +728,18 @@ public final class CreatureController extends EntityController implements ICreat
             // Check if we are already going there
             Point destination = WorldUtils.vectorToPoint(targetPosition);
             Navigation currentNavigation = entityData.getComponent(entityId, Navigation.class);
-            if (currentNavigation != null && currentNavigation.target.equals(destination)) {
+            boolean continuingPursuit = currentNavigation != null && currentNavigation.pursuingAttackTarget;
+            if (continuingPursuit && currentNavigation.target.equals(destination)) {
                 return;
             }
 
             // Just now simply go where the target currently is
             Point ourPosition = getCreatureCoordinates();
             if (destination != null && !destination.equals(ourPosition)) {
-                createNavigation(ourPosition, destination, null);
+                boolean failed = createNavigation(ourPosition, destination, null, true);
+                if (!failed && !continuingPursuit) {
+                    gameEventService.emit(GameEventType.CREATURE_CHARGE, entityId, getPosition());
+                }
             }
         }
     }
