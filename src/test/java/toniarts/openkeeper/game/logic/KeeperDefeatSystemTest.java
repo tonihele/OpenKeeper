@@ -61,6 +61,7 @@ class KeeperDefeatSystemTest {
 
     private EntityData entityData;
     private Map<Short, Keeper> keepers;
+    private Map<Short, Keeper> players;
     private Map<Short, EntityId> hearts;
     private List<String> endings;
     private List<Point> ruinedHearts;
@@ -71,6 +72,7 @@ class KeeperDefeatSystemTest {
     void setUp() {
         entityData = new DefaultEntityData();
         keepers = new HashMap<>();
+        players = new HashMap<>();
         hearts = new HashMap<>();
         endings = new ArrayList<>();
         ruinedHearts = new ArrayList<>();
@@ -97,6 +99,23 @@ class KeeperDefeatSystemTest {
         system.processTick(0.25f);
 
         assertTrue(keepers.get(RIVAL).isDestroyed());
+    }
+
+    @Test
+    void heartAddedWithNoHealthDestroysTheKeeper() {
+        KeeperDefeatSystem system = campaign(HUMAN);
+        Keeper rival = new Keeper(true, RIVAL);
+        players.put(RIVAL, rival);
+
+        EntityId heart = entityData.createEntity();
+        entityData.setComponents(heart,
+                new ObjectComponent(FiveByFiveRotatedController.OBJECT_HEART_ID, null),
+                new Owner(RIVAL, RIVAL),
+                new Health(0, 100_000));
+        system.processTick(0.25f);
+
+        assertTrue(rival.isDestroyed());
+        assertFalse(keepers.get(HUMAN).isDestroyed());
     }
 
     @Test
@@ -223,7 +242,6 @@ class KeeperDefeatSystemTest {
     }
 
     private KeeperDefeatSystem createSystem(boolean skirmish, short... keeperIds) {
-        Map<Short, Keeper> players = new HashMap<>();
         for (short keeperId : keeperIds) {
             Keeper keeper = new Keeper(keeperId != HUMAN, keeperId);
             keeper.setPlayer(KeeperDefeatFixtures.player(keeperId, keeperId != HUMAN));

@@ -104,6 +104,9 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         for (Entity heart : addedHearts) {
             heartOwners.put(heart.getId(), heart.get(Owner.class).ownerId);
         }
+
+        // A heart that starts with no health, as set in the level editor, is already destroyed
+        processChangedHearts(addedHearts);
     }
 
     private void processChangedHearts(Set<Entity> changedHearts) {
