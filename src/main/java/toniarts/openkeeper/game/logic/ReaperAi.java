@@ -19,10 +19,8 @@ package toniarts.openkeeper.game.logic;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector3f;
-import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.EntitySet;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -68,7 +66,6 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
     private final ICreaturesController creaturesController;
     private final INavigationService navigationService;
     private final Random random;
-    private final EntitySet creatures;
 
     ReaperAi(EntityData entityData, Map<Short, Keeper> keepers, ICreaturesController creaturesController,
             INavigationService navigationService, Random random) {
@@ -77,14 +74,10 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
         this.creaturesController = creaturesController;
         this.navigationService = navigationService;
         this.random = random;
-
-        creatures = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
     }
 
     @Override
     public void think(EntityId reaper, short ownerId) {
-        creatures.applyChanges();
-
         Keeper keeper = keepers.get(ownerId);
         ICreatureController reaperController = creaturesController.createController(reaper);
         if (keeper == null || isBusy(reaper, reaperController, keeper)) {
@@ -138,19 +131,19 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
 
     private EntityId findNearestEnemy(EntityId reaper, ICreatureController reaperController, Keeper keeper) {
         Vector3f reaperPosition = entityData.getComponent(reaper, Position.class).position;
-        List<Entity> enemies = new ArrayList<>();
-        for (Entity entity : creatures) {
-            if (isEnemyToAttack(reaper, entity.getId(), keeper)) {
-                enemies.add(entity);
+        List<EntityId> enemies = new ArrayList<>();
+        for (EntityId entityId : entityData.findEntities(null, CreatureComponent.class, Owner.class, Position.class, Health.class)) {
+            if (isEnemyToAttack(reaper, entityId, keeper)) {
+                enemies.add(entityId);
             }
         }
-        enemies.sort(Comparator.comparingDouble(entity -> entity.get(Position.class).position.distanceSquared(reaperPosition)));
+        enemies.sort(Comparator.comparingDouble(entityId -> entityData.getComponent(entityId, Position.class).position.distanceSquared(reaperPosition)));
 
         Point from = WorldUtils.vectorToPoint(reaperPosition);
-        for (Entity enemy : enemies) {
-            Point to = WorldUtils.vectorToPoint(enemy.get(Position.class).position);
+        for (EntityId enemy : enemies) {
+            Point to = WorldUtils.vectorToPoint(entityData.getComponent(enemy, Position.class).position);
             if (from.equals(to) || navigationService.findPath(from, to, reaperController) != null) {
-                return enemy.getId();
+                return enemy;
             }
         }
 
@@ -215,11 +208,6 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
         }
 
         return false;
-    }
-
-    @Override
-    public void stop() {
-        creatures.release();
     }
 
 }
