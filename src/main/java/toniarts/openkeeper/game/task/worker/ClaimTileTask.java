@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import toniarts.openkeeper.game.event.GameEventType;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -57,7 +58,12 @@ public class ClaimTileTask extends AbstractTileTask {
         // TODO: is this a general case or even smart to do this like this...?
         if (isWorkStepDue(creature, executionDuration)) {
 
-            mapController.applyClaimTile(getTaskLocation(), playerId);
+            mapController.applyClaimTile(getTaskLocation(), playerId, creature);
+
+            // The work is done, let it be heard
+            if (!isValid(creature)) {
+                creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
+            }
         }
     }
 

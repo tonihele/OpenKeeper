@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -55,7 +56,12 @@ public final class RepairWallTileTask extends DigTileTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
         if (isWorkStepDue(creature, executionDuration)) {
 
-            mapController.applyClaimTile(getTaskLocation(), playerId);
+            mapController.applyClaimTile(getTaskLocation(), playerId, creature);
+
+            // The work is done, let it be heard
+            if (!isValid(creature)) {
+                creature.fireEvent(GameEventType.CREATURE_REINFORCE_WALL, getTaskLocation());
+            }
         }
     }
 
