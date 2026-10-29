@@ -1457,9 +1457,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * The stand-in's own baked colour is always overridden by these level variables.
      */
     private int[] getClaimScanLightColour() {
+        // Green and blue are only dimmed by the intensity when gamma correction is applied
+        float scale = Main.getUserSettings().getAppSettings().isGammaCorrection() ? CLAIM_SCAN_LIGHT_INTENSITY : 1f;
         return new int[]{LightConstants.getClaimScanLightRed(kwdFile),
-            Math.round(LightConstants.getClaimScanLightGreen(kwdFile) * CLAIM_SCAN_LIGHT_INTENSITY),
-                Math.round(LightConstants.getClaimScanLightBlue(kwdFile) * CLAIM_SCAN_LIGHT_INTENSITY)};
+            Math.round(LightConstants.getClaimScanLightGreen(kwdFile) * scale),
+            Math.round(LightConstants.getClaimScanLightBlue(kwdFile) * scale)};
     }
 
     private static int[] getTerrainLightColour(Terrain terrain) {
