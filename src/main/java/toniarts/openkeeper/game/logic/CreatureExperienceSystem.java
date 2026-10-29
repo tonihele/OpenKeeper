@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Supplier;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -167,7 +168,23 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * A creature only learns from fighting another creature, not from hitting
+     * a Dungeon Heart or other objects
+     */
+    private boolean isHittingAnObject(Entity entity) {
+        CreatureState creatureState = entity.get(CreatureAi.class).getCreatureState();
+        if (creatureState != CreatureState.MELEE_ATTACK && creatureState != CreatureState.CAST_SPELL) {
+            return false;
+        }
+        AttackTarget attackTarget = entityData.getComponent(entity.getId(), AttackTarget.class);
+        return attackTarget == null || entityData.getComponent(attackTarget.entityId, CreatureComponent.class) == null;
+    }
+
     private boolean isEntityWorkingOrFighting(Entity entity) {
+        if (isHittingAnObject(entity)) {
+            return false;
+        }
         CreatureAi creatureAi = entity.get(CreatureAi.class);
         CreatureState creatureState = creatureAi.getCreatureState();
         return creatureState == CreatureState.MELEE_ATTACK || creatureState == CreatureState.CAST_SPELL || (creatureState == CreatureState.WORK && isWorker(entity));
