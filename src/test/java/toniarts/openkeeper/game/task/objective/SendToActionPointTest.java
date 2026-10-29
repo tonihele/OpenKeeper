@@ -35,13 +35,14 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 class SendToActionPointTest {
 
     private int objectiveActionPointId;
+    private Thing.HeroParty.Objective objective = Thing.HeroParty.Objective.SEND_TO_ACTION_POINT;
 
     private ICreatureController creature(int actionPointId) {
         objectiveActionPointId = actionPointId;
         return (ICreatureController) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> {
             switch (method.getName()) {
                 case "getObjective":
-                    return Thing.HeroParty.Objective.SEND_TO_ACTION_POINT;
+                    return objective;
                 case "getObjectiveTargetActionPointId":
                     return objectiveActionPointId;
                 case "setObjectiveTargetActionPointId":
@@ -102,5 +103,31 @@ class SendToActionPointTest {
         task.executeTask(creature, 2f);
         assertEquals(3, objectiveActionPointId);
         assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void isValidOnlyWhileTheCreatureHasTheObjectiveAndThePointAsTarget() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 5, 2);
+
+        assertTrue(task.isValid(creature));
+
+        objectiveActionPointId = 2;
+        assertFalse(task.isValid(creature));
+
+        objectiveActionPointId = 1;
+        objective = Thing.HeroParty.Objective.NONE;
+        assertFalse(task.isValid(creature));
+    }
+
+    @Test
+    void withoutACreatureTheTaskIsValidUntilExecuted() {
+        ICreatureController creature = creature(1);
+        SendToActionPoint task = task(1, 0, 2);
+
+        assertTrue(task.isValid(null));
+
+        task.executeTask(creature, 0f);
+        assertFalse(task.isValid(null));
     }
 }
