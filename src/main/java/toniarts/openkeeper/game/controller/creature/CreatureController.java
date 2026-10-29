@@ -72,6 +72,9 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -89,7 +92,13 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 /**
@@ -98,6 +107,8 @@ import java.util.function.Consumer;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+// Controllers inherit entity-ID equality and hashing; mutable sleep state is not identity.
+// skipcq: JAVA-W0100
 public final class CreatureController extends EntityController implements ICreatureController {
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
@@ -117,6 +128,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
     private final IShotsController shotsController;
+    private final GameEventService gameEventService;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -125,7 +137,7 @@ public final class CreatureController extends EntityController implements ICreat
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController, GameEventService gameEventService) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -136,7 +148,23 @@ public final class CreatureController extends EntityController implements ICreat
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
-        this.stateMachine = new DefaultStateMachine<>(this);
+        this.gameEventService = gameEventService;
+        this.stateMachine = new DefaultStateMachine<>(this) {
+            @Override
+            public void changeState(CreatureState newState) {
+                CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+                CreatureState target = ai == null ? null : ai.getTargetState();
+                if (newState == CreatureState.IDLE && target != null) {
+                    newState = target;
+                }
+                if (newState != null && newState == target) {
+                    // Consume before enter(): a failed target may immediately fall back to IDLE.
+                    entityData.setComponent(entityId, new CreatureAi(ai.stateStartTime,
+                            ai.getCreatureState(), ai.creatureId));
+                }
+                super.changeState(newState);
+            }
+        };
     }
 
     @Override
@@ -342,16 +370,50 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isNeedForSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        return creatureSleep != null && needsLair() && (gameTimer.getGameTime() - creatureSleep.lastSleepTime >= creature.getAttributes().getTimeAwake()
-                || isNeedForRecuperating());
+        // CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH triggers the native attempt path,
+        // but its assigned-bed gate (0x46f47b) still requires positive debt. The
+        // 250/1000 HP, zero-debt probe stayed awake; manual Lair placement bypasses it.
+        return needsLair() && isNeedForSleep(creatureSleep,
+                creature.getAttributes().getTimeSleep());
     }
 
-    private boolean isNeedForRecuperating() {
-        return gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue() >= getHealthPercentage();
+    static boolean isNeedForSleep(CreatureSleep sleep, int timeSleep) {
+        return sleep != null && timeSleep > 0 && sleep.sleepNeed > 0;
+    }
+
+    @Override
+    public boolean goToSleepAfterLairDrop() {
+        if (shouldFleeOrAttack()) {
+            return false;
+        }
+        if (!needsLair() || creature.getAttributes().getTimeSleep() <= 0 || !hasLair()) {
+            return false;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+        CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+        Stored bed = entityData.getComponent(sleep.lairObjectId, Stored.class);
+        if (room == null || room.isDestroyed() || room.isRemoved()
+                || room.getOwnerId() != getOwnerId()
+                || !room.hasObjectControl(AbstractRoomController.ObjectType.LAIR)
+                || bed == null || bed.objectType != AbstractRoomController.ObjectType.LAIR
+                || !room.getEntityId().equals(bed.room)) {
+            return false;
+        }
+        // Native manual placement bypasses the autonomous debt/retry gates.
+        return taskManager.assignSleepTask(this);
     }
 
     @Override
     public boolean goToSleep() {
+        double gameTime = gameTimer.getGameTime();
+        CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+        if (sleep == null || gameTime - sleep.lastSleepAttemptTime < 1) {
+            return false;
+        }
+        // Native autonomous attempts are throttled to one per four native ticks.
+        CreatureSleep updated = new CreatureSleep(sleep);
+        updated.lastSleepAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignSleepTask(this);
     }
 
@@ -656,6 +718,7 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // Set the damage
                 setDamage(attackTarget, creatureMeleeAttack.damage);
+                gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -827,15 +890,8 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean isEnoughSleep() {
-        double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
-        if (timeSpent >= creature.getAttributes().getTimeSleep()) {
-
-            // Hmm, I don't know if this is the right place to do this, but works for now
-            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, gameTimer.getGameTime(), creatureSleep.sleepStartTime));
-            return true;
-        }
-        return false;
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        return creatureSleep.sleepNeed == 0 && isFullHealth();
     }
 
     @Override
@@ -921,6 +977,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void processTick(float tpf) {
+        // A manual drop can already carry its target in AI, but no state may
+        // enter or advance until the fall system has finished landing.
+        if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+            return;
+        }
 
         /**
          * Hmm, I'm not sure how to do this, this is not ideal either, how to
@@ -958,7 +1019,8 @@ public final class CreatureController extends EntityController implements ICreat
         // Also change our state component
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
-            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId()));
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId(),
+                    creatureAi == null ? null : creatureAi.getTargetState()));
         }
     }
 
@@ -1049,6 +1111,11 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public Creature getCreature() {
         return creature;
+    }
+
+    @Override
+    public void fireEvent(GameEventType type, Point location) {
+        gameEventService.emit(type, ThingFlag.CREATURE, creature.getCreatureId(), location);
     }
 
     @Override
@@ -1167,21 +1234,23 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void setCreatureLair(EntityId lairId) {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        entityData.setComponent(entityId, new CreatureSleep(lairId, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+        CreatureSleep updated = new CreatureSleep(creatureSleep);
+        updated.lairObjectId = lairId;
+        entityData.setComponent(entityId, updated);
     }
 
     @Override
     public void sleep() {
-        entityData.setComponent(entityId, new CreatureRecuperating(gameTimer.getGameTime(), gameTimer.getGameTime()));
-        if (isNeedForRecuperating()) {
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.RECUPERATING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.RECUPERATING);
-        } else {
-            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, creatureSleep.lastSleepTime, gameTimer.getGameTime()));
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.SLEEPING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.SLEEPING);
-        }
+        double gameTime = gameTimer.getGameTime();
+        // Native lair recovery uses global second boundaries, not a full second after entry.
+        double recoveryTime = Math.floor(gameTime);
+        entityData.setComponent(entityId, new CreatureRecuperating(gameTime, recoveryTime, recoveryTime));
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        CreatureSleep updated = new CreatureSleep(creatureSleep);
+        updated.lastSleepTime = gameTime;
+        updated.sleepStartTime = gameTime;
+        entityData.setComponent(entityId, updated);
+        stateMachine.changeState(CreatureState.SLEEPING);
     }
 
     @Override
@@ -1198,7 +1267,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Written here and not at the end of the tick, so that the state time restarts also when the creature
         // was down already. That keeps a creature that is struck over and over down
-        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId()));
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId(),
+                entityData.getComponent(entityId, CreatureAi.class).getTargetState()));
     }
 
     private boolean isAlly(EntityId entity) {
