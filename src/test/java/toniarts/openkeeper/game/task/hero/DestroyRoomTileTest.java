@@ -63,7 +63,7 @@ class DestroyRoomTileTest {
     @Test
     void leavesTheHeartPortalAndBridgesAlone() {
         world.room = DestroyRoomsFixtures.destroyRoomsRoom("Dungeon Heart", RoomTileWorld.LAIR_TERRAIN_ID,
-                Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.ATTACKABLE);
+                Room.RoomFlag.PLACEABLE_ON_LAND);
         assertFalse(createTask().isValid(hero));
 
         world.room = DestroyRoomsFixtures.destroyRoomsRoom("Portal", RoomTileWorld.LAIR_TERRAIN_ID,

@@ -58,7 +58,7 @@ public final class RoomTileWorld {
     public Terrain terrain = DestroyRoomsFixtures.destroyRoomsTerrain(LAIR_TERRAIN_ID, CLAIMED_PATH_TERRAIN_ID, ROOM_TILE_HEALTH,
             Terrain.TerrainFlag.OWNABLE, Terrain.TerrainFlag.ROOM, Terrain.TerrainFlag.ATTACKABLE);
     public Room room = DestroyRoomsFixtures.destroyRoomsRoom("Lair", LAIR_TERRAIN_ID,
-            Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.HAS_WALLS, Room.RoomFlag.BUILDABLE, Room.RoomFlag.ATTACKABLE);
+            Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.HAS_WALLS, Room.RoomFlag.BUILDABLE);
     public final List<Point> destroyedTiles = new ArrayList<>();
     public final List<Integer> mentorMessages = new ArrayList<>();
     public double gameTime = 0;
