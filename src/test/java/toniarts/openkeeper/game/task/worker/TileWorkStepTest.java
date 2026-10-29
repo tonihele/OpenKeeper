@@ -122,6 +122,7 @@ class TileWorkStepTest {
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     case "addGold" -> null;
+                    case "fireEvent" -> null;
                     case "getEntityId" -> new EntityId(1);
                     case "getCreature" -> TileWorkFixtures.creature();
                     default -> throw new UnsupportedOperationException(method.getName());
