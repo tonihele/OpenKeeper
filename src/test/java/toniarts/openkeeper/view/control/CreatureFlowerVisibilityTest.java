@@ -1,6 +1,7 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.DesktopAssetManager;
+import com.jme3.material.Material;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
@@ -46,9 +47,10 @@ class CreatureFlowerVisibilityTest {
         for (CreatureState state : CreatureState.values()) {
             data.setComponent(creature, new CreatureAi(0, state, (short) 7));
             flower.update(0);
-            boolean combat = state == CreatureState.FIGHT || state == CreatureState.MELEE_ATTACK
-                    || state == CreatureState.CAST_SPELL;
-            assertEquals(combat, flower.isPersistentVisibilityRequired(), state.name());
+            boolean persistent = state == CreatureState.FIGHT || state == CreatureState.MELEE_ATTACK
+                    || state == CreatureState.CAST_SPELL || state == CreatureState.UNCONSCIOUS
+                    || state == CreatureState.DRAGGED;
+            assertEquals(persistent, flower.isPersistentVisibilityRequired(), state.name());
         }
     }
 
@@ -116,5 +118,112 @@ class CreatureFlowerVisibilityTest {
         data.setComponent(creature, new Health(current, maximum));
         flower.update(0);
         assertEquals(expected, flower.isPersistentVisibilityRequired(), current + "/" + maximum);
+    }
+
+    @Test
+    void unconsciousComponentOverridesAnAlreadyVisibleSadFaceAndRecoveryRestoresIt() {
+        data.setComponents(creature, new CreatureExperience(1, 0, 100, 0, 0),
+                new CreatureMood(100, 0, 0, 0, 0, 0));
+        flower.update(0);
+        flower.onUpdate(.5f);
+        assertEquals("Textures/GUI/moods/SM-Sad.png", flower.getCenterIcon());
+
+        // HealthSystem sets this component independently of the AI state.
+        data.setComponents(creature, new Unconscious(0), new Health(0, 100));
+        flower.update(0);
+        assertEquals("Textures/GUI/moods/SL-01.png", flower.getCenterIcon());
+        assertTrue(flower.isPersistentVisibilityRequired());
+        // Finish the old mood phase, then enter the unconscious phase.
+        flower.onUpdate(.5f);
+        assertEquals("Textures/GUI/moods/SL-01.png", flower.getCenterIcon());
+        flower.onUpdate(.5f);
+        assertEquals("Textures/GUI/moods/SJ-Unconscious.png", flower.getCenterIcon());
+
+        data.removeComponent(creature, Unconscious.class);
+        data.setComponent(creature, new Health(100, 100));
+        flower.update(0);
+        flower.onUpdate(.5f);
+        assertEquals("Textures/GUI/moods/SM-Sad.png", flower.getCenterIcon());
+    }
+
+    @Test
+    void unconsciousIconAlternatesWithLevelForAllKeepersAndNeutralButNotHeroes() {
+        data.setComponents(creature, new CreatureExperience(1, 0, 100, 0, 0),
+                new CreatureMood(100, 0, 0, 0, 0, 0), new Unconscious(0), new Health(0, 100));
+        for (short owner = 1; owner <= 7; owner++) {
+            data.setComponent(creature, new Owner(owner, owner));
+            flower.update(0);
+            flower.onHide();
+            assertTrue(flower.isPersistentVisibilityRequired());
+            for (int cycle = 0; cycle < 4; cycle++) {
+                assertEquals("Textures/GUI/moods/SL-01.png", flower.getCenterIcon());
+                flower.onUpdate(.5f);
+                assertEquals(owner == 1 ? "Textures/GUI/moods/SL-01.png"
+                        : "Textures/GUI/moods/SJ-Unconscious.png", flower.getCenterIcon());
+                flower.onUpdate(.5f);
+            }
+        }
+    }
+
+    @Test
+    void heroMoodAndOrdinaryActivityDoNotReplaceLevel() {
+        data.setComponents(creature, new Owner((short) 1, (short) 1),
+                new CreatureExperience(1, 0, 100, 0, 0), new CreatureMood(100, 0, 0, 0, 0, 0),
+                new CreatureAi(0, CreatureState.FIGHT, (short) 14));
+        flower.update(0);
+        for (int cycle = 0; cycle < 8; cycle++) {
+            flower.onUpdate(.5f);
+            assertEquals("Textures/GUI/moods/SL-01.png", flower.getCenterIcon());
+        }
+    }
+
+    @Test
+    void unconsciousZeroHealthFlowerAutoShowsAndHidesAfterRecovery() {
+        Node model = new Node();
+        model.addControl(flower);
+        flower.update(3);
+        assertFalse(flower.isEnabled());
+        data.setComponents(creature, new Unconscious(0), new Health(0, 100));
+        flower.update(.1f);
+        flower.update(10);
+        assertTrue(flower.isEnabled());
+        data.removeComponent(creature, Unconscious.class);
+        data.setComponent(creature, new Health(100, 100));
+        flower.update(.1f);
+        assertFalse(flower.isEnabled());
+    }
+
+    @Test
+    void brightnessPulseUsesStrictHealthBoundaryAndStopsAfterRecovery() {
+        Material material = new Material(assets, "MatDefs/UnitFlower.j3md");
+        flower.onMaterialCreated(material);
+        for (int health : new int[]{0, 1, 19, 20, 21, 120}) {
+            data.setComponent(creature, new Health(health, 120));
+            flower.update(0);
+            flower.onMaterialGenerated(material);
+            assertEquals(health < 20, material.getParam("PulseBrightness").getValue(), "Health " + health);
+            assertEquals(false, material.getParam("FlashColors").getValue());
+        }
+        data.removeComponent(creature, Health.class);
+        flower.update(0);
+        flower.onMaterialGenerated(material);
+        assertEquals(false, material.getParam("PulseBrightness").getValue());
+    }
+
+    @Test
+    void ownershipChangesSwitchBetweenNeutralColorsAndHeroOrKeeperBrightness() {
+        Material material = new Material(assets, "MatDefs/UnitFlower.j3md");
+        flower.onMaterialCreated(material);
+        data.setComponents(creature, new Unconscious(0), new Health(0, 120));
+        for (short owner : new short[]{3, 2, 1, 4, 2}) {
+            data.setComponent(creature, new Owner(owner, owner));
+            flower.update(0);
+            flower.onMaterialGenerated(material);
+            assertEquals(owner != 2, material.getParam("PulseBrightness").getValue());
+            assertEquals(owner == 2, material.getParam("FlashColors").getValue());
+            for (int color = 1; color <= 7; color++) {
+                assertNotNull(material.getParam("Color" + color));
+            }
+        }
     }
 }
