@@ -38,6 +38,7 @@ class EntityPickupValidatorTest {
     private static final short ENEMY_ID = 4;
     private static final Point TILE = new Point(5, 7);
     private static final ObjectComponent GOLD = new ObjectComponent(ObjectsController.OBJECT_GOLD_ID, ObjectType.GOLD);
+    private static final ObjectComponent SPECIAL = new ObjectComponent((short) 3, ObjectType.SPECIAL);
     private static final ObjectComponent SPELL_BOOK = new ObjectComponent((short) 2, ObjectType.SPELL_BOOK);
 
     @Test
@@ -59,6 +60,24 @@ class EntityPickupValidatorTest {
     @Test
     void goldCantBePickedUpFromEnemyLand() {
         assertFalse(EntityPickupValidator.isValidLocation(GOLD, positionOn(TILE), PLAYER_ID, landOwnedBy(ENEMY_ID)));
+    }
+
+    @Test
+    void otherObjectsAndCreaturesCanBePickedUpFromAnyLand() {
+        assertTrue(EntityPickupValidator.isValidLocation(SPELL_BOOK, positionOn(TILE), PLAYER_ID, landOwnedBy(ENEMY_ID)));
+        assertTrue(EntityPickupValidator.isValidLocation(null, positionOn(TILE), PLAYER_ID, landOwnedBy(ENEMY_ID)));
+    }
+
+    @Test
+    void specialsFollowTheSameOwnLandRuleAsGold() {
+        assertTrue(EntityPickupValidator.isValidLocation(SPECIAL, positionOn(TILE), PLAYER_ID, landOwnedBy(PLAYER_ID)));
+        assertFalse(EntityPickupValidator.isValidLocation(SPECIAL, positionOn(TILE), PLAYER_ID, landOwnedBy(ENEMY_ID)));
+    }
+
+    @Test
+    void goldWithoutPositionOrMapCantBePickedUp() {
+        assertFalse(EntityPickupValidator.isValidLocation(GOLD, null, PLAYER_ID, landOwnedBy(PLAYER_ID)));
+        assertFalse(EntityPickupValidator.isValidLocation(GOLD, positionOn(TILE), PLAYER_ID, null));
     }
 
     private static Position positionOn(Point tile) {
