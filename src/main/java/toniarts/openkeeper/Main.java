@@ -415,7 +415,9 @@ public final class Main extends SimpleApplication {
                             folder = SCREENSHOTS_FOLDER;
                         }
 
-                        folder = PathUtils.fixFilePath(folder).concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
+                        // The global settings carry no title, the game's own app settings do
+                        String title = Settings.getInstance().getAppSettings().getTitle();
+                        folder = PathUtils.fixFilePath(folder).concat(title != null ? title : "OpenKeeper").concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
                         recorder.setFile(new File(folder));
 
                         getStateManager().attach(recorder);

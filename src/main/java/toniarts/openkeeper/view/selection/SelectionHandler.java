@@ -93,6 +93,23 @@ public abstract class SelectionHandler {
     }
 
     /**
+     * Where the mouse ray crosses the horizontal plane at {@code height}.
+     * {@link #getActualPointedPosition()} is that point at wall-top height, so
+     * for anything lower down it is off towards the camera.
+     *
+     * @return the crossing in 2D (x, z) space
+     */
+    public Vector2f getPointedPositionAtHeight(float height) {
+        // The ray from the last update(): rayDirection is far minus near, so it needs no normalizing
+        Vector3f pos = app.getCamera().getLocation();
+        if (Math.abs(rayDirection.getY()) < 1e-5f) {
+            return pointedPosition;
+        }
+        float t = (height - pos.getY()) / rayDirection.getY();
+        return new Vector2f(pos.getX() + rayDirection.getX() * t, pos.getZ() + rayDirection.getZ() * t);
+    }
+
+    /**
      * Get the actual pointed location
      *
      * @return the actual pointed location in 2D space
