@@ -122,11 +122,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.RUN && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
     private void playAnimation(Creature.AnimationType animation) {
-        AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
+        AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager);
         if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
@@ -178,7 +178,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      * A walking or running creature steps when the animation passes a footstep mark
      */
     private void playFootsteps() {
-        int[] marks = FootstepSounds.getMarks(getDataObject(), currentState);
+        int[] marks = FootstepSounds.getMarks(getDataObject(), getAvailableAnimation(currentState));
         if (marks == null || spatial == null || spatial.getCullHint() == Spatial.CullHint.Always) {
             previousStepTime = -1;
             return;
@@ -216,7 +216,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private AnimComposer getAnimComposer() {
-        ArtResource animation = getDataObject().getAnimation(currentState);
+        ArtResource animation = getAnimationData(currentState);
         if (animation == null || !(spatial instanceof Node node)) {
             return null;
         }
@@ -281,7 +281,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
-        return getDataObject().getAnimation(state);
+        return getDataObject().getAnimation(getAvailableAnimation(state));
+    }
+
+    private Creature.AnimationType getAvailableAnimation(Creature.AnimationType state) {
+        if (state == Creature.AnimationType.RUN && getDataObject().getAnimation(state) == null) {
+            return Creature.AnimationType.WALK;
+        }
+        return state;
     }
 
     private boolean isWorkAnimation() {
