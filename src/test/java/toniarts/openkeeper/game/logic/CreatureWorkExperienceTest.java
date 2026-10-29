@@ -104,12 +104,12 @@ class CreatureWorkExperienceTest {
     }
 
     @Test
-    void dwarfDiggingItsWayGainsItsExperiencePerSecond() {
+    void dwarfDiggingItsWayGainsTheImpExperience() {
         EntityId dwarf = worker(DWARF, TaskType.DIG_TILE);
 
         tenSeconds();
 
-        assertEquals(9 * DWARF_EXPERIENCE_PER_SECOND, experience(dwarf));
+        assertEquals(9 * IMP_EXPERIENCE_GAIN_PER_SECOND, experience(dwarf));
     }
 
     @Test
