@@ -570,13 +570,20 @@ public final class CreatureController extends EntityController implements ICreat
         if (attackTarget != null && DungeonHeartTarget.isDungeonHeart(entityData, attackTarget.entityId)) {
             if (isHeartToAttack(attackTarget.entityId)) {
 
-                // The original picks a target again while hitting a heart, leave it for any fighter that shows up
-                EntityId fighter = getNearestEnemy(true);
-                if (fighter == null) {
+                // The original picks a target again while hitting a heart, leave it for any fighter that shows up,
+                // or for a worker nearer than the heart
+                EntityId enemy = getNearestEnemy(true);
+                if (enemy == null) {
+                    enemy = getNearestEnemy(false);
+                    if (enemy != null && getDistanceToCreature(enemy) >= getDistanceToCreature(attackTarget.entityId)) {
+                        enemy = null;
+                    }
+                }
+                if (enemy == null) {
                     return objectsController.createController(attackTarget.entityId);
                 }
-                setAttackTarget(fighter);
-                return creaturesController.createController(fighter);
+                setAttackTarget(enemy);
+                return creaturesController.createController(enemy);
             }
             attackTarget = null;
         }

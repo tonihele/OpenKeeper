@@ -131,11 +131,22 @@ class DungeonHeartAttackTest {
     void creatureStaysOnTheHeartWithNoFighterInSight() {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
         EntityId heart = createHeart(KEEPER);
-        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 14));
+        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 15));
         sensed.put(hero, Set.of(heart, worker));
         entityData.setComponent(hero, new AttackTarget(heart));
 
         assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureLeavesTheHeartForAWorkerNearerThanTheHeart() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
+        EntityId heart = createHeart(KEEPER);
+        EntityId worker = createCreature(KEEPER, IMP, new Point(11, 12));
+        sensed.put(hero, Set.of(heart, worker));
+        entityData.setComponent(hero, new AttackTarget(heart));
+
+        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
     }
 
     @Test
