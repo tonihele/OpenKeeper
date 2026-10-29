@@ -28,12 +28,22 @@ public final class AttackTarget implements EntityComponent {
 
     public EntityId entityId;
 
+    /**
+     * The game time the target was picked
+     */
+    public double time;
+
     public AttackTarget() {
         // For serialization
     }
 
     public AttackTarget(EntityId entityId) {
         this.entityId = entityId;
+    }
+
+    public AttackTarget(EntityId entityId, double time) {
+        this.entityId = entityId;
+        this.time = time;
     }
 
 }

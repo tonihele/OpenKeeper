@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.map.IMapData;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.HeartAttackFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -139,14 +140,44 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void creatureLeavesTheHeartForAWorkerNearerThanTheHeart() {
+    void creatureNextToTheHeartOnlyLeavesItForAWorkerAttackingIt() {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
         EntityId heart = createHeart(KEEPER);
         EntityId worker = createCreature(KEEPER, IMP, new Point(11, 12));
         sensed.put(hero, Set.of(heart, worker));
         entityData.setComponent(hero, new AttackTarget(heart));
 
+        assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
+
+        entityData.setComponent(hero, new AttackTarget(heart));
+        entityData.setComponent(worker, new AttackTarget(hero));
         assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureOnItsWayLeavesTheHeartForAWorkerNearerThanThePillar() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 13));
+        EntityId heart = createHeart(KEEPER);
+        EntityId worker = createCreature(KEEPER, IMP, new Point(10, 14));
+        sensed.put(hero, Set.of(heart, worker));
+        entityData.setComponent(hero, new AttackTarget(heart));
+
+        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureHittingTheHeartPicksItsTargetAgainEveryTenTurns() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
+        EntityId heart = createHeart(KEEPER);
+        EntityId defender = createCreature(KEEPER, FIGHTER, new Point(10, 16));
+        sensed.put(hero, Set.of(heart, defender));
+
+        // Ten turns at four turns a second, the game time is 10.0
+        entityData.setComponent(hero, new AttackTarget(heart, 7.6));
+        assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
+
+        entityData.setComponent(hero, new AttackTarget(heart, 7.5));
+        assertEquals(defender, createController(hero).getAttackTarget().getEntityId());
     }
 
     @Test
@@ -178,7 +209,7 @@ class DungeonHeartAttackTest {
         EntityId heart = createHeart(KEEPER);
         for (int x = 8; x <= 12; x++) {
             for (int y = 8; y <= 12; y++) {
-                if (Math.max(Math.abs(x - HEART_TILE.x), Math.abs(y - HEART_TILE.y)) == 2 && !(x == 8 && y == 8)) {
+                if (Math.max(Math.abs(x - HEART_TILE.x), Math.abs(y - HEART_TILE.y)) == 2 && !(x == 11 && y == 8)) {
                     solidTiles.add(new Point(x, y));
                 }
             }
@@ -186,7 +217,8 @@ class DungeonHeartAttackTest {
 
         createController(hero).navigateToAttackTarget(heart);
 
-        assertEquals(new Point(8, 8), entityData.getComponent(hero, Navigation.class).target);
+        // The tiles next to the south pillars are walled in, so it goes round to the north one
+        assertEquals(new Point(11, 8), entityData.getComponent(hero, Navigation.class).target);
         // One search to pick the tile, one to build the route
         assertEquals(2, pathSearches);
     }
@@ -205,12 +237,17 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void heartIsHitFromTheTilesAroundIt() {
+    void heartIsHitFromTheTilesNextToItsPillars() {
         EntityId heart = createHeart(KEEPER);
 
         assertTrue(createController(createCreature(HERO, FIGHTER, new Point(10, 12))).isWithinAttackDistance(heart));
         assertTrue(createController(createCreature(HERO, FIGHTER, new Point(12, 12))).isWithinAttackDistance(heart));
+        assertTrue(createController(createCreature(HERO, FIGHTER, new Point(9, 8))).isWithinAttackDistance(heart));
         assertFalse(createController(createCreature(HERO, FIGHTER, new Point(10, 13))).isWithinAttackDistance(heart));
+
+        // The north corners are too far from any pillar
+        assertFalse(createController(createCreature(HERO, FIGHTER, new Point(8, 8))).isWithinAttackDistance(heart));
+        assertFalse(createController(createCreature(HERO, FIGHTER, new Point(12, 9))).isWithinAttackDistance(heart));
     }
 
     @Test
@@ -252,7 +289,11 @@ class DungeonHeartAttackTest {
 
     private CreatureController createController(EntityId entity) {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
-        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreature".equals(name) ? creatures.get((Short) args[0]) : null);
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            default -> null;
+        });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getLevelData" -> kwdFile;
             case "getPlayer" -> keepers.get((Short) args[0]);

@@ -121,6 +121,12 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
 
+    /**
+     * A creature hitting a heart picks its target again this often, in game
+     * turns (0x45E9F0)
+     */
+    private static final int TARGET_PICK_TURNS = 10;
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -570,16 +576,23 @@ public final class CreatureController extends EntityController implements ICreat
         if (attackTarget != null && DungeonHeartTarget.isDungeonHeart(entityData, attackTarget.entityId)) {
             if (isHeartToAttack(attackTarget.entityId)) {
 
-                // The original picks a target again while hitting a heart, leave it for any fighter that shows up,
-                // or for a worker nearer than the heart
+                // The original picks a target again every 10 turns while hitting a heart (0x45E9F0). It leaves the heart
+                // for any fighter that shows up or a worker that attacks it. A worker nearer than the heart only
+                // draws it away on its way there: next to the heart's pillar the original stands closer to it than
+                // a worker can come (0x45CB00)
+                if (gameTimer.getGameTime() - attackTarget.time < (double) TARGET_PICK_TURNS / levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
+                    return objectsController.createController(attackTarget.entityId);
+                }
                 EntityId enemy = getNearestEnemy(true);
                 if (enemy == null) {
                     enemy = getNearestEnemy(false);
-                    if (enemy != null && getDistanceToCreature(enemy) >= getDistanceToCreature(attackTarget.entityId)) {
+                    if (enemy != null && !isAttackingUs(enemy) && (isWithinAttackDistance(attackTarget.entityId)
+                            || getDistanceToCreature(enemy) >= getDistanceToHeart(attackTarget.entityId))) {
                         enemy = null;
                     }
                 }
                 if (enemy == null) {
+                    setAttackTarget(attackTarget.entityId);
                     return objectsController.createController(attackTarget.entityId);
                 }
                 setAttackTarget(enemy);
@@ -654,7 +667,7 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             if (DungeonHeartTarget.isDungeonHeart(entityData, entity) && isHeartToAttack(entity)
                     && getHeartAttackTile(entity) != null) {
-                float distance = getDistanceToCreature(entity);
+                float distance = getDistanceToHeart(entity);
                 if (distance < nearestDistance) {
                     nearestDistance = distance;
                     nearestHeart = entity;
@@ -669,6 +682,20 @@ public final class CreatureController extends EntityController implements ICreat
         Health health = entityData.getComponent(heart, Health.class);
         return health != null && health.health > 0 && isEnemy(heart)
                 && creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
+    }
+
+    /**
+     * How far the heart's nearest pillar is, the original goes for the pillars
+     */
+    private float getDistanceToHeart(EntityId heart) {
+        Vector3f position = getPosition();
+        Vector2f ourPosition = new Vector2f(position.x, position.z);
+        return DungeonHeartTarget.getNearestPillar(ourPosition, getHeartTile(heart)).distance(ourPosition);
+    }
+
+    private boolean isAttackingUs(EntityId enemy) {
+        AttackTarget attackTarget = entityData.getComponent(enemy, AttackTarget.class);
+        return attackTarget != null && entityId.equals(attackTarget.entityId);
     }
 
     private Point getHeartTile(EntityId heart) {
@@ -700,7 +727,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (entity == null) {
             entityData.removeComponent(entityId, AttackTarget.class);
         } else {
-            entityData.setComponent(entityId, new AttackTarget(entity));
+            entityData.setComponent(entityId, new AttackTarget(entity, gameTimer.getGameTime()));
         }
     }
 
