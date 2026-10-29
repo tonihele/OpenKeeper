@@ -298,6 +298,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
+        CheckBox gamma = screen.findNiftyControl("disableGammaCorrection", CheckBox.class);
         DisplayMode mdm = (DisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
@@ -311,6 +312,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setSamples((Integer) aa.getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
+        settings.getAppSettings().setGammaCorrection(!gamma.isChecked());
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
@@ -847,6 +849,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
+
+        // Gamma correction
+        CheckBox gamma = screen.findNiftyControl("disableGammaCorrection", CheckBox.class);
+        gamma.setChecked(!settings.isGammaCorrection());
     }
 
     private void setControlSettingsToGUI() {

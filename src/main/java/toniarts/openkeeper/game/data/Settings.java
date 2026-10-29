@@ -286,8 +286,7 @@ public final class Settings {
         settings.setTitle(TITLE);
         settings.setIcons(getApplicationIcons());
 
-        // We don't allow this to be changed, assets were not meant to use this
-        settings.setGammaCorrection(true);
+        // Gamma correction is on by default (AppSettings default), the user can toggle it in the graphics settings
     }
 
     /**
