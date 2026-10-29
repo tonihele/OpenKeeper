@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -69,6 +70,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -366,46 +368,75 @@ class CreatureControllerTest {
     }
 
     @Test
-    void fleesInAnEnemyOrRuinedHeartButStandsInItsOwn() {
-        assertEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 4, false));
-        assertEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, true));
-        assertNotEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, false));
+    void fleesUnlessNearItsOwnStandingHeart() {
+        assertEquals(CreatureState.FLEE, stateWhenThreatenedWithHeartAt(7, false)); // 4 tiles away
+        assertEquals(CreatureState.FLEE, stateWhenThreatenedWithHeartAt(3, true));
+        assertNotEquals(CreatureState.FLEE, stateWhenThreatenedWithHeartAt(6, false)); // 3 tiles away
     }
 
     @Test
-    void workerInItsOwnHeartOnlyFightsAnEnemyInReach() {
-        assertNull(workerStateWithHeroAt(6)); // Neither fights nor flees, keeps working
-        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(3.5f));
+    void workerWithdrawsFromAnEnemyAfterItAndOnlyHitsBackNearItsHeart() {
+
+        // An enemy after it sends it away at once, wherever it is
+        assertEquals(CreatureState.FLEE, workerStateWithHeroAt(6, 20, true));
+        assertEquals(CreatureState.FLEE, workerStateWithHeroAt(3.5f, 3, true));
+
+        // Near its own heart it hits back at an enemy in reach that is after nobody
+        assertNull(workerStateWithHeroAt(6, 3, null)); // Neither fights nor flees, keeps working
+        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(3.5f, 3, null));
+
+        // Elsewhere it keeps working next to an enemy that isn't after it
+        assertNull(workerStateWithHeroAt(3.5f, 20, null));
+        assertNull(workerStateWithHeroAt(3.5f, 20, false));
     }
 
-    private static CreatureState workerStateWithHeroAt(float x) {
+    @Test
+    void workerWithdrawsWhenTheEnemyTurnsOnItInTheMiddleOfAFight() {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
-            EntityId hero = f.data.createEntity();
-            f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100),
-                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
-            f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
-            f.data.removeComponent(f.entity, Fearless.class);
-            f.sensed = Set.of(hero);
-            f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
-                case "isDungeonHeart" -> true;
-                case "getOwnerId" -> (short) 3;
-                case "isDestroyed" -> false;
-                default -> throw new UnsupportedOperationException(method);
-            });
+            EntityId hero = heroNextToWorker(f, 3.5f, 3);
+            f.controller.shouldFleeOrAttack();
+            assertEquals(CreatureState.FIGHT, f.state());
+
+            f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.FLEE, f.state());
+        }
+    }
+
+    private static CreatureState workerStateWithHeroAt(float x, int heartX, Boolean heroAfterUs) {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = heroNextToWorker(f, x, heartX);
+            if (heroAfterUs != null) {
+                f.data.setComponent(hero, new AttackTarget(heroAfterUs ? f.entity : f.data.createEntity()));
+            }
             f.controller.shouldFleeOrAttack();
             return f.state();
         }
     }
 
-    private static CreatureState stateWhenThreatenedInHeart(short heartOwner, boolean destroyed) {
+    private static EntityId heroNextToWorker(Fixture f, float x, int heartX) {
+        EntityId hero = f.data.createEntity();
+        f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100),
+                new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+        f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
+        f.data.removeComponent(f.entity, Fearless.class);
+        f.sensed = Set.of(hero);
+        f.keeper.setDungeonHeartLocation(new Point(heartX, 4));
+        f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
+            case "isDestroyed" -> false;
+            default -> throw new UnsupportedOperationException(method);
+        });
+        return hero;
+    }
+
+    private static CreatureState stateWhenThreatenedWithHeartAt(int heartX, boolean destroyed) {
         try (Fixture f = new Fixture(9)) {
             EntityId hero = f.data.createEntity();
             f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100));
             f.data.removeComponent(f.entity, Fearless.class);
             f.sensed = Set.of(hero);
+            f.keeper.setDungeonHeartLocation(new Point(heartX, 4));
             f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
-                case "isDungeonHeart" -> true;
-                case "getOwnerId" -> heartOwner;
                 case "isDestroyed" -> destroyed;
                 default -> throw new UnsupportedOperationException(method);
             });
@@ -421,6 +452,7 @@ class CreatureControllerTest {
         final EntityId room = data.createEntity();
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
+        final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
         Set<EntityId> sensed = Set.of();
         CreatureController controller;
@@ -494,7 +526,6 @@ class CreatureControllerTest {
                 case "getSensedEntities" -> sensed;
                 default -> throw new UnsupportedOperationException(method);
             });
-            Keeper keeper = new Keeper(false, (short) 3);
             ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
                 case "getPlayer" -> keeper;
                 default -> throw new UnsupportedOperationException(method);
