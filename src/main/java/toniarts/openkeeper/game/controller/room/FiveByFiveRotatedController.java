@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -102,7 +103,15 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     private void constructNonDestroyed(Point center) {
-        floorFurniture.add(objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y));
+        EntityId heart = objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y);
+        floorFurniture.add(heart);
+
+        // As in the original, a heart placed in the editor can start damaged (0 % is a special case there, not handled here)
+        Health health = entityData.getComponent(heart, Health.class);
+        int initialHealth = roomInstance.getInitialHealth();
+        if (health != null && initialHealth > 0 && initialHealth < 100) {
+            entityData.setComponent(heart, new Health(health.maxHealth * initialHealth / 100, health.maxHealth));
+        }
 
         // Construct the plug
         floorFurniture.add(objectsController.loadObject(OBJECT_PLUG_ID, roomInstance.getOwnerId(), center.x, center.y));

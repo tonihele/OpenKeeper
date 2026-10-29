@@ -24,4 +24,10 @@ public final class RoomFixtures {
         return room;
     }
 
+    public static Thing.Room roomThing(int initialHealth) {
+        Thing.Room thing = new Thing.Room();
+        thing.setInitialHealth(initialHealth);
+        return thing;
+    }
+
 }
