@@ -20,9 +20,11 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedAttack;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -42,6 +44,8 @@ class PossessedSystemTest {
     private final EntityData entityData = new DefaultEntityData();
 
     private int swings;
+    private int releases;
+    private final List<String> possessions = new ArrayList<>();
 
     private <T> T stub(Class<T> type, Function<String, Object> answer) {
         return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
@@ -50,6 +54,9 @@ class PossessedSystemTest {
 
     private PossessedSystem system(Runnable onSwing) {
         ICreatureController controller = stub(ICreatureController.class, name -> {
+            if ("setPossession".equals(name)) {
+                releases++;
+            }
             if ("executePossessedAttack".equals(name)) {
                 swings++;
                 onSwing.run();
@@ -57,7 +64,13 @@ class PossessedSystemTest {
             return null;
         });
         ICreaturesController creatures = stub(ICreaturesController.class, name -> controller);
-        IGameController game = stub(IGameController.class, name -> null);
+        IGameController game = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(),
+                new Class<?>[] {IGameController.class}, (proxy, method, args) -> {
+                    if ("setPossession".equals(method.getName())) {
+                        possessions.add(args[0] + "/" + args[1]);
+                    }
+                    return null;
+                });
         return new PossessedSystem(List.of(), entityData, game, creatures);
     }
 
@@ -105,5 +118,46 @@ class PossessedSystemTest {
         PossessedAttack attack = entityData.getComponent(creature, PossessedAttack.class);
         assertTrue(attack.held);
         assertEquals(2, attack.pressTime);
+    }
+
+    @Test
+    void creatureAlreadyPossessedWhenTheSystemStartsIsReportedToTheGame() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(0, 0), new Owner((short) 2, (short) 2));
+
+        system(() -> { });
+
+        assertEquals(List.of(creature + "/2"), possessions);
+    }
+
+    @Test
+    void newlyPossessedCreatureIsReportedAndItsEndToo() {
+        PossessedSystem system = system(() -> { });
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(0, 0), new Owner((short) 2, (short) 2));
+
+        system.processTick(0.1f);
+
+        assertEquals(List.of(creature + "/2"), possessions);
+
+        entityData.removeComponent(creature, Possessed.class);
+        system.processTick(0.1f);
+
+        assertEquals(List.of(creature + "/2", "null/2"), possessions);
+    }
+
+    @Test
+    void possessionEndsWhenTheOwnerCannotPayTheManaAfterASecond() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(10, 0), new Owner((short) 2, (short) 2));
+        PossessedSystem system = system(() -> { });
+
+        system.processTick(0.5f);
+
+        assertEquals(0, releases);
+
+        system.processTick(0.5f);
+
+        assertEquals(1, releases);
     }
 }
