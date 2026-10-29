@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -28,6 +29,11 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.component.ChickenGenerator;
+import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.IChickenGenerator;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.RoomListener;
@@ -69,10 +75,28 @@ class ChickenSpawnSystemTest {
         assertEquals(List.of(16, 19, 22, 25), spawnSeconds(25, 26));
     }
 
+    @Test
+    void fullHatcheryLaysFreeRangeChickensAtTheCoopsThatWereThereFromTheStart() {
+        assertEquals(List.of(16), spawnSeconds(5, 20, 0));
+    }
+
+    @Test
+    void fullHatcheryLaysNoMoreFreeRangeChickensThanTheLimitCountingThoseThatWereThereFromTheStart() {
+        assertEquals(List.of(), spawnSeconds(5, 20, 5));
+    }
+
+    private static List<Integer> spawnSeconds(int tiles, int seconds) {
+        return spawnSeconds(tiles, seconds, -1);
+    }
+
     /**
      * The seconds at which a hatchery of the given size lays a chicken
+     *
+     * @param freeRangeChickens negative for a hatchery with room for chickens,
+     * otherwise a full hatchery with a coop and this many free range chickens
+     * already around
      */
-    private static List<Integer> spawnSeconds(int tiles, int seconds) {
+    private static List<Integer> spawnSeconds(int tiles, int seconds, int freeRangeChickens) {
         List<Integer> spawns = new ArrayList<>();
         int[] second = new int[1];
         double[] lastSpawn = {0.0};
@@ -89,7 +113,7 @@ class ChickenSpawnSystemTest {
                         lastSpawn[0] = (Double) args[0];
                         yield null;
                     }
-                    case "isFullCapacity" -> false;
+                    case "isFullCapacity" -> freeRangeChickens >= 0;
                     case "getOwnerId" -> PLAYER;
                     case "getEntranceCoordinate" -> new Point(0, 0);
                     case "getRoomInstance" -> roomInstance;
@@ -98,6 +122,10 @@ class ChickenSpawnSystemTest {
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(),
                 new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "spawnChicken" -> {
+                        spawns.add(second[0]);
+                        yield null;
+                    }
+                    case "spawnFreerangeChicken" -> {
                         spawns.add(second[0]);
                         yield null;
                     }
@@ -110,6 +138,7 @@ class ChickenSpawnSystemTest {
                         listener[0] = (RoomListener) args[1];
                         yield null;
                     }
+                    case "getRoomControllerByCoordinates" -> hatchery;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         Keeper keeper = new Keeper(false, PLAYER);
@@ -124,7 +153,14 @@ class ChickenSpawnSystemTest {
                 ChickenSpawnFixtures.miscVariable(MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY, 16));
         settings.put(MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER,
                 ChickenSpawnFixtures.miscVariable(MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER, 5));
-        ChickenSpawnSystem system = new ChickenSpawnSystem(new DefaultEntityData(), objectsController,
+        DefaultEntityData entityData = new DefaultEntityData();
+        if (freeRangeChickens >= 0) {
+            entityData.setComponents(entityData.createEntity(), new ChickenGenerator(), new Position(0, new Vector3f(0.5f, 0, 0.5f)));
+        }
+        for (int i = 0; i < freeRangeChickens; i++) {
+            entityData.setComponents(entityData.createEntity(), new Food(), new Decay(), new Owner(PLAYER, PLAYER));
+        }
+        ChickenSpawnSystem system = new ChickenSpawnSystem(entityData, objectsController,
                 List.of(player), settings, mapController);
         listener[0].onBuild(hatchery);
 
