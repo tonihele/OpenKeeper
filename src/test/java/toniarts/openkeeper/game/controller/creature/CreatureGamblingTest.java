@@ -106,6 +106,6 @@ class CreatureGamblingTest {
                     }
                     return method.getReturnType() == boolean.class ? Boolean.FALSE : null;
                 });
-        return new CreatureController(id, entityData, null, null, taskManager, null, gameSettings, null, null, null, null, null, null);
+        return new CreatureController(id, entityData, null, null, taskManager, null, gameSettings, null, null, null, null, null, null, null);
     }
 }
