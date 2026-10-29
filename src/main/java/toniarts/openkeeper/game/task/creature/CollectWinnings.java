@@ -53,7 +53,7 @@ public final class CollectWinnings extends AbstractRoomTask {
     @Override
     public boolean isValid(ICreatureController creature) {
         return !executed && !room.isRemoved() && room.getOwnerId() == playerId && !room.isDestroyed()
-                && entityData.getComponent(creature.getEntityId(), CasinoBigWinner.class) != null;
+                && (creature == null || entityData.getComponent(creature.getEntityId(), CasinoBigWinner.class) != null);
     }
 
     @Override
