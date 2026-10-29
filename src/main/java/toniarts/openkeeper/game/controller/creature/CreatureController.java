@@ -905,11 +905,25 @@ public final class CreatureController extends EntityController implements ICreat
 //            Flee<Vector2> flee = new Flee<>(this, target);
 //            prioritySteering.add(flee);
 //        }
-        // A keeper's creature withdraws to a random point 2 tiles from the centre of its heart (0x4611D0)
+        // A keeper's creature withdraws to a random point 2 tiles either way of its heart room's position, or to the
+        // position itself if it can't get there (0x4611D0). In DK II that position is a tile down and right of the
+        // heart's centre (room +0x27), so on level 5 the Imps end up on the corners of the centre 3x3
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
-            Point p = keeper.getDungeonHeartLocation();
-            Point destination = new Point(p.x + (FastMath.rand.nextBoolean() ? 2 : -2), p.y + (FastMath.rand.nextBoolean() ? 2 : -2));
+            Point heart = keeper.getDungeonHeartLocation();
+            Point position = new Point(heart.x + 1, heart.y + 1);
+            Point destination = new Point(position.x + (FastMath.rand.nextBoolean() ? 2 : -2), position.y + (FastMath.rand.nextBoolean() ? 2 : -2));
+            boolean onHeart = Math.abs(destination.x - heart.x) <= 1 && Math.abs(destination.y - heart.y) <= 1;
+            if (!onHeart && navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
+                destination = position;
+                onHeart = true;
+            }
+
+            // Our heart's centre 3x3 can't be walked on, stop next to the point
+            if (onHeart) {
+                destination = FastMath.rand.nextBoolean() ? new Point(destination.x + Integer.signum(destination.x - heart.x), destination.y)
+                        : new Point(destination.x, destination.y + Integer.signum(destination.y - heart.y));
+            }
             if (createNavigation(getCreatureCoordinates(), destination, null)) {
                 navigateToRandomPoint();
             }

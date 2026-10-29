@@ -433,9 +433,10 @@ class CreatureControllerTest {
             f.data.setComponent(hero, new AttackTarget(f.entity));
             f.controller.shouldFleeOrAttack();
             assertEquals(CreatureState.FLEE, f.state());
-            Point destination = f.data.getComponent(f.entity, Navigation.class).target;
-            assertEquals(2, Math.abs(destination.x - 3));
-            assertEquals(2, Math.abs(destination.y - 4));
+            // 2 tiles either way of (4, 5), a tile down and right of the heart's centre, stepping out of the
+            // heart's centre 3x3
+            assertTrue(Set.of(new Point(6, 7), new Point(2, 7), new Point(6, 3), new Point(1, 3), new Point(2, 2))
+                    .contains(f.data.getComponent(f.entity, Navigation.class).target));
 
             // Still wanted when it gets there, so off it goes again
             f.data.removeComponent(f.entity, Navigation.class);
@@ -449,6 +450,21 @@ class CreatureControllerTest {
             f.data.removeComponent(f.entity, Navigation.class);
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.IDLE, f.state());
+        }
+    }
+
+    @Test
+    void workerWithdrawsNextToTheRoomPositionWhenItCantGetOutsideTheHeart() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = heroNextToWorker(f, 3.5f, 3);
+            f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.walkable = tile -> Math.abs(tile.x - 3) <= 2 && Math.abs(tile.y - 4) <= 2;
+            for (int i = 0; i < 20; i++) {
+                f.data.removeComponent(f.entity, Navigation.class);
+                f.controller.flee();
+                assertTrue(Set.of(new Point(5, 5), new Point(4, 6), new Point(1, 3), new Point(2, 2))
+                        .contains(f.data.getComponent(f.entity, Navigation.class).target));
+            }
         }
     }
 
@@ -501,6 +517,7 @@ class CreatureControllerTest {
         final EntityId room = data.createEntity();
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
+        java.util.function.Predicate<Point> walkable = tile -> true;
         final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
         Set<EntityId> sensed = Set.of();
@@ -588,7 +605,7 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
-                case "findPath" -> new DefaultGraphPath<>();
+                case "findPath" -> walkable.test((Point) args[1]) ? new DefaultGraphPath<>() : null;
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, navigation, taskManager, () -> time,
