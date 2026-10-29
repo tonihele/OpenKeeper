@@ -176,7 +176,8 @@ public final class CreatureController extends EntityController implements ICreat
         // A non-fighter (imp) only hits back at an enemy in reach and otherwise keeps working
         boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
         IEntityController enemyInReach = fighter ? null : getAttackTarget();
-        if (enemyInReach != null && !isWithinAttackDistance(enemyInReach.getEntityId())) {
+        // DK II gives it a reach of one tile (0x45BDF0)
+        if (enemyInReach != null && !isInRange(WorldUtils.TILE_WIDTH, enemyInReach.getEntityId())) {
             setAttackTarget(null);
             enemyInReach = null;
         }
@@ -207,7 +208,7 @@ public final class CreatureController extends EntityController implements ICreat
         // hit back at an enemy in reach
         IEntityController attackTarget = fighter ? getAttackTarget() : nearOwnHeart ? enemyInReach : null;
         if (attackTarget != null) {
-            if (!stateMachine.isInState(CreatureState.FIGHT)) {
+            if (!stateMachine.isInState(CreatureState.FIGHT) && !stateMachine.isInState(CreatureState.MELEE_ATTACK)) {
                 stateMachine.changeState(CreatureState.FIGHT);
             }
             return true;
@@ -904,11 +905,14 @@ public final class CreatureController extends EntityController implements ICreat
 //            Flee<Vector2> flee = new Flee<>(this, target);
 //            prioritySteering.add(flee);
 //        }
-        // FIXME: For now just flee towards the dungeon heart or random tiles
+        // A keeper's creature withdraws to a random point 2 tiles from the centre of its heart (0x4611D0)
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point p = keeper.getDungeonHeartLocation();
-            createNavigation(getCreatureCoordinates(), new Point(p.x - 2, p.y - 2), null);
+            Point destination = new Point(p.x + (FastMath.rand.nextBoolean() ? 2 : -2), p.y + (FastMath.rand.nextBoolean() ? 2 : -2));
+            if (createNavigation(getCreatureCoordinates(), destination, null)) {
+                navigateToRandomPoint();
+            }
         } else {
             navigateToRandomPoint();
         }

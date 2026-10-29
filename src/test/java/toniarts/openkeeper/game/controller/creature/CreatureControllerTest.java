@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
@@ -400,6 +401,54 @@ class CreatureControllerTest {
             f.data.setComponent(hero, new AttackTarget(f.entity));
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.FLEE, f.state());
+        }
+    }
+
+    @Test
+    void workerWithdrawsWhenTheEnemyTurnsOnItDuringItsOwnSwing() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = heroNextToWorker(f, 3.5f, 3);
+            f.controller.getStateMachine().changeState(CreatureState.MELEE_ATTACK);
+
+            f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.FLEE, f.state());
+        }
+    }
+
+    @Test
+    void workerHitsBackAtAnEnemyATileAwayNearItsHeart() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            heroNextToWorker(f, 4, 3);
+            f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, .3f));
+            f.controller.shouldFleeOrAttack();
+            assertEquals(CreatureState.FIGHT, f.state());
+        }
+    }
+
+    @Test
+    void workerWithdrawsNextToItsHeartAndGoesBackToWorkOnArrival() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = heroNextToWorker(f, 3.5f, 3);
+            f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.controller.shouldFleeOrAttack();
+            assertEquals(CreatureState.FLEE, f.state());
+            Point destination = f.data.getComponent(f.entity, Navigation.class).target;
+            assertEquals(2, Math.abs(destination.x - 3));
+            assertEquals(2, Math.abs(destination.y - 4));
+
+            // Still wanted when it gets there, so off it goes again
+            f.data.removeComponent(f.entity, Navigation.class);
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.FLEE, f.state());
+            assertNotNull(f.data.getComponent(f.entity, Navigation.class));
+
+            // The enemy has turned to someone else
+            f.data.setComponent(hero, new AttackTarget(f.data.createEntity()));
+            f.data.setComponent(hero, new Position(0, new Vector3f(8, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.data.removeComponent(f.entity, Navigation.class);
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.IDLE, f.state());
         }
     }
 
