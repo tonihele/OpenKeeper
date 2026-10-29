@@ -41,6 +41,10 @@ public final class CreatureSleepFixtures {
         return creature;
     }
 
+    public static void setShotDelay(Creature creature, float shotDelay) {
+        creature.setShotDelay(shotDelay);
+    }
+
     public static Variable.MiscVariable variable(Variable.MiscVariable.MiscType type, int value) {
         Variable.MiscVariable variable = new Variable.MiscVariable();
         variable.setVariableId(type);

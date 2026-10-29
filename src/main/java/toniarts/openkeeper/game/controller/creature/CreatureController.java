@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
+import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
@@ -714,9 +715,9 @@ public final class CreatureController extends EntityController implements ICreat
                 entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
-                // Set the damage
-                setDamage(attackTarget, creatureMeleeAttack.damage);
-                gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
+                // The hit lands the creature's shot delay into the swing (0x498E30)
+                entityData.setComponent(entityId, new MeleeHit(attackTarget, gameTimer.getGameTime() + creature.getShotDelay()));
+                releaseMeleeHit();
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -740,6 +741,32 @@ public final class CreatureController extends EntityController implements ICreat
                 setDamage(attackTarget, creatureSpell.getShotData1());
             }
         }
+    }
+
+    @Override
+    public void releaseMeleeHit() {
+        MeleeHit meleeHit = entityData.getComponent(entityId, MeleeHit.class);
+        if (meleeHit == null || gameTimer.getGameTime() < meleeHit.hitTime) {
+            return;
+        }
+
+        entityData.removeComponent(entityId, MeleeHit.class);
+
+        // The hit lands even if the target has stepped away, as long as it is still on the map
+        if (entityData.getComponent(meleeHit.target, Position.class) != null) {
+            setDamage(meleeHit.target, entityData.getComponent(entityId, CreatureMeleeAttack.class).damage);
+            gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), meleeHit.target, getPosition());
+        }
+    }
+
+    @Override
+    public boolean hasPendingMeleeHit() {
+        return entityData.getComponent(entityId, MeleeHit.class) != null;
+    }
+
+    @Override
+    public void cancelMeleeHit() {
+        entityData.removeComponent(entityId, MeleeHit.class);
     }
 
     /**
