@@ -38,11 +38,11 @@ class CreatureLairTest {
         EntityData entityData = new DefaultEntityData();
         EntityId entityId = entityData.createEntity();
         entityData.setComponent(entityId, new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID));
-        entityData.setComponent(entityId, new CreatureSleep(null, 0, 0));
+        entityData.setComponent(entityId, new CreatureSleep(null, 0, 0, 0));
 
         // A new Creature has lair object 0, as the princes do in the data
         CreatureController prince = new CreatureController(entityId, entityData, new Creature(), null, null, null, null,
-                null, null, null, null, null, null);
+                null, null, null, null, null, null, null);
 
         assertFalse(prince.needsLair());
         assertFalse(prince.isNeedForSleep());
