@@ -70,6 +70,15 @@ class CollectWinningsTest {
     }
 
     @Test
+    void theTaskIsRemovedOnceTheWinningsAreCollected() {
+        assertFalse(collectWinnings.isRemovable());
+
+        collectWinnings.executeTask(creature, 0);
+
+        assertTrue(collectWinnings.isRemovable());
+    }
+
+    @Test
     void theBigWinnerComesBackForWhatTheKeeperCouldNotPay() {
         keeperGold = 300;
 
