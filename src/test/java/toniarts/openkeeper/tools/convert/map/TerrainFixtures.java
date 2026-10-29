@@ -49,4 +49,20 @@ public final class TerrainFixtures {
         return set;
     }
 
+    /**
+     * A map from rows of terrain ids and the rows of their owners
+     */
+    public static GameMap map(short[][] terrainIds, short[][] owners) {
+        GameMap map = new GameMap(terrainIds[0].length, terrainIds.length);
+        for (int y = 0; y < terrainIds.length; y++) {
+            for (int x = 0; x < terrainIds[y].length; x++) {
+                Tile tile = new Tile();
+                tile.setTerrainId(terrainIds[y][x]);
+                tile.setPlayerId(owners[y][x]);
+                map.setTile(x, y, tile);
+            }
+        }
+        return map;
+    }
+
 }
