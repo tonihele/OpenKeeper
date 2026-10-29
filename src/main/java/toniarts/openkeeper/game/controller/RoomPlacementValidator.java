@@ -35,8 +35,9 @@ import java.util.Set;
 
 /**
  * Shared client/server validation for an entire room-building selection.
- * Selections are deliberately all-or-nothing: one invalid tile rejects the
- * whole build.
+ * Rooms on land are built on the valid tiles of the selection, invalid tiles
+ * are skipped. Bridge selections are all-or-nothing: one invalid tile rejects
+ * the whole build.
  */
 public final class RoomPlacementValidator {
 
@@ -87,12 +88,13 @@ public final class RoomPlacementValidator {
             return terrainResult;
         }
 
-        long cost = (long) plots.size() * room.getCost();
+        // Only the tiles actually built cost gold
+        long cost = (long) terrainResult.plots().size() * room.getCost();
         if (cost > availableGold) {
             return invalid(Failure.NOT_ENOUGH_GOLD);
         }
 
-        return new Result(Failure.NONE, Collections.unmodifiableList(plots));
+        return terrainResult;
     }
 
     /**
@@ -135,15 +137,24 @@ public final class RoomPlacementValidator {
 
     private static Result validateLand(IMapInformation<?> mapInformation,
             Set<Point> blockedTiles, List<Point> plots, short playerId, short roomId) {
+        List<Point> buildablePlots = new ArrayList<>(plots.size());
+        boolean blockedByEntity = false;
         for (Point plot : plots) {
             if (!mapInformation.isBuildable(plot, playerId, roomId)) {
-                return invalid(Failure.INVALID_TERRAIN);
+                continue;
             }
             if (blockedTiles.contains(plot)) {
-                return invalid(Failure.BLOCKED_BY_ENTITY);
+                blockedByEntity = true;
+                continue;
             }
+            buildablePlots.add(plot);
         }
-        return new Result(Failure.NONE, Collections.unmodifiableList(plots));
+
+        // Nothing to build at all
+        if (buildablePlots.isEmpty()) {
+            return invalid(blockedByEntity ? Failure.BLOCKED_BY_ENTITY : Failure.INVALID_TERRAIN);
+        }
+        return new Result(Failure.NONE, Collections.unmodifiableList(buildablePlots));
     }
 
     private static Result validateBridge(IKwdFile kwdFile, IMapInformation<?> mapInformation,
