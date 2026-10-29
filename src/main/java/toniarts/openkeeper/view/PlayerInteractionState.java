@@ -398,9 +398,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return Utils.getMainTextResourceBundle().getString("2471");
         }
 
-        // Override dungeon heart JELLY text
+        // Override dungeon heart JELLY text and the portal text, DK II ignores the stored ids
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        String bundleKey = kwdFile.getDungeonHeart() == room ? "2579" : Integer.toString(room.getTooltipStringId());
+        String bundleKey = Integer.toString(room.getTooltipStringId());
+        if (kwdFile.getDungeonHeart() == room) {
+            bundleKey = "2579";
+        } else if (kwdFile.getPortal() == room) {
+            bundleKey = "2790";
+        }
 
         return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey),
                 tile.getRoomId(), gameClientState.getPlayer(tile.getOwnerId()));

@@ -64,6 +64,7 @@ class PortalTooltipTest {
 
         assertEquals("4", parser.getReplacement(TextParameter.ATTRACTED_CREATURE_COUNT, portal, null));
         assertEquals("25", parser.getReplacement(TextParameter.PORTAL_CREATURE_CAPACITY, portal, null));
+        assertEquals("2", parser.getReplacement(TextParameter.PORTAL_COUNT, portal, null));
     }
 
     private interface Answer {
