@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -32,6 +33,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -56,6 +58,7 @@ import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
@@ -369,6 +372,31 @@ class CreatureControllerTest {
         assertNotEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, false));
     }
 
+    @Test
+    void workerInItsOwnHeartOnlyFightsAnEnemyInReach() {
+        assertNull(workerStateWithHeroAt(6)); // Neither fights nor flees, keeps working
+        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(3.5f));
+    }
+
+    private static CreatureState workerStateWithHeroAt(float x) {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = f.data.createEntity();
+            f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100),
+                    new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(hero);
+            f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
+                case "isDungeonHeart" -> true;
+                case "getOwnerId" -> (short) 3;
+                case "isDestroyed" -> false;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
+    }
+
     private static CreatureState stateWhenThreatenedInHeart(short heartOwner, boolean destroyed) {
         try (Fixture f = new Fixture(9)) {
             EntityId hero = f.data.createEntity();
@@ -411,8 +439,11 @@ class CreatureControllerTest {
         double time;
 
         Fixture(int timeSleep) {
+            this(CreatureSleepFixtures.sleeper(timeSleep));
+        }
+
+        Fixture(Creature definition) {
             fall = new CreatureFallSystem(data, () -> time, eventService);
-            Creature definition = CreatureSleepFixtures.sleeper(timeSleep);
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
             component.stunDuration = .1f;
@@ -469,10 +500,18 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> switch (method) {
-                case "isValidEntity" -> false;
+                case "isValidEntity" -> data.getComponent((EntityId) args[0], Position.class) != null;
+                case "createController" -> proxy(ICreatureController.class, (method2, args2) -> switch (method2) {
+                    case "getEntityId" -> args[0];
+                    default -> throw new UnsupportedOperationException(method2);
+                });
                 default -> throw new UnsupportedOperationException(method);
             });
-            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
+            INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
+                case "findPath" -> new DefaultGraphPath<>();
+                default -> throw new UnsupportedOperationException(method);
+            });
+            controllers = () -> new CreatureController(entity, data, definition, navigation, taskManager, () -> time,
                     settings, creatures, lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {

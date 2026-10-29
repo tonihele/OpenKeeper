@@ -198,9 +198,11 @@ public final class CreatureController extends EntityController implements ICreat
             }
         }
 
-        // Should we attack, try to avoid i.e. imps engaging in a fight
-        if ((creature.getFightStyle()
-                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null) {
+        // Should we attack, try to avoid i.e. imps engaging in a fight. In their own heart they
+        // only hit back at an enemy in reach and otherwise keep working
+        boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
+        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : null;
+        if (attackTarget != null && (fighter || isWithinAttackDistance(attackTarget.getEntityId()))) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
             }
