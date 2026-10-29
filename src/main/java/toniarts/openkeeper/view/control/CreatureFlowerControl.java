@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -165,7 +166,20 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
 
     @Override
     protected boolean isPersistentVisibilityRequired() {
-        return getMoodState() > 0;
+        CreatureAi ai = getEntity().get(CreatureAi.class);
+        if (ai != null) {
+            switch (ai.getCreatureState()) {
+                case FIGHT, MELEE_ATTACK, CAST_SPELL:
+                    return true;
+                default:
+                    break;
+            }
+        }
+        Health health = getEntity().get(Health.class);
+        // Native visibility uses a strict comparison with floor(maximum / 6).
+        boolean criticallyHurt = health != null && health.health > 0 && health.maxHealth > 0
+                && health.health < health.maxHealth / 6;
+        return criticallyHurt || getMoodState() > 0;
     }
 
     private int getMoodState() {
