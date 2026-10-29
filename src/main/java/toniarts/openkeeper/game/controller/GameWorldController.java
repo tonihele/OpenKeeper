@@ -184,10 +184,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
         }
 
-        // Set up the money$$$
+        // Set up the money$$$, only the keepers get their starting gold
         for (Keeper keeper : players.values()) {
             Player player = kwdFile.getPlayer(keeper.getId());
-            if (player.getStartingGold() > 0) {
+            if (player.getStartingGold() > 0 && keeper.getId() >= Player.KEEPER1_ID) {
                 addGold(keeper.getId(), player.getStartingGold());
             }
         }
