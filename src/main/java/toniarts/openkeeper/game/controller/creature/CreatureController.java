@@ -913,16 +913,13 @@ public final class CreatureController extends EntityController implements ICreat
             Point heart = keeper.getDungeonHeartLocation();
             Point position = new Point(heart.x + 1, heart.y + 1);
             Point destination = new Point(position.x + (FastMath.rand.nextBoolean() ? 2 : -2), position.y + (FastMath.rand.nextBoolean() ? 2 : -2));
-            boolean onHeart = Math.abs(destination.x - heart.x) <= 1 && Math.abs(destination.y - heart.y) <= 1;
-            if (!onHeart && navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
+            if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
                 destination = position;
-                onHeart = true;
-            }
 
-            // Our heart's centre 3x3 can't be walked on, stop next to the point
-            if (onHeart) {
-                destination = FastMath.rand.nextBoolean() ? new Point(destination.x + Integer.signum(destination.x - heart.x), destination.y)
-                        : new Point(destination.x, destination.y + Integer.signum(destination.y - heart.y));
+                // Where we can't stand on the position, stop next to it
+                if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
+                    destination = FastMath.rand.nextBoolean() ? new Point(destination.x + 1, destination.y) : new Point(destination.x, destination.y + 1);
+                }
             }
             if (createNavigation(getCreatureCoordinates(), destination, null)) {
                 navigateToRandomPoint();

@@ -433,9 +433,8 @@ class CreatureControllerTest {
             f.data.setComponent(hero, new AttackTarget(f.entity));
             f.controller.shouldFleeOrAttack();
             assertEquals(CreatureState.FLEE, f.state());
-            // 2 tiles either way of (4, 5), a tile down and right of the heart's centre, stepping out of the
-            // heart's centre 3x3
-            assertTrue(Set.of(new Point(6, 7), new Point(2, 7), new Point(6, 3), new Point(1, 3), new Point(2, 2))
+            // 2 tiles either way of (4, 5), a tile down and right of the heart's centre
+            assertTrue(Set.of(new Point(6, 7), new Point(2, 7), new Point(6, 3), new Point(2, 3))
                     .contains(f.data.getComponent(f.entity, Navigation.class).target));
 
             // Still wanted when it gets there, so off it goes again
@@ -458,11 +457,23 @@ class CreatureControllerTest {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
             EntityId hero = heroNextToWorker(f, 3.5f, 3);
             f.data.setComponent(hero, new AttackTarget(f.entity));
-            f.walkable = tile -> Math.abs(tile.x - 3) <= 2 && Math.abs(tile.y - 4) <= 2;
+            // The heart's centre 3x3 can't be walked on
+            f.walkable = tile -> Math.abs(tile.x - 3) <= 2 && Math.abs(tile.y - 4) <= 2
+                    && !(Math.abs(tile.x - 3) <= 1 && Math.abs(tile.y - 4) <= 1);
             for (int i = 0; i < 20; i++) {
                 f.data.removeComponent(f.entity, Navigation.class);
                 f.controller.flee();
-                assertTrue(Set.of(new Point(5, 5), new Point(4, 6), new Point(1, 3), new Point(2, 2))
+                assertTrue(Set.of(new Point(5, 5), new Point(4, 6))
+                        .contains(f.data.getComponent(f.entity, Navigation.class).target));
+            }
+
+            // Its corners can
+            f.walkable = tile -> Math.abs(tile.x - 3) <= 2 && Math.abs(tile.y - 4) <= 2
+                    && Math.abs(tile.x - 3) + Math.abs(tile.y - 4) > 1;
+            for (int i = 0; i < 20; i++) {
+                f.data.removeComponent(f.entity, Navigation.class);
+                f.controller.flee();
+                assertTrue(Set.of(new Point(4, 5), new Point(2, 3))
                         .contains(f.data.getComponent(f.entity, Navigation.class).target));
             }
         }
