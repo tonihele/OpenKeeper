@@ -19,7 +19,9 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
@@ -35,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class TempleControllerTest {
 
     private TempleController temple;
+    private final List<Object[]> loadedObjects = new ArrayList<>();
 
     @BeforeEach
     void setUp() {
@@ -48,7 +51,10 @@ class TempleControllerTest {
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
                 IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class},
                 (proxy, method, args) -> switch (method.getName()) {
-                    case "loadObject" -> entityData.createEntity();
+                    case "loadObject" -> {
+                        loadedObjects.add(args);
+                        yield entityData.createEntity();
+                    }
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         temple = new TempleController(entityData.createEntity(), entityData, null, roomInstance, objectsController, () -> 0);
@@ -61,6 +67,16 @@ class TempleControllerTest {
         assertTrue(temple.isSacrificePool(new Point(11, 21)));
         assertFalse(temple.isSacrificePool(new Point(10, 22)));
         assertFalse(temple.isSacrificePool(new Point(14, 24)));
+    }
+
+    @Test
+    void theTempleHandIsPlacedInTheCenterOfTheFirstFiveByFiveSquare() {
+        List<Object[]> hands = loadedObjects.stream()
+                .filter(args -> (short) args[0] == TempleController.OBJECT_TEMPLE_HAND_ID).toList();
+
+        assertEquals(1, hands.size());
+        assertEquals(12, (int) hands.get(0)[2]);
+        assertEquals(22, (int) hands.get(0)[3]);
     }
 
     @Test
