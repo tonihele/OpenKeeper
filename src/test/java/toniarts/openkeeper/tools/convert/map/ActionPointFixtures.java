@@ -48,4 +48,24 @@ public final class ActionPointFixtures {
         return actionPoint;
     }
 
+    /**
+     * Build an action point covering an area, with no wait delay and no next
+     * waypoint
+     *
+     * @param id the action point id
+     * @param startX the first column
+     * @param startY the first row
+     * @param endX the last column
+     * @param endY the last row
+     * @return the action point data
+     */
+    public static Thing.ActionPoint actionPoint(int id, int startX, int startY, int endX, int endY) {
+        Thing.ActionPoint actionPoint = actionPoint(id, 0, 0);
+        actionPoint.setStartX(startX);
+        actionPoint.setStartY(startY);
+        actionPoint.setEndX(endX);
+        actionPoint.setEndY(endY);
+        return actionPoint;
+    }
+
 }
