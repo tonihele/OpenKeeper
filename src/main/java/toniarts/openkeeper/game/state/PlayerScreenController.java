@@ -1491,7 +1491,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         private void processAddedPlayerCreatureEntities(Set<Entity> entities) {
             for (Entity entity : entities) {
                 creatureEntities.put(entity.getId(), entityData.watchEntity(entity.getId(), new Class[]{CreatureAi.class, CreatureComponent.class,
-                    AttackTarget.class, TaskComponent.class, Position.class, CreatureImprisoned.class, CreatureImprisoned.class}));
+                    AttackTarget.class, TaskComponent.class, Position.class, CreatureImprisoned.class, CreatureMood.class}));
             }
         }
 
@@ -1541,7 +1541,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                         creatureCardControls.put(creatureId, card);
                     }
 
-                    card.setTotal(calculateTotal(creatureId));
+                    updateCreatureCardCounts(card, creatureId);
                 }
             }
             if (!creatureTypes.isEmpty()) {
@@ -1629,20 +1629,40 @@ public final class PlayerScreenController implements IPlayerScreenController {
             // Add the event listener
             creatureCardControl.addListener(creatureCardEventListener);
 
+            // New cards show the view that is currently selected
+            creatureCardControl.setState(workerAmountControl.getState());
+
             return creatureCardControl;
         }
 
-        private int calculateTotal(short creatureId) {
+        private void updateCreatureCardCounts(CreatureCardControl card, short creatureId) {
+            int unhappyThreshold = unhappyThreshold(creatureId);
+            int[] counts = new int[CreatureUIState.values().length];
             int total = 0;
-            Set<EntityId> creatureSet = creaturesByTypes.get(creatureId);
-            if (creatureSet != null) {
-                for (EntityId entityId : creatureSet) {
-                    if (isIncludeEntityInCount(creatureEntities.get(entityId))) {
-                        total++;
+            for (EntityId entityId : creaturesByTypes.get(creatureId)) {
+                Entity entity = creatureEntities.get(entityId);
+                if (isIncludeEntityInCount(entity)) {
+                    total++;
+                    for (CreatureUIState uiState : CreatureUIState.values()) {
+                        if (uiState.matches(entity, unhappyThreshold)) {
+                            counts[uiState.ordinal()]++;
+                        }
                     }
                 }
             }
-            return total;
+            card.setTotal(total);
+            card.setIdle(counts[CreatureUIState.IDLE.ordinal()]);
+            card.setBusy(counts[CreatureUIState.BUSY.ordinal()]);
+            card.setWork(counts[CreatureUIState.WORK.ordinal()]);
+            card.setFight(counts[CreatureUIState.FIGHT.ordinal()]);
+            card.setDefence(counts[CreatureUIState.DEFENCE.ordinal()]);
+            card.setHappy(counts[CreatureUIState.HAPPY.ordinal()]);
+            card.setUnhappy(counts[CreatureUIState.UNHAPPY.ordinal()]);
+            card.setAngry(counts[CreatureUIState.ANGRY.ordinal()]);
+        }
+
+        private int unhappyThreshold(short creatureId) {
+            return CreatureMood.toRuntimeThreshold(kwdFile.getCreature(creatureId).getAttributes().getUnhappyThreshold());
         }
 
         /**
@@ -1732,7 +1752,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     EntityId creature = creatureList.get(index);
                     Entity entity = creatureEntities.get(creature);
                     index++;
-                    if (isCreatureState(entity, state) && entity.get(Position.class) != null) {
+                    if (entity.get(Position.class) != null
+                            && (state == null || state.matches(entity, unhappyThreshold(creatureId)))) {
                         selectionIndices.put(creatureId, index);
                         selectedCreature = entity;
                         break;
@@ -1743,22 +1764,6 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     }
                 } while (index != startIndex);
                 return selectedCreature;
-            }
-
-            private boolean isCreatureState(Entity entity, CreatureUIState state) {
-                if (state == null) {
-                    return true;
-                }
-
-                AttackTarget attackTarget = entity.get(AttackTarget.class);
-                CreatureAi creatureAi = entity.get(CreatureAi.class);
-                if (creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE) {
-                    return state == CreatureUIState.IDLE;
-                } else if (attackTarget != null) {
-                    return state == CreatureUIState.FIGHT;
-                } else {
-                    return state == CreatureUIState.BUSY;
-                }
             }
 
         }

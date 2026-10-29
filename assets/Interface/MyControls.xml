@@ -267,7 +267,7 @@
                             <onHover name="simpleHintEx" hintText="$creatureName" targetElement="tooltip" />
                             <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                         </effect>
-                        <interact onSecondaryClick="zoomTo(busy)" onPrimaryClick="pickUpCreature(busy)" />
+                        <interact onSecondaryClick="zoomTo(busy)" onPrimaryClick="pickUp(busy)" />
                     </control>
                 </panel>
                 <panel childLayout="vertical" id="#tab-fights" visible="false"
