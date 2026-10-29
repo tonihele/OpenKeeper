@@ -371,7 +371,7 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     private static ColorRGBA getColor(Color c) {
-        return new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f);
+        return new ColorRGBA().setAsSrgb(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f);
     }
 
     @Override

@@ -46,7 +46,7 @@ public final class ProgressIndicatorPicture extends Picture {
         initMaterial(assetManager);
 
         getMaterial().getAdditionalRenderState().setBlendMode(useAlpha ? RenderState.BlendMode.Alpha : RenderState.BlendMode.Off);
-        getMaterial().setColor("Color", new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f));
+        getMaterial().setColor("Color", new ColorRGBA().setAsSrgb(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f, color.getAlpha() / 255f));
     }
 
     public void setProgress(AssetManager assetManager, float progress) {
