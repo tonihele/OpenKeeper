@@ -97,7 +97,7 @@ class CreatureDropGoldTest {
                 VariableFixtures.miscVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, MAX_PILE));
 
         return new CreatureController(entityId, entityData, null, null, null, null, gameSettings, null, null, null, level(),
-                looseGoldRecorder(), null);
+                looseGoldRecorder(), null, null);
     }
 
     /**
