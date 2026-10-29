@@ -36,6 +36,10 @@ public enum GameEventType {
      * The subject is the attacker's creature type, the target is the victim
      */
     MELEE_HIT,
+    /**
+     * The creature sets off for its attack target, the subject is the creature type
+     */
+    CREATURE_BATTLE_CALL,
 
     // Hand, the subject is the creature or object type
     PICKED_UP,

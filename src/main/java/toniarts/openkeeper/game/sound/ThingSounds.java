@@ -46,6 +46,7 @@ public final class ThingSounds {
     public static final int CREATURE_MANUFACTURE = 0xD2;
     public static final int CREATURE_TRAIN = 0xD3;
     public static final int CREATURE_PRAY = 0xD4;
+    public static final int CREATURE_BATTLE_CALL = 0xD6; // the creature sets off for its attack target
     public static final int CREATURE_MELEE = 0xD7;
     public static final int CREATURE_CAST = 0xD8;
     public static final int CREATURE_HIT = 0xDB;

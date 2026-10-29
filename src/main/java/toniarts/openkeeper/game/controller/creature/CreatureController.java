@@ -783,6 +783,12 @@ public final class CreatureController extends EntityController implements ICreat
             Point ourPosition = getCreatureCoordinates();
             if (destination != null && !destination.equals(ourPosition)) {
                 createNavigation(ourPosition, destination, null);
+
+                // The call is made when setting off, not on every change of the target's tile
+                if (currentNavigation == null) {
+                    gameEventService.emit(GameEventType.CREATURE_BATTLE_CALL, ThingFlag.CREATURE, creature.getCreatureId(),
+                            getPosition());
+                }
             }
         }
     }

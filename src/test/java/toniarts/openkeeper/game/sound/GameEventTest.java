@@ -114,6 +114,16 @@ class GameEventTest {
     }
 
     @Test
+    void battleCallIsTheCreatureCallAtItsPosition() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? SoundFixtures.creature("CREATURE_TROLL") : null);
+        GameEvent event = new GameEvent(GameEventType.CREATURE_BATTLE_CALL, ThingFlag.CREATURE, 3, null, 0, null, new Point(5, 6));
+
+        assertEquals(List.of(new GameEventSounds.Sound("CREATURE_TROLL", ThingSounds.CREATURE_BATTLE_CALL, new Point(5, 6))),
+                GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
     void handSlapIsNotPositional() {
         GameEvent event = new GameEvent(GameEventType.HAND_SLAP, null, 0, null, 0, null, null);
 
