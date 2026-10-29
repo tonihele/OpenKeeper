@@ -111,6 +111,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
+    private boolean refreshCursor;
     private Element view;
 
     private boolean isOnGui = false;
@@ -185,6 +186,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (enabled && !inputListenerAdded) {
             app.getInputManager().addRawInputListener(inputListener);
             inputListenerAdded = true;
+            refreshCursor = true;
         } else if (!enabled && inputListenerAdded) {
             app.getInputManager().removeRawInputListener(inputListener);
             inputListenerAdded = false;
@@ -252,6 +254,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             //updateCursor();
             updateStateFlags();
             timeFromLastUpdate = 0;
+        }
+        if (refreshCursor) {
+            updateStateFlags();
+            updateCursor();
+            refreshCursor = false;
         }
     }
 
