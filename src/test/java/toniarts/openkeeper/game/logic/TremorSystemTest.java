@@ -113,6 +113,55 @@ class TremorSystemTest {
     }
 
     @Test
+    void epicentreIsFoundFromThePickAnywhereInTheSquareAndOnlyOwnedWallsShake() {
+
+        // The pick is the middle of the east edge of the radius 1 square, (6, 5),
+        // which is solid. The first open tile clockwise from its north is (7, 4),
+        // although (5, 4) and (7, 6) are open too
+        setTile(new Point(7, 4), FLOOR, Player.KEEPER1_ID);
+        setTile(new Point(5, 4), FLOOR, Player.KEEPER1_ID);
+        setTile(new Point(7, 6), FLOOR, Player.KEEPER1_ID);
+        setTile(new Point(7, 3), WALL, Player.KEEPER1_ID);
+        setTile(new Point(6, 3), ROCK, Player.KEEPER1_ID);
+        addTremor(CENTRE, 1, 5);
+        random.values.add(5);
+        random.values.add(7);
+
+        tremorSystem.processTick(0.25f);
+
+        assertEquals(Map.of(new Point(7, 3), DAMAGE_PER_TILE / 2 + 7), damageDone);
+    }
+
+    @Test
+    void epicentreIsThePickWhenItIsOpenBelowTheCentre() {
+
+        // The pick is the middle of the south edge of the radius 1 square, (5, 6)
+        setTile(new Point(5, 6), FLOOR, Player.KEEPER1_ID);
+        setTile(new Point(5, 7), WALL, Player.KEEPER1_ID);
+        addTremor(CENTRE, 1, 5);
+        random.values.add(7);
+        random.values.add(3);
+
+        tremorSystem.processTick(0.25f);
+
+        assertEquals(Map.of(new Point(5, 7), DAMAGE_PER_TILE / 2 + 3), damageDone);
+    }
+
+    @Test
+    void tinyDamageVariableDoesNotAddRandomDamage() {
+        tremorSystem = new TremorSystem(entityData, () -> gameTime, mapController(), 1, random);
+        tremorSystem.start();
+        setTile(CENTRE, FLOOR, Player.KEEPER1_ID);
+        setTile(new Point(5, 4), WALL, Player.KEEPER1_ID);
+        addTremor(CENTRE, 0, 5);
+
+        tremorSystem.processTick(0.25f);
+
+        assertEquals(Map.of(new Point(5, 4), 0), damageDone);
+        assertEquals(List.of(1), random.bounds);
+    }
+
+    @Test
     void noShakeWhenThereIsNoOpenTileNearThePick() {
         setTile(CENTRE, WALL, Player.KEEPER1_ID);
         addTremor(CENTRE, 0, 5);
@@ -156,6 +205,36 @@ class TremorSystemTest {
 
         assertNull(entityData.getComponent(tremors.get(0), Tremor.class));
         for (int i = 1; i < 9; i++) {
+            assertNotNull(entityData.getComponent(tremors.get(i), Tremor.class));
+        }
+    }
+
+    @Test
+    void eightTremorsAreAllKept() {
+        List<EntityId> tremors = new ArrayList<>();
+        for (int i = 0; i < 8; i++) {
+            tremors.add(addTremor(CENTRE, 0, 5));
+        }
+
+        tremorSystem.processTick(0.25f);
+
+        for (EntityId tremor : tremors) {
+            assertNotNull(entityData.getComponent(tremor, Tremor.class));
+        }
+    }
+
+    @Test
+    void theOldestTremorByStartTimeMakesWayNotTheFirstCreated() {
+        List<EntityId> tremors = new ArrayList<>();
+        for (int i = 0; i < 9; i++) {
+            tremors.add(addTremor(CENTRE, 0, 5));
+            gameTime -= 0.25;
+        }
+
+        tremorSystem.processTick(0.25f);
+
+        assertNull(entityData.getComponent(tremors.get(8), Tremor.class));
+        for (int i = 0; i < 8; i++) {
             assertNotNull(entityData.getComponent(tremors.get(i), Tremor.class));
         }
     }
