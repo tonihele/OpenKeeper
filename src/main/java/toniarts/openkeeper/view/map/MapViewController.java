@@ -56,6 +56,8 @@ import java.lang.System.Logger.Level;
 import java.nio.FloatBuffer;
 import java.util.*;
 
+import static toniarts.openkeeper.view.lighting.LightConstants.CLAIM_SCAN_LIGHT_INTENSITY;
+
 /**
  * Loads whole maps, and handles the maps
  *
@@ -1433,7 +1435,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Tile (x, y) is centred on (x, y) in world space
         Vector3f position = new Vector3f(p.x, lightingTerrain.getLightHeight(), p.y);
         LightSource light = lightRules.addTerrainLight(p, position, rgb[0], rgb[1], rgb[2],
-                claimScan ? LightConstants.CLAIM_SCAN_LIGHT_INTENSITY
+                claimScan ? CLAIM_SCAN_LIGHT_INTENSITY
                         : isRoomTile ? LightConstants.ROOM_TERRAIN_LIGHT_INTENSITY : LightConstants.TERRAIN_LIGHT_INTENSITY);
         // Water and lava must not tint the colour of a torch that lights the same ground
         EnumSet<Terrain.TerrainFlag> flags = lightingTerrain.getFlags();
@@ -1456,8 +1458,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private int[] getClaimScanLightColour() {
         return new int[]{LightConstants.getClaimScanLightRed(kwdFile),
-            LightConstants.getClaimScanLightGreen(kwdFile),
-            LightConstants.getClaimScanLightBlue(kwdFile)};
+            Math.round(LightConstants.getClaimScanLightGreen(kwdFile) * CLAIM_SCAN_LIGHT_INTENSITY),
+                Math.round(LightConstants.getClaimScanLightBlue(kwdFile) * CLAIM_SCAN_LIGHT_INTENSITY)};
     }
 
     private static int[] getTerrainLightColour(Terrain terrain) {

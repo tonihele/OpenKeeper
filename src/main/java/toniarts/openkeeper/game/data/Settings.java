@@ -287,7 +287,7 @@ public final class Settings {
         settings.setIcons(getApplicationIcons());
 
         // We don't allow this to be changed, assets were not meant to use this
-        settings.setGammaCorrection(false);
+        settings.setGammaCorrection(true);
     }
 
     /**
