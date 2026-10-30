@@ -84,6 +84,7 @@ import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -1532,12 +1533,28 @@ public final class CreatureController extends EntityController implements ICreat
 
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         int manaDrain = creatureComponent != null ? creatureComponent.posessionManaCost : 0;
+        if (isPossessionUpgraded()) {
+            manaDrain = manaDrain * (int) gameSettings.get(Variable.MiscVariable.MiscType.UPGRADED_POSSESSION_COST_PERCENTAGE).getValue() / 100;
+        }
         Mana mana = entityData.getComponent(entityId, Mana.class);
         entityData.setComponent(entityId, new Mana(mana != null ? mana.manaGeneration - manaDrain : -manaDrain));
         entityData.setComponent(entityId, new Possessed(manaDrain, gameTimer.getGameTime()));
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, Navigation.class);
         unassingCurrentTask();
+    }
+
+    /**
+     * DK II charges less for possessing once the keeper has upgraded the
+     * Possession spell (DKII.EXE 0x4C17A0 and 0x4C10E0)
+     *
+     * @return whether the owner has upgraded the Possession spell
+     */
+    private boolean isPossessionUpgraded() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        return keeper != null && keeper.getAvailableSpells().stream()
+                .anyMatch(spell -> spell.isUpgraded()
+                && levelInfo.getLevelData().getKeeperSpellById(spell.getId()).getTargetRule() == KeeperSpell.TargetRule.POSESSION);
     }
 
     private void endPossession() {
