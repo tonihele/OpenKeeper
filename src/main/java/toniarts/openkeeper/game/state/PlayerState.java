@@ -26,14 +26,19 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
@@ -573,11 +578,29 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     String getTooltipText(String text) {
-        int dungeonHealth = 0;
+        int dungeonHealth = getDungeonHeartHealth();
         int paydayCost = 0;
 
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));
+    }
+
+    /**
+     * The health of our Dungeon Heart in percent. Like the heart icon in DK II
+     * this is the health of the heart object, the one creatures attack
+     *
+     * @return health percentage, 0 if we have no heart
+     */
+    private int getDungeonHeartHealth() {
+        for (EntityId heart : entityData.findEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
+                ObjectComponent.class, Owner.class, Health.class)) {
+            if (entityData.getComponent(heart, Owner.class).ownerId == playerId) {
+                Health health = entityData.getComponent(heart, Health.class);
+                return health.health * 100 / health.maxHealth;
+            }
+        }
+
+        return 0;
     }
 
     @Override
