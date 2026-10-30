@@ -39,6 +39,12 @@ public final class AttackTarget implements EntityComponent {
      */
     public Point tile;
 
+    /**
+     * The game time we started to chase the target while it runs away, NaN
+     * when it doesn't
+     */
+    public double chaseStartTime = Double.NaN;
+
     public AttackTarget() {
         // For serialization
     }
@@ -47,10 +53,11 @@ public final class AttackTarget implements EntityComponent {
         this.entityId = entityId;
     }
 
-    public AttackTarget(EntityId entityId, double time, Point tile) {
+    public AttackTarget(EntityId entityId, double time, Point tile, double chaseStartTime) {
         this.entityId = entityId;
         this.time = time;
         this.tile = tile;
+        this.chaseStartTime = chaseStartTime;
     }
 
 }

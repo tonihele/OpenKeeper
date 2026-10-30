@@ -26,6 +26,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.ChaseBackOff;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -129,6 +130,12 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final int TARGET_PICK_TURNS = 10;
     private static final int IMP_TARGET_PICK_TURNS = 4;
+
+    /**
+     * How long a creature that gave up a chase leaves those that run away
+     * alone, in game turns (0x488930)
+     */
+    private static final int CHASE_BACK_OFF_TURNS = 60;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -618,15 +625,34 @@ public final class CreatureController extends EntityController implements ICreat
         // has when it finds none (0x45E9F0). Chasing a creature, it drops it and picks again every turn, so it only
         // chases on while it picks the same one (0x470E30)
         boolean chasing = target != null && !DungeonHeartTarget.isDungeonHeart(entityData, target) && !isWithinAttackDistance(target);
-        if (target == null || chasing || isTimeToPickTarget(attackTarget)) {
+        boolean picked = target == null || chasing || isTimeToPickTarget(attackTarget);
+        if (picked) {
             EntityId enemy = pickAttackTarget(target);
             if (enemy != null || chasing) {
                 target = enemy;
             }
-            setAttackTarget(target);
         }
         if (target == null) {
+            setAttackTarget(null);
             return null;
+        }
+
+        // It counts how long it chases one that runs away, and gives up on it after the chase duration of its side
+        // (0x470E30). Then it leaves those that run away alone for a while
+        double chaseStartTime = Double.NaN;
+        if (isFleeing(target)) {
+            chaseStartTime = attackTarget != null && !Double.isNaN(attackTarget.chaseStartTime) ? attackTarget.chaseStartTime
+                    : isWithinAttackDistance(target) ? Double.NaN : gameTimer.getGameTime();
+            if (gameTimer.getGameTime() - chaseStartTime >= getChaseDuration() && !isWithinAttackDistance(target)) {
+                entityData.setComponent(entityId, new ChaseBackOff(gameTimer.getGameTime()));
+                setAttackTarget(null);
+                return null;
+            }
+        }
+        if (picked) {
+            entityData.setComponent(entityId, new AttackTarget(target, gameTimer.getGameTime(), getCreatureCoordinates(), chaseStartTime));
+        } else if (Double.compare(chaseStartTime, attackTarget.chaseStartTime) != 0) {
+            entityData.setComponent(entityId, new AttackTarget(target, attackTarget.time, attackTarget.tile, chaseStartTime));
         }
 
         return DungeonHeartTarget.isDungeonHeart(entityData, target) ? objectsController.createController(target)
@@ -637,12 +663,28 @@ public final class CreatureController extends EntityController implements ICreat
         if (DungeonHeartTarget.isDungeonHeart(entityData, target)) {
             return isHeartToAttack(target);
         }
-        return !(isIncapacitated(target) || isFleeing(target) || isCaptive(target));
+        return !(isIncapacitated(target) || isCaptive(target));
     }
 
     private boolean isTimeToPickTarget(AttackTarget attackTarget) {
         int turns = creature.getFightStyle() == Creature.FightStyle.NON_FIGHTER ? IMP_TARGET_PICK_TURNS : TARGET_PICK_TURNS;
         return !getCreatureCoordinates().equals(attackTarget.tile) || gameTimer.getGameTime() - attackTarget.time >= getTurns(turns);
+    }
+
+    /**
+     * How long we chase an enemy that runs away, 3 seconds for a good creature
+     * and 7 for an evil one
+     */
+    private double getChaseDuration() {
+        Variable.MiscVariable chaseDuration = gameSettings.get(getOwnerId() == Player.GOOD_PLAYER_ID
+                ? Variable.MiscVariable.MiscType.GOOD_CREATURES_CHASE_ENEMY_DURATION_SECONDS
+                : Variable.MiscVariable.MiscType.EVIL_CREATURES_CHASE_ENEMY_DURATION_SECONDS);
+        return chaseDuration != null ? chaseDuration.getValue() : 0;
+    }
+
+    private boolean isBackingOff() {
+        ChaseBackOff backOff = entityData.getComponent(entityId, ChaseBackOff.class);
+        return backOff != null && gameTimer.getGameTime() - backOff.time < getTurns(CHASE_BACK_OFF_TURNS);
     }
 
     private double getTurns(int turns) {
@@ -687,7 +729,8 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             if (creaturesController.isValidEntity(entity)
                     && isEnemy(entity)
-                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && !(isIncapacitated(entity) || isCaptive(entity))
+                    && !(isFleeing(entity) && isBackingOff() && !isWithinAttackDistance(entity))
                     && !(fightersOnly && creaturesController.createController(entity).isWorker())
                     && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                 float distance = getDistanceToCreature(entity);
@@ -773,7 +816,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (entity == null) {
             entityData.removeComponent(entityId, AttackTarget.class);
         } else {
-            entityData.setComponent(entityId, new AttackTarget(entity, gameTimer.getGameTime(), getCreatureCoordinates()));
+            entityData.setComponent(entityId, new AttackTarget(entity, gameTimer.getGameTime(), getCreatureCoordinates(), Double.NaN));
         }
     }
 
