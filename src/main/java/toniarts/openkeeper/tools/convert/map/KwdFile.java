@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.JobAlternative;
 import toniarts.openkeeper.tools.convert.map.Creature.OffsetType;
 import toniarts.openkeeper.tools.convert.map.Creature.Resistance;
 import toniarts.openkeeper.tools.convert.map.Creature.Spell;
-import toniarts.openkeeper.tools.convert.map.Creature.X1323;
+import toniarts.openkeeper.tools.convert.map.Creature.Footstep;
 import toniarts.openkeeper.tools.convert.map.Door.DoorFlag;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevelReward;
@@ -683,7 +683,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             terrain.setSideResource(readArtResource(reader));
             terrain.setTopResource(readArtResource(reader));
             terrain.setTaggedTopResource(readArtResource(reader));
-            terrain.setStringIds(readStringId(reader));
+            terrain.setSlabLight(readLight(reader));
             terrain.setDepth(reader.readIntegerAsFloat());
             terrain.setLightHeight(reader.readIntegerAsFloat());
             terrain.setFlags(reader.readIntegerAsFlag(Terrain.TerrainFlag.class));
@@ -1068,7 +1068,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             room.setTerrainId(reader.readUnsignedByte());
             room.setTileConstruction(reader.readByteAsEnum(Room.TileConstruction.class));
             room.setCreatedCreatureId(reader.readUnsignedByte());
-            room.setTorchColor(readColor(reader)); // This is the editor is rather weird
+            room.setTorchColor(readColor(reader)); // The editor stores it without the flag, see Room.RoomFlag.TORCH_COLOR_*
             List<Short> roomObjects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 short objectId = reader.readUnsignedByte();
@@ -1526,14 +1526,14 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                 );
             }
             creature.setAnimation(AnimationType.BACK_OFF, readArtResource(reader));
-            X1323[] x1323s = new X1323[48];
-            for (int x = 0; x < x1323s.length; x++) {
-                var x1323 = new X1323();
-                x1323.setX00(reader.readUnsignedShort());
-                x1323.setX02(reader.readUnsignedShort());
-                x1323s[x] = x1323;
+            Footstep[] footstepFrames = new Footstep[48];
+            for (int x = 0; x < footstepFrames.length; x++) {
+                var footstep = new Footstep();
+                footstep.setLeft(reader.readUnsignedShort());
+                footstep.setRight(reader.readUnsignedShort());
+                footstepFrames[x] = footstep;
             }
-            creature.setX1323(x1323s);
+            creature.setFootstepFrames(footstepFrames);
             creature.setAnimation(AnimationType.STAND_STILL, readArtResource(reader));
             creature.setAnimation(AnimationType.STEALTH_WALK, readArtResource(reader));
             creature.setAnimation(AnimationType.DEATH_POSE, readArtResource(reader));
