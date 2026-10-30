@@ -121,6 +121,13 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
 
+    /**
+     * Every creature's work modifier, which the attack recharges are divided
+     * by. DK II starts it at 0.8 (0x4872A0) and the creature data of the
+     * original creatures never raises it.
+     */
+    private static final float ATTACK_WORK_MODIFIER = 0.8f;
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -791,7 +798,10 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean isAttackRecharged(Attack attack) {
-        return attack.attactStartTime == null || attack.attactStartTime + attack.rechargeTime <= gameTimer.getGameTime();
+
+        // The recharge is divided by the creature's work modifier, which is 0.8 for every creature, and the attack is
+        // ready only once that much time has fully passed (0x48C9B0 melee, 0x48C800 spells)
+        return attack.attactStartTime == null || attack.attactStartTime + attack.rechargeTime / ATTACK_WORK_MODIFIER < gameTimer.getGameTime();
     }
 
     @Override

@@ -401,6 +401,24 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void meleeAttackRechargesInItsRechargeTimeDividedByTheWorkModifier() {
+        try (Fixture f = new Fixture(9)) {
+            EntityId target = f.meleeTarget();
+            f.controller.executeAttack(target);
+            f.controller.getStateMachine().changeState(CreatureState.FIGHT);
+
+            // 1.2 s / 0.8 = 1.5 s, and the attack is ready only after that
+            f.time = 1.5;
+            f.controller.executeAttack(target);
+            assertEquals(CreatureState.FIGHT, f.state());
+
+            f.time = 1.75;
+            f.controller.executeAttack(target);
+            assertEquals(CreatureState.MELEE_ATTACK, f.state());
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
