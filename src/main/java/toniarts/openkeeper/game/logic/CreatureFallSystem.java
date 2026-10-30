@@ -22,6 +22,7 @@ import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.LeavingDungeon;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -64,6 +65,14 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
             newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
             entity.set(newPosition);
             if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
+
+                // A creature dropped on the middle of its keeper's portal doesn't get up, the
+                // CreatureLeaveSystem sends it out of the dungeon once the fall is over
+                if (entityData.getComponent(entity.getId(), LeavingDungeon.class) != null) {
+                    gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
+                    entityData.removeComponent(entity.getId(), CreatureFall.class);
+                    continue;
+                }
 
                 // We'll just remove this and add the AI
                 entityData.removeComponent(entity.getId(), CreatureFall.class);
