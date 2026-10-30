@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
@@ -127,7 +128,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
-    private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
+    private final Map<IRoomController, Map<Long, Point>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
@@ -598,15 +599,25 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // See that are they really accessible starting from the least distance one
         for (IRoomController room : distancesToRooms.values()) {
 
-            // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
-            List<Point> coordinates = new ArrayList<>(room.getObjectControl(objectType).getAvailableCoordinates());
+            IRoomObjectControl control = room.getObjectControl(objectType);
+            List<Point> coordinates = new ArrayList<>(control.getAvailableCoordinates());
             Iterator<Point> iter = coordinates.iterator();
-            Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
+            Map<Long, Point> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
                 Point p = iter.next();
-                if (!room.isTileAccessible(null, p) || (taskPoints != null && taskPoints.containsKey(p))) {
+                if (!room.isTileAccessible(null, p)) {
                     iter.remove();
+                }
+            }
+
+            // Take a free point first. A room can take more than it has points, like one more
+            // trainee than the Training Room has dummies, so then the points are shared until it is full
+            if (taskPoints != null) {
+                List<Point> freeCoordinates = new ArrayList<>(coordinates);
+                freeCoordinates.removeAll(taskPoints.values());
+                if (!freeCoordinates.isEmpty() || taskPoints.size() + control.getCurrentCapacity() >= control.getMaxCapacity()) {
+                    coordinates = freeCoordinates;
                 }
             }
 
@@ -628,7 +639,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                         if (taskPoints == null) {
                             taskPoints = new HashMap<>();
                         }
-                        taskPoints.put(target, abstractCapacityCriticalRoomTask);
+                        taskPoints.put(abstractCapacityCriticalRoomTask.getId(), target);
                         roomTasks.put(room, taskPoints);
                     }
                     task.assign(creature, true);
@@ -682,9 +693,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     protected void removeRoomTask(AbstractCapacityCriticalRoomTask task) {
-        Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(task.getRoom());
+        Map<Long, Point> taskPoints = roomTasks.get(task.getRoom());
         if (taskPoints != null) {
-            taskPoints.remove(task.getTaskLocation());
+            taskPoints.remove(task.getId());
             if (taskPoints.isEmpty()) {
                 roomTasks.remove(task.getRoom());
                 if (task.getAssigneeCount() == 0) {
