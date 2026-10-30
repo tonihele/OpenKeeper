@@ -470,9 +470,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @param animate whether to animate the transition
      */
     public void zoomToEntity(EntityId entityId, boolean animate) {
-        Vector3f position = stateManager.getState(PlayerEntityViewState.class).getPosition(entityId);
-        if (position != null) {
-            zoomToPosition(position, animate);
+        PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
+        Spatial spatial = entityViewState != null ? entityViewState.getEntitySpatial(entityId) : null;
+        if (spatial != null) {
+            zoomToPosition(spatial.getLocalTranslation(), animate);
         }
     }
 

@@ -715,17 +715,6 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
     }
 
-    /**
-     * Where an entity is on the map, as far as the client knows
-     *
-     * @param entityId the entity
-     * @return the position, {@code null} if the entity is not on the map
-     */
-    public Vector3f getPosition(EntityId entityId) {
-        Entity entity = entities.get(entityId);
-        return entity != null ? entity.get(Position.class).position : null;
-    }
-
     private void addViewControl(Entity e, IEntityViewControl control) {
 
         // The entity of an entity set is kept up to date, no need to look its components up
