@@ -531,14 +531,14 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
                     break;
                 case CAMERA_KEY_ZOOM_IN:
                     if (ctrl) {
-                        camera.pitchAround(-value * ROTATION_SPEED);
+                        camera.pitchAround(value * ROTATION_SPEED);
                     } else {
                         camera.zoom(value * ZOOM_SPEED);
                     }
                     break;
                 case CAMERA_KEY_ZOOM_OUT:
                     if (ctrl) {
-                        camera.pitchAround(value * ROTATION_SPEED);
+                        camera.pitchAround(-value * ROTATION_SPEED);
                     } else {
                         camera.zoom(-value * ZOOM_SPEED);
                     }
