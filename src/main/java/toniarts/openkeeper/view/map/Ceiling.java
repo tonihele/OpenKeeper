@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.map;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -97,8 +98,18 @@ public final class Ceiling {
         mat.setTexture("DiffuseMap", tex);
         MapViewController.setTerrainMaterialLighting(mat, terrain);
 
-        geo.setMaterial(mat);
-        geo.setShadowMode(RenderQueue.ShadowMode.Off); // Nothing above a ceiling to light or shadow it
+        // Lit by the same shared light data as the floor and walls (the caller
+        // binds it, see MapViewController#refreshCeilingSurface). Its normals
+        // face down, so lights below shine on it
+        ColorRGBA ambient = mat.getParam("Ambient") != null
+                ? (ColorRGBA) mat.getParam("Ambient").getValue() : ColorRGBA.Black;
+        Material dkMat = AssetUtils.createVertexMaterial(assetManager, mat, ambient);
+        // Object lights and the terrain's per-tile ambient belong to the
+        // ground; the ceiling ignores them
+        dkMat.setBoolean("IgnoreObjectLights", true);
+        dkMat.setFloat("AmbientScale", 0f);
+        geo.setMaterial(dkMat);
+        geo.setShadowMode(RenderQueue.ShadowMode.Off); // Nothing above a ceiling to shadow it
 
         return geo;
     }
