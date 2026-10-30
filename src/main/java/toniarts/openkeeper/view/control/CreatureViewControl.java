@@ -20,6 +20,8 @@ import com.jme3.anim.AnimComposer;
 import com.jme3.anim.tween.action.Action;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityComponent;
@@ -31,7 +33,9 @@ import java.util.Objects;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.sound.FootstepSounds;
@@ -39,11 +43,15 @@ import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.KmfModelMarkers;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.effect.PortalGemEffect;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -55,6 +63,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private static final long IN_HAND_SOUND_INTERVAL_MS = 8000;
     private static final long DIG_SOUND_RETRY_MS = 250;
+
+    private EffectManagerState effectManager;
+    private Node portalGemNode;
+    private PortalGemEffect portalGemEffect;
+    private boolean portalGemRendered;
 
     private long nextInHandSound;
     private int researchSound = SoundEngine.NO_HANDLE;
@@ -76,6 +89,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
         components.add(CreatureImprisoned.class);
+        components.add(PortalGem.class);
+        components.add(Death.class);
         return components;
     }
 
@@ -92,6 +107,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public void setSpatial(Spatial spatial) {
+        clearPortalGemEffect();
         super.setSpatial(spatial);
 
         // Play the starting animation
@@ -104,6 +120,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     public void cleanup() {
         playResearchSound(null);
         digSound = SoundEngine.NO_HANDLE;
+        clearPortalGemEffect();
         super.cleanup();
     }
 
@@ -138,6 +155,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+        portalGemRendered = false;
+        updatePortalGemEffect(tpf);
 
         // A creature in the hand talks, one line every few seconds as long as it is held. It is heard at the hand
         if (currentState == Creature.AnimationType.IN_HAND) {
@@ -155,6 +174,61 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
         playDigSound();
         playFootsteps();
+    }
+
+    /** Supplies the level definitions for the carried portal gem's sparkles. */
+    public void setEffectManager(EffectManagerState effectManager) {
+        clearPortalGemEffect();
+        this.effectManager = effectManager;
+
+    }
+
+    private void updatePortalGemEffect(float tpf) {
+        if (!(spatial instanceof Node node) || effectManager == null
+                || getEntity().get(PortalGem.class) == null || getEntity().get(Death.class) != null
+                || currentState == Creature.AnimationType.DEATH_POSE
+                || currentState == Creature.AnimationType.IN_HAND) {
+            clearPortalGemEffect();
+            return;
+        }
+        if (portalGemEffect == null) {
+            var effect = effectManager.getKwdFile().getEffect(PortalGemEffect.EFFECT_ID);
+            if (effect == null) {
+                return;
+            }
+            portalGemNode = new Node("Carried portal gem");
+            // Animation changes hide model children; this attachment must survive them.
+            portalGemNode.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
+            node.attachChild(portalGemNode);
+            portalGemEffect = new PortalGemEffect(effectManager);
+            portalGemNode.attachChild(portalGemEffect);
+        }
+        portalGemEffect.advance(tpf);
+    }
+
+    @Override
+    protected void controlRender(RenderManager renderManager, ViewPort viewPort) {
+        if (portalGemEffect == null || portalGemRendered || spatial.getCullHint() == Spatial.CullHint.Always) {
+            return;
+        }
+        portalGemRendered = true;
+        spatial.depthFirstTraversal(child -> {
+            if (Integer.valueOf(KmfModelMarkers.PORTAL_GEM).equals(child.getUserData(KmfModelMarkers.MARKER_ID))
+                    && child.getCullHint() != Spatial.CullHint.Always) {
+                portalGemEffect.request(child.getWorldTranslation());
+            }
+        });
+    }
+
+    private void clearPortalGemEffect() {
+        if (portalGemEffect != null) {
+            portalGemEffect.clear();
+            portalGemEffect = null;
+        }
+        if (portalGemNode != null) {
+            portalGemNode.removeFromParent();
+            portalGemNode = null;
+        }
     }
 
     /**

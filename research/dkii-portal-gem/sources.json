@@ -1,0 +1,9 @@
+{
+  "files": {
+    "DKII.exe": "2a00df642ff7f9296f1e8d053329ba152f5dac07e357f2b39b6f1f1f1d77e163",
+    "DKII.idb": "6971006b4171d0ecf4a8840b552763fe46632651cc4153be24e2c8e13fb80bcb",
+    "newDKII.idb": "4bdf555052aefcec6026925c004e1aab750d29da6006550b6e7f6f5754f1621b",
+    "Meshes.WAD": "6ace2463c0f191296dc8a14f8cc1dc50fa3b49e46f92334d3376f24655b0d2b5"
+  },
+  "method": "Read-only binary/IDA table inspection and KwdFile/KmfFile parsing. No new native runtime measurements."
+}
