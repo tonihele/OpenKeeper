@@ -62,6 +62,8 @@ class CreatureLeaveSystemTest {
 
         land();
         assertEquals(List.of(GameEventType.CREATURE_LAND), events);
+        assertEquals(WorldUtils.UNDERFLOOR_HEIGHT, entityData.getComponent(creature, Position.class).position.y,
+                "it falls through the floor");
         assertNull(entityData.getComponent(creature, CreatureFall.class));
         assertNull(entityData.getComponent(creature, CreatureAi.class), "it doesn't get up");
 
@@ -77,6 +79,7 @@ class CreatureLeaveSystemTest {
         land();
         leaveSystem.processTick(0.1f);
 
+        assertEquals(WorldUtils.FLOOR_HEIGHT, entityData.getComponent(creature, Position.class).position.y);
         assertNotNull(entityData.getComponent(creature, CreatureAi.class));
         assertTrue(left.isEmpty());
     }

@@ -44,6 +44,7 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
     private final EntitySet fallEntities;
+    private final EntitySet leavingEntities;
 
     public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService) {
         this.entityData = entityData;
@@ -51,24 +52,30 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
         this.gameEventService = gameEventService;
 
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
+        leavingEntities = entityData.getEntities(LeavingDungeon.class);
     }
 
     @Override
     public void processTick(float tpf) {
         // Add new & remove old
         fallEntities.applyChanges();
+        leavingEntities.applyChanges();
 
         // Process ticks
         for (Entity entity : fallEntities) {
+
+            // Like in DK II, the floor in the middle of the portal is a level lower, the creature falls through
+            boolean leaving = leavingEntities.containsId(entity.getId());
+            float floorHeight = leaving ? WorldUtils.UNDERFLOOR_HEIGHT : WorldUtils.FLOOR_HEIGHT;
             Position position = entity.get(Position.class);
             Position newPosition = new Position(position.rotation, position.position);
-            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
+            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, floorHeight);
             entity.set(newPosition);
-            if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
+            if (newPosition.position.y == floorHeight) {
 
                 // A creature dropped on the middle of its keeper's portal doesn't get up, the
                 // CreatureLeaveSystem sends it out of the dungeon once the fall is over
-                if (entityData.getComponent(entity.getId(), LeavingDungeon.class) != null) {
+                if (leaving) {
                     gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
                     entityData.removeComponent(entity.getId(), CreatureFall.class);
                     continue;
@@ -98,6 +105,7 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         fallEntities.release();
+        leavingEntities.release();
     }
 
 }
