@@ -17,14 +17,18 @@
 package toniarts.openkeeper.game.controller.player;
 
 import com.jme3.util.SafeArrayList;
+import toniarts.openkeeper.game.controller.GameWorldController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.PlayerGoldListener;
+import toniarts.openkeeper.game.listener.RoomListener;
 
 /**
  *
  * @author ArchDemon
  */
-public final class PlayerGoldControl {
+public final class PlayerGoldControl implements RoomListener {
 
     private int goldMax = 0;
     private final Keeper keeper;
@@ -77,5 +81,49 @@ public final class PlayerGoldControl {
 
     public boolean isFullCapacity() {
         return keeper.getGold() >= goldMax;
+    }
+
+    @Override
+    public void onBuild(IRoomController room) {
+        // GameWorldController adds the capacity of the rooms we build
+    }
+
+    /**
+     * A gold room we capture brings its capacity and the gold stored in it to
+     * us. The gold is not mined, so it doesn't count as such.
+     *
+     * @param room the captured room
+     */
+    @Override
+    public void onCaptured(IRoomController room) {
+        if (room.canStoreGold()) {
+            synchronized (GameWorldController.GOLD_LOCK) {
+                goldMax += room.getMaxCapacity(ObjectType.GOLD);
+                keeper.setGold(Math.min(keeper.getGold() + room.getUsedCapacity(ObjectType.GOLD), goldMax));
+                updateListeners();
+            }
+        }
+    }
+
+    /**
+     * A gold room the enemy captures takes its capacity and the gold stored
+     * in it away from us
+     *
+     * @param room the lost room
+     */
+    @Override
+    public void onCapturedByEnemy(IRoomController room) {
+        if (room.canStoreGold()) {
+            synchronized (GameWorldController.GOLD_LOCK) {
+                goldMax -= room.getMaxCapacity(ObjectType.GOLD);
+                keeper.setGold(Math.max(keeper.getGold() - room.getUsedCapacity(ObjectType.GOLD), 0));
+                updateListeners();
+            }
+        }
+    }
+
+    @Override
+    public void onSold(IRoomController room) {
+        // GameWorldController takes away the capacity and gold of the rooms we sell
     }
 }

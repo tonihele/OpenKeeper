@@ -204,8 +204,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 playerController.getRoomControl().init(rooms);
             }
 
-            // Add the listener
+            // Add the listeners, the gold follows the gold rooms when they are captured
             mapController.addListener(player.getId(), playerController.getRoomControl());
+            mapController.addListener(player.getId(), playerController.getGoldControl());
         }
     }
 
