@@ -41,6 +41,13 @@ public final class TerrainFixtures {
         return terrain;
     }
 
+    public static Tile tile(short terrainId, short playerId) {
+        Tile tile = new Tile();
+        tile.setTerrainId(terrainId);
+        tile.setPlayerId(playerId);
+        return tile;
+    }
+
     public static EnumSet<Terrain.TerrainFlag> flags(Terrain.TerrainFlag... flags) {
         EnumSet<Terrain.TerrainFlag> set = EnumSet.noneOf(Terrain.TerrainFlag.class);
         for (Terrain.TerrainFlag flag : flags) {

@@ -106,7 +106,7 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
         EntityId heart = objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y);
         floorFurniture.add(heart);
 
-        // As in the original, a heart placed in the editor can start damaged (0 % is a special case there, not handled here)
+        // As in the original, a heart placed in the editor can start damaged (at 0 % it starts destroyed)
         Health health = entityData.getComponent(heart, Health.class);
         int initialHealth = roomInstance.getInitialHealth();
         if (health != null && initialHealth > 0 && initialHealth < 100) {

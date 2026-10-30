@@ -134,7 +134,9 @@ public final class MapController extends Container implements IMapController {
         // Find it
         RoomInstance roomInstance = new RoomInstance(kwdFile.getRoomByTerrain(mapTile.getTerrainId()), thing);
         Keeper owner = levelInfo.getPlayer(mapTile.getOwnerId());
-        roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart() && (owner == null || owner.isDestroyed()));
+        // As in the original, a heart set to 0 % in the level editor starts destroyed
+        roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart()
+                && (owner == null || owner.isDestroyed() || roomInstance.getInitialHealth() == 0));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
         int health = 0;
