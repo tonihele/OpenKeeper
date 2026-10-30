@@ -25,6 +25,7 @@ import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SuppressWarnings("unchecked")
 class CreatureStateTest {
@@ -74,11 +75,26 @@ class CreatureStateTest {
         assertEquals(1, walks.get());
         assertEquals(CreatureState.WANDER, currentState.get());
 
-        // On arriving it picks the next point straight away, as DK II does, instead of standing in IDLE
-        stopped.set(true);
-        CreatureState.WANDER.update(creature);
-        assertEquals(CreatureState.WANDER, currentState.get());
-        assertEquals(2, walks.get());
+    }
+
+    @Test
+    void wanderingNeutralCreatureSometimesStopsToDoNothing() {
+        AtomicReference<CreatureState> currentState = new AtomicReference<>(CreatureState.WANDER);
+        AtomicInteger walks = new AtomicInteger();
+        ICreatureController creature = idleCreature(stateMachine(currentState), false, walks, new AtomicBoolean(true));
+
+        // On arriving it picks the next point straight away, as DK II does, but now and then stands idle
+        int idles = 0;
+        for (int i = 0; i < 1000; i++) {
+            currentState.set(CreatureState.WANDER);
+            CreatureState.WANDER.update(creature);
+            if (currentState.get() == CreatureState.IDLE) {
+                idles++;
+            }
+        }
+
+        assertTrue(idles > 0 && idles < 300, "idles " + idles);
+        assertEquals(1000 - idles, walks.get());
     }
 
     @Test

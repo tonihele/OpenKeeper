@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
+import com.jme3.math.FastMath;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
@@ -151,7 +152,11 @@ public enum CreatureState implements State<ICreatureController> {
             if (entity.isClaimed()) {
                 entity.getStateMachine().changeState(IDLE);
             } else if (entity.isStopped()) {
-                entity.navigateToRandomPoint();
+                if (FastMath.rand.nextFloat() < 0.07f) { // ~8 % of the time, as logged from DK II
+                    entity.getStateMachine().changeState(IDLE);
+                } else {
+                    entity.navigateToRandomPoint();
+                }
             }
         }
 
