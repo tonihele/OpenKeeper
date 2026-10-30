@@ -79,6 +79,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     private static final float MOVE_SPEED = 10f;
     private static final float ROTATION_SPEED = 4f;
     private static final float EDGE_SCROLL_MARGIN = 5f;
+    private static final float CAMERA_MODE_BLEND_TIME = 0.5f;
     private static final String CAMERA_MOUSE_ZOOM_IN = "CAMERA_MOUSE_ZOOM_IN";
     private static final String CAMERA_MOUSE_ZOOM_OUT = "CAMERA_MOUSE_ZOOM_OUT";
     private static final String CAMERA_MOUSE_ROTATE = "CAMERA_MOUSE_ROTATE";
@@ -111,6 +112,9 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         Setting.YAW_CAMERA_LEFT.name(),
         Setting.YAW_CAMERA_RIGHT.name(),
         Setting.USE_ATTACK.name(),
+        Setting.ISOMETRIC_CAMERA.name(),
+        Setting.TOP_DOWN_CAMERA.name(),
+        Setting.OBLIQUE_CAMERA.name(),
         CAMERA_MOUSE_ZOOM_IN,
         CAMERA_MOUSE_ZOOM_OUT,
         CAMERA_MOUSE_ROTATE,
@@ -181,17 +185,33 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     }
 
     private Thing.Camera getCameraPresets() {
+        return getCameraPresets(Thing.Camera.CameraMode.GAME);
+    }
+
+    private Thing.Camera getCameraPresets(Thing.Camera.CameraMode id) {
         GameClientState gs = this.stateManager.getState(GameClientState.class);
         Thing.Camera result = null;
 
         for (Thing.Camera thing : gs.getLevelData().getThings(Thing.Camera.class)) {
-            if (thing.getId() == Thing.Camera.ID_GAME) {
+            if (thing.getId() == id) {
                 result = thing;
                 break;
             }
         }
 
         return result;
+    }
+
+    /**
+     * Switch to one of the F1 - F3 camera modes
+     *
+     * @param id the camera record to use
+     */
+    private void setCameraMode(Thing.Camera.CameraMode id) {
+        Thing.Camera mode = getCameraPresets(id);
+        if (mode != null) {
+            camera.switchTo(mode, CAMERA_MODE_BLEND_TIME);
+        }
     }
 
     /**
@@ -300,6 +320,8 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         // Update the container
         container.update(tpf);
 
+        camera.update(tpf);
+
         updateEdgeScroll(tpf);
 
         // Update audio listener position. The camera hovers high up and behind what it looks at, and the more
@@ -380,6 +402,10 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
 
         addKeyMapping(Setting.USE_ATTACK);
 
+        addKeyMapping(Setting.ISOMETRIC_CAMERA);
+        addKeyMapping(Setting.TOP_DOWN_CAMERA);
+        addKeyMapping(Setting.OBLIQUE_CAMERA);
+
         inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
         inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
         inputManager.addMapping(SPECIAL_KEY_SHIFT, new KeyTrigger(KeyInput.KEY_LSHIFT), new KeyTrigger(KeyInput.KEY_RSHIFT));
@@ -427,6 +453,19 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
                 }
             }
             return;
+        }
+
+        if (isPressed) {
+            if (name.equals(Setting.ISOMETRIC_CAMERA.name())) {
+                setCameraMode(Thing.Camera.CameraMode.GAME);
+                return;
+            } else if (name.equals(Setting.TOP_DOWN_CAMERA.name())) {
+                setCameraMode(Thing.Camera.CameraMode.OVERHEAD);
+                return;
+            } else if (name.equals(Setting.OBLIQUE_CAMERA.name())) {
+                setCameraMode(Thing.Camera.CameraMode.FAR);
+                return;
+            }
         }
 
         switch (name) {
