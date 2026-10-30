@@ -70,6 +70,12 @@ public interface IEntityController extends Comparable<IEntityController> {
     public void removePossession();
 
     /**
+     * Drops the gold the entity carries on its tile. A creature does this when
+     * it is knocked out and when it is removed from the world
+     */
+    public void dropLoot();
+
+    /**
      * Is the entity removed from the world (destroyed, dead...)
      *
      * @return true if the entity does not exist anymore

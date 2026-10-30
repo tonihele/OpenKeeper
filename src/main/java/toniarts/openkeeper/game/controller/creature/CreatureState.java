@@ -412,6 +412,9 @@ public enum CreatureState implements State<ICreatureController> {
         public void enter(ICreatureController entity) {
             entity.stopCreature();
             entity.unassingCurrentTask();
+
+            // A knocked out creature drops its gold at once, even if it is rescued later (0x4596D0)
+            entity.dropLoot();
         }
 
         @Override
