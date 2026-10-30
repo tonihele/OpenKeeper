@@ -31,7 +31,7 @@ public class FleeDestinationFinderTest {
     private static final int SIZE = 40;
 
     private static FleeDestinationFinder finder(FleeDestinationFinder.TileCheck check, long seed) {
-        return new FleeDestinationFinder(SIZE, SIZE, check, new Random(seed));
+        return new FleeDestinationFinder(SIZE, SIZE, check, (x, y) -> false, new Random(seed));
     }
 
     @Test
@@ -83,6 +83,20 @@ public class FleeDestinationFinderTest {
             assertTrue(dest.x <= 22, "reachable " + dest);
             assertTrue(dest.y <= 20, "away from the far corner " + dest);
         }
+    }
+
+    @Test
+    void runsOnlyToTheFloorOfItsOwnerWhenTheAreaHasSome() {
+        // Of the area 24..28 by 18..22 only the column x = 28 is the owner's floor
+        for (long seed = 0; seed < 50; seed++) {
+            Point dest = new FleeDestinationFinder(SIZE, SIZE, (x, y) -> true, (x, y) -> x == 28, new Random(seed))
+                    .findAwayFrom(new Point(22, 20), new Point(20, 20), 6).orElseThrow();
+            assertEquals(28, dest.x, "own floor " + dest);
+        }
+
+        // None of it can be reached, so the creature doesn't run this way
+        assertTrue(new FleeDestinationFinder(SIZE, SIZE, (x, y) -> x != 28, (x, y) -> x == 28, new Random(1))
+                .findAwayFrom(new Point(22, 20), new Point(20, 20), 6).isEmpty());
     }
 
     @Test

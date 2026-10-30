@@ -908,6 +908,7 @@ public final class CreatureController extends EntityController implements ICreat
         FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
                 mapController.getMapData().getHeight(),
                 (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
+                (x, y) -> mapController.getMapData().getTile(x, y).getOwnerId() == getOwnerId() && !mapController.isSolid(new Point(x, y)),
                 ThreadLocalRandom.current());
         finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
                 .or(() -> finder.findAround(ourLocation))

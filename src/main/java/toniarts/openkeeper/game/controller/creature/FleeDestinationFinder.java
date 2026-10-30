@@ -31,7 +31,7 @@ import toniarts.openkeeper.utils.Point;
 public final class FleeDestinationFinder {
 
     /**
-     * Tells if a creature can walk to a tile
+     * Checks a tile, such as whether a creature can walk to it
      */
     @FunctionalInterface
     public interface TileCheck {
@@ -41,9 +41,9 @@ public final class FleeDestinationFinder {
          *
          * @param x the tile x
          * @param y the tile y
-         * @return true if the creature can walk to the tile
+         * @return true if the tile passes the check
          */
-        boolean isReachable(int x, int y);
+        boolean test(int x, int y);
     }
 
     /**
@@ -60,6 +60,7 @@ public final class FleeDestinationFinder {
     private final int mapWidth;
     private final int mapHeight;
     private final TileCheck tileCheck;
+    private final TileCheck ownFloor;
     private final RandomGenerator random;
 
     /**
@@ -68,12 +69,15 @@ public final class FleeDestinationFinder {
      * @param mapWidth map width in tiles
      * @param mapHeight map height in tiles
      * @param tileCheck tells the tiles the creature can walk to
+     * @param ownFloor tells the tiles of the creature's owner that are not
+     * solid
      * @param random the random source
      */
-    public FleeDestinationFinder(int mapWidth, int mapHeight, TileCheck tileCheck, RandomGenerator random) {
+    public FleeDestinationFinder(int mapWidth, int mapHeight, TileCheck tileCheck, TileCheck ownFloor, RandomGenerator random) {
         this.mapWidth = mapWidth;
         this.mapHeight = mapHeight;
         this.tileCheck = tileCheck;
+        this.ownFloor = ownFloor;
         this.random = random;
     }
 
@@ -81,8 +85,11 @@ public final class FleeDestinationFinder {
      * Picks a tile away from the threat. The point on the line from the
      * threat through the creature, the given distance from the threat, is the
      * centre of a 5x5 area. A random reachable tile of the area, other than the
-     * creature's own, is the destination. If the area has none, the creature runs from the area's far
-     * corner instead, a random number of tiles on each axis.
+     * creature's own, is the destination. When the area has floor of the
+     * creature's owner, only that floor will do, and if none of it can be
+     * reached the creature doesn't run this way at all. If the area has no
+     * reachable tile, the creature runs from the area's far corner instead, a
+     * random number of tiles on each axis.
      *
      * @param creature the creature's tile
      * @param threat the threat's tile
@@ -102,9 +109,15 @@ public final class FleeDestinationFinder {
         int maxY = clamp(minY + AREA_SIZE - 1, mapHeight);
 
         List<Point> candidates = new ArrayList<>();
+        boolean ownFloorFound = false;
         for (int y = minY; y <= maxY; y++) {
             for (int x = minX; x <= maxX; x++) {
-                if (tileCheck.isReachable(x, y) && !(x == creature.x && y == creature.y)) {
+                boolean own = ownFloor.test(x, y);
+                if (own && !ownFloorFound) {
+                    ownFloorFound = true;
+                    candidates.clear();
+                }
+                if ((own || !ownFloorFound) && tileCheck.test(x, y) && !(x == creature.x && y == creature.y)) {
                     candidates.add(new Point(x, y));
                 }
             }
@@ -112,7 +125,7 @@ public final class FleeDestinationFinder {
         if (!candidates.isEmpty()) {
             return Optional.of(candidates.get(random.nextInt(candidates.size())));
         }
-        return findAwayFromCorner(creature, maxX, maxY);
+        return ownFloorFound ? Optional.empty() : findAwayFromCorner(creature, maxX, maxY);
     }
 
     private Optional<Point> findAwayFromCorner(Point creature, int cornerX, int cornerY) {
@@ -137,7 +150,7 @@ public final class FleeDestinationFinder {
     }
 
     private boolean isReachable(int x, int y) {
-        return x >= 0 && y >= 0 && x < mapWidth && y < mapHeight && tileCheck.isReachable(x, y);
+        return x >= 0 && y >= 0 && x < mapWidth && y < mapHeight && tileCheck.test(x, y);
     }
 
     /**
