@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -420,19 +421,20 @@ class CreatureControllerTest {
     }
 
     @Test
-    void swingLastsItsStartAndEndAnimationsToo() {
+    void swingPlaysEachAnimationPartOverWholeTurns() {
         Creature definition = CreatureSleepFixtures.sleeper(9);
 
-        // A Goblin's swing: 15 + 28 + 15 frames at 30 fps
+        // A Goblin's swing: 15 + 28 + 15 frames at 30 fps take 3 + 5 + 3 turns at 4 turns a second, so the creature
+        // is back in FIGHT on turn 10 and swings again on turn 11, as a Goblin does in DK II
         CreatureSleepFixtures.setSwing(definition, 28, 30, 15, 15);
         try (Fixture f = new Fixture(definition)) {
             f.controller.executeAttack(f.meleeTarget());
 
-            f.time = 1.75;
+            f.time = 2.25;
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.MELEE_ATTACK, f.state());
 
-            f.time = 2;
+            f.time = 2.5;
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.FIGHT, f.state());
         }
@@ -515,15 +517,19 @@ class CreatureControllerTest {
                 case "getSensedEntities" -> Set.of();
                 default -> throw new UnsupportedOperationException(method);
             });
-            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, null, null, null, eventService);
-            controller = controllers.get();
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
                 case "getGameLevel" -> CreatureSleepFixtures.level(4);
                 case "getRoomById" -> new Room();
                 default -> throw new UnsupportedOperationException(method);
             });
+            ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
+                case "getLevelData" -> kwd;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
+                    settings, null, lookup, map, levelInfo, null, null, eventService);
+            controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
             healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);
