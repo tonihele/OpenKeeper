@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.LeavingDungeon;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -1218,13 +1219,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         CreatureState creatureState = null;
         CreatureState targetState = null;
 
-        // A creature dropped on the middle of its keeper's portal leaves the dungeon
+        // A creature dropped on the middle of its keeper's portal leaves the dungeon when it lands
         if (roomController instanceof ThreeByThreeController portal) {
             Entity creature = entityData.getEntity(entity, Owner.class, CreatureComponent.class);
             boolean imp = creature.get(CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
             if (portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp)) {
-                creaturesController.leaveDungeon(entity, new Vector3f(coordinates.x, WorldUtils.FLOOR_HEIGHT, coordinates.y));
-                return;
+                entityData.setComponent(entity, new LeavingDungeon());
             }
         }
 

@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
-import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import java.util.List;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -141,9 +140,8 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * The creature leaves the dungeon through a portal and is gone for good
      *
      * @param entityId the leaving creature
-     * @param position where it leaves
      */
-    void leaveDungeon(EntityId entityId, Vector3f position);
+    void leaveDungeon(EntityId entityId);
 
     /**
      * Gets the creature currently possessed by the given player
