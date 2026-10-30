@@ -80,6 +80,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
@@ -98,10 +99,12 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -577,7 +580,13 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
-        GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
+
+        // A worker walks round the enemies in its way, see flee()
+        GraphPath<IMapTileInformation> path = creature.getFightStyle() == Creature.FightStyle.NON_FIGHTER
+                ? navigationService.findPath(currentLocation, destination, getNavigableAroundEnemies()) : null;
+        if (path == null) {
+            path = navigationService.findPath(currentLocation, destination, this);
+        }
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
@@ -1117,31 +1126,97 @@ public final class CreatureController extends EntityController implements ICreat
 //            Flee<Vector2> flee = new Flee<>(this, target);
 //            prioritySteering.add(flee);
 //        }
-        // A keeper's creature withdraws to a random point 2 tiles either way of its heart room's position, or to the
-        // position itself if it can't get there (0x4611D0). In DK II that position is a tile down and right of the
-        // heart's centre (room +0x27), so on level 5 the Imps end up on the corners of the centre 3x3
+        // A keeper's creature withdraws to its heart. DK II's creatures push each other aside as they move (separation
+        // steering, 0x4D2DF0 and 0x4D2B80), so one that withdraws goes round the enemies in its way instead of through
+        // them: plan a way round the tiles they stand on, and only when there is none, go through
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
-            Point heart = keeper.getDungeonHeartLocation();
-            Point position = new Point(heart.x + 1, heart.y + 1);
-            Point destination = new Point(position.x + (FastMath.rand.nextBoolean() ? 2 : -2), position.y + (FastMath.rand.nextBoolean() ? 2 : -2));
-            if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
-                destination = position;
-
-                // Where we can't stand on the position, stop next to it
-                if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
-                    destination = FastMath.rand.nextBoolean() ? new Point(destination.x + 1, destination.y) : new Point(destination.x, destination.y + 1);
+            for (INavigable navigable : List.of(getNavigableAroundEnemies(), this)) {
+                if (withdrawToHeart(keeper.getDungeonHeartLocation(), navigable)) {
+                    return;
                 }
             }
-            if (createNavigation(getCreatureCoordinates(), destination, null)) {
-                navigateToRandomPoint();
-            }
-        } else {
-            navigateToRandomPoint();
         }
+        navigateToRandomPoint();
 
         // Try to find our dungeon heart etc. safety haven
         //setSteeringBehavior(prioritySteering);
+    }
+
+    /**
+     * Withdraws to a random point 2 tiles either way of the heart room's
+     * position, or to the position itself if we can't get there (0x4611D0).
+     * In DK II that position is a tile down and right of the heart's centre
+     * (room +0x27), so on level 5 the Imps end up on the corners of the centre
+     * 3x3
+     */
+    private boolean withdrawToHeart(Point heart, INavigable navigable) {
+        Point position = new Point(heart.x + 1, heart.y + 1);
+        Point destination = new Point(position.x + (FastMath.rand.nextBoolean() ? 2 : -2), position.y + (FastMath.rand.nextBoolean() ? 2 : -2));
+        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, navigable);
+        if (path == null) {
+            destination = position;
+            path = navigationService.findPath(getCreatureCoordinates(), destination, navigable);
+
+            // Where we can't stand on the position, stop next to it
+            if (path == null) {
+                destination = FastMath.rand.nextBoolean() ? new Point(destination.x + 1, destination.y) : new Point(destination.x, destination.y + 1);
+                path = navigationService.findPath(getCreatureCoordinates(), destination, navigable);
+            }
+        }
+        if (path != null) {
+            entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+        }
+        return path != null;
+    }
+
+    /**
+     * Finds paths for us that don't go through the tiles the enemies we sense
+     * stand on
+     */
+    private INavigable getNavigableAroundEnemies() {
+        Set<Point> enemyTiles = new HashSet<>();
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            IMapTileInformation tile = creaturesController.isValidEntity(entity) && isEnemy(entity) && !isIncapacitated(entity)
+                    ? entityPositionLookup.getEntityLocation(entity) : null;
+            if (tile != null) {
+                enemyTiles.add(tile.getLocation());
+            }
+        }
+        INavigable navigable = this;
+        return new INavigable() {
+
+            @Override
+            public Float getCost(IMapTileInformation from, IMapTileInformation to, IMapController mapController,
+                    IEntityPositionLookup entityPositionLookup) {
+                return enemyTiles.contains(to.getLocation()) ? null : navigable.getCost(from, to, mapController, entityPositionLookup);
+            }
+
+            @Override
+            public short getOwnerId() {
+                return navigable.getOwnerId();
+            }
+
+            @Override
+            public boolean canFly() {
+                return navigable.canFly();
+            }
+
+            @Override
+            public boolean canWalkOnWater() {
+                return navigable.canWalkOnWater();
+            }
+
+            @Override
+            public boolean canWalkOnLava() {
+                return navigable.canWalkOnLava();
+            }
+
+            @Override
+            public boolean canMoveDiagonally() {
+                return navigable.canMoveDiagonally();
+            }
+        };
     }
 
     @Override
