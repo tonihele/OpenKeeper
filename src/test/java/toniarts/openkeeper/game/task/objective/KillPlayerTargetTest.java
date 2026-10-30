@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import com.jme3.export.InputCapsule;
+import com.jme3.export.JmeImporter;
+import java.io.IOException;
 import java.lang.reflect.Proxy;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -28,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Maps give heroes keepers to kill whose slots may be left empty, or that have
- * no Dungeon Heart, such as the heroes' own side
+ * no Dungeon Heart, such as the heroes' own side, or who have been defeated
  */
 class KillPlayerTargetTest {
 
@@ -50,6 +53,22 @@ class KillPlayerTargetTest {
         Keeper keeper = new Keeper();
         ILevelInfo level = level(PLAYING_KEEPER, keeper);
 
+        assertFalse(KillPlayer.isTargetPresent(level, PLAYING_KEEPER));
+    }
+
+    @Test
+    void defeatedKeeperIsNoTarget() throws IOException {
+
+        // Loading a saved game is the way to get a defeated keeper here: every value is the default but "destroyed"
+        InputCapsule capsule = (InputCapsule) Proxy.newProxyInstance(InputCapsule.class.getClassLoader(),
+                new Class<?>[]{InputCapsule.class}, (proxy, method, args) -> "destroyed".equals(args[0]) ? Boolean.TRUE : args[args.length - 1]);
+        JmeImporter importer = (JmeImporter) Proxy.newProxyInstance(JmeImporter.class.getClassLoader(),
+                new Class<?>[]{JmeImporter.class}, (proxy, method, args) -> capsule);
+        Keeper keeper = new Keeper();
+        keeper.read(importer);
+        ILevelInfo level = level(PLAYING_KEEPER, keeper);
+
+        assertTrue(keeper.isDestroyed());
         assertFalse(KillPlayer.isTargetPresent(level, PLAYING_KEEPER));
     }
 
