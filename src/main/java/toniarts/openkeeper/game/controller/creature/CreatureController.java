@@ -120,6 +120,8 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    // DK II's 0xD000, under 13 square tiles from the heart's centre
+    private static final float NEAR_OWN_HEART_DISTANCE_SQUARED = 13 * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
 
     /**
      * A creature hitting a heart picks its target again this often, in game
@@ -178,36 +180,42 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean shouldFleeOrAttack() {
         checkSurroundings();
 
-        // Check fleeing, TODO: Always flee?
-        boolean inDHeart = false;
-        if (entityData.getComponent(entityId, Fearless.class) == null) {
+        // A non-fighter (imp) only hits back at an enemy in reach and otherwise keeps working
+        boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
+        IEntityController enemyInReach = fighter ? null : getAttackTarget();
+        // DK II gives it a reach of one tile (0x45BDF0)
+        if (enemyInReach != null && !isInRange(WorldUtils.TILE_WIDTH, enemyInReach.getEntityId())) {
+            setAttackTarget(null);
+            enemyInReach = null;
+        }
+
+        // Check fleeing, TODO: Always flee? Fighters no longer flee near our own DHeart
+        boolean nearOwnHeart = isNearOwnHeart();
+        if (entityData.getComponent(entityId, Fearless.class) == null && !(fighter && nearOwnHeart)) {
             Threat threatComponent = entityData.getComponent(entityId, Threat.class);
             int threat = threatComponent != null ? threatComponent.threat : 0;
             int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
             int threatToUs = getEnemyThreat();
             int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE)
                     || isHealthAtCriticalLevel() ? threat : getOurThreat();
-            if (threatToUs - threatCaused > fear && (getFellowFighters() == 0
-                    || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
 
-                // No longer flee from DHeart
-                IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-                if (roomController == null || !roomController.isDungeonHeart()) {
-                    if (!stateMachine.isInState(CreatureState.FLEE)) {
+            // A non-fighter withdraws as soon as an enemy fighter picks it as its target
+            if (fighter ? threatToUs - threatCaused > fear && (getFellowFighters() == 0
+                    || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))
+                    : isTargetedByEnemyFighter()) {
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
 
-                        stateMachine.changeState(CreatureState.FLEE);
-                    }
-                    return true;
-                } else {
-                    inDHeart = true;
+                    stateMachine.changeState(CreatureState.FLEE);
                 }
+                return true;
             }
         }
 
-        // Should we attack, try to avoid i.e. imps engaging in a fight
-        if ((creature.getFightStyle()
-                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null) {
-            if (!stateMachine.isInState(CreatureState.FIGHT)) {
+        // Should we attack, try to avoid i.e. imps engaging in a fight. Near their own heart they
+        // hit back at an enemy in reach
+        IEntityController attackTarget = fighter ? getAttackTarget() : nearOwnHeart ? enemyInReach : null;
+        if (attackTarget != null) {
+            if (!stateMachine.isInState(CreatureState.FIGHT) && !stateMachine.isInState(CreatureState.MELEE_ATTACK)) {
                 stateMachine.changeState(CreatureState.FIGHT);
             }
             return true;
@@ -231,6 +239,36 @@ public final class CreatureController extends EntityController implements ICreat
                 convertCreature(entity, ownerId);
             }
         }
+    }
+
+    /**
+     * DK II's creatures stand their ground within about 3.6 tiles of the centre of their own
+     * Dungeon Heart, as long as it stands
+     */
+    private boolean isNearOwnHeart() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (heart == null) {
+            return false;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(heart);
+        if (room == null || room.isDestroyed()) {
+            return false;
+        }
+        Vector3f position = getPosition();
+        return WorldUtils.pointToVector2f(heart).distanceSquared(position.x, position.z) < NEAR_OWN_HEART_DISTANCE_SQUARED;
+    }
+
+    private boolean isTargetedByEnemyFighter() {
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            AttackTarget target = entityData.getComponent(entity, AttackTarget.class);
+            if (target != null && target.entityId.equals(entityId) && isEnemy(entity)
+                    && getEntityFightingStyle(entity) != Creature.FightStyle.NON_FIGHTER) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1009,11 +1047,25 @@ public final class CreatureController extends EntityController implements ICreat
 //            Flee<Vector2> flee = new Flee<>(this, target);
 //            prioritySteering.add(flee);
 //        }
-        // FIXME: For now just flee towards the dungeon heart or random tiles
+        // A keeper's creature withdraws to a random point 2 tiles either way of its heart room's position, or to the
+        // position itself if it can't get there (0x4611D0). In DK II that position is a tile down and right of the
+        // heart's centre (room +0x27), so on level 5 the Imps end up on the corners of the centre 3x3
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
-            Point p = keeper.getDungeonHeartLocation();
-            createNavigation(getCreatureCoordinates(), new Point(p.x - 2, p.y - 2), null);
+            Point heart = keeper.getDungeonHeartLocation();
+            Point position = new Point(heart.x + 1, heart.y + 1);
+            Point destination = new Point(position.x + (FastMath.rand.nextBoolean() ? 2 : -2), position.y + (FastMath.rand.nextBoolean() ? 2 : -2));
+            if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
+                destination = position;
+
+                // Where we can't stand on the position, stop next to it
+                if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
+                    destination = FastMath.rand.nextBoolean() ? new Point(destination.x + 1, destination.y) : new Point(destination.x, destination.y + 1);
+                }
+            }
+            if (createNavigation(getCreatureCoordinates(), destination, null)) {
+                navigateToRandomPoint();
+            }
         } else {
             navigateToRandomPoint();
         }
