@@ -27,6 +27,7 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
@@ -63,7 +64,7 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
         if (currentState.blueprint) {
             tooltip = bundle.getString("2512");
         } else if (playerId != getOwnerId()) {
-            tooltip = bundle.getString(Integer.toString(trap.getNameStringId()));
+            tooltip = "%" + TextParameter.ENTITY_NAME.getId();
         } else if (trap.getFlags().contains(Trap.TrapFlag.GUARD_POST)) {
             tooltip = bundle.getString("2538");
         } else {
