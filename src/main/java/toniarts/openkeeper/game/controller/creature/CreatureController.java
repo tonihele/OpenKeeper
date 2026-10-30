@@ -722,8 +722,11 @@ public final class CreatureController extends EntityController implements ICreat
                 entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
-                // The hit lands the creature's shot delay into the swing (0x498E30)
-                entityData.setComponent(entityId, new MeleeHit(attackTarget, gameTimer.getGameTime() + creature.getShotDelay()));
+                // The hit lands the creature's shot delay into the swing (0x498E30), counted in whole turns rounded
+                // down (0x492320)
+                int ticksPerSec = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                double hitDelay = (int) (creature.getShotDelay() * ticksPerSec) / (double) ticksPerSec;
+                entityData.setComponent(entityId, new MeleeHit(attackTarget, gameTimer.getGameTime() + hitDelay));
                 releaseMeleeHit();
             }
         } else {
