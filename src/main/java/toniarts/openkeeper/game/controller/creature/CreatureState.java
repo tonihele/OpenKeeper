@@ -147,8 +147,11 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            if (entity.isStopped()) {
+            // A creature the keeper has claimed goes back to look for work, a neutral one keeps strolling
+            if (entity.isClaimed()) {
                 entity.getStateMachine().changeState(IDLE);
+            } else if (entity.isStopped()) {
+                entity.navigateToRandomPoint();
             }
         }
 

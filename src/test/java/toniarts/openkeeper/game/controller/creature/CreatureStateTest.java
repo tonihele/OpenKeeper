@@ -74,9 +74,11 @@ class CreatureStateTest {
         assertEquals(1, walks.get());
         assertEquals(CreatureState.WANDER, currentState.get());
 
+        // On arriving it picks the next point straight away, as DK II does, instead of standing in IDLE
         stopped.set(true);
         CreatureState.WANDER.update(creature);
-        assertEquals(CreatureState.IDLE, currentState.get());
+        assertEquals(CreatureState.WANDER, currentState.get());
+        assertEquals(2, walks.get());
     }
 
     @Test
