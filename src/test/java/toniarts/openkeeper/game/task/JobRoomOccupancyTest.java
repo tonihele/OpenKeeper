@@ -32,12 +32,15 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.GuardRoomController;
 import toniarts.openkeeper.game.controller.room.TrainingRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Train;
+import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
@@ -136,6 +139,51 @@ class JobRoomOccupancyTest {
         return new Guard(null, null, new Point(1, 1), KEEPER, guardRoom, taskManager(), 4, 0, null);
     }
 
+    @Test
+    void casinoCountsTheGamblersThatHaveATask() {
+        CasinoController casino = casino();
+        ICreatureController gambler = creature();
+        assertEquals(0, casino.getUsedCapacity(ObjectType.GAMBLER));
+
+        Gamble gamble = gamble(casino);
+        gamble.assign(gambler, true);
+        assertEquals(1, casino.getUsedCapacity(ObjectType.GAMBLER));
+
+        gamble.unassign(gambler);
+        gamble.unassign(gambler);
+        assertEquals(0, casino.getUsedCapacity(ObjectType.GAMBLER));
+    }
+
+    @Test
+    void gamblerInAFullCasinoKeepsItsTaskButANewcomerHasNone() {
+        CasinoController casino = casino();
+        ICreatureController gambler = creature();
+        Gamble gamble = gamble(casino);
+        gamble.assign(gambler, true);
+        assertEquals(casino.getMaxCapacity(ObjectType.GAMBLER), casino.getUsedCapacity(ObjectType.GAMBLER));
+
+        assertTrue(gamble.isValid(gambler));
+        assertFalse(gamble(casino).isValid(creature()));
+    }
+
+    private CasinoController casino() {
+        CasinoController casino = new CasinoController(entityData.createEntity(), entityData, null, roomInstance(15, 87), objectsController(), null);
+        casino.construct();
+        return casino;
+    }
+
+    private Gamble gamble(CasinoController casino) {
+        for (MiscType type : new MiscType[]{MiscType.GAMBLING_MODIFY_CREATURE_MONEY_SMILES_PER_SECOND,
+            MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND, MiscType.GAMBLING_MODIFY_CREATURE_ANGER_SMILES_PER_SECOND,
+            MiscType.GAMBLING_MODIFY_CREATURE_ANGER_MONEY_PER_SECOND, MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND,
+            MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND, MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT,
+            MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT, MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY}) {
+            gameSettings.put(type, CasinoVariableFixtures.miscVariable(type, 1));
+        }
+        return new Gamble(null, null, new Point(1, 1), KEEPER, casino, taskManager(), entityData, null, null, gameSettings,
+                () -> CasinoController.PayOut.SMILES, null);
+    }
+
     private TrainingRoomController trainingRoom() {
         TrainingRoomController room = new TrainingRoomController(entityData.createEntity(), entityData, null, roomInstance(7, 14), objectsController(), null);
         room.construct();
@@ -178,6 +226,8 @@ class JobRoomOccupancyTest {
                 KEEPER;
             case "getLevel" ->
                 1;
+            case "getGold" ->
+                100;
             case "hashCode" ->
                 System.identityHashCode(proxy);
             case "equals" ->
