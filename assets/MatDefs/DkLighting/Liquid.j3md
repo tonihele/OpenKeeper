@@ -6,7 +6,6 @@ MaterialDef DK Liquid Lighting {
         Texture2D EnvironmentMap
         Int BumpFrames : 1
         Float EnhancedOpacity : 1.0
-        Float LiquidTime : 0.0
         Boolean Enhanced
 
         // KmfModelLoader.setMaterialFlags sets this on every material it

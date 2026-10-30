@@ -9,7 +9,7 @@ uniform sampler2D m_BumpMap;
 uniform sampler2D m_EnvironmentMap;
 uniform int m_BumpFrames;
 uniform float m_EnhancedOpacity;
-uniform float m_LiquidTime;
+uniform float g_Time;
 #endif
 varying vec2 texCoord;
 varying vec3 vVertexColor;
@@ -32,7 +32,9 @@ void main() {
     vec2 size = vec2(textureSize(m_BumpMap, 0));
     float frames = float(m_BumpFrames);
     vec2 frameSize = vec2(size.x / frames, size.y);
-    float frame = mod(floor(m_LiquidTime * 30.0), frames);
+    // DKII cycles the complete bump sequence in four seconds, independently of waves.
+    // Use the same engine clock as Classic water and other animated sprites.
+    float frame = floor(fract(g_Time * 0.25) * frames);
     vec2 pixels = fract(liquidUV) * (frameSize - 1.0) + 0.5;
     vec2 bumpUV = (pixels + vec2(frame * frameSize.x, 0.0)) / size;
     vec2 displacement = (texture2D(m_BumpMap, bumpUV).rg * 255.0 - 128.0) / 128.0;

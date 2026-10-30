@@ -76,7 +76,6 @@ public final class LiquidSurfaceControl extends AbstractControl {
         }
         if (water && !enhanced && !modeChanged) return;
         double tick = LiquidWaves.tick();
-        material.setFloat("LiquidTime", (float) (tick / LiquidWaves.TICKS_PER_SECOND));
         FloatBuffer positions = mesh.getFloatBuffer(VertexBuffer.Type.Position);
         FloatBuffer normals = mesh.getFloatBuffer(VertexBuffer.Type.Normal);
         for (int i = 0; i < positions.limit(); i += 3) {
