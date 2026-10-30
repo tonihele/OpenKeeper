@@ -275,10 +275,10 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     /**
-     * Counts a creature that has died or been destroyed to the statistics of its owner's enemies. A
-     * knocked out creature is not counted yet, it may still be rescued or taken prisoner, and it
-     * is counted once when it finally dies. FIXME: DK II counts it only to the player who hit it
-     * last, we don't track the attacker yet
+     * Counts a creature that has died or been destroyed to the statistics of its owner's enemies,
+     * and as a loss to its owner. A knocked out creature is not counted yet, it may still be rescued
+     * or taken prisoner, and it is counted once when it finally dies. FIXME: DK II counts it only
+     * to the player who hit it last, we don't track the attacker yet
      *
      * @param entityId the creature
      */
@@ -294,6 +294,10 @@ public final class HealthSystem extends GameTimeCounter {
             if (player.getKeeper().isEnemy(owner.ownerId)) {
                 player.getStatsControl().creatureKilled(creature);
             }
+        }
+        IPlayerController ownerPlayer = playerControllersById.get(owner.ownerId);
+        if (ownerPlayer != null) {
+            ownerPlayer.getStatsControl().ownCreatureKilled();
         }
     }
 

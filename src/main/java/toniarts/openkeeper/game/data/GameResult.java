@@ -29,6 +29,8 @@ public final class GameResult {
     public enum ResultType {
         TOTAL_RATING,
         OVERALL_TOTAL_RATING,
+        LEVEL_RATING,
+        OWN_CREATURES_KILLED,
         SPECIALS_FOUND,
         SPECIALS_MAX,
 
@@ -120,6 +122,48 @@ public final class GameResult {
                 + CREATURE_COMMANDED_RATING * getInt(ResultType.CREATURES_COMMANDED)
                 + CREATURE_CONVERTED_RATING * getInt(ResultType.CREATURES_CONVERTED)
                 + CREATURE_TRAINING_RATING * level + CREATURE_TRAINING_RATING * levelHundredths / 100;
+    }
+
+    /**
+     * Calculates the level rating, which gives the keeper's rank on the debriefing screen. It starts
+     * at 50 and each statistic adds or takes up to 10: the kills, creatures commanded, rooms
+     * captured, items manufactured and creatures converted take less the more there are, the
+     * creature training adds 10/9 per experience level above the first, a won level adds 10, and
+     * own creatures killed take away from a bonus of 10. A quick finish adds up to 10: all of it up
+     * to a third of the average time, falling to nothing at twice the average time. DK II counts the
+     * time here in game ticks times the ticks per second, so only a very quick finish gets any. The
+     * sum is multiplied by the level's rating multiplier and capped at 100. Enemy keepers vanquished
+     * (up to 10) are not counted yet.
+     *
+     * @param levelRating the level's rating multiplier (LEVEL_RATING)
+     * @param averageTime the level's average time in minutes (AVERAGE_TIME)
+     * @param ticksPerSecond the level's ticks per second
+     * @return the level rating, up to 100
+     */
+    public int calculateLevelRating(float levelRating, float averageTime, int ticksPerSecond) {
+        Number training = getData(ResultType.CREATURE_TRAINING);
+        int level = training != null ? training.intValue() : 0;
+        int rating = 50 + (int) (level * (10.0 / 9) - 10.0 / 9)
+                - (int) (133 / (getInt(ResultType.ENEMY_CREATURES_KILLED) + getInt(ResultType.HEROES_DESTROYED) + 13.3))
+                - (int) (83 / (getInt(ResultType.CREATURES_COMMANDED) + 8.3))
+                - (int) (33 / (getInt(ResultType.ROOMS_CAPTURED) + 3.3))
+                - (int) (67 / (getInt(ResultType.ITEMS_MANUFACTURED) + 6.7))
+                - (int) (33 / (getInt(ResultType.CREATURES_CONVERTED) + 3.3))
+                + (int) (90 / (getInt(ResultType.OWN_CREATURES_KILLED) + 9.0));
+        if (isLevelWon()) {
+            rating += 10;
+        }
+
+        Number timeTaken = getData(ResultType.TIME_TAKEN);
+        long time = (long) ((timeTaken != null ? timeTaken.doubleValue() : 0) * ticksPerSecond) * ticksPerSecond;
+        long average = (long) averageTime * 60;
+        if (time <= average / 3) {
+            rating += 10;
+        } else if (time < 2 * average) {
+            rating += (int) (12 - time * 6 / average);
+        }
+
+        return Math.min((int) (rating * levelRating), 100);
     }
 
     private int getInt(ResultType key) {

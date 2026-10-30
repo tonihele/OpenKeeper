@@ -97,6 +97,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
     private static final String OBJECTIVE_IMAGE_URL = "Textures/Obj_Shots/%s-%d.png";
+    /**
+     * The level ratings where the next rank begins, from Sniveller (text 2895) to Immortal (2900)
+     */
+    private static final int[] LEVEL_RANK_RATINGS = {18, 34, 51, 68, 83};
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -1417,6 +1421,18 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Number specialsMax = result.getData(GameResult.ResultType.SPECIALS_MAX);
         setDebriefingValue(deScreen, "specialsFound", specialsFound == null || specialsMax == null ? "?/?" : specialsFound + " / " + specialsMax);
         setDebriefingValue(deScreen, "totalEvilRating", result.getData(GameResult.ResultType.TOTAL_RATING));
+        Integer levelRating = result.getData(GameResult.ResultType.LEVEL_RATING);
+        String rank = null;
+        if (levelRating != null) {
+            int textId = 2895;
+            for (int rating : LEVEL_RANK_RATINGS) {
+                if (levelRating >= rating) {
+                    textId++;
+                }
+            }
+            rank = "${menu." + textId + "}";
+        }
+        setDebriefingValue(deScreen, "levelRank", rank);
         setDebriefingValue(deScreen, "enemyCreaturesKilled", result.getData(GameResult.ResultType.ENEMY_CREATURES_KILLED));
         setDebriefingValue(deScreen, "heroesDestroyed", result.getData(GameResult.ResultType.HEROES_DESTROYED));
         setDebriefingValue(deScreen, "roomsCaptured", result.getData(GameResult.ResultType.ROOMS_CAPTURED));

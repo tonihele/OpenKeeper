@@ -55,6 +55,15 @@ class PlayerStatsControlTest {
     }
 
     @Test
+    void countsOwnCreaturesKilled() {
+        stats.ownCreatureKilled();
+        stats.ownCreatureKilled();
+
+        assertEquals(2, stats.getOwnCreaturesKilled());
+        assertEquals(0, stats.getEnemyCreaturesKilled());
+    }
+
+    @Test
     void countsSpecialsFound() {
         stats.specialFound();
         stats.specialFound();

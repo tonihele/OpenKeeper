@@ -113,6 +113,22 @@ public final class PlayerStatsControl {
     }
 
     /**
+     * One of the player's own creatures has died
+     */
+    public void ownCreatureKilled() {
+        keeper.setOwnCreaturesKilled(keeper.getOwnCreaturesKilled() + 1);
+    }
+
+    /**
+     * Get the number of the player's own creatures that have died
+     *
+     * @return own creatures killed
+     */
+    public int getOwnCreaturesKilled() {
+        return keeper.getOwnCreaturesKilled();
+    }
+
+    /**
      * Get the number of enemy creatures, not heroes, killed
      *
      * @return enemy creatures killed

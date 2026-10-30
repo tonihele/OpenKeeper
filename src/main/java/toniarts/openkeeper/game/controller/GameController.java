@@ -416,6 +416,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         gameResult.setData(GameResult.ResultType.SPECIALS_MAX, specials);
 
         gameResult.setData(GameResult.ResultType.TOTAL_RATING, gameResult.calculateEvilRating());
+
+        gameResult.setData(GameResult.ResultType.OWN_CREATURES_KILLED, stats.getOwnCreaturesKilled());
+        gameResult.setData(GameResult.ResultType.LEVEL_RATING, gameResult.calculateLevelRating(
+                gameSettings.get(Variable.MiscVariable.MiscType.LEVEL_RATING).getValue(),
+                gameSettings.get(Variable.MiscVariable.MiscType.AVERAGE_TIME).getValue(),
+                levelInfo.kwdFile.getGameLevel().getTicksPerSec()));
     }
 
     @Override

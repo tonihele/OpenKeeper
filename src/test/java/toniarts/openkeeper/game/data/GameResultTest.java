@@ -24,8 +24,8 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The debriefing tells a won level from a lost one by the game result, and the Evil Rating of a
- * level is calculated from its statistics
+ * The debriefing tells a won level from a lost one by the game result, and the Evil Rating and the
+ * level rating of a level are calculated from its statistics
  */
 class GameResultTest {
 
@@ -96,6 +96,66 @@ class GameResultTest {
         result.setData(ResultType.CREATURES_COMMANDED, 12);
 
         assertEquals(3000 + 5 * 200 + 20 * 12, result.calculateEvilRating());
+    }
+
+    @Test
+    void levelRatingWithoutStatistics() {
+
+        // 50, -1 for no training, -10 each for no kills, creatures, rooms, items and conversions,
+        // +10 for no creatures lost and +10 for no time taken
+        assertEquals(19, new GameResult().calculateLevelRating(1, 60, 4));
+    }
+
+    @Test
+    void levelRatingWeighsEachStatistic() {
+        GameResult result = goodGame();
+
+        // 50 + 3 training - 5 kills - 6 creatures - 6 rooms - 6 items - 6 conversions + 9 lost + 10 won
+        assertEquals(43, result.calculateLevelRating(1, 60, 4));
+    }
+
+    @Test
+    void levelRatingIsMultipliedAndCapped() {
+        assertEquals(86, goodGame().calculateLevelRating(2, 60, 4));
+
+        // Level 1's multiplier is 6501 / 4096: 43 * 1.587 = 68.2
+        assertEquals(68, goodGame().calculateLevelRating(6501 / 4096f, 60, 4));
+
+        GameResult quickGame = goodGame(0);
+        assertEquals(100, quickGame.calculateLevelRating(2, 60, 4));
+    }
+
+    @Test
+    void levelRatingTimeBonus() {
+
+        // The time counts as game ticks times ticks per second, 60 minutes on average:
+        // full bonus up to 1200, none from 7200
+        assertEquals(10, timeBonus(75));
+        assertEquals(8, timeBonus(150));
+        assertEquals(1, timeBonus(449));
+        assertEquals(0, timeBonus(450));
+    }
+
+    private static int timeBonus(double seconds) {
+        return goodGame(seconds).calculateLevelRating(1, 60, 4) - goodGame().calculateLevelRating(1, 60, 4);
+    }
+
+    private static GameResult goodGame() {
+        return goodGame(1800);
+    }
+
+    private static GameResult goodGame(double seconds) {
+        GameResult result = new GameResult();
+        result.setData(ResultType.LEVEL_WON, true);
+        result.setData(ResultType.TIME_TAKEN, seconds);
+        result.setData(ResultType.ENEMY_CREATURES_KILLED, 10);
+        result.setData(ResultType.CREATURES_COMMANDED, 5);
+        result.setData(ResultType.ROOMS_CAPTURED, 2);
+        result.setData(ResultType.ITEMS_MANUFACTURED, 3);
+        result.setData(ResultType.CREATURES_CONVERTED, 2);
+        result.setData(ResultType.OWN_CREATURES_KILLED, 1);
+        result.setData(ResultType.CREATURE_TRAINING, 4.5f);
+        return result;
     }
 
     private static int rating(ResultType type, Number value) {
