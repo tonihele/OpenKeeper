@@ -32,9 +32,11 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.GuardRoomController;
 import toniarts.openkeeper.game.controller.room.TrainingRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -88,6 +90,22 @@ class JobRoomOccupancyTest {
 
         assertTrue(train.isValid(trainee));
         assertFalse(late.isValid(onItsWay));
+    }
+
+    @Test
+    void guardRoomCountsTheGuardsThatHaveATask() {
+        GuardRoomController guardRoom = new GuardRoomController(entityData.createEntity(), entityData, null, roomInstance(16, 0), objectsController(), null);
+        guardRoom.construct();
+        ICreatureController guard = creature();
+        assertEquals(0, guardRoom.getUsedCapacity(ObjectType.GUARD));
+
+        Guard task = new Guard(null, null, new Point(1, 1), KEEPER, guardRoom, taskManager(), 4, 0, null);
+        task.assign(guard, true);
+        assertEquals(1, guardRoom.getUsedCapacity(ObjectType.GUARD));
+
+        task.unassign(guard);
+        task.unassign(guard);
+        assertEquals(0, guardRoom.getUsedCapacity(ObjectType.GUARD));
     }
 
     private TrainingRoomController trainingRoom() {
