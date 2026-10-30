@@ -734,19 +734,17 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
         Set<Point> dirty = new HashSet<>(Arrays.asList(points));
-        for (Map.Entry<EntityId, IEntityViewControl> entry : entityViewControls.entrySet()) {
-            EntityId id = entry.getKey();
-            Position position = entityData.getComponent(id, Position.class);
-            if (position == null) {
-                continue;
-            }
-            Point tile = WorldUtils.vectorToPoint(position.position);
+        for (IEntityViewControl control : entityViewControls.values()) {
+
+            // From the control: its spatial stands at the entity's position, and an object's control has the latest view state
+            Spatial spatial = control.getSpatial();
+            Point tile = WorldUtils.vectorToPoint(spatial.getLocalTranslation());
             if (!dirty.contains(tile)) {
                 continue;
             }
-            ObjectViewState objectViewState = entityData.getComponent(id, ObjectViewState.class);
-            boolean baseVisible = (objectViewState == null || objectViewState.visible) && isTrapShown(entry.getValue());
-            applyFogCullHint(entry.getValue().getSpatial(), tile, baseVisible);
+            boolean baseVisible = (!(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible)
+                    && isTrapShown(control);
+            applyFogCullHint(spatial, tile, baseVisible);
         }
     }
 
