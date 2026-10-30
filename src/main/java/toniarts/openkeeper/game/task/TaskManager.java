@@ -453,14 +453,17 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * Sends the keeper's creatures that are still on their way to a job back
      * to idle, so they choose again. The original does this every time the
      * keeper's rooms change (CPlayer::resetCreaturesState 0x4E8D30, called
-     * from the room list update 0x4F04F0). Workers are left alone.
+     * from the room list update 0x4F04F0). Workers are left alone, and so are
+     * creatures on their way to make their lair: the original sends those back
+     * too, a mistake Flame's creatures_setup_lair_fix corrects.
      *
      * @param playerId the keeper whose rooms changed
      */
     private void resetCreaturesGoingToWork(short playerId) {
         for (EntityId entityId : new ArrayList<>(tasksIdsByEntities.keySet())) {
             Owner owner = entityData.getComponent(entityId, Owner.class);
-            if (owner == null || owner.ownerId != playerId) {
+            TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+            if (owner == null || owner.ownerId != playerId || task == null || task.taskType == TaskType.CLAIM_LAIR) {
                 continue;
             }
             ICreatureController creature = creaturesController.createController(entityId);

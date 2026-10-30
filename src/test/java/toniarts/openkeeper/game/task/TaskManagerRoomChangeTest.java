@@ -51,6 +51,7 @@ import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
  * DK II sends the keeper's creatures that are on their way to a job back to
@@ -65,12 +66,14 @@ class TaskManagerRoomChangeTest {
     private EntityId walking;
     private EntityId working;
     private EntityId otherKeepers;
+    private EntityId goingToMakeLair;
 
     @BeforeEach
     void setUp() {
-        walking = createCreature(Player.KEEPER1_ID, false);
-        working = createCreature(Player.KEEPER1_ID, true);
-        otherKeepers = createCreature(Player.KEEPER2_ID, false);
+        walking = createCreature(Player.KEEPER1_ID, false, TaskType.TRAIN);
+        working = createCreature(Player.KEEPER1_ID, true, TaskType.TRAIN);
+        otherKeepers = createCreature(Player.KEEPER2_ID, false, TaskType.TRAIN);
+        goingToMakeLair = createCreature(Player.KEEPER1_ID, false, TaskType.CLAIM_LAIR);
 
         // A room on land, no bridge for the tasks to look around
         IMapController mapController = stub(IMapController.class, Map.of(
@@ -108,10 +111,17 @@ class TaskManagerRoomChangeTest {
         assertEquals(List.of(walking), sentToIdle);
     }
 
-    private EntityId createCreature(short ownerId, boolean atTarget) {
+    @Test
+    void creaturesOnTheirWayToMakeTheirLairKeepGoing() {
+        playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertFalse(sentToIdle.contains(goingToMakeLair));
+    }
+
+    private EntityId createCreature(short ownerId, boolean atTarget, TaskType taskType) {
         EntityId entityId = entityData.createEntity();
         entityData.setComponents(entityId, new Owner(ownerId, ownerId),
-                new TaskComponent(entityId.getId(), null, new Point(5, 5), TaskType.TRAIN, 0, false));
+                new TaskComponent(entityId.getId(), null, new Point(5, 5), taskType, 0, false));
         atTaskTarget.put(entityId, atTarget);
         return entityId;
     }
