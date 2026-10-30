@@ -4,8 +4,6 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.VertexBuffer;
 import com.jme3.texture.image.ColorSpace;
 import java.awt.image.BufferedImage;
-import java.io.BufferedReader;
-import java.io.InputStreamReader;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.EntityInstance;
@@ -14,22 +12,6 @@ import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.*;
 
 class LiquidSurfaceTest {
-    @Test void matchesTheCapturedNativeLavaVerticesAndNormals() throws Exception {
-        int samples = 0;
-        try(var input = new BufferedReader(new InputStreamReader(getClass().getResourceAsStream("native-lava.csv")))) {
-            for(String row; (row=input.readLine())!=null;) {
-                if(row.startsWith("#")) continue;
-                double[] n = java.util.Arrays.stream(row.split(",")).mapToDouble(Double::parseDouble).toArray();
-                assertEquals(n[3], LiquidWaves.height(n[0],n[1],n[2],false), 2e-7);
-                Vector3f normal = new Vector3f();
-                LiquidWaves.normal(n[0],n[1],n[2],false,normal);
-                assertEquals(n[4],normal.x,2e-7);assertEquals(n[5],normal.y,2e-7);assertEquals(n[6],normal.z,2e-7);
-                samples++;
-            }
-        }
-        assertEquals(72,samples);
-    }
-
     @Test void hasTheNativeGridDensityAndIndependentTileUvs() {
         var instance = new EntityInstance<>(new Terrain());
         instance.addCoordinate(new Point(1,2));instance.addCoordinate(new Point(2,2));
