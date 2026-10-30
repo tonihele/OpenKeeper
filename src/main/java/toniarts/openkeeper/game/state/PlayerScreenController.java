@@ -1025,6 +1025,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
             setResearchEffect(door, element);
         }
         for (final ResearchableEntity trap : state.getAvailableTraps()) {
+
+            // DK II leaves out the traps that only doors fire (Magic Door, Spare Door), they are not built on their own
+            if (state.getKwdFile().getTrapById(trap.getId()).getFlags().contains(Trap.TrapFlag.DOOR_TRAP)) {
+                continue;
+            }
             Element element = contentPanel.addElement(createTrapIcon(trap));
             setResearchEffect(trap, element);
         }
