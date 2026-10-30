@@ -16,10 +16,12 @@
  */
 package toniarts.openkeeper.view.effect;
 
+import com.jme3.anim.AnimComposer;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 
@@ -58,7 +60,7 @@ public abstract class EffectEmitter extends Node {
     /**
      * For serialization only. Do not use.
      */
-    public EffectEmitter() {
+    protected EffectEmitter() {
         super();
     }
 
@@ -144,6 +146,7 @@ public abstract class EffectEmitter extends Node {
 
     private void spawnOne(boolean cubeGen) {
         Spatial s = spatial.clone();
+        startAnimation(s);
         if (effect.getFlags().contains(Effect.EffectFlag.RANDOM_DISTRIBUTION)) {
 
         } else if (effect.getFlags().contains(Effect.EffectFlag.UNIFORM_DISTRIBUTION)) {
@@ -182,6 +185,7 @@ public abstract class EffectEmitter extends Node {
      */
     private void respawnSelf(EffectElementControl dying, Vector3f location) {
         Spatial replacement = spatial.clone();
+        startAnimation(replacement);
         replacement.setLocalTranslation(location);
         replacement.setLocalRotation(dying.getSpatial().getLocalRotation());
         replacement.addControl(new EffectElementControl(effectElement, dying.getSpinX(), dying.getSpinY(), dying.getSpinZ(), effect.getWhirlpoolRate()) {
@@ -202,6 +206,19 @@ public abstract class EffectEmitter extends Node {
         });
 
         this.attachChild(replacement);
+    }
+
+    /**
+     * Plays the baked animation of an animating mesh instance (a no-op for
+     * static meshes), the clone doesn't start it on its own
+     */
+    private static void startAnimation(Spatial instance) {
+        instance.breadthFirstTraversal(spatial -> {
+            AnimComposer animComposer = spatial.getControl(AnimComposer.class);
+            if (animComposer != null && animComposer.hasAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME)) {
+                animComposer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+            }
+        });
     }
 
     public void killAllParticles() {
