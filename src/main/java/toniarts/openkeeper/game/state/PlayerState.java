@@ -575,16 +575,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         // Save campaign progress, the attempts count the lost games
         if (campaignLevel != null) {
             Settings settings = Main.getUserSettings();
-            if (win) {
-                settings.setLevelStatus(campaignLevel, Settings.LevelStatus.COMPLETED);
-                settings.setSetting(Settings.Setting.LEVEL_NUMBER, campaignLevel.getLevel() + 1);
-            } else {
-                settings.increaseLevelAttempts(campaignLevel);
-            }
-            Integer evilRating = result.getData(GameResult.ResultType.TOTAL_RATING);
-            if (evilRating != null && campaignLevel.getType() == CampaignLevel.LevelType.Level) {
-                settings.setLevelEvilRating(campaignLevel, evilRating);
-            }
+            settings.recordLevelResult(campaignLevel, win, result.getData(GameResult.ResultType.TOTAL_RATING));
             try {
                 settings.save();
             } catch (IOException ex) {

@@ -481,6 +481,28 @@ public final class Settings {
     }
 
     /**
+     * Record the end of a game of a campaign level. A won level is completed
+     * and the campaign moves on to the next one, a lost game is an attempt
+     * (DK II counts the lost games, 0x4BE630 calls 0x561940 on a loss). The
+     * Evil Rating of the game replaces the earlier one of the level.
+     *
+     * @param level the campaign level
+     * @param won true if the level was won
+     * @param evilRating the Evil Rating of the game, can be {@code null}
+     */
+    public void recordLevelResult(CampaignLevel level, boolean won, Integer evilRating) {
+        if (won) {
+            setLevelStatus(level, LevelStatus.COMPLETED);
+            setSetting(Setting.LEVEL_NUMBER, level.getLevel() + 1);
+        } else {
+            increaseLevelAttempts(level);
+        }
+        if (evilRating != null && level.getType() == CampaignLevel.LevelType.Level) {
+            setLevelEvilRating(level, evilRating);
+        }
+    }
+
+    /**
      * Get the overall Evil Rating of the campaign, the sum of the Evil Ratings
      * of the campaign levels
      *
