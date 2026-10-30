@@ -179,7 +179,7 @@ public final class MainMenuState extends AbstractAppState {
         // Attach the 3D Front end
         mainMenuEntityData = new DefaultEntityData();
         menuNode = new Node("Main menu");
-        gameController = new GameController(frontEndKwd, Collections.emptyList(), mainMenuEntityData, frontEndKwd.getVariables(), new MainMenuPlayerService());
+        gameController = new GameController(frontEndKwd, Collections.emptyList(), false, mainMenuEntityData, frontEndKwd.getVariables(), new MainMenuPlayerService());
         gameController.createNewGame();
 
         // Create the actual map

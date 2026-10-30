@@ -72,7 +72,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         mapEntityData = new DefaultEntityData();
 
         Node mapNode = new Node("Map");
-        gameController = new GameController(kwdFile, Collections.emptyList(), mapEntityData, kwdFile.getVariables(), new MapLoaderAppState.MapPlayerService());
+        gameController = new GameController(kwdFile, Collections.emptyList(), false, mapEntityData, kwdFile.getVariables(), new MapLoaderAppState.MapPlayerService());
         gameController.createNewGame();
 
         // Create the actual map
