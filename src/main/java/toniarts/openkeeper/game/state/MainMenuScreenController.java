@@ -1361,7 +1361,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
         GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
-        boolean campaign = state.isDebriefingCampaign();
+        CampaignLevel playedLevel = state.getDebriefingCampaignLevel();
         String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
             NiftyImage img = nifty.createImage(objectiveImage, true);
@@ -1378,7 +1378,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
-        if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
+        if (playedLevel != null && playedLevel.getType().equals(LevelType.Level)) {
             objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
             try {
                 NiftyImage img = nifty.createImage(objectiveImage, true);
@@ -1397,8 +1397,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
         // Play debriefing narration
-        if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
-            String speech = AssetUtils.getCanonicalAssetKey(String.format(levelWon ? DEBRIEFING_WIN_SPEECH_URL : DEBRIEFING_DEFEAT_SPEECH_URL, lvl.getLevel()));
+        if (playedLevel != null) {
+            String speech = AssetUtils.getCanonicalAssetKey(String.format(levelWon ? DEBRIEFING_WIN_SPEECH_URL : DEBRIEFING_DEFEAT_SPEECH_URL, playedLevel.getLevel()));
             AudioNode audioNode = new AudioNode(state.assetManager,
                     AssetUtils.getCanonicalAssetKey(speech),
                     AudioData.DataType.Buffer);
