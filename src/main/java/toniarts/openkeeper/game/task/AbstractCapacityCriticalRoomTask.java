@@ -38,8 +38,22 @@ public abstract class AbstractCapacityCriticalRoomTask extends AbstractRoomTask 
     }
 
     @Override
+    public void assign(ICreatureController creature, boolean setToCreature) {
+        super.assign(creature, setToCreature);
+
+        // Gamblers, trainees and the like use up the room's capacity from the moment they set off
+        if (getRoomObjectType().isOccupiedByCreatures()) {
+            getRoomObjectControl().addItem(creature.getEntityId(), null);
+        }
+    }
+
+    @Override
     public void unassign(ICreatureController creature) {
         super.unassign(creature);
+
+        if (getRoomObjectType().isOccupiedByCreatures()) {
+            getRoomObjectControl().removeItem(creature.getEntityId());
+        }
 
         // Remove us
         taskManager.removeRoomTask(this);
