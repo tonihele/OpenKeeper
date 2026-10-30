@@ -407,7 +407,9 @@ int entryCount = cursor.readInt();
             groupCount = cursor.readInt();
             cursor.skipInt();
             priority = cursor.readInt();
-            flags = cursor.readInt();
+            flags = cursor.readUnsignedShort();
+            // Not flags: the id of the event's first sound parameter, 2 (the intensity) for the music and the ambience
+            cursor.skip(2);
         }
     }
 
