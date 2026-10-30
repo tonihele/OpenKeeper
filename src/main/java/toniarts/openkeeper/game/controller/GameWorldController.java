@@ -57,6 +57,7 @@ import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
@@ -1216,7 +1217,18 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean imprison = false;
         CreatureState creatureState = null;
         CreatureState targetState = null;
-        // TODO: Evict & sacrifice
+
+        // A creature dropped on the middle of its keeper's portal leaves the dungeon
+        if (roomController instanceof ThreeByThreeController portal) {
+            Entity creature = entityData.getEntity(entity, Owner.class, CreatureComponent.class);
+            boolean imp = creature.get(CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
+            if (portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp)) {
+                creaturesController.leaveDungeon(entity, new Vector3f(coordinates.x, WorldUtils.FLOOR_HEIGHT, coordinates.y));
+                return;
+            }
+        }
+
+        // TODO: Sacrifice
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
         if (roomController != null) {

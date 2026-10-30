@@ -76,6 +76,8 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_HIT, event.position);
             case CREATURE_DIE ->
                 add(sounds, subject, ThingSounds.CREATURE_DIE, event.position);
+            case CREATURE_LEAVE ->
+                add(sounds, subject, ThingSounds.CREATURE_LEAVE, event.position);
             case CREATURE_CLAIM_TILE ->
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->

@@ -53,6 +53,7 @@ public final class ThingSounds {
     public static final int CREATURE_LAND = 0xF6;
     public static final int CREATURE_LEVEL_UP = 0x349; // level up
     public static final int CREATURE_SULK = 0xDE;
+    public static final int CREATURE_LEAVE = 0xDF; // leaving the dungeon through a portal
     public static final int CREATURE_ENTRANCE = 0xE0;
     public static final int CREATURE_DRINK = 0xE1;
     public static final int CREATURE_FALL = 0xE6;
