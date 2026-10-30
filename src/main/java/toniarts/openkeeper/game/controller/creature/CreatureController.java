@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
@@ -1447,6 +1448,12 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
         } else if (creatureHunger.amountNeeded > 0) {
             entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
+        }
+
+        // Every chicken eaten clears the no-food anger
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        if (mood != null && mood.noFood != 0) {
+            entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_FOOD));
         }
 
         // Increase health

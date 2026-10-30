@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -83,6 +84,19 @@ class CreatureControllerTest {
             assertEquals(0, f.sleep().sleepNeed);
             assertEquals(0, f.sleepAssignments);
             assertNull(f.data.getComponent(f.entity, CreatureRecuperating.class));
+        }
+    }
+
+    @Test
+    void eatingAChickenClearsOnlyTheNoFoodAnger() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 2));
+            f.controller.sate();
+            CreatureMood mood = f.data.getComponent(f.entity, CreatureMood.class);
+            assertEquals(0, mood.noFood);
+            assertEquals(100, mood.general);
+            assertEquals(600, mood.other);
+            assertEquals(1, f.data.getComponent(f.entity, CreatureHunger.class).amountNeeded);
         }
     }
 
