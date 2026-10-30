@@ -133,6 +133,11 @@ public abstract class RoomConstructor {
                 if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
                     return;
                 }
+                // Temple pools retain their animated liquid material and shared light bindings.
+                if (geometry.getControl(toniarts.openkeeper.view.control.LiquidSurfaceControl.class) != null) {
+                    outMaterials.add(geometry.getMaterial());
+                    return;
+                }
                 Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
                 geometry.setMaterial(vertex);
                 outMaterials.add(vertex);

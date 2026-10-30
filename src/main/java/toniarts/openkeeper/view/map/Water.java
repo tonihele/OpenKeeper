@@ -82,6 +82,7 @@ public final class Water {
 
         // Set it all
         geo.setMaterial(mat);
+        geo.setBatchHint(Spatial.BatchHint.Never); // Wave vertices change every frame, including Temple pools.
         mat.setFloat("EnhancedOpacity", water ? .75f : 1f);
         geo.addControl(new LiquidSurfaceControl(water, assetManager));
         if (mat.isTransparent()) {
