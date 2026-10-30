@@ -509,12 +509,14 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
             // Handled by the CAMERA_KEY_ mappings above
             return;
         } else if (name.equals(CAMERA_MOUSE_ROTATE_LEFT) || name.equals(CAMERA_MOUSE_ROTATE_RIGHT)) {
-            if (mouseRotating) {
+            // Shift locks the drag to pitching only
+            if (mouseRotating && !keys.contains(KeyInput.KEY_LSHIFT)) {
                 float angle = value * Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * 2f;
                 camera.rotateAround(name.equals(CAMERA_MOUSE_ROTATE_LEFT) ? -angle : angle);
             }
         } else if (name.equals(CAMERA_MOUSE_PITCH_UP) || name.equals(CAMERA_MOUSE_PITCH_DOWN)) {
-            if (mouseRotating) {
+            // Ctrl locks the drag to rotating only
+            if (mouseRotating && !keys.contains(KeyInput.KEY_LCONTROL)) {
                 float angle = value * Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * 2f;
                 if (Main.getUserSettings().getBoolean(Setting.MOUSE_INVERT)) {
                     angle = -angle;
