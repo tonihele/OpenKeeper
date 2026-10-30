@@ -59,6 +59,17 @@ public final class Water {
      * @return the visual representation of your entity instance
      */
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances) {
+        return construct(assetManager, entityInstances, true);
+    }
+
+    /**
+     * Constructs a liquid surface, optionally keeping it Classic regardless of graphics settings.
+     * Temple pools use Classic water to conceal their floor and submerged sacrifices, as in DKII.
+     *
+     * @param allowEnhanced whether the graphics setting may enable Enhanced rendering
+     */
+    public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances,
+            boolean allowEnhanced) {
         boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
         Mesh mesh = createMesh(entityInstances);
 
@@ -84,7 +95,8 @@ public final class Water {
         geo.setMaterial(mat);
         geo.setBatchHint(Spatial.BatchHint.Never); // Wave vertices change every frame, including Temple pools.
         mat.setFloat("EnhancedOpacity", water ? .75f : 1f);
-        geo.addControl(new LiquidSurfaceControl(water, assetManager));
+        geo.addControl(allowEnhanced ? new LiquidSurfaceControl(water, assetManager)
+                : new LiquidSurfaceControl(water, assetManager, () -> false));
         if (mat.isTransparent()) {
             geo.setQueueBucket(RenderQueue.Bucket.Transparent);
             geo.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);

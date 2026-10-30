@@ -99,7 +99,8 @@ public final class TempleConstructor extends DoubleQuadConstructor {
 
         // Add the actual water pools
         if (!waterBodies.isEmpty()) {
-            root.attachChild(Water.construct(assetManager, waterBodies));
+            // DKII keeps Temple pools Classic even when outdoor water uses bump mapping.
+            root.attachChild(Water.construct(assetManager, waterBodies, false));
         }
 
         AssetUtils.translateToTile(root, start);
