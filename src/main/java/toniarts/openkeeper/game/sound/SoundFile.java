@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import javax.annotation.Nullable;
+
 /**
  *
  * @author archdemon
@@ -25,11 +27,22 @@ public final class SoundFile implements Comparable<SoundFile> {
     private final int id;
     private final SoundGroup group;
     private final String filename;
+    @Nullable
+    private final SoundEventGroup eventGroup;
+    @Nullable
+    private final SoundSample sample;
 
     public SoundFile(SoundGroup action, int id, String filename) {
+        this(action, id, filename, null, null);
+    }
+
+    public SoundFile(SoundGroup action, int id, String filename, @Nullable SoundEventGroup eventGroup,
+            @Nullable SoundSample sample) {
         this.group = action;
         this.id = id;
         this.filename = filename;
+        this.eventGroup = eventGroup;
+        this.sample = sample;
     }
 
     public SoundGroup getGroup() {
@@ -38,6 +51,37 @@ public final class SoundFile implements Comparable<SoundFile> {
 
     public String getFilename() {
         return filename;
+    }
+
+    @Nullable
+    public SoundEventGroup getEventGroup() {
+        return eventGroup;
+    }
+
+    @Nullable
+    public SoundSample getSample() {
+        return sample;
+    }
+
+    /**
+     * Group volume of this file, an integer percentage where 100 is unity.
+     */
+    public int getVolume() {
+        return eventGroup == null ? 100 : SoundRng.volume(eventGroup);
+    }
+
+    /**
+     * Group pitch of this file, 100 being the unmodified playback rate.
+     */
+    public float getPitch() {
+        return eventGroup == null ? 100.0f : SoundRng.pitch(eventGroup);
+    }
+
+    /**
+     * Delay of this file in milliseconds.
+     */
+    public int getDelay() {
+        return eventGroup == null ? 0 : SoundRng.delay(eventGroup);
     }
 
     @Override
