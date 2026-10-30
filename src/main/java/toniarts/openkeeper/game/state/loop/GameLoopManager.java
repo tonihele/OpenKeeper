@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
+import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureTorturingSystem;
 import toniarts.openkeeper.game.logic.CreatureViewSystem;
@@ -103,12 +104,16 @@ public final class GameLoopManager {
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
-                new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
+                new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
+                        gameController.getGameTimer()),
+                new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
+                        gameController.getGameTimer(), gameSettings),
                 new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
                         playerControllers.values(), gameWorldController, gameSettings),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
-                        levelInfo, playerControllers.values(), gameWorldController.getMapController(), gameEventService),
+                        levelInfo, playerControllers.values(), gameWorldController.getMapController(),
+                        gameController.getGameTimer(), gameEventService),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),

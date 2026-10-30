@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -204,6 +206,17 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // Native fatigue can interrupt compatible room work, including travel to it.
+            Task task = entity.getAssignedTask();
+            if (task != null && (task.getTaskType() == TaskType.TRAIN
+                    || task.getTaskType() == TaskType.RESEARCH)
+                    && entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()) {
+                // setAssignedTask released the previous job. Keep WORK so its exit cannot
+                // unassign the newly selected sleep task.
+                entity.navigateToAssignedTask();
                 return;
             }
 
@@ -511,7 +524,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            if (!entity.hasLair() || entity.isFullHealth()) {
+            if (!entity.hasLair() || entity.isEnoughSleep()) {
                 entity.getStateMachine().changeState(IDLE);
             }
         }
@@ -669,6 +682,30 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
 
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, GO_TO_SLEEP {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            if (entity.goToSleepAfterLairDrop()) {
+                entity.getStateMachine().changeState(WORK);
+            } else if (entity.getStateMachine().getCurrentState() == GO_TO_SLEEP) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
         }
 
         @Override
