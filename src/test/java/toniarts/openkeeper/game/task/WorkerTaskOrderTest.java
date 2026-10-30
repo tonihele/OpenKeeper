@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The order in which unemployed workers take tasks
- * ({@link TaskManager#sortByTaskStatusAndDistance})
+ * ({@link TaskWorkerPriorityComparator})
  */
 class WorkerTaskOrderTest {
 
@@ -189,7 +189,7 @@ class WorkerTaskOrderTest {
 
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
         List<TaskManager.TaskWorkerPriority> result = new ArrayList<>(List.of(pairs));
-        result.sort(TaskManager::sortByTaskStatusAndDistance);
+        result.sort(new TaskWorkerPriorityComparator());
         return result;
     }
 
