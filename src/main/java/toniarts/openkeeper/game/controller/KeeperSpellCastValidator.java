@@ -73,17 +73,6 @@ public final class KeeperSpellCastValidator {
             EntityData entityData,
             EntityId target,
             int manaCost) {
-        return checkPlayerMana(manaCost, player)
-                && checkCastRule(mapInformation, mapTile, keeperSpell, player)
-                && checkTargetRule(target, entityData, kwdFile, keeperSpell, player);
-    }
-
-    private static boolean checkPlayerMana(int manaCost, Keeper player) {
-        return manaCost <= player.getMana() - player.getManaLoose();
-    }
-
-    private static boolean checkTargetRule(EntityId target, EntityData entityData, IKwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {
-        short playerId = player.getId();
         Creature creature = null;
         Short owner = null;
         if (target != null) {
@@ -96,6 +85,44 @@ public final class KeeperSpellCastValidator {
                 owner = ownerComponent.controlId;
             }
         }
+
+        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost);
+    }
+
+    /**
+     * Checks the cast with the target already known, the client knows it from
+     * what it shows and must not look it up from the entity data
+     *
+     * @param keeperSpell the spell
+     * @param mapInformation the map
+     * @param mapTile the tile the spell is cast on
+     * @param player the casting keeper
+     * @param creature the targeted creature, {@code null} if the target is no
+     * creature
+     * @param owner the keeper in control of the target, {@code null} if
+     * there is no target or it has no owner
+     * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
+     * @return whether the cast is allowed
+     */
+    public static boolean isValidCast(
+            KeeperSpell keeperSpell,
+            IMapInformation mapInformation,
+            IMapTileInformation mapTile,
+            Keeper player,
+            Creature creature,
+            Short owner,
+            int manaCost) {
+        return checkPlayerMana(manaCost, player)
+                && checkCastRule(mapInformation, mapTile, keeperSpell, player)
+                && checkTargetRule(creature, owner, keeperSpell, player);
+    }
+
+    private static boolean checkPlayerMana(int manaCost, Keeper player) {
+        return manaCost <= player.getMana() - player.getManaLoose();
+    }
+
+    private static boolean checkTargetRule(Creature creature, Short owner, KeeperSpell keeperSpell, Keeper player) {
+        short playerId = player.getId();
 
         switch (keeperSpell.getTargetRule()) {
             case ALL, LAND -> {

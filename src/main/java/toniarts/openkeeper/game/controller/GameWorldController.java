@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -554,6 +555,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
+        // A trap is sold on its own, one at a time and never together with rooms
+        Point startTile = new Point((int) start.x, (int) start.y);
+        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+            return;
+        }
+
         Sale sale = sellTiles(start, end, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
@@ -565,6 +572,30 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         restoreGoldCapacity(sale.roomCoordinates);
         returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
         notifyOnSold(playerId, sale.soldTiles);
+    }
+
+    private boolean sellTrap(Point tile, short playerId) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every trap on the map
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, Owner.class);
+            TrapComponent trapComponent = entity.get(TrapComponent.class);
+            Owner owner = entity.get(Owner.class);
+            if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
+                continue;
+            }
+
+            Trap trap = kwdFile.getTrapById(trapComponent.trapId);
+            int saleValue = TrapSellRules.getSellValue(trap.getGoldCost(),
+                    gameSettings.get(Variable.MiscVariable.MiscType.TRAP_SELL_VALUE_PERCENTAGE_OF_COST).getValue());
+            trapsController.createController(entityId).remove();
+            returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue)));
+            return true;
+        }
+        return false;
     }
 
     private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
@@ -1486,7 +1517,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void placeTrap(short trapId, Point tile, short playerId) {
         Trap trap = kwdFile.getTrapById(trapId);
         if (trap == null) {
-            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trap);
+            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trapId);
             return;
         }
 
@@ -1502,7 +1533,54 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
+        ResearchableEntity researchableEntity = playerControllers.get(playerId).getTrapControl().getTypes().get(trap);
+        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+            logger.log(Level.WARNING, "Player trap is not available", playerId);
+            return;
+        }
+
         // Validate
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
+                != TrapPlacementValidator.Failure.NONE) {
+            return;
+        }
+
+        if (!payForTrap(trap, playerId)) {
+            return;
+        }
+
+        // The blueprint, the workshop manufactures the trap for it
+        trapsController.addTrapBlueprint(trapId, tile, playerId);
+    }
+
+    private boolean payForTrap(Trap trap, short playerId) {
+        // Keep shared gold operations atomic until player actions are processed by the game loop.
+        // skipcq: JAVA-E1061
+        synchronized (GOLD_LOCK) {
+            int cost = trap.getGoldCost();
+            if (cost > players.get(playerId).getGold()) {
+                return false;
+            }
+            substractGold(cost, playerId);
+            return true;
+        }
+    }
+
+    /**
+     * The tile if a trap or a door already stands on it. Only the entities on
+     * the tile are looked at, not every trap and door on the map
+     *
+     * @param tile the tile to place a trap on
+     * @return the tile if it is taken, otherwise nothing
+     */
+    private Set<Point> getTrapBlockingTiles(Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, DoorComponent.class);
+            if (entity.get(TrapComponent.class) != null || entity.get(DoorComponent.class) != null) {
+                return Set.of(tile);
+            }
+        }
+        return Set.of();
     }
 
     @Override
