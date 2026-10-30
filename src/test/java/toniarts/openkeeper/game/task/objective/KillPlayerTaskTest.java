@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector2f;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
@@ -27,6 +29,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -35,11 +38,14 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A hero with a clear way to the keeper's heart: it keeps its kill task while
- * it walks there, and heads for the nearest heart tile
+ * it walks there, and heads for the nearest heart tile. A hero with no way
+ * there doesn't take the task
  */
 class KillPlayerTaskTest {
 
@@ -59,7 +65,15 @@ class KillPlayerTaskTest {
         KillPlayer task = createTask(hero);
 
         assertTrue(task.getTaskQueue().isEmpty());
+        assertSame(task, task.getCurrentTask());
         assertTrue(task.isValid(hero));
+    }
+
+    @Test
+    void heroWithNoWayToTheHeartTakesNoTask() {
+        ICreatureController hero = hero(true, false, KEEPER);
+
+        assertNull(createTask(hero, null).getCurrentTask());
     }
 
     @Test
@@ -91,6 +105,12 @@ class KillPlayerTaskTest {
     }
 
     private static KillPlayer createTask(ICreatureController hero) {
+
+        // A clear way, no step on it needs digging
+        return createTask(hero, new DefaultGraphPath<>());
+    }
+
+    private static KillPlayer createTask(ICreatureController hero, GraphPath<IMapTileInformation> wayToTheHeart) {
         Keeper keeper = new Keeper(false, KEEPER);
         keeper.setDungeonHeartLocation(HEART_CENTRE);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> "getPlayer".equals(name) ? Map.of(KEEPER, keeper).get((Short) args[0]) : null);
@@ -104,8 +124,7 @@ class KillPlayerTaskTest {
         IRoomController roomController = stub(IRoomController.class, (name, args) -> "getRoomInstance".equals(name) ? heartRoom : null);
         IMapController mapController = stub(IMapController.class, (name, args) -> "getRoomControllerByCoordinates".equals(name) ? roomController : null);
 
-        // No path is found, so there are no steps to take on the way
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> null);
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? wayToTheHeart : null);
 
         return new KillPlayer(navigationService, mapController, levelInfo, KEEPER, hero);
     }
