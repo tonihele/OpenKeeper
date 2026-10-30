@@ -24,8 +24,10 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.BackOff;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -110,6 +112,20 @@ import java.util.function.Consumer;
 // Controllers inherit entity-ID equality and hashing; mutable sleep state is not identity.
 // skipcq: JAVA-W0100
 public final class CreatureController extends EntityController implements ICreatureController {
+
+    /**
+     * Fight turns in a row with the threat over our fear that scare us
+     */
+    private static final int SCARED_OVER_THREAT_CHECKS = 3;
+    /**
+     * Within this many tiles of our own Dungeon Heart, the threat to us is
+     * taken lighter the nearer we are
+     */
+    private static final int HEART_THREAT_DISTANCE = 10;
+    /**
+     * The least distance, in tiles, a creature backs off from its target
+     */
+    private static final float BACK_OFF_RANGE = 2f;
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
 
@@ -1309,6 +1325,121 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return 0;
+    }
+
+    @Override
+    public boolean isScared() {
+
+        // It takes three fight turns in a row with the threat over our fear (DK II 0x45EC80)
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        int overThreatChecks = 0;
+        if (entityData.getComponent(entityId, Fearless.class) == null
+                && getFightThreat() > entityData.getComponent(entityId, CreatureComponent.class).fear) {
+            overThreatChecks = Math.min(backOff != null ? backOff.overThreatChecks + 1 : 1, SCARED_OVER_THREAT_CHECKS);
+        }
+        if (backOff == null || backOff.overThreatChecks != overThreatChecks) {
+            entityData.setComponent(entityId, new BackOff(overThreatChecks, backOff != null ? backOff.endTime : 0));
+        }
+
+        return overThreatChecks >= SCARED_OVER_THREAT_CHECKS;
+    }
+
+    /**
+     * Gets the threat of the enemies we fight. An enemy shares its threat
+     * evenly between its target and the creatures attacking it. Near our own
+     * Dungeon Heart we take it more lightly (DK II 0x45E4F0)
+     *
+     * @return the threat to us
+     */
+    private int getFightThreat() {
+        AttackTarget ourTarget = entityData.getComponent(entityId, AttackTarget.class);
+        int threat = 0;
+        for (EntityId enemy : entityPositionLookup.getSensedEntities(entityId)) {
+            AttackTarget enemyTarget = entityData.getComponent(enemy, AttackTarget.class);
+            int shares = (enemyTarget != null && entityId.equals(enemyTarget.entityId) ? 1 : 0)
+                    + (ourTarget != null && enemy.equals(ourTarget.entityId) ? 1 : 0);
+            if (shares > 0 && isEnemy(enemy) && isThreat(enemy)) {
+                int opponents = entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", enemy), AttackTarget.class).size()
+                        + (enemyTarget != null ? 1 : 0);
+                threat += shares * (getThreat(enemy) / opponents);
+            }
+        }
+
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        if (keeper != null && keeper.getDungeonHeartLocation() != null) {
+            Point heart = keeper.getDungeonHeartLocation();
+            Point tile = getCreatureCoordinates();
+            int distance = Math.max(Math.abs(tile.x - heart.x), Math.abs(tile.y - heart.y));
+            threat = threat * Math.min(distance, HEART_THREAT_DISTANCE) / HEART_THREAT_DISTANCE;
+        }
+
+        return threat;
+    }
+
+    @Override
+    public void startBackOff() {
+
+        // The more we are scared, the sooner we withdraw. We don't back off from one that would catch us (DK II 0x45F030)
+        int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        CreatureComponent targetCreature = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CreatureComponent.class) : null;
+        int turns = 0;
+        if (fear > 0 && attackTarget != null && creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER
+                && (targetCreature == null || targetCreature.runSpeed <= entityData.getComponent(entityId, CreatureComponent.class).runSpeed)) {
+            int minimum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MINIMUM_DURATION_SECONDS).getValue();
+            int maximum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MAXIMUM_DURATION_SECONDS).getValue();
+            turns = minimum + (maximum - minimum) * (4 - Math.min(getFightThreat() / fear, 4));
+        }
+
+        // The durations are in turns, despite the names
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        entityData.setComponent(entityId, new BackOff(backOff != null ? backOff.overThreatChecks : 0,
+                gameTimer.getGameTime() + turns / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+    }
+
+    @Override
+    public boolean isBackOffOver() {
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        return backOff == null || backOff.endTime <= gameTimer.getGameTime();
+    }
+
+    @Override
+    public boolean backOff() {
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        Vector3f targetPosition = attackTarget != null ? getPosition(entityData, attackTarget.entityId) : null;
+        Vector3f position = getPosition();
+        if (targetPosition == null || position == null) {
+            return false;
+        }
+
+        // Far enough from the target's reach, we just stand (DK II 0x4602E0)
+        CreatureMeleeAttack targetMeleeAttack = entityData.getComponent(attackTarget.entityId, CreatureMeleeAttack.class);
+        float range = Math.max(BACK_OFF_RANGE, targetMeleeAttack != null ? targetMeleeAttack.range : 0);
+        float dx = position.x - targetPosition.x;
+        float dz = position.z - targetPosition.z;
+        if (dx * dx + dz * dz > range * range * 5 / 4) {
+            stopCreature();
+            return true;
+        }
+        if (!isStopped()) {
+            return true;
+        }
+
+        // Step back a tile and face the target again. Straight away from it, or else along the wall behind us.
+        // DK II backs off a little at a time, so it gets stuck only against a wall right behind it
+        Point tile = getCreatureCoordinates();
+        int direction = Math.round(FastMath.atan2(dz, dx) / FastMath.QUARTER_PI);
+        for (int turn : new int[]{0, 1, -1, 2, -2}) {
+            float angle = (direction + turn) * FastMath.QUARTER_PI;
+            Point step = new Point(tile.x + Math.round(FastMath.cos(angle)), tile.y + Math.round(FastMath.sin(angle)));
+            GraphPath<IMapTileInformation> path = navigationService.findPath(tile, step, this);
+            if (path != null) {
+                entityData.setComponent(entityId, new Navigation(step, WorldUtils.vectorToPoint(targetPosition), SteeringUtils.pathToList(path)));
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private boolean isFleeing(EntityId entity) {

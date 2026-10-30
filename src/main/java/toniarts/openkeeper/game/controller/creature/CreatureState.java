@@ -269,6 +269,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // A scared creature backs off from its target for a while (DK II 0x45F030)
+            if (entity.isScared()) {
+                entity.getStateMachine().changeState(BACK_OFF);
+                return;
+            }
+
             // If we have reached the target, stop and fight!
             if (entity.isWithinAttackDistance(attackTarget.getEntityId())) {
 
@@ -394,6 +400,36 @@ public enum CreatureState implements State<ICreatureController> {
         public void update(ICreatureController entity) {
             if (entity.isStateTimeExceeded() && !entity.shouldFleeOrAttack()) {
                 entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+
+    }, BACK_OFF {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.startBackOff();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0)
+            if (entity.isBackOffOver()) {
+                entity.getStateMachine().changeState(FLEE);
+            } else if (!entity.isScared() || entity.getAttackTarget() == null) {
+                entity.getStateMachine().changeState(FIGHT);
+            } else if (!entity.backOff()) {
+                entity.getStateMachine().changeState(FLEE);
             }
         }
 
