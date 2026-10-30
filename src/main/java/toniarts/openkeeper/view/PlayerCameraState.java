@@ -27,6 +27,7 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.AnalogListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.input.controls.MouseAxisTrigger;
+import com.jme3.input.controls.MouseButtonTrigger;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
@@ -70,15 +71,25 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     private final Player player;
 
     private final Set<Integer> keys = new HashSet<>();
+    private boolean mouseRotating = false;
 
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
-    private static final float ZOOM_SPEED = 10f;
+    private static final float ZOOM_SPEED = 20f;
     private static final float MOVE_SPEED = 10f;
     private static final float ROTATION_SPEED = 4f;
     private static final float EDGE_SCROLL_MARGIN = 5f;
     private static final String CAMERA_MOUSE_ZOOM_IN = "CAMERA_MOUSE_ZOOM_IN";
     private static final String CAMERA_MOUSE_ZOOM_OUT = "CAMERA_MOUSE_ZOOM_OUT";
+    private static final String CAMERA_MOUSE_ROTATE = "CAMERA_MOUSE_ROTATE";
+    private static final String CAMERA_MOUSE_ROTATE_LEFT = "CAMERA_MOUSE_ROTATE_LEFT";
+    private static final String CAMERA_MOUSE_ROTATE_RIGHT = "CAMERA_MOUSE_ROTATE_RIGHT";
+    private static final String CAMERA_KEY_ROTATE_LEFT = "CAMERA_KEY_ROTATE_LEFT";
+    private static final String CAMERA_KEY_ROTATE_RIGHT = "CAMERA_KEY_ROTATE_RIGHT";
+    private static final String CAMERA_KEY_ZOOM_IN = "CAMERA_KEY_ZOOM_IN";
+    private static final String CAMERA_KEY_ZOOM_OUT = "CAMERA_KEY_ZOOM_OUT";
+    private static final String CAMERA_MOUSE_PITCH_UP ="CAMERA_MOUSE_PITCH_UP";
+    private static final String CAMERA_MOUSE_PITCH_DOWN = "CAMERA_MOUSE_PITCH_DOWN";
     private static final String SPECIAL_KEY_CONTROL = "SPECIAL_KEY_CONTROL";
     private static final String SPECIAL_KEY_ALT = "SPECIAL_KEY_ALT";
     private static final String SPECIAL_KEY_SHIFT = "SPECIAL_KEY_SHIFT";
@@ -102,6 +113,15 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         Setting.USE_ATTACK.name(),
         CAMERA_MOUSE_ZOOM_IN,
         CAMERA_MOUSE_ZOOM_OUT,
+        CAMERA_MOUSE_ROTATE,
+        CAMERA_MOUSE_ROTATE_LEFT,
+        CAMERA_MOUSE_ROTATE_RIGHT,
+        CAMERA_MOUSE_PITCH_UP,
+        CAMERA_MOUSE_PITCH_DOWN,
+        CAMERA_KEY_ROTATE_LEFT,
+        CAMERA_KEY_ROTATE_RIGHT,
+        CAMERA_KEY_ZOOM_IN,
+        CAMERA_KEY_ZOOM_OUT,
         SPECIAL_KEY_CONTROL,
         SPECIAL_KEY_ALT,
         SPECIAL_KEY_SHIFT};
@@ -367,10 +387,24 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_IN, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, false));
         inputManager.addMapping(CAMERA_MOUSE_ZOOM_OUT, new MouseAxisTrigger(MouseInput.AXIS_WHEEL, true));
 
+        // Fixed keys without modifier: Del / Page Down rotate, Home / End zoom
+        inputManager.addMapping(CAMERA_KEY_ROTATE_LEFT, new KeyTrigger(KeyInput.KEY_DELETE));
+        inputManager.addMapping(CAMERA_KEY_ROTATE_RIGHT, new KeyTrigger(KeyInput.KEY_NEXT));
+        inputManager.addMapping(CAMERA_KEY_ZOOM_IN, new KeyTrigger(KeyInput.KEY_HOME));
+        inputManager.addMapping(CAMERA_KEY_ZOOM_OUT, new KeyTrigger(KeyInput.KEY_END));
+
+        // Hold the middle mouse button and drag horizontally to rotate
+        inputManager.addMapping(CAMERA_MOUSE_ROTATE, new MouseButtonTrigger(MouseInput.BUTTON_MIDDLE));
+        inputManager.addMapping(CAMERA_MOUSE_ROTATE_LEFT, new MouseAxisTrigger(MouseInput.AXIS_X, true));
+        inputManager.addMapping(CAMERA_MOUSE_ROTATE_RIGHT, new MouseAxisTrigger(MouseInput.AXIS_X, false));
+        inputManager.addMapping(CAMERA_MOUSE_PITCH_UP, new MouseAxisTrigger(MouseInput.AXIS_Y, false));
+        inputManager.addMapping(CAMERA_MOUSE_PITCH_DOWN, new MouseAxisTrigger(MouseInput.AXIS_Y, true));
+
         inputManager.addListener(this, MAPPINGS);
     }
 
     private void unregisterInput() {
+        mouseRotating = false;
         for (String s : MAPPINGS) {
             inputManager.deleteMapping(s);
         }
@@ -396,6 +430,10 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         }
 
         switch (name) {
+            case CAMERA_MOUSE_ROTATE:
+                mouseRotating = isPressed;
+                break;
+
             case SPECIAL_KEY_CONTROL:
                 if (isPressed) {
                     keys.add(KeyInput.KEY_LCONTROL);
@@ -434,7 +472,56 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
             return;
         }
 
-        if (name.equals(CAMERA_MOUSE_ZOOM_IN) || isCombinationPressed(name, Setting.CAMERA_ZOOM_IN)) {
+        if (name.startsWith("CAMERA_KEY_")) {
+            // With Ctrl the keys tilt (Home / End) and roll (Del / Page Down) instead
+            boolean ctrl = keys.contains(KeyInput.KEY_LCONTROL);
+            switch (name) {
+                case CAMERA_KEY_ROTATE_LEFT:
+                    if (ctrl) {
+                        camera.rollFree(-value * ROTATION_SPEED);
+                    } else {
+                        camera.rotateAround(-value * ROTATION_SPEED);
+                    }
+                    break;
+                case CAMERA_KEY_ROTATE_RIGHT:
+                    if (ctrl) {
+                        camera.rollFree(value * ROTATION_SPEED);
+                    } else {
+                        camera.rotateAround(value * ROTATION_SPEED);
+                    }
+                    break;
+                case CAMERA_KEY_ZOOM_IN:
+                    if (ctrl) {
+                        camera.pitchAround(-value * ROTATION_SPEED);
+                    } else {
+                        camera.zoom(value * ZOOM_SPEED);
+                    }
+                    break;
+                case CAMERA_KEY_ZOOM_OUT:
+                    if (ctrl) {
+                        camera.pitchAround(value * ROTATION_SPEED);
+                    } else {
+                        camera.zoom(-value * ZOOM_SPEED);
+                    }
+                    break;
+            }
+        } else if (isFixedCameraKey(name)) {
+            // Handled by the CAMERA_KEY_ mappings above
+            return;
+        } else if (name.equals(CAMERA_MOUSE_ROTATE_LEFT) || name.equals(CAMERA_MOUSE_ROTATE_RIGHT)) {
+            if (mouseRotating) {
+                float angle = value * Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * 2f;
+                camera.rotateAround(name.equals(CAMERA_MOUSE_ROTATE_LEFT) ? -angle : angle);
+            }
+        } else if (name.equals(CAMERA_MOUSE_PITCH_UP) || name.equals(CAMERA_MOUSE_PITCH_DOWN)) {
+            if (mouseRotating) {
+                float angle = value * Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * 2f;
+                if (Main.getUserSettings().getBoolean(Setting.MOUSE_INVERT)) {
+                    angle = -angle;
+                }
+                camera.pitchAround(name.equals(CAMERA_MOUSE_PITCH_UP) ? -angle : angle);
+            }
+        } else if (name.equals(CAMERA_MOUSE_ZOOM_IN) || isCombinationPressed(name, Setting.CAMERA_ZOOM_IN)) {
             if (name.equals(CAMERA_MOUSE_ZOOM_IN)) {
                 value = Main.getUserSettings().getFloat(Setting.MOUSE_SENSITIVITY) * ZOOM_MOUSE;
                 if (Main.getUserSettings().getBoolean(Setting.MOUSE_INVERT)) {
@@ -469,14 +556,31 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         } else if (isCombinationPressed(name, Setting.YAW_CAMERA_RIGHT)) {
             camera.rotateAround(value * ROTATION_SPEED);
         } else if (isCombinationPressed(name, Setting.PITCH_CAMERA_UP)) {
-            camera.pith(-value * ROTATION_SPEED);
+            camera.pitch(-value * ROTATION_SPEED);
         } else if (isCombinationPressed(name, Setting.PITCH_CAMERA_DOWN)) {
-            camera.pith(value * ROTATION_SPEED);
+            camera.pitch(value * ROTATION_SPEED);
         } else if (isCombinationPressed(name, Setting.ROLL_CAMERA_LEFT)) {
             camera.roll(-value * ROTATION_SPEED);
         } else if (isCombinationPressed(name, Setting.ROLL_CAMERA_RIGHT)) {
             camera.roll(value * ROTATION_SPEED);
         }
+    }
+
+    /**
+     * The pitch / roll / yaw settings default to Ctrl + Home / End / Del / Page
+     * Down, which now do something else. Skip those so they don't act twice.
+     */
+    private static boolean isFixedCameraKey(String name) {
+        for (Setting s : new Setting[]{Setting.PITCH_CAMERA_UP, Setting.PITCH_CAMERA_DOWN,
+            Setting.ROLL_CAMERA_LEFT, Setting.ROLL_CAMERA_RIGHT,
+            Setting.YAW_CAMERA_LEFT, Setting.YAW_CAMERA_RIGHT}) {
+            if (name.equals(s.name())) {
+                int key = Main.getUserSettings().getInteger(s);
+                return key == KeyInput.KEY_HOME || key == KeyInput.KEY_END
+                        || key == KeyInput.KEY_DELETE || key == KeyInput.KEY_NEXT;
+            }
+        }
+        return false;
     }
 
     private boolean isCombinationPressed(String name, Setting s) {

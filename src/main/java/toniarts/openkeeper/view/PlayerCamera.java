@@ -24,7 +24,6 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.minimap.MinimapCoordinates;
 
 /**
@@ -33,6 +32,10 @@ import toniarts.openkeeper.view.minimap.MinimapCoordinates;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class PlayerCamera {
+
+    // Allowed range of the camera direction's vertical component (-1 is straight down)
+    private static final float MIN_PITCH_DIRECTION_Y = -0.98f;
+    private static final float MAX_PITCH_DIRECTION_Y = -0.2f;
 
     private final Camera cam;
     private final Thing.Camera presets;
@@ -154,10 +157,52 @@ public final class PlayerCamera {
         rotateAround(-MinimapCoordinates.cameraYawRadians(cam));
     }
 
-    public void pith(float value) {
+    public void pitch(float value) {
         if (!presets.getFlags().contains(Thing.Camera.CameraFlag.DISABLE_PITCH)) {
             rotate(value, cam.getLeft());
         }
+    }
+
+    /**
+     * Tilts the camera around the look at point, like {@link #rotateAround(float)}
+     * but vertically. Unlike {@link #pitch(float)} this is not blocked by the
+     * level's camera flags, and the view is kept between nearly horizontal and
+     * nearly straight down so it can never flip over.
+     *
+     * @param value angle in radians, positive looks further down
+     */
+    public void pitchAround(float value) {
+        Vector3f look = getLookAt();
+        Vector3f pos = cam.getLocation().subtract(look);
+
+        Matrix3f mat = new Matrix3f();
+        mat.fromAngleNormalAxis(value, cam.getLeft());
+
+        Vector3f up = mat.mult(cam.getUp());
+        Vector3f left = mat.mult(cam.getLeft());
+        Vector3f dir = mat.mult(cam.getDirection());
+
+        if (dir.y > MAX_PITCH_DIRECTION_Y || dir.y < MIN_PITCH_DIRECTION_Y) {
+            return;
+        }
+        mat.mult(pos, pos);
+
+        Quaternion q = new Quaternion();
+        q.fromAxes(left, up, dir);
+        q.normalizeLocal();
+
+        cam.setAxes(q);
+        cam.setLocation(look.addLocal(pos));
+    }
+
+    /**
+     * Rolls the camera around its viewing direction. Unlike
+     * {@link #roll(float)} this is not blocked by the level's camera flags.
+     *
+     * @param value angle in radians
+     */
+    public void rollFree(float value) {
+        rotate(value, cam.getDirection());
     }
 
     public void roll(float value) {
