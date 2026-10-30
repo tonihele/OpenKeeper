@@ -21,11 +21,6 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -46,15 +41,24 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Manages and monitors thing healthiness. Beeb... beeb... beeeeeeeeeeeeeeeeeeeb :)
@@ -64,6 +68,7 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class HealthSystem extends GameTimeCounter {
 
     private final EntityData entityData;
+    private final IGameTimer gameTimer;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
@@ -73,6 +78,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
+    private final GameEventService gameEventService;
 
     private final EntitySet healthEntities;
     private final EntitySet damageEntities;
@@ -84,13 +90,16 @@ public final class HealthSystem extends GameTimeCounter {
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, ILevelInfo levelInfo,
-            Collection<IPlayerController> playerControllers, IMapController mapController) {
+            Collection<IPlayerController> playerControllers, IMapController mapController,
+            IGameTimer gameTimer, GameEventService gameEventService) {
 
         this.entityData = entityData;
+        this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
         this.levelInfo = levelInfo;
         this.mapController = mapController;
+        this.gameEventService = gameEventService;
         entityIds = new SafeArrayList<>(EntityId.class);
 
         playerControllersById = HashMap.newHashMap(playerControllers.size());
@@ -139,6 +148,8 @@ public final class HealthSystem extends GameTimeCounter {
             entityData.removeComponent(entity.getId(), Unconscious.class);
         }
 
+        double gameTime = gameTimer.getGameTime();
+
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
             Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
@@ -157,7 +168,7 @@ public final class HealthSystem extends GameTimeCounter {
                 continue;
             }
 
-            int healthChange = calculateHealthChange(entityId, health, timeElapsed);
+            int healthChange = calculateHealthChange(entityId, health, timeElapsed, gameTime);
             if (healthChange == 0) {
                 continue;
             }
@@ -264,7 +275,7 @@ public final class HealthSystem extends GameTimeCounter {
                 .getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY);
     }
 
-    private int calculateHealthChange(EntityId entityId, Health health, double gameTime) {
+    private int calculateHealthChange(EntityId entityId, Health health, double elapsedTime, double gameTime) {
         int delta = 0;
 
         // Damage (or healing)
@@ -272,6 +283,9 @@ public final class HealthSystem extends GameTimeCounter {
         if (entity != null) {
             Damage damage = entity.get(Damage.class);
             delta -= damage.damage;
+            if (damage.damage > 0) {
+                gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+            }
 
             // Remove the damage
             entityData.removeComponent(entityId, Damage.class);
@@ -281,7 +295,7 @@ public final class HealthSystem extends GameTimeCounter {
         entity = imprisonedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
-            if (gameTime - imprisoned.healthCheckTime >= 1) {
+            if (elapsedTime - imprisoned.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
                 delta += healthRegeneratePerSecondImprisoned;
 
@@ -293,7 +307,7 @@ public final class HealthSystem extends GameTimeCounter {
         entity = torturedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
-            if (gameTime - tortured.healthCheckTime >= 1) {
+            if (elapsedTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
                 entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1));
                 delta += tortureHealthRegeneratePerSecond;
@@ -314,8 +328,8 @@ public final class HealthSystem extends GameTimeCounter {
                     // In own land
                     Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
                     if (lastTimeOnOwnLand == null) {
-                        setTimeOwnOwnLand(regeneration, entityId, gameTime);
-                    } else if (gameTime - lastTimeOnOwnLand >= 1) {
+                        setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
+                    } else if (elapsedTime - lastTimeOnOwnLand >= 1) {
                         delta += regeneration.ownLandHealthIncrease;
                     }
                 } else {
@@ -330,8 +344,13 @@ public final class HealthSystem extends GameTimeCounter {
         entity = recuperatingEntities.getEntity(entityId);
         if (entity != null) {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
+            // Recovery uses the shared gameTime, matching lair mood recovery.
+            // The local elapsedTime used above is one update ahead in the loop.
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
-                entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureRecuperating(
+                        creatureRecuperating.startTime,
+                        creatureRecuperating.healthCheckTime + 1,
+                        creatureRecuperating.moodCheckTime));
                 delta += healthRegeneratePerSecond;
             }
         }
@@ -340,6 +359,10 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private void processDeath(EntityId entityId) {
+        if (entityData.getComponent(entityId, Death.class) == null
+                && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
+        }
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, ChickenAi.class);
