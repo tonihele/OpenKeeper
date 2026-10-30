@@ -233,11 +233,9 @@ public enum CreatureState implements State<ICreatureController> {
                 // Do the task we were supposed to do
                 entity.executeAssignedTask();
 
-                // If we have too much gold, drop it to the treasury
+                // If we have too much gold, take it to the treasury. With nowhere to take it, we keep it
                 if (entity.isTooMuchGold()) {
-                    if (!entity.dropGoldToTreasury()) {
-                        entity.dropGold();
-                    }
+                    entity.dropGoldToTreasury();
                 }
             } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
