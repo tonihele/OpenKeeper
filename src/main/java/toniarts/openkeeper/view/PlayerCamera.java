@@ -137,6 +137,10 @@ public final class PlayerCamera {
         return FastMath.acos(FastMath.clamp(-cam.getDirection().y, -1f, 1f));
     }
 
+    private float currentCosTilt() {
+        return Math.max(0f, -cam.getDirection().y);
+    }
+
     /**
      * The direction the camera faces on the map plane, as an angle
      */
@@ -198,16 +202,24 @@ public final class PlayerCamera {
         Vector3f vel = new Vector3f();
         Vector3f pos = cam.getLocation().clone();
         cam.getDirection(vel);
-        vel.multLocal(value);
-        pos.addLocal(vel);
 
-        if (pos.y < presets.getZoomValueMin()) {
-            //pos.setY(presets.getHeightMin());
-            return;
-        } else if (pos.y > presets.getZoomValueMax()) {
-            //pos.setY(presets.getHeightMax());
+        // The limits are distances to the look at point, from the mode's own
+        // height range at its own tilt, so they do not change with the camera angle
+        float cosTilt = Math.max(FastMath.cos(tiltOf(presets)), 1e-3f);
+        float minDistance = Math.max(0f, (presets.getZoomValueMin() - focusHeight) / cosTilt);
+        float maxDistance = Math.max(minDistance, (presets.getZoomValueMax() - focusHeight) / cosTilt);
+        float distance = getLookAt().subtract(pos).length();
+        float requested = value;
+        if (value > 0) {
+            value = Math.min(value, distance - minDistance);
+        } else {
+            value = Math.max(value, distance - maxDistance);
+        }
+        if (value == 0 || Math.signum(value) != Math.signum(requested)) {
             return;
         }
+        vel.multLocal(value);
+        pos.addLocal(vel);
 
         cam.setLocation(pos);
     }
