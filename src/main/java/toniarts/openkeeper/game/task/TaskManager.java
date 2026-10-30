@@ -742,7 +742,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<ICreatureController> creatures = new ArrayList<>();
         for (Set<EntityId> creatureEntities : playerController.getCreatureControl().getAllCreatures().values()) {
             for (EntityId entityId : creatureEntities) {
-                creatures.add(creaturesController.createController(entityId));
+
+                // A creature removed this tick is still listed until the player creature system catches up
+                if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+                    creatures.add(creaturesController.createController(entityId));
+                }
             }
         }
 
