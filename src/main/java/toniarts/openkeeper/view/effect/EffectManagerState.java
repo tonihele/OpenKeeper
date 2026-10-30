@@ -25,11 +25,13 @@ import com.jme3.scene.Node;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.view.lighting.LightRules;
 
 import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.function.Supplier;
 
 /**
  * An app state to manage ALL the effects in the world. Mainly their lifetime.
@@ -40,13 +42,12 @@ import java.util.List;
 public class EffectManagerState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(EffectManagerState.class.getName());
-    
-    public static int ROOM_CLAIM_ID = 2;
 
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final List<VisualEffect> activeEffects = new ArrayList<>();
     private AppStateManager stateManager;
+    private Supplier<LightRules> lightRulesSupplier;
 
     public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager) {
         this.kwdFile = kwdFile;
@@ -133,12 +134,35 @@ public class EffectManagerState extends AbstractAppState {
         }
         VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite, ownerId);
         activeEffects.add(visualEffect);
-
         return visualEffect;
     }
 
+    /**
+     * For scenes without a {@link PlayerMapViewState} (the main menu): where
+     * the effects get their light rules from instead. The supplier may return
+     * {@code null} while there are none.
+     */
+    public void setLightRulesSupplier(Supplier<LightRules> lightRulesSupplier) {
+        this.lightRulesSupplier = lightRulesSupplier;
+    }
+
+    /**
+     * @return the light rules lighting the effects, {@code null} if there are
+     * none (yet)
+     */
+    public LightRules getLightRules() {
+        if (lightRulesSupplier != null) {
+            return lightRulesSupplier.get();
+        }
+        PlayerMapViewState mapViewState = getPlayerMapViewState();
+        // Guard against racing the map loader thread's LightRules writes
+        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
+        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
+    }
+
     public PlayerMapViewState getPlayerMapViewState() {
-        return stateManager.getState(PlayerMapViewState.class);
+        // Effects may be loaded before this state has been initialized (or after cleanup)
+        return stateManager != null ? stateManager.getState(PlayerMapViewState.class) : null;
     }
 
     public AssetManager getAssetManger() {
