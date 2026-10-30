@@ -30,6 +30,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.ClientEntityData;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayOutputStream;
@@ -52,6 +53,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
 
     private boolean playerInTransition = false;
     private final EntityData entityData = new DefaultEntityData();
+    private final EntityData clientEntityData = new ClientEntityData(entityData);
     private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
     private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
 
@@ -110,8 +112,15 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public EntityData getEntityData() {
+    public EntityData getServerEntityData() {
         return entityData;
+    }
+
+    @Override
+    public EntityData getEntityData() {
+
+        // Like over the network, the client never waits for the server
+        return clientEntityData;
     }
 
     @Override
