@@ -1,0 +1,22 @@
+TERRAIN 4 Water flags=[IMPENETRABLE, WATER, CONSTRUCTION_TYPE_WATER, TERRAIN_COLOR_GREEN, REVEAL_THROUGH_FOG_OF_WAR, TERRAIN_LIGHT] depth=0.000000 wibbleH=255 leanH=[64, 64, 128] wibbleV=128 leanV=[0, 0, 0] frames=0 ambient=0,0,0 terrainLight=100,44,250
+complete name=WATER BED type=TERRAIN_MESH flags=[PRELOAD]
+  unknown_n=0
+  unknown_3=0
+  unknown_2=0
+  unknown_1=0
+top name=Water type=ALPHA flags=[UNKNOWN, ANIMATING_TEXTURE, PRELOAD]
+  unknown_n=0
+  frames=32
+  width=1.0
+  height=1.0
+TERRAIN 5 Lava flags=[IMPENETRABLE, LAVA, CONSTRUCTION_TYPE_WATER, TERRAIN_COLOR_RED, REVEAL_THROUGH_FOG_OF_WAR, TERRAIN_LIGHT] depth=0.000000 wibbleH=255 leanH=[128, 128, 0] wibbleV=128 leanV=[40, 0, 0] frames=0 ambient=0,0,0 terrainLight=44,100,20
+complete name=LAVA BED type=TERRAIN_MESH flags=[PRELOAD]
+  unknown_n=0
+  unknown_3=0
+  unknown_2=0
+  unknown_1=0
+top name=Lava0 type=ALPHA flags=[UNKNOWN, PRELOAD]
+  unknown_n=0
+  frames=0
+  width=1.0
+  height=1.0

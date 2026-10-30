@@ -1,0 +1,4 @@
+{"event": "setting", "bump_config": 0, "renderer_flags": "0x0", "caller": "0x5a6a71", "requested": 1}
+{"event": "backend_request", "bump_config": 1, "renderer_flags": "0x0", "caller": "0x59d9b7", "requested_flags": "0x12"}
+{"event": "capability", "bump_config": 1, "renderer_flags": "0x12", "caps_byte": "0xff"}
+{"event": "resources", "bump_config": 1, "renderer_flags": "0x12", "resources": {"0x7e": "0x4a", "0x82": "0x4b", "0x86": "0x4c"}}

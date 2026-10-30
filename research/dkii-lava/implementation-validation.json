@@ -1,0 +1,37 @@
+{
+  "tests": [
+    {
+      "name": "toniarts.openkeeper.view.lighting.PlayerColouredLightTest",
+      "tests": 8,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "toniarts.openkeeper.view.lighting.ModulatorTest",
+      "tests": 7,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "toniarts.openkeeper.view.lighting.LightSourceTest",
+      "tests": 5,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "toniarts.openkeeper.view.lighting.LightRulesTest",
+      "tests": 4,
+      "failures": 0,
+      "errors": 0
+    },
+    {
+      "name": "toniarts.openkeeper.view.map.LiquidSurfaceTest",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0
+    }
+  ],
+  "gpu": "Classic/Enhanced water and lava, fog, restoration, standalone variants and ordinary terrain shader passed",
+  "captures": "/tmp/openkeeper-liquid-render",
+  "native_pixel_parity": "not established"
+}
