@@ -30,10 +30,6 @@ public enum GameEventType {
      */
     CREATURE_HURT,
     CREATURE_DIE,
-    /**
-     * The creature left the dungeon through a portal
-     */
-    CREATURE_LEAVE,
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**

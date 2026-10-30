@@ -670,8 +670,6 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
     public void leaveDungeon(EntityId entityId) {
-        gameController.getGameEventService().emit(GameEventType.CREATURE_LEAVE, entityId);
-
         // Like in DK II, the creature takes the gold it carries with it
         entityData.removeComponent(entityId, Gold.class);
         createController(entityId).removePossession();

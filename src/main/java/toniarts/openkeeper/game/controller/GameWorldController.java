@@ -1218,12 +1218,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean imprison = false;
         CreatureState creatureState = null;
         CreatureState targetState = null;
+        boolean leavingDungeon = false;
 
-        // A creature dropped on the middle of its keeper's portal leaves the dungeon when it lands
+        // A creature dropped on the middle of its keeper's portal falls through the floor and leaves the dungeon
         if (roomController instanceof ThreeByThreeController portal) {
             Entity creature = entityData.getEntity(entity, Owner.class, CreatureComponent.class);
             boolean imp = creature.get(CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
-            if (portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp)) {
+            leavingDungeon = portal.isLeavingDungeon(tile, creature.get(Owner.class).ownerId, imp);
+            if (leavingDungeon) {
                 entityData.setComponent(entity, new LeavingDungeon());
             }
         }
@@ -1259,10 +1261,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
-        // Show the fall animation right away, before the position brings the model back to the map
+        // Show the fall animation right away, before the position brings the model back to the map. A creature
+        // falling into the portal doesn't fall over, it struggles and cries for help like in the hand
         if (!tortureOrImprisonment) {
             CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
-            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
+            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(),
+                    leavingDungeon ? Creature.AnimationType.IN_HAND : Creature.AnimationType.FALLBACK));
         }
 
         // Add position
