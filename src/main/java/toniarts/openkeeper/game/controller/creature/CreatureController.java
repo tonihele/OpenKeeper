@@ -633,9 +633,12 @@ public final class CreatureController extends EntityController implements ICreat
 
         // The original picks its target again when it steps onto another tile or every 10 turns, and keeps the one it
         // has when it finds none (0x45E9F0). Chasing a creature, it drops it and picks again every turn, so it only
-        // chases on while it picks the same one (0x470E30)
-        boolean chasing = target != null && !DungeonHeartTarget.isDungeonHeart(entityData, target) && !isWithinAttackDistance(target);
-        boolean picked = target == null || chasing || isTimeToPickTarget(attackTarget);
+        // chases on while it picks the same one (0x470E30). Fighting a creature in reach, it keeps it: 0x45E9F0 does
+        // not pick in the fight states, and the fight state picks only when it has no target (0x45F030)
+        boolean creatureTarget = target != null && !DungeonHeartTarget.isDungeonHeart(entityData, target);
+        boolean chasing = creatureTarget && !isWithinAttackDistance(target);
+        boolean fighting = creatureTarget && (stateMachine.isInState(CreatureState.FIGHT) || stateMachine.isInState(CreatureState.MELEE_ATTACK));
+        boolean picked = target == null || chasing || !fighting && isTimeToPickTarget(attackTarget);
         if (picked) {
             EntityId enemy = pickAttackTarget(target);
             if (enemy != null || chasing) {

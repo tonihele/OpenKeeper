@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -206,6 +207,26 @@ class DungeonHeartAttackTest {
 
         entityData.setComponent(hero, new AttackTarget(target, 7.5, new Point(10, 20), Double.NaN));
         assertEquals(nearer, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void fighterKeepsTheCreatureInReachItFightsWhenAnotherIsNearer() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Vector3f(10.4f, 0, 20));
+        EntityId nearer = createCreature(KEEPER, FIGHTER, new Vector3f(10.1f, 0, 20));
+        sensed.put(hero, Set.of(target, nearer));
+        entityData.setComponent(hero, new AttackTarget(target, 7.5, new Point(10, 19), Double.NaN));
+
+        CreatureController controller = createController(hero);
+        controller.getStateMachine().changeState(CreatureState.FIGHT);
+        assertEquals(target, controller.getAttackTarget().getEntityId());
+
+        controller.getStateMachine().changeState(CreatureState.MELEE_ATTACK);
+        assertEquals(target, controller.getAttackTarget().getEntityId());
+
+        // Knocked out, it goes for the next one
+        entityData.setComponent(target, new Unconscious(9));
+        assertEquals(nearer, controller.getAttackTarget().getEntityId());
     }
 
     @Test
