@@ -341,6 +341,63 @@
                     <text style="text" text="Sound" align="center" />
                     <control name="dropDown" id="sounds" displayItems="10"/>
 
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="ceiling" checked="$ceiling" />
+                        </panel>
+                        <text style="text" text="Ceiling" valign="center" textHAlign="left" />
+                    </panel>
+
+                    <text style="text" text="Lights" align="center" />
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="litSolidRock" checked="$litSolidRock" />
+                        </panel>
+                        <text style="text" text="Light solid rock" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="terrainAmbient" checked="$terrainAmbient" />
+                        </panel>
+                        <text style="text" text="Terrain ambient" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="lightTORCH" checked="$lightTORCH" />
+                        </panel>
+                        <text style="text" text="Torch" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="lightTERRAIN" checked="$lightTERRAIN" />
+                        </panel>
+                        <text style="text" text="Terrain" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="lightROOM" checked="$lightROOM" />
+                        </panel>
+                        <text style="text" text="Room" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="lightCREATURE" checked="$lightCREATURE" />
+                        </panel>
+                        <text style="text" text="Creature / effect" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="lightOBJECT" checked="$lightOBJECT" />
+                        </panel>
+                        <text style="text" text="Object" valign="center" textHAlign="left" />
+                    </panel>
+                    <panel childLayout="horizontal" width="100%" height="36px">
+                        <panel width="40px" height="36px" childLayout="center">
+                            <control name="checkbox" id="lightCURSOR" checked="$lightCURSOR" />
+                        </panel>
+                        <text style="text" text="Cursor" valign="center" textHAlign="left" />
+                    </panel>
+
                     <text style="text" text="Title" align="center" />
                     <text style="text" text="$titlestring" textHAlign="left" wrap="true" />
 
