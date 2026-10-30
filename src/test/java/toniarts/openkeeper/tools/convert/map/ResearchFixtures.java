@@ -34,4 +34,11 @@ public final class ResearchFixtures {
         return door;
     }
 
+    public static Creature researcher(int researchPerSecond) {
+        Creature creature = new Creature();
+        creature.setName("Researcher");
+        creature.getAttributes().setResearchPerSecond(researchPerSecond);
+        return creature;
+    }
+
 }

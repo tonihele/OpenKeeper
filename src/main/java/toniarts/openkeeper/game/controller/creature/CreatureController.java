@@ -1468,8 +1468,17 @@ public final class CreatureController extends EntityController implements ICreat
     public int getResearchPerTick() {
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = levelInfo.getLevelData().getCreatureStats(getLevel());
         Variable.CreatureStats levelPercent = (stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND) : null);
-        return getPointsPerTick(creature.getAttributes().getResearchPerSecond(), levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        int pointsPerTick = getPointsPerTick(creature.getAttributes().getResearchPerSecond(), ticksPerSecond,
                 levelPercent != null ? levelPercent.getValue() : 100);
+
+        // A slapped creature researches faster, DK II adds the bonus on the
+        // first tick of every second (DKII.EXE 0x4C2DC0)
+        if (isSlapped() && Math.round(gameTimer.getGameTime() * ticksPerSecond) % ticksPerSecond == 0) {
+            int bonusPercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_PECENTAGE_FROM_SLAPPING).getValue();
+            pointsPerTick += ticksPerSecond * ticksPerSecond * bonusPercentage * pointsPerTick / 100;
+        }
+        return pointsPerTick;
     }
 
     /**
