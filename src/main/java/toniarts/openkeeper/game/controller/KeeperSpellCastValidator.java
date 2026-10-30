@@ -63,9 +63,20 @@ public final class KeeperSpellCastValidator {
             Keeper player,
             EntityData entityData,
             EntityId target) {
-        return checkPlayerMana(keeperSpell, player)
-                && checkCastRule(mapInformation, mapTile, keeperSpell, player)
-                && checkTargetRule(target, entityData, kwdFile, keeperSpell, player)
+        Creature creature = null;
+        Short owner = null;
+        if (target != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+            if (creatureComponent != null) {
+                creature = kwdFile.getCreature(creatureComponent.creatureId);
+            }
+            Owner ownerComponent = entityData.getComponent(target, Owner.class);
+            if (ownerComponent != null) {
+                owner = ownerComponent.controlId;
+            }
+        }
+
+        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner)
                 && checkReaperRule(keeperSpell, kwdFile, player, entityData);
     }
 
@@ -100,24 +111,38 @@ public final class KeeperSpellCastValidator {
         return true;
     }
 
+    /**
+     * Checks the cast with the target already known, the client knows it from
+     * what it shows and must not look it up from the entity data
+     *
+     * @param keeperSpell the spell
+     * @param mapInformation the map
+     * @param mapTile the tile the spell is cast on
+     * @param player the casting keeper
+     * @param creature the targeted creature, {@code null} if the target is no
+     * creature
+     * @param owner the keeper in control of the target, {@code null} if
+     * there is no target or it has no owner
+     * @return whether the cast is allowed
+     */
+    public static boolean isValidCast(
+            KeeperSpell keeperSpell,
+            IMapInformation mapInformation,
+            IMapTileInformation mapTile,
+            Keeper player,
+            Creature creature,
+            Short owner) {
+        return checkPlayerMana(keeperSpell, player)
+                && checkCastRule(mapInformation, mapTile, keeperSpell, player)
+                && checkTargetRule(creature, owner, keeperSpell, player);
+    }
+
     private static boolean checkPlayerMana(KeeperSpell keeperSpell, Keeper player) {
         return keeperSpell.getManaCost() <= player.getMana() - player.getManaLoose();
     }
 
-    private static boolean checkTargetRule(EntityId target, EntityData entityData, IKwdFile kwdFile, KeeperSpell keeperSpell, Keeper player) {
+    private static boolean checkTargetRule(Creature creature, Short owner, KeeperSpell keeperSpell, Keeper player) {
         short playerId = player.getId();
-        Creature creature = null;
-        Short owner = null;
-        if (target != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
-            if (creatureComponent != null) {
-                creature = kwdFile.getCreature(creatureComponent.creatureId);
-            }
-            Owner ownerComponent = entityData.getComponent(target, Owner.class);
-            if (ownerComponent != null) {
-                owner = ownerComponent.controlId;
-            }
-        }
 
         switch (keeperSpell.getTargetRule()) {
             case ALL, LAND -> {
