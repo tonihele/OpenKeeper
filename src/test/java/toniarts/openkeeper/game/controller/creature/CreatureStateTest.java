@@ -18,7 +18,10 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import java.lang.reflect.Proxy;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,6 +54,44 @@ class CreatureStateTest {
         assertEquals(CreatureState.IDLE, currentState.get());
     }
 
+    @Test
+    void neutralCreatureWithNothingToDoIdlesThenWanders() {
+        AtomicReference<CreatureState> currentState = new AtomicReference<>(CreatureState.IDLE);
+        AtomicInteger walks = new AtomicInteger();
+        AtomicBoolean stopped = new AtomicBoolean(true);
+        ICreatureController creature = idleCreature(stateMachine(currentState), false, walks, stopped);
+
+        CreatureState.IDLE.enter(creature);
+        assertEquals(CreatureState.IDLE, currentState.get());
+        assertEquals(0, walks.get());
+
+        CreatureState.IDLE.update(creature);
+        assertEquals(CreatureState.WANDER, currentState.get());
+
+        stopped.set(false);
+        CreatureState.WANDER.enter(creature);
+        CreatureState.WANDER.update(creature);
+        assertEquals(1, walks.get());
+        assertEquals(CreatureState.WANDER, currentState.get());
+
+        stopped.set(true);
+        CreatureState.WANDER.update(creature);
+        assertEquals(CreatureState.IDLE, currentState.get());
+    }
+
+    @Test
+    void ownedCreatureWithNothingToDoWalksAroundInIdle() {
+        AtomicReference<CreatureState> currentState = new AtomicReference<>(CreatureState.IDLE);
+        AtomicInteger walks = new AtomicInteger();
+        ICreatureController creature = idleCreature(stateMachine(currentState), true, walks, new AtomicBoolean(true));
+
+        CreatureState.IDLE.enter(creature);
+        CreatureState.IDLE.update(creature);
+
+        assertEquals(CreatureState.IDLE, currentState.get());
+        assertEquals(2, walks.get());
+    }
+
     private static void assertMissingLairChangesStateToIdle(CreatureState state) {
         AtomicReference<CreatureState> currentState = new AtomicReference<>(state);
         StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(currentState);
@@ -81,6 +122,24 @@ class CreatureStateTest {
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "hasLair" -> hasLair;
                     case "isEnoughSleep" -> recovered.get();
+                    case "getStateMachine" -> stateMachine;
+                    default -> defaultValue(method.getReturnType());
+                });
+    }
+
+    private static ICreatureController idleCreature(
+            StateMachine<ICreatureController, CreatureState> stateMachine,
+            boolean claimed, AtomicInteger walks, AtomicBoolean stopped) {
+        return (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "isClaimed" -> claimed;
+                    case "findWork" -> {
+                        ((Consumer<Boolean>) args[0]).accept(false);
+                        yield null;
+                    }
+                    case "navigateToRandomPoint" -> walks.incrementAndGet();
+                    case "isStopped" -> stopped.get();
+                    case "isTimeToReEvaluate" -> true;
                     case "getStateMachine" -> stateMachine;
                     default -> defaultValue(method.getReturnType());
                 });

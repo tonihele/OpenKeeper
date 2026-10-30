@@ -43,7 +43,9 @@ public enum CreatureState implements State<ICreatureController> {
             // Idling is the last resort
             entity.unassingCurrentTask();
             findStuffToDo(entity, (foundWork) -> {
-                if (!foundWork) {
+
+                // Neutral creatures first play an idle animation, then wander off
+                if (!foundWork && entity.isClaimed()) {
                     entity.navigateToRandomPoint();
                 }
             });
@@ -110,7 +112,11 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
-                        entity.navigateToRandomPoint();
+                        if (entity.isClaimed()) {
+                            entity.navigateToRandomPoint();
+                        } else {
+                            entity.getStateMachine().changeState(WANDER);
+                        }
                     }
                 });
             }
@@ -130,14 +136,20 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
-//                    entity.wander();
+            entity.navigateToRandomPoint();
         }
 
         @Override
         public void update(ICreatureController entity) {
-//                    if (entity.idleTimeExceeded()) {
-//                        entity.getStateMachine().changeState(IDLE);
-//                    }
+
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            if (entity.isStopped()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
         }
 
         @Override
