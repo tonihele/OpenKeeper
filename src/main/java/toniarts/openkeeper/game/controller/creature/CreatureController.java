@@ -1402,7 +1402,19 @@ public final class CreatureController extends EntityController implements ICreat
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
             }
             case MELEE_ATTACK -> {
+
+                // The swing plays its start and end animations too, at the same frame rate (0x4B41E0)
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
+                ArtResource swing = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
+                if (swing != null) {
+                    double fps = swing.<Number>getData(ArtResource.KEY_FPS).doubleValue();
+                    if (swing.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+                        stateTargetTime += swing.<Number>getData(ArtResource.KEY_START_AF).doubleValue() / fps;
+                    }
+                    if (swing.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+                        stateTargetTime += swing.<Number>getData(ArtResource.KEY_END_AF).doubleValue() / fps;
+                    }
+                }
             }
             case CAST_SPELL -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.CAST_SPELL);

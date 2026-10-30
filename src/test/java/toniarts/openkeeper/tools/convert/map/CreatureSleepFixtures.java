@@ -45,6 +45,17 @@ public final class CreatureSleepFixtures {
         creature.setShotDelay(shotDelay);
     }
 
+    public static void setSwing(Creature creature, int frames, int fps, int startFrames, int endFrames) {
+        ArtResource swing = new ArtResource();
+        swing.setType(ArtResource.ArtResourceType.ANIMATING_MESH);
+        swing.setFlags(EnumSet.of(ArtResource.ArtResourceFlag.HAS_START_ANIMATION, ArtResource.ArtResourceFlag.HAS_END_ANIMATION));
+        swing.setData(ArtResource.KEY_FRAMES, frames);
+        swing.setData(ArtResource.KEY_FPS, fps);
+        swing.setData(ArtResource.KEY_START_AF, (short) startFrames);
+        swing.setData(ArtResource.KEY_END_AF, (short) endFrames);
+        creature.setAnimation(Creature.AnimationType.MELEE_ATTACK, swing);
+    }
+
     public static Variable.MiscVariable variable(Variable.MiscVariable.MiscType type, int value) {
         Variable.MiscVariable variable = new Variable.MiscVariable();
         variable.setVariableId(type);
