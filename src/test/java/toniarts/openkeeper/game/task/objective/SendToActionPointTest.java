@@ -131,7 +131,7 @@ class SendToActionPointTest {
     }
 
     @Test
-    void lastWaypointAlsoWaitsAndLeavesTheObjectiveTargetAlone() {
+    void lastWaypointAlsoWaitsThenLeavesNoActionPointToGoTo() {
         ICreatureController creature = creature(3);
         SendToActionPoint task = task(3, 2, 0);
 
@@ -139,7 +139,7 @@ class SendToActionPointTest {
         assertTrue(task.isValid(creature));
 
         task.executeTask(creature, 2f);
-        assertEquals(3, objectiveActionPointId);
+        assertEquals(0, objectiveActionPointId);
         assertFalse(task.isValid(creature));
     }
 

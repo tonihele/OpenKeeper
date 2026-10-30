@@ -77,11 +77,9 @@ public final class SendToActionPoint extends GoToTask {
             return;
         }
         executed = true;
-        if (actionPoint.getNextWaypointId() != 0) {
 
-            // Assign new objective
-            creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
-        }
+        // Assign new objective. Past the last waypoint (0) there is no action point left to go to
+        creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
     }
 
 }

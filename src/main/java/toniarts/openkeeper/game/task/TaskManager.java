@@ -698,7 +698,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
-                task = new SendToActionPoint(navigationService, mapController, levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId()), creature);
+
+                // Past his last waypoint the creature has no action point left to go to
+                if (creature.getObjectiveTargetActionPointId() != 0) {
+                    task = new SendToActionPoint(navigationService, mapController, levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId()), creature);
+                }
                 break;
             }
             case KILL_PLAYER: {
