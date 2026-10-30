@@ -150,7 +150,7 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void creatureNextToTheHeartOnlyLeavesItForAWorkerAttackingIt() {
+    void creatureNextToTheHeartStaysOnItEvenForAWorkerAttackingIt() {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
         EntityId heart = createHeart(KEEPER);
         EntityId worker = createCreature(KEEPER, IMP, new Point(11, 12));
@@ -161,7 +161,7 @@ class DungeonHeartAttackTest {
 
         entityData.setComponent(hero, new AttackTarget(heart));
         entityData.setComponent(worker, new AttackTarget(hero));
-        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
+        assertEquals(heart, createController(hero).getAttackTarget().getEntityId());
     }
 
     @Test

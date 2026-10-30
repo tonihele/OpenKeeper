@@ -694,10 +694,10 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Picks the enemy to attack: the nearest one, or with no one but workers
      * to fight, an enemy heart in sight that is nearer. A creature hitting a
-     * heart leaves it for any fighter that shows up or a worker that attacks
-     * it. A worker nearer than the heart only draws it away on its way there:
-     * next to the heart's pillar the original stands closer to it than a
-     * worker can come (0x45CB00).
+     * heart leaves it for any fighter that shows up. A worker, even one that
+     * attacks it, only draws it away when it is nearer than the heart's
+     * nearest pillar, so only on its way there: next to the pillar the
+     * original stands closer to it than a worker can come (0x45CB00).
      *
      * @param current the target we have now, if any
      * @return the enemy to attack, {@code null} if there is none
@@ -709,7 +709,7 @@ public final class CreatureController extends EntityController implements ICreat
             return hittingHeart ? fighter : getNearestEnemy(false);
         }
         EntityId worker = getNearestEnemy(false);
-        if (worker != null && hittingHeart && !isAttackingUs(worker)
+        if (worker != null && hittingHeart
                 && (isWithinAttackDistance(current) || getDistanceToCreature(worker) >= getDistanceToHeart(current))) {
             return current;
         }
@@ -780,11 +780,6 @@ public final class CreatureController extends EntityController implements ICreat
         Vector3f position = getPosition();
         Vector2f ourPosition = new Vector2f(position.x, position.z);
         return DungeonHeartTarget.getNearestPillar(ourPosition, getHeartTile(heart)).distance(ourPosition);
-    }
-
-    private boolean isAttackingUs(EntityId enemy) {
-        AttackTarget attackTarget = entityData.getComponent(enemy, AttackTarget.class);
-        return attackTarget != null && entityId.equals(attackTarget.entityId);
     }
 
     private Point getHeartTile(EntityId heart) {
