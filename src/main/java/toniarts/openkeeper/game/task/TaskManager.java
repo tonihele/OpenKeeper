@@ -137,6 +137,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
+    private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
@@ -882,7 +883,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         while (!unemployedWorkers.isEmpty() && !priorizedTasks.isEmpty()) {
 
             // With each iteration we sort to fill the jobs as even as possible (assignee count changes)
-            Collections.sort(priorizedTasks, (o1, o2) -> sortByTaskStatusAndDistance(o1, o2));
+            Collections.sort(priorizedTasks, taskWorkerPriorityComparator);
 
             Iterator<TaskWorkerPriority> iter = priorizedTasks.iterator();
             while (iter.hasNext()) {
@@ -911,40 +912,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         unemployedWorkers.forEach((t, u) -> {
             u.accept(Boolean.FALSE);
         });
-    }
-
-    static int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
-
-        // A dropped worker first takes the closest work around the drop, whatever it is
-        int result = Integer.compare(o1.dropRing, o2.dropRing);
-        if (result != 0) {
-            return result;
-        }
-
-        // Walls are only reinforced once there is nothing else to do, the floor is claimed first
-        result = Boolean.compare(isClaimWall(o1.task), isClaimWall(o2.task));
-        if (result != 0) {
-            return result;
-        }
-
-        // Fill in jobs that have no workers first
-        result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
-        if (result != 0) {
-            return result;
-        }
-
-        // Closest creature gets the job
-        result = Integer.compare(o1.points, o2.points);
-        if (result != 0) {
-            return result;
-        }
-
-        // If the same, compare by date added
-        return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
-    }
-
-    private static boolean isClaimWall(Task task) {
-        return task.getTaskType() == TaskType.CLAIM_WALL;
     }
 
     /**
