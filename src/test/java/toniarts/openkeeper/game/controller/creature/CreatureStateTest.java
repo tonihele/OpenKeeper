@@ -19,12 +19,55 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import java.lang.reflect.Proxy;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.tools.convert.map.Thing;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 @SuppressWarnings("unchecked")
 class CreatureStateTest {
+
+    @Test
+    void heroToldToWaitStaysWhereHeIs() {
+        assertIdleHeroStaysWhereHeIs(Thing.HeroParty.Objective.WAIT);
+    }
+
+    @Test
+    void heroPastHisLastWaypointStaysWhereHeIs() {
+        assertIdleHeroStaysWhereHeIs(Thing.HeroParty.Objective.SEND_TO_ACTION_POINT);
+    }
+
+    /**
+     * The hero has the objective but no action point to go to and nothing else
+     * to do
+     */
+    private static void assertIdleHeroStaysWhereHeIs(Thing.HeroParty.Objective objective) {
+        AtomicReference<CreatureState> currentState = new AtomicReference<>(CreatureState.IDLE);
+        AtomicReference<Integer> walks = new AtomicReference<>(0);
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(currentState);
+        ICreatureController hero = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getObjective" -> objective;
+                    case "hasObjective", "isTimeToReEvaluate", "isStopped" -> true;
+                    case "findWork" -> {
+                        ((Consumer<Boolean>) args[0]).accept(false);
+                        yield null;
+                    }
+                    case "navigateToRandomPoint" -> {
+                        walks.set(walks.get() + 1);
+                        yield null;
+                    }
+                    case "getStateMachine" -> stateMachine;
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        CreatureState.IDLE.enter(hero);
+        CreatureState.IDLE.update(hero);
+
+        assertEquals(CreatureState.IDLE, currentState.get());
+        assertEquals(0, walks.get());
+    }
 
     @Test
     void sleepingCreatureWakesWhenItsBedIsGone() {
