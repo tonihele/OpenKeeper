@@ -124,10 +124,11 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float NEAR_OWN_HEART_DISTANCE_SQUARED = 13 * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
 
     /**
-     * A creature hitting a heart picks its target again this often, in game
-     * turns (0x45E9F0)
+     * A creature picks its target again this often, in game turns, an Imp
+     * more often (0x45E9F0)
      */
     private static final int TARGET_PICK_TURNS = 10;
+    private static final int IMP_TARGET_PICK_TURNS = 4;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -611,60 +612,67 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public IEntityController getAttackTarget() {
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
-        if (attackTarget != null && DungeonHeartTarget.isDungeonHeart(entityData, attackTarget.entityId)) {
-            if (isHeartToAttack(attackTarget.entityId)) {
+        EntityId target = attackTarget != null && isTargetToKeep(attackTarget.entityId) ? attackTarget.entityId : null;
 
-                // The original picks a target again every 10 turns while hitting a heart (0x45E9F0). It leaves the heart
-                // for any fighter that shows up or a worker that attacks it. A worker nearer than the heart only
-                // draws it away on its way there: next to the heart's pillar the original stands closer to it than
-                // a worker can come (0x45CB00)
-                if (gameTimer.getGameTime() - attackTarget.time < (double) TARGET_PICK_TURNS / levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
-                    return objectsController.createController(attackTarget.entityId);
-                }
-                EntityId enemy = getNearestEnemy(true);
-                if (enemy == null) {
-                    enemy = getNearestEnemy(false);
-                    if (enemy != null && !isAttackingUs(enemy) && (isWithinAttackDistance(attackTarget.entityId)
-                            || getDistanceToCreature(enemy) >= getDistanceToHeart(attackTarget.entityId))) {
-                        enemy = null;
-                    }
-                }
-                if (enemy == null) {
-                    setAttackTarget(attackTarget.entityId);
-                    return objectsController.createController(attackTarget.entityId);
-                }
-                setAttackTarget(enemy);
-                return creaturesController.createController(enemy);
+        // The original picks its target again when it steps onto another tile or every 10 turns, and keeps the one it
+        // has when it finds none (0x45E9F0). Chasing a creature, it drops it and picks again every turn, so it only
+        // chases on while it picks the same one (0x470E30)
+        boolean chasing = target != null && !DungeonHeartTarget.isDungeonHeart(entityData, target) && !isWithinAttackDistance(target);
+        if (target == null || chasing || isTimeToPickTarget(attackTarget)) {
+            EntityId enemy = pickAttackTarget(target);
+            if (enemy != null || chasing) {
+                target = enemy;
             }
-            attackTarget = null;
+            setAttackTarget(target);
         }
-        IEntityController attackTargetController = null;
-        if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)) {
-
-            // Pick a new target
-            // TODO: is there any preference? Now just take the nearest
-            // TODO: creatures only now
-            EntityId nearestEnemy = getNearestEnemy(false);
-
-            // With no one but workers to fight, go for an enemy heart in sight
-            EntityId heart = null;
-            if (getNearestEnemy(true) == null) {
-                heart = getNearestEnemyHeart(nearestEnemy != null ? getDistanceToCreature(nearestEnemy) : Float.MAX_VALUE);
-            }
-            if (heart != null) {
-                attackTargetController = objectsController.createController(heart);
-                setAttackTarget(heart);
-            } else if (nearestEnemy != null) {
-                attackTargetController = creaturesController.createController(nearestEnemy);
-                setAttackTarget(nearestEnemy);
-            } else {
-                setAttackTarget(null);
-            }
-        } else {
-            attackTargetController = creaturesController.createController(attackTarget.entityId);
+        if (target == null) {
+            return null;
         }
-        return attackTargetController;
+
+        return DungeonHeartTarget.isDungeonHeart(entityData, target) ? objectsController.createController(target)
+                : creaturesController.createController(target);
+    }
+
+    private boolean isTargetToKeep(EntityId target) {
+        if (DungeonHeartTarget.isDungeonHeart(entityData, target)) {
+            return isHeartToAttack(target);
+        }
+        return !(isIncapacitated(target) || isFleeing(target) || isCaptive(target));
+    }
+
+    private boolean isTimeToPickTarget(AttackTarget attackTarget) {
+        int turns = creature.getFightStyle() == Creature.FightStyle.NON_FIGHTER ? IMP_TARGET_PICK_TURNS : TARGET_PICK_TURNS;
+        return !getCreatureCoordinates().equals(attackTarget.tile) || gameTimer.getGameTime() - attackTarget.time >= getTurns(turns);
+    }
+
+    private double getTurns(int turns) {
+        return (double) turns / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+    }
+
+    /**
+     * Picks the enemy to attack: the nearest one, or with no one but workers
+     * to fight, an enemy heart in sight that is nearer. A creature hitting a
+     * heart leaves it for any fighter that shows up or a worker that attacks
+     * it. A worker nearer than the heart only draws it away on its way there:
+     * next to the heart's pillar the original stands closer to it than a
+     * worker can come (0x45CB00).
+     *
+     * @param current the target we have now, if any
+     * @return the enemy to attack, {@code null} if there is none
+     */
+    private EntityId pickAttackTarget(EntityId current) {
+        boolean hittingHeart = current != null && DungeonHeartTarget.isDungeonHeart(entityData, current);
+        EntityId fighter = getNearestEnemy(true);
+        if (fighter != null) {
+            return hittingHeart ? fighter : getNearestEnemy(false);
+        }
+        EntityId worker = getNearestEnemy(false);
+        if (worker != null && hittingHeart && !isAttackingUs(worker)
+                && (isWithinAttackDistance(current) || getDistanceToCreature(worker) >= getDistanceToHeart(current))) {
+            return current;
+        }
+        EntityId heart = getNearestEnemyHeart(worker != null ? getDistanceToCreature(worker) : Float.MAX_VALUE);
+        return heart != null ? heart : worker;
     }
 
     /**
@@ -765,7 +773,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (entity == null) {
             entityData.removeComponent(entityId, AttackTarget.class);
         } else {
-            entityData.setComponent(entityId, new AttackTarget(entity, gameTimer.getGameTime()));
+            entityData.setComponent(entityId, new AttackTarget(entity, gameTimer.getGameTime(), getCreatureCoordinates()));
         }
     }
 

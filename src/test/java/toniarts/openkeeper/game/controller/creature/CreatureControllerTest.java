@@ -603,14 +603,22 @@ class CreatureControllerTest {
                 case "getSensedEntities" -> sensed;
                 default -> throw new UnsupportedOperationException(method);
             });
+            IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
+                case "getCreature" -> definition;
+                case "getGameLevel" -> CreatureSleepFixtures.level(4);
+                case "getRoomById" -> new Room();
+                default -> throw new UnsupportedOperationException(method);
+            });
             ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
                 case "getPlayer" -> keeper;
+                case "getLevelData" -> kwd;
                 default -> throw new UnsupportedOperationException(method);
             });
             ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> switch (method) {
                 case "isValidEntity" -> data.getComponent((EntityId) args[0], Position.class) != null;
                 case "createController" -> proxy(ICreatureController.class, (method2, args2) -> switch (method2) {
                     case "getEntityId" -> args[0];
+                    case "isWorker" -> false;
                     default -> throw new UnsupportedOperationException(method2);
                 });
                 default -> throw new UnsupportedOperationException(method);
@@ -622,12 +630,6 @@ class CreatureControllerTest {
             controllers = () -> new CreatureController(entity, data, definition, navigation, taskManager, () -> time,
                     settings, creatures, lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
-            IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
-                case "getCreature" -> definition;
-                case "getGameLevel" -> CreatureSleepFixtures.level(4);
-                case "getRoomById" -> new Room();
-                default -> throw new UnsupportedOperationException(method);
-            });
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
             healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);

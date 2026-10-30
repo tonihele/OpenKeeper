@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Marks that entity is attacking a target
@@ -33,6 +34,11 @@ public final class AttackTarget implements EntityComponent {
      */
     public double time;
 
+    /**
+     * The tile we stood on when we picked the target
+     */
+    public Point tile;
+
     public AttackTarget() {
         // For serialization
     }
@@ -41,9 +47,10 @@ public final class AttackTarget implements EntityComponent {
         this.entityId = entityId;
     }
 
-    public AttackTarget(EntityId entityId, double time) {
+    public AttackTarget(EntityId entityId, double time, Point tile) {
         this.entityId = entityId;
         this.time = time;
+        this.tile = tile;
     }
 
 }
