@@ -107,6 +107,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void stopCreature();
 
+    /**
+     * Turns towards the target at the creature's turn speed, a creature only
+     * attacks the target it faces
+     *
+     * @param attackTarget the target
+     * @return true if we face the target
+     */
+    public boolean turnToAttackTarget(EntityId attackTarget);
+
     public void executeAttack(EntityId attackTarget);
 
     public void navigateToAttackTarget(EntityId attackTarget);

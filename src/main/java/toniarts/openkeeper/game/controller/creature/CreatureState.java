@@ -280,9 +280,13 @@ public enum CreatureState implements State<ICreatureController> {
             // If we have reached the target, stop and fight!
             if (entity.isWithinAttackDistance(attackTarget.getEntityId())) {
 
-                // Attack!!
+                // Attack!! The original stops chasing and attacks from the next turn on, once it faces the target
+                // (0x470E30, 0x45F030)
+                boolean arriving = !entity.isStopped();
                 entity.stopCreature();
-                entity.executeAttack(attackTarget.getEntityId());
+                if (!arriving && entity.turnToAttackTarget(attackTarget.getEntityId())) {
+                    entity.executeAttack(attackTarget.getEntityId());
+                }
             } else {
                 entity.navigateToAttackTarget(attackTarget.getEntityId());
             }

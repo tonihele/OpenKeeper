@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -905,6 +906,29 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void stop() {
         // Note that this is the updatable stop, not the creature stop...
+    }
+
+    @Override
+    public boolean turnToAttackTarget(EntityId attackTarget) {
+        if (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)) {
+            return true;
+        }
+        Position position = entityData.getComponent(entityId, Position.class);
+        Vector3f targetPosition = getPosition(entityData, attackTarget);
+        if (position == null || targetPosition == null) {
+            return true;
+        }
+
+        // The original turns a creature by its turn speed every turn and starts an attack only once it faces the target
+        // (0x45F030, 0x4B2AE0). The turn speed is in 2048ths of a full circle per second
+        float turn = (float) Math.IEEEremainder(-position.rotation - SteeringUtils.calculateVectorToAngle(
+                new Vector2(targetPosition.x - position.position.x, targetPosition.z - position.position.z)), FastMath.TWO_PI);
+        float maxTurn = creature.getTurnSpeed() * 2 * FastMath.TWO_PI / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        if (turn != 0) {
+            entityData.setComponent(entityId, new Position(position.rotation + FastMath.clamp(turn, -maxTurn, maxTurn),
+                    position.position.clone()));
+        }
+        return Math.abs(turn) <= maxTurn;
     }
 
     @Override

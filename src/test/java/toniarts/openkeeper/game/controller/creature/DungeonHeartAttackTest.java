@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -355,6 +356,20 @@ class DungeonHeartAttackTest {
 
         assertNull(entityData.getComponent(hero, AttackTarget.class));
         assertNull(entityData.getComponent(hero, Navigation.class));
+    }
+
+    @Test
+    void creatureTurnsToItsTargetAtItsTurnSpeed() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Point(11, 20));
+        CreatureController controller = createController(hero);
+
+        // A quarter of a turn, at an eighth of a turn every game turn
+        assertFalse(controller.turnToAttackTarget(target));
+        assertEquals(FastMath.QUARTER_PI, entityData.getComponent(hero, Position.class).rotation, 0.0001f);
+        assertTrue(controller.turnToAttackTarget(target));
+        assertEquals(FastMath.HALF_PI, entityData.getComponent(hero, Position.class).rotation, 0.0001f);
+        assertTrue(controller.turnToAttackTarget(target));
     }
 
     @Test
