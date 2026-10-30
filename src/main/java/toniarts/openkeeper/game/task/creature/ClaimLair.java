@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import java.util.Map;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -28,6 +29,8 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -37,10 +40,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class ClaimLair extends AbstractCapacityCriticalRoomTask {
 
+    private final int sleepBelowHealthPercent;
     private boolean executed = false;
 
-    public ClaimLair(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room, TaskManager taskManager) {
+    public ClaimLair(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room, TaskManager taskManager,
+            Map<MiscType, MiscVariable> gameSettings) {
         super(navigationService, mapController, p, playerId, room, taskManager);
+        sleepBelowHealthPercent = (int) gameSettings.get(MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue();
     }
 
     @Override
@@ -74,6 +80,11 @@ public final class ClaimLair extends AbstractCapacityCriticalRoomTask {
         EntityId lairId = (EntityId) control.addItem(creature.getEntityId(), getTaskLocation());
         if (lairId != null) {
             creature.setCreatureLair(lairId);
+
+            // DKII sends a hurt creature straight to bed once it has made its home
+            if (creature.getHealthPercentage() < sleepBelowHealthPercent) {
+                creature.goToSleepAfterLairDrop();
+            }
         }
         executed = true;
     }
