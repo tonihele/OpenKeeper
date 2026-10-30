@@ -151,7 +151,6 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
-    private final Map<EntityId, Entity> entities = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
@@ -403,7 +402,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
 
-                addViewControl(e, control);
+                entityViewControls.put(e.getId(), control);
             }
         }
         if (result == null) {
@@ -447,7 +446,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
                 result.addControl(flowerControl);
 
-                addViewControl(e, control);
+                entityViewControls.put(e.getId(), control);
                 flowerControls.put(e.getId(), flowerControl);
             }
         }
@@ -478,7 +477,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
             result.addControl(flowerControl);
 
-            addViewControl(e, control);
+            entityViewControls.put(e.getId(), control);
             flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
@@ -508,7 +507,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);
             result.addControl(flowerControl);
 
-            addViewControl(e, control);
+            entityViewControls.put(e.getId(), control);
             flowerControls.put(e.getId(), flowerControl);
         }
         if (result == null) {
@@ -703,23 +702,17 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
         Set<Point> dirty = new HashSet<>(Arrays.asList(points));
-        for (Map.Entry<EntityId, IEntityViewControl> entry : entityViewControls.entrySet()) {
-            Entity entity = entities.get(entry.getKey());
-            Point tile = WorldUtils.vectorToPoint(entity.get(Position.class).position);
+        for (IEntityViewControl control : entityViewControls.values()) {
+
+            // From the control: its spatial stands at the entity's position, and an object's control has the latest view state
+            Spatial spatial = control.getSpatial();
+            Point tile = WorldUtils.vectorToPoint(spatial.getLocalTranslation());
             if (!dirty.contains(tile)) {
                 continue;
             }
-            ObjectViewState objectViewState = entity.get(ObjectViewState.class);
-            boolean baseVisible = objectViewState == null || objectViewState.visible;
-            applyFogCullHint(entry.getValue().getSpatial(), tile, baseVisible);
+            boolean baseVisible = !(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible;
+            applyFogCullHint(spatial, tile, baseVisible);
         }
-    }
-
-    private void addViewControl(Entity e, IEntityViewControl control) {
-
-        // The entity of an entity set is kept up to date, no need to look its components up
-        entities.put(e.getId(), e);
-        entityViewControls.put(e.getId(), control);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -731,7 +724,6 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
 
-        entities.remove(e.getId());
         // Stop driving the light first, or update() would re-create it
         trackedLights.remove(e.getId());
         lightOwners.remove(e.getId());
