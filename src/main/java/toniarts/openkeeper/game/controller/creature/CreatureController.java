@@ -183,9 +183,10 @@ public final class CreatureController extends EntityController implements ICreat
             if (threatToUs - threatCaused > fear && (getFellowFighters() == 0
                     || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
 
-                // No longer flee from DHeart
+                // No longer flee from DHeart, our own one that still stands
                 IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-                if (roomController == null || !roomController.isDungeonHeart()) {
+                if (roomController == null || !roomController.isDungeonHeart()
+                        || roomController.getOwnerId() != getOwnerId() || roomController.isDestroyed()) {
                     if (!stateMachine.isInState(CreatureState.FLEE)) {
 
                         stateMachine.changeState(CreatureState.FLEE);

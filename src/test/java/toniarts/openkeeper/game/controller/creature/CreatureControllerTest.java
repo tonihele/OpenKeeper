@@ -42,9 +42,13 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
@@ -66,6 +70,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -357,6 +362,30 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void fleesInAnEnemyOrRuinedHeartButStandsInItsOwn() {
+        assertEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 4, false));
+        assertEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, true));
+        assertNotEquals(CreatureState.FLEE, stateWhenThreatenedInHeart((short) 3, false));
+    }
+
+    private static CreatureState stateWhenThreatenedInHeart(short heartOwner, boolean destroyed) {
+        try (Fixture f = new Fixture(9)) {
+            EntityId hero = f.data.createEntity();
+            f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100));
+            f.data.removeComponent(f.entity, Fearless.class);
+            f.sensed = Set.of(hero);
+            f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
+                case "isDungeonHeart" -> true;
+                case "getOwnerId" -> heartOwner;
+                case "isDestroyed" -> destroyed;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            f.controller.shouldFleeOrAttack();
+            return f.state();
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
@@ -364,6 +393,8 @@ class CreatureControllerTest {
         final EntityId room = data.createEntity();
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
+        IRoomController roomHere;
+        Set<EntityId> sensed = Set.of();
         CreatureController controller;
         final java.util.function.Supplier<CreatureController> controllers;
         final CreatureSleepSystem sleepSystem;
@@ -399,7 +430,7 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             IMapController map = proxy(IMapController.class, (method, args) -> switch (method) {
-                case "getRoomControllerByCoordinates" -> lair;
+                case "getRoomControllerByCoordinates" -> roomHere;
                 default -> throw new UnsupportedOperationException(method);
             });
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
@@ -416,7 +447,10 @@ class CreatureControllerTest {
                 }
                 default -> throw new UnsupportedOperationException(method);
             });
+            roomHere = lair;
             Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
+            settings.put(MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX,
+                    CreatureSleepFixtures.variable(MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX, 10));
             settings.put(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
                     CreatureSleepFixtures.variable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60));
             settings.put(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND,
@@ -426,11 +460,20 @@ class CreatureControllerTest {
             settings.put(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
                     CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
-                case "getSensedEntities" -> Set.of();
+                case "getSensedEntities" -> sensed;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            Keeper keeper = new Keeper(false, (short) 3);
+            ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
+                case "getPlayer" -> keeper;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> switch (method) {
+                case "isValidEntity" -> false;
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, null, null, null, eventService);
+                    settings, creatures, lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
