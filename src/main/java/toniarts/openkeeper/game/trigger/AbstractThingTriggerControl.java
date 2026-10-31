@@ -41,11 +41,25 @@ public abstract class AbstractThingTriggerControl<T> extends PlayerTriggerContro
     }
 
     /**
-     * Set the actual thing instance to this trigger control
+     * Set the actual thing instance to this trigger control. The thing may be
+     * replaced by a new one, e.g. when a hero party is spawned again.
      *
      * @param thingInstance the thing instance
      */
     protected void setThing(T thingInstance) {
         instanceControl = thingInstance;
+    }
+
+    @Override
+    protected boolean isPlayerScope() {
+        return false;
+    }
+
+    /**
+     * A thing's tree is dormant until the thing itself exists in the world
+     */
+    @Override
+    protected boolean isArmed() {
+        return instanceControl != null && super.isArmed();
     }
 }

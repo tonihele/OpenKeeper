@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -74,6 +75,33 @@ public final class PlayerStatsControl {
 
     public void creatureDropped(Creature creature) {
         increaseMapCount(creature, dropsMap);
+    }
+
+    /**
+     * Get how many times each creature type has been slapped
+     *
+     * @return read only view
+     */
+    public Map<Creature, Integer> getSlaps() {
+        return Collections.unmodifiableMap(slapsMap);
+    }
+
+    /**
+     * Get how many times each creature type has been picked up
+     *
+     * @return read only view
+     */
+    public Map<Creature, Integer> getPickUps() {
+        return Collections.unmodifiableMap(pickUpsMap);
+    }
+
+    /**
+     * Get how many times each creature type has been dropped
+     *
+     * @return read only view
+     */
+    public Map<Creature, Integer> getDrops() {
+        return Collections.unmodifiableMap(dropsMap);
     }
 
 }

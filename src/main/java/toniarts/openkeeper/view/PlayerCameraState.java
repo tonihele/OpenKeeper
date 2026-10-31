@@ -65,6 +65,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     private InputManager inputManager;
 
     private final IContainer container;
+    private PlayerCameraRotateControl rotateControl;
     private PlayerCamera camera;
     private Camera storedCamera;
     private final Player player;
@@ -261,7 +262,14 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     }
 
     public void rotateAroundPoint(Vector3f point, boolean relative, int angle, int time) {
-        container.addControl(new PlayerCameraRotateControl(camera, relative, angle, time));
+
+        // Only one orbit at a time, and it starts from the point
+        if (rotateControl != null) {
+            container.removeControl(rotateControl);
+        }
+        camera.setLookAt(point);
+        rotateControl = new PlayerCameraRotateControl(camera, relative, angle, time);
+        container.addControl(rotateControl);
     }
 
     @Override

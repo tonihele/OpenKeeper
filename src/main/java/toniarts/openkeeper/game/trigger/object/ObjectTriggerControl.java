@@ -42,23 +42,17 @@ public final class ObjectTriggerControl extends AbstractThingTriggerControl<IObj
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        float target = 0;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case OBJECT_CLAIMED:
+                // STUB, event: this object was claimed (e.g. a Portal Gem picked up by a keeper). The
+                // object controller does not tell its owner changes to anybody, so there is nothing
+                // to detect a claim from. The original raises it, but nothing in a shipped level
+                // listens to it either
+                logStub(trigger, "The object controller does not tell its owner changes to anybody, so there is nothing to detect a claim from. The original raises it, but nothing in a shipped level listens to it either");
                 return false;
             default:
                 return super.isActive(trigger);
         }
-
-//        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-//        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-//            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
-//        }
-//
-//        return result;
     }
 }
