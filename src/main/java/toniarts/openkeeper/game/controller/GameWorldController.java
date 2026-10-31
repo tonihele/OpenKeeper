@@ -57,6 +57,7 @@ import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
@@ -123,6 +124,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IDoorsController doorsController;
     private ITrapsController trapsController;
     private IShotsController shotsController;
+    private SacrificeController sacrificeController;
     private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
@@ -167,6 +169,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Init handlers
         shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
+        sacrificeController = new SacrificeController(entityData, kwdFile.getSacrifices(), creaturesController, objectsController, this, playerControllers);
 
         // Setup player stuff
         initPlayerMoney();
@@ -1216,7 +1219,15 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean imprison = false;
         CreatureState creatureState = null;
         CreatureState targetState = null;
-        // TODO: Evict & sacrifice
+
+        // Creatures dropped into a temple's pool are sacrificed
+        if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
+            entityData.setComponent(entity, new Position(0, new Vector3f(coordinates.x, WorldUtils.FLOOR_HEIGHT, coordinates.y)));
+            sacrificeController.sacrificeCreature(temple, entity);
+            return;
+        }
+
+        // TODO: Evict
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
         if (roomController != null) {
