@@ -99,9 +99,11 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
         if (current == null || current.blueprint != target.blueprint) {
             if (target.blueprint) {
                 AssetUtils.setBlueprint(assetManager, spatial);
-            } else {
-                // TODO: Unblueprint?
-                if (current != null && spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
+            } else if (current != null) {
+
+                // The trap got armed
+                AssetUtils.removeBlueprint(spatial);
+                if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
                     ThingSounds.play(getDataObject().getSoundCategory(), ThingSounds.MANUFACTURED, spatial.getWorldTranslation());
                 }
             }
