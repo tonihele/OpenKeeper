@@ -106,6 +106,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // Native hunger is checked every tick, not only when re-evaluating
+            if (entity.isHungry() && entity.goToEat()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                return;
+            }
+
             if (entity.isTimeToReEvaluate()) {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
@@ -209,13 +215,14 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Native fatigue can interrupt compatible room work, including travel to it.
+            // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
                     || task.getTaskType() == TaskType.RESEARCH)
-                    && entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()) {
+                    && ((entity.isHungry() && entity.goToEat())
+                    || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
-                // unassign the newly selected sleep task.
+                // unassign the newly selected eat or sleep task.
                 entity.navigateToAssignedTask();
                 return;
             }
