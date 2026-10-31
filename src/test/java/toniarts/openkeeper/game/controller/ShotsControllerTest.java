@@ -38,17 +38,30 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ShotsControllerTest {
 
-    private static final short HEAL_ID = 1;
+    private static final short HEAL_ID = 4;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short PLAYER_ID = 3;
+    private static final int TICKS_PER_SECOND = 4;
+    private static final float DELTA = 0.0001f;
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
@@ -57,11 +70,16 @@ class ShotsControllerTest {
 
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
+        shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
-                (proxy, method, args) -> method.getName().equals("getShotById") ? shotsById.get((Short) args[0]) : null);
+                (proxy, method, args) -> switch (method.getName()) {
+            case "getShotById" -> shotsById.get((Short) args[0]);
+            case "getGameLevel" -> ShotFixtures.gameLevel(TICKS_PER_SECOND);
+            default -> null;
+        });
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class},
                 (proxy, method, args) -> {
                     if (method.getName().equals("loadObject")) {
@@ -130,6 +148,66 @@ class ShotsControllerTest {
 
         assertEquals(0, countShotEntities());
         assertTrue(loadedObjects.isEmpty());
+    }
+
+    @Test
+    void creatureFireballFliesAtTheTarget() {
+        EntityId target = createCreature();
+        EntityId warlock = entityData.createEntity();
+        Vector3f start = new Vector3f(1.5f, 1f, 4.5f);
+
+        assertTrue(shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, start, target, warlock, 4));
+
+        ShotFlight flight = getShotFlight();
+        assertEquals(0.9f, flight.velocity.length(), DELTA);
+        assertEquals(-0.9f, flight.velocity.z, DELTA);
+        assertEquals(warlock, flight.shooter);
+        assertEquals(4, flight.maxRange, DELTA);
+        assertEquals(60, flight.health);
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
+    void creatureLightningDoesntFly() {
+        EntityId target = createCreature();
+
+        assertFalse(shotsController.fireShot(ShotFixtures.THUNDERBOLT_ID, 300, 0, PLAYER_ID, new Vector3f(), target,
+                entityData.createEntity(), 3));
+
+        assertEquals(0, countShotEntities());
+    }
+
+    @Test
+    void shotIsAimedAtTheMiddleOfTheTarget() {
+        EntityId target = createCreature();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.height = 0.8f;
+        entityData.setComponent(target, creatureComponent);
+
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1.4f, 4.5f), target,
+                entityData.createEntity(), 4);
+
+        assertEquals(0, getShotFlight().velocity.y, DELTA);
+    }
+
+    @Test
+    void fireballHitDamagesByTheShotData() {
+        EntityId target = createCreature();
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, target);
+
+        assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    private ShotFlight getShotFlight() {
+        EntitySet shots = entityData.getEntities(ShotFlight.class);
+        assertEquals(1, shots.size());
+        ShotFlight flight = shots.iterator().next().get(ShotFlight.class);
+        shots.release();
+        return flight;
     }
 
     private void addShot(short shotId, Shot.ProcessType processType) {
