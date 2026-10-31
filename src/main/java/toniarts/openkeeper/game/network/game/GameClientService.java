@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.ClientEntityData;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -58,6 +59,7 @@ public final class GameClientService extends AbstractClientService
 
     private RmiClientService rmiService;
     private GameSession delegate;
+    private EntityData entityData;
 
     private final GameSessionCallback sessionCallback = new GameSessionCallback();
     private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
@@ -158,7 +160,12 @@ public final class GameClientService extends AbstractClientService
 
     @Override
     public EntityData getEntityData() {
-        return getService(EntityDataClientService.class).getEntityData();
+
+        // Only what the client already has, it never waits for the server
+        if (entityData == null) {
+            entityData = new ClientEntityData(getService(EntityDataClientService.class).getEntityData());
+        }
+        return entityData;
     }
 
     @Override
