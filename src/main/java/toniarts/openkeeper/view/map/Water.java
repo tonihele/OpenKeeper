@@ -19,8 +19,6 @@ package toniarts.openkeeper.view.map;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
-import com.jme3.material.RenderState;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -28,18 +26,14 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.VertexBuffer.Type;
-import com.jme3.texture.Texture;
 import com.jme3.util.BufferUtils;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.control.LavaWaveControl;
+import toniarts.openkeeper.view.control.LiquidSurfaceControl;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import toniarts.openkeeper.common.EntityInstance;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -51,17 +45,6 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class Water {
-
-    /**
-     * TODO: Options loaded from elsewhere
-     */
-    public enum WaterType {
-
-        /* Just for testing etc. Not to be really used, I just left it in */
-        SIMPLE, CLASSIC;
-    };
-    
-    private static final WaterType WATER_TYPE = WaterType.CLASSIC;
 
     private Water() {
         // Nope
@@ -76,59 +59,44 @@ public final class Water {
      * @return the visual representation of your entity instance
      */
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances) {
+        return construct(assetManager, entityInstances, true);
+    }
+
+    /**
+     * Constructs a liquid surface, optionally keeping it Classic regardless of graphics settings.
+     * Temple pools use Classic water to conceal their floor and submerged sacrifices, as in DKII.
+     *
+     * @param allowEnhanced whether the graphics setting may enable Enhanced rendering
+     */
+    public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances,
+            boolean allowEnhanced) {
         boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
-        Mesh mesh = createMesh(entityInstances, (water && WATER_TYPE == WaterType.SIMPLE));
+        Mesh mesh = createMesh(entityInstances);
 
         // Create the geometry
         Geometry geo = new Geometry((water ? "Water" : "Lava"), mesh);
 
-        // Lava gets animated sine waves
-        if (!water) {
-            geo.addControl(new LavaWaveControl());
-        }
 
         // The material
-        Material mat = null;
+        Terrain terrain = entityInstances.get(0).getEntity();
+        Material mat;
         if (water) {
-            switch (WATER_TYPE) {
-                case SIMPLE: {
-                    mat = new Material(assetManager,
-                            "Common/MatDefs/Misc/Unshaded.j3md");
-                    mat.setColor("Color", new ColorRGBA(0, 0, 1, 0.2f));
-                    mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
-                    mat.setTransparent(true);
-                    break;
-                }
-                case CLASSIC: {
-
-                    // TODO: MaterialHelper to convert package? Something
-                    ArtResource resource = entityInstances.get(0).getEntity().getTopResource();
-
-                    // Alpha resource, compile such
-                    mat = AssetUtils.createLightningSpriteMaterial(resource, assetManager);
-                    MapViewController.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
-                    break;
-                }
-            }
+            mat = AssetUtils.createLightningSpriteMaterial(terrain.getTopResource(), assetManager);
         } else {
-
-            // Lava
-            mat = new Material(assetManager,
-                    "Common/MatDefs/Light/Lighting.j3md");
-            TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(entityInstances.get(0).getEntity().getTopResource().getName()).concat(".png")), false);
-            Texture tex = assetManager.loadTexture(textureKey);
-            mat.setTexture("DiffuseMap", tex);
-            MapViewController.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
+            mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
+            TextureKey key = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                    + "/" + terrain.getTopResource().getName() + ".png"), false);
+            mat.setTexture("DiffuseMap", assetManager.loadTexture(key));
         }
-
-        // Light it like the terrain (the caller registers the material with
-        // the scene lights)
-        if (mat != null && !(water && WATER_TYPE == WaterType.SIMPLE)) {
-            mat = AssetUtils.createDkSurfaceMaterial(assetManager, mat);
-        }
+        MapViewController.setTerrainMaterialLighting(mat, terrain);
+        mat = AssetUtils.createDkSurfaceMaterial(assetManager, mat);
 
         // Set it all
         geo.setMaterial(mat);
+        geo.setBatchHint(Spatial.BatchHint.Never); // Wave vertices change every frame, including Temple pools.
+        mat.setFloat("EnhancedOpacity", water ? .75f : 1f);
+        geo.addControl(allowEnhanced ? new LiquidSurfaceControl(water, assetManager)
+                : new LiquidSurfaceControl(water, assetManager, () -> false));
         if (mat.isTransparent()) {
             geo.setQueueBucket(RenderQueue.Bucket.Transparent);
             geo.setShadowMode(RenderQueue.ShadowMode.CastAndReceive);
@@ -143,104 +111,32 @@ public final class Water {
      * Create the whole mesh
      *
      * @param entityInstances the instances
-     * @param shareVertices no duplicate vertices, if no texture coordinates are
-     * needed
      * @return returns a mesh
      */
-    private static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances, boolean shareVertices) {
-
-        // Create new mesh
-        Mesh mesh = new Mesh();
-        int tiles = 0;
-        for (EntityInstance<Terrain> entityInstance : entityInstances) {
-            tiles += entityInstance.getCoordinates().size();
-        }
-        List<Vector3f> vertices = new ArrayList<>(tiles * 4);
-        List<Vector2f> textureCoordinates = new ArrayList<>(tiles * 4);
-        List<Integer> indexes = new ArrayList<>(tiles * 6);
-        List<Vector3f> normals = new ArrayList<>(tiles * 4);
-
-        // Handle each river/lake separately
-        for (EntityInstance<Terrain> entityInstance : entityInstances) {
-            Map<Vector3f, Integer> verticeHash = HashMap.newHashMap(entityInstance.getCoordinates().size());
-            for (Point tile : entityInstance.getCoordinates()) {
-
-                // For each tile, create a quad, in a way
-                // Texture coordinates
-                Vector2f textureCoord1 = new Vector2f(0, 0);
-                Vector2f textureCoord2 = new Vector2f(1, 0);
-                Vector2f textureCoord3 = new Vector2f(0, 1);
-                Vector2f textureCoord4 = new Vector2f(1, 1);
-
-                // Vertices
-                Vector3f vertice1 = new Vector3f((tile.x - 0.5f) * WorldUtils.TILE_WIDTH,
-                        WorldUtils.WATER_LEVEL, (tile.y - 0.5f) * WorldUtils.TILE_WIDTH);
-                Vector3f vertice2 = new Vector3f((tile.x + 0.5f) * WorldUtils.TILE_WIDTH,
-                        WorldUtils.WATER_LEVEL, (tile.y - 0.5f) * WorldUtils.TILE_WIDTH);
-                Vector3f vertice3 = new Vector3f((tile.x - 0.5f) * WorldUtils.TILE_WIDTH,
-                        WorldUtils.WATER_LEVEL, (tile.y + 0.5f) * WorldUtils.TILE_WIDTH);
-                Vector3f vertice4 = new Vector3f((tile.x + 0.5f) * WorldUtils.TILE_WIDTH,
-                        WorldUtils.WATER_LEVEL, (tile.y + 0.5f) * WorldUtils.TILE_WIDTH);
-
-                int vertice1Index = addVertice(verticeHash, vertice1, vertices, textureCoord1,
-                        textureCoordinates, normals, shareVertices);
-                int vertice2Index = addVertice(verticeHash, vertice2, vertices, textureCoord2,
-                        textureCoordinates, normals, shareVertices);
-                int vertice3Index = addVertice(verticeHash, vertice3, vertices, textureCoord3,
-                        textureCoordinates, normals, shareVertices);
-                int vertice4Index = addVertice(verticeHash, vertice4, vertices, textureCoord4,
-                        textureCoordinates, normals, shareVertices);
-
-                // Indexes
-                indexes.addAll(Arrays.asList(vertice3Index, vertice4Index, vertice2Index, vertice2Index, vertice1Index, vertice3Index));
+    static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances) {
+        List<Vector3f> vertices = new ArrayList<>();
+        List<Vector2f> uv = new ArrayList<>();
+        List<Vector3f> normals = new ArrayList<>();
+        List<Integer> indices = new ArrayList<>();
+        for (EntityInstance<Terrain> instance : entityInstances) for (Point tile : instance.getCoordinates()) {
+            int base = vertices.size();
+            for (int z = 0; z <= 2; z++) for (int x = 0; x <= 2; x++) {
+                vertices.add(new Vector3f((tile.x - .5f + x * .5f) * WorldUtils.TILE_WIDTH,
+                        LiquidWaves.LEVEL, (tile.y - .5f + z * .5f) * WorldUtils.TILE_WIDTH));
+                uv.add(new Vector2f(x * .5f, z * .5f));
+                normals.add(Vector3f.UNIT_Y.clone());
+            }
+            for (int z = 0; z < 2; z++) for (int x = 0; x < 2; x++) {
+                int a = base + z * 3 + x, b = a + 1, c = a + 3, d = c + 1;
+                indices.addAll(Arrays.asList(c, d, b, b, a, c));
             }
         }
-
-        // Assign the mesh data
-        mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices.toArray(new Vector3f[0])));
-        mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(textureCoordinates.toArray(new Vector2f[0])));
-        mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(toIntArray(indexes)));
-        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals.toArray(new Vector3f[0])));
+        Mesh mesh = new Mesh();
+        mesh.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(vertices.toArray(Vector3f[]::new)));
+        mesh.setBuffer(Type.TexCoord, 2, BufferUtils.createFloatBuffer(uv.toArray(Vector2f[]::new)));
+        mesh.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(normals.toArray(Vector3f[]::new)));
+        mesh.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(indices.stream().mapToInt(Integer::intValue).toArray()));
         mesh.updateBound();
-
         return mesh;
-    }
-
-    /**
-     * Adds a vertice to vertice list or returns the index of an existing
-     * verctice in the same coordinates. No duplicate vertices
-     *
-     * @param verticeHash the vertice hash (vertice -> index)
-     * @param vertice vertice to add/find
-     * @param vertices all the vertices
-     * @param textureCoord the texture coordinate at the given vertice
-     * @param textureCoordinates the texture coordinates list
-     * @param normals the normals
-     * @param shareVertices no duplicate vertices, if no texture coordinates are
-     * needed
-     * @return index of the given vertice
-     */
-    private static int addVertice(final Map<Vector3f, Integer> verticeHash, final Vector3f vertice, final List<Vector3f> vertices, final Vector2f textureCoord, final List<Vector2f> textureCoordinates, final List<Vector3f> normals, final boolean shareVertices) {
-        if (!shareVertices || (shareVertices && !verticeHash.containsKey(vertice))) {
-            vertices.add(vertice);
-            verticeHash.put(vertice, vertices.size() - 1);
-
-            // Add the texture coordinate as well
-            textureCoordinates.add(textureCoord);
-
-            // And the normal, they are all facing upwards now
-            normals.add(new Vector3f(0, 1, 0));
-
-            return vertices.size() - 1;
-        }
-        return verticeHash.get(vertice);
-    }
-
-    private static int[] toIntArray(final List<Integer> list) {
-        int[] ret = new int[list.size()];
-        for (int i = 0; i < ret.length; i++) {
-            ret[i] = list.get(i);
-        }
-        return ret;
     }
 }

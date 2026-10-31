@@ -143,6 +143,11 @@ public final class ModelViewerScreenController implements ScreenController {
         }
     }
 
+    @NiftyEventSubscriber(id = "enhancedLiquids")
+    public void onEnhancedLiquidsChanged(final String id, final CheckBoxStateChangedEvent event) {
+        Main.getUserSettings().setSetting(toniarts.openkeeper.game.data.Settings.Setting.ENHANCED_LIQUIDS, event.isChecked());
+    }
+
     @NiftyEventSubscriber(pattern = ID_LIGHT_PREFIX + ".*")
     public void onLightGroupChanged(final String id, final CheckBoxStateChangedEvent event) {
         LightSource.Group group = LightSource.Group.valueOf(id.substring(ID_LIGHT_PREFIX.length()));
@@ -362,6 +367,8 @@ public final class ModelViewerScreenController implements ScreenController {
                 parameter("litSolidRock", String.valueOf(app.isLitSolidRock()));
                 parameter("terrainAmbient", String.valueOf(app.isTerrainAmbient()));
                 parameter("ceiling", String.valueOf(app.isCeilingVisible()));
+                parameter("enhancedLiquids", String.valueOf(Main.getUserSettings().getBoolean(
+                        toniarts.openkeeper.game.data.Settings.Setting.ENHANCED_LIQUIDS)));
                 // Initial state of the per-group light checkboxes
                 for (LightSource.Group group : LightSource.Group.values()) {
                     parameter(ID_LIGHT_PREFIX + group.name(), String.valueOf(app.isLightGroupEnabled(group)));

@@ -250,7 +250,13 @@ public final class AssetUtils {
      * {@code original}.
      */
     public static Material createDkSurfaceMaterial(AssetManager assetManager, Material original) {
-        Material vertex = createVertexMaterial(assetManager, original, ColorRGBA.Black);
+        Material vertex = new Material(assetManager, "MatDefs/DkLighting/Liquid.j3md");
+        vertex.setName(original.getName());
+        vertex.setTexture("DiffuseMap", original.getTextureParam("DiffuseMap").getTextureValue());
+        vertex.setTransparent(original.isTransparent());
+        if (original.getParam("AlphaDiscardThreshold") != null) {
+            vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
+        }
         if (original.getParam("NumberOfTiles") != null) {
             vertex.setInt("NumberOfTiles", (Integer) original.getParam("NumberOfTiles").getValue());
         }
@@ -262,7 +268,8 @@ public final class AssetUtils {
     }
 
     public static boolean isVertexMaterial(Material material) {
-        return VERTEX_MATDEF.equals(material.getMaterialDef().getAssetName());
+        return VERTEX_MATDEF.equals(material.getMaterialDef().getAssetName())
+                || "MatDefs/DkLighting/Liquid.j3md".equals(material.getMaterialDef().getAssetName());
     }
 
     /**

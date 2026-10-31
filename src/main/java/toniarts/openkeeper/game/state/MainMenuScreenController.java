@@ -311,6 +311,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setSamples((Integer) aa.getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
+        settings.setSetting(Settings.Setting.ENHANCED_LIQUIDS,
+                screen.findNiftyControl("enhancedLiquids", CheckBox.class).isChecked());
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
@@ -847,6 +849,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
+        screen.findNiftyControl("enhancedLiquids", CheckBox.class).setChecked(
+                Main.getUserSettings().getBoolean(Settings.Setting.ENHANCED_LIQUIDS));
     }
 
     private void setControlSettingsToGUI() {
