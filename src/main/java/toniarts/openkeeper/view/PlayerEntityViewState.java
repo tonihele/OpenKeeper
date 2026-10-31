@@ -91,6 +91,11 @@ public class PlayerEntityViewState extends AbstractAppState {
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
 
     /**
+     * "Level up Effect", the sparkles around a creature that gained a level
+     */
+    private static final int LEVEL_UP_EFFECT_ID = 339;
+
+    /**
      * Used where no fog of war applies: everything is simply always visible.
      */
     private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
@@ -142,6 +147,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
+    private final CreatureLevelUpContainer creatureLevelUpContainer;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -215,6 +221,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         shotModelContainer = new ShotModelContainer(entityData);
+        creatureLevelUpContainer = new CreatureLevelUpContainer(entityData, this::showLevelUpEffect);
     }
 
     @Override
@@ -233,6 +240,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        creatureLevelUpContainer.start();
     }
 
     @Override
@@ -245,6 +253,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        creatureLevelUpContainer.update();
 
         // Lighting: re-derive attached-light positions and bind the
         // vertex-lit models every frame -- lights on other things
@@ -297,6 +306,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         shotModelContainer.stop();
+        creatureLevelUpContainer.stop();
 
         // Detach entities
         rootNode.detachChild(root);
@@ -602,6 +612,17 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (LightConstants.OBJECT_LIGHTS_ENABLED) {
             applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY,
                     LightConstants.OBJECT_LIGHTS_PULSE, true);
+        }
+    }
+
+    /**
+     * Like the original, the level up effect starts once at the creature's position and doesn't follow it. Not
+     * shown for creatures in the fog of war.
+     */
+    private void showLevelUpEffect(Entity e) {
+        Vector3f location = e.get(Position.class).position;
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(location))) {
+            stateManager.getState(EffectManagerState.class).load(nodeCreatures, location.clone(), LEVEL_UP_EFFECT_ID, false);
         }
     }
 
