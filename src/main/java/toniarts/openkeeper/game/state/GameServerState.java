@@ -309,6 +309,16 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onAddGoldCheatTriggered(int amount, short playerId) {
+            cheatController.addGold(amount, playerId);
+        }
+
+        @Override
+        public void onAddManaCheatTriggered(int amount, short playerId) {
+            cheatController.addMana(amount, playerId);
+        }
+
+        @Override
         public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {

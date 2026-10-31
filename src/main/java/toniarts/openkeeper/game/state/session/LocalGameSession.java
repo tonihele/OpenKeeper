@@ -415,6 +415,20 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void triggerAddGoldCheat(int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onAddGoldCheatTriggered(amount, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void triggerAddManaCheat(int amount) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onAddManaCheatTriggered(amount, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onSetPossessedMovement(direction, rotation, speedMode, PLAYER_ID);
