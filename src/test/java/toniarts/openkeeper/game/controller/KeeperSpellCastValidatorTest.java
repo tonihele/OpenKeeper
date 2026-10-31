@@ -84,6 +84,17 @@ class KeeperSpellCastValidatorTest {
         assertFalse(isValidCast(enemyCreature));
     }
 
+    @Test
+    void manaSpentThisSecondIsNotCountedTwice() {
+        EntityId enemyCreature = createThing(ENEMY_ID, true);
+
+        // The loss shows the 6000 just spent, the mana left still pays for another strike
+        player.setMana(6000);
+        player.setManaLoose(6000);
+
+        assertTrue(isValidCast(enemyCreature));
+    }
+
     private boolean isValidCast(EntityId target) {
         return KeeperSpellCastValidator.isValidCast(thunderbolt, kwdFile, mapInformation, ownTile, player, entityData, target);
     }
