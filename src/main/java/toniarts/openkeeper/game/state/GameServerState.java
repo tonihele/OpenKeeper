@@ -346,6 +346,11 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            gameService.revealSightOfEvil(centre, radius, durationTicks, keeperId);
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             gameService.disableFogOfWar(keeperId);
         }

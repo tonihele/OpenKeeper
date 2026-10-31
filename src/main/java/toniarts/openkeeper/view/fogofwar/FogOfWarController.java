@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.fogofwar.FogOfWarRules;
 import toniarts.openkeeper.game.fogofwar.FogState;
 import toniarts.openkeeper.game.fogofwar.LineOfSightTable;
+import toniarts.openkeeper.game.fogofwar.SightOfEvilReveal;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -109,6 +110,10 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private EntityId possessedCreature;
     private float visionUpdateAccumulator;
 
+    private SightOfEvilReveal sightOfEvil;
+    private double sightOfEvilElapsedTicks;
+    private volatile Set<Point> sightOfEvilTiles = Set.of();
+
     public FogOfWarController(EntityData entityData, IKwdFile kwdFile,
             IMapDataInformation<? extends IMapTileInformation> mapData, short viewerId,
             Consumer<Point[]> onTilesDirty, Consumer<EntityId> onEnemySighted) {
@@ -178,6 +183,11 @@ public final class FogOfWarController implements IFogOfWarInformation {
         }
 
         Set<Point> dirty = state.drainDirtyTiles();
+        Set<Point> sightOfEvilChanges = updateSightOfEvil(tpf);
+        if (!sightOfEvilChanges.isEmpty()) {
+            dirty = new HashSet<>(dirty);
+            dirty.addAll(sightOfEvilChanges);
+        }
         if (!dirty.isEmpty()) {
             if (!pendingTaggedTiles.isEmpty()) {
                 // A tile that just became visible is no longer "pending" -
@@ -482,6 +492,54 @@ public final class FogOfWarController implements IFogOfWarInformation {
     }
 
     /**
+     * The Sight of Evil keeper spell: reveal an area through the fog for a
+     * while, without exploring it. Only one is active at a time, a new cast
+     * replaces the previous one.
+     *
+     * @param centre the cast tile
+     * @param radius the radius of the revealed area, in tiles
+     * @param durationTicks how long the area stays revealed, in game ticks
+     */
+    public void startSightOfEvil(Point centre, int radius, int durationTicks) {
+        sightOfEvil = new SightOfEvilReveal(centre.x, centre.y, radius, durationTicks, mapData.getWidth(), mapData.getHeight());
+        sightOfEvilElapsedTicks = 0;
+    }
+
+    /**
+     * Advances the Sight of Evil reveal
+     *
+     * @param tpf time since the last update, in seconds
+     * @return the tiles that were revealed or hidden again
+     */
+    private Set<Point> updateSightOfEvil(float tpf) {
+        Set<Point> revealed = new HashSet<>();
+        if (sightOfEvil != null) {
+            sightOfEvilElapsedTicks += tpf * kwdFile.getGameLevel().getTicksPerSec();
+            if (sightOfEvil.isOver(sightOfEvilElapsedTicks)) {
+                sightOfEvil = null;
+            } else {
+                for (int x = sightOfEvil.getMinX(); x < sightOfEvil.getMaxX(); x++) {
+                    for (int y = sightOfEvil.getMinY(); y < sightOfEvil.getMaxY(); y++) {
+                        if (sightOfEvil.isRevealed(x, y, sightOfEvilElapsedTicks)) {
+                            revealed.add(new Point(x, y));
+                        }
+                    }
+                }
+            }
+        }
+
+        Set<Point> previous = sightOfEvilTiles;
+        if (revealed.equals(previous)) {
+            return Set.of();
+        }
+        Set<Point> changed = new HashSet<>(revealed);
+        changed.addAll(previous);
+        changed.removeIf(p -> revealed.contains(p) && previous.contains(p));
+        sightOfEvilTiles = Set.copyOf(revealed);
+        return changed;
+    }
+
+    /**
      * §6.9/§2: while possessing a creature, its own tile explores every
      * tick, and {@link #isVisible(Point)} bypasses fog entirely (the
      * first-person camera renders without it; this keeps the two in sync).
@@ -511,6 +569,9 @@ public final class FogOfWarController implements IFogOfWarInformation {
     @Override
     public boolean isVisible(Point p) {
         if (possessedCreature != null) {
+            return true;
+        }
+        if (sightOfEvilTiles.contains(p)) {
             return true;
         }
         IMapTileInformation tile = mapData.getTile(p);

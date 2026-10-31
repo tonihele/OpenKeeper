@@ -520,6 +520,11 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            playerMapViewState.onSightOfEvil(centre, radius, durationTicks, keeperId);
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             PlayerMapViewState mapViewState = playerMapViewState;
             if (mapViewState != null) {
