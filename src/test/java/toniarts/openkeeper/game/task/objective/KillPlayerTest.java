@@ -16,9 +16,9 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -29,10 +29,10 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
-import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -42,52 +42,145 @@ import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Heroes sent to kill a keeper whose dungeon they can't walk to. A hero worker,
- * such as a Dwarf, tunnels its own way there even when it is on its own
+ * Heroes sent to kill a keeper. They walk to the heart if they can. If they
+ * can't, a hero worker, such as a Dwarf, tunnels there the way DK II does,
+ * even when it is on its own
  */
 class KillPlayerTest {
 
     private static final short KEEPER = Player.KEEPER1_ID;
     private static final short HERO = Player.GOOD_PLAYER_ID;
-    private static final Point HEART_CENTRE = new Point(10, 10);
     private static final short FLOOR = 1;
     private static final short ROCK = 2;
     private static final short HEART_ROOM = 3;
+    private static final short IMPENETRABLE = 4;
 
     /**
-     * The hero stands at the top, the rock below it and the heart room below
-     * the rock
+     * The hero ('h') has rock ('#') between it and the heart ('H')
      */
-    private static final Point HERO_TILE = new Point(10, 6);
-    private static final Point ROCK_TILE = new Point(10, 7);
+    private static final String[] ROCK_ALL_ROUND = {
+        "XXXXXXXX",
+        "Xh#####X",
+        "X######X",
+        "X####H#X",
+        "X######X",
+        "XXXXXXXX"};
+
+    /**
+     * Impenetrable rock ('X') across the line to the heart
+     */
+    private static final String[] WALL_ON_THE_LINE = {
+        "XXXXXXXXX",
+        "X#######X",
+        "X###X###X",
+        "Xh##X##HX",
+        "X###X###X",
+        "X#######X",
+        "XXXXXXXXX"};
 
     private final Map<Short, Terrain> terrains = Map.of(
             FLOOR, TerrainFixtures.terrain(FLOOR, TerrainFixtures.flags(), 0, 0, 0, (short) 0),
             ROCK, TerrainFixtures.terrain(ROCK, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID,
                     Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH), 0, 0, 0, (short) 0),
-            HEART_ROOM, TerrainFixtures.terrain(HEART_ROOM, TerrainFixtures.flags(Terrain.TerrainFlag.ROOM), 0, 0, 0, (short) 0));
-    private final Map<Point, IMapTileInformation> tiles = new HashMap<>();
+            HEART_ROOM, TerrainFixtures.terrain(HEART_ROOM, TerrainFixtures.flags(Terrain.TerrainFlag.ROOM), 0, 0, 0, (short) 0),
+            IMPENETRABLE, TerrainFixtures.terrain(IMPENETRABLE, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID,
+                    Terrain.TerrainFlag.IMPENETRABLE), 0, 0, 0, (short) 0));
 
     @Test
     void loneWorkerTunnelsItsWayToTheHeart() {
-        KillPlayer task = createTask(true);
+        KillPlayer task = createTask(ROCK_ALL_ROUND, true);
 
         assertEquals(TaskType.DIG_TILE, task.getCurrentTask().getTaskType());
-        assertEquals(ROCK_TILE, task.getCurrentTask().getTaskLocation());
+        assertEquals(new Point(2, 1), task.getCurrentTask().getTaskLocation());
     }
 
     @Test
     void loneFighterCanNotTunnel() {
-        KillPlayer task = createTask(false);
+        KillPlayer task = createTask(ROCK_ALL_ROUND, false);
 
         assertEquals(TaskType.KILL_PLAYER, task.getCurrentTask().getTaskType());
     }
 
-    private KillPlayer createTask(boolean worker) {
+    @Test
+    void heroWalksWhenItCan() {
+        KillPlayer task = createTask(new String[]{
+            "XXXXXX",
+            "Xh..HX",
+            "XXXXXX"}, true);
+
+        assertTrue(task.getTaskQueue().isEmpty());
+    }
+
+    /**
+     * Each step is on the axis with more of the way left, on the y axis when
+     * they are even
+     */
+    @Test
+    void tunnelGoesStraightForTheHeart() {
+        KillPlayer task = createTask(ROCK_ALL_ROUND, true);
+
+        assertEquals(List.of(new Point(2, 1), new Point(3, 1), new Point(3, 2), new Point(4, 2), new Point(4, 3)), getDigs(task));
+    }
+
+    /**
+     * Both ways round are as long, the walker keeping the wall on its left
+     * gets back to the line first
+     */
+    @Test
+    void tunnelFollowsTheWallRoundImpenetrableRock() {
+        KillPlayer task = createTask(WALL_ON_THE_LINE, true);
+
+        assertEquals(List.of(new Point(2, 3), new Point(3, 3), new Point(3, 4), new Point(3, 5), new Point(4, 5),
+                new Point(5, 5), new Point(5, 4), new Point(5, 3), new Point(6, 3)), getDigs(task));
+    }
+
+    private static List<Point> getDigs(KillPlayer task) {
+        List<Point> digs = new ArrayList<>();
+        for (ObjectiveTask subTask : task.getTaskQueue()) {
+            if (subTask.getTaskType() == TaskType.DIG_TILE) {
+                digs.add(subTask.getTaskLocation());
+            }
+        }
+        return digs;
+    }
+
+    private KillPlayer createTask(String[] map, boolean worker) {
+        Map<Point, IMapTileController> tiles = new HashMap<>();
+        Point heroTile = null;
+        Point heartTile = null;
+        for (int y = 0; y < map.length; y++) {
+            for (int x = 0; x < map[y].length(); x++) {
+                Point p = new Point(x, y);
+                char c = map[y].charAt(x);
+                short terrainId = switch (c) {
+                    case '#' -> ROCK;
+                    case 'X' -> IMPENETRABLE;
+                    case 'H' -> HEART_ROOM;
+                    default -> FLOOR;
+                };
+                if (c == 'h') {
+                    heroTile = p;
+                } else if (c == 'H') {
+                    heartTile = p;
+                }
+                tiles.put(p, stub(IMapTileController.class, (name, args) -> switch (name) {
+                    case "getLocation" -> p;
+                    case "getX" -> p.x;
+                    case "getY" -> p.y;
+                    case "getTerrainId" -> terrainId;
+                    case "getOwnerId" -> (short) 0;
+                    default -> null;
+                }));
+            }
+        }
+        Point heroLocation = heroTile;
+        Point heart = heartTile;
+
         Keeper keeper = new Keeper(false, KEEPER);
-        keeper.setDungeonHeartLocation(HEART_CENTRE);
+        keeper.setDungeonHeartLocation(heart);
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getTerrain".equals(name) ? terrains.get((Short) args[0]) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getPlayer" -> Map.of(KEEPER, keeper).get((Short) args[0]);
@@ -95,51 +188,32 @@ class KillPlayerTest {
             default -> null;
         });
 
-        // The 5x5 heart room, the centre 3x3 of it can't be walked on
+        // The heart room is the one tile here
         RoomInstance heartRoom = new RoomInstance(new Room());
-        for (int x = -2; x <= 2; x++) {
-            for (int y = -2; y <= 2; y++) {
-                heartRoom.addCoordinate(new Point(HEART_CENTRE.x + x, HEART_CENTRE.y + y));
-            }
-        }
+        heartRoom.addCoordinate(heart);
         IRoomController roomController = stub(IRoomController.class, (name, args) -> switch (name) {
             case "getRoomInstance" -> heartRoom;
-            case "isTileAccessible" -> {
-                Point to = (Point) args[1];
-                yield Math.abs(to.x - HEART_CENTRE.x) == 2 || Math.abs(to.y - HEART_CENTRE.y) == 2;
-            }
+            case "isTileAccessible" -> true;
+            default -> null;
+        });
+        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> switch (name) {
+            case "getWidth" -> map[0].length();
+            case "getHeight" -> map.length;
+            case "getTile" -> args.length == 2 ? tiles.get(new Point((Integer) args[0], (Integer) args[1])) : null;
             default -> null;
         });
         IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
             case "getRoomControllerByCoordinates" -> roomController;
+            case "getMapData" -> mapData;
             case "getTerrain" -> terrains.get(((IMapTileInformation) args[0]).getTerrainId());
             default -> null;
         });
-        IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class, (name, args) -> null);
-
-        // The only way to the heart is straight down, through the rock
-        List<IMapTileInformation> way = List.of(getTile(HERO_TILE, FLOOR), getTile(ROCK_TILE, ROCK),
-                getTile(new Point(10, 8), HEART_ROOM));
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
-            case "isAccessible" -> ((INavigable) args[2]).getCost((IMapTileInformation) args[0], (IMapTileInformation) args[1],
-                    mapController, positionLookup) != null;
-            case "findPath" -> {
-                INavigable navigable = (INavigable) args[2];
-                DefaultGraphPath<IMapTileInformation> path = new DefaultGraphPath<>();
-                IMapTileInformation from = null;
-                for (IMapTileInformation tile : way) {
-                    if (from != null && navigable.getCost(from, tile, mapController, positionLookup) == null) {
-                        yield null;
-                    }
-                    path.add(tile);
-                    from = tile;
-                }
-                yield path;
-            }
+            case "isAccessible" -> !isSolid((IMapTileInformation) args[0]) && !isSolid((IMapTileInformation) args[1]);
             default -> null;
         });
         ICreatureController hero = stub(ICreatureController.class, (name, args) -> switch (name) {
-            case "getCreatureCoordinates" -> HERO_TILE;
+            case "getCreatureCoordinates" -> heroLocation;
             case "getOwnerId" -> HERO;
             case "isWorker" -> worker;
             default -> null;
@@ -148,14 +222,8 @@ class KillPlayerTest {
         return new KillPlayer(navigationService, mapController, levelInfo, KEEPER, hero);
     }
 
-    private IMapTileInformation getTile(Point location, short terrainId) {
-        return tiles.computeIfAbsent(location, p -> stub(IMapTileInformation.class, (name, args) -> switch (name) {
-            case "getLocation" -> p;
-            case "getX" -> p.x;
-            case "getY" -> p.y;
-            case "getTerrainId" -> terrainId;
-            default -> null;
-        }));
+    private boolean isSolid(IMapTileInformation tile) {
+        return terrains.get(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
     @FunctionalInterface
