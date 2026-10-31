@@ -808,11 +808,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         public void onKeyEvent(KeyInputEvent evt) {
             updateModifierKeys(evt);
 
-            if (evt.isPressed()) {
-                handleKeyPress(evt);
+            // Typing in the debug console mustn't work the keys, a "g" would hide the HUD
+            ConsoleState console = stateManager.getState(ConsoleState.class);
+            if (!evt.isPressed() || (console != null && console.isEnabled())) {
+                return;
             }
 
-            if (evt.isPressed() && evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
+            handleKeyPress(evt);
+            if (evt.getKeyCode() == (int) Settings.Setting.TOGGLE_GUI.getDefaultValue()) {
                 stateManager.getState(PlayerState.class).getScreen().toggleGui();
             }
         }
