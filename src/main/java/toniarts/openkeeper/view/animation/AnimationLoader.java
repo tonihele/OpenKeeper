@@ -24,6 +24,7 @@ import com.jme3.scene.Spatial;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
+import toniarts.openkeeper.tools.convert.KmfModelMarkers;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -112,6 +113,9 @@ public final class AnimationLoader {
         // Load the model and attach it without the root
         Spatial model = AssetUtils.loadModel(assetManager, resourceName, artResource);
         model = ((Node) model).getChild(0);
+        if (model instanceof Node node) {
+            KmfModelMarkers.ensureLegacyMarkers(node, resourceName);
+        }
         model.setCullHint(Spatial.CullHint.Always);
         creatureRoot.attachChild(model);
         return model;

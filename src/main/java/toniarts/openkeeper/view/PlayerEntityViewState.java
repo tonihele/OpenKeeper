@@ -441,6 +441,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (result != null) {
                 CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
                 control.setWaterCheck(this::isWater);
+                control.setEffectManager(stateManager.getState(EffectManagerState.class));
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
