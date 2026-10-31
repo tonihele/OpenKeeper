@@ -45,6 +45,7 @@ attribute vec2 inTexCoord;
 varying vec2 texCoord;
 varying vec3 vVertexColor;
 varying vec3 vOverlay;
+varying vec3 vGlow;
 
 void main() {
     vec4 modelSpacePos = vec4(inPosition, 1.0);
