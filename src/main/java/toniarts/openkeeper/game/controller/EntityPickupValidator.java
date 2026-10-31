@@ -35,6 +35,19 @@ public final class EntityPickupValidator {
     }
 
     /**
+     * Tells whether the picking player has to own the entity itself. Loose gold
+     * belongs to whoever owns the land it lies on, so the owner of the gold
+     * pile doesn't matter (it may still be the player who dropped it or whose
+     * treasury it came from), {@link #isValidLocation} decides instead.
+     *
+     * @param object object metadata, or {@code null} for a non-object entity
+     * @return {@code true} when the entity must be owned by the picking player
+     */
+    public static boolean isOwnershipRequired(ObjectComponent object) {
+        return object == null || object.objectId != ObjectsController.OBJECT_GOLD_ID;
+    }
+
+    /**
      * Checks object-specific restrictions for the entity's current location.
      * Loose gold and specials follow the Dungeon Keeper II own-land rule: they
      * can only be picked up from a tile the picking player owns. Other entity
