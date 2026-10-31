@@ -1,0 +1,137 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.game.controller;
+
+import com.jme3.math.FastMath;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
+import java.util.List;
+import java.util.Map;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.map.FakeMapData;
+import toniarts.openkeeper.game.map.FakeMapInformation;
+import toniarts.openkeeper.game.map.FakeMapTile;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
+import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.SOLID;
+
+class DoorsControllerTest {
+
+    private static final short PLAYER = Player.KEEPER1_ID;
+    private static final short ENEMY = Player.KEEPER2_ID;
+    private static final short CLAIMED_PATH = 8;
+    private static final short REINFORCED_WALL = 9;
+    private static final Point TILE = new Point(2, 2);
+
+    private final EntityData entityData = new DefaultEntityData();
+    private final Door woodenDoor = DoorFixtures.door((short) 1, 250, 800);
+    private FakeMapData mapData;
+    private DoorsController doorsController;
+
+    @BeforeEach
+    void setUp() {
+        mapData = new FakeMapData(5, 5);
+        for (int x = 0; x < 5; x++) {
+            for (int y = 0; y < 5; y++) {
+                setTile(new Point(x, y), CLAIMED_PATH, PLAYER);
+            }
+        }
+        FakeMapInformation mapInformation = new FakeMapInformation(mapData, Map.of(
+                CLAIMED_PATH, terrain(CLAIMED_PATH, OWNABLE),
+                REINFORCED_WALL, terrain(REINFORCED_WALL, SOLID, OWNABLE)));
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" -> mapData;
+            case "getTerrain" -> mapInformation.getTerrain((IMapTileInformation) args[0]);
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getThings" -> List.of();
+            case "getDoorById" -> woodenDoor;
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        doorsController = new DoorsController(kwdFile, entityData, null, mapController, null, null);
+    }
+
+    @Test
+    void blueprintWaitsForItsDoor() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        assertTrue(entityData.getComponent(door, DoorComponent.class).blueprint);
+        assertTrue(entityData.getComponent(door, DoorViewState.class).blueprint);
+        assertEquals(PLAYER, entityData.getComponent(door, Owner.class).ownerId);
+        assertEquals(TILE, WorldUtils.vectorToPoint(entityData.getComponent(door, Position.class).position));
+        assertNull(entityData.getComponent(door, Health.class));
+    }
+
+    @Test
+    void doorBetweenWallsEastAndWestIsNotTurned() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        assertEquals(0, entityData.getComponent(door, Position.class).rotation);
+    }
+
+    @Test
+    void doorBetweenWallsNorthAndSouthIsTurned() {
+
+        // The walls of another keeper hold the door as well
+        setTile(new Point(2, 1), REINFORCED_WALL, ENEMY);
+        setTile(new Point(2, 3), REINFORCED_WALL, ENEMY);
+
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        assertEquals(-FastMath.HALF_PI, entityData.getComponent(door, Position.class).rotation);
+    }
+
+    private void setTile(Point point, short terrainId, short ownerId) {
+        FakeMapTile tile = mapData.getTile(point.x, point.y);
+        tile.terrainId = terrainId;
+        tile.ownerId = ownerId;
+    }
+
+    private static Terrain terrain(short terrainId, Terrain.TerrainFlag... flags) {
+        return TerrainFixtures.terrain(terrainId, TerrainFixtures.flags(flags), 0, 1, 1, terrainId);
+    }
+
+}
