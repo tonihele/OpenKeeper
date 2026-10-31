@@ -21,6 +21,7 @@ import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -263,6 +264,12 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+
+            // DK II weighs withdrawing on every turn of a fight too (0x45F030 calls 0x45EC80)
+            if (entity.shouldFleeOrAttack() && entity.getStateMachine().isInState(FLEE)) {
+                return;
+            }
+
             ICreatureController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(IDLE); // Nothing to do
@@ -392,6 +399,17 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+
+            // A worker's withdraw ends once it gets there (DK II's 0xCA), then it goes back to
+            // work, or withdraws again if an enemy is still after it
+            if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER && entity.isStopped()) {
+                if (!entity.shouldFleeOrAttack()) {
+                    entity.getStateMachine().changeState(IDLE);
+                } else if (entity.getStateMachine().isInState(FLEE)) {
+                    entity.flee();
+                }
+                return;
+            }
             if (entity.isStateTimeExceeded() && !entity.shouldFleeOrAttack()) {
                 entity.getStateMachine().changeState(IDLE);
             }
@@ -614,6 +632,12 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+
+            // A worker weighs withdrawing during its own swing too
+            if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER
+                    && entity.shouldFleeOrAttack() && entity.getStateMachine().isInState(FLEE)) {
+                return;
+            }
             if (entity.isStateTimeExceeded()) {
                 entity.getStateMachine().changeState(FIGHT);
             }
