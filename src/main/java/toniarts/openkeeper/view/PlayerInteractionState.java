@@ -367,7 +367,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (interactiveControl != null) {
 
             // Maybe a kinda hack, but set the tooltip here
-            tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
+            String text = interactiveControl.getTooltip(player.getPlayerId());
+            if (text == null) {
+
+                // No tooltip of its own (creature beds), show the one of the tile it stands on
+                text = getTileTooltip(WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation()));
+            }
+            tooltip.setText(text);
             interactiveControl.onHover(player.getPlayerId());
         } else if (isOnMap) {
             p = selectionHandler.getPointedTileIndex();
