@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -34,6 +36,45 @@ class CreatureStateTest {
     @Test
     void recuperatingCreatureWakesWhenItsBedIsGone() {
         assertMissingLairChangesStateToIdle(CreatureState.RECUPERATING);
+    }
+
+    @Test
+    void castReleasesItsShotBeforeItEnds() {
+        List<String> calls = new ArrayList<>();
+        ICreatureController creature = recordingCreature(calls);
+
+        CreatureState.CAST_SPELL.update(creature);
+
+        assertEquals(List.of("releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
+    }
+
+    @Test
+    void interruptedCastDropsItsShot() {
+        List<String> calls = new ArrayList<>();
+
+        CreatureState.CAST_SPELL.exit(recordingCreature(calls));
+
+        assertEquals(List.of("cancelCastShot"), calls);
+    }
+
+    private static ICreatureController recordingCreature(List<String> calls) {
+        StateMachine<ICreatureController, CreatureState> stateMachine = (StateMachine<ICreatureController, CreatureState>) Proxy.newProxyInstance(
+                StateMachine.class.getClassLoader(), new Class<?>[]{StateMachine.class}, (proxy, method, args) -> {
+                    calls.add(method.getName() + " " + args[0]);
+                    return defaultValue(method.getReturnType());
+                });
+        return (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "isStateTimeExceeded" -> {
+                        calls.add(method.getName());
+                        yield true;
+                    }
+                    default -> {
+                        calls.add(method.getName());
+                        yield defaultValue(method.getReturnType());
+                    }
+                });
     }
 
     @Test
