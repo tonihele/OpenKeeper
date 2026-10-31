@@ -78,7 +78,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = Creature.AnimationType.WALK;
+                Navigation navigation = entityData.getComponent(entityId, Navigation.class);
+                targetState = navigation.pursuingAttackTarget ? Creature.AnimationType.RUN : Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {

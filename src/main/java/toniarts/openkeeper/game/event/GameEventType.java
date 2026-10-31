@@ -65,5 +65,8 @@ public enum GameEventType {
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
-    TERRAIN_DESTROYED
+    TERRAIN_DESTROYED,
+
+    /** A creature successfully started pursuing an attack target. */
+    CREATURE_CHARGE
 }
