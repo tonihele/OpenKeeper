@@ -75,8 +75,9 @@ public final class FetchObjectTask extends AbstractTileTask {
     }
 
     private boolean isPlayerCapacityFull() {
+        // The storage for this kind of object counts, a library keeps its researchers too
         for (IRoomController room : mapController.getRoomsByFunction(gameObject.getType(), playerId)) {
-            if (!room.isFullCapacity()) {
+            if (!room.getObjectControl(gameObject.getType()).isFullCapacity()) {
                 return false;
             }
         }
