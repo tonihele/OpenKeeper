@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
@@ -1259,6 +1260,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.setComponent(entity, new Position(0, pos));
 
         restoreDroppedCreatureAi(entity, creatureState, targetState);
+
+        // A dropped worker first looks for work right around it
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        if (!tortureOrImprisonment && creatureComponent.worker) {
+            entityData.setComponent(entity, new DropArea(tile));
+        }
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {

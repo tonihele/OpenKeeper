@@ -21,6 +21,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -73,6 +74,30 @@ class WorkerTaskOrderTest {
         assertEquals(List.of(freeNearFloor, freeFarFloor, takenNearDig), sorted(takenNearDig, freeFarFloor, freeNearFloor));
     }
 
+    @Test
+    void droppedImpTakesTheClosestWorkAroundTheDrop() {
+
+        // Dropped next to a wall, with floor to claim two tiles away and digging elsewhere: the wall comes first,
+        // whatever kind of work it is
+        TaskManager.TaskWorkerPriority wallNextToDrop = pair(TaskType.CLAIM_WALL, 0, 177, 1);
+        TaskManager.TaskWorkerPriority claimTwoTilesAway = pair(TaskType.CLAIM_TILE, 0, 102, 2);
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 11);
+
+        assertEquals(List.of(wallNextToDrop, claimTwoTilesAway, dig), sorted(dig, claimTwoTilesAway, wallNextToDrop));
+    }
+
+    @Test
+    void dropAreaIsTwoTilesInEveryDirection() {
+        Point drop = new Point(10, 10);
+
+        assertEquals(0, TaskManager.getDropRing(task(TaskType.CLAIM_TILE, new Point(10, 10)), drop));
+        assertEquals(1, TaskManager.getDropRing(task(TaskType.DIG_TILE, new Point(11, 9)), drop));
+        assertEquals(2, TaskManager.getDropRing(task(TaskType.CLAIM_WALL, new Point(12, 12)), drop));
+        assertEquals(2, TaskManager.getDropRing(task(TaskType.REPAIR_WALL, new Point(8, 11)), drop));
+        assertEquals(Integer.MAX_VALUE, TaskManager.getDropRing(task(TaskType.CLAIM_TILE, new Point(13, 10)), drop));
+        assertEquals(Integer.MAX_VALUE, TaskManager.getDropRing(task(TaskType.CARRY_GOLD_TO_TREASURY, null), drop));
+    }
+
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
         List<TaskManager.TaskWorkerPriority> result = new ArrayList<>(List.of(pairs));
         result.sort(new TaskWorkerPriorityComparator());
@@ -80,12 +105,26 @@ class WorkerTaskOrderTest {
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points) {
-        Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+        return pair(taskType, assignees, points, Integer.MAX_VALUE);
+    }
+
+    private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, int dropRing) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, dropRing, null);
+    }
+
+    private static Task task(TaskType taskType, Point location) {
+        return task(taskType, 0, 0, location);
+    }
+
+    private static Task task(TaskType taskType, int assignees, int points, Point location) {
+        return (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getTaskType" ->
                 taskType;
             case "getAssigneeCount" ->
                 assignees;
+            case "getTaskLocation" ->
+                location;
             case "getTaskCreated" ->
                 CREATED;
             case "toString" ->
@@ -97,7 +136,6 @@ class WorkerTaskOrderTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        return new TaskManager.TaskWorkerPriority(task, null, points, null);
     }
 
 }
