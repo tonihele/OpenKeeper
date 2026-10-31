@@ -141,8 +141,27 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (creatureCardManager != null) {
                 creatureCardManager.update(tpf);
             }
+            if (screen != null && SCREEN_POSSESSION_ID.equals(screen.getScreenId())) {
+                updatePossessionHealth();
+            }
             lastUpdate = 0;
         }
+    }
+
+    /**
+     * Sizes the possession HUD health bar by the possessed creature's health.
+     * Called from the render thread, like the rest of the screen update.
+     */
+    private void updatePossessionHealth() {
+        EntityId target = state.stateManager.getState(PossessionInteractionState.class).getTarget();
+        Health health = target != null ? entityData.getComponent(target, Health.class) : null;
+        Element bar = screen.findElementById("creature-health");
+        if (health == null || bar == null || health.maxHealth <= 0) {
+            return;
+        }
+        int percent = Math.clamp(Math.round(100f * health.health / health.maxHealth), 0, 100);
+        bar.setConstraintWidth(new SizeValue(percent, SizeValueType.Percent));
+        bar.getParent().layoutElements();
     }
 
     @Override
