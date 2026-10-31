@@ -24,8 +24,11 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
+import toniarts.openkeeper.game.component.CasinoDisco;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -88,6 +91,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
@@ -119,6 +123,10 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    /**
+     * How long the big winner of the Casino celebrates its jackpot, as in DK II
+     */
+    private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -1373,6 +1381,9 @@ public final class CreatureController extends EntityController implements ICreat
             case EATING -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.EATING);
             }
+            case CELEBRATING -> {
+                stateTargetTime = BIG_WINNER_CELEBRATION_SECONDS;
+            }
             case FLEE -> {
                 // I couldn't find a variable for this, so lets use this for now
                 stateTargetTime = gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue();
@@ -1427,6 +1438,17 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean goGambling() {
+
+        // As in the original, the wish only depends on the gold held, the stake is the money mode one.
+        // The big winner has stopped gambling (the Gamble task is not valid for it), so it doesn't wish for it
+        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID
+                && entityData.getComponent(entityId, CasinoBigWinner.class) == null && getGold() > Math.abs(
+                gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
+                && taskManager.assignTask(this, Creature.JobType.DRINK);
+    }
+
+    @Override
     public void eat(IEntityController target) {
 
         // Ok, first we destroy the entity we are eating so that nobody else gets it
@@ -1451,6 +1473,41 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Increase health
         setDamage(-creature.getAttributes().getHpFromChicken());
+    }
+
+    @Override
+    public boolean collectWinnings() {
+        return entityData.getComponent(entityId, CasinoBigWinner.class) != null && taskManager.assignCollectWinningsTask(this);
+    }
+
+    @Override
+    public boolean goToDisco() {
+        if (isWorker() || getOwnerId() < Player.KEEPER1_ID || creature.getAnimation(Creature.AnimationType.DANCE) == null) {
+            return false;
+        }
+
+        // Dance where we stand if we are in the disco already
+        if (isAtDisco()) {
+            return true;
+        }
+        for (EntityId casino : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", getOwnerId()), CasinoDisco.class, Owner.class)) {
+            IRoomController room = mapController.getRoomController(casino);
+            if (room != null) {
+                List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+                coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+                Point destination = Utils.getRandomItem(coordinates);
+                return destination != null && !createNavigation(getCreatureCoordinates(), destination, null);
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean isAtDisco() {
+        IRoomController room = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+        return room != null && room.getOwnerId() == getOwnerId()
+                && entityData.getComponent(room.getEntityId(), CasinoDisco.class) != null;
     }
 
     @Override
