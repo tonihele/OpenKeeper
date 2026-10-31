@@ -20,13 +20,41 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * The read-only fog-of-war query surface for a single viewer. This is the
- * only way the presentation layer (and the handful of gameplay consumers
- * listed in the fog-of-war design document, §8.5) may look at fog - nothing
- * should read raw explored/perceived state directly.
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * only way the presentation layer may look at fog - nothing should read raw
+ * explored/perceived state directly.
  */
 public interface IFogOfWarInformation {
+
+    /**
+     * Used where no fog of war applies (main menu map preview, model viewer,
+     * lighting without fog): everything is simply always visible.
+     */
+    IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
+        @Override
+        public boolean isVisible(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isExplored(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPerceived(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isHighlightable(Point p) {
+            return true;
+        }
+
+        @Override
+        public boolean isPendingTagged(Point p) {
+            return false;
+        }
+    };
 
     /**
      * Should this tile be rendered/treated as visible right now? Folds in
@@ -47,7 +75,7 @@ public interface IFogOfWarInformation {
     boolean isPerceived(Point p);
 
     /**
-     * The drag-box highlight rule (§8.4): unexplored, or explored and
+     * The drag-box highlight rule: unexplored, or explored and
      * taggable, or perceived, taggable and revealed-through-fog terrain.
      */
     boolean isHighlightable(Point p);

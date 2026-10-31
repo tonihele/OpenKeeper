@@ -155,6 +155,9 @@ public abstract class KeeperHandState extends AbstractAppState {
         }
 
         updateHandCamera();
+
+        // Held things are outside the world's lighting: always fully lit
+        AssetUtils.applyFullLight(handRootNode);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
     }
@@ -374,7 +377,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         @Override
         protected KeeperHandItem addObject(Entity e) {
             IEntityViewControl viewControl;
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             switch (inHand.type) {
                 case CREATURE: {
                     viewControl = new CreatureViewControl(e.getId(), entityData, kwdFile.getCreature(inHand.id), Creature.AnimationType.IN_HAND, assetManager, null);
@@ -395,7 +398,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         protected void updateObject(KeeperHandItem object, Entity e) {
 
             // Only support index changes (these should not happen)
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             object.index = inHand.index;
         }
 

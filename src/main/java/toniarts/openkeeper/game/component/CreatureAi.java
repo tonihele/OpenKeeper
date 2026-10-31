@@ -26,17 +26,33 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
  */
 public final class CreatureAi implements EntityComponent {
 
+    private static final int NO_STATE = -1;
+
     public double stateStartTime;
     private int creatureState;
     public short creatureId;
+    // Store the ordinal, as for creatureState, so FieldSerializer can serialize it.
+    private int targetState;
 
     public CreatureAi() {
     }
 
     public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId) {
+        this(stateStartTime, creatureState, creatureId, null);
+    }
+
+    /** Creates a state with a request retained until the target is entered. */
+    public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId,
+            CreatureState targetState) {
         this.stateStartTime = stateStartTime;
         this.creatureState = creatureState.ordinal();
         this.creatureId = creatureId;
+        this.targetState = targetState == null || targetState == creatureState ? NO_STATE : targetState.ordinal();
+    }
+
+    /** Returns the requested state, or null when ordinary state selection applies. */
+    public CreatureState getTargetState() {
+        return targetState == NO_STATE ? null : CreatureState.values()[targetState];
     }
 
     public final CreatureState getCreatureState() {
