@@ -40,6 +40,7 @@ public final class SystemMessageControl extends AbstractController {
     private String text = "";
     private final Long createdAt = System.currentTimeMillis();
     private Screen hud;
+    private SystemMessageTarget target;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -122,5 +123,22 @@ public final class SystemMessageControl extends AbstractController {
      */
     public String getText() {
         return this.text;
+    }
+
+    /**
+     * @return what the message is about, or {@code null} if it is about no
+     * particular place
+     */
+    public SystemMessageTarget getTarget() {
+        return this.target;
+    }
+
+    /**
+     * Set what the message is about, the message box then offers to zoom to it
+     *
+     * @param target the target, or {@code null} if none
+     */
+    public void setTarget(SystemMessageTarget target) {
+        this.target = target;
     }
 }

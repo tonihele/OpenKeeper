@@ -127,6 +127,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final ICreaturesController creaturesController;
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
+    private final RoomDestructionTrigger roomDestructionTrigger = new RoomDestructionTrigger();
     private final IShotsController shotsController;
     private final GameEventService gameEventService;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
@@ -1006,6 +1007,8 @@ public final class CreatureController extends EntityController implements ICreat
             motionless = 0;
         }
 
+        destroyRoomOnTheWay();
+
         // Task timer
         TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
         if (taskComponent != null && taskComponent.taskStarted) {
@@ -1019,6 +1022,29 @@ public final class CreatureController extends EntityController implements ICreat
         if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
             entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId(),
                     creatureAi == null ? null : creatureAi.getTargetState()));
+        }
+    }
+
+    /**
+     * A hero with the DESTROY_ROOMS flag wrecks the keeper's room tiles he
+     * steps on, on his way to wherever he is going (DKII.EXE 0x488930)
+     */
+    private void destroyRoomOnTheWay() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        Point tile = roomDestructionTrigger.onTheWay(position != null ? position.position : null, stateMachine.getCurrentState(),
+                creatureComponent != null && creatureComponent.destroysRooms, getOwnerId());
+        if (tile == null || entityData.getComponent(entityId, Possessed.class) != null
+                || !taskManager.assignDestroyRoomTask(this, tile)) {
+            return;
+        }
+
+        // Stop on the tile and swing at it
+        if (stateMachine.isInState(CreatureState.WORK)) {
+            stopCreature();
+            navigateToAssignedTask();
+        } else {
+            stateMachine.changeState(CreatureState.WORK);
         }
     }
 

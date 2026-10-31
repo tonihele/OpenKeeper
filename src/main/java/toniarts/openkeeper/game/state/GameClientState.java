@@ -34,12 +34,14 @@ import toniarts.openkeeper.game.event.ClientEvents;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
+import toniarts.openkeeper.gui.nifty.message.SystemMessageTarget;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -393,7 +395,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                             app.enqueue(() -> {
                                 SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
                                 if (systemMessageState != null) {
-                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
+                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!",
+                                            SystemMessageTarget.ofEntity(entityId));
                                 }
                             });
                         }) {
@@ -660,6 +663,24 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onShowMessage(int textId) {
             playerState.showMessage(textId);
+        }
+
+        @Override
+        public void onShowMentorMessage(int speechId, Vector3f position) {
+            app.enqueue(() -> {
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState == null || !systemMessageState.isEnabled()) {
+                    return;
+                }
+                systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, String.format("${speech.%d}", speechId - 1),
+                        SystemMessageTarget.ofPosition(position));
+                for (MentorType speech : MentorType.values()) {
+                    if (speech.getId() == speechId) {
+                        stateManager.getState(SoundState.class).attachMentorSpeech(speech, null);
+                        break;
+                    }
+                }
+            });
         }
 
         @Override

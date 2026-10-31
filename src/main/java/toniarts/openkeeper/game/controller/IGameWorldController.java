@@ -114,6 +114,13 @@ public interface IGameWorldController {
     void destroyRoomTiles(Collection<Point> points);
 
     /**
+     * The messages that tell the keepers of their rooms under attack and lost
+     *
+     * @return the room attack messages
+     */
+    RoomAttackMessages getRoomAttackMessages();
+
+    /**
      * Interact with given entity
      *
      * @param entity the entity to interact with

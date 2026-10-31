@@ -100,6 +100,16 @@ public interface PlayerService {
     public void showMessage(int textId, short playerId);
 
     /**
+     * Show a system message with its mentor speech, e.g. "Your Lair is under
+     * attack"
+     *
+     * @param speechId the mentor speech ID, the text is the speech text
+     * @param position the place the message is about
+     * @param playerId the player ID who should get the message
+     */
+    public void showMentorMessage(int speechId, Vector3f position, short playerId);
+
+    /**
      * Zoom camera to a point
      *
      * @param point the point to zoom to
