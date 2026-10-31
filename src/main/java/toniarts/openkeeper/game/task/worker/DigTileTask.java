@@ -72,9 +72,7 @@ public class DigTileTask extends AbstractTileTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
 //        if (creature.getMeleeAttack().execute()) {
         // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
-
+        if (isWorkStepDue(creature, executionDuration)) {
             creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
         }
 //        }
