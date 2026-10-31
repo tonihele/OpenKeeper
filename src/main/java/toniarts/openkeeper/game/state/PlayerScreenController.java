@@ -56,6 +56,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -1200,25 +1201,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (researchableButton != null) {
             ResearchEffectControl researchControl = researchableButton.getControl(ResearchEffectControl.class);
             if (researchControl != null) {
-                float percentage = (float) researchableEntity.getResearch() / getResearchTime(researchableEntity);
+                float percentage = (float) researchableEntity.getResearch() / PlayerResearchControl.getResearchPoints(state.getKwdFile(), researchableEntity);
                 researchControl.setResearch(percentage);
             }
-        }
-    }
-
-    private int getResearchTime(ResearchableEntity researchableEntity) {
-        switch (researchableEntity.getResearchableType()) {
-            case SPELL:
-                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(researchableEntity.getId());
-                return researchableEntity.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime();
-            case TRAP:
-                return state.getKwdFile().getTrapById(researchableEntity.getId()).getResearchTime();
-            case DOOR:
-                return state.getKwdFile().getDoorById(researchableEntity.getId()).getResearchTime();
-            case ROOM:
-                return state.getKwdFile().getRoomById(researchableEntity.getId()).getResearchTime();
-            default:
-                throw new IllegalArgumentException("Invalid type!");
         }
     }
 
