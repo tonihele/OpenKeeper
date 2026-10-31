@@ -152,9 +152,6 @@ public final class PlayerScreenController implements IPlayerScreenController {
             creatureCardManager = null;
         }
 
-        // Remove the resource bundle so that we can actually put a new one here
-        nifty.getResourceBundles().remove("level");
-
         // The screen controller might sometimes stay in memory
         // So make sure we clean these up or we end up cumulating a lot of uncollectable garbage (memory-leak)
         state = null;

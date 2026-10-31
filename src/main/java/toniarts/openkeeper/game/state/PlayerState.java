@@ -145,6 +145,11 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
         screen = null;
 
+        // Remove the level texts only when we leave the level, so that the next
+        // level can put its own here. After the level has ended it still runs
+        // and its speeches show their texts
+        nifty.getResourceBundles().remove("level");
+
         super.cleanup();
     }
 
