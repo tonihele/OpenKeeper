@@ -142,7 +142,11 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         boolean claimable = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
-                claimable = true;
+
+                // A Dungeon Heart can't be claimed while its keeper is in the game, only once it is destroyed
+                Keeper owner = playersById.get(tile.getOwnerId());
+                claimable = owner == null || owner.isDestroyed()
+                        || !kwdFile.getDungeonHeart().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
