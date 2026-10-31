@@ -351,7 +351,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean needsLair() {
-        return getOwnerId() >= Player.KEEPER1_ID && entityData.getComponent(entityId, CreatureSleep.class) != null;
+        // Creatures without a lair object (the princes, King Reginald...) never make a home
+        return getOwnerId() >= Player.KEEPER1_ID && creature.getLairObjectId() != 0
+                && entityData.getComponent(entityId, CreatureSleep.class) != null;
     }
 
     @Override
