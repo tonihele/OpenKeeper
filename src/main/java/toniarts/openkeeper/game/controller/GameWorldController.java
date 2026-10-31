@@ -313,6 +313,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
+    @Override
+    public int substractGold(int amount, short playerId, Point p) {
+
+        synchronized (GOLD_LOCK) {
+            IRoomController room = mapController.getRoomControllerByCoordinates(p);
+            if (room == null || room.getRoomInstance().getOwnerId() != playerId || !room.canStoreGold()) {
+                return amount;
+            }
+
+            RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
+            int moneyLeft = control.removeGold(amount);
+            playerControllers.get(playerId).getGoldControl().subGold(amount - moneyLeft);
+
+            return moneyLeft;
+        }
+    }
+
     private void substractGoldCapacityFromPlayer(EntityId instance) {
         synchronized (GOLD_LOCK) {
             IRoomController roomController = mapController.getRoomController(instance);
