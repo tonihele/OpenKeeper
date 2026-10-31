@@ -30,6 +30,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
 import java.util.ArrayList;
 import java.util.List;
+import toniarts.openkeeper.gui.nifty.PagingButtons;
 
 /**
  * Creates a scrollable area with multiple rows. Has its own scroll controls and
@@ -42,6 +43,8 @@ import java.util.List;
  */
 public final class CustomScroll extends AbstractController {
 
+    private static final int ICON_MARGIN = 4;
+
     private Nifty nifty;
     private Screen screen;
     private Parameters parameters;
@@ -50,14 +53,13 @@ public final class CustomScroll extends AbstractController {
     private Element content;
     private Element back;
     private Element forward;
+    private PagingButtons pagingButtons;
 
     private final List<Element> elements = new ArrayList<>();
     private final List<Element> rows = new ArrayList<>();
     private int currentRowIndex = 1;
     private int maxRows = 2;
 
-    private int stepSize = 0;
-    private boolean enable = true;
     private boolean visible = true;
 
     @Override
@@ -77,8 +79,7 @@ public final class CustomScroll extends AbstractController {
         content = this.element.findElementById("#content");
         back = this.element.findElementById("#back");
         forward = this.element.findElementById("#forward");
-
-        setEnable(false);
+        pagingButtons = new PagingButtons(forward, back);
     }
 
     @Override
@@ -99,25 +100,30 @@ public final class CustomScroll extends AbstractController {
     }
 
     public void back() {
-        for (Element row : rows) {
-            int cX = row.getConstraintX().getValueAsInt(1.f);
-
-            if (cX < 0) {
-                row.setConstraintX(SizeValue.px(cX + stepSize));
-                content.layoutElements();
-            }
-        }
+        scroll(1);
     }
 
     public void forward() {
-        for (Element row : rows) {
-            int cX = row.getConstraintX().getValueAsInt(1.f);
+        scroll(-1);
+    }
 
-            if (cX + row.getWidth() > content.getWidth()) {
-                row.setConstraintX(SizeValue.px(cX - stepSize));
-                content.layoutElements();
-            }
+    private void scroll(int direction) {
+        if (elements.isEmpty() || rows.isEmpty()) {
+            return;
         }
+
+        // Scroll both rows by a whole icon column, including its right margin.
+        int stepSize = elements.get(0).getWidth() + ICON_MARGIN;
+        int widestRow = rows.stream().mapToInt(Element::getWidth).max().orElse(0);
+        int overflow = Math.max(0, widestRow - content.getWidth());
+        int maxScroll = ((overflow + stepSize - 1) / stepSize) * stepSize;
+        int currentX = rows.get(0).getConstraintX().getValueAsInt(1.f);
+        int nextX = Math.max(-maxScroll, Math.min(0, currentX + direction * stepSize));
+        for (Element row : rows) {
+            row.setConstraintX(SizeValue.px(nextX));
+        }
+        content.layoutElements();
+        updatePagingControls();
     }
 
     public Element addElement(ControlBuilder controlBuilder) {
@@ -131,7 +137,7 @@ public final class CustomScroll extends AbstractController {
         elements.add(el);
 
         resizeRowElement(el);
-        el.setMarginRight(SizeValue.px(4));
+        el.setMarginRight(SizeValue.px(ICON_MARGIN));
 
         content.layoutElements();
 
@@ -143,13 +149,7 @@ public final class CustomScroll extends AbstractController {
             rearrangeElements();
         }
 
-        if (!enable && currentRow.getWidth() > content.getWidth()) {
-            setEnable(true);
-        }
-
-        if (stepSize == 0) {
-            stepSize = el.getWidth();
-        }
+        updatePagingControls();
 
         return el;
     }
@@ -183,7 +183,6 @@ public final class CustomScroll extends AbstractController {
         }
 
         // Resize all the elements and set to correct rows
-        stepSize = 0;
         currentRowIndex = 1;
         for (Element element : elements) {
             resizeRowElement(element);
@@ -191,6 +190,10 @@ public final class CustomScroll extends AbstractController {
             Element currentRow = getCurrentRow();
             element.markForMove(currentRow, () -> {
                 element.setIndex(elements.indexOf(element) / rows.size());
+                // Nifty moves elements at the end of the frame. Recalculate
+                // widths and positions after the move, not just before it.
+                content.layoutElements();
+                updatePagingControls();
             });
             currentRowIndex++;
             if (rows.size() < currentRowIndex) {
@@ -230,7 +233,6 @@ public final class CustomScroll extends AbstractController {
         for (Element child : content.getChildren()) {
             child.markForRemoval();
         }
-        stepSize = 0;
         elements.clear();
         rows.clear();
         currentRowIndex = 1;
@@ -238,18 +240,14 @@ public final class CustomScroll extends AbstractController {
     }
 
     public void setEnable(boolean enable) {
-        if (this.enable != enable) {
+        pagingButtons.setEnabled(enable);
+    }
 
-            if (enable) {
-                back.enable();
-                forward.enable();
-            } else {
-                back.disable();
-                forward.disable();
-            }
-
-            this.enable = enable;
-        }
+    private void updatePagingControls() {
+        // Native DK II enables both arrows whenever the panel needs paging,
+        // including at either limit. Their click handlers clamp the movement.
+        boolean canScroll = rows.stream().anyMatch(row -> row.getWidth() > content.getWidth());
+        setEnable(canScroll);
     }
 
     public void setVisible(boolean visible) {
