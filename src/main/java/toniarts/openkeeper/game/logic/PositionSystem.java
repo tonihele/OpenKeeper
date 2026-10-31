@@ -274,9 +274,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         // Objects have solid obstacle property, but that in my opinion doesn't block the whole tile
         // More of a physics thingie that...
-        // So only doors here now...
-        DoorComponent doorComponent = entityData.getComponent(id, DoorComponent.class);
-        return doorComponent != null && !doorComponent.blueprint;
+        // So only doors here now... Also the door blueprints, the door is built where it stands, and
+        // whether it blocks is checked when asked
+        return entityData.getComponent(id, DoorComponent.class) != null;
     }
 
     @Override
@@ -298,7 +298,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         for (EntityId entityId : entityIds) {
             DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
-            if (doorComponent == null) {
+            if (doorComponent == null || doorComponent.blueprint) {
                 continue;
             }
 
