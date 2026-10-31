@@ -21,6 +21,8 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -37,6 +39,8 @@ import toniarts.openkeeper.game.task.ITaskManager;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class CreatureAiSystem implements IGameLogicUpdatable {
+
+    private static final Logger logger = System.getLogger(CreatureAiSystem.class.getName());
 
     private final EntitySet creatureEntities;
 
@@ -65,7 +69,13 @@ public final class CreatureAiSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (ICreatureController creatureController : creatureControllers.getArray()) {
-            creatureController.processTick(tpf);
+            try {
+                creatureController.processTick(tpf);
+            } catch (RuntimeException ex) {
+
+                // One creature must not stop the others from thinking
+                logger.log(Level.ERROR, "Creature " + creatureController.getEntityId() + " failed on this tick!", ex);
+            }
         }
 
         // We have a specialty here, process creature worker queue
