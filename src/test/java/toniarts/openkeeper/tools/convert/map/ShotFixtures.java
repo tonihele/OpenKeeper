@@ -25,6 +25,11 @@ public final class ShotFixtures {
      */
     public static final short THUNDERBOLT_ID = 21;
 
+    /**
+     * Shot 15 as it ships in the original data
+     */
+    public static final short INFERNO_ID = 15;
+
     private ShotFixtures() {
     }
 
@@ -43,6 +48,13 @@ public final class ShotFixtures {
      */
     public static Shot thunderbolt() {
         return shot(THUNDERBOLT_ID, Shot.ProcessType.LIGHTNING, 8, EnumSet.of(Shot.ShotProcessFlag.AT_START));
+    }
+
+    /**
+     * The keeper's Inferno, with the values of the original data
+     */
+    public static Shot inferno() {
+        return shot(INFERNO_ID, Shot.ProcessType.INFERNO, 30, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
     }
 
     public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {

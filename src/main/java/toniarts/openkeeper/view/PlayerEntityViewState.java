@@ -525,9 +525,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
         nodeShots.attachChild(result);
 
+        Shot shot = kwdFile.getShotById(shotViewState.shotId);
         Vector3f position = e.get(Position.class).position;
         if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
-            playShotEffects(kwdFile.getShotById(shotViewState.shotId), position);
+            playShotEffects(shot, position);
         }
 
         return result;
