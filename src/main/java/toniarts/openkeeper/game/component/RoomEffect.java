@@ -34,8 +34,19 @@ public final class RoomEffect implements EntityComponent {
     /** Offset from the tile centre in tiles, on top of the effect's own placement */
     public float offsetZ;
 
+    /** Runs only once instead of restarting when it ends */
+    public boolean once;
+    /** Emits its elements every effect tick for the effect's whole lifetime (hp), instead of a single burst */
+    public boolean emitOverLifetime;
+
     public RoomEffect() {
         // For serialization
+    }
+
+    public RoomEffect(int effectId, Point location, float yaw, float offsetZ, boolean once, boolean emitOverLifetime) {
+        this(effectId, location, yaw, offsetZ);
+        this.once = once;
+        this.emitOverLifetime = emitOverLifetime;
     }
 
     public RoomEffect(int effectId, Point location) {
