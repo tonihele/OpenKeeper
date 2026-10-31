@@ -159,6 +159,24 @@ public interface GameSessionServiceListener {
     public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId);
 
     /**
+     * Player has triggered a cheat that adds gold
+     *
+     * @param amount how much gold to add
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onAddGoldCheatTriggered(int amount, short playerId);
+
+    /**
+     * Player has triggered a cheat that adds mana
+     *
+     * @param amount how much mana to add
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onAddManaCheatTriggered(int amount, short playerId);
+
+    /**
      * Player wants to steer the possessed creature
      *
      * @param direction normalized movement direction on the map plane

@@ -904,10 +904,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         hud.findNiftyControl("manaGet", Label.class).setText(Integer.toString(state.getPlayer().getManaGain()));
         hud.findNiftyControl("manaLose", Label.class).setText(Integer.toString(state.getPlayer().getManaLoose()));
 
-        if (state.getGoldControl() != null) {
-            // state.getGoldControl().addListener(hud.findNiftyControl("gold", Label.class));
-        }
-        hud.findNiftyControl("gold", Label.class).setText(Integer.toString(state.getPlayer().getGold()));
+        hud.findNiftyControl("gold", Label.class).setText(Integer.toString(state.getGold()));
 
         // Player creatures
         Element creatureTab = hud.findElementById("tab-creature");
@@ -1156,7 +1153,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             setResearchEffect(room, element);
         }
         unaffordableRooms.clear();
-        updateRoomAffordability(state.getPlayer().getGold());
+        updateRoomAffordability(state.getGold());
     }
 
     /**

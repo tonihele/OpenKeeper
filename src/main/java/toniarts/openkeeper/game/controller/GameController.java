@@ -21,6 +21,8 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
@@ -181,6 +183,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
             // Init
             if (keeper != null) {
+
+                // The player's own entity, the player's state is kept in its components
+                entityData.setComponents(entityData.createEntity(), new KeeperComponent(keeper.getId()), new Gold(0, 0));
                 PlayerController playerController = new PlayerController(levelInfo.kwdFile, keeper, levelInfo.kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 

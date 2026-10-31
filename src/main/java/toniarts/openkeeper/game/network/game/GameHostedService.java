@@ -364,13 +364,6 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void onGoldChange(short keeperId, int gold) {
-        for (GameSessionImpl gameSession : players.values()) {
-            gameSession.onGoldChange(keeperId, gold);
-        }
-    }
-
-    @Override
     public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onManaChange(keeperId, mana, manaLoose, manaGain);
@@ -650,6 +643,20 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void triggerAddGoldCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddGoldCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerAddManaCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddManaCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
@@ -687,11 +694,6 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public EntityData getEntityData() {
             return null; // Cached on client...
-        }
-
-        @Override
-        public void onGoldChange(short keeperId, int gold) {
-            getCallback().onGoldChange(keeperId, gold);
         }
 
         @Override

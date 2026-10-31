@@ -734,7 +734,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
-                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
+                            stateManager.getState(PlayerState.class).getGold()).isValid()) {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
 
@@ -915,7 +915,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
         return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
                 kwdFile.getTrapById(interactionState.getItemId()),
-                gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
+                stateManager.getState(PlayerState.class).getGold()) == TrapPlacementValidator.Failure.NONE;
     }
 
     private boolean hasSellableTrap(Point tile) {
@@ -1078,7 +1078,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
          * The room can be built if it has tiles to build on and the keeper can pay for them
          */
         private boolean isRoomSelectionValid() {
-            return roomCost > 0 && roomCost <= gameClientState.getPlayer(player.getPlayerId()).getGold();
+            return roomCost > 0 && roomCost <= stateManager.getState(PlayerState.class).getGold();
         }
 
         /**
@@ -1104,7 +1104,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
          * @return the price, {@code null} for none
          */
         private CursorIcon.Price getPrice() {
-            int gold = gameClientState.getPlayer(player.getPlayerId()).getGold();
+            int gold = stateManager.getState(PlayerState.class).getGold();
             return switch (interactionState.getType()) {
                 case ROOM ->
                     CursorIcon.Price.cost(roomCost, gold);

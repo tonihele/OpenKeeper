@@ -26,11 +26,14 @@ import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
-import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
@@ -79,6 +82,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final short playerId;
     private final IKwdFile kwdFile;
     private final EntityData entityData;
+    private final EntitySet keeperEntity;
     @Nullable
     private final CampaignLevel campaignLevel;
 
@@ -103,6 +107,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         this.entityData = entityData;
         this.app = app;
         this.campaignLevel = campaignLevel;
+        keeperEntity = entityData.getEntities(new FieldFilter(KeeperComponent.class, "playerId", this.playerId), KeeperComponent.class, Gold.class);
 
         screen = new PlayerScreenController(this, app.getNifty());
         app.getNifty().registerScreenController(screen);
@@ -122,6 +127,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void cleanup() {
         unregisterPauseKey();
+        keeperEntity.release();
 
         // Detach states
         for (AbstractAppState state : appStates) {
@@ -253,6 +259,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     @Override
     public void update(float tpf) {
+        if (keeperEntity.applyChanges()) {
+            screen.setGold(getGold());
+        }
         screen.update(tpf);
     }
 
@@ -318,12 +327,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         return null;
     }
 
-    public PlayerGoldControl getGoldControl() {
-        Keeper keeper = getPlayer();
-//        if (keeper != null) {
-//            return keeper.getGoldControl();
-//        }
-        return null;
+    /**
+     * Get the gold of this player, from the player's entity
+     *
+     * @return the amount of gold this player has
+     */
+    public int getGold() {
+        return keeperEntity.isEmpty() ? 0 : keeperEntity.iterator().next().get(Gold.class).gold;
     }
 
     public PlayerCreatureControl getCreatureControl() {
@@ -578,11 +588,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
         return text.replaceAll("%19%", String.valueOf(dungeonHealth))
                 .replaceAll("%20", String.valueOf(paydayCost));
-    }
-
-    @Override
-    public void onGoldChange(short keeperId, int gold) {
-        screen.setGold(gold);
     }
 
     @Override
