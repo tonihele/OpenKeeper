@@ -26,6 +26,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 import toniarts.openkeeper.view.map.WallSection;
 
 /**
@@ -91,6 +92,19 @@ public abstract class RoomConstructor {
      * @return the spatial representing the room
      */
     public final Spatial construct(IFogOfWarInformation fogOfWarInformation) {
+        return construct(fogOfWarInformation, null);
+    }
+
+    /**
+     * Constructs the room
+     *
+     * @param fogOfWarInformation the viewer's fog-of-war query surface, used to
+     * hide the floor of any room tile that isn't explored yet
+     * @param deformer bends the pieces to the shape of the terrain, may be
+     * {@code null}
+     * @return the spatial representing the room
+     */
+    public final Spatial construct(IFogOfWarInformation fogOfWarInformation, TerrainDeformer deformer) {
         Node root = new Node(roomInstance.getRoom().getName());
 
         // Add the floor
@@ -100,6 +114,9 @@ public abstract class RoomConstructor {
             floorNode.setShadowMode(getFloorShadowMode());
             applyLighting(floorNode, lightingMaterials);
             hideUnexploredFloorTiles(fogOfWarInformation);
+            if (deformer != null) {
+                deformer.apply(floorNode, null); // Before the batch merges the pieces
+            }
             floorNode.batch();
             root.attachChild(floorNode);
         }
@@ -110,6 +127,9 @@ public abstract class RoomConstructor {
             wallNode.setName("Wall");
             wallNode.setShadowMode(getWallShadowMode());
             applyLighting(wallNode, lightingMaterials);
+            if (deformer != null) {
+                deformer.apply(wallNode, null);
+            }
             wallNode.batch();
             root.attachChild(wallNode);
         }
