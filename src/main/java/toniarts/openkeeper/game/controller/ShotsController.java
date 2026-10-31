@@ -27,9 +27,11 @@ import toniarts.openkeeper.game.controller.shot.ShotRequest;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
@@ -84,7 +86,17 @@ public final class ShotsController implements IShotsController {
         Map<Shot.ProcessType, IShotProcessor> result = new EnumMap<>(Shot.ProcessType.class);
         result.put(CREATE_CREATURE, request -> creaturesController.spawnCreature((short) request.shotData1(), request.playerId(),
                 request.shotData2(), WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE));
-        result.put(CREATE_OBJECT, request -> objectsController.loadObject((short) request.shotData1(), request.playerId(), request.position(), 0));
+        result.put(CREATE_OBJECT, request -> {
+            GameObject object = kwdFile.getObject(request.shotData1());
+            if (object != null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+
+                // Create Gold: the shot's second value is the amount of gold
+                Point tile = WorldUtils.vectorToPoint(request.position());
+                objectsController.loadObject((short) request.shotData1(), request.playerId(), tile.x, tile.y, request.shotData2(), null, null);
+            } else {
+                objectsController.loadObject((short) request.shotData1(), request.playerId(), request.position(), 0);
+            }
+        });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
