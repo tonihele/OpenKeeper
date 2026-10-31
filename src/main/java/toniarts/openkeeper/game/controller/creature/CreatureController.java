@@ -94,6 +94,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -120,6 +121,11 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    /**
+     * An enemy of the other alignment counts as this much nearer when we look
+     * for one to fight. DK II takes 7/8 of the squared distance (0x45B140).
+     */
+    private static final float OTHER_ALIGNMENT_DISTANCE_FACTOR = (float) Math.sqrt(7 / 8f);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -576,7 +582,7 @@ public final class CreatureController extends EntityController implements ICreat
             // TODO: creatures only now
             EntityId nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
-            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            for (EntityId entity : getEntitiesInNoticeRange()) {
                 if (creaturesController.isValidEntity(entity)
                         && isEnemy(entity)
                         && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
@@ -618,6 +624,9 @@ public final class CreatureController extends EntityController implements ICreat
             return false;
         }
         float distance = ourPosition.distance(theirPosition) / WorldUtils.TILE_WIDTH;
+        if (isOfOtherAlignment(entity)) {
+            distance *= OTHER_ALIGNMENT_DISTANCE_FACTOR;
+        }
         if (distance < senses.distanceCanSee && hasLineOfSight(ourPosition, theirPosition)) {
             return true;
         }
@@ -641,6 +650,53 @@ public final class CreatureController extends EntityController implements ICreat
             previous = tile.getLocation();
         }
         return walk < senses.distanceCanHear;
+    }
+
+    /**
+     * Everything on the tiles within our sight or hearing distance. DK II goes
+     * through every enemy creature and measures the straight distance
+     * (0x45B140), so this is a square of tiles rather than the sensed area,
+     * which only reaches that far in steps along the map axes and misses the
+     * diagonals.
+     */
+    private Collection<EntityId> getEntitiesInNoticeRange() {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (senses == null) {
+            return entityPositionLookup.getSensedEntities(entityId);
+        }
+        IMapTileInformation ourTile = entityPositionLookup.getEntityLocation(entityId);
+        if (ourTile == null) {
+            return Collections.emptyList();
+        }
+        int range = (int) FastMath.ceil(Math.max(senses.distanceCanSee, senses.distanceCanHear) / OTHER_ALIGNMENT_DISTANCE_FACTOR);
+        List<EntityId> entities = new ArrayList<>();
+        for (int x = ourTile.getX() - range; x <= ourTile.getX() + range; x++) {
+            for (int y = ourTile.getY() - range; y <= ourTile.getY() + range; y++) {
+                IMapTileInformation tile = mapController.getMapData().getTile(x, y);
+                if (tile != null) {
+                    entities.addAll(entityPositionLookup.getEntitiesInLocation(tile));
+                }
+            }
+        }
+        entities.remove(entityId);
+
+        return entities;
+    }
+
+    /**
+     * Whether the other creature is of the alignment we fight. DK II checks
+     * the evil flag of the enemy when we are good, otherwise its good flag
+     * (0x45B140).
+     */
+    private boolean isOfOtherAlignment(EntityId entity) {
+        CreatureComponent otherCreature = entityData.getComponent(entity, CreatureComponent.class);
+        if (otherCreature == null) {
+            return false;
+        }
+        Creature.CreatureFlag otherAlignment = creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)
+                ? Creature.CreatureFlag.IS_EVIL : Creature.CreatureFlag.IS_GOOD;
+
+        return levelInfo.getLevelData().getCreature(otherCreature.creatureId).getFlags().contains(otherAlignment);
     }
 
     /**

@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -37,9 +38,12 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -56,6 +60,8 @@ class CreatureNoticeEnemyTest {
 
     private final EntityData data = new DefaultEntityData();
     private final Set<Point> walls = new HashSet<>();
+    private final Creature heroData = CreatureSleepFixtures.sleeper(1);
+    private final Creature enemyData = CreatureSleepFixtures.sleeper(1);
     private List<Point> walk;
     private EntityId enemy;
 
@@ -93,15 +99,43 @@ class CreatureNoticeEnemyTest {
         assertEquals(enemy, attackTarget(hero));
     }
 
+    @Test
+    void seesAnEnemyOffTheMapAxes() {
+        enemy = creature(Player.KEEPER1_ID, 12, 13);
+
+        assertEquals(enemy, attackTarget(creature(Player.GOOD_PLAYER_ID, 10, 10)));
+    }
+
+    @Test
+    void seesAnEnemyOfTheOtherAlignmentFurtherAway() {
+        enemy = creature(Player.KEEPER1_ID, 14.2f, 10);
+        EntityId hero = creature(Player.GOOD_PLAYER_ID, 10, 10);
+
+        assertNull(attackTarget(hero));
+
+        heroData.getFlags().add(Creature.CreatureFlag.IS_GOOD);
+        enemyData.getFlags().add(Creature.CreatureFlag.IS_EVIL);
+        assertEquals(enemy, attackTarget(hero));
+    }
+
     private EntityId creature(short ownerId, float x, float y) {
         EntityId entity = data.createEntity();
         data.setComponents(entity, new Senses(4, 4), new Health(1000, 1000), new Owner(ownerId, ownerId),
-                new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, y)));
+                new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, y)), new CreatureComponent());
         return entity;
     }
 
     private EntityId attackTarget(EntityId hero) {
-        IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> Set.of(enemy));
+        Point heroTile = WorldUtils.vectorToPoint(data.getComponent(hero, Position.class).position);
+        Point enemyTile = WorldUtils.vectorToPoint(data.getComponent(enemy, Position.class).position);
+        IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
+            case "getEntityLocation" -> tile(heroTile);
+            case "getEntitiesInLocation" -> ((IMapTileInformation) args[0]).getLocation().equals(enemyTile) ? List.of(enemy) : List.of();
+
+            // The sensed area spreads four steps along the map axes
+            case "getSensedEntities" -> Math.abs(enemyTile.x - heroTile.x) + Math.abs(enemyTile.y - heroTile.y) <= 4 ? Set.of(enemy) : Set.of();
+            default -> throw new UnsupportedOperationException(method);
+        });
         HashMap<EntityId, ICreatureController> controllers = new HashMap<>();
         ICreaturesController creaturesController = proxy(ICreaturesController.class, (method, args) -> switch (method) {
             case "isValidEntity" -> true;
@@ -116,10 +150,13 @@ class CreatureNoticeEnemyTest {
         Keeper heroes = new Keeper(false, Player.GOOD_PLAYER_ID);
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
             case "getPlayer" -> heroes;
+            case "getLevelData" -> proxy(IKwdFile.class, (m, a) -> enemyData);
             default -> throw new UnsupportedOperationException(method);
         });
+        IMapDataInformation<?> mapData = proxy(IMapDataInformation.class, (method, args) -> tile(new Point((int) args[0], (int) args[1])));
         IMapController mapController = proxy(IMapController.class, (method, args) -> switch (method) {
             case "isSolid" -> walls.contains((Point) args[0]);
+            case "getMapData" -> mapData;
             default -> throw new UnsupportedOperationException(method);
         });
         INavigationService navigationService = proxy(INavigationService.class, (method, args) -> switch (method) {
@@ -134,7 +171,7 @@ class CreatureNoticeEnemyTest {
             }
             default -> throw new UnsupportedOperationException(method);
         });
-        CreatureController controller = new CreatureController(hero, data, CreatureSleepFixtures.sleeper(1), navigationService, null, () -> 0,
+        CreatureController controller = new CreatureController(hero, data, heroData, navigationService, null, () -> 0,
                 new HashMap<>(), creaturesController, lookup, mapController, levelInfo, null, null, null);
 
         var target = controller.getAttackTarget();
