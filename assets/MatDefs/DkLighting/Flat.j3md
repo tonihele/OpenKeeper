@@ -37,8 +37,8 @@ MaterialDef DK Flat Lighting {
     }
 
     Technique {
-        VertexShader GLSL150: Shaders/DkLighting/Flat.vert
-        FragmentShader GLSL150: Shaders/DkLighting/Flat.frag
+        VertexShader GLSL300 GLSL150 GLSL100: Shaders/DkLighting/Flat.vert
+        FragmentShader GLSL300 GLSL150 GLSL100: Shaders/DkLighting/Flat.frag
 
         WorldParameters {
             WorldViewProjectionMatrix
