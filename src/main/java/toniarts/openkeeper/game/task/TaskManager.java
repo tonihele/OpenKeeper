@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -62,6 +63,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
@@ -74,6 +76,7 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Research;
@@ -674,6 +677,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
             }
+            case GAMBLER -> {
+                return new Gamble(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
+                        gameWorldController, objectsController, gameSettings,
+                        room instanceof CasinoController casino ? casino::getPayOut : () -> CasinoController.PayOut.SMILES,
+                        FastMath.rand);
+            }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
                 return null;
@@ -747,6 +756,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+            }
+            case DRINK: {
+                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
             default:
                 return false;
