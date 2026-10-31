@@ -28,13 +28,10 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.Collection;
-import java.util.List;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.state.CheatState;
@@ -42,6 +39,13 @@ import toniarts.openkeeper.game.state.session.GameSession;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.ClientEntityData;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.Collection;
+import java.util.List;
 
 /**
  * Client side service for the game lobby services
@@ -55,6 +59,7 @@ public final class GameClientService extends AbstractClientService
 
     private RmiClientService rmiService;
     private GameSession delegate;
+    private EntityData entityData;
 
     private final GameSessionCallback sessionCallback = new GameSessionCallback();
     private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
@@ -155,7 +160,12 @@ public final class GameClientService extends AbstractClientService
 
     @Override
     public EntityData getEntityData() {
-        return getService(EntityDataClientService.class).getEntityData();
+
+        // Only what the client already has, it never waits for the server
+        if (entityData == null) {
+            entityData = new ClientEntityData(getService(EntityDataClientService.class).getEntityData());
+        }
+        return entityData;
     }
 
     @Override
@@ -205,6 +215,21 @@ public final class GameClientService extends AbstractClientService
     @Override
     public void triggerCheat(CheatState.CheatType cheat) {
         getDelegate().triggerCheat(cheat);
+    }
+
+    @Override
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount) {
+        getDelegate().triggerSpawnCreatureCheat(creatureId, level, amount);
+    }
+
+    @Override
+    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        getDelegate().setPossessedMovement(direction, rotation, speedMode);
+    }
+
+    @Override
+    public void endPossession() {
+        getDelegate().endPossession();
     }
 
     @Override
@@ -338,6 +363,13 @@ public final class GameClientService extends AbstractClientService
         public void onGameEnded(boolean win) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onGameEnded(win);
+            }
+        }
+
+        @Override
+        public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             }
         }
 

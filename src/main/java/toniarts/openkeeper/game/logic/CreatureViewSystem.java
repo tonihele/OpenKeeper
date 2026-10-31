@@ -24,6 +24,7 @@ import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
@@ -74,7 +75,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
-            if (entityData.getComponent(entityId, Navigation.class) != null) {
+            if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+                targetState = Creature.AnimationType.FALLBACK;
+            } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
@@ -163,7 +166,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case CLAIM_WALL:
                 return Creature.AnimationType.SLEEPING;
             case DIG_TILE:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return Creature.AnimationType.DIG;
             case TRAIN:
                 return Creature.AnimationType.MELEE_ATTACK;
             case RESEARCH:

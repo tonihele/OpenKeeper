@@ -29,23 +29,32 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
+import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.tools.convert.map.Shot;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.CreatureFlowerControl;
@@ -59,12 +68,17 @@ import toniarts.openkeeper.view.control.ObjectViewControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.effect.VisualEffect;
 import toniarts.openkeeper.view.loader.CreatureLoader;
 import toniarts.openkeeper.view.loader.DoorLoader;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.view.loader.ObjectLoader;
+import toniarts.openkeeper.view.loader.ShotLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.text.TextParser;
 
 /**
@@ -121,19 +135,34 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Node nodeObjects;
     private final Node nodeDoors;
     private final Node nodeTraps;
+    private final Node nodeShots;
     private final ObjectModelContainer objectModelContainer;
     private final CreatureModelContainer creatureModelContainer;
     private final DoorModelContainer doorModelContainer;
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
+    private final ShotModelContainer shotModelContainer;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
     private final ILoader<DoorViewState> doorLoader;
     private final ILoader<TrapViewState> trapLoader;
+    private final ILoader<ShotViewState> shotLoader;
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private Spatial hiddenSpatial;
+    private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
+    /** Arches, big steps, plug and obstacle */
+    private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
+    private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+
+    /**
+     * A thing whose light is created and positioned every frame (see
+     * {@link #update(float)}), not only when its entity changes.
+     */
+    private record TrackedLight(Spatial spatial, Light light, float intensity, boolean honourPulse, boolean objectLight) {
+    }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
         this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, null, ALWAYS_VISIBLE);
@@ -162,6 +191,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         creatureLoader = new CreatureLoader(kwdFile);
         doorLoader = new DoorLoader(kwdFile);
         trapLoader = new TrapLoader(kwdFile);
+        shotLoader = new ShotLoader(kwdFile);
 
         // Create the scene graph
         root = new Node("Things");
@@ -174,12 +204,17 @@ public class PlayerEntityViewState extends AbstractAppState {
         root.attachChild(nodeDoors);
         root.attachChild(nodeTraps);
 
+        // Not under the root, the root is what the cursor picks from. Bolts and particles are nothing to point
+        // at, and they would sit right in front of the creature the player keeps on striking
+        nodeShots = new Node("Shots");
+
         // Create the model "listener"
         objectModelContainer = new ObjectModelContainer(entityData);
         creatureModelContainer = new CreatureModelContainer(entityData);
         doorModelContainer = new DoorModelContainer(entityData);
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
+        shotModelContainer = new ShotModelContainer(entityData);
     }
 
     @Override
@@ -189,6 +224,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         // Attach the entities
         rootNode.attachChild(root);
+        rootNode.attachChild(nodeShots);
 
         // Start loading stuff (maybe we should do this earlier...)
         objectModelContainer.start();
@@ -196,6 +232,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.start();
         trapModelContainer.start();
         roomEffectContainer.start();
+        shotModelContainer.start();
     }
 
     @Override
@@ -207,6 +244,49 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.update();
         trapModelContainer.update();
         roomEffectContainer.update();
+        shotModelContainer.update();
+
+        // Lighting: re-derive attached-light positions and bind the
+        // vertex-lit models every frame -- lights on other things
+        // (a nearby flickering torch) change even for a thing that hasn't
+        // itself moved, so this can't rely on EntityContainer's own
+        // change-driven updateObject().
+        LightRules lightRules = getLightRules();
+        if (lightRules != null) {
+            // Create missing thing lights and follow the (possibly moving)
+            // owners: the local translation is what updateModelPosition just
+            // set, whereas the world one lags a frame behind
+            for (Map.Entry<EntityId, TrackedLight> entry : new ArrayList<>(trackedLights.entrySet())) {
+                TrackedLight tracked = entry.getValue();
+                applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity(), tracked.honourPulse(), tracked.objectLight());
+            }
+            for (Spatial object : objectModelContainer.getModels()) {
+                // The parts of the dungeon heart take no light from objects
+                // (the heart's own glow, the arches' light), only from
+                // effects, the hand, creatures, etc.
+                ObjectViewControl control = object.getControl(ObjectViewControl.class);
+                int objectId = control != null ? control.getDataObject().getObjectId() : -1;
+
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+            }
+            for (Spatial object : creatureModelContainer.getModels()) {
+                // Creatures take no room / terrain ambient colour, only lights
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false, false);
+            }
+            for (Spatial object : doorModelContainer.getModels()) {
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+            }
+            for (Spatial object : trapModelContainer.getModels()) {
+                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+            }
+        }
+    }
+
+    protected LightRules getLightRules() {
+        PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+        // Guard against racing the map loader thread's LightRules writes
+        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
+        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
     }
 
     @Override
@@ -216,9 +296,11 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.stop();
         trapModelContainer.stop();
         roomEffectContainer.stop();
+        shotModelContainer.stop();
 
         // Detach entities
         rootNode.detachChild(root);
+        rootNode.detachChild(nodeShots);
 
         for (IEntityViewControl entityViewControl : entityViewControls.values()) {
             entityViewControl.cleanup();
@@ -239,6 +321,61 @@ public class PlayerEntityViewState extends AbstractAppState {
         return root;
     }
 
+    /**
+     * Gets the model of an entity
+     *
+     * @param entityId the entity
+     * @return the model, or {@code null} if the entity has no model (yet)
+     */
+    public Spatial getEntitySpatial(EntityId entityId) {
+        IEntityViewControl control = entityViewControls.get(entityId);
+        return control != null ? control.getSpatial() : null;
+    }
+
+    /**
+     * Gets the view control of an entity, already holding the locally
+     * resolved game data for the entity (e.g. the {@link Creature} for a
+     * creature entity), so callers don't need to query the server for it
+     *
+     * @param entityId the entity
+     * @return the view control, or {@code null} if the entity has no view
+     * (yet)
+     */
+    public IEntityViewControl getEntityViewControl(EntityId entityId) {
+        return entityViewControls.get(entityId);
+    }
+
+    /**
+     * Hides the model of an entity regardless of fog of war, i.e. the creature
+     * we are looking out of while possessing it
+     *
+     * @param entityId the entity to hide, {@code null} to show the previously
+     * hidden one again
+     */
+    public void setHiddenEntity(EntityId entityId) {
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Inherit);
+        }
+        Spatial previous = hiddenSpatial;
+        hiddenSpatial = entityId != null ? getEntitySpatial(entityId) : null;
+        if (hiddenSpatial != null) {
+            hiddenSpatial.setCullHint(Spatial.CullHint.Always);
+        }
+
+        // The light's player colour depends on possession, drop the lights so
+        // update() rebuilds them
+        LightRules lightRules = getLightRules();
+        if (lightRules != null) {
+            for (Map.Entry<EntityId, TrackedLight> entry : trackedLights.entrySet()) {
+                Spatial spatial = entry.getValue().spatial();
+                if (spatial == previous || spatial == hiddenSpatial) {
+                    lightRules.removeThingLight(entry.getKey());
+                    lightOwners.remove(entry.getKey());
+                }
+            }
+        }
+    }
+
     private Spatial createObjectModel(Entity e) {
 
         // We can only draw the few basic types, maybe we can do it like this
@@ -253,7 +390,14 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (objectViewState != null) {
             result = objectLoader.load(assetManager, objectViewState);
             if (result != null) {
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData, kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager, textParser != null ? textParser.getObjectTextParser() : null, mapData);
+                Creature lairCreatureType = objectViewState.lairCreatureTypeId != 0
+                        ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
+                boolean uniqueCreatureBed = lairCreatureType != null
+                        && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
+                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
+                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
+                        uniqueCreatureBed);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -266,6 +410,18 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
         nodeObjects.attachChild(result);
         return result;
+    }
+
+    private boolean isWater(Vector3f position) {
+        if (mapData == null) {
+            return false;
+        }
+        IMapTileInformation tile = mapData.getTile(WorldUtils.vectorToPoint(position));
+        if (tile == null) {
+            return false;
+        }
+        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+        return terrain != null && terrain.getFlags().contains(Terrain.TerrainFlag.WATER);
     }
 
     private Spatial createCreatureModel(Entity e) {
@@ -283,7 +439,8 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                EntityViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                control.setWaterCheck(this::isWater);
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
@@ -360,8 +517,45 @@ public class PlayerEntityViewState extends AbstractAppState {
         return result;
     }
 
+    private Spatial createShotModel(Entity e) {
+        ShotViewState shotViewState = e.get(ShotViewState.class);
+        Spatial result = shotLoader.load(assetManager, shotViewState);
+        if (result == null) {
+            result = new Node("Wat"); // FIXME: Yeah...
+        }
+        nodeShots.attachChild(result);
+
+        Vector3f position = e.get(Position.class).position;
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
+            playShotEffects(kwdFile.getShotById(shotViewState.shotId), position);
+        }
+
+        return result;
+    }
+
+    /**
+     * Plays the effects a shot starts with. They are not part of the shot
+     * model, the sparks and the smoke of a strike outlast the bolt itself.
+     */
+    private void playShotEffects(Shot shot, Vector3f position) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        effectManagerState.load(nodeShots, position.clone(), shot.getCreationEffectId(), false);
+
+        // A shot processed at its start hits there, a lightning strike for example
+        if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.AT_START)) {
+            effectManagerState.load(nodeShots, position.clone(), shot.getHitThingEffectId(), false);
+        }
+    }
+
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
+
+        Creature creature = kwdFile.getCreature(viewState.creatureId);
+        applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
         control.setTargetState(viewState.state);
@@ -403,15 +597,88 @@ public class PlayerEntityViewState extends AbstractAppState {
             control.setTargetState(viewState);
         }
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
+
+        GameObject gameObject = kwdFile.getObject(viewState.objectId);
+        if (LightConstants.OBJECT_LIGHTS_ENABLED) {
+            applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY,
+                    LightConstants.OBJECT_LIGHTS_PULSE, true);
+        }
     }
 
     /**
-     * Hides things standing on non-visible tiles (fog-of-war design §8.2).
+     * The thing-light formula, for objects/creatures. Shots
+     * and slab lights aren't wired here: there is no shot rendering and no slab-light data in this
+     * codebase's parser. Everything else is implemented: the
+     * colour-non-zero enable rule, over-bright bits, the player colour of
+     * {@code PLAYER_COLOURED} lights, radius scale and pulse/flicker.
+     */
+    private void applyThingLight(EntityId id, Spatial object, Light light, float intensity) {
+        applyThingLight(id, object, light, intensity, true, false);
+    }
+
+    /**
+     * @param honourPulse false drops the data's PULSE/FLICKER request, as the
+     * original does for object lights (the dungeon heart glow is constant)
+     */
+    private void applyThingLight(EntityId id, Spatial object, Light light, float intensity, boolean honourPulse, boolean objectLight) {
+        LightRules lightRules = getLightRules();
+        if (!LightConstants.isLightEnabled(light)) {
+            trackedLights.remove(id);
+            lightOwners.remove(id);
+            if (lightRules != null) {
+                lightRules.removeThingLight(id);
+            }
+            return;
+        }
+        trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
+        if (lightRules == null) {
+            // Map still loading: update() creates the light as soon as the
+            // map is ready, without waiting for the entity to change again
+            // (an idle imp might never)
+            return;
+        }
+
+        // A PLAYER_COLOURED light takes the owner's colour, so a change of
+        // owner (e.g. a converted creature) needs the light rebuilt
+        // ...except the creature being possessed, whose light stays neutral
+        boolean possessed = object == hiddenSpatial;
+        boolean playerColoured = !possessed && light.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
+        // The view control already watches the entity's Owner
+        IEntityViewControl viewControl = playerColoured ? entityViewControls.get(id) : null;
+        Short ownerId = viewControl != null ? Short.valueOf(viewControl.getOwnerId()) : null;
+        if (playerColoured && lightRules.getThingLight(id) != null
+                && !Objects.equals(lightOwners.get(id), ownerId)) {
+            lightRules.removeThingLight(id);
+        }
+
+        Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
+        if (lightRules.getThingLight(id) == null) {
+            if (playerColoured) {
+                lightOwners.put(id, ownerId);
+            }
+            LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
+                    intensity, honourPulse, !possessed);
+            source.setObjectLight(objectLight);
+            if (objectLight) {
+                source.setRadius(Math.min(source.getRadius() * LightConstants.OBJECT_LIGHT_RADIUS_SCALE,
+                        LightConstants.MAX_LIGHT_RADIUS_TILES));
+            }
+        } else {
+            lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
+        }
+    }
+
+    /**
+     * Hides things standing on non-visible tiles.
      * There is no "visible through fog" per-thing flag anywhere in this
      * codebase's creature/object/door/trap data, so this applies uniformly,
      * with no exceptions.
      */
     private void applyFogCullHint(Spatial object, Point tile, boolean baseVisible) {
+        if (object == hiddenSpatial) {
+            object.setCullHint(Spatial.CullHint.Always);
+            return;
+        }
         boolean visible = baseVisible;
         if (visible) {
             visible = fogOfWarInformation.isVisible(tile);
@@ -435,19 +702,16 @@ public class PlayerEntityViewState extends AbstractAppState {
             return;
         }
         Set<Point> dirty = new HashSet<>(Arrays.asList(points));
-        for (Map.Entry<EntityId, IEntityViewControl> entry : entityViewControls.entrySet()) {
-            EntityId id = entry.getKey();
-            Position position = entityData.getComponent(id, Position.class);
-            if (position == null) {
-                continue;
-            }
-            Point tile = WorldUtils.vectorToPoint(position.position);
+        for (IEntityViewControl control : entityViewControls.values()) {
+
+            // From the control: its spatial stands at the entity's position, and an object's control has the latest view state
+            Spatial spatial = control.getSpatial();
+            Point tile = WorldUtils.vectorToPoint(spatial.getLocalTranslation());
             if (!dirty.contains(tile)) {
                 continue;
             }
-            ObjectViewState objectViewState = entityData.getComponent(id, ObjectViewState.class);
-            boolean baseVisible = objectViewState == null || objectViewState.visible;
-            applyFogCullHint(entry.getValue().getSpatial(), tile, baseVisible);
+            boolean baseVisible = !(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible;
+            applyFogCullHint(spatial, tile, baseVisible);
         }
     }
 
@@ -459,6 +723,14 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
+
+        // Stop driving the light first, or update() would re-create it
+        trackedLights.remove(e.getId());
+        lightOwners.remove(e.getId());
+        LightRules lightRules = getLightRules();
+        if (lightRules != null) {
+            lightRules.removeThingLight(e.getId());
+        }
 
         IEntityViewControl entityViewControl = entityViewControls.remove(e.getId());
         if (entityViewControl != null) {
@@ -508,6 +780,10 @@ public class PlayerEntityViewState extends AbstractAppState {
             removeModel(object, e);
         }
 
+        Spatial[] getModels() {
+            return getArray();
+        }
+
     }
 
     /**
@@ -537,6 +813,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
+        }
+
+        Spatial[] getModels() {
+            return getArray();
         }
 
     }
@@ -569,6 +849,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
         }
+
+        Spatial[] getModels() {
+            return getArray();
+        }
     }
 
     /**
@@ -600,6 +884,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
         }
+
+        Spatial[] getModels() {
+            return getArray();
+        }
     }
 
     /**
@@ -621,8 +909,11 @@ public class PlayerEntityViewState extends AbstractAppState {
             // Effect 350 sits half a tile further than the gem holder's own
             // tile centre
             Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
-                    .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f);
-            stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+                    .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f + roomEffect.offsetZ);
+            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+            if (visualEffect != null && roomEffect.yaw != 0) {
+                visualEffect.getEffectNode().rotate(0, roomEffect.yaw, 0);
+            }
             return Boolean.TRUE;
         }
 
@@ -635,6 +926,36 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Boolean object, Entity e) {
             // Not individually removable today - only
             // EffectManagerState.clearActiveEffects() clears everything
+        }
+    }
+
+    /**
+     * Contains the shots, spells and missiles on their way or striking
+     */
+    private final class ShotModelContainer extends EntityContainer<Spatial> {
+
+        public ShotModelContainer(EntityData ed) {
+            super(ed, Position.class, ShotViewState.class);
+        }
+
+        @Override
+        protected Spatial addObject(Entity e) {
+            logger.log(Level.TRACE, "ShotModelContainer.addObject({0})", e);
+            Spatial result = createShotModel(e);
+            updateObject(result, e);
+            return result;
+        }
+
+        @Override
+        protected void updateObject(Spatial object, Entity e) {
+            logger.log(Level.TRACE, "ShotModelContainer.updateObject({0})", e);
+            updateModelPosition(object, e);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+        }
+
+        @Override
+        protected void removeObject(Spatial object, Entity e) {
+            removeModel(object, e);
         }
     }
 }

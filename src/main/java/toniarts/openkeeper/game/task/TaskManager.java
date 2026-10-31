@@ -129,6 +129,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
+    private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
@@ -702,7 +703,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 break;
             }
             case KILL_PLAYER: {
-                task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
+
+                // Without the keeper the creature has nobody to go after, it just carries on as usual
+                if (KillPlayer.isTargetPresent(levelInfo, creature.getObjectiveTargetPlayerId())) {
+                    task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
+                }
+                break;
+            }
+            default: {
+
+                // The other objectives don't give the creature a task of its own
                 break;
             }
         }
@@ -867,7 +877,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         while (!unemployedWorkers.isEmpty() && !priorizedTasks.isEmpty()) {
 
             // With each iteration we sort to fill the jobs as even as possible (assignee count changes)
-            Collections.sort(priorizedTasks, (o1, o2) -> sortByTaskStatusAndDistance(o1, o2));
+            Collections.sort(priorizedTasks, taskWorkerPriorityComparator);
 
             Iterator<TaskWorkerPriority> iter = priorizedTasks.iterator();
             while (iter.hasNext()) {
@@ -898,25 +908,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
     }
 
-    private int sortByTaskStatusAndDistance(TaskWorkerPriority o1, TaskWorkerPriority o2) {
-
-        // Fill in jobs that have no workers first
-        int result = Integer.compare(o1.task.getAssigneeCount(), o2.task.getAssigneeCount());
-        if (result != 0) {
-            return result;
-        }
-
-        // Closest creature gets the job
-        result = Integer.compare(o1.points, o2.points);
-        if (result != 0) {
-            return result;
-        }
-
-        // If the same, compare by date added
-        return o1.task.getTaskCreated().compareTo(o2.task.getTaskCreated());
-    }
-
-    private static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
 
     }
 
