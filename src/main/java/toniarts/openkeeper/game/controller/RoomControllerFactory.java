@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.game.controller.room.GraveyardController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
 import toniarts.openkeeper.game.controller.room.HeroGateFrontEndController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -114,8 +115,8 @@ public final class RoomControllerFactory {
 //                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
         } else if (roomName.equalsIgnoreCase("Casino")) {
             return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController);
-//                } else if (roomName.equalsIgnoreCase("Graveyard")) {
-//                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
+        } else if (roomName.equalsIgnoreCase("Graveyard")) {
+            return new GraveyardController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
             return new TortureChamberController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Treasury")) {

@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
+import toniarts.openkeeper.game.logic.GraveyardSystem;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -114,6 +115,8 @@ public final class GameLoopManager {
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
+                new GraveyardSystem(entityData, levelInfo.getLevelData(), gameSettings,
+                        gameWorldController.getMapController(), gameWorldController.getCreaturesController()),
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 (IGameLogicUpdatable) gameController,
