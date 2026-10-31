@@ -65,6 +65,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -151,6 +152,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
@@ -523,6 +525,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
         }
+        if (shotViewState.velocity != null) {
+            Node flyingShot = new Node(result.getName());
+            flyingShot.attachChild(result);
+            flyingShot.addControl(new ShotFlightControl(shotViewState.velocity));
+            addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), flyingShot);
+            result = flyingShot;
+        }
         nodeShots.attachChild(result);
 
         Vector3f position = e.get(Position.class).position;
@@ -531,6 +540,23 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
 
         return result;
+    }
+
+    /**
+     * A flying shot drags its general effect along, like the fire trail of the
+     * cannon ball. DKII.EXE moves the effect with the shot every turn
+     * (0x4AB180). The effect lasts as long as the shot flies.
+     */
+    private void addShotTrail(EntityId entityId, Shot shot, Node flyingShot) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), true);
+        if (trail != null) {
+            shotTrails.put(entityId, trail);
+        }
     }
 
     /**
@@ -710,9 +736,21 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (!dirty.contains(tile)) {
                 continue;
             }
-            boolean baseVisible = !(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible;
+            boolean baseVisible = (!(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible)
+                    && isTrapShown(control);
             applyFogCullHint(spatial, tile, baseVisible);
         }
+    }
+
+    /**
+     * Hidden traps and blueprints are shown only to their owner
+     *
+     * @param control the view control of the entity
+     * @return false if the entity is a trap the player doesn't get to see
+     */
+    private boolean isTrapShown(IEntityViewControl<?, ?> control) {
+        return !(control instanceof TrapViewControl trapControl)
+                || trapControl.getCurrentState().isShownTo(trapControl.getOwnerId(), playerId);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -875,9 +913,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
+            TrapViewControl control = object.getControl(TrapViewControl.class);
+            if (control != null) {
+                control.setTargetState(e.get(TrapViewState.class));
+            }
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
-            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), isTrapShown(control));
         }
 
         @Override
@@ -955,6 +997,10 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+            VisualEffect trail = shotTrails.remove(e.getId());
+            if (trail != null) {
+                trail.removeEffect();
+            }
             removeModel(object, e);
         }
     }

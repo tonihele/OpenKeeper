@@ -48,6 +48,20 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
     public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity);
 
     /**
+     * Adds a manufactured crate to a room
+     *
+     * @param crateObjectId the crate object, e.g. the trap's
+     * {@code manufCrateObjectId}
+     * @param ownerId the owner
+     * @param x the tile x
+     * @param y the tile y
+     * @param type what the crate holds, a trap or a door
+     * @param typeId the trap or door
+     * @return the crate entity
+     */
+    public EntityId addRoomCrate(short crateObjectId, short ownerId, int x, int y, ResearchableType type, short typeId);
+
+    /**
      * Spawns an chicken in specified position. Yes, chickens are object. And an
      * egg is actually spawned.
      *
