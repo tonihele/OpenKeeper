@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.HealthGain;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
@@ -85,6 +86,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final EntitySet imprisonedEntities;
     private final EntitySet torturedEntities;
     private final EntitySet regeneratedEntities;
+    private final EntitySet healthGainEntities;
     private final EntitySet recuperatingEntities;
 
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
@@ -123,6 +125,7 @@ public final class HealthSystem extends GameTimeCounter {
         torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
 
         regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
+        healthGainEntities = entityData.getEntities(Health.class, HealthGain.class);
         recuperatingEntities = entityData.getEntities(CreatureRecuperating.class, Health.class, CreatureComponent.class);
     }
 
@@ -141,6 +144,7 @@ public final class HealthSystem extends GameTimeCounter {
         imprisonedEntities.applyChanges();
         torturedEntities.applyChanges();
         regeneratedEntities.applyChanges();
+        healthGainEntities.applyChanges();
         recuperatingEntities.applyChanges();
 
         // Process special recuperating... event
@@ -340,6 +344,20 @@ public final class HealthSystem extends GameTimeCounter {
             }
         }
 
+        // Health gain, every second on a fixed beat that hits don't hold up (DKII.EXE's trap tick 0x4A84E0)
+        entity = healthGainEntities.getEntity(entityId);
+        if (entity != null) {
+            HealthGain healthGain = entity.get(HealthGain.class);
+            if (healthGain.nextGainTime == null) {
+                entityData.setComponent(entityId, new HealthGain(healthGain.healthGain, gameTime + 1));
+            } else if (gameTime >= healthGain.nextGainTime) {
+                entityData.setComponent(entityId, new HealthGain(healthGain.healthGain, healthGain.nextGainTime + 1));
+                if (health.health != health.maxHealth) {
+                    delta += healthGain.healthGain;
+                }
+            }
+        }
+
         // Recuperating
         entity = recuperatingEntities.getEntity(entityId);
         if (entity != null) {
@@ -420,6 +438,7 @@ public final class HealthSystem extends GameTimeCounter {
         imprisonedEntities.release();
         torturedEntities.release();
         regeneratedEntities.release();
+        healthGainEntities.release();
         recuperatingEntities.release();
         entityIds.clear();
     }
