@@ -202,7 +202,9 @@ public final class FogOfWarController implements IFogOfWarInformation {
     public void markPendingTagged(List<Point> points, boolean tagged) {
         List<Point> changed = new ArrayList<>();
         for (Point p : points) {
-            if (isVisible(p)) {
+
+            // A drag can run past the map edge, there is no tile there
+            if (mapData.getTile(p) == null || isVisible(p)) {
                 continue;
             }
             boolean wasPending = pendingTaggedTiles.contains(p);
