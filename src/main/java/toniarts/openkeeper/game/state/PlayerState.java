@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.PlayerListener;
+import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -436,6 +437,11 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             if (state.isPauseable()) {
                 state.setEnabled(!paused);
             }
+        }
+        // Disabling gameplay interaction resets its cursor. The menu owns it after that.
+        if (paused) {
+            app.getInputManager().setMouseCursor(Main.getUserSettings().getBoolean(Settings.Setting.USE_CURSORS)
+                    ? CursorFactory.getCursor(CursorFactory.CursorType.POINTER, app.getAssetManager()) : null);
         }
     }
 
