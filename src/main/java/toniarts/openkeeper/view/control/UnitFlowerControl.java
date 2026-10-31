@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * A base class for showing unit (creature, object...) flower. TODO: Maybe
@@ -360,12 +361,37 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
         return getPlayerColor(getOwnerId());
     }
 
+    /**
+     * Get the color of a player
+     *
+     * @param ownerId the player
+     * @return the color, or {@code null} if the player has none, like a unit
+     * that is being removed and has lost its owner
+     */
     protected static ColorRGBA getPlayerColor(short ownerId) {
+        if (!hasPlayerColor(ownerId)) {
+            return null;
+        }
         return getColor(MapThumbnailGenerator.getPlayerColor(ownerId));
     }
 
+    /**
+     * Tells whether the player has a color
+     *
+     * @param ownerId the player
+     * @return true for the heroes, the neutral player and the keepers
+     */
+    protected static boolean hasPlayerColor(short ownerId) {
+        for (short playerId : Utils.getPlayerIds()) {
+            if (playerId == ownerId) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     protected final void setFlowerColor(ColorRGBA c) {
-        if (material != null) {
+        if (material != null && c != null) {
             material.setColor("Color", c);
         }
     }
