@@ -493,7 +493,7 @@ public abstract class Thing {
     // Contains in GlobalVariables.kwd only
     public static final class Camera extends Thing {
 
-        public enum CameraMode {
+        public enum CameraMode implements IValueEnum {
 
             POSSESSION(2),
             GAME(3),
@@ -505,17 +505,9 @@ public abstract class Thing {
                 this.value = value;
             }
 
+            @Override
             public int getValue() {
                 return value;
-            }
-
-            public static CameraMode fromValue(int value) {
-                for (CameraMode id : values()) {
-                    if (id.value == value) {
-                        return id;
-                    }
-                }
-                return DEFAULT;
             }
 
             private final int value;
