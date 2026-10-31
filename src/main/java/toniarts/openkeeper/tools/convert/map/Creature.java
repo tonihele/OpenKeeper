@@ -300,6 +300,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         private final int id;
     }
 
+    /**
+     * The kind of an attraction requirement. The original checks the room
+     * (all the keeper's rooms of the type together must have the size), the
+     * keeper's gold and mana, and the creature requirement in a way that never
+     * stops the creature.
+     */
+    public enum AttractionType implements IValueEnum {
+
+        NONE(0),
+        ROOM(1),
+        GOLD(2),
+        MANA(3),
+        CREATURE(4);
+
+        private AttractionType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    }
+
     public enum JobClass implements IValueEnum {
 
         ARTISAN(0),
@@ -1572,6 +1597,20 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
 
         public int getPresent() {
             return present;
+        }
+
+        /**
+         * Get the kind of the requirement
+         *
+         * @return the attraction type, or {@code null} if unknown
+         */
+        public AttractionType getType() {
+            for (AttractionType type : AttractionType.values()) {
+                if (type.getValue() == present) {
+                    return type;
+                }
+            }
+            return null;
         }
 
         protected void setPresent(int present) {
