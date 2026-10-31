@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
+import java.util.function.ToIntFunction;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.utils.TextParameter;
@@ -29,13 +30,27 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class SpellIconTextParser extends IconTextParser<KeeperSpell, ResearchableEntity> {
 
+    private final ToIntFunction<KeeperSpell> manaCost;
+
+    public SpellIconTextParser() {
+        this(KeeperSpell::getManaCost);
+    }
+
+    /**
+     * @param manaCost gives the current mana cost of a spell, it may depend on
+     * the state of the game (Create Imp)
+     */
+    public SpellIconTextParser(ToIntFunction<KeeperSpell> manaCost) {
+        this.manaCost = manaCost;
+    }
+
     @Override
     protected String getReplacement(TextParameter parameter, KeeperSpell keeperSpell, ResearchableEntity spell) {
         switch (parameter) {
             case NAME:
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(keeperSpell.getNameStringId()));
             case COST:
-                return Integer.toString(keeperSpell.getManaCost());
+                return Integer.toString(manaCost.applyAsInt(keeperSpell));
             case SPELL_LEVEL:
                 return spell.isUpgraded() ? "2" : "1";
             default:

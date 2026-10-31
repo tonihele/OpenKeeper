@@ -890,9 +890,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
+        int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner);
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
     }
 
     private Set<Point> getConstructionBlockingTiles() {
