@@ -427,6 +427,7 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
                 case "getSensedEntities" -> Set.of();
+                case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
@@ -449,6 +450,7 @@ class CreatureControllerTest {
                 case "getTaskType" -> type;
                 case "isValid" -> true;
                 case "getTarget" -> new Vector2f(3, 4);
+                case "getWorkPosition" -> null;
                 case "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
                 default -> throw new UnsupportedOperationException(method);

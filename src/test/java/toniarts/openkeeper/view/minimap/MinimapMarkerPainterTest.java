@@ -28,8 +28,10 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.map.FakeFogOfWarInformation;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,9 +81,44 @@ class MinimapMarkerPainterTest {
         assertTrue(paintsAnything());
     }
 
+    @Test
+    void hiddenEnemyTrapIsNotPaintedUntilRevealed() {
+        short enemyId = 4;
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap,
+                new Position(0, new Vector3f(5, 0, 5)),
+                new Owner(enemyId, enemyId),
+                new TrapViewState((short) 1, false, true));
+        FakeFogOfWarInformation fogOfWar = new FakeFogOfWarInformation();
+        fogOfWar.explored.add(new Point(5, 5));
+
+        painter.update();
+        assertFalse(paintsAnything(fogOfWar));
+
+        entityData.setComponent(trap, new TrapViewState((short) 1, false, false));
+        painter.update();
+        assertTrue(paintsAnything(fogOfWar));
+    }
+
+    @Test
+    void ownHiddenTrapIsPainted() {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap,
+                new Position(0, new Vector3f(5, 0, 5)),
+                new Owner(VIEWER_ID, VIEWER_ID),
+                new TrapViewState((short) 1, false, true));
+
+        painter.update();
+        assertTrue(paintsAnything());
+    }
+
     private boolean paintsAnything() {
+        return paintsAnything(new FakeFogOfWarInformation());
+    }
+
+    private boolean paintsAnything(FakeFogOfWarInformation fogOfWar) {
         byte[] raster = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
-        painter.paint(raster, 16, 16, -1, 0, 0, new FakeFogOfWarInformation(), true, 0, 0, null, 0);
+        painter.paint(raster, 16, 16, -1, 0, 0, fogOfWar, true, 0, 0, null, 0);
         for (byte b : raster) {
             if (b != 0) {
                 return true;

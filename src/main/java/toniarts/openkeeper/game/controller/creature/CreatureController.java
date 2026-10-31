@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -26,6 +27,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -511,25 +513,122 @@ public final class CreatureController extends EntityController implements ICreat
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
             Vector2f loc = assignedTask.getTarget(this);
-            if (!isNear(loc)) {
+            Vector2f workPosition = assignedTask.getWorkPosition(this);
+            if (workPosition != null && workPosition.equals(loc)) {
+                workPosition = null;
+            }
+
+            // The middle of the target tile is near enough, unless the task wants us somewhere else on the tile
+            boolean there = workPosition != null ? isAt(workPosition) : loc != null && isNear(loc);
+            if (loc != null && !there) {
                 //workNavigationRequired = false;
 
-                if (loc != null) {
-                    Point destination = WorldUtils.vectorToPoint(loc);
-                    createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
-                }
+                Point destination = WorldUtils.vectorToPoint(loc);
+                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
             }
         }
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, null);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
+
+        // An enemy door in the way is not walked through, it is broken down
+        List<Point> tiles = new ArrayList<>(path.getCount());
+        path.forEach(tile -> tiles.add(tile.getLocation()));
+        int doorIndex = DoorAttackTarget.getDoorIndex(tiles, this::isDoorToBreak);
+        if (doorIndex == DoorAttackTarget.ADJACENT_DOOR_INDEX) {
+            attackDoor(getBlockingDoor(tiles.get(doorIndex)));
+            return false;
+        } else if (doorIndex > DoorAttackTarget.ADJACENT_DOOR_INDEX) {
+            path = DoorAttackTarget.stopBefore(path, doorIndex);
+            destination = tiles.get(doorIndex - 1);
+            faceTarget = tiles.get(doorIndex);
+            workPosition = null;
+        }
+
+        List<Vector2> navigationPath = SteeringUtils.pathToList(path);
+        if (workPosition != null) {
+            Vector3f position = getPosition();
+            SteeringUtils.pathToPosition(navigationPath, new Vector2(position.x, position.z), new Vector2(workPosition.x, workPosition.y));
+        }
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
         return false;
+    }
+
+    @Override
+    public boolean attackVisibleTrap() {
+        if (!TrapAttackTarget.attacksTraps(creature.getFightStyle(), getOwnerId())) {
+            return false;
+        }
+        EntityId trap = TrapAttackTarget.findNearest(entityPositionLookup.getSensedEntities(entityId), this::isTrapToAttack,
+                this::getDistanceToCreature, creature.getAttributes().getDistanceCanSee(), isWorker(),
+                target -> isWithinAttackDistance(target) || hasPathToEntity(target));
+        if (trap == null) {
+            return false;
+        }
+
+        if (isWithinAttackDistance(trap)) {
+            stopCreature();
+            executeAttack(trap);
+        } else {
+            navigateToAttackTarget(trap);
+        }
+        return true;
+    }
+
+    private boolean isTrapToAttack(EntityId entity) {
+        return TrapAttackTarget.isAttackable(entityData, entity) && isEnemy(entity);
+    }
+
+    public boolean attackAdjacentDoor() {
+        if (!DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
+            return false;
+        }
+        Position position = entityData.getComponent(entityId, Position.class);
+        Point tile = position != null ? WorldUtils.vectorToPoint(position.position) : null;
+        EntityId door = DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
+        if (door == null) {
+            return false;
+        }
+        attackDoor(door);
+        return true;
+    }
+
+    @Override
+    public boolean canBreakDoor(EntityId door) {
+        return DoorAttackTarget.canBreak(entityData, door, creature.getFightStyle(), isEnemy(door));
+    }
+
+    private boolean isDoorToBreak(Point tile) {
+        EntityId door = getBlockingDoor(tile);
+        return door != null && canBreakDoor(door);
+    }
+
+    private EntityId getBlockingDoor(Point tile) {
+        return entityPositionLookup.getBlockingDoor(tile.x, tile.y, getOwnerId());
+    }
+
+    /**
+     * Hits a door that is next to us with the melee attack, as often as the
+     * attack recharges
+     *
+     * @param door the door
+     */
+    private void attackDoor(EntityId door) {
+        CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
+            entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+            stateMachine.changeState(CreatureState.MELEE_ATTACK);
+            setDamage(door, creatureMeleeAttack.damage);
+        }
     }
 
     @Override
@@ -544,6 +643,16 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isNear(Vector2f target) {
         Vector3f currentPos = getPosition();
         return (target.distanceSquared(currentPos.x, currentPos.z) < 0.5f);
+    }
+
+    /**
+     * Standing on the spot, not just on the tile. Well above the arrival
+     * tolerance of the steering (0.1), or the creature keeps stepping around
+     * the spot
+     */
+    private boolean isAt(Vector2f target) {
+        Vector3f currentPos = getPosition();
+        return (target.distanceSquared(currentPos.x, currentPos.z) < 0.25f * 0.25f);
     }
 
     @Override
@@ -731,15 +840,84 @@ public final class CreatureController extends EntityController implements ICreat
                 }
                 stateMachine.changeState(CreatureState.CAST_SPELL);
 
-                // TODO: What is the alternative shot all about?
-                toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.get().creatureSpellId);
-                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget, entityId);
-
-                // TODO: Of course not like that, the shot is created and it does what it does
-                // Set the damage
-                setDamage(attackTarget, creatureSpell.getShotData1());
+                // The shot leaves during the cast, after the spell's shot delay (0x4984D0)
+                entityData.setComponent(entityId, new CastShot(attack.get().creatureSpellId, attackTarget, attack.get().range,
+                        gameTimer.getGameTime() + getShotDelay(attack.get().creatureSpellId)));
             }
         }
+    }
+
+    @Override
+    public void releaseCastShot() {
+        CastShot castShot = entityData.getComponent(entityId, CastShot.class);
+        if (castShot == null || gameTimer.getGameTime() < castShot.releaseTime) {
+            return;
+        }
+
+        entityData.removeComponent(entityId, CastShot.class);
+
+        // TODO: What is the alternative shot all about?
+        toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(castShot.creatureSpellId);
+        if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+                getOwnerId(), getShotPosition(castShot.creatureSpellId, castShot.target), castShot.target, entityId, castShot.range)) {
+            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
+
+            // TODO: Of course not like that, the shot is created and it does what it does
+            // Set the damage
+            setDamage(castShot.target, creatureSpell.getShotData1());
+        }
+    }
+
+    @Override
+    public void cancelCastShot() {
+        entityData.removeComponent(entityId, CastShot.class);
+    }
+
+    /**
+     * How long into the cast the shot leaves. It leaves at the end of the cast
+     * at the latest, so that a cast always fires.
+     *
+     * @param creatureSpellId the spell cast
+     * @return the time from the start of the cast
+     */
+    private double getShotDelay(short creatureSpellId) {
+        double castTime = getAnimationTime(creature, Creature.AnimationType.CAST_SPELL);
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getCreatureSpellId() == creatureSpellId) {
+                return Math.min(spell.getShotDelay(), castTime);
+            }
+        }
+
+        return 0;
+    }
+
+    /**
+     * Where the creature's shot starts. The spell's shot offset is in front of
+     * the creature and above its feet (0x4984D0), the creature faces the
+     * target when it fires.
+     *
+     * @param creatureSpellId the spell fired
+     * @param attackTarget the target
+     * @return the start of the shot
+     */
+    private Vector3f getShotPosition(short creatureSpellId, EntityId attackTarget) {
+        Vector3f position = getPosition();
+        Vector3f result = new Vector3f(position);
+        for (Creature.Spell spell : creature.getSpells()) {
+            if (spell.getCreatureSpellId() != creatureSpellId) {
+                continue;
+            }
+
+            Vector3f targetPosition = getPosition(entityData, attackTarget);
+            Vector3f forward = targetPosition != null ? targetPosition.subtract(position).setY(0) : Vector3f.ZERO;
+            if (forward.lengthSquared() > 0) {
+                result.addLocal(forward.normalizeLocal().multLocal(-spell.getShotOffset().y));
+            }
+            result.y += spell.getShotOffset().z;
+            break;
+        }
+
+        return result;
     }
 
     /**
@@ -1107,6 +1285,11 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void updateAssignedTask(Task task) {
+        entityData.setComponent(entityId, new TaskComponent(task.getId(), task.getTaskTarget(), task.getTaskLocation(), task.getTaskType(), 0.0f, false));
+    }
+
+    @Override
     public Creature getCreature() {
         return creature;
     }
@@ -1468,6 +1651,12 @@ public final class CreatureController extends EntityController implements ICreat
     public int getResearchPerSecond() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         return creatureComponent.researchPerSecond;
+    }
+
+    @Override
+    public int getManufacturePerSecond() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.manufacturePerSecond;
     }
 
     @Override
