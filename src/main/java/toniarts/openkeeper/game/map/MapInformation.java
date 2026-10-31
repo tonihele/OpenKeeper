@@ -226,7 +226,10 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
     @Override
     public boolean isClaimableWall(S tile, Terrain terrain, short playerId) {
-        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isClaimable(tile, terrain, playerId));
+        // Another keeper's reinforced wall is never reinforced over, it has to be dug out
+        return (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))
+                && isClaimable(tile, terrain, playerId));
     }
 
     @Override
