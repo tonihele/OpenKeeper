@@ -112,6 +112,17 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.ROOM_SELL, event.position);
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
+            case CASINO_JACKPOT_ANNOUNCED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.CASIN001.getId(), null);
+            case CASINO_DISCO_END ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_OVER, event.position);
+            case CASINO_FIREWORKS ->
+                add(sounds, GlobalCategory.EFFECTS, ThingSounds.FIREWORKS, event.position);
+            case CASINO_DISCO_START ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_MUSIC, null); // Looped, GameEventSoundPlayer sets its volume
+            case CASINO_JACKPOT -> {
+                // The effect is the view's
+            }
         }
         return sounds;
     }

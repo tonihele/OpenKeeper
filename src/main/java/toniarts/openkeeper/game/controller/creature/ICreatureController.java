@@ -237,6 +237,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goToEat();
 
     /**
+     * Sends the creature to gamble in the Casino, if it wants to: a keeper's
+     * creature that holds more gold than the stake of the Casino's money mode
+     *
+     * @return {@code true} if the creature was given a place to gamble
+     */
+    public boolean goGambling();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree
@@ -247,6 +255,29 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Marks that we have eaten a single ration of food
      */
     public void sate();
+
+    /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
 
     /**
      * Makes the creature hungry

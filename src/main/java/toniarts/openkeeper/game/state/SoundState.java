@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundEvent;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.SoundSequencer;
+import toniarts.openkeeper.game.sound.SoundVoice;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -72,6 +73,8 @@ public final class SoundState extends AbstractPauseAwareState {
     private int speechHandle = SoundEngine.NO_HANDLE;
     private int backgroundHandle = SoundEngine.NO_HANDLE;
     private IKwdFile kwdFile;
+    private volatile float musicVolumeFactor = 1f;
+    private boolean musicDucked;
 
     /**
      * AMBIENCE(341) | OPTIONS_MUSIC(838) | MUSIC(343, 345) | maybe ONE_SHOT_ATMOS(746)
@@ -272,6 +275,15 @@ public final class SoundState extends AbstractPauseAwareState {
         }
     }
 
+    /**
+     * Turns the level music down, e.g. while the Casino's disco plays
+     *
+     * @param factor 1 is the full volume, 0 is silent
+     */
+    public void setMusicVolumeFactor(float factor) {
+        musicVolumeFactor = factor;
+    }
+
     public void stopSpeech() {
         app.enqueue(() -> {
             if (speechHandle != SoundEngine.NO_HANDLE) {
@@ -310,6 +322,15 @@ public final class SoundState extends AbstractPauseAwareState {
         } else if (backgroundHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(backgroundHandle)) {
             backgroundHandle = SoundEngine.NO_HANDLE;
             playBackground();
+        }
+        float factor = musicVolumeFactor;
+        if (backgroundHandle != SoundEngine.NO_HANDLE && (factor < 1f || musicDucked)) {
+            musicDucked = factor < 1f;
+            SoundEngine engine = SoundManager.getEngine();
+            SoundVoice voice = engine != null ? engine.getVoice(backgroundHandle) : null;
+            if (voice != null) {
+                voice.setVolume(Math.round(100 * factor));
+            }
         }
 
         super.update(tpf);

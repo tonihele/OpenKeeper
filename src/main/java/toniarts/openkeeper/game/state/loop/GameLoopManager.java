@@ -24,6 +24,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
 import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
@@ -107,7 +108,8 @@ public final class GameLoopManager {
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer(), gameSettings),
-                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
+                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
+                        gameWorldController.getObjectsController()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
@@ -125,6 +127,8 @@ public final class GameLoopManager {
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
+                new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
+                        gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
