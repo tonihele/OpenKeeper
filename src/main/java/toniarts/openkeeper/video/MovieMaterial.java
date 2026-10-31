@@ -147,6 +147,7 @@ public final class MovieMaterial {
         material.setVector2("AspectValues", aspectValues.clone());
         material.setVector2("ValidRange", validRange.clone());
         material.setBoolean("NoFrame", noFrame);
+        material.setBoolean("GammaCorrection", app.getContext().getSettings().isGammaCorrection());
 
         if (letterbox) {
             material.setColor("LetterboxColor", letterboxColor);

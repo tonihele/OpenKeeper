@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.lighting;
 
 import java.util.Map;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -77,7 +78,7 @@ public final class LightConstants {
     /**
      * Loose tail stretched past every light's radius
      */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.01f;
 
     /**
      * Largest value of a light colour channel (255 is the plain colour, up to 511 is over-bright).
@@ -233,8 +234,9 @@ public final class LightConstants {
      * Extra radius factor for object lights only (dungeon heart glow, ...),
      * applied on top of {@link #THING_LIGHT_RADIUS_SCALE} and still capped by
      * {@link #MAX_LIGHT_RADIUS_TILES}. Creatures and effects are unaffected.
+     * Smaller with gamma correction, the lights look wider in linear space.
      */
-    public static final float OBJECT_LIGHT_RADIUS_SCALE = 1.5f;
+    public static final float OBJECT_LIGHT_RADIUS_SCALE = Main.getUserSettings().getAppSettings().isGammaCorrection() ? 1.2f : 1.5f;
 
     /**
      * {@code flags.PLAYER_COLOURED} clamp floor
