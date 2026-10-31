@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -43,6 +44,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
     protected final short targetPlayerId;
     protected final ICreatureController creature;
     protected final ILevelInfo levelInfo;
+    private final boolean wayFound;
 
     public KillPlayer(final INavigationService navigationService, final IMapController mapController, final ILevelInfo levelInfo, short targetPlayerId, ICreatureController creature) {
         super(navigationService, mapController, levelInfo.getPlayer(targetPlayerId).getDungeonHeartLocation(), creature.getOwnerId());
@@ -50,17 +52,26 @@ public final class KillPlayer extends AbstractObjectiveTask {
         this.targetPlayerId = targetPlayerId;
         this.creature = creature;
         this.levelInfo = levelInfo;
-        createSubTasks();
+        this.wayFound = createSubTasks();
     }
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        if (!isPlayerDestroyed() && creature != null && !getTaskQueue().isEmpty()) {
-
-            // Check that the objectives are still the same
-            return Thing.HeroParty.Objective.KILL_PLAYER.equals(creature.getObjective()) && Short.valueOf(targetPlayerId).equals(creature.getObjectiveTargetPlayerId());
+        if (isPlayerDestroyed()) {
+            return false;
         }
-        return !isPlayerDestroyed() && !getTaskQueue().isEmpty();
+        if (creature == null) {
+            return true;
+        }
+
+        // Check that the objectives are still the same
+        if (!Thing.HeroParty.Objective.KILL_PLAYER.equals(creature.getObjective()) || !Short.valueOf(targetPlayerId).equals(creature.getObjectiveTargetPlayerId())) {
+            return false;
+        }
+
+        // With no steps left the creature walks straight to the heart. If it
+        // stops short of it, a new plan is needed
+        return !getTaskQueue().isEmpty() || !creature.isStopped() || creature.isAtAssignedTaskTarget();
     }
 
     @Override
@@ -72,8 +83,10 @@ public final class KillPlayer extends AbstractObjectiveTask {
 
         for (Point point : points) {
             // TODO check is point accessible by creature?
-            if (point.distance(location) < temp) {
+            double distance = point.distance(location);
+            if (distance < temp) {
                 result = point;
+                temp = distance;
             }
         }
 
@@ -106,7 +119,12 @@ public final class KillPlayer extends AbstractObjectiveTask {
         return keeper == null || keeper.isDestroyed();
     }
 
-    private void createSubTasks() {
+    /**
+     * Plans the way to the heart
+     *
+     * @return false if there is no way there at all, not even by digging
+     */
+    private boolean createSubTasks() {
 
         // See if we can navigate there
         GraphPath<IMapTileInformation> outPath = navigationService.findPath(creature.getCreatureCoordinates(), WorldUtils.vectorToPoint(getTarget(creature)), creature.getParty() != null ? creature.getParty() : creature);
@@ -140,7 +158,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
                     } else {
 
                         // Hmm, this is it, should we have like attack target type tasks? Or let the AI just figure out itself
-                        return;
+                        return true;
                     }
                 } else {
                     first = true;
@@ -149,6 +167,19 @@ public final class KillPlayer extends AbstractObjectiveTask {
                 i++;
             }
         }
+        return outPath != null;
+    }
+
+    /**
+     * With no way to the heart there is nothing the hero can do for its
+     * objective yet. It doesn't take the task, and tries again the next time it
+     * looks for something to do
+     *
+     * @return the current task, null when there is no way to the heart
+     */
+    @Override
+    public Task getCurrentTask() {
+        return wayFound ? super.getCurrentTask() : null;
     }
 
     @Override
