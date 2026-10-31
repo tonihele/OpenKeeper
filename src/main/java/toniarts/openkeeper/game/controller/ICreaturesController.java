@@ -137,6 +137,13 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
 
     /**
+     * The creature leaves the dungeon through a portal and is gone for good
+     *
+     * @param entityId the leaving creature
+     */
+    void leaveDungeon(EntityId entityId);
+
+    /**
      * Gets the creature currently possessed by the given player
      *
      * @param playerId the possessing player
