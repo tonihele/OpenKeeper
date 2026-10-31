@@ -105,6 +105,11 @@ public final class MapData implements IMapData {
             }
         }
 
+        // As in the original, terrain that can't be owned (rock, gold, water...) belongs to the neutral player
+        if (!kwdFile.getTerrain(terrainId).getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+            ownerId = Player.NEUTRAL_PLAYER_ID;
+        }
+
         // Owner
         Owner owner = new Owner(ownerId, ownerId);
         entityData.setComponent(entityId, owner);
