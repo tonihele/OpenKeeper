@@ -25,6 +25,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -56,6 +57,7 @@ import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
@@ -1084,6 +1086,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, CreatureTortured.class);
         entityData.removeComponent(entity, CreatureImprisoned.class);
         entityData.removeComponent(entity, AttackTarget.class);
+        entityData.removeComponent(entity, CombatPitFighter.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
 
@@ -1244,6 +1247,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+
+            // Our own creatures dropped into the pit itself fight there
+            if (roomController instanceof CombatPitController combatPit
+                    && roomController.getRoomInstance().getOwnerId() == owner.ownerId
+                    && combatPit.isFightingTile(tile)) {
+                entityData.setComponent(entity, new CombatPitFighter(roomController.getEntityId()));
+            }
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 

@@ -24,8 +24,10 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -173,7 +175,7 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
-        if (entityData.getComponent(entityId, Fearless.class) == null) {
+        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()) {
             Threat threatComponent = entityData.getComponent(entityId, Threat.class);
             int threat = threatComponent != null ? threatComponent.threat : 0;
             int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
@@ -280,8 +282,9 @@ public final class CreatureController extends EntityController implements ICreat
      * @return is entity a captive
      */
     private boolean isCaptive(EntityId entity) {
-        // TODO: Fighting in arena is kind of captivity
-        return isImprisoned(entityData, entity) || isTortured(entityData, entity);
+        // Fighting in the Combat Pit is kind of captivity too
+        return isImprisoned(entityData, entity) || isTortured(entityData, entity)
+                || entityData.getComponent(entity, CombatPitFighter.class) != null;
     }
 
     /**
@@ -565,6 +568,10 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public ICreatureController getAttackTarget() {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        if (pitFighter != null) {
+            return getCombatPitOpponent(pitFighter.pit);
+        }
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         ICreatureController attackTargetController = null;
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
@@ -597,6 +604,61 @@ public final class CreatureController extends EntityController implements ICreat
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
         return attackTargetController;
+    }
+
+    /**
+     * Gets the creature we fight in the Combat Pit. An enemy fighter comes
+     * first, then the nearest one of our own side.
+     *
+     * @param pit the Combat Pit we fight in
+     * @return the opponent, or {@code null} if there is none
+     */
+    private ICreatureController getCombatPitOpponent(EntityId pit) {
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        if (attackTarget != null && isCombatPitOpponent(attackTarget.entityId, pit)) {
+            return creaturesController.createController(attackTarget.entityId);
+        }
+
+        EntityId nearestEnemy = null;
+        float nearestEnemyDistance = Float.MAX_VALUE;
+        EntityId nearestOther = null;
+        float nearestOtherDistance = Float.MAX_VALUE;
+        if (!isAtTopCombatPitLevel(entityId)) {
+            for (EntityId entity : entityData.findEntities(new FieldFilter<>(CombatPitFighter.class, "pit", pit), CombatPitFighter.class)) {
+                if (!isCombatPitOpponent(entity, pit)) {
+                    continue;
+                }
+                float distance = getDistanceToCreature(entity);
+                if (isEnemy(entity)) {
+                    if (distance < nearestEnemyDistance) {
+                        nearestEnemyDistance = distance;
+                        nearestEnemy = entity;
+                    }
+                } else if (distance < nearestOtherDistance) {
+                    nearestOtherDistance = distance;
+                    nearestOther = entity;
+                }
+            }
+        }
+
+        EntityId opponent = nearestEnemy != null ? nearestEnemy : nearestOther;
+        setAttackTarget(opponent);
+        return opponent != null ? creaturesController.createController(opponent) : null;
+    }
+
+    private boolean isCombatPitOpponent(EntityId entity, EntityId pit) {
+        CombatPitFighter pitFighter = entityData.getComponent(entity, CombatPitFighter.class);
+        return !entity.equals(entityId) && pitFighter != null && pit.equals(pitFighter.pit)
+                && !isIncapacitated(entity) && !isAtTopCombatPitLevel(entity);
+    }
+
+    /**
+     * Creatures at the top level the Combat Pit teaches neither fight nor are
+     * fought there
+     */
+    private boolean isAtTopCombatPitLevel(EntityId entity) {
+        CreatureExperience creatureExperience = entityData.getComponent(entity, CreatureExperience.class);
+        return creatureExperience != null && creatureExperience.level >= (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue();
     }
 
     private boolean hasPathToEntity(EntityId entity) {
@@ -715,7 +777,7 @@ public final class CreatureController extends EntityController implements ICreat
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
                 // Set the damage
-                setDamage(attackTarget, creatureMeleeAttack.damage);
+                setDamage(attackTarget, getCombatPitDamage(attackTarget, creatureMeleeAttack.damage));
                 gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
             }
         } else {
@@ -761,6 +823,25 @@ public final class CreatureController extends EntityController implements ICreat
                 .filter(creatureSpell -> isAttackRecharged(creatureSpell) && isInRange(creatureSpell.range, attackTarget) && levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING))
                 .sorted(Comparator.<CreatureSpell>comparingInt(creatureSpell -> levelInfo.getLevelData().getCreatureSpellById(creatureSpell.creatureSpellId).getCombatPoints()).reversed())
                 .findFirst();
+    }
+
+    /**
+     * Fighters in the Combat Pit hit by the melee damage modifier percentage
+     * (normal damage at 100) and take only a part of the damage
+     *
+     * @param attackTarget the target we hit
+     * @param damage the damage of our hit
+     * @return the damage the target takes
+     */
+    private int getCombatPitDamage(EntityId attackTarget, int damage) {
+        if (isCombatPitFighter()) {
+            damage = damage * (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MELEE_DAMAGE_MODIFIER_PERCENTAGE).getValue() / 100;
+        }
+        if (entityData.getComponent(attackTarget, CombatPitFighter.class) != null) {
+            damage = damage * (int) gameSettings.get(Variable.MiscVariable.MiscType.PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT).getValue() / 100;
+        }
+
+        return damage;
     }
 
     private boolean isAttackRecharged(Attack attack) {
@@ -890,6 +971,11 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean isEnoughSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         return creatureSleep.sleepNeed == 0 && isFullHealth();
+    }
+
+    @Override
+    public boolean isCombatPitFighter() {
+        return entityData.getComponent(entityId, CombatPitFighter.class) != null;
     }
 
     @Override
