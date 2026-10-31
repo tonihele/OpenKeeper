@@ -98,6 +98,19 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private EntitySet doorEntities;
     private EntitySet heartRoomEntities;
 
+    /**
+     * Set once {@link #seedLevelStart()} has run. Until then the fog does
+     * nothing, the seeding would wipe it anyway. Seeding runs on the map
+     * loader thread, updates on the render thread.
+     */
+    private volatile boolean seeded;
+
+    /**
+     * Whether the heart rooms already in the set have been looked at.
+     * Render thread only.
+     */
+    private boolean heartRoomsChecked;
+
     private final Map<Point, Entity> doorsByPosition = new HashMap<>();
     private final Set<Point> closedDoorTiles = new HashSet<>();
     private final Set<EntityId> seenEnemies = new HashSet<>();
@@ -157,9 +170,25 @@ public final class FogOfWarController implements IFogOfWarInformation {
         heartRoomEntities.release();
     }
 
+    /**
+     * Advances the fog of war: creature vision, possession, the Dungeon
+     * Heart reveal and the "enemy sighted" check. Does nothing until
+     * {@link #seedLevelStart()} has run, so nothing seen or reported before
+     * the seeding gets wiped by it.
+     *
+     * @param tpf time since the last update, in seconds
+     */
     public void update(float tpf) {
+        if (!seeded) {
+            return;
+        }
+
+        // The first time round, every heart room in the set is new to us,
+        // including the ones that were already there when the set was made
         heartRoomEntities.applyChanges();
-        for (Entity e : heartRoomEntities.getAddedEntities()) {
+        Set<Entity> newHeartRooms = heartRoomsChecked ? heartRoomEntities.getAddedEntities() : heartRoomEntities;
+        heartRoomsChecked = true;
+        for (Entity e : newHeartRooms) {
             Owner owner = e.get(Owner.class);
             RoomComponent room = e.get(RoomComponent.class);
             if (owner.ownerId == viewerId && room.location != null) {
@@ -362,6 +391,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
         if (!dirty.isEmpty()) {
             fireTilesDirty(dirty.toArray(new Point[0]));
         }
+        seeded = true;
     }
 
     private void seedOwnedAndAlwaysExploredTiles() {
