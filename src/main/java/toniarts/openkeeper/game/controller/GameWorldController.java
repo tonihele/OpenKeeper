@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.DroppedJobs;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -1284,6 +1285,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
+
+        // Like in DK II, the creature takes on the job of the room it lands in
+        DroppedJobs.rememberDroppedJob(entityData, kwdFile, tortureOrImprisonment ? null : roomController, entity);
     }
 
     /** Restores captive AI or a pending rest target; falling creatures wait for landing. */

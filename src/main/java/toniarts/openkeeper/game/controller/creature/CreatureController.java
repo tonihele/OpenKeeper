@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.DroppedJob;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -413,6 +414,28 @@ public final class CreatureController extends EntityController implements ICreat
         updated.lastSleepAttemptTime = gameTime;
         entityData.setComponent(entityId, updated);
         return taskManager.assignSleepTask(this);
+    }
+
+    @Override
+    public boolean doDroppedJob() {
+        DroppedJob droppedJob = entityData.getComponent(entityId, DroppedJob.class);
+        if (!DroppedJobs.isDue(droppedJob, droppedJob != null && !droppedJob.justDropped && hasNeedBeforeDroppedJob())) {
+            return false;
+        }
+        if (droppedJob.justDropped) {
+            entityData.setComponent(entityId, new DroppedJob(droppedJob.jobType, false));
+        }
+
+        // Like in DK II, a job that can't be done any more is forgotten
+        if (!taskManager.isTaskAvailable(this, droppedJob.jobType)) {
+            entityData.removeComponent(entityId, DroppedJob.class);
+            return false;
+        }
+        return taskManager.assignTask(this, droppedJob.jobType);
+    }
+
+    private boolean hasNeedBeforeDroppedJob() {
+        return (needsLair() && !hasLair()) || (hasLair() && isNeedForSleep()) || isHungry();
     }
 
     @Override

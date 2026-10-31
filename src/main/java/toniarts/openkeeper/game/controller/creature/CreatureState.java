@@ -66,6 +66,13 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // The keeper dropped us into a room, do its job
+            if (entity.doDroppedJob()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return;
+            }
+
             // See lair need
             if (entity.needsLair() && !entity.hasLair() && entity.findLair()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
