@@ -1473,9 +1473,17 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void giveObject(IObjectController object) {
         if (object.getType() == AbstractRoomController.ObjectType.GOLD) {
-            addGold(entityData.getComponent(object.getEntityId(), Gold.class).gold);
-            entityData.removeComponent(object.getEntityId(), Gold.class);
-            object.remove();
+
+            // Take only what we can carry, the rest stays in the pile
+            Gold pile = entityData.getComponent(object.getEntityId(), Gold.class);
+            int amount = Math.min(pile.gold, getMaxGold() - getGold());
+            addGold(amount);
+            if (amount < pile.gold) {
+                entityData.setComponent(object.getEntityId(), new Gold(pile.gold - amount, pile.maxGold));
+            } else {
+                entityData.removeComponent(object.getEntityId(), Gold.class);
+                object.remove();
+            }
         } else {
             logger.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
         }
