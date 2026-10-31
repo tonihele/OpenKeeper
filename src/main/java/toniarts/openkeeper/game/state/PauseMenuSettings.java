@@ -79,7 +79,7 @@ final class PauseMenuSettings {
         addDropDown(left, "Antialiasing", "antialiasing", "100px");
         addDropDown(left, "OpenGL", "openGl", "220px");
         addCheckBox(left, " SSAO", "ssao");
-        addCheckBox(left, "Disable Gamma correction", "disableGammaCorrection");
+        addCheckBox(left, "Gamma correction", "gammaCorrection");
 
         addDropDown(right, "Bit depth", "bitDepth", "100px");
         addDropDown(right, "Refresh rate", "refreshRate", "100px");
@@ -150,7 +150,7 @@ final class PauseMenuSettings {
         ogl.selectItem(settings.getRenderer());
 
         find("ssao", CheckBox.class).setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
-        find("disableGammaCorrection", CheckBox.class).setChecked(!settings.isGammaCorrection());
+        find("gammaCorrection", CheckBox.class).setChecked(settings.isGammaCorrection());
     }
 
     /**
@@ -172,7 +172,7 @@ final class PauseMenuSettings {
         settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());
-        settings.getAppSettings().setGammaCorrection(!find("disableGammaCorrection", CheckBox.class).isChecked());
+        settings.getAppSettings().setGammaCorrection(find("gammaCorrection", CheckBox.class).isChecked());
 
         save();
         app.setViewProcessors();

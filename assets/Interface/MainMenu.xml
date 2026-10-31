@@ -412,8 +412,8 @@
                         <text style="menuTextSmall" text=" SSAO" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
-                        <control name="checkbox" id="disableGammaCorrection" />
-                        <text style="menuTextSmall" text=" Disable Gamma correction" />
+                        <control name="checkbox" id="gammaCorrection" />
+                        <text style="menuTextSmall" text=" Gamma correction" />
                     </panel>
                 </panel>
                 <!--Right side options panel-->
