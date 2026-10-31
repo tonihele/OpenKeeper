@@ -1195,6 +1195,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     public void updateEntityResearch(ResearchableEntity researchableEntity) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         String itemId = getItemTypeId(researchableEntity);
         Element researchableButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
         if (researchableButton != null) {
