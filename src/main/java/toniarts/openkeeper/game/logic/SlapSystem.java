@@ -155,8 +155,7 @@ public final class SlapSystem extends GameTimeCounter {
         if (moodChange != 0) {
             CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
             if (mood != null) {
-                entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_OTHER,
-                        CreatureMood.toRuntimeValue(moodChange)));
+                entityData.setComponent(entity.getId(), applySlapAnger(mood, moodChange));
             }
         }
 
@@ -171,6 +170,19 @@ public final class SlapSystem extends GameTimeCounter {
         }
 
         // TODO: Apply the force
+    }
+
+    /**
+     * Applies the slap anger of a creature. Unlike the per second anger rates,
+     * the slap anger is a one-off delta and is applied as is, without the per
+     * tick conversion
+     *
+     * @param mood the current mood
+     * @param angerSlap the slap anger of the creature, signed
+     * @return updated mood
+     */
+    static CreatureMood applySlapAnger(CreatureMood mood, int angerSlap) {
+        return mood.add(CreatureMood.REASON_OTHER, angerSlap);
     }
 
     static CreatureSleep applySleepingSlap(CreatureSleep sleep, CreatureState state,
