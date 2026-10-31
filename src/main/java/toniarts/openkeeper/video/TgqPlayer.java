@@ -71,9 +71,40 @@ public abstract class TgqPlayer {
      */
     private final CountDownLatch countDownLatch = new CountDownLatch(1);
     private boolean stopped = true;
+    private volatile float volume = 1.0f;
 
     public TgqPlayer(Path file) {
         this.file = file;
+    }
+
+    /**
+     * Set the volume of the movie sound
+     *
+     * @param volume the volume, 0.0 (silent) - 1.0 (as recorded)
+     */
+    public void setVolume(float volume) {
+        this.volume = Math.max(0.0f, Math.min(1.0f, volume));
+    }
+
+    /**
+     * Scales signed 16 bit little endian PCM samples in place, from the
+     * buffer's position to its limit
+     *
+     * @param pcm the samples
+     * @param volume the volume, 0.0 - 1.0
+     */
+    static void scalePcm16(ByteBuffer pcm, float volume) {
+        if (volume >= 1.0f) {
+            return;
+        }
+        byte[] data = pcm.array();
+        int end = pcm.arrayOffset() + pcm.limit() - 1;
+        for (int i = pcm.arrayOffset() + pcm.position(); i < end; i += 2) {
+            int sample = (short) ((data[i] & 0xFF) | ((data[i + 1] & 0xFF) << 8));
+            int scaled = Math.round(sample * volume);
+            data[i] = (byte) scaled;
+            data[i + 1] = (byte) (scaled >> 8);
+        }
     }
 
     /**
@@ -210,6 +241,9 @@ public abstract class TgqPlayer {
                 while (!Thread.currentThread().isInterrupted()) {
                     if (audioFrame == null) {
                         audioFrame = audioFrames.poll();
+                        if (audioFrame != null && localAudioHeader.getBitsPerSample() == 16) {
+                            scalePcm16(audioFrame.getPcm(), volume);
+                        }
                         if (audioFrame == null) {
                             if (!decoderThread.isAlive()) {
 
