@@ -369,7 +369,7 @@
                     <panel width="128px" height="100%" valign="center" align="right" childLayout="vertical">
                         <panel height="64px" childLayout="horizontal">
                             <!-- place for fight or call to arm -->
-                            <control name="fight" visible="false" />
+                            <control name="fight" id="battleButton" visible="false" />
                         </panel>
                         <!-- Reaper -->
                         <panel childLayout="center" align="center" valign="center" height="*" width="100%">
