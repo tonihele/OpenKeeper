@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.data.Keeper;
@@ -39,6 +42,7 @@ import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.OWN_C
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.POSESSION;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 
 /**
  * Simple util class to check whether casting is allowed
@@ -72,7 +76,39 @@ public final class KeeperSpellCastValidator {
             }
         }
 
-        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner);
+        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner)
+                && checkReaperRule(keeperSpell, kwdFile, player, entityData);
+    }
+
+    /**
+     * The Summon Reaper spells, also the Talisman's one shot Reaper, can't be
+     * cast while the keeper has a Horned Reaper
+     *
+     * @param keeperSpell the spell
+     * @param kwdFile the level
+     * @param player the casting player
+     * @param entityData the entities
+     * @return true if the rule allows the cast
+     */
+    static boolean checkReaperRule(KeeperSpell keeperSpell, IKwdFile kwdFile, Keeper player, EntityData entityData) {
+        Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
+        if (shot == null || shot.getProcessType() != Shot.ProcessType.SUMMON_REAPER) {
+            return true;
+        }
+
+        EntitySet creatures = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", player.getId()), Owner.class, CreatureComponent.class);
+        try {
+            for (Entity entity : creatures) {
+                Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+                if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+                    return false;
+                }
+            }
+        } finally {
+            creatures.release();
+        }
+
+        return true;
     }
 
     /**
