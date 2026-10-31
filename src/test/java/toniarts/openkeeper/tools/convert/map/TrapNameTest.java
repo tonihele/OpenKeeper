@@ -1,0 +1,40 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.tools.convert.map;
+
+import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.view.text.TrapTextParser;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+
+/**
+ * The trap name in the tooltips, in this package for the protected setters
+ */
+class TrapNameTest {
+
+    @Test
+    void heroTrapWithoutNameTextUsesItsOwnName() {
+
+        // The Hero Sentry Trap has name text 0, which is "Jelly"
+        Trap trap = new Trap();
+        trap.setName("Hero Sentry Trap");
+        trap.setNameStringId(0);
+
+        assertEquals("Hero Sentry Trap", new TrapTextParser().parseText("%68", null, trap));
+    }
+
+}
