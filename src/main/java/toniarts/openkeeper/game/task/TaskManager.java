@@ -76,6 +76,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -668,11 +669,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case PRISONER -> {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
-            case SPECIAL, SPELL_BOOK -> {
+            case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+            }
+            case MANUFACTURER -> {
+                return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), gameWorldController.getTrapsController(), objectsController);
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
@@ -747,6 +752,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+            }
+            case MANUFACTURE: {
+                return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
             }
             default:
                 return false;
