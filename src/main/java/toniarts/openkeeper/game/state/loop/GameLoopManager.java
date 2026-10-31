@@ -83,10 +83,10 @@ public final class GameLoopManager {
      */
     public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
         this.gameService = gameService;
-        final EntityData entityData = gameService.getEntityData();
+        final EntityData entityData = gameService.getServerEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
 
-        gameController = new GameController(level, players, gameService.getEntityData(), gameSettings, gameService);
+        gameController = new GameController(level, players, gameService.getServerEntityData(), gameSettings, gameService);
         final ILevelInfo levelInfo = gameController.getLevelInfo();
         final IGameWorldController gameWorldController = gameController.getGameWorldController();
         final IEntityPositionLookup positionSystem = gameController.getEntityLookupService();
