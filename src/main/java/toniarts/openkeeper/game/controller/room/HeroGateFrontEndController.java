@@ -41,6 +41,8 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_TWO_ID = 134;
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
+    private static final int EFFECT_3DFE_AMBIENT = 348;
+    private static final int EFFECT_3DFE_MPD = 360;
     private static final int EFFECT_3DFE_LIGHTBEAMS = 349;
     private static final int EFFECT_3DFE_GEMS = 350;
 
@@ -105,8 +107,26 @@ public final class HeroGateFrontEndController extends NormalRoomController {
                     break;
             }
 
+            // The original code switches on the 0-based slab index
+            int slab = i - 1;
+            switch (slab) {
+                case 0, 2, 3, 5, 8, 9, 11 -> spawnRoomEffect(EFFECT_3DFE_AMBIENT, p);
+                case 6 -> spawnRoomEffect(EFFECT_3DFE_MPD, p);
+                default -> {
+                    // No effect on this slab
+                }
+            }
+
             i++;
         }
+    }
+
+    /**
+     * RoomEffect holds a single effect, so every effect gets an entity of its own
+     */
+    private void spawnRoomEffect(int effectId, Point p) {
+        EntityId effectEntityId = entityData.createEntity();
+        entityData.setComponent(effectEntityId, new RoomEffect(effectId, p));
     }
 
     private void addCandles(Point p) {
