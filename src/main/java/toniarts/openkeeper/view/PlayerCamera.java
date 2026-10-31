@@ -24,7 +24,6 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.minimap.MinimapCoordinates;
 
 /**
@@ -34,9 +33,33 @@ import toniarts.openkeeper.view.minimap.MinimapCoordinates;
  */
 public final class PlayerCamera {
 
+    // Allowed range of the camera direction's vertical component (-1 is straight down)
+    private static final float MIN_PITCH_DIRECTION_Y = -0.98f;
+    private static final float MAX_PITCH_DIRECTION_Y = -0.2f;
+
+    // tan(half the vertical field of view) * lens. A longer lens sees a narrower
+    // slice of the world. Equals the old lens * 45 degrees / 4 at lens 2.
+    private static final float LENS_FOV_SCALE = FastMath.tan(0.25f) * 2f;
+
     private final Camera cam;
-    private final Thing.Camera presets;
+    private Thing.Camera presets;
     private Vector2f limit;
+
+    // The height of the plane the camera looks at, from the camera mode
+    private float focusHeight;
+    private float lens;
+
+    private boolean transitioning;
+    private float transitionTime;
+    private float transitionDuration;
+    private float fromTilt;
+    private float toTilt;
+    private float fromLens;
+    private float toLens;
+    private float fromHeight;
+    private float toHeight;
+    private float fromFocusHeight;
+    private float toFocusHeight;
 
     public PlayerCamera(Camera cam, Thing.Camera presets) {
         this.cam = cam;
@@ -45,6 +68,115 @@ public final class PlayerCamera {
             throw new RuntimeException("Very bad");
         }
         initialize();
+    }
+
+    private static float focusHeightOf(Thing.Camera mode) {
+        // The record's position holds the focus height in its last component
+        return mode.getPosition() != null ? mode.getPosition().z : 0f;
+    }
+
+    private static float tiltOf(Thing.Camera mode) {
+        // Angle from straight down, 1024 is half a circle
+        return FastMath.PI * mode.getAnglePitch() / 1024f;
+    }
+
+    private void setLens(float lens) {
+        this.lens = lens;
+        float fov = 2f * FastMath.atan(LENS_FOV_SCALE / lens) * FastMath.RAD_TO_DEG;
+        cam.setFrustumPerspective(fov, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+    }
+
+    /**
+     * Switch to another camera mode (F1 - F3). Keeps the look at point and the
+     * rotation, and keeps the thing you look at the same size on the screen by
+     * scaling the zoom with the change of the lens.
+     *
+     * @param mode the camera record to switch to
+     * @param seconds the time to blend over, zero is instant
+     */
+    public void switchTo(Thing.Camera mode, float seconds) {
+        fromTilt = currentTilt();
+        toTilt = tiltOf(mode);
+        fromLens = lens;
+        toLens = mode.getLensValue();
+        fromHeight = cam.getLocation().y;
+        toHeight = FastMath.clamp(fromHeight * toLens / fromLens, mode.getZoomValueMin(), mode.getZoomValueMax());
+        fromFocusHeight = focusHeight;
+        toFocusHeight = focusHeightOf(mode);
+
+        presets = mode;
+        transitionTime = 0f;
+        transitionDuration = seconds;
+        transitioning = true;
+        update(0f);
+    }
+
+    /**
+     * Advances a running camera mode blend
+     *
+     * @param tpf time since the last frame
+     */
+    public void update(float tpf) {
+        if (!transitioning) {
+            return;
+        }
+        transitionTime += tpf;
+        float t = transitionDuration > 0f ? Math.min(1f, transitionTime / transitionDuration) : 1f;
+        transitioning = t < 1f;
+
+        Vector2f lookAt = getLookAtPoint();
+        float yaw = currentYaw();
+
+        focusHeight = FastMath.interpolateLinear(t, fromFocusHeight, toFocusHeight);
+        setLens(FastMath.interpolateLinear(t, fromLens, toLens));
+        place(lookAt, yaw, FastMath.interpolateLinear(t, fromTilt, toTilt),
+                FastMath.interpolateLinear(t, fromHeight, toHeight));
+    }
+
+    private float currentTilt() {
+        return FastMath.acos(FastMath.clamp(-cam.getDirection().y, -1f, 1f));
+    }
+
+    private float currentCosTilt() {
+        return Math.max(0f, -cam.getDirection().y);
+    }
+
+    /**
+     * The direction the camera faces on the map plane, as an angle
+     */
+    private float currentYaw() {
+        Vector3f facing = cam.getDirection();
+        if (facing.x * facing.x + facing.z * facing.z < 1e-4f) {
+            // Looking straight down, the top of the screen tells the way
+            facing = cam.getUp();
+        }
+        return FastMath.atan2(facing.x, facing.z);
+    }
+
+    /**
+     * Puts the camera without any roll
+     *
+     * @param lookAt the map point to look at, on the focus plane
+     * @param yaw facing on the map plane
+     * @param tilt the angle from straight down
+     * @param height the height of the camera
+     */
+    private void place(Vector2f lookAt, float yaw, float tilt, float height) {
+        float sinTilt = FastMath.sin(tilt);
+        float cosTilt = FastMath.cos(tilt);
+        Vector3f forward = new Vector3f(FastMath.sin(yaw), 0, FastMath.cos(yaw));
+
+        Vector3f dir = forward.mult(sinTilt).addLocal(0, -cosTilt, 0);
+        Vector3f up = forward.mult(cosTilt).addLocal(0, sinTilt, 0);
+        Vector3f left = up.cross(dir);
+
+        Quaternion q = new Quaternion();
+        q.fromAxes(left, up, dir);
+        q.normalizeLocal();
+
+        float distance = (height - focusHeight) / cosTilt;
+        cam.setAxes(q);
+        cam.setLocation(new Vector3f(lookAt.x, focusHeight, lookAt.y).subtractLocal(dir.multLocal(distance)));
     }
 
     /**
@@ -58,8 +190,8 @@ public final class PlayerCamera {
 
         cam.setRotation(q);
         cam.setLocation(new Vector3f(0, presets.getZoomValue(), 0));
-        // FIXME fov maybe have another formula. Need correct?
-        cam.setFrustumPerspective(presets.getLensValue() * FastMath.RAD_TO_DEG / 4, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+        focusHeight = focusHeightOf(presets);
+        setLens(presets.getLensValue());
     }
 
     protected void zoom(float value) {
@@ -70,16 +202,24 @@ public final class PlayerCamera {
         Vector3f vel = new Vector3f();
         Vector3f pos = cam.getLocation().clone();
         cam.getDirection(vel);
-        vel.multLocal(value);
-        pos.addLocal(vel);
 
-        if (pos.y < presets.getZoomValueMin()) {
-            //pos.setY(presets.getHeightMin());
-            return;
-        } else if (pos.y > presets.getZoomValueMax()) {
-            //pos.setY(presets.getHeightMax());
+        // The limits are distances to the look at point, from the mode's own
+        // height range at its own tilt, so they do not change with the camera angle
+        float cosTilt = Math.max(FastMath.cos(tiltOf(presets)), 1e-3f);
+        float minDistance = Math.max(0f, (presets.getZoomValueMin() - focusHeight) / cosTilt);
+        float maxDistance = Math.max(minDistance, (presets.getZoomValueMax() - focusHeight) / cosTilt);
+        float distance = getLookAt().subtract(pos).length();
+        float requested = value;
+        if (value > 0) {
+            value = Math.min(value, distance - minDistance);
+        } else {
+            value = Math.max(value, distance - maxDistance);
+        }
+        if (value == 0 || Math.signum(value) != Math.signum(requested)) {
             return;
         }
+        vel.multLocal(value);
+        pos.addLocal(vel);
 
         cam.setLocation(pos);
     }
@@ -154,10 +294,52 @@ public final class PlayerCamera {
         rotateAround(-MinimapCoordinates.cameraYawRadians(cam));
     }
 
-    public void pith(float value) {
+    public void pitch(float value) {
         if (!presets.getFlags().contains(Thing.Camera.CameraFlag.DISABLE_PITCH)) {
             rotate(value, cam.getLeft());
         }
+    }
+
+    /**
+     * Tilts the camera around the look at point, like {@link #rotateAround(float)}
+     * but vertically. Unlike {@link #pitch(float)} this is not blocked by the
+     * level's camera flags, and the view is kept between nearly horizontal and
+     * nearly straight down so it can never flip over.
+     *
+     * @param value angle in radians, positive looks further down
+     */
+    public void pitchAround(float value) {
+        Vector3f look = getLookAt();
+        Vector3f pos = cam.getLocation().subtract(look);
+
+        Matrix3f mat = new Matrix3f();
+        mat.fromAngleNormalAxis(value, cam.getLeft());
+
+        Vector3f up = mat.mult(cam.getUp());
+        Vector3f left = mat.mult(cam.getLeft());
+        Vector3f dir = mat.mult(cam.getDirection());
+
+        if (dir.y > MAX_PITCH_DIRECTION_Y || dir.y < MIN_PITCH_DIRECTION_Y) {
+            return;
+        }
+        mat.mult(pos, pos);
+
+        Quaternion q = new Quaternion();
+        q.fromAxes(left, up, dir);
+        q.normalizeLocal();
+
+        cam.setAxes(q);
+        cam.setLocation(look.addLocal(pos));
+    }
+
+    /**
+     * Rolls the camera around its viewing direction. Unlike
+     * {@link #roll(float)} this is not blocked by the level's camera flags.
+     *
+     * @param value angle in radians
+     */
+    public void rollFree(float value) {
+        rotate(value, cam.getDirection());
     }
 
     public void roll(float value) {
@@ -186,14 +368,14 @@ public final class PlayerCamera {
     public Vector2f getLookAtPoint() {
         Vector3f dir = cam.getDirection();
         Vector3f pos = cam.getLocation();
-        Vector3f result = dir.mult(-pos.y / dir.y).add(pos);
+        Vector3f result = dir.mult((focusHeight - pos.y) / dir.y).add(pos);
         // Where lookAt camera
         return new Vector2f(result.x, result.z);
     }
 
     public Vector3f getLookAt() {
         Vector2f l = getLookAtPoint();
-        return new Vector3f(l.x, 0, l.y);
+        return new Vector3f(l.x, focusHeight, l.y);
     }
 
     public void setLookAt(Vector2f position) {

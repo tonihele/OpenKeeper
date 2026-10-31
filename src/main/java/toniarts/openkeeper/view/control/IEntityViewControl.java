@@ -52,7 +52,8 @@ public interface IEntityViewControl<T, S> extends Control {
      * Get control tooltip
      *
      * @param playerId the player who is asking
-     * @return the tooltip string
+     * @return the tooltip string, or {@code null} if the entity has no tooltip
+     * of its own and the tile's tooltip should show instead
      */
     public String getTooltip(short playerId);
 

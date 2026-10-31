@@ -129,8 +129,11 @@ public final class Cinematic extends com.jme3.cinematic.Cinematic {
                     CameraSweepDataEntry entry = cameraSweepData.getEntries().get(cameraSweepData.getEntries().size() - 1);
                     applyCameraSweepEntry(cam, start, entry, audioListener);
 
-                    // Detach
-                    scene.detachChild(camNode);
+                    // Detach, the camera node only exists once the cinematic has started, it can be
+                    // skipped before that
+                    if (camNode != null) {
+                        scene.detachChild(camNode);
+                    }
 
                     // Remove us, this will cause stack over flow loop without the executed flag
                     // Dirty but, working in a way
