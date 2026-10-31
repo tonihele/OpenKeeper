@@ -115,7 +115,8 @@ public final class MainMenuState extends AbstractAppState {
      * multiplayer.
      */
     private IKwdFile debriefingLevel;
-    private boolean debriefingIsCampaign;
+    private CampaignLevel debriefingCampaignLevel;
+    private boolean debriefingLevelWon;
 
     /**
      * The campaign level that was just won and for which the level cutscene (mentor speech + movie)
@@ -724,19 +725,19 @@ public final class MainMenuState extends AbstractAppState {
      * @param result the game result
      * @param level the level that was just played; may be {@code null} to fall back to
      * {@link #selectedLevel}
-     * @param campaign whether the played level was a campaign level
+     * @param campaignLevel the played campaign level, {@code null} if it was not a campaign level
      */
-    public void doDebriefing(GameResult result, IKwdFile level, boolean campaign) {
+    public void doDebriefing(GameResult result, IKwdFile level, CampaignLevel campaignLevel) {
         debriefingLevel = level != null ? level : (selectedLevel != null ? selectedLevel.getKwdMap().load() : null);
-        debriefingIsCampaign = campaign || selectedLevel instanceof CampaignLevel;
+        debriefingCampaignLevel = campaignLevel != null ? campaignLevel
+                : (selectedLevel instanceof CampaignLevel lvl ? lvl : null);
         pendingDebriefing = result != null;
 
-        // FIXME: GameResult has no win/lose data yet (see showDebriefing()), so for now every
-        // completed campaign level is treated as won, same as the debriefing screen does
-        boolean levelWon = true;
-        pendingCutsceneLevel = (pendingDebriefing && debriefingIsCampaign && levelWon
-                && selectedLevel instanceof CampaignLevel lvl && lvl.getType() == CampaignLevel.LevelType.Level)
-                ? lvl : null;
+        // Only a won level gets the level-won cutscene and the winning debriefing
+        debriefingLevelWon = result != null && result.isLevelWon();
+        pendingCutsceneLevel = (pendingDebriefing && debriefingLevelWon && debriefingCampaignLevel != null
+                && debriefingCampaignLevel.getType() == CampaignLevel.LevelType.Level)
+                ? debriefingCampaignLevel : null;
 
         setEnabled(true);
 
@@ -773,7 +774,26 @@ public final class MainMenuState extends AbstractAppState {
      * @return {@code true} if it is a campaign level debriefing
      */
     public boolean isDebriefingCampaign() {
-        return debriefingIsCampaign;
+        return debriefingCampaignLevel != null;
+    }
+
+    /**
+     * Get the campaign level for which the debriefing is shown. It is the level that was played, not
+     * the one selected on the campaign map ({@link #selectedLevel}), which can be cleared by then.
+     *
+     * @return the played campaign level, or {@code null} if it was not a campaign level
+     */
+    public CampaignLevel getDebriefingCampaignLevel() {
+        return debriefingCampaignLevel;
+    }
+
+    /**
+     * See if the level of the debriefing being shown was won
+     *
+     * @return {@code true} if the level was won
+     */
+    public boolean isDebriefingLevelWon() {
+        return debriefingLevelWon;
     }
 
     /**
@@ -781,7 +801,8 @@ public final class MainMenuState extends AbstractAppState {
      */
     void clearDebriefing() {
         debriefingLevel = null;
-        debriefingIsCampaign = false;
+        debriefingCampaignLevel = null;
+        debriefingLevelWon = false;
     }
 
     /**
