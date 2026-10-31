@@ -18,8 +18,12 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import java.lang.reflect.Proxy;
+import com.simsilica.es.EntityId;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -49,6 +53,43 @@ class CreatureStateTest {
         recovered.set(true);
         CreatureState.SLEEPING.update(creature);
         assertEquals(CreatureState.IDLE, currentState.get());
+    }
+
+    @Test
+    void fighterAttacksFromTheTurnAfterItArrivesOnceItFacesTheTarget() {
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(new AtomicReference<>(CreatureState.FIGHT));
+        AtomicBoolean stopped = new AtomicBoolean();
+        AtomicBoolean facing = new AtomicBoolean();
+        AtomicInteger attacks = new AtomicInteger();
+        IEntityController target = (IEntityController) Proxy.newProxyInstance(IEntityController.class.getClassLoader(),
+                new Class<?>[]{IEntityController.class}, (proxy, method, args) -> "getEntityId".equals(method.getName())
+                ? new EntityId(5) : defaultValue(method.getReturnType()));
+        ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "getAttackTarget" -> target;
+                    case "isWithinAttackDistance" -> true;
+                    case "isStopped" -> stopped.get();
+                    case "stopCreature" -> {
+                        stopped.set(true);
+                        yield null;
+                    }
+                    case "turnToAttackTarget" -> facing.get();
+                    case "executeAttack" -> {
+                        attacks.incrementAndGet();
+                        yield null;
+                    }
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        // It stops on arriving, then turns, and swings once it faces the target
+        CreatureState.FIGHT.update(creature);
+        assertEquals(0, attacks.get());
+        CreatureState.FIGHT.update(creature);
+        assertEquals(0, attacks.get());
+        facing.set(true);
+        CreatureState.FIGHT.update(creature);
+        assertEquals(1, attacks.get());
     }
 
     private static void assertMissingLairChangesStateToIdle(CreatureState state) {
