@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -401,6 +402,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             @Override
             public void onBuild(short keeperId, List<Point> tiles) {
                 scanBridgeSurroundings(tiles);
+                resetCreaturesGoingToWork(keeperId);
             }
 
             @Override
@@ -409,6 +411,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 for (Point tile : tiles) {
                     scanFetchObjectTasks(tile);
                 }
+                resetCreaturesGoingToWork(keeperId);
             }
 
             private void scanBridgeSurroundings(List<Point> tiles) {
@@ -444,6 +447,31 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
         });
+    }
+
+    /**
+     * Sends the keeper's creatures that are still on their way to a job back
+     * to idle, so they choose again. The original does this every time the
+     * keeper's rooms change (CPlayer::resetCreaturesState 0x4E8D30, called
+     * from the room list update 0x4F04F0). Workers are left alone, and so are
+     * creatures on their way to make their lair: the original sends those back
+     * too, a mistake Flame's creatures_setup_lair_fix corrects.
+     *
+     * @param playerId the keeper whose rooms changed
+     */
+    private void resetCreaturesGoingToWork(short playerId) {
+        for (EntityId entityId : new ArrayList<>(tasksIdsByEntities.keySet())) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+            if (owner == null || owner.ownerId != playerId || task == null || task.taskType == TaskType.CLAIM_LAIR) {
+                continue;
+            }
+            ICreatureController creature = creaturesController.createController(entityId);
+            if (!creature.isWorker() && creature.getStateMachine().isInState(CreatureState.WORK)
+                    && !creature.isAtAssignedTaskTarget()) {
+                creature.getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
     }
 
     private void scanInitialTasks() {
