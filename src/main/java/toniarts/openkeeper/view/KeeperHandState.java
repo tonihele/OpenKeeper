@@ -41,20 +41,21 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.filter.FieldFilter;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundManager;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
@@ -67,12 +68,6 @@ import toniarts.openkeeper.view.control.ObjectViewControl;
  */
 public abstract class KeeperHandState extends AbstractAppState {
 
-    private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{
-        "/Global/GuiHD/Slap_1.mp2",
-        "/Global/GuiHD/slap_2.mp2",
-        "/Global/GuiHD/Slap_3.mp2",
-        "/Global/GuiHD/Slap_4.mp2"
-    });
     private static final String MORE_CREATURES = "GUI/Creatures/more_creatures";
 
     //FIXME: 8 in original but two lines by 4
@@ -94,6 +89,11 @@ public abstract class KeeperHandState extends AbstractAppState {
     private IEntityViewControl currentItem;
     private final Node queueNode;
     private final Node cursor;
+    private final Node spellIconNode;
+    private Picture spellIcon;
+    private ArtResource spellIconResource;
+    private boolean spellIconCastable = true;
+    private static final String NO_GO_ICON = "GUI/Cursors/I-No_Go";
     private final Node rootNode;
     private final Node handRootNode;
     private final InHandLoaderCreatureModelContainer inHandLoader;
@@ -120,8 +120,12 @@ public abstract class KeeperHandState extends AbstractAppState {
         cursor = new Node("Cursor");
         cursor.setLocalTranslation(75, 0, 0);
 
+        spellIconNode = new Node("Spell icon");
+        spellIconNode.setLocalTranslation(90, -CURSOR_ITEM_SIZE, 0);
+
         handRootNode.attachChild(queueNode);
         rootNode.attachChild(cursor);
+        rootNode.attachChild(spellIconNode);
 
         // Create the model "listener"
         inHandLoader = new InHandLoaderCreatureModelContainer(entityData);
@@ -151,6 +155,9 @@ public abstract class KeeperHandState extends AbstractAppState {
         }
 
         updateHandCamera();
+
+        // Held things are outside the world's lighting: always fully lit
+        AssetUtils.applyFullLight(handRootNode);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
     }
@@ -170,12 +177,48 @@ public abstract class KeeperHandState extends AbstractAppState {
         super.cleanup();
     }
 
-    public static String getSlapSound() {
-        return Utils.getRandomItem(KeeperHandState.SLAP_SOUNDS);
+    public static int getSlapSound() {
+        return SoundManager.playSound(GlobalCategory.HAND, GlobalType.HAND_SLAP);
     }
 
     public IEntityViewControl getItem() {
         return currentItem;
+    }
+
+    /**
+     * Show the icon of the currently selected spell next to the cursor, the
+     * same way a grabbed creature or object is shown. Pass {@code null} to
+     * remove it.
+     *
+     * @param icon the spell's icon, or {@code null} to clear it
+     * @param castable false if the spell can't be cast right now, a "no go"
+     * mark is then shown over the icon
+     */
+    public void setSpellIcon(ArtResource icon, boolean castable) {
+        if (icon == null) {
+            if (spellIcon != null) {
+                spellIconNode.detachAllChildren();
+                spellIcon = null;
+                spellIconResource = null;
+            }
+            return;
+        }
+
+        // Called every cursor update, rebuild only on change
+        if (spellIcon != null && spellIconResource == icon && spellIconCastable == castable) {
+            return;
+        }
+
+        spellIconNode.detachAllChildren();
+        spellIcon = getIcon(icon);
+        spellIconResource = icon;
+        spellIconCastable = castable;
+        spellIconNode.attachChild(spellIcon);
+        if (!castable) {
+            Picture noGo = getIcon(NO_GO_ICON);
+            noGo.setLocalTranslation(0, 0, 1);
+            spellIconNode.attachChild(noGo);
+        }
     }
 
     private KeeperHandItem addToHand(IEntityViewControl item, int index) {
@@ -313,7 +356,13 @@ public abstract class KeeperHandState extends AbstractAppState {
             itemNode.setLocalTranslation(0, 0, 0);
             itemNode.setLocalRotation(Matrix3f.ZERO);
             queueNode.attachChild(itemNode);
-            AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
+
+            // CreatureViewControl already loads its IN_HAND animation and applies
+            // variant textures when attached. Objects start with their world mesh,
+            // so they still need to be switched to their dedicated in-hand mesh.
+            if (currentItem instanceof ObjectViewControl) {
+                AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
+            }
         }
     }
 
@@ -328,7 +377,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         @Override
         protected KeeperHandItem addObject(Entity e) {
             IEntityViewControl viewControl;
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             switch (inHand.type) {
                 case CREATURE: {
                     viewControl = new CreatureViewControl(e.getId(), entityData, kwdFile.getCreature(inHand.id), Creature.AnimationType.IN_HAND, assetManager, null);
@@ -349,7 +398,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         protected void updateObject(KeeperHandItem object, Entity e) {
 
             // Only support index changes (these should not happen)
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             object.index = inHand.index;
         }
 

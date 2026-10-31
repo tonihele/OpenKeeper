@@ -51,6 +51,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
 
@@ -92,6 +93,8 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private final LineOfSightTable losTable;
 
     private EntitySet creatureEntities;
+    private EntitySet imprisonedCreatures;
+    private EntitySet deadCreatures;
     private EntitySet doorEntities;
     private EntitySet heartRoomEntities;
 
@@ -140,12 +143,16 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     public void start() {
         creatureEntities = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
+        imprisonedCreatures = entityData.getEntities(CreatureImprisoned.class);
+        deadCreatures = entityData.getEntities(Death.class);
         doorEntities = entityData.getEntities(Position.class, DoorComponent.class, DoorViewState.class);
         heartRoomEntities = entityData.getEntities(RoomComponent.class, Owner.class, DungeonHeart.class);
     }
 
     public void stop() {
         creatureEntities.release();
+        imprisonedCreatures.release();
+        deadCreatures.release();
         doorEntities.release();
         heartRoomEntities.release();
     }
@@ -246,14 +253,15 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     private void updateCreatureVision() {
         creatureEntities.applyChanges();
+        imprisonedCreatures.applyChanges();
+        deadCreatures.applyChanges();
 
         for (Entity e : creatureEntities) {
             Owner owner = e.get(Owner.class);
             if (owner.ownerId != viewerId) {
                 continue;
             }
-            if (entityData.getComponent(e.getId(), CreatureImprisoned.class) != null
-                    || entityData.getComponent(e.getId(), Death.class) != null) {
+            if (imprisonedCreatures.containsId(e.getId()) || deadCreatures.containsId(e.getId())) {
                 continue;
             }
 
@@ -298,11 +306,13 @@ public final class FogOfWarController implements IFogOfWarInformation {
         if (possessedCreature == null) {
             return;
         }
-        Entity e = entityData.getEntity(possessedCreature, Position.class);
-        if (e == null) {
+        Entity e = creatureEntities.getEntity(possessedCreature);
+        Position position = e != null ? e.get(Position.class) : null;
+        if (position == null) {
+            // The creature is gone (e.g. killed), possession end is on its way
             return;
         }
-        Point tile = WorldUtils.vectorToPoint(e.get(Position.class).position);
+        Point tile = WorldUtils.vectorToPoint(position.position);
         FogOfWarRules.explore(state, tile.x, tile.y);
     }
 
@@ -478,7 +488,24 @@ public final class FogOfWarController implements IFogOfWarInformation {
      * Pass {@code null} when possession ends.
      */
     public void setPossessedCreature(EntityId entityId) {
+        if (Objects.equals(this.possessedCreature, entityId)) {
+            return;
+        }
         this.possessedCreature = entityId;
+        refreshAllTiles();
+    }
+
+    private void refreshAllTiles() {
+        int width = mapData.getWidth();
+        int height = mapData.getHeight();
+        Point[] allTiles = new Point[width * height];
+        int i = 0;
+        for (int x = 0; x < width; x++) {
+            for (int y = 0; y < height; y++) {
+                allTiles[i++] = new Point(x, y);
+            }
+        }
+        fireTilesDirty(allTiles);
     }
 
     @Override
