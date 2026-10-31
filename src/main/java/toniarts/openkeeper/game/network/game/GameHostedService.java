@@ -174,7 +174,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public EntityData getEntityData() {
+    public EntityData getServerEntityData() {
         return getServiceManager().getService(EntityDataHostedService.class).getEntityData();
     }
 
