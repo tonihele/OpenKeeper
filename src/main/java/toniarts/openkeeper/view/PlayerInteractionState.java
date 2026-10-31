@@ -67,6 +67,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -899,7 +900,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), entityData, object != null ? object.getEntityId() : null);
+        Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
+        Short owner = object != null ? object.getControlId() : null;
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner);
     }
 
     private boolean isTrapPlacementValid(Point tile) {
