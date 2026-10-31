@@ -422,6 +422,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void setPossessedAttack(boolean attacking) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSetPossessedAttack(attacking, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void endPossession() {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onEndPossession(PLAYER_ID);

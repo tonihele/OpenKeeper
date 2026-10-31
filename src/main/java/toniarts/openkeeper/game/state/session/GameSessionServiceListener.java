@@ -170,6 +170,15 @@ public interface GameSessionServiceListener {
     public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId);
 
     /**
+     * Player starts or stops attacking with the possessed creature
+     *
+     * @param attacking whether the attack button is held down
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onSetPossessedAttack(boolean attacking, short playerId);
+
+    /**
      * Player wants to stop possessing
      *
      * @param playerId the player who is possessing
