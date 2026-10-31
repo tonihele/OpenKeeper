@@ -127,7 +127,31 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
 
     protected final void addCurrentCapacity(int amount) {
         Storage currentStorage = entityData.getComponent(entityId, Storage.class);
+        if (currentStorage == null) {
+            return; // The room is gone
+        }
         entityData.setComponent(entityId, new Storage(currentStorage.room, currentStorage.objectType, currentStorage.currentCapacity + amount, currentStorage.maxCapacity));
+    }
+
+    @Override
+    public final boolean contains(EntityId object) {
+        Stored stored = entityData.getComponent(object, Stored.class);
+        return stored != null && stored.room.equals(parent.getEntityId()) && stored.objectType == getObjectType();
+    }
+
+    /**
+     * Counts a creature in the room's used capacity. Does nothing if the
+     * creature is counted already
+     *
+     * @param creature the creature
+     * @return the creature
+     */
+    protected final EntityId addOccupant(EntityId creature) {
+        if (!contains(creature)) {
+            setRoomStorageToItem(creature, false);
+            addCurrentCapacity(1);
+        }
+        return creature;
     }
 
     /**
