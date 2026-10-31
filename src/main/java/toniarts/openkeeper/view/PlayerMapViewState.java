@@ -18,6 +18,7 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.math.ColorRGBA;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
@@ -26,6 +27,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -80,6 +82,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     // and flush them once the map actually exists, instead of crashing
     private volatile boolean mapLoaded = false;
     private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
+    private final Object tileUpdateLock = new Object();
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
@@ -118,16 +121,28 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
-                    mapLoaded = true;
 
                     // Apply any tile updates (fog reveals from the seeding above,
                     // or from creatures already ticking) that arrived too early to
                     // be applied directly, while the map wasn't attached yet
-                    if (!pendingTileUpdates.isEmpty()) {
-                        List<Point> pending = new ArrayList<>(pendingTileUpdates.size());
-                        Point p;
-                        while ((p = pendingTileUpdates.poll()) != null) {
-                            pending.add(p);
+                    // Loop until the queue is empty *while holding the lock that
+                    // updateTiles() also takes*, and flip the flag in that same
+                    // critical section: otherwise an update arriving between the
+                    // last drain and the flag would be queued and never applied.
+                    // Only after the flip is mapLoader done being mutated off the
+                    // render thread: update(tpf) reads its LightRules (registered
+                    // terrain materials) every frame and gates on this flag.
+                    while (true) {
+                        List<Point> pending = new ArrayList<>();
+                        synchronized (tileUpdateLock) {
+                            Point p;
+                            while ((p = pendingTileUpdates.poll()) != null) {
+                                pending.add(p);
+                            }
+                            if (pending.isEmpty()) {
+                                mapLoaded = true;
+                                break;
+                            }
                         }
                         mapLoader.updateTiles(pending.toArray(new Point[0]));
                     }
@@ -152,7 +167,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // Create the actual map
-        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId, true, ceilingEnabled) {
+        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId,
+                Main.getUserSettings().getBoolean(Settings.Setting.TORCHES_ENABLED), ceilingEnabled) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -160,6 +176,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
             }
 
         };
+
+        // The ceiling is only shown while possessing a creature
+        mapLoader.setCeilingVisible(false);
 
         flashTileControl = new FlashTileViewState(mapLoader);
 
@@ -188,10 +207,16 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
+
+        // Lighting: the cursor light lives as long as the world does
+        mapLoader.getLightRules().createCursorLight();
     }
 
     @Override
     public void cleanup() {
+
+        // Lighting
+        mapLoader.getLightRules().destroyCursorLight();
 
         // Detach our map
         if (worldNode != null) {
@@ -223,11 +248,33 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         mapRoomContainer.update();
         mapTileContainer.update();
         fogOfWarController.update(tpf);
+
+        // Lighting: pick up live settings changes, advance modulators
+        // (pulse/fade/flicker) and re-upload the terrain materials they
+        // touched. Skipped until the map is
+        // done loading - the loader thread is still registering terrain
+        // materials into the same LightRules up to that point, and reading
+        // it here concurrently with that would race (ConcurrentModificationException).
+        if (mapLoaded) {
+            Settings settings = Main.getUserSettings();
+            float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
+            mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+            mapLoader.getLightRules().update(tpf, app.getCamera());
+        }
+    }
+
+    public MapViewController getMapLoader() {
+        return mapLoader;
     }
 
     /**
-     * The map is built on a separate thread, anything that wants to look at
-     * the map data before the map is up should wait for this.
+     * {@code false} while the "GameClientMapLoader" background thread is
+     * still populating {@code mapLoader}'s {@code LightRules} (registering
+     * terrain materials, torches, etc.). Anything outside this class that
+     * touches {@code LightRules} on the render thread (entity/effect flat
+     * lighting) must gate on this the same way {@link #update(float)} above
+     * does, or it races those writes with a {@code ConcurrentModificationException}.
      */
     public boolean isMapLoaded() {
         return mapLoaded;
@@ -293,6 +340,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         fogOfWarController.markPendingTagged(points, tagged);
     }
 
+    public void setCeilingVisible(boolean visible) {
+        mapLoader.setCeilingVisible(visible);
+    }
+
     public void setPossessedCreature(EntityId entityId) {
         fogOfWarController.setPossessedCreature(entityId);
     }
@@ -302,29 +353,34 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     private void updateTiles(Point[] points) {
-        if (!mapLoaded) {
-            pendingTileUpdates.addAll(Arrays.asList(points));
-            return;
-        }
-        for (Point point : points) {
-            IMapTileInformation tile = mapInformation.getMapData().getTile(point);
-            short newTerrainId = tile.getTerrainId();
-            short oldTerrainId = lastTerrainIds[point.x][point.y];
-            if (newTerrainId != oldTerrainId) {
-                Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
-                if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
-                    effectManager.load(worldNode,
-                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
-                } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
-                    effectManager.load(worldNode,
-                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getDestroyedEffectId(), false);
-                }
-                lastTerrainIds[point.x][point.y] = newTerrainId;
+        synchronized (tileUpdateLock) {
+            if (!mapLoaded) {
+                pendingTileUpdates.addAll(Arrays.asList(points));
+                return;
             }
         }
-        mapLoader.updateTiles(points);
+
+        app.enqueue(() -> {
+            for (Point point : points) {
+                IMapTileInformation tile = mapInformation.getMapData().getTile(point);
+                short newTerrainId = tile.getTerrainId();
+                short oldTerrainId = lastTerrainIds[point.x][point.y];
+                if (newTerrainId != oldTerrainId) {
+                    Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
+                    if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
+                        effectManager.load(worldNode,
+                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                                oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
+                    } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
+                        effectManager.load(worldNode,
+                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                                oldTerrain.getDestroyedEffectId(), false);
+                    }
+                    lastTerrainIds[point.x][point.y] = newTerrainId;
+                }
+            }
+            mapLoader.updateTiles(points);
+        });
     }
 
     public IRoomsInformation getRoomsInformation() {

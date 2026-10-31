@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -554,6 +555,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
+        // A trap is sold on its own, one at a time and never together with rooms
+        Point startTile = new Point((int) start.x, (int) start.y);
+        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+            return;
+        }
+
         Sale sale = sellTiles(start, end, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
@@ -565,6 +572,30 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         restoreGoldCapacity(sale.roomCoordinates);
         returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
         notifyOnSold(playerId, sale.soldTiles);
+    }
+
+    private boolean sellTrap(Point tile, short playerId) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every trap on the map
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, Owner.class);
+            TrapComponent trapComponent = entity.get(TrapComponent.class);
+            Owner owner = entity.get(Owner.class);
+            if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
+                continue;
+            }
+
+            Trap trap = kwdFile.getTrapById(trapComponent.trapId);
+            int saleValue = TrapSellRules.getSellValue(trap.getGoldCost(),
+                    gameSettings.get(Variable.MiscVariable.MiscType.TRAP_SELL_VALUE_PERCENTAGE_OF_COST).getValue());
+            trapsController.createController(entityId).remove();
+            returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue)));
+            return true;
+        }
+        return false;
     }
 
     private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
@@ -792,7 +823,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
             CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
             if (lair.equals(sleep.lairObjectId)) {
-                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                CreatureSleep updated = new CreatureSleep(sleep);
+                updated.lairObjectId = null;
+                entityData.setComponent(creature, updated);
                 break;
             }
         }
@@ -1110,6 +1143,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                notifySlap(entity, playerId);
             }
             return;
         }
@@ -1181,7 +1215,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean torture = false;
         boolean imprison = false;
         CreatureState creatureState = null;
-
+        CreatureState targetState = null;
         // TODO: Evict & sacrifice
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
@@ -1210,6 +1244,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+            targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
         // Show the fall animation right away, before the position brings the model back to the map
@@ -1223,11 +1258,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
         entityData.setComponent(entity, new Position(0, pos));
 
-        // If we got state, add it
-        if (creatureState != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureComponent.creatureId));
-        }
+        restoreDroppedCreatureAi(entity, creatureState, targetState);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
@@ -1253,6 +1284,27 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
+    }
+
+    /** Restores captive AI or a pending rest target; falling creatures wait for landing. */
+    private void restoreDroppedCreatureAi(EntityId entity, CreatureState creatureState, CreatureState targetState) {
+        if (creatureState != null || targetState != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
+                    creatureState != null ? creatureState : CreatureState.FALLEN,
+                    creatureComponent.creatureId, targetState));
+        }
+    }
+
+    /**
+     * Requests rest for a non-captive drop into an owned Lair. The creature
+     * controller validates its current room and assigned bed after getting up.
+     */
+    private CreatureState getLairRestTarget(IRoomController roomController, EntityId entity, short ownerId, boolean captive) {
+        return !captive && roomController.getOwnerId() == ownerId
+                && roomController.hasObjectControl(ObjectType.LAIR)
+                && entityData.getComponent(entity, CreatureSleep.class) != null
+                        ? CreatureState.GO_TO_SLEEP : null;
     }
 
     private void dropGold(EntityId entity, IRoomController roomController, short playerId, Point tile, Vector2f coordinates) {
@@ -1474,7 +1526,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void placeTrap(short trapId, Point tile, short playerId) {
         Trap trap = kwdFile.getTrapById(trapId);
         if (trap == null) {
-            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trap);
+            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trapId);
             return;
         }
 
@@ -1490,7 +1542,54 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
+        ResearchableEntity researchableEntity = playerControllers.get(playerId).getTrapControl().getTypes().get(trap);
+        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+            logger.log(Level.WARNING, "Player trap is not available", playerId);
+            return;
+        }
+
         // Validate
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
+                != TrapPlacementValidator.Failure.NONE) {
+            return;
+        }
+
+        if (!payForTrap(trap, playerId)) {
+            return;
+        }
+
+        // The blueprint, the workshop manufactures the trap for it
+        trapsController.addTrapBlueprint(trapId, tile, playerId);
+    }
+
+    private boolean payForTrap(Trap trap, short playerId) {
+        // Keep shared gold operations atomic until player actions are processed by the game loop.
+        // skipcq: JAVA-E1061
+        synchronized (GOLD_LOCK) {
+            int cost = trap.getGoldCost();
+            if (cost > players.get(playerId).getGold()) {
+                return false;
+            }
+            substractGold(cost, playerId);
+            return true;
+        }
+    }
+
+    /**
+     * The tile if a trap or a door already stands on it. Only the entities on
+     * the tile are looked at, not every trap and door on the map
+     *
+     * @param tile the tile to place a trap on
+     * @return the tile if it is taken, otherwise nothing
+     */
+    private Set<Point> getTrapBlockingTiles(Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, DoorComponent.class);
+            if (entity.get(TrapComponent.class) != null || entity.get(DoorComponent.class) != null) {
+                return Set.of(tile);
+            }
+        }
+        return Set.of();
     }
 
     @Override

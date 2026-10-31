@@ -18,6 +18,10 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AppStateManager;
+import com.jme3.audio.AudioKey;
+import com.jme3.audio.AudioNode;
+import com.jme3.audio.AudioSource;
+import com.jme3.audio.AudioStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayDeque;
@@ -25,11 +29,16 @@ import java.util.Iterator;
 import java.util.Queue;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.sound.MentorType;
+import toniarts.openkeeper.game.sound.MusicLevel;
+import toniarts.openkeeper.game.sound.SequencedSoundStream;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundEvent;
 import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.SoundSequencer;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -70,6 +79,22 @@ public final class SoundState extends AbstractPauseAwareState {
     private final BackgroundState backgroundState = new BackgroundState("MUSIC");
     private final Queue<Speech> speechQueue = new ArrayDeque<>();
 
+    /**
+     * Music event per level sound track, as in DK II (track 0 plays track 1).
+     * The game refers to a track 2 (event 344) that does not exist in the data.
+     */
+    private static final int[] MUSIC_TRACKS = {GlobalType.MUSIC_TRACK_1.getId(), GlobalType.MUSIC_TRACK_1.getId(),
+        344, GlobalType.MUSIC_TRACK_3.getId()};
+
+    /**
+     * The in-game music: the level's track, played gaplessly and driven by the
+     * music level
+     */
+    private final MusicLevel musicLevel = new MusicLevel();
+    private boolean levelMusic;
+    private AudioNode musicNode;
+    private SequencedSoundStream musicStream;
+
     public SoundState(boolean enabled) {
         this.setEnabled(enabled);
     }
@@ -102,6 +127,13 @@ public final class SoundState extends AbstractPauseAwareState {
                     SoundManager.stopSound(backgroundHandle);
                     backgroundHandle = SoundEngine.NO_HANDLE;
                 }
+                if (musicNode != null) {
+                    if (enabled) {
+                        musicNode.play();
+                    } else {
+                        musicNode.pause();
+                    }
+                }
             });
         }
     }
@@ -113,11 +145,84 @@ public final class SoundState extends AbstractPauseAwareState {
     public void changeBackground(Background category) {
         backgroundState.setCategory(category.getName());
         app.enqueue(() -> {
+            levelMusic = false;
+            stopMusic();
             if (backgroundHandle != SoundEngine.NO_HANDLE) {
                 SoundManager.stopSound(backgroundHandle);
                 backgroundHandle = SoundEngine.NO_HANDLE;
             }
         });
+    }
+
+    /**
+     * Starts the music of the current level, replacing the background. The
+     * music level starts silent, so the music begins with the first fight.
+     */
+    public void startLevelBackground() {
+        int track = kwdFile != null ? kwdFile.getGameLevel().getSoundTrack() : 0;
+        app.enqueue(() -> {
+            levelMusic = true;
+            if (backgroundHandle != SoundEngine.NO_HANDLE) {
+                SoundManager.stopSound(backgroundHandle);
+                backgroundHandle = SoundEngine.NO_HANDLE;
+            }
+            stopMusic();
+            musicLevel.set(MusicLevel.SILENT);
+            musicLevel.update();
+            startMusic(track < MUSIC_TRACKS.length ? MUSIC_TRACKS[track] : 0);
+        });
+    }
+
+    /**
+     * The music level drives the music and ambience intensity. Request levels
+     * every update with {@link MusicLevel#raise(int)}.
+     *
+     * @return the music level
+     */
+    public MusicLevel getMusicLevel() {
+        return musicLevel;
+    }
+
+    private void startMusic(int eventId) {
+        if (!Main.getUserSettings().getBoolean(Settings.Setting.MUSIC_ENABLED)) {
+            return;
+        }
+        SoundCategory category = SoundManager.loadCategory(GlobalCategory.MUSIC);
+        SoundEvent event = category != null ? category.getEvent(eventId) : null;
+        if (event == null) {
+            logger.log(Level.WARNING, "Music event {0} not found", eventId);
+            return;
+        }
+
+        musicStream = new SequencedSoundStream(app.getAssetManager(), new SoundSequencer(event),
+                musicLevel::getIntensity, 2);
+        AudioStream stream = new AudioStream();
+        stream.setupFormat(2, 16, SequencedSoundStream.SAMPLE_RATE);
+        stream.updateData(musicStream, -1);
+        musicNode = new AudioNode(stream, new AudioKey(GlobalCategory.MUSIC + "/" + eventId, true));
+        musicNode.setPositional(false);
+        musicNode.setLooping(false);
+        musicNode.setVolume(getMusicGain());
+        musicNode.play();
+    }
+
+    private void stopMusic() {
+        if (musicNode != null) {
+            musicNode.stop();
+            musicNode = null;
+        }
+        if (musicStream != null) {
+            musicStream.close();
+            musicStream = null;
+        }
+    }
+
+    private static float getMusicGain() {
+        SoundEngine engine = SoundManager.getEngine();
+        if (engine == null) {
+            return 1.0f;
+        }
+        return engine.getMasterVolume() / 100f * engine.getChannelVolume(SoundManager.CHANNEL_MUSIC) / 100f;
     }
 
     /**
@@ -197,12 +302,24 @@ public final class SoundState extends AbstractPauseAwareState {
             }
         }
 
-        if (backgroundHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(backgroundHandle)) {
+        musicLevel.update();
+        if (levelMusic) {
+            if (musicNode != null && musicNode.getStatus() == AudioSource.Status.Playing) {
+                musicNode.setVolume(getMusicGain());
+            }
+        } else if (backgroundHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(backgroundHandle)) {
             backgroundHandle = SoundEngine.NO_HANDLE;
             playBackground();
         }
 
         super.update(tpf);
+    }
+
+    @Override
+    public void cleanup() {
+        stopMusic();
+
+        super.cleanup();
     }
 
     private static final class BackgroundState {
