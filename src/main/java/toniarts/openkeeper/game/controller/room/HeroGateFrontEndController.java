@@ -41,6 +41,9 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_TWO_ID = 134;
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
+    private static final int ROOM_WIDTH = 3;
+    private static final int EFFECT_3DFE_ARCH_MIST = 348;
+    private static final int EFFECT_3DFE_MPD_ARCH_MIST = 360;
     private static final int EFFECT_3DFE_LIGHTBEAMS = 349;
     private static final int EFFECT_3DFE_GEMS = 350;
 
@@ -107,6 +110,43 @@ public final class HeroGateFrontEndController extends NormalRoomController {
 
             i++;
         }
+
+        spawnArchMist();
+    }
+
+    /**
+     * The mist along the two side columns. The original code switches on the
+     * slab index, which runs row by row ({@code (y - minY) * 3 + (x - minX)}),
+     * not in the flood fill order of the coordinates.
+     */
+    private void spawnArchMist() {
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        for (Point p : roomInstance.getCoordinates()) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+        }
+
+        for (Point p : roomInstance.getCoordinates()) {
+            int slab = (p.y - minY) * ROOM_WIDTH + (p.x - minX);
+            switch (slab) {
+                case 0, 2, 3, 5, 8, 9, 11 -> spawnRoomEffect(EFFECT_3DFE_ARCH_MIST, p, false);
+                // Has no death effect, so it mists up only once
+                case 6 -> spawnRoomEffect(EFFECT_3DFE_MPD_ARCH_MIST, p, true);
+                default -> {
+                    // The middle column and the slabs after the 12th have no mist
+                }
+            }
+        }
+    }
+
+    /**
+     * RoomEffect holds a single effect, so every effect gets an entity of its own.
+     * The mist sits on the slab centre (the view adds half a tile, cancel that).
+     */
+    private void spawnRoomEffect(int effectId, Point p, boolean once) {
+        EntityId effectEntityId = entityData.createEntity();
+        entityData.setComponent(effectEntityId, new RoomEffect(effectId, p, 0, -0.5f, once, true));
     }
 
     private void addCandles(Point p) {
