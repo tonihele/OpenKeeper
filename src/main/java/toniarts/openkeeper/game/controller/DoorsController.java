@@ -34,12 +34,11 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -105,31 +104,29 @@ public final class DoorsController implements IDoorsController {
     }
 
     private EntityId loadDoor(int x, int y, short doorId, short ownerId, Integer triggerId, boolean locked, boolean blueprint) {
+        Door door = kwdFile.getDoorById(doorId);
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint));
+        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint, !blueprint && isSecret(door)));
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
         Vector3f pos = WorldUtils.pointToVector3f(x, y);
         pos.y = WorldUtils.FLOOR_HEIGHT;
         float rotation = 0;
-        if (canTileSupportDoor(x, y - 1, ownerId) && canTileSupportDoor(x, y + 1, ownerId)) {
+        if (!DoorPlacementValidator.isBetweenWallsEastAndWest(mapController, x, y)
+                && DoorPlacementValidator.isBetweenWallsNorthAndSouth(mapController, x, y)) {
             rotation = -FastMath.HALF_PI;
         }
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
-        Door door = kwdFile.getDoorById(doorId);
         if (door.getTrapTypeId() > 0) {
             entityData.setComponent(entity, new TrapComponent(door.getTrapTypeId()));
         }
 
         // Health
-        entityData.setComponent(entity, new Health(door.getHealth(), door.getHealth()));
-
-        // Regeneration
-        if (door.getHealthGain() > 0) {
-            entityData.setComponent(entity, new Regeneration(door.getHealthGain(), null));
+        if (!blueprint) {
+            setBuilt(entity, door);
         }
 
         // Trigger
@@ -146,13 +143,42 @@ public final class DoorsController implements IDoorsController {
         return entity;
     }
 
-    private boolean canTileSupportDoor(int x, int y, short ownerId) {
-        IMapTileInformation tile = mapController.getMapData().getTile(x, y);
-        Terrain terrain = mapController.getTerrain(tile);
+    private void setBuilt(EntityId entity, Door door) {
+        entityData.setComponent(entity, new Health(door.getHealth(), door.getHealth()));
 
-        return (tile != null && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && ((!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))
-                || (tile.getOwnerId() == ownerId && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))));
+        // Regeneration
+        if (door.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(door.getHealthGain(), null));
+        }
+    }
+
+    @Override
+    public EntityId addDoorBlueprint(short doorId, Point tile, short ownerId) {
+        return loadDoor(tile.x, tile.y, doorId, ownerId, null, false, true);
+    }
+
+    @Override
+    public void buildDoor(EntityId blueprint) {
+        DoorComponent doorComponent = entityData.getComponent(blueprint, DoorComponent.class);
+        if (doorComponent == null || !doorComponent.blueprint) {
+            return;
+        }
+
+        Door door = kwdFile.getDoorById(doorComponent.doorId);
+        setBuilt(blueprint, door);
+        entityData.setComponent(blueprint, new DoorComponent(doorComponent.doorId, doorComponent.locked, false, isSecret(door)));
+        DoorViewState viewState = entityData.getComponent(blueprint, DoorViewState.class);
+        if (viewState != null) {
+            entityData.setComponent(blueprint, new DoorViewState(viewState.doorId, viewState.locked, false, viewState.open));
+        }
+    }
+
+    /**
+     * A secret door is secret from the moment it is built, a blueprint isn't
+     * secret yet
+     */
+    private static boolean isSecret(Door door) {
+        return door.getFlags().contains(Door.DoorFlag.IS_SECRET);
     }
 
     @Override
