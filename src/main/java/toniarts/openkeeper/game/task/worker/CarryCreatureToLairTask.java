@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -35,8 +36,8 @@ public final class CarryCreatureToLairTask extends AbstractTileTask {
     private final ICreatureController creature;
     private boolean executed = false;
 
-    public CarryCreatureToLairTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, short playerId) {
-        super(navigationService, mapController, creature.getLairLocation(), playerId);
+    public CarryCreatureToLairTask(final INavigationService navigationService, final IMapController mapController, ICreatureController creature, Point lair, short playerId) {
+        super(navigationService, mapController, lair, playerId);
         this.creature = creature;
     }
 
@@ -47,7 +48,7 @@ public final class CarryCreatureToLairTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return !executed && this.creature.hasLair() && this.creature.isDragged() && !this.creature.isDead();
+        return !executed && this.creature.isDragged() && !this.creature.isDead();
     }
 
     @Override
@@ -57,7 +58,13 @@ public final class CarryCreatureToLairTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        this.creature.sleep();
+
+        // A creature without a lair wakes up in the Lair and makes itself one (DKII.EXE 0x468420)
+        if (this.creature.hasLair()) {
+            this.creature.sleep();
+        } else {
+            this.creature.wakeUp();
+        }
         executed = true;
 
         // Set the dragged state
