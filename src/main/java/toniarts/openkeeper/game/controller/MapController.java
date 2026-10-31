@@ -706,6 +706,12 @@ public final class MapController extends Container implements IMapController {
         Terrain terrain = getTerrain(tile);
         MapTileController.setAttributesFromTerrain(entityData, tile, terrain);
 
+        // Terrain that can't be owned, like the rock or the path left of a dug out wall, belongs to nobody
+        // (DKII.EXE 0x44FC40)
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+            tile.setOwnerId(Player.NEUTRAL_PLAYER_ID);
+        }
+
         // If the terrain is not taggable anymore, reset the tagging data
         if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
             tile.setSelected(false, Player.KEEPER1_ID);
@@ -722,13 +728,13 @@ public final class MapController extends Container implements IMapController {
             return;
         }
 
-        // Alter
-        changeTerrain(tile, terrainId);
-
         // Set owner
         if (playerId != 0) {
             tile.setOwnerId(playerId);
         }
+
+        // Alter
+        changeTerrain(tile, terrainId);
 
         notifyTileChange(tile.getLocation());
     }
