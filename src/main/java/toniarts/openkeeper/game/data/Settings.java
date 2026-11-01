@@ -83,6 +83,8 @@ public final class Settings {
         AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),
         TORCHES_ENABLED(Boolean.class, true, SettingCategory.GRAPHICS),
+        // Shadows of creatures and objects, 0 off .. 3 best
+        SHADOW_LEVEL(Integer.class, 3, SettingCategory.GRAPHICS),
         // Controls
         CAMERA_ZOOM_IN(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_W, SettingCategory.CONTROLS, 124),
         CAMERA_ZOOM_OUT(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_S, SettingCategory.CONTROLS, 125),
