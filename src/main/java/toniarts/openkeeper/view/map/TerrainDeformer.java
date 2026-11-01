@@ -100,8 +100,8 @@ public final class TerrainDeformer {
     // The values of the original look a bit too much here, tone each down. All of them can be
     // scaled further with -Dopenkeeper.deformScale=<factor>, 0 is flat.
     private static final float STRENGTH = Float.parseFloat(System.getProperty("openkeeper.deformScale", "1"));
-    private static final float WIBBLE_SCALE = 0.6f * STRENGTH;
-    private static final float LEAN_SCALE = 0.5f * STRENGTH;
+    private static final float WIBBLE_SCALE = 0.8f * STRENGTH;
+    private static final float LEAN_SCALE = 0.8f * STRENGTH;
     private static final float SWELL_SCALE = 0.5f * STRENGTH;
     private static final float FLOOR_Y = 1f; // Rest height of lattice level 1, the levels are half a tile apart
     private static final int LEVELS = 3; // The ones that move
