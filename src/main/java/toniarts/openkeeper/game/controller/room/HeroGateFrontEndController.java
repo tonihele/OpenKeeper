@@ -36,6 +36,7 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_ONE_ID = 89;
     //private static final int OBJECT_CANDLE_STICK_ID = 110;  // empty resource?
     //private static final int OBJECT_ARROW_ID = 115;  // empty resource?
+    private static final short OBJECT_TABLE_ID = 102;
     private static final short OBJECT_GEM_HOLDER_ID = 131;
     private static final short OBJECT_CHAIN_ID = 132;
     private static final short OBJECT_BANNER_TWO_ID = 134;
@@ -94,6 +95,11 @@ public final class HeroGateFrontEndController extends NormalRoomController {
 
                     break;
                 case 11:
+
+                    // The campaign map table, on the same tile as the map pieces. The original has one
+                    // of these per level, all at this spot, and keeps the light of only the first, so
+                    // one object is all it takes. It has no mesh, the map pieces are the map's own
+                    floorFurniture.add(objectsController.loadObject(OBJECT_TABLE_ID, roomInstance.getOwnerId(), p.x, p.y));
 
                     // Banners
                     floorFurniture.add(objectsController.loadObject(OBJECT_BANNER_ONE_ID, roomInstance.getOwnerId(), p.x, p.y));
