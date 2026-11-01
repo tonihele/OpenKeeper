@@ -1399,6 +1399,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void handleTerrainLight(IMapTileInformation tile, Terrain terrain, boolean isRoomTile, RoomInstance roomInstance) {
         Point p = tile.getLocation();
+        // The dungeon heart room gets no terrain light
+        if (isRoomTile && roomInstance != null && roomInstance.getRoom() == kwdFile.getDungeonHeart()) {
+            return;
+        }
         Terrain lightingTerrain = isRoomTile
                 ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
                 : terrain;
