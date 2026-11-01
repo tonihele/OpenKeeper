@@ -68,6 +68,12 @@ public final class LightConstants {
      */
     public static final boolean TERRAIN_AMBIENT_ENABLED = true;
 
+    /**
+     * Share of its file value the per-terrain ambient of room tiles is baked
+     * with, only while gamma correction is on.
+     */
+    public static final float ROOM_AMBIENT_SCALE = 0.2f;
+
     // ---- general ----
 
     /**
