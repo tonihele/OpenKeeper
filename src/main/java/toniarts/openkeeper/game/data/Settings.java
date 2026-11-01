@@ -73,7 +73,8 @@ public final class Settings {
         SECRET_LEVEL_STATUS(LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN),
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         // Graphic
-        ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS),
+        ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS), // Legacy setting, used for migration
+        TEXTURE_FILTERING(String.class, "", SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
@@ -259,7 +260,6 @@ public final class Settings {
     private static final Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
     public static final List<String> OPENGL = Settings.getRenderers();
     public static final List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
-    public static final List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     
     private final AppSettings settings;
 
@@ -357,6 +357,11 @@ public final class Settings {
             value = defaultValue;
         }
         return value;
+    }
+
+    /** Resolves the explicit filtering choice, or migrates the legacy anisotropy setting. */
+    public TextureFiltering getTextureFiltering() {
+        return TextureFiltering.resolve((String) getSetting(Setting.TEXTURE_FILTERING), getInteger(Setting.ANISOTROPY));
     }
 
     /**

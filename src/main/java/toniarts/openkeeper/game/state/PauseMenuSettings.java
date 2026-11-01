@@ -36,6 +36,7 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import org.bushe.swing.event.EventTopicSubscriber;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.TextureFiltering;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
@@ -84,7 +85,7 @@ final class PauseMenuSettings {
         addDropDown(right, "Bit depth", "bitDepth", "100px");
         addDropDown(right, "Refresh rate", "refreshRate", "100px");
         addCheckBox(right, " Vertical sync", "verticalSync");
-        addDropDown(right, "Anisotropic filtering", "anisotropicFiltering", "100px");
+        addDropDown(right, "Texture filtering", "textureFiltering", "220px");
 
         addLabel(right, "Display mode changes take effect after restarting the game");
 
@@ -137,13 +138,9 @@ final class PauseMenuSettings {
         }
         aa.selectItem(settings.getSamples());
 
-        DropDown af = find("anisotropicFiltering", DropDown.class);
-        af.addAllItems(Settings.ANISOTROPHIES);
-        int selectedAF = Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY);
-        if (!Settings.ANISOTROPHIES.contains(selectedAF)) {
-            af.addItem(selectedAF);
-        }
-        af.selectItem(selectedAF);
+        DropDown<TextureFiltering> af = find("textureFiltering", DropDown.class);
+        af.addAllItems(java.util.Arrays.asList(TextureFiltering.values()));
+        af.selectItem(Main.getUserSettings().getTextureFiltering());
 
         DropDown ogl = find("openGl", DropDown.class);
         ogl.addAllItems(Settings.OPENGL);
@@ -170,7 +167,9 @@ final class PauseMenuSettings {
         settings.getAppSettings().setVSync(find("verticalSync", CheckBox.class).isChecked());
         settings.getAppSettings().setRenderer((String) find("openGl", DropDown.class).getSelection());
         settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
-        settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
+        settings.setSetting(Settings.Setting.TEXTURE_FILTERING,
+                ((TextureFiltering) find("textureFiltering", DropDown.class).getSelection()).name());
+        app.applyTextureFiltering();
         settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());
         settings.getAppSettings().setGammaCorrection(find("gammaCorrection", CheckBox.class).isChecked());
 

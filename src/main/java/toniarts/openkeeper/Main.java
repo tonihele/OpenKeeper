@@ -22,14 +22,12 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.app.StatsAppState;
 import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.app.state.VideoRecorderAppState;
-import com.jme3.asset.AssetEventListener;
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
+import com.jme3.renderer.Limits;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
@@ -69,6 +67,7 @@ import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.view.texture.TextureFilteringListener;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -420,8 +419,8 @@ public final class Main extends SimpleApplication {
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
 
-                    // Set the anisotropy asset listener
-                    setAnisotropy();
+                    // Set the world texture filtering policy
+                    setTextureFiltering();
 
                     // Allow people to take screenshots
                     ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
@@ -549,29 +548,22 @@ public final class Main extends SimpleApplication {
         return gameUiXml;
     }
 
-    /**
-     * Adds an asset listener to the asset manager that automatically sets
-     * anisotropy level to any textures loaded
-     */
-    private void setAnisotropy() {
-        AssetEventListener asl = new AssetEventListener() {
-            @Override
-            public void assetLoaded(AssetKey key) {
-            }
+    private TextureFilteringListener textureFiltering;
 
-            @Override
-            public void assetRequested(AssetKey key) {
-                if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
-                    TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(Settings.getInstance().getInteger(Settings.Setting.ANISOTROPY));
-                }
-            }
+    private void setTextureFiltering() {
+        if (textureFiltering != null) assetManager.removeAssetEventListener(textureFiltering);
+        int limit = renderer.getLimits().getOrDefault(Limits.TextureAnisotropy, 1);
+        textureFiltering = new TextureFilteringListener(assetManager,
+                () -> getUserSettings().getTextureFiltering(), limit);
+        assetManager.addAssetEventListener(textureFiltering);
+    }
 
-            @Override
-            public void assetDependencyNotFound(AssetKey parentKey, AssetKey dependentAssetKey) {
-            }
-        };
-        assetManager.addAssetEventListener(asl);
+    /** Applies filtering immediately to loaded world textures without restarting gameplay. */
+    public void applyTextureFiltering() {
+        if (textureFiltering != null) {
+            textureFiltering.refresh();
+            textureFiltering.apply(rootNode);
+        }
     }
 
     /**
