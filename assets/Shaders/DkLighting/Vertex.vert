@@ -105,16 +105,17 @@ void main() {
         float visibility = (flags & 2) != 0 ? 1.0 : explored;
         vec3 contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
                 posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
+        if ((flags & 8) != 0) {
+            // How far into its own colour this torch lights the vertex, 0..1 (measured before the edge tint)
+            float peak = max(colorIntensity.r, max(colorIntensity.g, colorIntensity.b));
+            float lit = max(contribution.r, max(contribution.g, contribution.b));
+            torchStrength = max(torchStrength, peak > 0.0 ? lit / peak : 0.0);
+            contribution = dkTorchEdgeTint(contribution, colorIntensity.rgb);
+        }
         if ((flags & 4) != 0) {
             yieldingSum += contribution;
         } else {
             sum += contribution;
-        }
-        if ((flags & 8) != 0) {
-            // How far into its own colour this torch lights the vertex, 0..1
-            float peak = max(colorIntensity.r, max(colorIntensity.g, colorIntensity.b));
-            float lit = max(contribution.r, max(contribution.g, contribution.b));
-            torchStrength = max(torchStrength, peak > 0.0 ? lit / peak : 0.0);
         }
     }
     // A torch overrules water and lava glow, so its colour stays pure where
