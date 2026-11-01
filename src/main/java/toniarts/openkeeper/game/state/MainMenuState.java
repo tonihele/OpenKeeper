@@ -192,7 +192,7 @@ public final class MainMenuState extends AbstractAppState {
         // here, and the cave ceiling stays off - this scene is a fixed camera looking at a
         // hand-placed diorama, not a dungeon being explored under fog of war.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
-                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true, false) {
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false, true, false) {
 
             @Override
             protected void updateProgress(float progress) {
