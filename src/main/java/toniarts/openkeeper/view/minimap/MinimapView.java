@@ -132,11 +132,11 @@ public final class MinimapView {
     }
 
     private static Mesh buildFrustumQuad() {
-        // An outline, not a filled quad - LineLoop connects
-        // the 4 corners 0-1-2-3-0 directly, no index buffer needed.
+        // An outline, not a filled quad - drawn as separate segments (pairs of
+        // vertices) since the rim clipping can leave gaps in it.
         Mesh mesh = new Mesh();
         mesh.setBuffer(Type.Position, 3, new float[4 * 3]);
-        mesh.setMode(Mesh.Mode.LineLoop);
+        mesh.setMode(Mesh.Mode.Lines);
         mesh.updateBound();
         mesh.updateCounts();
         return mesh;
@@ -274,7 +274,7 @@ public final class MinimapView {
         float cos = FastMath.cos(-yawRadians);
         float sin = FastMath.sin(-yawRadians);
 
-        float[] positions = new float[groundCorners.length * 3];
+        float[] quad = new float[groundCorners.length * 2];
         for (int i = 0; i < groundCorners.length; i++) {
             Vector2f tile = MinimapCoordinates.worldToTile(groundCorners[i]);
             float px = fit.pixelX(tile.x);
@@ -288,13 +288,25 @@ public final class MinimapView {
 
             float dx = localX - 0.5f;
             float dy = localY - 0.5f;
-            positions[i * 3] = 0.5f + dx * cos - dy * sin;
-            positions[i * 3 + 1] = 0.5f + dx * sin + dy * cos;
-            positions[i * 3 + 2] = 0f;
+            quad[i * 2] = 0.5f + dx * cos - dy * sin;
+            quad[i * 2 + 1] = 0.5f + dx * sin + dy * cos;
+        }
+
+        // Keep the outline within the round minimap
+        float[] clipped = MinimapFrustum.clipToCircle(quad, 0.5f, 0.5f, 0.5f);
+        if (clipped.length == 0) {
+            hideFrustum();
+            return;
+        }
+        float[] positions = new float[clipped.length / 2 * 3];
+        for (int i = 0; i < clipped.length / 2; i++) {
+            positions[i * 3] = clipped[i * 2];
+            positions[i * 3 + 1] = clipped[i * 2 + 1];
         }
 
         frustumMesh.setBuffer(Type.Position, 3, positions);
         frustumMesh.updateBound();
+        frustumMesh.updateCounts();
         frustumGeometry.setCullHint(Spatial.CullHint.Inherit);
     }
 

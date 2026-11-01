@@ -116,6 +116,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
+    private final Set<Element> unaffordableRooms = new HashSet<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -724,6 +725,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String sound = ((CustomTabControl) event.getTab()).getSound();
             this.playButtonSound(sound);
         }
+        reapplyIconEffects();
     }
 
     protected void initHud(String resource, EntityData entityData) {
@@ -973,6 +975,40 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public void setGold(int gold) {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
+        updateRoomAffordability(gold);
+    }
+
+    /**
+     * Darkens the room icons that the player doesn't have enough gold to
+     * build a single tile of
+     *
+     * @param gold the gold the player has
+     */
+    private void updateRoomAffordability(int gold) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
+            if (!room.isDiscovered()) {
+                continue;
+            }
+            Element icon = hud.findElementById("room_" + room.getId());
+            if (icon == null) {
+                continue;
+            }
+            boolean unaffordable = state.getKwdFile().getRoomById(room.getId()).getCost() > gold;
+            if (unaffordable == unaffordableRooms.contains(icon)) {
+                continue;
+            }
+            if (unaffordable) {
+                unaffordableRooms.add(icon);
+                icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else {
+                unaffordableRooms.remove(icon);
+                icon.stopEffect(EffectEventId.onCustom);
+                if (icon == selectedButton) {
+                    icon.startEffect(EffectEventId.onCustom, null, "select");
+                }
+            }
+        }
     }
 
     public void setMana(int mana, int manaLoose, int manaGain) {
@@ -1013,6 +1049,42 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     icon.startEffect(EffectEventId.onCustom, null, "select");
                 }
             }
+        }
+    }
+
+    /**
+     * Nifty saves the effects of a tab when it is hidden and starts them again
+     * when the tab is shown, even the ones that were stopped in between. Gives
+     * the room and spell icons their effects again so that an icon that was lit
+     * while its tab was hidden doesn't come back dark.
+     */
+    private void reapplyIconEffects() {
+        if (state == null) {
+            return;
+        }
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
+            if (room.isDiscovered()) {
+                reapplyIconEffects(hud.findElementById("room_" + room.getId()), unaffordableRooms);
+            }
+        }
+        for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.isDiscovered()) {
+                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
+                reapplyIconEffects(hud.findElementById("spell_" + keeperSpell.getKeeperSpellId()), unaffordableSpells);
+            }
+        }
+    }
+
+    private void reapplyIconEffects(Element icon, Set<Element> unaffordableIcons) {
+        if (icon == null) {
+            return;
+        }
+        icon.stopEffect(EffectEventId.onCustom);
+        if (unaffordableIcons.contains(icon)) {
+            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        } else if (icon == selectedButton) {
+            icon.startEffect(EffectEventId.onCustom, null, "select");
         }
     }
 
@@ -1083,6 +1155,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             Element element = contentPanel.addElement(createRoomIcon(room));
             setResearchEffect(room, element);
         }
+        unaffordableRooms.clear();
+        updateRoomAffordability(state.getPlayer().getGold());
     }
 
     /**
@@ -1251,7 +1325,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
-            if (unaffordableSpells.contains(selectedButton)) {
+            if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)) {
                 selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
             }
         }
