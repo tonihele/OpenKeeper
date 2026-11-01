@@ -32,7 +32,8 @@ public abstract class SelectionHandler {
 
     public enum ColorIndicator {
 
-        BLUE(ColorRGBA.Blue.mult(5)), RED(ColorRGBA.Red.mult(5));
+        // The same as the highlight of the selected tiles
+        BLUE(MapViewController.TAG_OVERLAY), RED(MapViewController.FLASH_OVERLAY);
 
         private ColorIndicator(ColorRGBA color) {
             this.color = color;
@@ -60,6 +61,7 @@ public abstract class SelectionHandler {
     private final Vector3f rayNear = new Vector3f();
     private final Vector3f rayDirection = new Vector3f();
     private static final float OUTLINE_STEP = 0.25f; // Same as the spacing of the terrain deformation
+    private static final float FLOOR_CLEARANCE = 0.04f; // How far over the bent floor the lines stay
     private final Predicate<Point> blocks = this::isBlock;
 
     public SelectionHandler(Main app) {
@@ -284,11 +286,17 @@ public abstract class SelectionHandler {
             float x1, float y1, float z1, float x2, float y2, float z2) {
         int steps = Math.max(1, (int) Math.ceil(Math.max(Math.abs(x2 - x1) + Math.abs(z2 - z1), Math.abs(y2 - y1)) / OUTLINE_STEP));
         Vector3f previous = null;
+        Vector3f floor = new Vector3f();
         for (int i = 0; i <= steps; i++) {
             float t = (float) i / steps;
             Vector3f point = new Vector3f(x1 + (x2 - x1) * t, y1 + (y2 - y1) * t, z1 + (z2 - z1) * t);
             if (deformer != null) {
+                // The floor mesh is bent only at its vertices, so between them it can lie above the smooth
+                // field. Keep the lines over the floor beneath them.
+                floor.set(point.x, WorldUtils.FLOOR_HEIGHT, point.z);
+                deformer.deform(floor, floor, null);
                 deformer.deform(point, point, null);
+                point.y = Math.max(point.y, floor.y + FLOOR_CLEARANCE);
             }
             if (previous != null) {
                 points.add(previous);

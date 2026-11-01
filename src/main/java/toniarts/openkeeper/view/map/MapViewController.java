@@ -77,9 +77,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * and the RedTexture (255, 64, 65).
      */
     private final static ColorRGBA TAG_BASE = new ColorRGBA(128 / 255f, 128 / 255f, 200 / 255f, 1);
-    private final static ColorRGBA TAG_OVERLAY = new ColorRGBA(63 / 255f, 64 / 255f, 1f, 1);
+    public final static ColorRGBA TAG_OVERLAY = new ColorRGBA(63 / 255f, 64 / 255f, 1f, 1);
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
-    private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
+    public final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
