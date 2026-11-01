@@ -76,6 +76,24 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
     return lightColor * min(k, 1.0);
 }
 
+// the distance test and falloff are evaluated ONCE, at the
+// mesh centre -- a light that does not reach the centre is dropped for the
+// whole mesh, however close a vertex is to it. Per vertex only the facing
+// term n.(L - v) remains, back-facing vertices get nothing. No soft tail:
+// the original cuts at the radius.
+vec3 dkMeshCenterLightContribution(vec3 worldPos, vec3 worldNormal, vec3 meshCenter,
+        vec3 lightPos, float radius, vec3 lightColor, float intensity) {
+    vec3 dc = lightPos - meshCenter;
+    float d2 = dot(dc, dc);
+    float r2 = radius * radius;
+    if (r2 <= 0.0 || d2 >= r2) {
+        return vec3(0.0);
+    }
+    float atten = (r2 - d2) * dkFalloff(floor(16.0 * d2)) * (1.0 / r2);
+    float lam = dot(worldNormal, lightPos - worldPos) * atten * intensity;
+    return lightColor * clamp(lam, 0.0, 1.0);
+}
+
 // Soft-knee compression of the FINAL summed colour (ambient + every
 // light's contribution), applied once per channel right before the
 // diffuse multiply -- NOT per-light. Each light's own saturation

@@ -11,6 +11,9 @@ uniform vec4 m_TintOverlay;
 uniform float m_MinLight;
 uniform float m_RockFloor;
 uniform float m_AmbientScale;
+#ifdef MESH_CENTER
+uniform vec3 m_MeshCenter;
+#endif
 #ifdef ANIMATED_TILES
 uniform float g_Time;
 uniform int m_NumberOfTiles;
@@ -103,7 +106,14 @@ void main() {
         // not reveal unexplored ground; only the claim-scan glow and the
         // cursor do
         float visibility = (flags & 2) != 0 ? 1.0 : explored;
-        vec3 contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
+        vec3 contribution;
+#ifdef MESH_CENTER
+        if ((flags & 32) != 0) {
+            contribution = visibility * dkMeshCenterLightContribution(worldPos, worldNormal, m_MeshCenter,
+                    posRadius.xyz, posRadius.w, colorIntensity.rgb, colorIntensity.w);
+        } else
+#endif
+        contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
                 posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
         if ((flags & 4) != 0) {
             yieldingSum += contribution;

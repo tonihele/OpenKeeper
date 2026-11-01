@@ -28,7 +28,9 @@ import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
+import com.jme3.bounding.BoundingVolume;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector3f;
 import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
@@ -326,6 +328,9 @@ public final class AssetUtils {
     public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
             boolean ignoreObjectLights, boolean useTileAmbient) {
         List<Material> materials = new ArrayList<>();
+        // Object lights are attenuated from the model's center, not per vertex
+        BoundingVolume bound = spatial.getWorldBound();
+        Vector3f meshCenter = bound != null ? bound.getCenter().clone() : spatial.getWorldTranslation().clone();
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial s) {
@@ -345,6 +350,7 @@ public final class AssetUtils {
                 }
                 material.setFloat("MinLight", 0f);
                 material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                material.setVector3("MeshCenter", meshCenter);
                 material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
                 materials.add(material);
             }
