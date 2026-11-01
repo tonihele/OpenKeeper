@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view.lighting;
 
 import java.util.Map;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -77,7 +78,7 @@ public final class LightConstants {
     /**
      * Loose tail stretched past every light's radius
      */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.01f;
 
     /**
      * Largest value of a light colour channel (255 is the plain colour, up to 511 is over-bright).
