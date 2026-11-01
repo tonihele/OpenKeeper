@@ -94,7 +94,6 @@ public final class TerrainDeformer {
      */
     private static final TileShape OFF_MAP = new TileShape(true, 0.1875f, 0.094f, TileShape.NO_LEAN, TileShape.NO_LEAN);
 
-    private static final float DIAGONAL = 1.4f; // ~sqrt(2)
     private static final float SWELL_BASE = 0.15f;
     private static final float SWELL_AMPLITUDE = 0.125f;
 
@@ -432,8 +431,9 @@ public final class TerrainDeformer {
     }
 
     /**
-     * Which way the solid side is, x and z (tile y) in the result. Longer on
-     * the diagonals.
+     * Which way the solid side is, x and z (tile y) in the result. Already longer
+     * on the diagonals (sqrt 2), each axis moves as much as the edges next to it,
+     * or the end of a one tile wide tunnel flares out past its walls.
      */
     private void solidDirection(int i, int j, Vector3f result) {
         boolean evenI = i % 2 == 0;
@@ -443,8 +443,7 @@ public final class TerrainDeformer {
             int b = j / 2;
             float dx = Math.signum((solid(a, b - 1) + solid(a, b)) - (solid(a - 1, b - 1) + solid(a - 1, b)));
             float dz = Math.signum((solid(a - 1, b) + solid(a, b)) - (solid(a - 1, b - 1) + solid(a, b - 1)));
-            float k = dx != 0 && dz != 0 ? DIAGONAL : 1f;
-            result.set(dx * k, 0, dz * k);
+            result.set(dx, 0, dz);
         } else if (!evenI && evenJ) { // Edge between the tile above and below
             int a = (i - 1) / 2;
             int b = j / 2;
