@@ -23,4 +23,11 @@ public final class GameObjectFixtures {
         return object;
     }
 
+    public static GameObject gameObject(String name, short objectId, int tooltipStringId, GameObject.ObjectFlag... flags) {
+        GameObject object = gameObject(name, flags);
+        object.setObjectId(objectId);
+        object.setTooltipStringId(tooltipStringId);
+        return object;
+    }
+
 }
