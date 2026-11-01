@@ -21,14 +21,14 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
-import com.jme3.audio.AudioNode;
-import com.jme3.audio.AudioSource;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -38,13 +38,19 @@ import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.MapSelector;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.controller.GameController;
-import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GeneralLevel;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.Setting;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
+import toniarts.openkeeper.game.sound.FrontEndSounds;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.ConnectionState.ConnectionErrorListener;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.LobbyClientService;
@@ -60,13 +66,16 @@ import toniarts.openkeeper.tools.convert.map.IKwdMap;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
+import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -77,8 +86,6 @@ import java.lang.System.Logger.Level;
 import java.util.Collections;
 
 import static toniarts.openkeeper.Main.getDkIIFolder;
-import toniarts.openkeeper.view.map.construction.FrontEndLevelControl;
-import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 
 /**
  * The main menu state
@@ -97,8 +104,9 @@ public final class MainMenuState extends AbstractAppState {
     private final MainMenuScreenController screen;
     protected Node menuNode;
     protected GeneralLevel selectedLevel;
-    private AudioNode levelBriefing;
-    private AudioNode levelDebriefing;
+    private final FrontEndSounds frontEndSounds = new FrontEndSounds();
+    private int levelBriefing = SoundEngine.NO_HANDLE;
+    private int levelDebriefing = SoundEngine.NO_HANDLE;
     private boolean pendingDebriefing;
     private Camera storedCamera;
 
@@ -117,12 +125,14 @@ public final class MainMenuState extends AbstractAppState {
     private CampaignLevel pendingCutsceneLevel;
 
     private IKwdFile frontEndKwd;
-    protected final MainMenuInteraction listener;
+    final MainMenuInteraction listener;
     private Vector3f startLocation;
-    protected MapSelector mapSelector;
+    MapSelector mapSelector;
     private EntityData mainMenuEntityData;
     private MainMenuEntityViewState mainMenuEntityViewState;
+    private EffectManagerState effectManagerState;
     private GameController gameController;
+    private volatile MapViewController mapViewController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     /**
@@ -169,7 +179,7 @@ public final class MainMenuState extends AbstractAppState {
         AssetUtils.prewarmAssets(frontEndKwd, assetManager, app);
 
         // Load 3D Front end sound
-        SoundsLoader.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
+        SoundCategory.load(frontEndKwd.getGameLevel().getSoundCategory(), false);
 
         // Attach the 3D Front end
         mainMenuEntityData = new DefaultEntityData();
@@ -179,9 +189,11 @@ public final class MainMenuState extends AbstractAppState {
 
         // Create the actual map
         // DKII applies different decoration rules to the front end than to playable level maps.
-        // Front-end effects are handled separately, so do not generate automatic wall torches here.
+        // Front-end effects are handled separately, so do not generate automatic wall torches
+        // here, and the cave ceiling stays off - this scene is a fixed camera looking at a
+        // hand-placed diorama, not a dungeon being explored under fog of war.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
-                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false) {
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true, false) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -192,6 +204,10 @@ public final class MainMenuState extends AbstractAppState {
 
         };
         menuNode.attachChild(mapLoader.load(assetManager, frontEndKwd));
+
+        // No fog of war here, so the whole scene is lit; update() drives the lights.
+        // Published only once the load is done (the load may run on a loader thread).
+        mapViewController = mapLoader;
 
         // Reflect current campaign progress (playable levels / arrow wiring) as soon
         // as the menu scene exists, not only on first visit to selectCampaignLevel.
@@ -204,8 +220,41 @@ public final class MainMenuState extends AbstractAppState {
         mainMenuEntityViewState.setEnabled(false);
         app.getStateManager().attach(mainMenuEntityViewState);
 
+        // Effects (currently just the hero gate's gem holder swirl, spawned
+        // by PlayerEntityViewState/MainMenuEntityViewState's RoomEffectContainer
+        // once HeroGateFrontEndController's RoomEffect component appears)
+        effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        // No PlayerMapViewState in the menu, the effects are lit by the menu map's own light rules
+        effectManagerState.setLightRulesSupplier(() -> {
+            MapViewController controller = mapViewController;
+            return controller != null ? controller.getLightRules() : null;
+        });
+        app.getStateManager().attach(effectManagerState);
+
         // Init the skirmish and multiplayer maps selector
         mapSelector = new MapSelector();
+    }
+
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+
+        // The terrain materials are only lit once the light data is uploaded every
+        // frame (flicker, pulse, ...), as PlayerMapViewState does
+        MapViewController controller = mapViewController;
+        if (controller != null && isEnabled() && app != null) {
+            Settings settings = Main.getUserSettings();
+            float ambient = settings.getFloat(Setting.AMBIENT_LIGHT);
+            controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            controller.getLightRules().setCheapLighting(settings.getBoolean(Setting.CHEAP_LIGHTING));
+            controller.getLightRules().update(tpf, app.getCamera());
+
+            // Every animation change loads a new creature model, light them like creatures in the game
+            Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
+            if (mpdCreature != null) {
+                AssetUtils.applyVertexLight(assetManager, mpdCreature, controller.getLightRules(), false, false);
+            }
+        }
     }
 
     @Override
@@ -255,12 +304,19 @@ public final class MainMenuState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        mapViewController = null;
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
         }
 
+        if (effectManagerState != null) {
+            stateManager.detach(effectManagerState);
+            effectManagerState = null;
+        }
+
         // Clear sound
+        frontEndSounds.stop();
         clearLevelBriefingNarration();
 
         // Detach our start menu
@@ -333,6 +389,7 @@ public final class MainMenuState extends AbstractAppState {
         stateManager.getState(SoundState.class).setEnabled(true);
 
         if (enabled) {
+            frontEndSounds.start();
 
             // If this is the first time, we might have to load the menu
             if (menuNode == null) {
@@ -359,6 +416,7 @@ public final class MainMenuState extends AbstractAppState {
                 initializeMainMenu();
             }
         } else {
+            frontEndSounds.stop();
 
             // Save the camera position so that we can restore it (e.g. for the debriefing screen) when re-enabling the menu
             storedCamera = app.getCamera().clone();
@@ -370,7 +428,7 @@ public final class MainMenuState extends AbstractAppState {
                 rootNode.detachChild(menuNode);
             }
 
-            screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
+            screen.goToScreen(IMainMenuScreenController.SCREEN_EMPTY_ID);
         }
     }
 
@@ -539,7 +597,7 @@ public final class MainMenuState extends AbstractAppState {
     protected void doTransitionAndGoToScreen(final String transition, final String screen, final String transitionStatic) {
 
         // Remove the current screen
-        this.screen.goToScreen(MainMenuScreenController.SCREEN_EMPTY_ID);
+        this.screen.goToScreen(IMainMenuScreenController.SCREEN_EMPTY_ID);
 
         // Do cinematic transition
         Cinematic c = new Cinematic(assetManager, app.getCamera(), app.getListener(), startLocation, transition, menuNode, stateManager);
@@ -628,7 +686,7 @@ public final class MainMenuState extends AbstractAppState {
         }
     }
 
-    protected void setLevelBriefing(AudioNode levelBriefing) {
+    protected void setLevelBriefing(int levelBriefing) {
         this.levelBriefing = levelBriefing;
     }
 
@@ -638,13 +696,13 @@ public final class MainMenuState extends AbstractAppState {
     protected void clearLevelBriefingNarration() {
 
         // Quit playing the sound
-        if (levelBriefing != null && levelBriefing.getStatus() == AudioSource.Status.Playing) {
-            levelBriefing.stop();
+        if (levelBriefing != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(levelBriefing);
         }
-        levelBriefing = null;
+        levelBriefing = SoundEngine.NO_HANDLE;
     }
 
-    protected void setLevelDebriefing(AudioNode levelDebriefing) {
+    protected void setLevelDebriefing(int levelDebriefing) {
         this.levelDebriefing = levelDebriefing;
     }
 
@@ -654,10 +712,10 @@ public final class MainMenuState extends AbstractAppState {
     protected void clearLevelDebriefingNarration() {
 
         // Quit playing the sound
-        if (levelDebriefing != null && levelDebriefing.getStatus() == AudioSource.Status.Playing) {
-            levelDebriefing.stop();
+        if (levelDebriefing != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(levelDebriefing);
         }
-        levelDebriefing = null;
+        levelDebriefing = SoundEngine.NO_HANDLE;
     }
 
     /**
@@ -686,7 +744,7 @@ public final class MainMenuState extends AbstractAppState {
         // The debriefing screen is shown (instead of the start screen) once the
         // menu has been initialized, see initializeMainMenu()
         if (!pendingDebriefing) {
-            screen.goToScreen(MainMenuScreenController.SCREEN_START_ID);
+            screen.goToScreen(IMainMenuScreenController.SCREEN_START_ID);
         }
     }
 
@@ -764,12 +822,21 @@ public final class MainMenuState extends AbstractAppState {
     /**
      * Main menu version of the player entity view state
      */
-    private static final class MainMenuEntityViewState extends PlayerEntityViewState {
+    private final class MainMenuEntityViewState extends PlayerEntityViewState {
 
         public MainMenuEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
 
             setId("MainMenu: " + playerId);
+        }
+
+        /**
+         * The menu has no PlayerMapViewState, the light rules are the menu map's own
+         */
+        @Override
+        protected LightRules getLightRules() {
+            MapViewController controller = mapViewController;
+            return controller != null ? controller.getLightRules() : null;
         }
 
     }
@@ -848,6 +915,11 @@ public final class MainMenuState extends AbstractAppState {
 
         @Override
         public void endGame(boolean win, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

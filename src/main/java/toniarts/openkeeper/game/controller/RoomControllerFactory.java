@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
+import toniarts.openkeeper.game.controller.room.HeroGateController;
 import toniarts.openkeeper.game.controller.room.HeroGateFrontEndController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.LairController;
@@ -63,9 +64,12 @@ public final class RoomControllerFactory {
 
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3 -> {
-                return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController);
+                return new ThreeByThreeController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
             }
-            case HERO_GATE, HERO_GATE_FRONT_END -> {
+            case HERO_GATE -> {
+                return new HeroGateController(entity, entityData, kwdFile, roomInstance, objectsController);
+            }
+            case HERO_GATE_FRONT_END -> {
                 return new HeroGateFrontEndController(entity, entityData, kwdFile, roomInstance, objectsController);
             }
             case HERO_GATE_2_BY_2 -> {

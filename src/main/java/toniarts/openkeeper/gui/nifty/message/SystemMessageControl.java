@@ -24,6 +24,9 @@ import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
 /**
@@ -77,6 +80,7 @@ public final class SystemMessageControl extends AbstractController {
      * Show a message in an info box
      */
     public void showMessage() {
+        NiftyUtils.playSound(nifty, GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK.getId());
         this.setRead(true);
         MessageBoxControl messageBox = hud.findControl("messageBox", MessageBoxControl.class);
         if (focusEntity != null) {
@@ -90,6 +94,7 @@ public final class SystemMessageControl extends AbstractController {
      * Remove a message from the message queue
      */
     public void dismissMessage() {
+        NiftyUtils.playSound(nifty, GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK.getId());
         this.element.markForRemoval();
     }
 

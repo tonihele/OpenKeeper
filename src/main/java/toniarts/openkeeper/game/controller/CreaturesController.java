@@ -23,19 +23,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.WeakHashMap;
-import java.util.stream.Collectors;
-import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -57,11 +44,11 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
-import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
@@ -74,14 +61,29 @@ import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.WeakHashMap;
+import java.util.stream.Collectors;
 
 /**
  * This is a controller that controls all the game objects in the world TODO: Hmm, should this be more a
@@ -347,7 +349,7 @@ public final class CreaturesController implements ICreaturesController {
 
         // Need for sleep
         if (creature.getAttributes().getTimeSleep() > 0) {
-            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0));
+            entityData.setComponent(entity, new CreatureSleep(null, gameTimer.getGameTime(), 0, 0));
         }
 
         // Hunger
@@ -406,7 +408,11 @@ public final class CreaturesController implements ICreaturesController {
 
         // Add some interaction properties
         if (creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED) || creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP)) {
-            entityData.setComponent(entity, new Interaction(true, creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED), creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP), false, false));
+            entityData.setComponent(entity, new Interaction(true,
+                    creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_SLAPPED),
+                    creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_PICKED_UP),
+                    creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER),
+                    false));
         }
     }
 
@@ -510,45 +516,81 @@ public final class CreaturesController implements ICreaturesController {
         } else {
             entityData.removeComponent(entityId, Regeneration.class);
         }
+
+        gameController.getGameEventService().emit(GameEventType.CREATURE_LEVEL_UP, entityId);
     }
 
     private void setAttributesByLevel(CreatureComponent creatureComponent, CreatureExperience creatureExperience, Health healthComponent, Gold goldComponent, Senses sensesComponent, Threat threatComponent, CreatureMeleeAttack creatureMeleeAttack, Regeneration regeneration) {
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureExperience.level);
         Creature.Attributes attributes = creature.getAttributes();
-        creatureComponent.height = attributes.getHeight() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEIGHT_TILES).getValue() : 100) / 100);
+        creatureComponent.height = scaleByLevel(attributes.getHeight(), getStatPercent(stats, Variable.CreatureStats.StatType.HEIGHT_TILES));
         if (healthComponent != null) {
             int prevMaxHealth = healthComponent.maxHealth;
-            healthComponent.maxHealth = attributes.getHp() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HEALTH).getValue() : 100) / 100);
+            healthComponent.maxHealth = scaleByLevel(attributes.getHp(), getStatPercent(stats, Variable.CreatureStats.StatType.HEALTH));
             healthComponent.health = healthComponent.maxHealth * healthComponent.health / prevMaxHealth;
-            regeneration.ownLandHealthIncrease = attributes.getOwnLandHealthIncrease() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND).getValue() : 100) / 100);
+            regeneration.ownLandHealthIncrease = scaleByLevel(attributes.getOwnLandHealthIncrease(), getStatPercent(stats, Variable.CreatureStats.StatType.OWN_LAND_HEALTH_INCREASE_PER_SECOND));
         }
-        creatureComponent.fear = attributes.getFear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.FEAR).getValue() : 100) / 100);
-        threatComponent.threat = attributes.getThreat() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.THREAT).getValue() : 100) / 100);
-        creatureComponent.pay = attributes.getPay() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.PAY).getValue() : 100) / 100);
-        goldComponent.maxGold = attributes.getMaxGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MAX_GOLD_HELD).getValue() : 100) / 100);
-        creatureComponent.hungerFill = attributes.getHungerFill() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS).getValue() : 100) / 100);
-        creatureComponent.manaGenPrayer = attributes.getManaGenPrayer() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND).getValue() : 100) / 100);
-        creatureExperience.experienceToNextLevel = attributes.getExpForNextLevel() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL).getValue() : 100) / 100);
-        creatureExperience.experiencePerSecond = attributes.getExpPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureExperience.experiencePerSecondTraining = attributes.getExpPerSecondTraining() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.researchPerSecond = attributes.getResearchPerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.manufacturePerSecond = attributes.getManufacturePerSecond() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.decomposeValue = attributes.getDecomposeValue() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DECOMPOSE_VALUE).getValue() : 100) / 100);
-        creatureComponent.speed = attributes.getSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.runSpeed = attributes.getRunSpeed() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND).getValue() : 100) / 100);
-        creatureComponent.tortureTimeToConvert = attributes.getTortureTimeToConvert() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS).getValue() : 100) / 100);
-        creatureComponent.posessionManaCost = attributes.getPossessionManaCost() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND).getValue() : 100) / 100);
+        creatureComponent.fear = scaleByLevel(attributes.getFear(), getStatPercent(stats, Variable.CreatureStats.StatType.FEAR));
+        threatComponent.threat = scaleByLevel(attributes.getThreat(), getStatPercent(stats, Variable.CreatureStats.StatType.THREAT));
+        creatureComponent.pay = scaleByLevel(attributes.getPay(), getStatPercent(stats, Variable.CreatureStats.StatType.PAY));
+        goldComponent.maxGold = scaleByLevel(attributes.getMaxGoldHeld(), getStatPercent(stats, Variable.CreatureStats.StatType.MAX_GOLD_HELD));
+        creatureComponent.hungerFill = scaleByLevel(attributes.getHungerFill(), getStatPercent(stats, Variable.CreatureStats.StatType.HUNGER_FILL_CHICKENS));
+        creatureComponent.manaGenPrayer = scaleByLevel(attributes.getManaGenPrayer(), getStatPercent(stats, Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND));
+        creatureExperience.experienceToNextLevel = scaleByLevel(attributes.getExpForNextLevel(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL));
+        creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
+        creatureExperience.experiencePerSecondTraining = scaleByLevel(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
+        creatureComponent.researchPerSecond = scaleByLevel(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
+        creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
+        creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
+        creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
+        creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));
+        creatureComponent.tortureTimeToConvert = scaleByLevel(attributes.getTortureTimeToConvert(), getStatPercent(stats, Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS));
+        creatureComponent.posessionManaCost = scaleByLevel(attributes.getPossessionManaCost(), getStatPercent(stats, Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND));
         if (sensesComponent != null) {
-            sensesComponent.distanceCanHear = attributes.getDistanceCanHear() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES).getValue() : 100) / 100);
+            sensesComponent.distanceCanHear = scaleByLevel(attributes.getDistanceCanHear(), getStatPercent(stats, Variable.CreatureStats.StatType.DISTANCE_CAN_HEAR_TILES));
         }
-        goldComponent.gold = attributes.getInitialGoldHeld() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.INITIAL_GOLD_HELD).getValue() : 100) / 100);
-        creatureMeleeAttack.damage = creature.getMeleeDamage() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_DAMAGE).getValue() : 100) / 100);
-        creatureMeleeAttack.rechargeTime = creature.getMeleeRecharge() * ((stats != null ? stats.get(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS).getValue() : 100) / 100);
+        goldComponent.gold = scaleByLevel(attributes.getInitialGoldHeld(), getStatPercent(stats, Variable.CreatureStats.StatType.INITIAL_GOLD_HELD));
+        creatureMeleeAttack.damage = scaleByLevel(creature.getMeleeDamage(), getStatPercent(stats, Variable.CreatureStats.StatType.MELEE_DAMAGE));
+        creatureMeleeAttack.rechargeTime = scaleByLevel(creature.getMeleeRecharge(), getStatPercent(stats, Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS));
 
         // FIXME: We should know when we run and when we walk and set the speed
         // Steering
         //setMaxLinearSpeed(speed);
+    }
+
+    /**
+     * Get the level percentage of a creature stat
+     *
+     * @param stats the creature stats of the level, may be {@code null}
+     * @param statType the stat
+     * @return the percentage, 100 if there are no stats for the level
+     */
+    private static int getStatPercent(Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats, Variable.CreatureStats.StatType statType) {
+        return stats != null ? stats.get(statType).getValue() : 100;
+    }
+
+    /**
+     * Scale a creature attribute by its level percentage. Multiply first, the
+     * percentages are not multiples of 100 (e.g. 125 for level 2 health)
+     *
+     * @param value the base value from the creature record
+     * @param percent the level percentage
+     * @return the scaled value
+     */
+    static int scaleByLevel(int value, int percent) {
+        return value * percent / 100;
+    }
+
+    /**
+     * Scale a creature attribute by its level percentage
+     *
+     * @param value the base value from the creature record
+     * @param percent the level percentage
+     * @return the scaled value
+     */
+    static float scaleByLevel(float value, int percent) {
+        return value * percent / 100f;
     }
 
     @Override
@@ -618,7 +660,7 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
     }
 
     @Override
@@ -648,6 +690,16 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+
+    public EntityId getPossessedCreature(short playerId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
+        try {
+            return entities.isEmpty() ? null : entities.iterator().next().getId();
+        } finally {
+            entities.release();
+        }
+    }
+
     public void healCreatures(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
         for (Entity entity : entities) {
@@ -670,6 +722,22 @@ public final class CreaturesController implements ICreaturesController {
         }
     }
 
+    @Override
+    public void spawnCreatures(short creatureId, short playerId, int level, int amount) {
+        IRoomController dungeonHeart = gameController.getPlayerController(playerId).getRoomControl().getDungeonHeart();
+        if (!(dungeonHeart instanceof ICreatureEntrance entrance)) {
+            logger.log(Level.WARNING, "Player {0} has no dungeon heart to spawn creatures at!", playerId);
+            return;
+        }
+
+        Point entranceCoordinate = entrance.getEntranceCoordinate();
+        Vector2f position = new Vector2f(entranceCoordinate.x, entranceCoordinate.y);
+        int creatureLevel = Math.clamp(level, 1, Utils.MAX_CREATURE_LEVEL);
+        for (int i = 0; i < amount; i++) {
+            spawnCreature(creatureId, playerId, creatureLevel, position, SpawnType.PLACE);
+        }
+    }
+    
     @Override
     public void angerEnemyCreatures(short playerId) {
         EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);

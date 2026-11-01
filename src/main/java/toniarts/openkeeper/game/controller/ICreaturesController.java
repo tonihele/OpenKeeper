@@ -137,6 +137,25 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
 
     /**
+     * Gets the creature currently possessed by the given player
+     *
+     * @param playerId the possessing player
+     * @return the possessed creature entity, or {@code null} if the player possesses nothing
+     */
+    EntityId getPossessedCreature(short playerId);
+
+    /**
+     * Spawns creatures at the given player's dungeon heart entrance. Does nothing if the player has no
+     * dungeon heart to spawn creatures at.
+     *
+     * @param creatureId the creature to spawn
+     * @param playerId the owner, and whose dungeon heart entrance to spawn at
+     * @param level the creature level
+     * @param amount how many creatures to spawn
+     */
+    void spawnCreatures(short creatureId, short playerId, int level, int amount);
+  
+    /**
      * Heals all of the given player's creatures to full health, waking up anyone left unconscious
      *
      * @param playerId whose creatures to heal

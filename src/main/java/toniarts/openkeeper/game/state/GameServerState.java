@@ -28,25 +28,19 @@ import java.lang.System.Logger.Level;
 import java.util.List;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.controller.CheatController;
+import toniarts.openkeeper.game.controller.ICheatController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
-import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
-import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
-import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.controller.NoopCheatController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
-import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Trap;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  * The game state that actually runs the game. Has no relation to visuals.
@@ -77,6 +71,7 @@ public final class GameServerState extends AbstractAppState {
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
     private GameLoopManager game;
     private IGameWorldController gameWorldController;
+    private ICheatController cheatController;
 
     /**
      * Single use game states
@@ -180,6 +175,7 @@ public final class GameServerState extends AbstractAppState {
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
             gameWorldController.addListener(playerActionListener);
+            cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController());
 
             // Send the the initial game data
             gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
@@ -304,69 +300,27 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
-            if (isMultiplayer()) {
-                return; // No! Bad!
+            cheatController.onCheat(cheat, playerId);
+        }
+
+        @Override
+        public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
+            cheatController.spawnCreature(creatureId, level, amount, playerId);
+        }
+
+        @Override
+        public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
             }
+        }
 
-            // See the cheat
-            switch (cheat) {
-                case LEVEL_MAX: {
-                    gameWorldController.getCreaturesController().levelUpCreatures(playerId, Utils.MAX_CREATURE_LEVEL);
-                    break;
-                }
-                case MANA: {
-                    game.getGameController().getPlayerController(playerId).getManaControl().addMana(100000);
-                    break;
-                }
-                case MONEY: {
-                    gameWorldController.addGold(playerId, 100000);
-                    break;
-                }
-                case REMOVE_FOW: {
-                    mapController.disableFogOfWar(playerId);
-                    break;
-                }
-                case RESET_FOW: {
-                    mapController.resetFogOfWar(playerId);
-                    break;
-                }
-                case UNLOCK_ROOMS: {
-                    PlayerRoomControl playerRoomControl = game.getGameController()
-                            .getPlayerController(playerId).getRoomControl();
-                    for (Room room : kwdFile.getRooms()) {
-                        playerRoomControl.setTypeAvailable(room, true);
-                    }
-                    break;
-                }
-                case UNLOCK_DOORS_TRAPS: {
-                    PlayerDoorControl playerDoorControl = game.getGameController()
-                            .getPlayerController(playerId).getDoorControl();
-                    for (Door door : kwdFile.getDoors()) {
-                        playerDoorControl.setTypeAvailable(door, true);
-                    }
-
-                    PlayerTrapControl playerTrapControl = game.getGameController()
-                            .getPlayerController(playerId).getTrapControl();
-                    for (Trap trap : kwdFile.getTraps()) {
-                        playerTrapControl.setTypeAvailable(trap, true);
-                    }
-                    break;
-                }
-                case UNLOCK_SPELLS: {
-                    PlayerSpellControl playerSpellControl = game.getGameController()
-                            .getPlayerController(playerId).getSpellControl();
-                    for (KeeperSpell keeperSpell : kwdFile.getKeeperSpells()) {
-                        playerSpellControl.setTypeAvailable(keeperSpell, true);
-                        playerSpellControl.setSpellDiscovered(keeperSpell, true);
-                    }
-                    break;
-                }
-                case WIN_LEVEL: {
-                    game.getGameController().endGame(playerId, true);
-                    break;
-                }
-                default:
-                    logger.log(Level.INFO, "Cheat {0} not implemented!", cheat);
+        @Override
+        public void onEndPossession(short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
             }
         }
     }
