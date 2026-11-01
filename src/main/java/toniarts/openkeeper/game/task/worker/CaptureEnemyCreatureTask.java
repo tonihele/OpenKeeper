@@ -50,9 +50,14 @@ public final class CaptureEnemyCreatureTask extends AbstractTileTask {
         return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
     }
 
+    /**
+     * Like in DK II, a worker only captures a knocked out enemy that lies on
+     * the keeper's own land (DKII.EXE 0x46D810)
+     */
     @Override
     public boolean isValid(ICreatureController creature) {
-        return this.creature.isUnconscious() && !isPrisonCapacityFull() && !this.creature.isDragged();
+        return this.creature.isUnconscious() && !isPrisonCapacityFull() && !this.creature.isDragged()
+                && mapController.getMapData().getTile(getTaskLocation()).getOwnerId() == playerId;
     }
 
     @Override
