@@ -83,7 +83,6 @@ public final class Settings {
         AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),
         TORCHES_ENABLED(Boolean.class, true, SettingCategory.GRAPHICS),
-        // Shadows of creatures and objects, 0 off .. 3 best
         SHADOW_LEVEL(Integer.class, 3, SettingCategory.GRAPHICS),
         // Controls
         CAMERA_ZOOM_IN(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_W, SettingCategory.CONTROLS, 124),
@@ -261,6 +260,8 @@ public final class Settings {
     private static final Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
     public static final List<String> OPENGL = Settings.getRenderers();
     public static final List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
+    /** Shadow quality, 0 is off */
+    public static final List<Integer> SHADOW_LEVELS = List.of(0, 1, 2, 3);
     public static final List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     
     private final AppSettings settings;

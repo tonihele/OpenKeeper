@@ -415,6 +415,10 @@
                         <control name="checkbox" id="gammaCorrection" />
                         <text style="menuTextSmall" text=" Gamma correction" />
                     </panel>
+                    <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="Shadow quality: " />
+                        <control width="100px" name="dropDown" id="shadowQuality" />
+                    </panel>
                 </panel>
                 <!--Right side options panel-->
                 <panel childLayout="vertical" align="right" valign="top" padding="10px">

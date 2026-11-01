@@ -246,7 +246,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void update(float tpf) {
-        shadowRenderer.update(tpf);
+        shadowRenderer.updateRange(tpf);
 
         // Update the models
         objectModelContainer.update();

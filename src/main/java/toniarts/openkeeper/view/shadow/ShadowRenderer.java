@@ -38,27 +38,32 @@ import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.lighting.LightSource;
 
-import static toniarts.openkeeper.view.shadow.ShadowConstants.SILHOUETTE_SIZE;
-
 /**
- * Real time shadows of creatures and objects, in the manner of the original:
- * not shadow maps or volumes but projected blobs. The silhouette of the caster
- * is rasterised into a small coverage texture, which is drawn on one flat quad
- * lying on the floor under the caster, darkening whatever is beneath.
- * A caster gets up to three shadows, one per light, from the nearest lights
- * that are allowed to cast. The direction, length, tilt and darkness of a
- * shadow come from the horizontal distance and direction between the light and
- * the caster alone; the light's height, colour, intensity and flicker play no
- * part.
+ * Real time shadows of creatures and objects. They are not shadow maps or
+ * volumes but projected blobs: the silhouette of the caster is rasterised
+ * into a small coverage texture, which is drawn on a flat quad on the floor
+ * under the caster, darkening whatever is beneath.
  * <p>
- * Call {@link #update(float)} and {@link #render} once per frame, before the
- * scene graph's geometric update.
+ * A caster gets up to three shadows, one per light, from the nearest lights
+ * that cast (torches, the hand, object and effect lights; the glow of the
+ * terrain does not). The direction, length, tilt and darkness of a shadow
+ * come from the horizontal distance and direction between the light and the
+ * caster alone; the light's height, colour and flicker play no part.
+ * <p>
+ * The quality level decides how the silhouette is made: 1 a footprint seen
+ * from straight above, built once per model and light direction and so not
+ * animated; 2 the same, rebuilt every frame; 3 seen along the light, so the
+ * further away the light, the more from the side.
+ * <p>
+ * Call {@link #render} once per frame, before the scene graph's geometric
+ * update.
  */
 public final class ShadowRenderer {
 
@@ -73,25 +78,50 @@ public final class ShadowRenderer {
 
     }
 
-    private static final float FLOOR_PLANE = WorldUtils.FLOOR_HEIGHT + ShadowConstants.FLOOR_LIFT;
+    /**
+     * A light that shadows a caster, and its 3D distance to it
+     */
+    record Candidate(LightSource light, float distance) {
+
+    }
+
+    /**
+     * @param chosen the nearest lights, at most {@link #MAX_SHADOWS}
+     * @param fadeRange the range the shadows fade over: the global one, or
+     * the distance of the fourth nearest light if there is one, so the
+     * farthest shadow has faded when another light takes its place
+     */
+    record Selection(List<Candidate> chosen, float fadeRange) {
+
+    }
+
+    private static final int MAX_SHADOWS = 3;
+    private static final float MAX_RANGE = 2.5f;
+    private static final int NEIGHBOURHOOD = 3; // Tiles looked at for lights, each way
+    private static final float MAX_ALPHA = 0.7f;
+    private static final float FADE_SLOPE = 1.5f;
+
+    /**
+     * The tilt from straight down of the view per tile of distance between
+     * light and caster: 67.5 degrees at the full range
+     */
+    private static final float TILT_PER_TILE = 0.4712f;
+    private static final int FROZEN_HEADING_STEPS = 16;
+    private static final float FLOOR_PLANE = WorldUtils.FLOOR_HEIGHT + 0.01f;
 
     private final AssetManager assetManager;
     private final Node node = new Node("Shadows");
     private final Mesh quadMesh = createQuadMesh();
-    private final ShadowRange range = new ShadowRange();
-    private final TileLightSets tileLights = new TileLightSets();
-    private final CasterMesh casterMesh = new CasterMesh();
-    private final SilhouetteRasterizer rasterizer = new SilhouetteRasterizer();
+    private final Silhouette silhouette = new Silhouette();
     private final List<ShadowQuad> quads = new ArrayList<>();
-    private final Map<String, SilhouetteRasterizer> frozenSilhouettes = new HashMap<>();
+    private final Map<Long, List<LightSource>> lightsByTile = new HashMap<>();
+    private final Map<String, Silhouette> frozenSilhouettes = new HashMap<>();
     private final Quaternion rotation = new Quaternion();
-    private final Vector3f axisU = new Vector3f();
-    private final Vector3f axisV = new Vector3f();
+    private float range = MAX_RANGE;
     private int usedQuads;
 
     public ShadowRenderer(AssetManager assetManager) {
         this.assetManager = assetManager;
-        node.setShadowMode(RenderQueue.ShadowMode.Off);
     }
 
     public void attachTo(Node parent) {
@@ -103,14 +133,25 @@ public final class ShadowRenderer {
     }
 
     /**
-     * Updates the shadow range from the frame time
+     * The global shadow range, a slow level of detail control driven by the
+     * frame rate: at 20 fps and above it is at its cap, at 10 and below the
+     * shadows are gone. Call once per frame.
      */
-    public void update(float tpf) {
-        range.update(tpf);
+    public void updateRange(float tpf) {
+        if (tpf <= 0f) {
+            return;
+        }
+        float target = (1f / tpf - 10f) * 0.25f;
+        if (target < range - 0.5f) {
+            range -= 0.1f;
+        } else if (target > range + 0.5f) {
+            range += 0.1f;
+        }
+        range = Math.clamp(range, 0f, MAX_RANGE);
     }
 
-    public float getRange() {
-        return range.get();
+    float getRange() {
+        return range;
     }
 
     /**
@@ -124,42 +165,35 @@ public final class ShadowRenderer {
      */
     public void render(int level, List<LightSource> lights, List<Caster> casters, Camera camera) {
         usedQuads = 0;
-        if (level > 0 && range.get() > 0f) {
-            tileLights.beginFrame(lights);
+        if (level > 0 && range > 0f && !lights.isEmpty()) {
+            sortLightsByTile(lights);
             for (Caster caster : casters) {
-                renderCaster(Math.min(level, ShadowConstants.MAX_LEVEL), caster, camera);
+                renderCaster(Math.min(level, 3), caster, camera);
             }
         }
         for (int i = usedQuads; i < quads.size(); i++) {
-            quads.get(i).hide();
+            quads.get(i).geometry.setCullHint(Spatial.CullHint.Always);
         }
     }
 
     private void renderCaster(int level, Caster caster, Camera camera) {
         Spatial spatial = caster.spatial();
-        if (camera != null) {
-            BoundingVolume bound = spatial.getWorldBound();
-            if (bound != null && camera.contains(bound) == Camera.FrustumIntersect.Outside) {
-                return;
-            }
-        }
-        if (!casterMesh.collect(spatial)) {
+        BoundingVolume bound = spatial.getWorldBound();
+        if (camera != null && bound != null && camera.contains(bound) == Camera.FrustumIntersect.Outside
+                || !silhouette.collect(spatial)) {
             return;
         }
-        Vector3f centre = casterMesh.getCentre();
-        float radius = casterMesh.getRadius();
-
+        Vector3f centre = silhouette.getCentre();
+        float radius = silhouette.getRadius();
         Vector3f position = spatial.getWorldTranslation();
-        List<LightSource> tileSet = tileLights.get(TileLightSets.tile(position.x), TileLightSets.tile(position.z));
-        ShadowLightSelector.Selection selection = ShadowLightSelector.select(tileSet, centre, range.get(), caster.ownLight());
+        Selection selection = select((int) Math.floor(position.x), (int) Math.floor(position.z), centre, caster.ownLight());
 
-        float height = centre.y - FLOOR_PLANE;
-        for (ShadowLightSelector.Candidate candidate : selection.chosen()) {
+        for (Candidate candidate : selection.chosen()) {
             Vector3f lightPosition = candidate.light().getPosition();
             float dx = centre.x - lightPosition.x;
             float dz = centre.z - lightPosition.z;
             float distance = (float) Math.sqrt(dx * dx + dz * dz);
-            float alpha = ShadowMath.opacity(selection.fadeRange(), distance);
+            float alpha = opacity(selection.fadeRange(), distance);
             if (alpha <= 0f) {
                 continue;
             }
@@ -167,49 +201,142 @@ public final class ShadowRenderer {
             // Straight under the light there is no direction, any will do
             float ux = distance > 1e-4f ? dx / distance : 1f;
             float uz = distance > 1e-4f ? dz / distance : 0f;
-
-            ShadowQuad quad = acquireQuad();
-            float theta = level >= 3 ? ShadowMath.tilt(distance) : 0f;
             if (level == 1) {
-                fillFrozen(quad, caster, ux, uz);
+                drawFrozen(spatial, ux, uz);
             } else {
-                rasterizer.clear();
-                rasterizer.draw(casterMesh.getVertices(), casterMesh.getVertexCount(), casterMesh.getTriangles(),
-                        casterMesh.getTriangleCount(), centre.x, centre.y, centre.z, radius, ux, uz, theta);
-                quad.upload(rasterizer);
+                silhouette.draw(ux, uz, level >= 3 ? distance * TILT_PER_TILE : 0f);
             }
 
-            ShadowMath.Extent extent = ShadowMath.extent(level, distance, height, radius);
-            axisU.set(ux, 0f, uz);
-            axisV.set(-uz, 0f, ux);
-            rotation.fromAxes(axisU, Vector3f.UNIT_Y, axisV);
-            quad.place(centre.x + ux * extent.near(), centre.z + uz * extent.near(), rotation,
-                    Math.max(extent.far() - extent.near(), 1e-3f), radius, alpha);
+            float[] extent = extent(level, distance, centre.y - FLOOR_PLANE, radius);
+            rotation.fromAxes(new Vector3f(ux, 0f, uz), Vector3f.UNIT_Y, new Vector3f(-uz, 0f, ux));
+            acquireQuad().show(silhouette, centre.x + ux * extent[0], centre.z + uz * extent[0],
+                    rotation, extent[1] - extent[0], radius, alpha);
         }
     }
 
     /**
-     * Level 1: the footprint of a model is built once, in the pose it is first
-     * seen in, and shared by all its instances. It depends only on the
-     * direction of the light relative to the caster's heading, in steps.
+     * Where a shadow quad lies along the light direction, measured from the
+     * caster's foot point.
+     *
+     * @param distance the horizontal distance between the light and the caster
+     * @param height the caster's centre above the shadow plane
+     * @param radius the caster's bounding radius
+     * @return near and far
      */
-    private void fillFrozen(ShadowQuad quad, Caster caster, float ux, float uz) {
-        float heading = caster.spatial().getWorldRotation().toAngles(null)[1];
-        float step = FastMath.TWO_PI / ShadowConstants.LEVEL_1_HEADING_STEPS;
-        int bucket = Math.floorMod(Math.round((FastMath.atan2(uz, ux) - heading) / step), ShadowConstants.LEVEL_1_HEADING_STEPS);
-        String key = caster.spatial().getName() + '#' + bucket;
-
-        SilhouetteRasterizer frozen = frozenSilhouettes.get(key);
-        if (frozen == null) {
-            frozen = new SilhouetteRasterizer();
-            float angle = heading + bucket * step;
-            Vector3f centre = casterMesh.getCentre();
-            frozen.draw(casterMesh.getVertices(), casterMesh.getVertexCount(), casterMesh.getTriangles(),
-                    casterMesh.getTriangleCount(), centre.x, centre.y, centre.z, casterMesh.getRadius(),
-                    FastMath.cos(angle), FastMath.sin(angle), 0f);
-            frozenSilhouettes.put(key, frozen);
+    static float[] extent(int level, float distance, float height, float radius) {
+        if (level < 3) {
+            // A point light at a virtual height of 2, whatever the real one's
+            float half = distance / 2f;
+            return new float[]{half * (height - radius), half * (height + radius)};
         }
-        quad.upload(frozen);
+
+        // The image rows (along the tilted view) map linearly to the floor
+        // along the light direction: row / cos(theta) + height * tan(theta)
+        float theta = distance * TILT_PER_TILE;
+        float shift = height * (float) Math.tan(theta);
+        float reach = radius / (float) Math.cos(theta);
+        return new float[]{shift - reach, shift + reach};
+    }
+
+    /**
+     * Level 1: the footprint is built once, in the pose the model is first
+     * seen in, and shared by all models of the name. It depends on the
+     * direction of the light relative to the model's heading, in steps.
+     */
+    private void drawFrozen(Spatial spatial, float ux, float uz) {
+        float heading = spatial.getWorldRotation().toAngles(null)[1];
+        float step = FastMath.TWO_PI / FROZEN_HEADING_STEPS;
+        int bucket = Math.floorMod(Math.round((FastMath.atan2(uz, ux) - heading) / step), FROZEN_HEADING_STEPS);
+        String key = spatial.getName() + '#' + bucket;
+
+        Silhouette frozen = frozenSilhouettes.get(key);
+        if (frozen == null) {
+            float angle = heading + bucket * step;
+            silhouette.draw(FastMath.cos(angle), FastMath.sin(angle), 0f);
+            frozen = new Silhouette();
+            frozen.copyCoverageFrom(silhouette);
+            frozenSilhouettes.put(key, frozen);
+        } else {
+            silhouette.copyCoverageFrom(frozen);
+        }
+    }
+
+    /**
+     * The opacity of a shadow: full strength up to a bit over half of the
+     * fade range, then falling linearly to nothing at it.
+     *
+     * @param fadeRange the range the caster's shadows fade over
+     * @param distance the horizontal distance between the light and the caster
+     * @return the opacity, 0 or less if there is nothing to draw
+     */
+    static float opacity(float fadeRange, float distance) {
+        if (fadeRange <= 0f) {
+            return 0f;
+        }
+        return Math.min(MAX_ALPHA, FADE_SLOPE * (fadeRange - distance) / fadeRange);
+    }
+
+    void sortLightsByTile(List<LightSource> lights) {
+        lightsByTile.clear();
+        for (LightSource light : lights) {
+            if (light.isEnabled() && castsShadows(light)) {
+                Vector3f position = light.getPosition();
+                lightsByTile.computeIfAbsent(tileKey((int) Math.floor(position.x), (int) Math.floor(position.z)),
+                        k -> new ArrayList<>()).add(light);
+            }
+        }
+    }
+
+    /**
+     * Whether a light casts shadows: torches and the lights that move or come
+     * and go (objects, the hand, effects). The glow of the terrain lights the
+     * world but never casts.
+     */
+    static boolean castsShadows(LightSource light) {
+        return switch (light.getKind()) {
+            case TORCH, THING, CURSOR ->
+                true;
+            case TERRAIN, SLAB, PORTAL ->
+                false;
+        };
+    }
+
+    /**
+     * Picks the lights that shadow a caster. A light reaches the tiles whose
+     * centre is within its radius plus one tile, and the caster if it is
+     * within the global range.
+     *
+     * @param tileX the tile the caster stands on
+     * @param centre the centre of the caster
+     * @param ownLight the caster's own light, which never shadows it
+     */
+    Selection select(int tileX, int tileZ, Vector3f centre, LightSource ownLight) {
+        float tileCentreX = tileX + 0.5f;
+        float tileCentreZ = tileZ + 0.5f;
+        List<Candidate> eligible = new ArrayList<>();
+        for (int x = tileX - NEIGHBOURHOOD; x <= tileX + NEIGHBOURHOOD; x++) {
+            for (int z = tileZ - NEIGHBOURHOOD; z <= tileZ + NEIGHBOURHOOD; z++) {
+                for (LightSource light : lightsByTile.getOrDefault(tileKey(x, z), List.of())) {
+                    Vector3f position = light.getPosition();
+                    float reach = light.getRadius() + 1f;
+                    float dx = position.x - tileCentreX;
+                    float dz = position.z - tileCentreZ;
+                    float distance = position.distance(centre);
+                    if (light != ownLight && dx * dx + dz * dz < reach * reach && distance < range) {
+                        eligible.add(new Candidate(light, distance));
+                    }
+                }
+            }
+        }
+        eligible.sort(Comparator.comparingDouble(Candidate::distance));
+        if (eligible.size() <= MAX_SHADOWS) {
+            return new Selection(eligible, range);
+        }
+        return new Selection(eligible.subList(0, MAX_SHADOWS), eligible.get(MAX_SHADOWS).distance());
+    }
+
+    private static long tileKey(int x, int z) {
+        return ((long) x << 32) | (z & 0xFFFFFFFFL);
     }
 
     private ShadowQuad acquireQuad() {
@@ -245,20 +372,18 @@ public final class ShadowRenderer {
                 0, 1, 0));
         mesh.setBuffer(VertexBuffer.Type.Index, 3, BufferUtils.createIntBuffer(0, 2, 1, 0, 3, 2));
         mesh.updateBound();
-        mesh.setStatic();
         return mesh;
     }
 
     /**
-     * One shadow: a flat quad with its own coverage texture, as every shadow
-     * differs from frame to frame
+     * One shadow: a flat quad with its own coverage texture
      */
     private final class ShadowQuad {
 
         private final Geometry geometry = new Geometry("Shadow", quadMesh);
         private final Material material;
-        private final ByteBuffer pixels = BufferUtils.createByteBuffer(SILHOUETTE_SIZE * SILHOUETTE_SIZE * 4);
-        private final Image image = new Image(Image.Format.RGBA8, SILHOUETTE_SIZE, SILHOUETTE_SIZE, pixels, ColorSpace.Linear);
+        private final ByteBuffer pixels = BufferUtils.createByteBuffer(Silhouette.SIZE * Silhouette.SIZE * 4);
+        private final Image image = new Image(Image.Format.RGBA8, Silhouette.SIZE, Silhouette.SIZE, pixels, ColorSpace.Linear);
         private final ColorRGBA colour = new ColorRGBA(0f, 0f, 0f, 0f);
 
         ShadowQuad() {
@@ -271,7 +396,6 @@ public final class ShadowRenderer {
             // behind is multiplied by 1 - coverage * opacity
             material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
             material.setTexture("ColorMap", texture);
-            material.setColor("Color", colour);
             RenderState state = material.getAdditionalRenderState();
             state.setBlendMode(RenderState.BlendMode.Alpha);
             state.setDepthWrite(false);
@@ -280,26 +404,17 @@ public final class ShadowRenderer {
 
             geometry.setMaterial(material);
             geometry.setQueueBucket(RenderQueue.Bucket.Transparent);
-            geometry.setShadowMode(RenderQueue.ShadowMode.Off);
-            geometry.setCullHint(Spatial.CullHint.Always);
         }
 
-        void upload(SilhouetteRasterizer silhouette) {
+        void show(Silhouette silhouette, float x, float z, Quaternion rotation, float length, float halfWidth, float alpha) {
             silhouette.writeTo(pixels);
             image.setUpdateNeeded();
-        }
-
-        void place(float x, float z, Quaternion rotation, float length, float halfWidth, float alpha) {
             colour.a = alpha;
             material.setColor("Color", colour);
             geometry.setLocalTranslation(x, FLOOR_PLANE, z);
             geometry.setLocalRotation(rotation);
             geometry.setLocalScale(length, 1f, halfWidth);
             geometry.setCullHint(Spatial.CullHint.Dynamic);
-        }
-
-        void hide() {
-            geometry.setCullHint(Spatial.CullHint.Always);
         }
     }
 }
