@@ -76,6 +76,21 @@ vec3 dkPointLightContribution(vec3 worldPos, vec3 worldNormal, vec3 lightPos,
     return lightColor * min(k, 1.0);
 }
 
+// Torch edge tint: as a torch's contribution fades out towards the edge of its
+// reach, green and blue die away faster than red, so the outer ring of the pool
+// bleeds red (a deliberate deviation, not in the original model). With
+// f = how far into its own colour the torch lights the vertex (0..1), green is
+// scaled by f^DK_TORCH_EDGE_GREEN and blue by f^DK_TORCH_EDGE_BLUE; red and the
+// saturated core (f = 1) are untouched. 0 = off, larger = redder edge.
+#define DK_TORCH_EDGE_GREEN 0.8
+#define DK_TORCH_EDGE_BLUE 1.4
+
+vec3 dkTorchEdgeTint(vec3 contribution, vec3 lightColor) {
+    float peak = max(lightColor.r, max(lightColor.g, lightColor.b));
+    float f = peak > 0.0 ? clamp(max(contribution.r, max(contribution.g, contribution.b)) / peak, 0.0, 1.0) : 0.0;
+    return contribution * vec3(1.0, pow(f, DK_TORCH_EDGE_GREEN), pow(f, DK_TORCH_EDGE_BLUE));
+}
+
 // Soft-knee compression of the FINAL summed colour (ambient + every
 // light's contribution), applied once per channel right before the
 // diffuse multiply -- NOT per-light. Each light's own saturation
