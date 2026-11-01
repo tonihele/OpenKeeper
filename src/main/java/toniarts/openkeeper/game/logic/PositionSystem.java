@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -61,7 +62,8 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
     private final Map<EntityId, IMapTileInformation> mapTilesByEntities = new HashMap<>();
     private final Map<Class, IEntityWrapper<?>> entityWrappers = new HashMap<>();
 
-    private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new HashMap<>();
+    // Read from the render thread too (room building and selling change creature states there)
+    private final Map<EntityId, Set<EntityId>> sensedEntitiesByEntity = new ConcurrentHashMap<>();
 
     public PositionSystem(IMapController mapController, EntityData entityData, ICreaturesController creaturesController, IDoorsController doorsController, IObjectsController objectsController) {
         this.entityData = entityData;
@@ -321,22 +323,26 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             return Collections.emptySet();
         }
 
-        return sensedEntitiesByEntity.computeIfAbsent(entityId, (id) -> {
-            Set<EntityId> sensedEntities = new HashSet<>();
+        Set<EntityId> cached = sensedEntitiesByEntity.get(entityId);
+        if (cached != null) {
+            return cached;
+        }
 
-            // Get creatures we sense
-            IMapTileInformation tile = getEntityLocation(id);
-            // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
-            // https://github.com/tonihele/OpenKeeper/issues/261
-            if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
-            }
+        Set<EntityId> sensedEntities = new HashSet<>();
 
-            // Remove us, the caller
-            sensedEntities.remove(id);
+        // Get creatures we sense
+        IMapTileInformation tile = getEntityLocation(entityId);
+        // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
+        // https://github.com/tonihele/OpenKeeper/issues/261
+        if (tile != null) {
+            addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
+        }
 
-            return sensedEntities;
-        });
+        // Remove us, the caller
+        sensedEntities.remove(entityId);
+
+        sensedEntitiesByEntity.put(entityId, sensedEntities);
+        return sensedEntities;
     }
 
     private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
