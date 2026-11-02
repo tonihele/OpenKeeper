@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 /**
  * A time-varying multiplier/override on a {@link LightSource}'s current
- * colour, advanced once per simulation tick.
+ * colour. Timed pulses use presentation time; other modes use simulation ticks.
  */
 public final class Modulator {
 
@@ -43,7 +43,7 @@ public final class Modulator {
     private int phase = PULSE_MIN_PHASE;
     private boolean rising = true;
     private int pulsePeriodTicks;
-    private int pulseCounter;
+    private float pulseElapsedSeconds;
     private int pulseDipTicks;
     private int pulseMinimumScale;
 
@@ -62,7 +62,7 @@ public final class Modulator {
     public void pulse(int periodTicks, int dipTicks, float minimumBrightness) {
         type = Type.PULSE;
         pulsePeriodTicks = Math.max(2, periodTicks);
-        pulseCounter = 0;
+        pulseElapsedSeconds = 0;
         pulseDipTicks = Math.clamp(dipTicks, 2, pulsePeriodTicks);
         pulseMinimumScale = Math.round(Math.clamp(minimumBrightness, 0f, 1f) * PULSE_PHASE_RANGE);
     }
@@ -106,16 +106,24 @@ public final class Modulator {
         }
     }
 
+    /** Advance a timed pulse on the presentation clock, independently of simulation ticks. */
+    void updatePresentation(float tpf, int[] base, int[] outColour) {
+        if (type != Type.PULSE || pulsePeriodTicks <= 0) {
+            return;
+        }
+        float period = (float) pulsePeriodTicks / LightConstants.SIMULATION_TICKS_PER_SECOND;
+        float dip = (float) pulseDipTicks / LightConstants.SIMULATION_TICKS_PER_SECOND;
+        pulseElapsedSeconds = (pulseElapsedSeconds + tpf) % period;
+        float progress = Math.max(0, pulseElapsedSeconds - (period - dip)) / dip;
+        float amount = (1f - (float) Math.cos(2 * Math.PI * progress)) * .5f;
+        float scale = 1f - (1f - (float) pulseMinimumScale / PULSE_PHASE_RANGE) * amount;
+        for (int i = 0; i < 3; i++) {
+            outColour[i] = Math.round(base[i] * scale);
+        }
+    }
+
     private void applyPulse(int[] base, int[] outColour) {
         if (pulsePeriodTicks > 0) {
-            pulseCounter = (pulseCounter + 1) % pulsePeriodTicks;
-            int dipPhase = Math.max(0, pulseCounter - (pulsePeriodTicks - pulseDipTicks));
-            int distance = Math.abs(pulseDipTicks - 2 * dipPhase);
-            int scale = PULSE_PHASE_RANGE - (PULSE_PHASE_RANGE - pulseMinimumScale)
-                    * (pulseDipTicks - distance) / pulseDipTicks;
-            for (int i = 0; i < 3; i++) {
-                outColour[i] = base[i] * scale / PULSE_PHASE_RANGE;
-            }
             return;
         }
         // The original fades the colour towards black and swaps green and blue;

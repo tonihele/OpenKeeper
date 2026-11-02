@@ -30,29 +30,32 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LightRulesTest {
 
     @Test
-    void portalGlowHoldsBrightThenDipsBrieflyEveryTwoAndAHalfSeconds() {
+    void portalGlowSmoothlyDipsAndRecoversOnThePresentationClock() {
         LightRules rules = new LightRules();
         LightSource portal = rules.addPortalLight("portal", Vector3f.ZERO);
-        int brightRed = portal.getRed();
-        int brightGreen = portal.getGreen();
-        int brightBlue = portal.getBlue();
+        int bright = portal.getRed();
         for (int cycle = 0; cycle < 4; cycle++) {
-            for (int tick = 0; tick < 8; tick++) {
-                rules.update(.25f, null);
-                assertEquals(brightRed, portal.getRed());
-                assertEquals(brightGreen, portal.getGreen());
-                assertEquals(brightBlue, portal.getBlue());
-            }
+            rules.update(1.5f, null);
+            assertEquals(bright, portal.getRed());
             rules.update(.25f, null);
-            assertTrue(portal.getRed() < brightRed);
-            assertTrue(portal.getRed() >= brightRed * .79f);
-            assertTrue(portal.getGreen() > 0);
-            assertTrue(portal.getBlue() > 0);
+            int midway = portal.getRed();
+            assertTrue(midway < bright && midway > bright * .5f);
             rules.update(.25f, null);
-            assertEquals(brightRed, portal.getRed());
-            assertEquals(brightGreen, portal.getGreen());
-            assertEquals(brightBlue, portal.getBlue());
+            assertEquals(Math.round(bright * .5f), portal.getRed(), 1);
+            rules.update(.25f, null);
+            assertEquals(midway, portal.getRed());
+            rules.update(.25f, null);
+            assertEquals(bright, portal.getRed());
         }
+        rules.update(1.5f, null);
+        int previous = portal.getRed();
+        int distinctSteps = 0;
+        for (int frame = 0; frame < 30; frame++) {
+            rules.update(1f / 60, null);
+            if (portal.getRed() != previous) distinctSteps++;
+            previous = portal.getRed();
+        }
+        assertTrue(distinctSteps > 10, "The fade must progress between simulation ticks");
     }
 
     @Test

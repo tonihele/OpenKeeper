@@ -286,6 +286,10 @@ public final class LightSource {
                 Math.round(dipSeconds * LightConstants.SIMULATION_TICKS_PER_SECOND), minimumBrightness);
     }
 
+    void updatePresentation(float tpf) {
+        modulator.updatePresentation(tpf, baseColour, colour);
+    }
+
     /**
      * Advances lifetime and the colour modulator by one simulation tick.
      *
