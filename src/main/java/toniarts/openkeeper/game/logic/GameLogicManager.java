@@ -42,7 +42,7 @@ public final class GameLogicManager implements IGameLogicUpdatable {
     }
 
     @Override
-    public void processTick(float tpf) {
+    public synchronized void processTick(float tpf) {
         // Update updatables
         for (IGameLogicUpdatable updatable : updatables) {
             try {
@@ -51,6 +51,17 @@ public final class GameLogicManager implements IGameLogicUpdatable {
                 logger.log(Level.ERROR, "Error in game logic tick on " + updatable.getClass() + "!", e);
             }
         }
+    }
+
+    /**
+     * Runs an action that changes the game state from another thread, such as
+     * a player action from the render thread, so that it never runs in the
+     * middle of a tick
+     *
+     * @param action the action to run
+     */
+    public synchronized void runBetweenTicks(Runnable action) {
+        action.run();
     }
 
     @Override

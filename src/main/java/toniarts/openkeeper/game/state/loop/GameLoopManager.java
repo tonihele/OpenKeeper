@@ -74,6 +74,8 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final GameLogicManager gameLogicThread;
+
     /**
      * Single use game states
      *
@@ -95,7 +97,7 @@ public final class GameLoopManager {
         final GameEventService gameEventService = gameController.getGameEventService();
 
         // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -169,6 +171,17 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Runs a player action between the game logic ticks. Player actions come
+     * from the render thread (or the network thread) and change the same
+     * state as the game logic does
+     *
+     * @param action the player action
+     */
+    public void runPlayerAction(Runnable action) {
+        gameLogicThread.runBetweenTicks(action);
     }
 
 }
