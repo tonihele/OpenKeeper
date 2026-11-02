@@ -54,6 +54,13 @@ public final class ShotFixtures {
         return creature;
     }
 
+    public static Creature creature(short creatureId, float width, float mass) {
+        Creature creature = creature(creatureId, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
+        creature.getAttributes().setWidth(width);
+        creature.setUnkea8(mass);
+        return creature;
+    }
+
     public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {
         KeeperSpell keeperSpell = new KeeperSpell();
         keeperSpell.setName("Spell");

@@ -28,14 +28,19 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
 import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Handles moving of the entities
@@ -45,6 +50,25 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 public final class MovementSystem implements IGameLogicUpdatable {
     
     private final static boolean INDEPENDENT_FACING = false;
+
+    /**
+     * DK II's pilot maximum force (1.5 tiles, 0x4D5B30). The separation push is
+     * measured against it.
+     */
+    private static final float MAX_FORCE = 1.5f;
+
+    /**
+     * DK II weighs the separation 0.13 and the path following 0.35 (0x4D56E0).
+     * Path following has weight 1 here.
+     */
+    private static final float SEPARATION_WEIGHT = 0x2147 / (float) 0x5999;
+
+    /**
+     * DK II counts a path as finished this close to its final waypoint, 0.38
+     * tiles (0x4D3C40). A creature pushed away from a taken end point stops
+     * within it.
+     */
+    private static final float END_TOLERANCE = 0x6148 / 65536f;
     
     private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
     private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
@@ -61,9 +85,17 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
     private final EntityData entityData;
+    private final IKwdFile kwdFile;
+    private final IMapController mapController;
+    private final IEntityPositionLookup entityPositionLookup;
+    private final Vector2 separation = new Vector2();
+    private final Vector2 away = new Vector2();
 
-    public MovementSystem(EntityData entityData) {
+    public MovementSystem(EntityData entityData, IKwdFile kwdFile, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         this.entityData = entityData;
+        this.kwdFile = kwdFile;
+        this.mapController = mapController;
+        this.entityPositionLookup = entityPositionLookup;
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
 
         processAddedEntities(movableEntities);
@@ -93,8 +125,14 @@ public final class MovementSystem implements IGameLogicUpdatable {
              * faster it moves, the slower it can turn (without going into a skid); it can brake much more quickly than it can
              * accelerate; and it only moves in the direction it is facing (ignoring power slides).
              */
+            EntityId entityId = entityIdsBySteeringBehavior.get(steeringBehavior);
+            ISteerableEntity steerableEntity = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
+            if (!steeringOutput.linear.isZero()) {
+                separate(entityId, steerableEntity, steeringOutput.linear);
+            }
+
             // Apply steering acceleration
-            applySteering(entityIdsBySteeringBehavior.get(steeringBehavior), steerableEntitiesBySteeringBehavior.get(steeringBehavior), steeringOutput, tpf);
+            applySteering(entityId, steerableEntity, steeringOutput, tpf);
         }
     }
 
@@ -213,6 +251,83 @@ public final class MovementSystem implements IGameLogicUpdatable {
             oldPosition.position.z = steerableEntity.getPosition().y;
             entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
         }
+    }
+
+    /**
+     * Pushes a walking creature away from the creatures it overlaps, the way
+     * DK II's separation steering does (0x4D2DF0, 0x4D2B80). Every creature
+     * counts, whoever owns it. Two creatures overlap when they are closer than
+     * the sum of their radii, half their widths. The push grows as
+     * 1/sqrt(d/R) - 1, is shared by mass, and is stronger when moving away from
+     * the other one. Near the end of its path a pushed creature stops where it
+     * is, since the end point is taken. The push stays weaker than the path
+     * following, so it can't move a creature off its path into a wall.
+     *
+     * @param entityId the creature
+     * @param steerable its steering state
+     * @param linear the path following acceleration, the push is added to it
+     */
+    private void separate(EntityId entityId, ISteerableEntity steerable, Vector2 linear) {
+        Creature creature = getCreature(entityId);
+        if (creature == null) {
+            return;
+        }
+
+        Vector2 position = steerable.getPosition();
+        Vector2 velocity = steerable.getLinearVelocity();
+        float radius = creature.getAttributes().getWidth() / 2;
+        float mass = Math.max(1, creature.getUnkea8()); // Mass 1-5, 0x4D2A60
+        Point tile = WorldUtils.vectorToPoint(position);
+        separation.setZero();
+        for (int x = Math.max(0, tile.x - 1); x <= Math.min(mapController.getMapData().getWidth() - 1, tile.x + 1); x++) {
+            for (int y = Math.max(0, tile.y - 1); y <= Math.min(mapController.getMapData().getHeight() - 1, tile.y + 1); y++) {
+                for (EntityId otherId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Creature other = otherId.equals(entityId) ? null : getCreature(otherId);
+                    Position otherPosition = entityData.getComponent(otherId, Position.class);
+                    if (other == null || otherPosition == null) {
+                        continue;
+                    }
+
+                    float reach = radius + other.getAttributes().getWidth() / 2;
+                    away.set(position.x - otherPosition.position.x, position.y - otherPosition.position.z);
+                    float distance = away.len();
+                    if (distance > reach) {
+                        continue;
+                    }
+                    if (distance == 0) {
+
+                        // Exactly on top of each other, split them the same way every time
+                        away.set(entityId.getId() < otherId.getId() ? -1 : 1, 0);
+                    }
+                    away.nor();
+                    float ratio = distance / reach;
+                    float push = ratio < 0.01f ? MAX_FORCE : (float) (1 / Math.sqrt(ratio)) - 1;
+                    float otherMass = Math.max(1, other.getUnkea8());
+                    float alignment = (velocity.isZero() ? 0 : away.dot(velocity) / velocity.len()) / 2 + 0.7f;
+                    separation.mulAdd(away, push * otherMass / (mass + otherMass) * alignment);
+                }
+            }
+        }
+        if (separation.isZero()) {
+            return;
+        }
+
+        Navigation navigation = entityData.getComponent(entityId, Navigation.class);
+        if (navigation != null && !navigation.navigationPath.isEmpty()
+                && position.dst(navigation.navigationPath.get(navigation.navigationPath.size() - 1)) <= END_TOLERANCE) {
+            linear.setZero();
+            velocity.setZero();
+            return;
+        }
+
+        separation.limit(MAX_FORCE);
+        linear.mulAdd(separation, steerable.getMaxLinearAcceleration() * SEPARATION_WEIGHT / MAX_FORCE)
+                .limit(steerable.getMaxLinearAcceleration());
+    }
+
+    private Creature getCreature(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent == null ? null : kwdFile.getCreature(creatureComponent.creatureId);
     }
 
     /**
