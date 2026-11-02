@@ -280,6 +280,12 @@ public final class LightSource {
         modulator.pulse();
     }
 
+    /** Hold full brightness, briefly dimming and recovering once per period. */
+    public void startPulse(float periodSeconds, float dipSeconds, float minimumBrightness) {
+        modulator.pulse(Math.round(periodSeconds * LightConstants.SIMULATION_TICKS_PER_SECOND),
+                Math.round(dipSeconds * LightConstants.SIMULATION_TICKS_PER_SECOND), minimumBrightness);
+    }
+
     /**
      * Advances lifetime and the colour modulator by one simulation tick.
      *

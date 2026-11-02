@@ -30,6 +30,48 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class LightRulesTest {
 
     @Test
+    void portalGlowHoldsBrightThenDipsBrieflyEveryTwoAndAHalfSeconds() {
+        LightRules rules = new LightRules();
+        LightSource portal = rules.addPortalLight("portal", Vector3f.ZERO);
+        int brightRed = portal.getRed();
+        int brightGreen = portal.getGreen();
+        int brightBlue = portal.getBlue();
+        for (int cycle = 0; cycle < 4; cycle++) {
+            for (int tick = 0; tick < 8; tick++) {
+                rules.update(.25f, null);
+                assertEquals(brightRed, portal.getRed());
+                assertEquals(brightGreen, portal.getGreen());
+                assertEquals(brightBlue, portal.getBlue());
+            }
+            rules.update(.25f, null);
+            assertTrue(portal.getRed() < brightRed);
+            assertTrue(portal.getRed() >= brightRed * .79f);
+            assertTrue(portal.getGreen() > 0);
+            assertTrue(portal.getBlue() > 0);
+            rules.update(.25f, null);
+            assertEquals(brightRed, portal.getRed());
+            assertEquals(brightGreen, portal.getGreen());
+            assertEquals(brightBlue, portal.getBlue());
+        }
+    }
+
+    @Test
+    void rebuildingAndRemovingPortalStopsThePreviousLight() {
+        LightRules rules = new LightRules();
+        Object room = new Object();
+        LightSource previous = rules.addPortalLight(room, Vector3f.ZERO);
+        rules.update(2.25f, null);
+        int previousRed = previous.getRed();
+        LightSource replacement = rules.addPortalLight(room, Vector3f.UNIT_X);
+        rules.update(2.25f, null);
+        assertEquals(previousRed, previous.getRed());
+        int replacementRed = replacement.getRed();
+        rules.removeRoomLight(room);
+        rules.update(.25f, null);
+        assertEquals(replacementRed, replacement.getRed());
+    }
+
+    @Test
     void cheapLightingStopsAndRestoresFlickerOnAllCapableSources() {
         LightRules rules = new LightRules();
         LightSource torch = rules.addTorchLight(new Point(1, 1), Vector3f.ZERO, 300, 200, 100, 1.41f, 1.5f);

@@ -42,6 +42,10 @@ public final class Modulator {
     private int counter;
     private int phase = PULSE_MIN_PHASE;
     private boolean rising = true;
+    private int pulsePeriodTicks;
+    private int pulseCounter;
+    private int pulseDipTicks;
+    private int pulseMinimumScale;
 
     public Type getType() {
         return type;
@@ -49,8 +53,18 @@ public final class Modulator {
 
     public void pulse() {
         type = Type.PULSE;
+        pulsePeriodTicks = 0;
         phase = PULSE_MIN_PHASE;
         rising = true;
+    }
+
+    /** Hold the base colour, then briefly dip and recover at the end of each period. */
+    public void pulse(int periodTicks, int dipTicks, float minimumBrightness) {
+        type = Type.PULSE;
+        pulsePeriodTicks = Math.max(2, periodTicks);
+        pulseCounter = 0;
+        pulseDipTicks = Math.clamp(dipTicks, 2, pulsePeriodTicks);
+        pulseMinimumScale = Math.round(Math.clamp(minimumBrightness, 0f, 1f) * PULSE_PHASE_RANGE);
     }
 
     public void fadeIn(int ticks) {
@@ -93,6 +107,17 @@ public final class Modulator {
     }
 
     private void applyPulse(int[] base, int[] outColour) {
+        if (pulsePeriodTicks > 0) {
+            pulseCounter = (pulseCounter + 1) % pulsePeriodTicks;
+            int dipPhase = Math.max(0, pulseCounter - (pulsePeriodTicks - pulseDipTicks));
+            int distance = Math.abs(pulseDipTicks - 2 * dipPhase);
+            int scale = PULSE_PHASE_RANGE - (PULSE_PHASE_RANGE - pulseMinimumScale)
+                    * (pulseDipTicks - distance) / pulseDipTicks;
+            for (int i = 0; i < 3; i++) {
+                outColour[i] = base[i] * scale / PULSE_PHASE_RANGE;
+            }
+            return;
+        }
         // The original fades the colour towards black and swaps green and blue;
         // that reads as the colour disappearing, so here the pulse only
         // brightens the base colour (up to about twice as vibrant)
