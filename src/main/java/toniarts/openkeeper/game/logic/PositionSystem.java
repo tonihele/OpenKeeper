@@ -329,7 +329,8 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee),
+                        entityData.getComponent(id, Owner.class).ownerId, sensedEntities);
             }
 
             // Remove us, the caller
@@ -339,7 +340,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
-    private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
+    private void addSensedEntities(IMapTileInformation tile, int range, short playerId, Set<EntityId> sensedEntities) {
         if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
                 || range-- < 0) {
             return;
@@ -347,10 +348,16 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         sensedEntities.addAll(getEntitiesInLocation(tile));
 
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, sensedEntities);
+        // A door blocks the sight, as in DK II (0x4511A0). The hearing follows the paths (0x45AFF0), so it only goes
+        // through a door the creature can walk through
+        if (isTileBlocked(tile.getX(), tile.getY(), playerId)) {
+            return;
+        }
+
+        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, playerId, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, playerId, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, playerId, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, playerId, sensedEntities);
     }
 
 }
