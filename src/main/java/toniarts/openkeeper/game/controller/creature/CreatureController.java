@@ -1407,22 +1407,24 @@ public final class CreatureController extends EntityController implements ICreat
             }
             case MELEE_ATTACK -> {
 
-                // The swing plays its start part, the swing and its end part one after another (0x4B41E0). Each
-                // part lasts its frames at the animation's frame rate rounded up to whole turns, and the next part,
-                // or the end of the swing, comes on the turn after its last frame (0x496AA0). A Goblin's 15 + 28 +
-                // 15 frames at 30 fps and 4 turns a second take 3 + 5 + 3 turns, so it swings every 11 turns
+                // The swing plays its start part, the swing and its end part one after another at the animation's
+                // frame rate, a part carrying the time left over from the one before it into the next (0x4B3C10,
+                // 0x4B41E0). The swing ends on the turn after the turn its last frame is reached (0x496AA0). A
+                // Knight's 9 + 30 + 11 frames at 18 fps take 11.1 turns at 4 turns a second, so it swings every 13
+                // turns
                 ArtResource swing = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
                 stateTargetTime = 0;
                 if (swing != null) {
                     int ticksPerSec = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
                     int fps = swing.<Number>getData(ArtResource.KEY_FPS).intValue();
-                    int turns = getAnimationPartTurns(swing.<Number>getData(ArtResource.KEY_FRAMES).intValue(), fps, ticksPerSec);
+                    int frames = swing.<Number>getData(ArtResource.KEY_FRAMES).intValue();
                     if (swing.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
-                        turns += getAnimationPartTurns(swing.<Number>getData(ArtResource.KEY_START_AF).intValue(), fps, ticksPerSec);
+                        frames += swing.<Number>getData(ArtResource.KEY_START_AF).intValue();
                     }
                     if (swing.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
-                        turns += getAnimationPartTurns(swing.<Number>getData(ArtResource.KEY_END_AF).intValue(), fps, ticksPerSec);
+                        frames += swing.<Number>getData(ArtResource.KEY_END_AF).intValue();
                     }
+                    int turns = (frames * ticksPerSec + fps - 1) / fps + 1;
 
                     // The state ends on the turn after this time, and the FIGHT turn after it is the last turn of the
                     // swing, where the next swing can start
@@ -1445,10 +1447,6 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return stateTargetTime < timeSpent;
-    }
-
-    private static int getAnimationPartTurns(int frames, int fps, int ticksPerSec) {
-        return (frames * ticksPerSec + fps - 1) / fps + 1;
     }
 
     private static double getAnimationTime(Creature creature, Creature.AnimationType animation) {

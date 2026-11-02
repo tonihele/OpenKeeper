@@ -451,20 +451,21 @@ class CreatureControllerTest {
     }
 
     @Test
-    void swingPlaysEachAnimationPartOverWholeTurns() {
+    void swingPlaysItsAnimationPartsOneAfterAnother() {
         Creature definition = CreatureSleepFixtures.sleeper(9);
 
-        // A Goblin's swing: 15 + 28 + 15 frames at 30 fps take 3 + 5 + 3 turns at 4 turns a second, so the creature
-        // is back in FIGHT on turn 10 and swings again on turn 11, as a Goblin does in DK II
-        CreatureSleepFixtures.setSwing(definition, 28, 30, 15, 15);
+        // A Knight's swing: 9 + 30 + 11 frames at 18 fps take 11.1 turns at 4 turns a second, so the last frame comes
+        // on turn 12, the creature is back in FIGHT on turn 12 and swings again on turn 13, as a Knight does in DK II.
+        // Rounding each part up on its own would take 2 + 7 + 3 turns and a turn after each part, 15 turns.
+        CreatureSleepFixtures.setSwing(definition, 30, 18, 9, 11);
         try (Fixture f = new Fixture(definition)) {
             f.controller.executeAttack(f.meleeTarget());
 
-            f.time = 2.25;
+            f.time = 2.75;
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.MELEE_ATTACK, f.state());
 
-            f.time = 2.5;
+            f.time = 3;
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.FIGHT, f.state());
         }
