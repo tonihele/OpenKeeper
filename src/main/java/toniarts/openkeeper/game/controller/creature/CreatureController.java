@@ -665,6 +665,10 @@ public final class CreatureController extends EntityController implements ICreat
         return nearestHeart;
     }
 
+    private float getMeleeRange() {
+        return entityData.getComponent(entityId, CreatureMeleeAttack.class).range;
+    }
+
     private boolean isHeartToAttack(EntityId heart) {
         Health health = entityData.getComponent(heart, Health.class);
         return health != null && health.health > 0 && isEnemy(heart)
@@ -677,7 +681,7 @@ public final class CreatureController extends EntityController implements ICreat
 
     private Point getHeartAttackTile(EntityId heart) {
         Point ourPosition = getCreatureCoordinates();
-        return DungeonHeartTarget.getAttackTile(ourPosition, getHeartTile(heart),
+        return DungeonHeartTarget.getAttackTile(ourPosition, getHeartTile(heart), getMeleeRange(),
                 tile -> tile.equals(ourPosition) || isWalkable(tile) && navigationService.findPath(ourPosition, tile, this) != null);
     }
 
@@ -707,7 +711,7 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isWithinAttackDistance(EntityId attackTarget) {
         if (DungeonHeartTarget.isDungeonHeart(entityData, attackTarget)) {
-            return DungeonHeartTarget.isInReach(getCreatureCoordinates(), getHeartTile(attackTarget));
+            return DungeonHeartTarget.isInReach(WorldUtils.vector3fToVector2f(getPosition()), getHeartTile(attackTarget), getMeleeRange());
         }
         float distanceNeeded = Math.max(getPreferredAttackDistance(), getPossibleAttackDistance());
 
@@ -888,7 +892,8 @@ public final class CreatureController extends EntityController implements ICreat
     private void navigateToHeart(EntityId heart) {
         Point heartTile = getHeartTile(heart);
         Navigation currentNavigation = entityData.getComponent(entityId, Navigation.class);
-        if (currentNavigation != null && DungeonHeartTarget.isInReach(currentNavigation.target, heartTile)) {
+        if (currentNavigation != null
+                && DungeonHeartTarget.isInReach(WorldUtils.pointToVector2f(currentNavigation.target), heartTile, getMeleeRange())) {
             return;
         }
 
