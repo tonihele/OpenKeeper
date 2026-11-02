@@ -25,6 +25,8 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -514,8 +516,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
     /**
      * Whether the creature can set off a trap. Creatures out of the world
-     * (dead, knocked out or in a keeper's hand) don't, and neither does a
-     * creature type with the data flag OpenKeeper calls {@code IS_HORNY}, the
+     * (dead, knocked out or in a keeper's hand) don't, nor do prisoners and
+     * creatures being tortured, as in DK II (0x45A8B0, 0x4A9400). Neither does
+     * a creature type with the data flag OpenKeeper calls {@code IS_HORNY}, the
      * Horned Reaper
      *
      * @param creatureEntity the creature
@@ -527,7 +530,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
         if (creatureEntity.get(Health.class).health <= 0
                 || entityData.getComponent(entityId, Unconscious.class) != null
                 || entityData.getComponent(entityId, InHand.class) != null
-                || entityData.getComponent(entityId, Death.class) != null) {
+                || entityData.getComponent(entityId, Death.class) != null
+                || entityData.getComponent(entityId, CreatureImprisoned.class) != null
+                || entityData.getComponent(entityId, CreatureTortured.class) != null) {
             return false;
         }
         if (checkCreatureType) {
