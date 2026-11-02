@@ -556,12 +556,29 @@ public final class AssetUtils {
         }
     }
     
+    /** Number of available frames in an art resource's texture sequence. */
+    public static int getArtResourceFrameCount(ArtResource resource) {
+        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            return Math.max(1, getTextureFrames(resource).size());
+        }
+        return Math.max(1, resource.getData(ArtResource.KEY_FRAMES));
+    }
+
     private static List<String> getTextureFrames(ArtResource resource) {
         int frames = resource.getData(ArtResource.KEY_FRAMES);
         String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
         List<String> framesList = new ArrayList<>(frames);
         for (int x = 0; x < frames; x++) {
-            framesList.add(assetFolder + resource.getName() + x + ".png");
+            String frame = assetFolder + resource.getName() + x + ".png";
+            try {
+                // DKII enumerates numbered textures until the first missing
+                // frame (0x59C020). The art's frame count can exceed the
+                // available sequence, e.g. mist declares 16 but has 8.
+                PathUtils.getRealFileName(AssetsConverter.getAssetsFolder(), frame);
+            } catch (IOException ex) {
+                break;
+            }
+            framesList.add(frame);
         }
         
         return framesList;

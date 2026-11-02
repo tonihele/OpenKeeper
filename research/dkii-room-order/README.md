@@ -1,6 +1,6 @@
 # DK II room construction and sale ordering
 
-Verified from the reference DKII.exe and an isolated execution probe of its x86 traversal loops. No OpenKeeper game code was changed.
+Verified from the reference DKII.exe and an isolated execution probe of its x86 traversal loops.
 
 Reference executable: `/home/wietse/Downloads/Data/Bullfrog/Dungeon Keeper 2/DKII.exe`
 SHA-256: `2a00df642ff7f9296f1e8d053329ba152f5dac07e357f2b39b6f1f1f1d77e163`.
@@ -69,4 +69,15 @@ Static inspection of the same reference executable confirms:
 - `0x4C5EEE`: sold tile sound event `0xF5` (room sound category).
 - `0x442D4D`: room placement sound event `0x2F8`.
 
-OpenKeeper already maps `ROOM_TILE_BUILT`, `ROOM_SOLD`, and `ROOM_TILES_LAID` to those events in `GameEventSounds`. The new queue supplies their tile progression. These sound IDs do not establish the mapping of visual build/sell animations; that mapping is not claimed by this probe.
+OpenKeeper already maps `ROOM_TILE_BUILT`, `ROOM_SOLD`, and `ROOM_TILES_LAID` to those events in `GameEventSounds`. The new queue supplies their tile progression. The showcase explicitly places the audio listener over the test patch, since its fixed camera disables the normal camera/listener update.
+
+The training-room category resolves `0xF1` to `creation4.mp2` and `0xF5` to `k1sell.mp2`/`k2sell.mp2`; `0x2F8` resolves to `dk1laytile.mp2`. These are separate native tile-creation, tile-sale, and initial-placement events.
+
+## Native tile effects
+
+- Build updater `0x4C7744` requests effect 81, “Create Room Block Effect”, at tile center and height 1.5. The renderer path goes through `0x509580` / `0x50E490` to `CBridge` visibility validation `0x440420` and effect creation `0x440350`.
+- Successful sale `0x4C5ECA` calls `0x50FB70`, then `CBridge` method `0x441060`. This creates effect 22, “Gold Cost”, at height 1.0 and sets its numeric payload to the positive refund. The alternate flag selects effect 364.
+
+The client now requests effect 81 for every built tile and floating refund digits for every sold room tile. The digit renderer uses the original InGameDigit textures; its spacing and fade are reconstructed, rather than a verified match of the native numeric-effect renderer. Mist animation enumerates available texture frames: its definition declares 16 frames, but only 8 exist in the assets.
+
+Audio verification remains incomplete: the per-tile events reach playback with decoded samples and nonzero gain, but a showcase output recording remained silent. The listener correction does not establish audible parity.

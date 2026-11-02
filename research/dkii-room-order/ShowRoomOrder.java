@@ -97,6 +97,10 @@ public class ShowRoomOrder {
             camera.setEnabled(false);
             app.getCamera().setLocation(new Vector3f(24,11,46));
             app.getCamera().lookAt(new Vector3f(24,0,38),Vector3f.UNIT_Y);
+            // The normal camera state also moves the audio listener; it is disabled here.
+            app.getListener().setLocation(new Vector3f(24,11,38));
+            app.getListener().setRotation(app.getCamera().getRotation());
+            toniarts.openkeeper.game.sound.SoundManager.setListener(new Point(24,38));
             commands.add(()->{
                 var kwd=game.getLevelInfo().getLevelData();
                 short path=kwd.getTerrainList().stream().filter(t->t.getName().equals("Claimed Path")).findFirst().orElseThrow().getTerrainId();
