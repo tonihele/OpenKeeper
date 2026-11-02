@@ -368,6 +368,14 @@ public class VisualEffect {
     }
 
     private ParticleEmitter createParticleElement(EffectElement element, ArtResource resource) {
+        if (effect.getEffectId() == 102) {
+            ParticleEmitter emitter = new ChosenCreatureEmitter(effect, element);
+            emitter.setMaterial(AssetUtils.createParticleMaterial(resource, assetManager));
+            emitter.setImagesX(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+            emitter.setImagesY(1);
+            emitter.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
+            return emitter;
+        }
         ParticleEmitter emitter = new EffectParticleEmitter(element.getName(),
                 ParticleMesh.Type.Triangle,
                 effect.getElementsPerTurn(),
