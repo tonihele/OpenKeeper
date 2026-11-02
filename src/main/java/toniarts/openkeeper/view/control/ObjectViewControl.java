@@ -27,6 +27,9 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.EntityPickupValidator;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.gui.CursorFactory;
@@ -44,6 +47,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
 public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
     private boolean initialized = false;
+    private int loopHandle = SoundEngine.NO_HANDLE;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
     private final boolean uniqueCreatureBed;
 
@@ -119,25 +123,62 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
             if (getDataObject().getObjectId() != 109 && getDataObject().getObjectId() != 116) {
                 playAnimation(currentState);
             }
+            startSounds();
             initialized = true;
         }
     }
 
+    private void startSounds() {
+        if (spatial.getCullHint() == Spatial.CullHint.Always) {
+            return;
+        }
+        // The spatial is not yet positioned when the control is attached, use the entity position
+        Position position = getEntity().get(Position.class);
+        if (position == null) {
+            return;
+        }
+        String category = getDataObject().getSoundCategory();
+        loopHandle = ThingSounds.play(category, ThingSounds.OBJECT_LOOP, position.position);
+        ThingSounds.play(category, ThingSounds.OBJECT_CREATE, position.position);
+    }
+
+    @Override
+    public void cleanup() {
+        if (loopHandle != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(loopHandle);
+            loopHandle = SoundEngine.NO_HANDLE;
+        }
+        super.cleanup();
+    }
+
     @Override
     public String getTooltip(short playerId) {
-        String tooltip;
-        if (getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+        String key = getTooltipKey(getDataObject());
+        if (key == null) {
+            return null;
+        }
+        return textParser.parseText(Utils.getMainTextResourceBundle().getString(key), getEntity(), getDataObject());
+    }
+
+    /**
+     * Get the text key of the object's own tooltip
+     *
+     * @param object the object
+     * @return the key, or {@code null} if the object has no tooltip of its own,
+     * like the creature beds
+     */
+    static String getTooltipKey(GameObject object) {
+        if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
 
             // TODO: better separation between loose and room gold
-            if (getDataObject().getObjectId() == 1) {
-                tooltip = Utils.getMainTextResourceBundle().getString("2544");
-            } else {
-                tooltip = Utils.getMainTextResourceBundle().getString("2543");
-            }
-        } else {
-            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
+            return object.getObjectId() == 1 ? "2544" : "2543";
         }
-        return textParser.parseText(tooltip, getEntity(), getDataObject());
+
+        // Text 0 is "Jelly", the objects that have it have no tooltip
+        if (object.getTooltipStringId() == 0) {
+            return null;
+        }
+        return Integer.toString(object.getTooltipStringId());
     }
 
     @Override
@@ -156,6 +197,14 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
             return CursorFactory.CursorType.HOLD_GOLD;
         }
         return CursorFactory.CursorType.HOLD_THING;
+    }
+
+    @Override
+    public CursorFactory.CursorType getDropCursor() {
+        if (getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
+            return CursorFactory.CursorType.DROP_GOLD;
+        }
+        return super.getDropCursor();
     }
 
     @Override

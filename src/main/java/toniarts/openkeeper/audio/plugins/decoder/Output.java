@@ -69,6 +69,7 @@ abstract class Output extends Initializer {
     private final int frameBufferAnalyzerSize;
     private int readPos, size;
     private int flushCount = 0;
+    private boolean endOfMedia;
     private boolean frequencyMode;
     private boolean switched;
     private final boolean bigEndian;
@@ -267,6 +268,9 @@ abstract class Output extends Initializer {
         int l1;
         int l2;
 
+        if (endOfMedia) {
+            return -1;
+        }
         if (buffer == null) {
             buffer = new byte[obuffersize * outputChannels];
             zeroBuffer = new byte[buffer.length];
@@ -307,7 +311,7 @@ abstract class Output extends Initializer {
                         for (int k = 0; k < l3; k++) {
                             resetBufferPointer();
                             if (decodeFrame(Events.VALIDATION_EVENT) == Events.EOM_EVENT) {
-                                return -1;
+                                return endOfMedia(writePos - i);
                             }
                         }
                     }
@@ -320,7 +324,7 @@ abstract class Output extends Initializer {
                 writePos += diff;
                 resetBufferPointer();
                 if (decodeFrame(Events.VALIDATION_EVENT) == Events.EOM_EVENT) {
-                    return -1;
+                    return endOfMedia(writePos - i);
                 }
             } catch (NullPointerException e) {
                 throw new InterruptedIOException(e.getMessage());
@@ -339,6 +343,19 @@ abstract class Output extends Initializer {
         }
         readPos += length;
         return j;
+    }
+
+    /**
+     * Marks the end of media. Bytes already copied to the caller's buffer
+     * during the current read are still returned, otherwise the tail of every
+     * stream would be lost.
+     *
+     * @param bytesRead bytes copied during the current read
+     * @return bytes read, or -1 if nothing was read
+     */
+    private int endOfMedia(int bytesRead) {
+        endOfMedia = true;
+        return bytesRead > 0 ? bytesRead : -1;
     }
 
     /**
@@ -459,6 +476,7 @@ abstract class Output extends Initializer {
     }
 
     void reset() {
+        endOfMedia = false;
         resetBufferPointer();
         System.arraycopy(zeroBuffer, 0, buffer, 0, obuffersize * outputChannels);
 
