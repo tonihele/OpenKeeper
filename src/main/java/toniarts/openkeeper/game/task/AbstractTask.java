@@ -65,10 +65,10 @@ public abstract class AbstractTask implements Task {
      * Get the non-stop execution duration of a creature
      *
      * @param creature the executing creature
-     * @return the execution duration
+     * @return the execution duration, 0 if the creature isn't assigned
      */
     protected float getExecutionDuration(ICreatureController creature) {
-        return assignees.get(creature);
+        return assignees.getOrDefault(creature, 0f);
     }
 
     /**
