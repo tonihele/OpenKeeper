@@ -19,7 +19,6 @@ package toniarts.openkeeper.utils;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.AssetNotFoundException;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
@@ -393,13 +392,6 @@ public final class AssetUtils {
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
 
-        // Also apply the native alpha-pass depth state to already converted
-        // materials; changing the KMF converter alone would require reconversion.
-        // Portal chasm surfaces must not depth-mask additive particles below them.
-        if (material.isTransparent()) {
-            material.getAdditionalRenderState().setDepthWrite(false);
-        }
-
         // Unharmed texture
         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
 
@@ -586,7 +578,7 @@ public final class AssetUtils {
         List<String> frames = new ArrayList<>();
         for (int frame = 0; frame < 32; frame++) {
             String name = assetFolder + resource.getName() + frame + ".png";
-            AssetInfo asset = locateAnimationFrame(assetManager, name);
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(getCanonicalAssetKey(name, false)));
             if (asset == null) {
                 break;
             }
@@ -597,35 +589,13 @@ public final class AssetUtils {
         return result;
     }
 
-    private static AssetInfo locateAnimationFrame(AssetManager assetManager, String name) {
-        try {
-            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(name));
-            if (asset != null) {
-                return asset;
-            }
-        } catch (AssetNotFoundException e) {
-            // On case-insensitive file systems, FileLocator finds the file but
-            // rejects mismatched casing. Resolve its actual name below.
-        }
-        // Converted filenames can differ in case. Missing frames are an expected
-        // end-of-animation marker, so do not use the logging canonical-path helper.
-        String root = AssetsConverter.getAssetsFolder();
-        try {
-            String canonical = PathUtils.getRealFileName(root, name).substring(root.length())
-                    .replace(File.separatorChar, '/');
-            return assetManager.locateAsset(new AssetKey<>(canonical));
-        } catch (IOException e) {
-            return null;
-        }
-    }
-
     private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
         if (textures.isEmpty()) {
             throw new IOException("No animation frames found for " + name);
         }
         // Get the first frame, the frames need to be same size
-        BufferedImage img = readImageFromAsset(locateAnimationFrame(assetManager, textures.get(0)));
+        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey<>(textures.get(0))));
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -640,7 +610,7 @@ public final class AssetUtils {
         
         g.drawImage(img, null, 0, 0);
         for (int x = 1; x < textures.size(); x++) {
-            AssetInfo asset = locateAnimationFrame(assetManager, textures.get(x));
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(textures.get(x)));
             if (asset != null) {
                 img = readImageFromAsset(asset);
             } else {
@@ -939,7 +909,13 @@ public final class AssetUtils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
+        return getCanonicalAssetKey(asset, true);
+    }
+
+    /** Resolve expected animation-end probes without logging a missing-file warning. */
+    private static String getCanonicalAssetKey(String asset, boolean warnIfMissing) {
+        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset, warnIfMissing)
+                .replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
     }
 
 }

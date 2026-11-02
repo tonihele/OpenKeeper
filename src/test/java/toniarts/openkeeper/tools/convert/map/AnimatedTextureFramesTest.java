@@ -73,7 +73,7 @@ class AnimatedTextureFramesTest {
     }
 
     @Test
-    void caseMismatchExceptionFallsBackToActualFilename() throws Exception {
+    void canonicalFilenameAvoidsCaseMismatchException() throws Exception {
         var resource = resource(16);
         String actualName = resource.getName();
         resource.setName(actualName.toUpperCase(Locale.ROOT));
@@ -100,7 +100,7 @@ class AnimatedTextureFramesTest {
             ImageIO.write(image, "png", first.toFile());
             ImageIO.write(image, "png", second.toFile());
             assertEquals(2, AssetUtils.getAnimationFrameCount(resource, assets));
-            assertEquals(2, mismatches.get());
+            assertEquals(0, mismatches.get());
             Texture atlas = (Texture) AssetUtils.createParticleMaterial(resource, assets)
                     .getParam("Texture").getValue();
             assertEquals(4, atlas.getImage().getWidth());
