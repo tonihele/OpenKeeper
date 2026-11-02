@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.IntConsumer;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
@@ -58,6 +59,7 @@ class CreatureSeparationTest {
     private static final short GIANT = 9;
     private static final short IMP = 1;
     private static final float KNIGHT_WIDTH = 0.33f;
+    private static final float KNIGHT_SPEED = 0.5f;
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Creature> creatures = Map.of(
@@ -74,7 +76,7 @@ class CreatureSeparationTest {
         EntityId first = creature(KNIGHT, new Point(5, 6), new Point(5, 5), new Point(5, 4));
         EntityId second = creature(KNIGHT, new Point(7, 4), new Point(6, 4), new Point(5, 4));
 
-        run(new MovementSystem(entityData, kwdFile(), map(), positionLookup()), 600);
+        run(600, frame -> {});
 
         assertNull(entityData.getComponent(first, Navigation.class));
         assertNull(entityData.getComponent(second, Navigation.class));
@@ -89,11 +91,7 @@ class CreatureSeparationTest {
         entityData.setComponents(entityData.createEntity(), standing, new Position(0, new Vector3f(4, 0, 2.4f)));
         EntityId walker = creature(IMP, new Point(2, 2), new Point(3, 2), new Point(4, 2), new Point(5, 2), new Point(6, 2));
 
-        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), map(), positionLookup());
-        for (int i = 0; i < 600; i++) {
-            movementSystem.processTick(1 / 60f);
-            assertEquals(2, WorldUtils.vectorToPoint(position(walker)).y, "Pushed into the wall at frame " + i);
-        }
+        run(600, frame -> assertEquals(2, WorldUtils.vectorToPoint(position(walker)).y, "Pushed into the wall at frame " + frame));
     }
 
     private EntityId creature(short creatureId, Point... path) {
@@ -106,14 +104,24 @@ class CreatureSeparationTest {
         }
         entityData.setComponents(entityId, creatureComponent,
                 new Position(0, new Vector3f(path[0].x, 0, path[0].y)),
-                new Mobile(false, false, false, 1),
+                new Mobile(false, false, false, KNIGHT_SPEED),
                 new Navigation(path[path.length - 1], null, navigationPath));
         return entityId;
     }
 
-    private static void run(MovementSystem movementSystem, int frames) {
-        for (int i = 0; i < frames; i++) {
+    /**
+     * Runs the separation on 4 game ticks a second and the movement on 60
+     * frames, like the game loops do
+     */
+    private void run(int frames, IntConsumer afterFrame) {
+        SeparationSystem separationSystem = new SeparationSystem(entityData, kwdFile(), map(), positionLookup());
+        MovementSystem movementSystem = new MovementSystem(entityData);
+        for (int frame = 0; frame < frames; frame++) {
+            if (frame % 15 == 0) {
+                separationSystem.processTick(1 / 4f);
+            }
             movementSystem.processTick(1 / 60f);
+            afterFrame.accept(frame);
         }
     }
 

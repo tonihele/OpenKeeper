@@ -44,7 +44,7 @@ class MovementSystemTest {
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(rotation, new Vector3f(15, 0, 23)), new Mobile(false, false, false, 1),
                 new Navigation(new Point(15, 23), new Point(16, 25), new ArrayList<>()));
-        MovementSystem movementSystem = new MovementSystem(entityData, null, null, null);
+        MovementSystem movementSystem = new MovementSystem(entityData);
 
         for (int frame = 0; frame < 180 && entityData.getComponent(creature, Navigation.class) != null; frame++) {
             movementSystem.processTick(1 / 60f);
