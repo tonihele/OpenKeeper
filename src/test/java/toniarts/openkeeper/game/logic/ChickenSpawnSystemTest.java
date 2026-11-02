@@ -100,6 +100,7 @@ class ChickenSpawnSystemTest {
         List<Integer> spawns = new ArrayList<>();
         int[] second = new int[1];
         double[] lastSpawn = {0.0};
+        boolean[] hasSpawned = {false};
         RoomInstance roomInstance = new RoomInstance(ChickenSpawnFixtures.hatchery());
         for (int i = 0; i < tiles; i++) {
             roomInstance.addCoordinate(new Point(i, 0));
@@ -109,8 +110,10 @@ class ChickenSpawnSystemTest {
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     case "getLastSpawnTime" -> lastSpawn[0];
+                    case "hasSpawned" -> hasSpawned[0];
                     case "onSpawn" -> {
                         lastSpawn[0] = (Double) args[0];
+                        hasSpawned[0] = true;
                         yield null;
                     }
                     case "isFullCapacity" -> freeRangeChickens >= 0;

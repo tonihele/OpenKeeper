@@ -23,14 +23,12 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.utils.Point;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Optional;
 import java.util.Set;
-import java.util.WeakHashMap;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
@@ -66,7 +64,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
     private final IMapController mapController;
     private final int maximumFreerangeChickenCount;
     private final int firstChickenDelay;
-    private final Set<IChickenGenerator> spawnedChickens = Collections.newSetFromMap(new WeakHashMap<>());
     private final Map<Short, IPlayerController> playerControllersById;
     private final SafeArrayList<IChickenGenerator> entrances = new SafeArrayList<>(IChickenGenerator.class);
     private final EntitySet freerangeChickenGenerators;
@@ -177,7 +174,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
         if (spawned) {
             // Reset spawn time
             entrance.onSpawn(timeElapsed, entityId);
-            spawnedChickens.add(entrance);
         }
     }
 
@@ -190,7 +186,7 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
      * @return the time to wait for the next chicken
      */
     private int getCooldown(IChickenGenerator entrance) {
-        if (!spawnedChickens.contains(entrance)) {
+        if (!entrance.hasSpawned()) {
             return firstChickenDelay;
         }
         return getCooldownByHatcherySize(entrance.getRoomInstance().getCoordinates().size());
@@ -327,7 +323,6 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
         private void removeRoom(IRoomController room) {
             if (room instanceof IChickenGenerator chickenGenerator) {
                 entrances.remove(chickenGenerator);
-                spawnedChickens.remove(chickenGenerator);
             }
         }
 
