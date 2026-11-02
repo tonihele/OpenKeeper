@@ -23,9 +23,12 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.view.ClientEntityData;
 
 /**
- * Tests counting the Guard Posts, i.e. the patrol routes, of a player
+ * Tests counting the Guard Posts, i.e. the patrol routes, of a player. The
+ * counter gets the client's entity data, which refuses entity lookups, so the
+ * tests fail if it ever asks the server for a single entity.
  */
 class GuardPostCounterTest {
 
@@ -40,7 +43,7 @@ class GuardPostCounterTest {
         addTrap(entityData, GUARD_POST, 2);
         addTrap(entityData, FIRE_TRAP, 1);
 
-        GuardPostCounter counter = new GuardPostCounter(entityData, trapId -> trapId == GUARD_POST);
+        GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), trapId -> trapId == GUARD_POST);
         try {
             assertEquals(2, counter.applyAsInt((short) 1));
             assertEquals(1, counter.applyAsInt((short) 2));
@@ -53,7 +56,7 @@ class GuardPostCounterTest {
     @Test
     void followsGuardPostsBeingAddedAndRemoved() {
         EntityData entityData = new DefaultEntityData();
-        GuardPostCounter counter = new GuardPostCounter(entityData, trapId -> trapId == GUARD_POST);
+        GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), trapId -> trapId == GUARD_POST);
         try {
             assertEquals(0, counter.applyAsInt((short) 1));
 
