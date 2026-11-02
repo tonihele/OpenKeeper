@@ -292,9 +292,9 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             material.setFloat("Experience", 1f);
         }
 
-        // Set new owner. A creature that is being removed has lost its owner, keep the color it had
+        // Set new owner
         short currentOwnerId = getOwnerId();
-        if (currentDrawnOwnerId != currentOwnerId && hasPlayerColor(currentOwnerId)) {
+        if (currentDrawnOwnerId != currentOwnerId) {
             material.setBoolean("FlashColors", false);
             currentDrawnOwnerId = currentOwnerId;
             setFlowerColor(getPlayerColor(currentDrawnOwnerId));

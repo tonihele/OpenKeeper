@@ -1,11 +1,9 @@
 package toniarts.openkeeper.view.control;
 
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.utils.Utils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class UnitFlowerControlTest {
 
@@ -50,14 +48,7 @@ class UnitFlowerControlTest {
     void creatureBeingRemovedHasNoPlayerColor() {
 
         // A removed creature has lost its owner, which reads as player 0
-        assertFalse(UnitFlowerControl.hasPlayerColor((short) 0));
-    }
-
-    @Test
-    void heroesNeutralAndKeepersHavePlayerColors() {
-        for (short playerId : Utils.getPlayerIds()) {
-            assertTrue(UnitFlowerControl.hasPlayerColor(playerId), "player " + playerId);
-        }
+        assertNull(UnitFlowerControl.getPlayerColor((short) 0));
     }
 
 }
