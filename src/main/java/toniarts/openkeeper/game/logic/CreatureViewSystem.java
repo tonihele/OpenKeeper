@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
@@ -91,6 +92,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+                        if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
+                            targetState = Creature.AnimationType.SWIPE;
+                        }
                     }
                 }
             }

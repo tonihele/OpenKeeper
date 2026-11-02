@@ -720,7 +720,12 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
-                entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+                // Half of the swings play the second melee animation, if the first one is flagged for it (0x4B37D0)
+                CreatureMeleeAttack swing = new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime());
+                ArtResource melee = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
+                swing.swipe = melee != null && melee.getFlags().contains(ArtResource.ArtResourceFlag.UNKNOWN_1)
+                        && creature.getAnimation(Creature.AnimationType.SWIPE) != null && FastMath.rand.nextBoolean();
+                entityData.setComponent(entityId, swing);
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
                 // The hit lands the creature's shot delay into the swing (0x498E30), counted in whole turns rounded
@@ -1412,7 +1417,8 @@ public final class CreatureController extends EntityController implements ICreat
                 // 0x4B41E0). The swing ends on the turn after the turn its last frame is reached (0x496AA0). A
                 // Knight's 9 + 30 + 11 frames at 18 fps take 11.1 turns at 4 turns a second, so it swings every 13
                 // turns
-                ArtResource swing = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
+                ArtResource swing = creature.getAnimation(entityData.getComponent(entityId, CreatureMeleeAttack.class).swipe
+                        ? Creature.AnimationType.SWIPE : Creature.AnimationType.MELEE_ATTACK);
                 stateTargetTime = 0;
                 if (swing != null) {
                     int ticksPerSec = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
