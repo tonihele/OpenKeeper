@@ -54,7 +54,6 @@ import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
-import toniarts.openkeeper.game.component.PossessedAttack;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
@@ -1563,17 +1562,17 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void setPossessedAttack(boolean attacking) {
-        PossessedAttack possessedAttack = entityData.getComponent(entityId, PossessedAttack.class);
+        Possessed possessed = entityData.getComponent(entityId, Possessed.class);
+        if (possessed == null) {
+            return;
+        }
         if (attacking) {
-            entityData.setComponent(entityId, new PossessedAttack(true, gameTimer.getGameTime()));
-        } else if (possessedAttack != null) {
+            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, true, gameTimer.getGameTime()));
+        } else if (possessed.isAttackPending()) {
 
             // A click shorter than a logic tick still gets its one swing
-            if (hasSwungSince(possessedAttack.pressTime)) {
-                entityData.removeComponent(entityId, PossessedAttack.class);
-            } else {
-                entityData.setComponent(entityId, new PossessedAttack(false, possessedAttack.pressTime));
-            }
+            double pressTime = hasSwungSince(possessed.attackPressTime) ? Double.NaN : possessed.attackPressTime;
+            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, false, pressTime));
         }
     }
 
@@ -1723,7 +1722,6 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         entityData.removeComponent(entityId, PossessedMovement.class);
-        entityData.removeComponent(entityId, PossessedAttack.class);
         entityData.removeComponent(entityId, Possessed.class);
         entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.IDLE, getCreature().getCreatureId()));
     }

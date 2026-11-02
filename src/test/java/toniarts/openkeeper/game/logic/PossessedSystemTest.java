@@ -26,14 +26,12 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
-import toniarts.openkeeper.game.component.PossessedAttack;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -74,50 +72,52 @@ class PossessedSystemTest {
         return new PossessedSystem(List.of(), entityData, game, creatures);
     }
 
+    private EntityId possessed(boolean attackHeld, double attackPressTime) {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(0, 0, attackHeld, attackPressTime), new Owner((short) 2, (short) 2));
+        return creature;
+    }
+
     @Test
     void releasedAttackIsRemovedAfterItsSwing() {
-        EntityId creature = entityData.createEntity();
-        entityData.setComponents(creature, new Possessed(0, 0), new PossessedAttack(false, 1));
+        EntityId creature = possessed(false, 1);
 
         system(() -> { }).processTick(0.1f);
 
         assertEquals(1, swings);
-        assertNull(entityData.getComponent(creature, PossessedAttack.class));
+        assertFalse(entityData.getComponent(creature, Possessed.class).isAttackPending());
     }
 
     @Test
     void heldAttackIsKept() {
-        EntityId creature = entityData.createEntity();
-        entityData.setComponents(creature, new Possessed(0, 0), new PossessedAttack(true, 1));
+        EntityId creature = possessed(true, 1);
 
         system(() -> { }).processTick(0.1f);
 
         assertEquals(1, swings);
-        assertTrue(entityData.getComponent(creature, PossessedAttack.class).held);
+        assertTrue(entityData.getComponent(creature, Possessed.class).attackHeld);
     }
 
     @Test
     void quickClickDuringSwingInSameTickIsKept() {
-        EntityId creature = entityData.createEntity();
-        entityData.setComponents(creature, new Possessed(0, 0), new PossessedAttack(false, 1));
+        EntityId creature = possessed(false, 1);
 
         // A press and release written in the same game tick get the same press time
-        system(() -> entityData.setComponent(creature, new PossessedAttack(false, 1))).processTick(0.1f);
+        system(() -> entityData.setComponent(creature, new Possessed(0, 0, false, 1))).processTick(0.1f);
 
-        assertNotNull(entityData.getComponent(creature, PossessedAttack.class));
+        assertTrue(entityData.getComponent(creature, Possessed.class).isAttackPending());
     }
 
     @Test
     void newPressDuringSwingIsKept() {
-        EntityId creature = entityData.createEntity();
-        entityData.setComponents(creature, new Possessed(0, 0), new PossessedAttack(false, 1));
+        EntityId creature = possessed(false, 1);
 
         // The session thread writes a new press while the swing is processed
-        system(() -> entityData.setComponent(creature, new PossessedAttack(true, 2))).processTick(0.1f);
+        system(() -> entityData.setComponent(creature, new Possessed(0, 0, true, 2))).processTick(0.1f);
 
-        PossessedAttack attack = entityData.getComponent(creature, PossessedAttack.class);
-        assertTrue(attack.held);
-        assertEquals(2, attack.pressTime);
+        Possessed attack = entityData.getComponent(creature, Possessed.class);
+        assertTrue(attack.attackHeld);
+        assertEquals(2, attack.attackPressTime);
     }
 
     @Test

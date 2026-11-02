@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
-import toniarts.openkeeper.game.component.PossessedAttack;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -43,7 +42,6 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class PossessedSystem extends GameTimeCounter {
 
     private final EntitySet possessedEntities;
-    private final EntitySet attackingEntities;
     private final Map<Short, PlayerManaControl> manaControls;
     private final Map<EntityId, Short> possessorsByEntity = new HashMap<>();
     private final EntityData entityData;
@@ -66,7 +64,6 @@ public final class PossessedSystem extends GameTimeCounter {
         // Listen for posessed entities
         possessedEntities = entityData.getEntities(Possessed.class, Owner.class);
         processAddedEntities(possessedEntities);
-        attackingEntities = entityData.getEntities(Possessed.class, PossessedAttack.class);
     }
 
     @Override
@@ -91,7 +88,12 @@ public final class PossessedSystem extends GameTimeCounter {
             if (manaControl == null || !manaControl.hasEnoughMana(possessed.manaDrain)) {
                 creaturesController.createController(entity.getId()).setPossession(false);
             } else {
-                entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed));
+
+                // Keep the attack that the session thread may have written meanwhile
+                Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
+                if (live != null) {
+                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime));
+                }
             }
         }
 
@@ -99,16 +101,18 @@ public final class PossessedSystem extends GameTimeCounter {
     }
 
     private void processAttacks() {
-        attackingEntities.applyChanges();
-        for (Entity entity : attackingEntities) {
+        for (Entity entity : possessedEntities) {
+            Possessed attack = entityData.getComponent(entity.getId(), Possessed.class);
+            if (attack == null || !attack.isAttackPending()) {
+                continue;
+            }
             creaturesController.createController(entity.getId()).executePossessedAttack();
 
             // A released attack only had this one swing
             // The session thread may have written a new press meanwhile, so only remove the very same released press
-            PossessedAttack attack = entity.get(PossessedAttack.class);
-            PossessedAttack live = entityData.getComponent(entity.getId(), PossessedAttack.class);
-            if (!attack.held && live == attack) {
-                entityData.removeComponent(entity.getId(), PossessedAttack.class);
+            Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
+            if (!attack.attackHeld && live == attack) {
+                entityData.setComponent(entity.getId(), new Possessed(attack.manaDrain, attack.manaCheckTime, false, Double.NaN));
             }
         }
     }
@@ -121,7 +125,6 @@ public final class PossessedSystem extends GameTimeCounter {
     @Override
     public void stop() {
         possessedEntities.release();
-        attackingEntities.release();
     }
 
     private void processAddedEntities(Set<Entity> entities) {
