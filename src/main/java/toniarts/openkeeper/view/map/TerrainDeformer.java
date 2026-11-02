@@ -102,7 +102,7 @@ public final class TerrainDeformer {
     private static final float STRENGTH = Float.parseFloat(System.getProperty("openkeeper.deformScale", "1"));
     private static final float WIBBLE_SCALE = 0.8f * STRENGTH;
     private static final float LEAN_SCALE = 0.8f * STRENGTH;
-    private static final float SWELL_SCALE = 0.5f * STRENGTH;
+    private static final float SWELL_SCALE = STRENGTH; // The wave is used at full amplitude
     private static final float FLOOR_Y = 1f; // Rest height of lattice level 1, the levels are half a tile apart
     private static final int LEVELS = 3; // The ones that move
     private static final int SEED = 0x4F4B3250;
@@ -388,11 +388,11 @@ public final class TerrainDeformer {
                 x += (random(i, j, level, 0) - 0.5f) * wibbleH + direction.x * wibbleH / 2;
                 z += (random(i, j, level, 1) - 0.5f) * wibbleH + direction.z * wibbleH / 2;
                 y -= random(i, j, level, 2) * wibbleV;
-
-                // The tops of the rock are not a flat plane
-                if (level == 3) {
-                    y += SWELL_SCALE * (SWELL_BASE + SWELL_AMPLITUDE * FastMath.sin((i + j) / 2f));
-                }
+            }
+            // The tops of the rock are not a flat plane. A sine wave over the whole map, independent
+            // of the terrain (so it also applies to pinned tiles), raises the tops by 0.025 - 0.275
+            if (level == 3) {
+                y += SWELL_SCALE * (SWELL_BASE + SWELL_AMPLITUDE * FastMath.sin((i + j) * 0.5f));
             }
             int at = base + (level - 1) * 3;
             displacements[at] = x;
