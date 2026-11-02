@@ -12,7 +12,15 @@ import com.jme3.scene.VertexBuffer;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Let the transparent queue interleave the Portal's chasm and crystal triangles. */
+/**
+ * Workaround for jME's geometry-level transparent sorting: the Portal's chasm
+ * and crystals overlap, so whole-geometry ordering draws parts in the wrong
+ * order. Separate triangles let the standard transparent queue interleave them
+ * as the camera moves. They share vertex buffers but each costs a draw call,
+ * which is why this is limited to Portals rather than all converted models.
+ * The split itself could be baked into converted assets; camera-dependent
+ * ordering would still happen at render time, with batching disabled here.
+ */
 final class PortalTransparentSurfaces {
     private PortalTransparentSurfaces() {
     }

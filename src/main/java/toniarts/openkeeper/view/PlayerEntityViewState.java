@@ -824,7 +824,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final class CreatureModelContainer extends EntityContainer<Spatial> {
 
         public CreatureModelContainer(EntityData ed) {
-            super(ed, Position.class, CreatureViewState.class); // Stuff with position is on the map
+            super(ed, Position.class, CreatureViewState.class, Owner.class); // Stuff with position is on the map
         }
 
         @Override
@@ -835,7 +835,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             CreatureViewState viewState = e.get(CreatureViewState.class);
             if (viewState.state == Creature.AnimationType.ENTRANCE) {
                 Creature creature = kwdFile.getCreature(viewState.creatureId);
-                Owner owner = entityData.getComponent(e.getId(), Owner.class);
+                Owner owner = e.get(Owner.class);
                 loadTransientEffect(e.getId(), e.get(Position.class).position.clone().setY(WorldUtils.UNDERFLOOR_HEIGHT),
                         creature.getEntranceEffectId(), owner.ownerId, false);
             }
