@@ -24,8 +24,10 @@ import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
@@ -87,6 +89,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Nullable
     private final CampaignLevel campaignLevel;
 
+    private EntitySet heartEntities;
     private boolean paused = false;
 
     private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
@@ -122,11 +125,15 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
+        heartEntities = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
+                ObjectComponent.class, Owner.class, Health.class);
     }
 
     @Override
     public void cleanup() {
         unregisterPauseKey();
+        heartEntities.release();
+        heartEntities = null;
 
         // Detach states
         for (AbstractAppState state : appStates) {
@@ -592,10 +599,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @return health percentage, 0 if we have no heart
      */
     private int getDungeonHeartHealth() {
-        for (EntityId heart : entityData.findEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
-                ObjectComponent.class, Owner.class, Health.class)) {
-            if (entityData.getComponent(heart, Owner.class).ownerId == playerId) {
-                Health health = entityData.getComponent(heart, Health.class);
+        heartEntities.applyChanges();
+        for (Entity heart : heartEntities) {
+            if (heart.get(Owner.class).ownerId == playerId) {
+                Health health = heart.get(Health.class);
                 return health.health * 100 / health.maxHealth;
             }
         }
