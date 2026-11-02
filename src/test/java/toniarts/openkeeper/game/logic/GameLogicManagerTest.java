@@ -25,12 +25,12 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * Queued player actions run on the logic thread at the start of a tick, never
  * in the middle of one
  */
-public class GameLogicManagerTest {
+class GameLogicManagerTest {
 
     private final List<String> events = new ArrayList<>();
 
     @Test
-    public void actionQueuedDuringTickRunsAtStartOfNextTick() {
+    void actionQueuedDuringTickRunsAtStartOfNextTick() {
         GameLogicManager[] manager = new GameLogicManager[1];
         manager[0] = new GameLogicManager(new IGameLogicUpdatable() {
             @Override
@@ -58,7 +58,7 @@ public class GameLogicManagerTest {
     }
 
     @Test
-    public void actionQueuedWhileDrainingWaitsForTheFollowingTick() {
+    void actionQueuedWhileDrainingWaitsForTheFollowingTick() {
         GameLogicManager manager = new GameLogicManager();
         manager.enqueueAction(() -> {
             events.add("first");
