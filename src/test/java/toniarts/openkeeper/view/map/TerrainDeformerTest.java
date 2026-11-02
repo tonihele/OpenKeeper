@@ -88,11 +88,17 @@ class TerrainDeformerTest {
     @Test
     void rigidTileDoesNotMove() {
         TerrainDeformer d = corridor();
-        // Pinned only where all the touching tiles are rigid, the centre of the tile is
-        for (float y = 1f; y <= 2f; y += 0.25f) {
+        // Pinned only where all the touching tiles are rigid, the centre of the tile is. Only the
+        // sine wave on the wall top still moves it, straight up
+        for (float y = 1f; y <= 1.5f; y += 0.25f) {
             Vector3f p = new Vector3f(5f, y, 3f);
             assertEquals(p, deformed(d, 5f, y, 3f));
         }
+        Vector3f top = deformed(d, 5f, 2f, 3f);
+        assertEquals(5f, top.x, 1e-5f);
+        assertEquals(3f, top.z, 1e-5f);
+        // Lattice point u = 11, v = 7: 0.15 + 0.125 * sin(9)
+        assertEquals(2f + 0.15f + 0.125f * (float) Math.sin(9), top.y, 1e-4f);
     }
 
     @Test
