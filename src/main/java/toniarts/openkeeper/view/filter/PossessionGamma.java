@@ -1,7 +1,6 @@
 /* Copyright (C) 2026 OpenKeeper. Licensed under GPL-3.0-or-later. */
 package toniarts.openkeeper.view.filter;
 
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.post.SceneProcessor;
@@ -17,15 +16,11 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
-import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import toniarts.openkeeper.tools.convert.map.Creature.GammaEffect;
 
 /** DKII's channel ramps, applied after the world, view mask and HUD are composed. */
 public final class PossessionGamma implements SceneProcessor {
-    public static final String RAMPS = "Shaders/PossessionGamma/NativeRamps.bin";
     private final AssetManager assets;
     private GammaEffect effect = GammaEffect.NORMAL;
     private RenderManager renderManager;
@@ -47,33 +42,68 @@ public final class PossessionGamma implements SceneProcessor {
         this.effect = isSupported(effect) ? effect : GammaEffect.NORMAL;
     }
 
-    /** Decode the original 16-bit tables without applying texture gamma conversion. */
-    public static ByteBuffer readRamps(InputStream input) throws IOException {
-        byte[] bytes = input.readAllBytes();
-        if (bytes.length != 16 * 256 * 3 * Short.BYTES) {
-            throw new IOException("Invalid possession gamma table length: " + bytes.length);
-        }
-        var source = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN);
+    /** Build gamma-1 colour curves without shipping data extracted from the game. */
+    static ByteBuffer createRamps() {
         var pixels = BufferUtils.createByteBuffer(16 * 256 * 4 * Float.BYTES);
-        for (int i = 0; i < 16 * 256; i++) {
-            for (int channel = 0; channel < 3; channel++) {
-                pixels.putFloat(Short.toUnsignedInt(source.getShort()) / 65535f);
+        for (GammaEffect effect : GammaEffect.values()) {
+            if (!isSupported(effect)) continue;
+            for (int i = 0; i < 256; i++) {
+                // Hardware ramps use i/256, so their last entry is below unity.
+                double q = i / 256.0;
+                switch (effect) {
+                    case VAMPIRE_RED -> put(pixels, q, q * (1f / 3f), q * (1f / 3f));
+                    case DARK_ELF_PURPLE -> put(pixels, q, q * (1f / 3f), q);
+                    case SKELETON_BLACK_N_WHITE -> put(pixels, q / 2, q / 2, q * 1.5);
+                    case SALAMANDER_INFRARED, MARTINS_TEST_2 -> put(pixels, q * 2, q, q);
+                    case DARK_ANGER_BRIGHT_BLUE -> put(pixels, q, q, q * 4);
+                    case WHITEOUT -> put(pixels, 1, 1, 1);
+                    case BLACKOUT -> put(pixels, 0, 0, 0);
+                    case REDOUT -> put(pixels, 1, 0, 0);
+                    case DEATH_VIEW_HALF_RED -> put(pixels, q / 2, 0, 0);
+                    case MARTINS_TEST_1 -> putSpectrum(pixels, q, 3, false);
+                    case MARTINS_TEST_3 -> putSpectrum(pixels, q, 4, true);
+                    case MARTINS_TEST_4 -> putSpectrum(pixels, q, 4, false);
+                    case FREEZE_VIEW_ONLY_BLUE -> put(pixels, 0, 0, q * 1.5);
+                    case MAIDEN -> put(pixels, q, q + 0.2, 0);
+                    default -> put(pixels, q, q, q);
+                }
             }
-            pixels.putFloat(1f);
         }
         return pixels.flip();
+    }
+
+    /** Blue, green, then red/grey sine lobes for the experimental presets. */
+    private static void putSpectrum(ByteBuffer pixels, double q, int bands, boolean swapRedGreen) {
+        if (q < 1.0 / bands) {
+            put(pixels, 0, 0, sine(q * bands));
+        } else if (q < 2.0 / bands) {
+            double middle = sine((q - 1.0 / bands) * bands);
+            put(pixels, swapRedGreen ? middle : 0, swapRedGreen ? 0 : middle, 0);
+        } else if (bands == 4 && q < 3.0 / bands) {
+            double middle = sine((q - 2.0 / bands) * bands);
+            put(pixels, swapRedGreen ? 0 : middle, swapRedGreen ? middle : 0, 0);
+        } else {
+            double grey = sine((q - (bands - 1.0) / bands) * bands / 2);
+            put(pixels, grey, grey, grey);
+        }
+    }
+
+    private static float sine(double phase) {
+        return (float) Math.sin((float) Math.PI * phase);
+    }
+
+    private static void put(ByteBuffer pixels, double red, double green, double blue) {
+        for (double channel : new double[]{red, green, blue}) {
+            // Preserve the 16-bit truncation of the display ramps.
+            pixels.putFloat((int) (Math.clamp(channel, 0, 1) * 65535) / 65535f);
+        }
+        pixels.putFloat(1f);
     }
 
     @Override public void initialize(RenderManager manager, ViewPort viewport) {
         renderManager = manager;
         viewPort = viewport;
-        var info = assets.locateAsset(new AssetKey<>(RAMPS));
-        if (info == null) throw new IllegalStateException("Missing " + RAMPS);
-        try (var input = info.openStream()) {
-            ramps = new Texture2D(new Image(Image.Format.RGBA32F, 256, 16, readRamps(input), ColorSpace.Linear));
-        } catch (IOException e) {
-            throw new IllegalStateException("Cannot read possession gamma tables", e);
-        }
+        ramps = new Texture2D(new Image(Image.Format.RGBA32F, 256, 16, createRamps(), ColorSpace.Linear));
         nearest(ramps);
         material = new Material(assets, "Shaders/PossessionGamma/Gamma.j3md");
         material.setTexture("Ramps", ramps);
