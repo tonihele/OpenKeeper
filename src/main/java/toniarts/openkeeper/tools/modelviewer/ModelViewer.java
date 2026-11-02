@@ -80,6 +80,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightSource;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -175,6 +177,8 @@ public final class ModelViewer extends SimpleApplication {
 
     private EffectManagerState effectManagerState;
     private MapLoaderAppState mapLoaderAppState;
+    private boolean litSolidRock = true;
+    private boolean terrainAmbient = LightConstants.TERRAIN_AMBIENT_ENABLED;
 
     private final ActionListener actionListener = new ActionListener() {
         @Override
@@ -225,6 +229,7 @@ public final class ModelViewer extends SimpleApplication {
         settings.setResizable(true);
         settings.setWidth(1280);
         settings.setHeight(720);
+        settings.setGammaCorrection(true);
 
         app.setSettings(settings);
 
@@ -382,7 +387,7 @@ public final class ModelViewer extends SimpleApplication {
         // Add ambient light
         AmbientLight al = new AmbientLight();
         al.setColor(ColorRGBA.White.multLocal(0.4f));
-        rootNode.addLight(al);
+        //rootNode.addLight(al);
 
         /* Drop shadows */
         final int SHADOWMAP_SIZE = 1024;
@@ -567,6 +572,50 @@ public final class ModelViewer extends SimpleApplication {
         }
     }
 
+    boolean isLitSolidRock() {
+        return litSolidRock;
+    }
+
+    /**
+     * Whether solid rock of a loaded map is lit like any other tile. It is
+     * baked into the map's materials, so the selected map is reloaded.
+     */
+    void setLitSolidRock(boolean litSolidRock) {
+        this.litSolidRock = litSolidRock;
+
+        List<Object> selection = screen.getItemsControl().getSelection();
+        if (selection.size() == 1 && screen.getTypeControl().getSelection() == Types.MAPS) {
+            // Not from inside the checkbox's own event: the reload rebuilds the
+            // panel that checkbox lives in
+            enqueue(() -> onSelectionChanged(selection.get(0)));
+        }
+    }
+
+    boolean isTerrainAmbient() {
+        return terrainAmbient;
+    }
+
+    /**
+     * Whether the per-terrain vertex ambient is applied. It is baked into the
+     * map's materials, so the selected map is reloaded.
+     */
+    void setTerrainAmbient(boolean terrainAmbient) {
+        this.terrainAmbient = terrainAmbient;
+
+        List<Object> selection = screen.getItemsControl().getSelection();
+        if (selection.size() == 1 && screen.getTypeControl().getSelection() == Types.MAPS) {
+            enqueue(() -> onSelectionChanged(selection.get(0)));
+        }
+    }
+
+    boolean isLightGroupEnabled(LightSource.Group group) {
+        return mapLoaderAppState.isLightGroupEnabled(group);
+    }
+
+    void setLightGroupEnabled(LightSource.Group group, boolean enabled) {
+        mapLoaderAppState.setLightGroupEnabled(group, enabled);
+    }
+
     public void onSelectionChanged(Object selection) {
         selectedEffect = selection instanceof Effect effect ? effect : null;
         screen.selectionChanged(selection);
@@ -595,7 +644,7 @@ public final class ModelViewer extends SimpleApplication {
             case MAPS: {
                 // Load the selected map
                 IKwdFile kwd = getKwdFile((String) selection);
-                Node spat = mapLoaderAppState.loadMap(kwd);
+                Node spat = mapLoaderAppState.loadMap(kwd, litSolidRock, terrainAmbient, ceilingVisible);
 
                 GameLevel gameLevel = kwd.getGameLevel();
                 screen.setupItem(gameLevel, loadSoundCategory(gameLevel, false));
@@ -762,6 +811,9 @@ public final class ModelViewer extends SimpleApplication {
             RotatorControl rotator = new RotatorControl();
             rotator.setEnabled(rotate);
             spat.addControl(rotator);
+
+            // There is no map to light these, show them fully lit
+            AssetUtils.applyFullLight(spat);
         }
 
         // Hide the floor on maps

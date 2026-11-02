@@ -81,7 +81,7 @@ public abstract class MultiplayerLoadingState extends LoadingState implements IP
             Material mat = new Material(assetManager,
                     "Common/MatDefs/Misc/Unshaded.j3md");
             Color c = MapThumbnailGenerator.getPlayerColor(i);
-            mat.setColor("Color", new ColorRGBA(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f));
+            mat.setColor("Color", new ColorRGBA().setAsSrgb(c.getRed() / 255f, c.getGreen() / 255f, c.getBlue() / 255f, c.getAlpha() / 255f));
             progressBar.setMaterial(mat);
 
             progressBars.add(progressBar);

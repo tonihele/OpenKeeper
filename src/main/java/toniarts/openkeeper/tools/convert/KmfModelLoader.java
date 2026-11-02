@@ -27,7 +27,6 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.material.plugin.export.material.J3MExporter;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -676,16 +675,13 @@ public final class KmfModelLoader implements AssetLoader {
 
             // Create the material
             if (material == null) {
-                material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+                material = new Material(assetInfo.getManager(), "MatDefs/DkLighting/Vertex.j3md");
                 material.setName(mat.getName());
             }
 
             //Load up the texture and create the material
             Texture tex = loadTexture(texture, assetInfo);
             material.setTexture("DiffuseMap", tex);
-            material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
-            material.setColor("Diffuse", ColorRGBA.White); // Experimental
-            material.setFloat("Shininess", mat.getShininess());
 
             // Set some flags
             setMaterialFlags(material, mat);

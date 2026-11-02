@@ -121,6 +121,12 @@ public final class Water {
             MapViewController.setTerrainMaterialLighting(mat, entityInstances.get(0).getEntity());
         }
 
+        // Light it like the terrain (the caller registers the material with
+        // the scene lights)
+        if (mat != null && !(water && WATER_TYPE == WaterType.SIMPLE)) {
+            mat = AssetUtils.createDkSurfaceMaterial(assetManager, mat);
+        }
+
         // Set it all
         geo.setMaterial(mat);
         if (mat.isTransparent()) {
