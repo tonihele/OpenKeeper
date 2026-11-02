@@ -23,12 +23,15 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -89,6 +92,28 @@ class CreatureGamblingTest {
         CreatureState.IDLE.enter(creature);
 
         assertEquals(CreatureState.WORK, currentState.get());
+    }
+
+    @Test
+    void tiredGamblerLeavesTheCasinoForItsLair() {
+        Task gamble = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                (proxy, method, args) -> method.getName().equals("getTaskType") ? TaskType.GAMBLE : null);
+        AtomicBoolean wentToSleep = new AtomicBoolean();
+        ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getAssignedTask" -> gamble;
+                    case "hasLair", "isNeedForSleep" -> true;
+                    case "goToSleep" -> {
+                        wentToSleep.set(true);
+                        yield true;
+                    }
+                    case "executeAssignedTask" -> throw new AssertionError("kept gambling");
+                    default -> method.getReturnType() == boolean.class ? Boolean.FALSE : null;
+                });
+
+        CreatureState.WORK.update(creature);
+
+        assertTrue(wentToSleep.get());
     }
 
     private ICreatureController creature(short owner, boolean worker, int gold) {
