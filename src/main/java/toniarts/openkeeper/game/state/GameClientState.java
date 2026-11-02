@@ -106,6 +106,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
+    private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
     private TextParser textParser;
 
@@ -194,6 +195,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
+        if (musicLevelState != null) {
+            stateManager.detach(musicLevelState);
+        }
     }
 
     /**
@@ -216,6 +220,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerModelViewState = null;
         minimapPanelState = null;
         fullscreenMapState = null;
+        musicLevelState = null;
         effectManagerState = null;
     }
 
@@ -378,7 +383,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
-                        false,
+                        true, // Built, but hidden until the viewer possesses a creature
                         () -> {
                             synchronized (mapDataLoadingObject) {
                                 mapDataLoaded = true;
@@ -470,15 +475,20 @@ public final class GameClientState extends AbstractPauseAwareState {
             // Release loading state from memory
             loadingState = null;
 
-            stateManager.getState(SoundState.class).setKwdFile(kwdFile);
-            stateManager.getState(SoundState.class).setEnabled(true);
+            SoundState soundState = stateManager.getState(SoundState.class);
+            soundState.setKwdFile(kwdFile);
+            soundState.setEnabled(true);
+            soundState.startLevelBackground();
 
             app.enqueue(() -> {
+                musicLevelState = new MusicLevelState(gameClientService.getEntityData(), players.get(playerId), kwdFile);
+                stateManager.attach(musicLevelState);
                 playerState.setEnabled(true);
 
                 // The background sounds of the level
                 if (playerMapViewState != null) {
-                    ambienceState = new AmbienceState(kwdFile, playerMapViewState);
+                    ambienceState = new AmbienceState(kwdFile, playerMapViewState,
+                            stateManager.getState(SoundState.class).getMusicLevel()::getIntensity);
                     stateManager.attach(ambienceState);
                 }
 
@@ -495,22 +505,34 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTilesChange(List<Point> updatedTiles) {
-            playerMapViewState.onTilesChange(updatedTiles);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onTilesChange(updatedTiles);
+            }
         }
 
         @Override
         public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
-            playerMapViewState.onTilesReveal(points, explore, keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onTilesReveal(points, explore, keeperId);
+            }
         }
 
         @Override
         public void onFogOfWarDisabled(short keeperId) {
-            playerMapViewState.onFogOfWarDisabled(keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onFogOfWarDisabled(keeperId);
+            }
         }
 
         @Override
         public void onFogOfWarReset(short keeperId) {
-            playerMapViewState.onFogOfWarReset(keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onFogOfWarReset(keeperId);
+            }
         }
 
         @Override
@@ -542,12 +564,18 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onBuild(short keeperId, List<Point> tiles) {
-            playerMapViewState.onBuild(keeperId, tiles);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onBuild(keeperId, tiles);
+            }
         }
 
         @Override
         public void onSold(short keeperId, List<Point> tiles) {
-            playerMapViewState.onSold(keeperId, tiles);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onSold(keeperId, tiles);
+            }
         }
 
         @Override
@@ -641,7 +669,10 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
-            playerMapViewState.onTileFlash(points, enabled, keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onTileFlash(points, enabled, keeperId);
+            }
         }
 
         @Override
@@ -795,6 +826,18 @@ public final class GameClientState extends AbstractPauseAwareState {
     public void setPossessedCreature(EntityId entityId) {
         if (playerMapViewState != null) {
             playerMapViewState.setPossessedCreature(entityId);
+        }
+    }
+
+    /**
+     * Shows or hides the map ceiling, which is only wanted while possessing a
+     * creature
+     *
+     * @param visible show the ceiling
+     */
+    public void setCeilingVisible(boolean visible) {
+        if (playerMapViewState != null) {
+            playerMapViewState.setCeilingVisible(visible);
         }
     }
 
