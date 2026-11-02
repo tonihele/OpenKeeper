@@ -164,6 +164,22 @@ public interface GameSession {
     public void triggerSpawnCreatureCheat(short creatureId, int level, int amount);
 
     /**
+     * Trigger a cheat that adds gold to the player
+     *
+     * @param amount how much gold to add
+     */
+    @Asynchronous
+    public void triggerAddGoldCheat(int amount);
+
+    /**
+     * Trigger a cheat that adds mana to the player
+     *
+     * @param amount how much mana to add
+     */
+    @Asynchronous
+    public void triggerAddManaCheat(int amount);
+
+    /**
      * Steer the currently possessed creature
      *
      * @param direction normalized movement direction on the map plane, zero

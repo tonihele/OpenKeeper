@@ -24,8 +24,10 @@ import java.lang.System.Logger.Level;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -173,7 +175,8 @@ public abstract class AbstractTask implements Task {
      * @return task location next to the wanted tile
      */
     protected Vector2f getAccessibleTargetNextToLocation(ICreatureController creature) {
-        List<Point> accessibleTiles = new ArrayList<>();
+        // The same spot comes up from several sides, each one costs a path search below (#671)
+        Set<Point> accessibleSpots = new LinkedHashSet<>();
         for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
             for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
                 if (p.equals(getTaskLocation())) {
@@ -184,10 +187,11 @@ public abstract class AbstractTask implements Task {
                     continue;
                 }
 
-                accessibleTiles.add(p);
+                accessibleSpots.add(p);
             }
         }
 
+        List<Point> accessibleTiles = new ArrayList<>(accessibleSpots);
         if (accessibleTiles.isEmpty()) {
             return null;
         }
