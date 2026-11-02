@@ -97,9 +97,16 @@ public enum CreatureState implements State<ICreatureController> {
                 return; // Found work
             }
 
-            // Find work
+            // A full worker unloads its gold before it takes on new work
+            if (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return;
+            }
+
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
             entity.findWork((foundWork) -> {
-                if (foundWork || (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
+                if (foundWork) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
@@ -123,6 +130,12 @@ public enum CreatureState implements State<ICreatureController> {
 
             // An enemy door right next to us
             if (entity.attackAdjacentDoor()) {
+                return;
+            }
+
+            // Native hunger is checked every tick, not only when re-evaluating
+            if (entity.isHungry() && entity.goToEat()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
                 return;
             }
 
@@ -229,20 +242,21 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Native fatigue can interrupt compatible room work, including travel to it.
+            // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
                     || task.getTaskType() == TaskType.RESEARCH)
-                    && entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()) {
+                    && ((entity.isHungry() && entity.goToEat())
+                    || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
-                // unassign the newly selected sleep task.
+                // unassign the newly selected eat or sleep task.
                 entity.navigateToAssignedTask();
                 return;
             }
 
             // Check validity
-            // If we have some pocket money left, we should return it to treasury
-            if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
+            // A full worker unloads its gold, otherwise it looks for new work and keeps the gold it carries for now
+            if (!entity.isAssignedTaskValid() && !(entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
                 entity.getStateMachine().changeState(IDLE);
                 return;
             }
