@@ -174,14 +174,14 @@ public final class GameLoopManager {
     }
 
     /**
-     * Runs a player action between the game logic ticks. Player actions come
-     * from the render thread (or the network thread) and change the same
-     * state as the game logic does
+     * Queues a player action to run at the start of the next game logic tick.
+     * Player actions come from the render thread (or the network thread) and
+     * change the same state as the game logic does
      *
      * @param action the player action
      */
     public void runPlayerAction(Runnable action) {
-        gameLogicThread.runBetweenTicks(action);
+        gameLogicThread.enqueueAction(action);
     }
 
 }

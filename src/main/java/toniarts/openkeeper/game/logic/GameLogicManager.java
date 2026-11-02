@@ -18,6 +18,10 @@ package toniarts.openkeeper.game.logic;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Runs the game logic tasks, well, doesn't literally run them but wraps them up
@@ -29,6 +33,7 @@ public final class GameLogicManager implements IGameLogicUpdatable {
     private static final Logger logger = System.getLogger(GameLogicManager.class.getName());
 
     protected final IGameLogicUpdatable[] updatables;
+    private final BlockingQueue<Runnable> actions = new LinkedBlockingQueue<>();
 
     public GameLogicManager(IGameLogicUpdatable... updatables) {
         this.updatables = updatables;
@@ -42,7 +47,9 @@ public final class GameLogicManager implements IGameLogicUpdatable {
     }
 
     @Override
-    public synchronized void processTick(float tpf) {
+    public void processTick(float tpf) {
+        runQueuedActions();
+
         // Update updatables
         for (IGameLogicUpdatable updatable : updatables) {
             try {
@@ -54,14 +61,28 @@ public final class GameLogicManager implements IGameLogicUpdatable {
     }
 
     /**
-     * Runs an action that changes the game state from another thread, such as
-     * a player action from the render thread, so that it never runs in the
-     * middle of a tick
+     * Queues an action that changes the game state from another thread, such
+     * as a player action from the render thread. It runs at the start of the
+     * next tick, on the logic thread. Never blocks
      *
      * @param action the action to run
      */
-    public synchronized void runBetweenTicks(Runnable action) {
-        action.run();
+    public void enqueueAction(Runnable action) {
+        actions.add(action);
+    }
+
+    private void runQueuedActions() {
+
+        // Drain once, actions queued while these run wait for the next tick
+        List<Runnable> queued = new ArrayList<>();
+        actions.drainTo(queued);
+        for (Runnable action : queued) {
+            try {
+                action.run();
+            } catch (Exception e) {
+                logger.log(Level.ERROR, "Error in queued game action!", e);
+            }
+        }
     }
 
     @Override

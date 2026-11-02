@@ -16,23 +16,23 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * A player action from another thread never runs in the middle of a game
- * logic tick
+ * Queued player actions run on the logic thread at the start of a tick, never
+ * in the middle of one
  */
 public class GameLogicManagerTest {
 
+    private final List<String> events = new ArrayList<>();
+
     @Test
-    public void playerActionWaitsForTheRunningTick() throws Exception {
-        CountDownLatch tickStarted = new CountDownLatch(1);
-        AtomicBoolean tickDone = new AtomicBoolean();
-        GameLogicManager manager = new GameLogicManager(new IGameLogicUpdatable() {
+    public void actionQueuedDuringTickRunsAtStartOfNextTick() {
+        GameLogicManager[] manager = new GameLogicManager[1];
+        manager[0] = new GameLogicManager(new IGameLogicUpdatable() {
             @Override
             public void start() {
             }
@@ -43,24 +43,32 @@ public class GameLogicManagerTest {
 
             @Override
             public void processTick(float tpf) {
-                tickStarted.countDown();
-                try {
-                    Thread.sleep(200);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
+                events.add("tick");
+                if (events.size() == 1) {
+                    manager[0].enqueueAction(() -> events.add("action"));
                 }
-                tickDone.set(true);
             }
         });
 
-        Thread logicThread = new Thread(() -> manager.processTick(0.25f));
-        logicThread.start();
-        assertTrue(tickStarted.await(5, TimeUnit.SECONDS));
+        manager[0].processTick(0.25f);
+        assertEquals(List.of("tick"), events);
 
-        AtomicBoolean ranAfterTick = new AtomicBoolean();
-        manager.runBetweenTicks(() -> ranAfterTick.set(tickDone.get()));
-        logicThread.join();
+        manager[0].processTick(0.25f);
+        assertEquals(List.of("tick", "action", "tick"), events);
+    }
 
-        assertTrue(ranAfterTick.get());
+    @Test
+    public void actionQueuedWhileDrainingWaitsForTheFollowingTick() {
+        GameLogicManager manager = new GameLogicManager();
+        manager.enqueueAction(() -> {
+            events.add("first");
+            manager.enqueueAction(() -> events.add("second"));
+        });
+
+        manager.processTick(0.25f);
+        assertEquals(List.of("first"), events);
+
+        manager.processTick(0.25f);
+        assertEquals(List.of("first", "second"), events);
     }
 }
