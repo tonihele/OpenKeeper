@@ -286,8 +286,7 @@ public final class Settings {
         settings.setTitle(TITLE);
         settings.setIcons(getApplicationIcons());
 
-        // We don't allow this to be changed, assets were not meant to use this
-        settings.setGammaCorrection(false);
+        // Gamma correction is on by default (AppSettings default), the user can toggle it in the graphics settings
     }
 
     /**
@@ -421,7 +420,7 @@ public final class Settings {
      * @return number of attempts to a level
      */
     public int getLevelAttempts(CampaignLevel level) {
-        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
+        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel() + level.getVariation(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 
     /**
@@ -569,12 +568,12 @@ public final class Settings {
         // Reset secret levels
         for (int i = 1; i < 6; i++) {
             CampaignLevel secretLevel = new CampaignLevel(Secret, i);
-            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel, SecretLevelStatus.NOT_DISCOVED);
+            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel.getLevel(), SecretLevelStatus.NOT_DISCOVED);
         }
     }
 
     private void resetCampaignLevel(CampaignLevel level) {
         setLevelStatus(level, LevelStatus.NOT_COMPLETED);
-        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, Setting.LEVEL_ATTEMPTS.getDefaultValue());
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel() + level.getVariation(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 }

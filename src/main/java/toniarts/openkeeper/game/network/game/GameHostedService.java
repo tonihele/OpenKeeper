@@ -174,7 +174,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public EntityData getEntityData() {
+    public EntityData getServerEntityData() {
         return getServiceManager().getService(EntityDataHostedService.class).getEntityData();
     }
 
@@ -646,6 +646,20 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         public void triggerSpawnCreatureCheat(short creatureId, int level, int amount) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSpawnCreatureCheatTriggered(creatureId, level, amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerAddGoldCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddGoldCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerAddManaCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddManaCheatTriggered(amount, clientInfo.getKeeper().getId());
             }
         }
 

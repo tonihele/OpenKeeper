@@ -134,7 +134,8 @@ public final class CreatureMood implements EntityComponent {
     }
 
     /**
-     * Converts an authored KWD anger delta to the runtime scale used by DKII.
+     * Converts an authored KWD anger rate per second to the per tick value
+     * used by DKII. One-off deltas like the slap anger are not converted.
      *
      * @param value authored value
      * @return runtime value
