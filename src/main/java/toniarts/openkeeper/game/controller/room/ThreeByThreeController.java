@@ -22,6 +22,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureGenerator;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -31,10 +32,14 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
-    public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    private final IGameTimer gameTimer;
+
+    public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
+        this.gameTimer = gameTimer;
+        // Start the first attraction cooldown when the Portal is created.
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
     }
 
     @Override
@@ -63,6 +68,6 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
     }
 }
