@@ -26,7 +26,9 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
+import toniarts.openkeeper.game.controller.IDoorsController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -40,13 +42,18 @@ class SensedEntitiesTest {
 
     private static final short KEEPER = 3;
     private static final short WOODEN_DOOR = 1;
+    private static final short BARRICADE = 6;
 
     private final EntityData entityData = new DefaultEntityData();
 
-    @Test
-    void doorBlocksTheEnemysSensesButNotTheOwners() {
+    private EntityId hero;
+    private EntityId door;
+    private EntityId creature;
 
-        // A corridor: hero, floor, the keeper's door, keeper's creature
+    /**
+     * A corridor: hero, floor, the keeper's door, keeper's creature
+     */
+    private PositionSystem corridor(short doorId) {
         FakeMapData mapData = new FakeMapData(4, 1);
         Terrain floor = TerrainFixtures.terrain((short) 1, TerrainFixtures.flags(), 0, 1, 1, (short) 1);
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
@@ -55,16 +62,35 @@ class SensedEntitiesTest {
             case "getTerrain" -> floor;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        EntityId hero = add(Player.GOOD_PLAYER_ID, new Point(0, 0));
+        IDoorController doorController = (IDoorController) Proxy.newProxyInstance(IDoorController.class.getClassLoader(),
+                new Class<?>[]{IDoorController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isBarricade" -> doorId == BARRICADE;
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        IDoorsController doorsController = (IDoorsController) Proxy.newProxyInstance(IDoorsController.class.getClassLoader(),
+                new Class<?>[]{IDoorsController.class}, (proxy, method, args) -> doorController);
+        hero = add(Player.GOOD_PLAYER_ID, new Point(0, 0));
         entityData.setComponent(hero, new Senses(4, 4));
-        EntityId door = add(KEEPER, new Point(2, 0));
-        entityData.setComponent(door, new DoorComponent(WOODEN_DOOR, false, false));
-        EntityId creature = add(KEEPER, new Point(3, 0));
+        door = add(KEEPER, new Point(2, 0));
+        entityData.setComponent(door, new DoorComponent(doorId, false, false));
+        creature = add(KEEPER, new Point(3, 0));
         entityData.setComponent(creature, new Senses(4, 4));
-        PositionSystem positionSystem = new PositionSystem(mapController, entityData, null, null, null);
+        return new PositionSystem(mapController, entityData, null, doorsController, null);
+    }
+
+    @Test
+    void doorBlocksTheEnemysSensesButNotTheOwners() {
+        PositionSystem positionSystem = corridor(WOODEN_DOOR);
 
         assertEquals(Set.of(door), positionSystem.getSensedEntities(hero));
         assertEquals(Set.of(door, hero), positionSystem.getSensedEntities(creature));
+    }
+
+    @Test
+    void enemySeesOverABarricade() {
+        PositionSystem positionSystem = corridor(BARRICADE);
+
+        assertEquals(Set.of(door, creature), positionSystem.getSensedEntities(hero));
     }
 
     private EntityId add(short owner, Point tile) {

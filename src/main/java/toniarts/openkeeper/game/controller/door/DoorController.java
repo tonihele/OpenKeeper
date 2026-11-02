@@ -46,4 +46,9 @@ public final class DoorController extends EntityController implements IDoorContr
         return (health == null || health.health == 0);
     }
 
+    @Override
+    public boolean isBarricade() {
+        return door.getFlags().contains(Door.DoorFlag.IS_BARRICADE);
+    }
+
 }

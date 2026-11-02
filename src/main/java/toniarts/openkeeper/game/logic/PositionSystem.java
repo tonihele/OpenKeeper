@@ -340,6 +340,15 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
+    private boolean isBarricade(IMapTileInformation tile) {
+        for (EntityId entityId : obstaclesByMapTile[tile.getX()][tile.getY()]) {
+            if (entityData.getComponent(entityId, DoorComponent.class) != null) {
+                return getEntityController(entityId, IDoorController.class).isBarricade();
+            }
+        }
+        return false;
+    }
+
     private void addSensedEntities(IMapTileInformation tile, int range, short playerId, Set<EntityId> sensedEntities) {
         if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
                 || range-- < 0) {
@@ -348,9 +357,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         sensedEntities.addAll(getEntitiesInLocation(tile));
 
-        // A door blocks the sight, as in DK II (0x4511A0). The hearing follows the paths (0x45AFF0), so it only goes
-        // through a door the creature can walk through
-        if (isTileBlocked(tile.getX(), tile.getY(), playerId)) {
+        // A door blocks the sight, as in DK II (0x4511A0), but creatures see over a barricade. The hearing follows
+        // the paths (0x45AFF0), so it only goes through a door the creature can walk through
+        if (isTileBlocked(tile.getX(), tile.getY(), playerId) && !isBarricade(tile)) {
             return;
         }
 
