@@ -1,5 +1,20 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later */
-package toniarts.openkeeper.view.map.construction;
+/*
+ * Copyright (C) 2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.tools.convert;
 
 import com.jme3.bounding.BoundingBox;
 import com.jme3.math.Vector3f;
@@ -13,16 +28,14 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Workaround for jME's geometry-level transparent sorting: the Portal's chasm
- * and crystals overlap, so whole-geometry ordering draws parts in the wrong
- * order. Separate triangles let the standard transparent queue interleave them
- * as the camera moves. They share vertex buffers but each costs a draw call,
- * which is why this is limited to Portals rather than all converted models.
- * The split itself could be baked into converted assets; camera-dependent
- * ordering would still happen at render time, with batching disabled here.
+ * Prepares static transparent meshes for jME's geometry-level depth sorting.
+ * Overlapping surfaces need independently sortable triangles; otherwise one
+ * whole surface draws over another even where their depth order reverses.
+ * Shared vertex buffers keep the extra geometry small, while disabling batching
+ * preserves the individual draw bounds after loading the converted model.
  */
-final class PortalTransparentSurfaces {
-    private PortalTransparentSurfaces() {
+final class TransparentSurfaces {
+    private TransparentSurfaces() {
     }
 
     static void prepare(Spatial model) {
@@ -57,6 +70,10 @@ final class PortalTransparentSurfaces {
                 mesh.setBound(bound);
                 Geometry triangle = new Geometry(surface.getName() + ":" + i, mesh);
                 triangle.setMaterial(surface.getMaterial());
+                // Keep alternative textures and other converter metadata.
+                for (String key : surface.getUserDataKeys()) {
+                    triangle.setUserData(key, surface.getUserData(key));
+                }
                 triangle.setQueueBucket(Bucket.Transparent);
                 // Batching would combine these again and discard triangle-level ordering.
                 triangle.setBatchHint(Spatial.BatchHint.Never);

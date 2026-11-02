@@ -1,4 +1,19 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright (C) 2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package toniarts.openkeeper.view;
 
 import com.jme3.app.state.AppStateManager;
@@ -46,21 +61,103 @@ class PortalEntranceClientTest {
         var assets = new DesktopAssetManager(true);
         var states = new AppStateManager(null);
         short[] owner = {-1};
+        int[] plays = {0};
+        var locations = new java.util.ArrayList<Vector3f>();
         var effects = new EffectManagerState(level, assets) {
             @Override
             public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
                 assertEquals(77, effectId);
                 owner[0] = ownerId;
-                assertEquals(new Vector3f(4, WorldUtils.UNDERFLOOR_HEIGHT, 6), node.getLocalTranslation());
+                plays[0]++;
+                locations.add(node.getLocalTranslation().clone());
                 return super.load(node, location, effectId, infinite, ownerId);
             }
         };
         states.attach(effects);
-        var view = new PlayerEntityViewState(level, assets, client, (short) 3, null, new Node());
+        var root = new Node();
+        boolean[] visible = {true};
+        var fog = (toniarts.openkeeper.view.fogofwar.IFogOfWarInformation) Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{toniarts.openkeeper.view.fogofwar.IFogOfWarInformation.class},
+                (proxy, method, args) -> visible[0]);
+        var view = new PortalEffectState(level, client, root, fog);
         try {
             view.initialize(states, null);
             assertEquals(4, owner[0]);
+            assertEquals(new Vector3f(4, WorldUtils.UNDERFLOOR_HEIGHT, 6), locations.getFirst());
+            server.setComponents(id, new Position(0, new Vector3f(5, 1, 7)),
+                    new Owner((short) 5, (short) 5));
+            view.update(.05f);
+            assertEquals(1, plays[0]); // Position/owner updates do not replay the same arrival.
+            visible[0] = false;
+            view.update(.05f);
+            var effectsRoot = (Node) root.getChild("Portal effects");
+            assertEquals(com.jme3.scene.Spatial.CullHint.Always, effectsRoot.getChild(0).getLocalCullHint());
+            server.setComponent(id, new CreatureViewState((short) 7, 1, Creature.AnimationType.IDLE_1));
+            view.update(.05f);
+            server.setComponent(id, new CreatureViewState((short) 7, 2, Creature.AnimationType.ENTRANCE));
+            view.update(.05f);
+            assertEquals(2, plays[0]);
+            assertEquals(5, owner[0]);
+            assertEquals(new Vector3f(5, WorldUtils.UNDERFLOOR_HEIGHT, 7), locations.getLast());
+            server.removeEntity(id);
+            view.update(.05f);
+            assertEquals(0, effectsRoot.getQuantity());
             view.cleanup();
+            assertEquals(0, root.getQuantity());
+        } finally {
+            server.close();
+        }
+    }
+
+    @Test
+    void preparationSubscriptionStartsEachBuildUpOnceAndClearsOnCapture() throws Exception {
+        var server = new DefaultEntityData();
+        var id = server.createEntity();
+        server.setComponents(id, new toniarts.openkeeper.game.component.RoomComponent((short) 3, false,
+                new toniarts.openkeeper.utils.Point(2, 3)), new Owner((short) 4, (short) 4),
+                new toniarts.openkeeper.game.component.PortalViewState(-1));
+        var room = new toniarts.openkeeper.tools.convert.map.Room();
+        set(room, "effects", List.of(0, 0, 77));
+        var effect = new Effect();
+        set(effect, "flags", EnumSet.of(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS));
+        set(effect, "generateIds", List.of());
+        set(effect, "minHp", 2);
+        set(effect, "maxHp", 2);
+        IKwdFile level = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getRoomById" -> room;
+                    case "getEffect" -> effect;
+                    default -> throw new AssertionError(method.getName());
+                });
+        var states = new AppStateManager(null);
+        int[] plays = {0};
+        states.attach(new EffectManagerState(level, null) {
+            @Override
+            public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
+                assertEquals(77, effectId);
+                assertEquals(4, ownerId);
+                plays[0]++;
+                return super.load(node, location, effectId, infinite, ownerId);
+            }
+        });
+        var root = new Node();
+        var view = new PortalEffectState(level, new ClientEntityData(server), root,
+                toniarts.openkeeper.view.fogofwar.IFogOfWarInformation.ALWAYS_VISIBLE);
+        try {
+            view.initialize(states, null);
+            assertEquals(0, plays[0]);
+            server.setComponent(id, new toniarts.openkeeper.game.component.PortalViewState(5));
+            view.update(.05f);
+            view.update(.05f);
+            assertEquals(1, plays[0]);
+            server.setComponent(id, new toniarts.openkeeper.game.component.PortalViewState(-1));
+            view.update(.05f);
+            assertEquals(0, ((Node) root.getChild("Portal effects")).getQuantity());
+            server.setComponent(id, new toniarts.openkeeper.game.component.PortalViewState(10));
+            view.update(.05f);
+            assertEquals(2, plays[0]);
+            view.cleanup();
+            assertEquals(0, root.getQuantity());
         } finally {
             server.close();
         }
