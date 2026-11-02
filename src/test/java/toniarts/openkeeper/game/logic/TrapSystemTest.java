@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
@@ -292,6 +294,19 @@ class TrapSystemTest {
 
         // The data flag OpenKeeper calls IS_HORNY, only the Horned Reaper has it
         addCreature(REAPER, ENEMY, 10, 10);
+
+        tick();
+
+        assertTrue(shots.isEmpty());
+    }
+
+    @Test
+    void sentryIgnoresPrisonersAndTortureVictims() {
+        addTrap(SENTRY, TRAP_TILE);
+        EntityId prisoner = addCreature(IMP, ENEMY, 12, 10);
+        entityData.setComponent(prisoner, new CreatureImprisoned(0, 0));
+        EntityId tortured = addCreature(IMP, ENEMY, 11, 10);
+        entityData.setComponent(tortured, new CreatureTortured(0, 0, 0));
 
         tick();
 
