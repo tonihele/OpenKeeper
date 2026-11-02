@@ -17,14 +17,15 @@
 package toniarts.openkeeper.view.map.construction;
 
 import com.jme3.asset.AssetManager;
-import com.jme3.audio.AudioData.DataType;
-import com.jme3.audio.AudioNode;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import toniarts.openkeeper.game.data.CampaignLevel;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundManager;
 
 /**
  * Controls level graphics
@@ -71,10 +72,7 @@ public class FrontEndLevelControl extends AbstractControl {
 
                 // If the spatial starts in the base location, play the sound
                 if (getSpatial().getLocalTranslation().equals(baseLocation)) {
-                    AudioNode fx = new AudioNode(assetManager, "Sounds/Global/GuiHD/RockRise nl.mp2", DataType.Buffer);
-                    fx.setLooping(false);
-                    fx.setPositional(true);
-                    fx.play();
+                    SoundManager.playSound(GlobalCategory.OBJECT_FE_MAP, GlobalType.FRONT_END_MAP_ROCK_RISE);
                 }
 
                 // Play the animation
