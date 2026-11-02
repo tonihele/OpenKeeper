@@ -20,6 +20,8 @@ import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -54,6 +56,7 @@ import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -156,6 +159,11 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+    /** DK II lays the torture wheels on the floor, and their victims on them */
+    private static final Quaternion LYING_ON_THE_FLOOR = new Quaternion().fromAngleAxis(-FastMath.HALF_PI, Vector3f.UNIT_X);
+    /** DK II lifts the victim on a torture wheel by 0x200 (1/8 tile) */
+    private static final float TORTURE_WHEEL_VICTIM_LIFT = 0.125f;
+    private float tortureWheelTime = 0;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -245,6 +253,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        spinTortureWheels(tpf);
 
         // Lighting: re-derive attached-light positions and bind the
         // vertex-lit models every frame -- lights on other things
@@ -280,6 +289,39 @@ public class PlayerEntityViewState extends AbstractAppState {
                 AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
         }
+    }
+
+    /**
+     * The torture wheels spin all the time, and their victims with them
+     */
+    private void spinTortureWheels(float tpf) {
+        tortureWheelTime += tpf;
+        for (Spatial object : objectModelContainer.getModels()) {
+            ObjectViewControl control = object.getControl(ObjectViewControl.class);
+            if (control != null && control.getCurrentState() != null
+                    && control.getCurrentState().state == GameObject.State.TORTURE_WHEEL_SPIN) {
+                spinOnTortureWheel(object);
+            }
+        }
+        for (Spatial object : creatureModelContainer.getModels()) {
+            CreatureViewControl control = object.getControl(CreatureViewControl.class);
+            if (control != null && control.getCurrentState() == Creature.AnimationType.TORTURED_WHEEL) {
+                spinOnTortureWheel(object);
+            }
+        }
+    }
+
+    /**
+     * DK II turns a torture wheel by 4 to 7 2048ths of a turn per game tick,
+     * depending on the tile, and the wheels on every other tile the other way
+     */
+    private void spinOnTortureWheel(Spatial object) {
+        Point tile = WorldUtils.vectorToPoint(object.getLocalTranslation());
+        int sum = tile.x + tile.y;
+        float ticksPerSecond = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.GAME_TICKS).getValue();
+        float speed = (4 + (sum & 3)) * ((sum & 1) != 0 ? 1 : -1) * ticksPerSecond * FastMath.TWO_PI / 2048;
+        float angle = (tortureWheelTime * speed) % FastMath.TWO_PI;
+        object.setLocalRotation(new Quaternion().fromAngleAxis(angle, Vector3f.UNIT_Y).multLocal(LYING_ON_THE_FLOOR));
     }
 
     protected LightRules getLightRules() {
@@ -807,6 +849,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
+            if (e.get(CreatureViewState.class).state == Creature.AnimationType.TORTURED_WHEEL) {
+                object.move(0, TORTURE_WHEEL_VICTIM_LIFT, 0);
+            }
             updateCreatureModelAnimation(object, e);
         }
 

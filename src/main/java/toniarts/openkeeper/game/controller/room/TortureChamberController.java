@@ -19,9 +19,11 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 
@@ -31,6 +33,8 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class TortureChamberController extends NormalRoomController {
+
+    private static final short TORTURE_WHEEL_OBJECT_ID = 8;
 
     private final IGameTimer gameTimer;
 
@@ -54,5 +58,14 @@ public final class TortureChamberController extends NormalRoomController {
 
         // Extending the room builds the furniture again, the victims need the new devices
         control.refreshDevices();
+
+        // Like in DK II, the torture wheels spin all the time
+        for (EntityId furniture : getFloorFurniture()) {
+            ObjectViewState viewState = entityData.getComponent(furniture, ObjectViewState.class);
+            if (viewState != null && viewState.objectId == TORTURE_WHEEL_OBJECT_ID) {
+                entityData.setComponent(furniture, new ObjectViewState(viewState.objectId,
+                        GameObject.State.TORTURE_WHEEL_SPIN, viewState.animState, viewState.visible));
+            }
+        }
     }
 }

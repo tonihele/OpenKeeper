@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class CreatureViewSystemTest {
@@ -39,7 +40,7 @@ class CreatureViewSystemTest {
 
     private final EntityData entityData = new DefaultEntityData();
 
-    private Creature.AnimationType tortureAnimation(short deviceObjectId) {
+    private EntityId victim(short deviceObjectId) {
         EntityId device = entityData.createEntity();
         entityData.setComponents(device, new ObjectComponent(deviceObjectId, AbstractRoomController.ObjectType.TORTUREE));
         EntityId victim = entityData.createEntity();
@@ -47,15 +48,39 @@ class CreatureViewSystemTest {
                 new Position(0, new Vector3f()),
                 new CreatureAi(0, CreatureState.TORTURED, (short) 1),
                 new CreatureTortured(0, 0, 0, device));
+        return victim;
+    }
 
+    private Creature.AnimationType tortureAnimation(short deviceObjectId) {
+        EntityId victim = victim(deviceObjectId);
         CreatureViewSystem system = new CreatureViewSystem(entityData);
         system.processTick(1);
         return entityData.getComponent(victim, CreatureViewState.class).state;
     }
 
     @Test
-    void victimOnTheElectricChairSitsInTheChair() {
-        assertEquals(Creature.AnimationType.TORTURED_CHAIR, tortureAnimation(ELECTRIC_CHAIR));
+    void victimOnTheElectricChairIsElectrocutedFirst() {
+        assertEquals(Creature.AnimationType.TORTURED_CHAIR_SKELETON, tortureAnimation(ELECTRIC_CHAIR));
+    }
+
+    @Test
+    void victimOnTheElectricChairIsElectrocutedForThreeSecondsThenSitsForThreeSeconds() {
+        EntityId victim = victim(ELECTRIC_CHAIR);
+        CreatureViewSystem system = new CreatureViewSystem(entityData);
+
+        // Four ticks a second, like in DK II
+        Creature.AnimationType[] seconds = new Creature.AnimationType[12];
+        for (int tick = 0; tick < seconds.length * 4; tick++) {
+            system.processTick(0.25f);
+            if (tick % 4 == 0) {
+                seconds[tick / 4] = entityData.getComponent(victim, CreatureViewState.class).state;
+            }
+        }
+
+        Creature.AnimationType skeleton = Creature.AnimationType.TORTURED_CHAIR_SKELETON;
+        Creature.AnimationType chair = Creature.AnimationType.TORTURED_CHAIR;
+        assertArrayEquals(new Creature.AnimationType[]{skeleton, skeleton, skeleton, chair, chair, chair,
+            skeleton, skeleton, skeleton, chair, chair, chair}, seconds);
     }
 
     @Test
