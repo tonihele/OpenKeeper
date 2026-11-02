@@ -204,6 +204,17 @@ public final class GameServerState extends AbstractAppState {
      */
     private final class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
+        // The actions are queued for the next tick, and the client may reuse the points it passed in (the selection
+        // area does), so the queued action gets its own copies
+
+        private static Vector2f copy(Vector2f vector) {
+            return vector != null ? vector.clone() : null;
+        }
+
+        private static Point copy(Point point) {
+            return point != null ? new Point(point.x, point.y) : null;
+        }
+
         @Override
         public void onStartGame() {
 
@@ -226,17 +237,23 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            game.runPlayerAction(() -> mapController.selectTiles(start, end, select, playerId));
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> mapController.selectTiles(from, to, select, playerId));
         }
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            game.runPlayerAction(() -> gameWorldController.build(start, end, playerId, roomId));
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> gameWorldController.build(from, to, playerId, roomId));
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            game.runPlayerAction(() -> gameWorldController.sell(start, end, playerId));
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> gameWorldController.sell(from, to, playerId));
         }
 
         @Override
@@ -251,22 +268,28 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-            game.runPlayerAction(() -> gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId));
+            Point dropTile = copy(tile);
+            Vector2f dropCoordinates = copy(coordinates);
+            game.runPlayerAction(() -> gameWorldController.drop(entity, dropTile, dropCoordinates, dropOnEntity, playerId));
         }
 
         @Override
         public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
-            game.runPlayerAction(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId));
+            Point castTile = copy(tile);
+            Vector2f castPosition = copy(position);
+            game.runPlayerAction(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, castTile, castPosition, playerId));
         }
 
         @Override
         public void onPlaceDoor(short doorId, Point tile, short playerId) {
-            game.runPlayerAction(() -> gameWorldController.placeDoor(doorId, tile, playerId));
+            Point doorTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeDoor(doorId, doorTile, playerId));
         }
 
         @Override
         public void onPlaceTrap(short trapId, Point tile, short playerId) {
-            game.runPlayerAction(() -> gameWorldController.placeTrap(trapId, tile, playerId));
+            Point trapTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeTrap(trapId, trapTile, playerId));
         }
 
         @Override
