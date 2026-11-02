@@ -80,7 +80,8 @@ public final class TorchControl extends BillboardControl {
 
                 result = new Geometry("torch flame", createMesh(FLAME_SIZE, FLAME_SIZE));
                 result.setMaterial(material);
-                result.setQueueBucket(RenderQueue.Bucket.Translucent);
+                // Render before post-processing so the scene depth still occludes the flame.
+                result.setQueueBucket(RenderQueue.Bucket.Transparent);
                 result.setBatchHint(BatchHint.Never); // prevent constant updates of the wall batches
                 // Keep the camera-facing quad fully in front of the wall at every angle.
                 result.move(FLAME_WALL_OFFSET, 0.2f, 0);
