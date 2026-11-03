@@ -22,12 +22,15 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -37,6 +40,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class RoomTortureeControl extends AbstractRoomObjectControl<EntityId> {
+
+    private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
 
     public RoomTortureeControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.TORTUREE);
@@ -59,7 +64,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
      */
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
-        EntityId device = getFreeDevice(p);
+        EntityId device = getFreeDevice(torturee, p);
         if (device == null) {
             return null;
         }
@@ -126,10 +131,17 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return false;
     }
 
-    private EntityId getFreeDevice(Point p) {
+    private EntityId getFreeDevice(EntityId torturee, Point p) {
+        boolean electrocutable = canBeElectrocuted(torturee);
         EntityId closest = null;
         int closestDistance = Integer.MAX_VALUE;
         for (EntityId device : getDevices()) {
+
+            // DK II electrocutes only the creatures flagged for it (data +0x686 bit 0x80000), the others don't stay
+            // on the chair
+            if (!electrocutable && isElectricChair(device)) {
+                continue;
+            }
             Point devicePoint = getDevicePoint(device);
             Collection<EntityId> victims = objectsByCoordinate.get(devicePoint);
             if (victims != null && !victims.isEmpty()) {
@@ -142,6 +154,17 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
             }
         }
         return closest;
+    }
+
+    private boolean canBeElectrocuted(EntityId creature) {
+        CreatureComponent creatureComponent = entityData.getComponent(creature, CreatureComponent.class);
+        return creatureComponent == null
+                || kwdFile.getCreature(creatureComponent.creatureId).getFlags().contains(Creature.CreatureFlag.CAN_BE_ELECTROCUTED);
+    }
+
+    private boolean isElectricChair(EntityId device) {
+        ObjectComponent objectComponent = entityData.getComponent(device, ObjectComponent.class);
+        return objectComponent != null && objectComponent.objectId == ELECTRIC_CHAIR_OBJECT_ID;
     }
 
     private List<EntityId> getDevices() {

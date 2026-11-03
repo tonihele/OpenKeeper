@@ -23,11 +23,15 @@ import java.lang.reflect.Proxy;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -46,7 +50,7 @@ class RoomTortureeControlTest {
     private final Set<EntityId> devices = new LinkedHashSet<>();
     private final EntityId wheel = device(new Point(3, 3));
     private final EntityId chair = device(new Point(6, 3));
-    private final RoomTortureeControl control = new RoomTortureeControl(null, room(), entityData, null) {
+    private final RoomTortureeControl control = new RoomTortureeControl(kwdFile(), room(), entityData, null) {
 
         @Override
         protected int getNumberOfAccessibleTiles() {
@@ -115,6 +119,26 @@ class RoomTortureeControlTest {
         control.refreshDevices();
 
         assertEquals(newWheel, entityData.getComponent(victim, CreatureTortured.class).device);
+    }
+
+    @Test
+    void creatureThatCantBeElectrocutedSkipsTheChair() {
+        entityData.setComponent(chair, new ObjectComponent((short) 61, ObjectType.TORTUREE));
+        CreatureComponent creature = new CreatureComponent();
+        creature.creatureId = 6;
+        EntityId victim = entityData.createEntity();
+        entityData.setComponent(victim, creature);
+
+        // The chair is closer, but the test creature isn't flagged CAN_BE_ELECTROCUTED
+        assertEquals(wheel, control.addItem(victim, new Point(5, 3)));
+    }
+
+    private IKwdFile kwdFile() {
+        return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getCreature" -> CreatureSleepFixtures.sleeper(9);
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
     }
 
     private EntityId device(Point p) {
