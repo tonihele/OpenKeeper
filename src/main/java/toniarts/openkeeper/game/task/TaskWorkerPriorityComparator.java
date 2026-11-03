@@ -32,13 +32,9 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             return result;
         }
 
-        // Fill in jobs that have no workers first
-        result = Integer.compare(o1.task().getAssigneeCount(), o2.task().getAssigneeCount());
-        if (result != 0) {
-            return result;
-        }
-
-        // Closest creature gets the job
+        // Closest creature gets the job, whether or not someone already works on it. The original's imp scans rings of
+        // tiles outwards for work (DKII.EXE 0x468D10) and takes over a job held by another imp only when it is closer
+        // (0x46AB50, 0x46AEA0)
         result = Integer.compare(o1.points(), o2.points());
         if (result != 0) {
             return result;

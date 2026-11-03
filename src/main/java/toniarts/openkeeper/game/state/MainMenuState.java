@@ -187,10 +187,8 @@ public final class MainMenuState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        // DKII applies different decoration rules to the front end than to playable level maps.
-        // Front-end effects are handled separately, so do not generate automatic wall torches
-        // here, and the cave ceiling stays off - this scene is a fixed camera looking at a
-        // hand-placed diorama, not a dungeon being explored under fog of war.
+        // DKII generates room torch lights and optional meshes in the front end too.
+        // Keep the cave ceiling off for this fixed-camera scene.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
                 gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true, false) {
 
