@@ -22,11 +22,15 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.util.EnumSet;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -41,8 +45,13 @@ import toniarts.openkeeper.utils.WorldUtils;
  * <br>
  * Every creature counts, whoever owns it. Two creatures overlap when they are
  * closer than the sum of their radii, half their widths. The push grows as
- * 1/sqrt(d/R) - 1, is shared by mass, and is stronger when moving away from
- * the other one.
+ * 1/sqrt(d/R) - 1, or as 1/(d/R) - 1 from a creature that stands its ground (a
+ * blocker), is shared by mass, and is stronger when moving away from the other
+ * one. A blocker is never pushed itself.
+ * <br>
+ * DK II adds the weighted push to a velocity that is capped at the walking
+ * speed of a tick, so the push is measured against that speed: it can hold a
+ * walker back or turn it round a blocker, but it doesn't push into walls.
  */
 public final class SeparationSystem implements IGameLogicUpdatable {
 
@@ -50,7 +59,18 @@ public final class SeparationSystem implements IGameLogicUpdatable {
      * DK II's pilot maximum force (1.5 tiles, 0x4D5B30). A push is capped to
      * it.
      */
-    public static final float MAX_FORCE = 1.5f;
+    private static final float MAX_FORCE = 1.5f;
+
+    /**
+     * DK II weighs the separation 0.13 and the path following 0.35 (0x4D56E0)
+     */
+    private static final float SEPARATION_WEIGHT = 0x2147 / (float) 0x5999;
+
+    /**
+     * A creature stands its ground while it fights a target in reach (the
+     * fight state 0x45F030 sets the blocker flag +0x232 0x80)
+     */
+    private static final EnumSet<CreatureState> FIGHTING = EnumSet.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -64,7 +84,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
         this.kwdFile = kwdFile;
         this.mapController = mapController;
         this.entityPositionLookup = entityPositionLookup;
-        walkingCreatures = entityData.getEntities(CreatureComponent.class, Position.class, Navigation.class);
+        walkingCreatures = entityData.getEntities(CreatureComponent.class, Position.class, Navigation.class, Mobile.class);
     }
 
     @Override
@@ -90,7 +110,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
     private Vector2f getPush(Entity entity) {
         Vector2f separation = new Vector2f();
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-        if (creature == null) {
+        if (creature == null || isBlocker(entity.getId(), creature)) {
             return separation;
         }
 
@@ -124,7 +144,14 @@ public final class SeparationSystem implements IGameLogicUpdatable {
                     }
                     away.normalizeLocal();
                     float ratio = distance / reach;
-                    float push = ratio < 0.01f ? MAX_FORCE : (float) (1 / Math.sqrt(ratio)) - 1;
+                    float push;
+                    if (ratio < 0.01f) {
+                        push = MAX_FORCE;
+                    } else if (isBlocker(otherId, other)) {
+                        push = 1 / ratio - 1;
+                    } else {
+                        push = (float) (1 / Math.sqrt(ratio)) - 1;
+                    }
                     float otherMass = Math.max(1, other.getUnkea8());
                     float alignment = (away.x * heading.x + away.y * heading.y) / 2 + 0.7f;
                     separation.addLocal(away.mult(push * otherMass / (mass + otherMass) * alignment));
@@ -135,7 +162,40 @@ public final class SeparationSystem implements IGameLogicUpdatable {
             separation.normalizeLocal().multLocal(MAX_FORCE);
         }
 
-        return separation;
+        // Slide along walls, DK II moves a creature per axis when the step is blocked (0x4D4760)
+        if (separation.x != 0 && mapController.isSolid(WorldUtils.vectorToPoint(position.position.x + Math.signum(separation.x) * radius, position.position.z))) {
+            separation.x = 0;
+        }
+        if (separation.y != 0 && mapController.isSolid(WorldUtils.vectorToPoint(position.position.x, position.position.z + Math.signum(separation.y) * radius))) {
+            separation.y = 0;
+        }
+
+        // As a share of the path following, that turns the velocity towards the walking speed of a tick
+        float speedPerTick = entity.get(Mobile.class).maxSpeed / kwdFile.getGameLevel().getTicksPerSec();
+        return separation.multLocal(SEPARATION_WEIGHT / speedPerTick);
+    }
+
+    /**
+     * Does the creature stand its ground against the separation of others. DK
+     * II marks a creature that fights a target in reach (0x45F030) and the
+     * Horned Reaper always (0x488930).
+     *
+     * @param entityId the creature
+     * @param creature its type
+     * @return true if walkers have to go round it
+     */
+    private boolean isBlocker(EntityId entityId, Creature creature) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+            return true;
+        }
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (creatureAi == null || !FIGHTING.contains(creatureAi.getCreatureState())) {
+            return false;
+        }
+
+        // Not while it still walks to its target
+        Navigation navigation = entityData.getComponent(entityId, Navigation.class);
+        return navigation == null || navigation.navigationPath.isEmpty();
     }
 
     @Override

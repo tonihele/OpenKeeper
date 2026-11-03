@@ -48,12 +48,6 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final static boolean INDEPENDENT_FACING = false;
 
     /**
-     * DK II weighs the separation 0.13 and the path following 0.35 (0x4D56E0).
-     * Path following has weight 1 here.
-     */
-    private static final float SEPARATION_WEIGHT = 0x2147 / (float) 0x5999;
-
-    /**
      * DK II counts a path as finished this close to its final waypoint, 0.38
      * tiles (0x4D3C40). A creature pushed away from a taken end point stops
      * within it.
@@ -240,9 +234,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
     /**
      * Adds the separation push the logic tick worked out (see
      * {@link SeparationSystem}) to the path following. Near the end of its path
-     * a pushed creature stops where it is, since the end point is taken. The
-     * push stays weaker than the path following, so it can't move a creature
-     * off its path into a wall.
+     * a pushed creature stops where it is, since the end point is taken.
      *
      * @param entityId the creature
      * @param steerable its steering state
@@ -262,7 +254,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
             return;
         }
 
-        float scale = steerable.getMaxLinearAcceleration() * SEPARATION_WEIGHT / SeparationSystem.MAX_FORCE;
+        float scale = steerable.getMaxLinearAcceleration();
         linear.add(separationPush.push.x * scale, separationPush.push.y * scale).limit(steerable.getMaxLinearAcceleration());
     }
 

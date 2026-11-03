@@ -24,20 +24,25 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.IntConsumer;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -58,6 +63,7 @@ class CreatureSeparationTest {
     private static final short KNIGHT = 13;
     private static final short GIANT = 9;
     private static final short IMP = 1;
+    private static final short REAPER = 27;
     private static final float KNIGHT_WIDTH = 0.33f;
     private static final float KNIGHT_SPEED = 0.5f;
 
@@ -65,7 +71,8 @@ class CreatureSeparationTest {
     private final Map<Short, Creature> creatures = Map.of(
             KNIGHT, ShotFixtures.creature(KNIGHT, KNIGHT_WIDTH, 4),
             GIANT, ShotFixtures.creature(GIANT, 0.9f, 5),
-            IMP, ShotFixtures.creature(IMP, 0.9f, 1));
+            IMP, ShotFixtures.creature(IMP, 0.9f, 1),
+            REAPER, ShotFixtures.creature(REAPER, EnumSet.of(Creature.CreatureFlag.IS_HORNY), EnumSet.noneOf(Creature.CreatureFlag3.class)));
     private final Set<Point> solidTiles = Set.of(new Point(2, 1), new Point(3, 1), new Point(4, 1), new Point(5, 1), new Point(6, 1),
             new Point(2, 3), new Point(3, 3), new Point(4, 3), new Point(5, 3), new Point(6, 3));
     private final Map<Point, IMapTileInformation> tiles = new HashMap<>();
@@ -91,7 +98,42 @@ class CreatureSeparationTest {
         entityData.setComponents(entityData.createEntity(), standing, new Position(0, new Vector3f(4, 0, 2.4f)));
         EntityId walker = creature(IMP, new Point(2, 2), new Point(3, 2), new Point(4, 2), new Point(5, 2), new Point(6, 2));
 
-        run(600, frame -> assertEquals(2, WorldUtils.vectorToPoint(position(walker)).y, "Pushed into the wall at frame " + frame));
+        // The wall starts at 1.5, the imp is 0.9 wide
+        run(600, frame -> assertTrue(position(walker).y - 0.45f > 1.45f, "Pushed into the wall at frame " + frame));
+    }
+
+    @Test
+    void aCreatureStandingToFightPushesHarder() {
+        EntityId standing = standing(KNIGHT, 5 + KNIGHT_WIDTH / 4, 5, CreatureState.IDLE);
+        EntityId walker = creature(KNIGHT, new Point(5, 5), new Point(5, 4));
+        SeparationSystem separationSystem = new SeparationSystem(entityData, kwdFile(), map(), positionLookup());
+
+        separationSystem.processTick(1 / 4f);
+        float push = entityData.getComponent(walker, SeparationPush.class).push.length();
+        entityData.setComponent(standing, new CreatureAi(0, CreatureState.FIGHT, KNIGHT));
+        separationSystem.processTick(1 / 4f);
+
+        // A quarter of the radii apart: 1/(d/R) - 1 = 3 instead of 1/sqrt(d/R) - 1 = 1
+        assertEquals(3 * push, entityData.getComponent(walker, SeparationPush.class).push.length(), 0.001f);
+    }
+
+    @Test
+    void theHornedReaperIsNeverPushed() {
+        standing(KNIGHT, 5 + KNIGHT_WIDTH / 4, 5, CreatureState.IDLE);
+        EntityId reaper = creature(REAPER, new Point(5, 5), new Point(5, 4));
+
+        new SeparationSystem(entityData, kwdFile(), map(), positionLookup()).processTick(1 / 4f);
+
+        assertNull(entityData.getComponent(reaper, SeparationPush.class));
+    }
+
+    private EntityId standing(short creatureId, float x, float y, CreatureState state) {
+        EntityId entityId = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = creatureId;
+        entityData.setComponents(entityId, creatureComponent, new Position(0, new Vector3f(x, 0, y)),
+                new CreatureAi(0, state, creatureId));
+        return entityId;
     }
 
     private EntityId creature(short creatureId, Point... path) {
@@ -134,6 +176,7 @@ class CreatureSeparationTest {
         return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }
@@ -173,6 +216,7 @@ class CreatureSeparationTest {
                 (proxy, method, args) -> switch (method.getName()) {
             case "getMapData" -> mapData;
             case "getTerrain" -> solidTiles.contains(tileLocations.get(args[0])) ? rock : floor;
+            case "isSolid" -> solidTiles.contains((Point) args[0]);
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }
