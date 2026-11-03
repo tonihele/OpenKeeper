@@ -24,8 +24,10 @@ import java.lang.System.Logger.Level;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -79,6 +81,26 @@ public abstract class AbstractTask implements Task {
      */
     protected void setExecutionDuration(ICreatureController creature, float duration) {
         assignees.put(creature, duration);
+    }
+
+    /**
+     * Tells whether a creature working on this task is due its next once a
+     * second work step, and if so, marks the step as done. The steps are timed
+     * from the start of the work, so they stay a second apart however often
+     * the task is executed
+     *
+     * @param creature the executing creature
+     * @param executionDuration the non-stop execution duration of the creature
+     * @return true if the creature should do its work step now
+     */
+    protected boolean isWorkStepDue(ICreatureController creature, float executionDuration) {
+        float lastStep = getExecutionDuration(creature);
+        if (executionDuration - lastStep < 1.0f) {
+            return false;
+        }
+
+        setExecutionDuration(creature, lastStep + 1.0f);
+        return true;
     }
 
     @Override
@@ -173,7 +195,8 @@ public abstract class AbstractTask implements Task {
      * @return task location next to the wanted tile
      */
     protected Vector2f getAccessibleTargetNextToLocation(ICreatureController creature) {
-        List<Point> accessibleTiles = new ArrayList<>();
+        // The same spot comes up from several sides, each one costs a path search below (#671)
+        Set<Point> accessibleSpots = new LinkedHashSet<>();
         for (Point taskPerformLocation : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
             for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
                 if (p.equals(getTaskLocation())) {
@@ -184,10 +207,11 @@ public abstract class AbstractTask implements Task {
                     continue;
                 }
 
-                accessibleTiles.add(p);
+                accessibleSpots.add(p);
             }
         }
 
+        List<Point> accessibleTiles = new ArrayList<>(accessibleSpots);
         if (accessibleTiles.isEmpty()) {
             return null;
         }

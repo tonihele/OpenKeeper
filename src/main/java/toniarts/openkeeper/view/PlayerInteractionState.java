@@ -367,7 +367,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (interactiveControl != null) {
 
             // Maybe a kinda hack, but set the tooltip here
-            tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
+            String text = interactiveControl.getTooltip(player.getPlayerId());
+            if (text == null) {
+
+                // No tooltip of its own (creature beds), show the one of the tile it stands on
+                text = getTileTooltip(WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation()));
+            }
+            tooltip.setText(text);
             interactiveControl.onHover(player.getPlayerId());
         } else if (isOnMap) {
             p = selectionHandler.getPointedTileIndex();
@@ -401,6 +407,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             return getRoomTooltip(tile, terrain);
+        }
+
+        // Text 0 is "Jelly", the terrains that have it have no tooltip
+        if (terrain.getTooltipStringId() == 0) {
+            return "";
         }
 
         return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
@@ -896,9 +907,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
+        int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner);
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
     }
 
     private Set<Point> getConstructionBlockingTiles() {
