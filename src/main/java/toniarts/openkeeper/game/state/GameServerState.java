@@ -175,7 +175,7 @@ public final class GameServerState extends AbstractAppState {
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
             gameWorldController.addListener(playerActionListener);
-            cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController(), gameService.getEntityData());
+            cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController(), gameService.getServerEntityData());
 
             // Send the the initial game data
             gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
@@ -306,6 +306,16 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
             cheatController.spawnCreature(creatureId, level, amount, playerId);
+        }
+
+        @Override
+        public void onAddGoldCheatTriggered(int amount, short playerId) {
+            cheatController.addGold(amount, playerId);
+        }
+
+        @Override
+        public void onAddManaCheatTriggered(int amount, short playerId) {
+            cheatController.addMana(amount, playerId);
         }
 
         @Override

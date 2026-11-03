@@ -493,8 +493,25 @@ public abstract class Thing {
     // Contains in GlobalVariables.kwd only
     public static final class Camera extends Thing {
 
-        public static int ID_POSSESION = 2;
-        public static int ID_GAME = 3;
+        public enum CameraMode implements IValueEnum {
+
+            POSSESSION(2),
+            GAME(3),
+            FAR(4), // F3, far away with a narrow lens
+            OVERHEAD(5), // F2, straight down
+            DEFAULT(-1);
+
+            private CameraMode(int value) {
+                this.value = value;
+            }
+
+            @Override
+            public int getValue() {
+                return value;
+            }
+
+            private final int value;
+        }
 
         public enum CameraFlag implements IFlagEnum {
 
@@ -502,8 +519,8 @@ public abstract class Thing {
             DISABLE_ROLL(0x02), // fixed angleYZ ?
             DISABLE_PITCH(0x04), // fixed angleXZ ?
             DISABLE_ZOOM(0x08),
-            UNKNOWN_10(0x10), // fixed ViewDistance, Lens
-            UNKNOWN_20(0x20), // fixed ViewDistance, Lens
+            DISABLE_VIEW_DISTANCE(0x10), // fixed ViewDistance, Lens
+            DISABLE_LENS(0x20), // fixed ViewDistance, Lens
             DISABLE_MOVE(0x40), // fixed Position
             DISABLE_CHANGE(0x80); // Never used. camera not enter and leave possession.
 
@@ -540,7 +557,7 @@ public abstract class Thing {
          * 3 - game camera
          * other never used ?
          */
-        private short id;
+        private CameraMode id;
 
         public Vector3f getPosition() {
             return position;
@@ -670,11 +687,11 @@ public abstract class Thing {
             this.anglePitch = angle;
         }
 
-        public short getId() {
+        public CameraMode getId() {
             return id;
         }
 
-        protected void setId(short id) {
+        protected void setId(CameraMode id) {
             this.id = id;
         }
 

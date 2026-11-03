@@ -127,6 +127,7 @@ public final class CreatureController extends EntityController implements ICreat
      * How long the big winner of the Casino celebrates its jackpot, as in DK II
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
+    private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -1434,14 +1435,26 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean goToEat() {
+        double gameTime = gameTimer.getGameTime();
+        CreatureHunger hunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (hunger == null || gameTime - hunger.lastEatAttemptTime
+                < EAT_ATTEMPT_INTERVAL_TICKS / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
+            return false;
+        }
+        // Native attempts are throttled to one per four ticks
+        CreatureHunger updated = new CreatureHunger(hunger.lastEatTime, hunger.amountNeeded);
+        updated.lastEatAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignEatTask(this);
     }
 
     @Override
     public boolean goGambling() {
 
-        // As in the original, the wish only depends on the gold held, the stake is the money mode one
-        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID && getGold() > Math.abs(
+        // As in the original, the wish only depends on the gold held, the stake is the money mode one.
+        // The big winner has stopped gambling (the Gamble task is not valid for it), so it doesn't wish for it
+        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID
+                && entityData.getComponent(entityId, CasinoBigWinner.class) == null && getGold() > Math.abs(
                 gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
                 && taskManager.assignTask(this, Creature.JobType.DRINK);
     }
