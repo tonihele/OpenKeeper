@@ -40,6 +40,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.GraveyardController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -55,13 +57,16 @@ import toniarts.openkeeper.utils.WorldUtils;
  * at the room centre if it has no crypts.<br>
  * The owner can only have as many vampires (creatures that can resurrect) as
  * all his graveyards have tiles for bodies. While that limit is reached no
- * vampire rises and the graveyard keeps gathering.
+ * vampire rises and the graveyard keeps gathering.<br>
+ * The mentor tells the owner when a vampire rises (Graveyard_cpp_4DD820,
+ * message 0x48).
  */
 public final class GraveyardSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IMapController mapController;
     private final ICreaturesController creaturesController;
+    private final GameEventService gameEventService;
     private final int decomposeValueNeededForVampire;
     private final Set<Short> vampireTypes = new HashSet<>();
     private final EntitySet storedCorpses;
@@ -71,10 +76,11 @@ public final class GraveyardSystem implements IGameLogicUpdatable {
 
     public GraveyardSystem(EntityData entityData, IKwdFile kwdFile,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IMapController mapController, ICreaturesController creaturesController) {
+            IMapController mapController, ICreaturesController creaturesController, GameEventService gameEventService) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.creaturesController = creaturesController;
+        this.gameEventService = gameEventService;
         decomposeValueNeededForVampire = (int) gameSettings.get(Variable.MiscVariable.MiscType.DECOMPOSE_VALUE_NEEDED_FOR_VAMPIRE).getValue();
         for (Creature creature : kwdFile.getCreatureList()) {
             if (creature.getFlags().contains(Creature.CreatureFlag.CAN_BE_RESURECTED)) {
@@ -169,7 +175,9 @@ public final class GraveyardSystem implements IGameLogicUpdatable {
         }
         Vector2f location = crypts.isEmpty() ? WorldUtils.pointToVector2f(room.getRoomInstance().getCenter()) : Utils.getRandomItem(crypts);
 
-        creaturesController.spawnCreature(creatureId, room.getOwnerId(), 1, location, ICreaturesController.SpawnType.PLACE);
+        if (creaturesController.spawnCreature(creatureId, room.getOwnerId(), 1, location, ICreaturesController.SpawnType.PLACE) != null) {
+            gameEventService.emitToPlayer(GameEventType.GRAVEYARD_VAMPIRE_RISEN, room.getOwnerId());
+        }
     }
 
     @Override

@@ -116,7 +116,7 @@ public final class GameLoopManager {
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new GraveyardSystem(entityData, levelInfo.getLevelData(), gameSettings,
-                        gameWorldController.getMapController(), gameWorldController.getCreaturesController()),
+                        gameWorldController.getMapController(), gameWorldController.getCreaturesController(), gameEventService),
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 (IGameLogicUpdatable) gameController,

@@ -40,6 +40,8 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.GraveyardController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.RoomCorpseControl;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GraveyardFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -61,6 +63,7 @@ class GraveyardSystemTest {
     private final EntityId graveyardEntity = entityData.createEntity();
     private final Set<EntityId> furniture = new HashSet<>();
     private final List<Object[]> spawned = new ArrayList<>();
+    private final List<List<Object>> playerEvents = new ArrayList<>();
     private final RoomInstance roomInstance = new RoomInstance(GraveyardFixtures.graveyard(VAMPIRE));
     private final IRoomController graveyard = createGraveyard();
     private final RoomCorpseControl storage = new RoomCorpseControl(null, graveyard, entityData, () -> 0) {
@@ -72,7 +75,7 @@ class GraveyardSystemTest {
     private final GraveyardSystem system = new GraveyardSystem(entityData, kwdFile(), Map.of(
             Variable.MiscVariable.MiscType.DECOMPOSE_VALUE_NEEDED_FOR_VAMPIRE,
             GraveyardFixtures.miscVariable(Variable.MiscVariable.MiscType.DECOMPOSE_VALUE_NEEDED_FOR_VAMPIRE, 1000)),
-            mapController(), creaturesController());
+            mapController(), creaturesController(), gameEventService());
 
     @Test
     void vampireRisesAtACryptWhenEnoughBodiesHaveDecomposed() {
@@ -84,9 +87,11 @@ class GraveyardSystemTest {
 
         decompose(first);
         assertTrue(spawned.isEmpty());
+        assertTrue(playerEvents.isEmpty());
 
         decompose(second);
         assertEquals(1, spawned.size());
+        assertEquals(List.of(List.of(GameEventType.GRAVEYARD_VAMPIRE_RISEN, PLAYER)), playerEvents);
         assertEquals(VAMPIRE, spawned.get(0)[0]);
         assertEquals(PLAYER, spawned.get(0)[1]);
         assertEquals(1, spawned.get(0)[2]);
@@ -229,6 +234,17 @@ class GraveyardSystemTest {
                     case "spawnCreature" -> {
                         spawned.add(args);
                         yield entityData.createEntity();
+                    }
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+    }
+
+    private GameEventService gameEventService() {
+        return (GameEventService) Proxy.newProxyInstance(
+                GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "emitToPlayer" -> {
+                        playerEvents.add(List.of(args));
+                        yield null;
                     }
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
