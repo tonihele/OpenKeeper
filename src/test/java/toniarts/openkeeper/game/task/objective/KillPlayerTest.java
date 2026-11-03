@@ -88,6 +88,8 @@ class KillPlayerTest {
             HEART_ROOM, TerrainFixtures.terrain(HEART_ROOM, TerrainFixtures.flags(Terrain.TerrainFlag.ROOM), 0, 0, 0, (short) 0),
             IMPENETRABLE, TerrainFixtures.terrain(IMPENETRABLE, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID,
                     Terrain.TerrainFlag.IMPENETRABLE), 0, 0, 0, (short) 0));
+    private final Map<Point, Short> terrainIds = new HashMap<>();
+    private ICreatureController hero;
 
     @Test
     void loneWorkerTunnelsItsWayToTheHeart() {
@@ -137,6 +139,23 @@ class KillPlayerTest {
                 new Point(5, 5), new Point(5, 4), new Point(5, 3), new Point(6, 3)), getDigs(task));
     }
 
+    /**
+     * Once a tile is dug the hero walks into it and digs on along the same
+     * tunnel, rather than starting a new one
+     */
+    @Test
+    void heroGoesOnAlongTheTunnelOnceATileIsDug() {
+        KillPlayer task = createTask(ROCK_ALL_ROUND, true);
+
+        terrainIds.put(new Point(2, 1), FLOOR);
+        assertEquals(TaskType.GO_TO_LOCATION, task.getCurrentTask().getTaskType());
+        assertEquals(new Point(2, 1), task.getCurrentTask().getTaskLocation());
+
+        task.getCurrentTask().executeTask(hero, 0);
+        assertEquals(TaskType.DIG_TILE, task.getCurrentTask().getTaskType());
+        assertEquals(new Point(3, 1), task.getCurrentTask().getTaskLocation());
+    }
+
     private static List<Point> getDigs(KillPlayer task) {
         List<Point> digs = new ArrayList<>();
         for (ObjectiveTask subTask : task.getTaskQueue()) {
@@ -161,6 +180,7 @@ class KillPlayerTest {
                     case 'H' -> HEART_ROOM;
                     default -> FLOOR;
                 };
+                terrainIds.put(p, terrainId);
                 if (c == 'h') {
                     heroTile = p;
                 } else if (c == 'H') {
@@ -170,7 +190,7 @@ class KillPlayerTest {
                     case "getLocation" -> p;
                     case "getX" -> p.x;
                     case "getY" -> p.y;
-                    case "getTerrainId" -> terrainId;
+                    case "getTerrainId" -> terrainIds.get(p);
                     case "getOwnerId" -> (short) 0;
                     default -> null;
                 }));
@@ -212,7 +232,7 @@ class KillPlayerTest {
             case "isAccessible" -> !isSolid((IMapTileInformation) args[0]) && !isSolid((IMapTileInformation) args[1]);
             default -> null;
         });
-        ICreatureController hero = stub(ICreatureController.class, (name, args) -> switch (name) {
+        hero = stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> heroLocation;
             case "getOwnerId" -> HERO;
             case "isWorker" -> worker;
@@ -239,6 +259,12 @@ class KillPlayerTest {
     @SuppressWarnings("unchecked")
     private static <T> T stub(Class<T> type, Answer answer) {
         return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "hashCode":
+                    return System.identityHashCode(proxy);
+                case "equals":
+                    return proxy == args[0];
+            }
             Object result = answer.answer(method.getName(), args);
             if (result == null && method.isDefault()) {
                 return InvocationHandler.invokeDefault(proxy, method, args);

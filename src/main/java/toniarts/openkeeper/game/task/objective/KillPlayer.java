@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -88,6 +89,29 @@ public final class KillPlayer extends AbstractObjectiveTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
+    }
+
+    /**
+     * The step of the tunnel the hero is on. Like DK II's tunnelling state
+     * (0x485C10), the hero keeps its target and goes on from the tile it has
+     * just dug, so once a step is done it is given the next one rather than
+     * starting a new tunnel
+     *
+     * @return the current step, or this task once there are none left
+     */
+    @Override
+    public Task getCurrentTask() {
+        boolean stepDone = false;
+        while (!getTaskQueue().isEmpty() && !getTaskQueue().peekFirst().isValid(creature)) {
+            getTaskQueue().removeFirst();
+            stepDone = true;
+        }
+        Task current = super.getCurrentTask();
+        if (stepDone) {
+            creature.unassingCurrentTask();
+            current.assign(creature, true);
+        }
+        return current;
     }
 
     /**
