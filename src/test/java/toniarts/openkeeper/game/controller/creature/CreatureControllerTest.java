@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -385,6 +386,29 @@ class CreatureControllerTest {
                 assertEquals(1, f.oldJobUnassignments);
                 assertEquals(0, f.sleepAssignments);
             }
+        }
+    }
+
+    @Test
+    void prisonerKeepsItsDyingTimeAsHealthAndGetsATenthOfItsMaximumOnTop() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(0, 1000), new Unconscious(0));
+            f.time = 10;
+
+            f.controller.imprison((short) 4, f.room);
+
+            // 50 seconds of dying time left at 4 ticks a second, and 1000 / 10
+            assertEquals(300, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+    }
+
+    @Test
+    void prisonerThatIsAwakeGetsATenthOfItsMaximumHealth() {
+        try (Fixture f = new Fixture(9)) {
+            f.controller.imprison((short) 4, f.room);
+
+            assertEquals(350, f.health());
         }
     }
 
