@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -41,20 +42,25 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * In DK II a creature only gains its fight experience while it fights another
- * creature. Hitting a Dungeon Heart teaches it nothing
+ * In DK II a creature gains its fight experience on every tick of a fight with
+ * another creature, so it can level up in the middle of the fight. Walking up
+ * to the target or hitting a Dungeon Heart teaches it nothing
  */
 class CreatureFightExperienceTest {
 
     private static final float TPF = 0.25f;
+    private static final int TICKS_PER_SECOND = 4;
     private static final int TEN_SECONDS = 40;
     private static final short IMP = 1;
     private static final short KNIGHT = 5;
+    private static final short GIANT = 15;
     private static final int IMP_EXPERIENCE_GAIN_PER_SECOND = 30;
     private static final int EXPERIENCE_PER_SECOND = 200;
 
     private final EntityData entityData = new DefaultEntityData();
     private CreatureExperienceSystem system;
+    private int tick;
+    private int levelUpTick;
 
     @BeforeEach
     void setUp() {
@@ -64,9 +70,14 @@ class CreatureFightExperienceTest {
 
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getImp" -> ShotFixtures.creature(IMP, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
+            case "getGameLevel" -> CreatureSleepFixtures.level(TICKS_PER_SECOND);
             default -> throw new UnsupportedOperationException(method.getName());
         });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
+            if (method.getName().equals("levelUpCreature")) {
+                levelUpTick = tick;
+                return null;
+            }
             throw new UnsupportedOperationException(method.getName());
         });
         system = new CreatureExperienceSystem(entityData, kwdFile, gameSettings, creaturesController);
@@ -79,7 +90,7 @@ class CreatureFightExperienceTest {
 
     @Test
     void hittingADungeonHeartGainsNothing() {
-        EntityId knight = fighter(KNIGHT,CreatureState.MELEE_ATTACK, entityData.createEntity());
+        EntityId knight = fighter(KNIGHT, CreatureState.MELEE_ATTACK, entityData.createEntity());
 
         tenSeconds();
 
@@ -87,27 +98,58 @@ class CreatureFightExperienceTest {
     }
 
     @Test
-    void fightingACreatureGainsTheCreaturesOwnExperience() {
-        EntityId knight = fighter(KNIGHT,CreatureState.MELEE_ATTACK, enemy());
+    void fightingACreatureGainsTheCreaturesOwnExperienceOnEveryTick() {
+        EntityId knight = fighter(KNIGHT, CreatureState.MELEE_ATTACK, enemy());
 
         tenSeconds();
 
-        assertEquals(9 * EXPERIENCE_PER_SECOND, experience(knight));
+        assertEquals(TEN_SECONDS * EXPERIENCE_PER_SECOND / TICKS_PER_SECOND, experience(knight));
     }
 
     @Test
     void shootingACreatureCountsAsFighting() {
-        EntityId knight = fighter(KNIGHT,CreatureState.CAST_SPELL, enemy());
+        EntityId knight = fighter(KNIGHT, CreatureState.CAST_SPELL, enemy());
 
         tenSeconds();
 
-        assertEquals(9 * EXPERIENCE_PER_SECOND, experience(knight));
+        assertEquals(TEN_SECONDS * EXPERIENCE_PER_SECOND / TICKS_PER_SECOND, experience(knight));
+    }
+
+    @Test
+    void waitingForTheNextSwingCountsAsFighting() {
+        EntityId knight = fighter(KNIGHT, CreatureState.FIGHT, enemy());
+
+        tenSeconds();
+
+        assertEquals(TEN_SECONDS * EXPERIENCE_PER_SECOND / TICKS_PER_SECOND, experience(knight));
+    }
+
+    @Test
+    void walkingToTheTargetGainsNothing() {
+        EntityId knight = fighter(KNIGHT, CreatureState.FIGHT, enemy());
+        entityData.setComponent(knight, new Navigation());
+
+        tenSeconds();
+
+        assertEquals(0, experience(knight));
     }
 
     /**
-     * The first tick only starts the clock, so ten seconds give experience
-     * nine times
+     * A level 1 Giant needs 3000 points and learns 150 a second, 37 a tick at
+     * four ticks a second. DK II levels it up after 82 ticks of fighting
      */
+    @Test
+    void giantLevelsUpInTheMiddleOfTheFight() {
+        EntityId giant = fighter(GIANT, CreatureState.FIGHT, enemy());
+        entityData.setComponent(giant, new CreatureExperience(1, 0, 3000, 150, 30));
+
+        for (tick = 1; tick <= 120 && levelUpTick == 0; tick++) {
+            system.processTick(TPF);
+        }
+
+        assertEquals(82, levelUpTick);
+    }
+
     private void tenSeconds() {
         for (int i = 0; i < TEN_SECONDS; i++) {
             system.processTick(TPF);

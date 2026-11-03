@@ -153,9 +153,9 @@ class DungeonHeartAttackTest {
 
     @Test
     void creatureNextToTheHeartStaysOnItEvenForAWorkerAttackingIt() {
-        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 8));
         EntityId heart = createHeart(KEEPER);
-        EntityId worker = createCreature(KEEPER, IMP, new Point(11, 12));
+        EntityId worker = createCreature(KEEPER, IMP, new Point(11, 8));
         sensed.put(hero, Set.of(heart, worker));
         entityData.setComponent(hero, new AttackTarget(heart));
 
@@ -352,7 +352,7 @@ class DungeonHeartAttackTest {
         EntityId heart = createHeart(KEEPER);
         for (int x = 8; x <= 12; x++) {
             for (int y = 8; y <= 12; y++) {
-                if (Math.max(Math.abs(x - HEART_TILE.x), Math.abs(y - HEART_TILE.y)) == 2 && !(x == 11 && y == 8)) {
+                if (Math.max(Math.abs(x - HEART_TILE.x), Math.abs(y - HEART_TILE.y)) == 2 && !(x == 10 && y == 8)) {
                     solidTiles.add(new Point(x, y));
                 }
             }
@@ -360,8 +360,7 @@ class DungeonHeartAttackTest {
 
         createController(hero).navigateToAttackTarget(heart);
 
-        // The tiles next to the south pillars are walled in, so it goes round to the north one
-        assertEquals(new Point(11, 8), entityData.getComponent(hero, Navigation.class).target);
+        assertEquals(new Point(10, 8), entityData.getComponent(hero, Navigation.class).target);
         // One search to pick the tile, one to build the route
         assertEquals(2, pathSearches);
     }
@@ -394,36 +393,64 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void heartIsHitFromTheTilesNextToItsPillars() {
+    void heartIsHitWithinMeleeRangeAndHalfATileOfAPillar() {
         EntityId heart = createHeart(KEEPER);
 
-        assertTrue(createController(createCreature(HERO, FIGHTER, new Point(10, 12))).isWithinAttackDistance(heart));
-        assertTrue(createController(createCreature(HERO, FIGHTER, new Point(12, 12))).isWithinAttackDistance(heart));
-        assertTrue(createController(createCreature(HERO, FIGHTER, new Point(9, 8))).isWithinAttackDistance(heart));
-        assertFalse(createController(createCreature(HERO, FIGHTER, new Point(10, 13))).isWithinAttackDistance(heart));
+        // The pillars stand at (10, 8.8), (8.9, 10.6) and (11.1, 10.6), the melee range is 0.5
+        assertTrue(isWithinAttackDistance(10, 7.9f, heart));
+        assertTrue(isWithinAttackDistance(8.4f, 10.8f, heart));
+        assertTrue(isWithinAttackDistance(11.9f, 11, heart));
 
-        // The north corners are too far from any pillar
-        assertFalse(createController(createCreature(HERO, FIGHTER, new Point(8, 8))).isWithinAttackDistance(heart));
-        assertFalse(createController(createCreature(HERO, FIGHTER, new Point(12, 9))).isWithinAttackDistance(heart));
+        // On a tile next to the heart but not yet close enough to a pillar
+        assertFalse(isWithinAttackDistance(10, 7.7f, heart));
+        assertFalse(isWithinAttackDistance(9, 8, heart));
+        assertFalse(isWithinAttackDistance(10, 12, heart));
     }
 
     @Test
     void hitOnTheHeartDamagesIt() {
         EntityId heart = createHeart(KEEPER);
 
-        createController(createCreature(HERO, FIGHTER, new Point(10, 12))).executeAttack(heart);
+        createController(createCreature(HERO, FIGHTER, new Point(10, 8))).executeAttack(heart);
 
         assertEquals(100, entityData.getComponent(heart, Damage.class).damage);
     }
 
     @Test
-    void creatureWalksToTheNearestTileNextToTheHeart() {
+    void creatureHittingTheHeartTurnsToFaceIt() {
+        EntityId heart = createHeart(KEEPER);
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 8));
+        entityData.setComponent(hero, new Position((float) Math.PI, new Vector3f(10, 0, 8)));
+
+        // Arrived on the ring facing away, with no navigation to turn it
+        createController(hero).executeAttack(heart);
+
+        Navigation navigation = entityData.getComponent(hero, Navigation.class);
+        assertEquals(HEART_TILE, navigation.faceTarget);
+        assertEquals(new Point(10, 8), navigation.target);
+
+        // Already facing it, nothing to steer
+        entityData.removeComponent(hero, Navigation.class);
+        entityData.setComponent(hero, new Position(0, new Vector3f(10, 0, 8)));
+        createController(hero).executeAttack(heart);
+
+        assertNull(entityData.getComponent(hero, Navigation.class));
+    }
+
+    @Test
+    void creatureWalksToTheNearestTileNextToTheHeartThatReachesAPillar() {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 15));
         EntityId heart = createHeart(KEEPER);
 
         createController(hero).navigateToAttackTarget(heart);
 
-        assertEquals(new Point(10, 12), entityData.getComponent(hero, Navigation.class).target);
+        assertEquals(new Point(8, 11), entityData.getComponent(hero, Navigation.class).target);
+    }
+
+    private boolean isWithinAttackDistance(float x, float y, EntityId heart) {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(0, 0));
+        entityData.setComponent(hero, new Position(0, new Vector3f(x, 0, y)));
+        return createController(hero).isWithinAttackDistance(heart);
     }
 
     private EntityId createHeart(short ownerId) {
