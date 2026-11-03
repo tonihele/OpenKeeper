@@ -702,17 +702,44 @@ public final class CreatureController extends EntityController implements ICreat
 
     /**
      * Whether there are no solid tiles between two points on the map. The
-     * tiles the points are on don't count.
+     * tiles the points are on don't count. Like DK II it goes along the line
+     * from tile to tile, so every tile the line passes through counts, and
+     * where it passes through a corner, both tiles beside the corner count
+     * (0x4512F0).
      */
     private boolean hasLineOfSight(Vector3f from, Vector3f to) {
-        Point startTile = WorldUtils.vectorToPoint(from);
+        Point tile = WorldUtils.vectorToPoint(from);
         Point endTile = WorldUtils.vectorToPoint(to);
-        float dx = to.x - from.x;
-        float dz = to.z - from.z;
-        int steps = (int) FastMath.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / 0.25f);
-        for (int i = 1; i < steps; i++) {
-            Point tile = WorldUtils.vectorToPoint(from.x + dx * i / steps, from.z + dz * i / steps);
-            if (!tile.equals(startTile) && !tile.equals(endTile) && mapController.isSolid(tile)) {
+        float dx = (to.x - from.x) / WorldUtils.TILE_WIDTH;
+        float dz = (to.z - from.z) / WorldUtils.TILE_WIDTH;
+        int stepX = endTile.x > tile.x ? 1 : -1;
+        int stepZ = endTile.y > tile.y ? 1 : -1;
+
+        // How far along the line the next tile edge on each axis is, a tile spans half a tile either side of its centre
+        float edgeX = dx == 0 ? Float.MAX_VALUE : (tile.x + stepX * 0.5f - from.x / WorldUtils.TILE_WIDTH) / dx;
+        float edgeZ = dz == 0 ? Float.MAX_VALUE : (tile.y + stepZ * 0.5f - from.z / WorldUtils.TILE_WIDTH) / dz;
+        float stepAlongX = dx == 0 ? Float.MAX_VALUE : Math.abs(1 / dx);
+        float stepAlongZ = dz == 0 ? Float.MAX_VALUE : Math.abs(1 / dz);
+        int tilesLeft = Math.abs(endTile.x - tile.x) + Math.abs(endTile.y - tile.y);
+        while (tilesLeft > 0) {
+            if (edgeX < edgeZ) {
+                tile = new Point(tile.x + stepX, tile.y);
+                edgeX += stepAlongX;
+                tilesLeft--;
+            } else if (edgeZ < edgeX) {
+                tile = new Point(tile.x, tile.y + stepZ);
+                edgeZ += stepAlongZ;
+                tilesLeft--;
+            } else {
+                if (mapController.isSolid(new Point(tile.x + stepX, tile.y)) || mapController.isSolid(new Point(tile.x, tile.y + stepZ))) {
+                    return false;
+                }
+                tile = new Point(tile.x + stepX, tile.y + stepZ);
+                edgeX += stepAlongX;
+                edgeZ += stepAlongZ;
+                tilesLeft -= 2;
+            }
+            if (tilesLeft > 0 && mapController.isSolid(tile)) {
                 return false;
             }
         }

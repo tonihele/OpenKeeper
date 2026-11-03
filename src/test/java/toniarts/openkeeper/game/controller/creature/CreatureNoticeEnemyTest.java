@@ -107,6 +107,17 @@ class CreatureNoticeEnemyTest {
     }
 
     @Test
+    void doesNotSeeAnEnemyPastTheCornerOfTwoWalls() {
+
+        // The line just clips the wall at (14, 22) on its way to the enemy's corner tile
+        enemy = creature(Player.KEEPER1_ID, 14, 23);
+        walls.add(new Point(14, 22));
+        walls.add(new Point(13, 23));
+
+        assertNull(attackTarget(creature(Player.GOOD_PLAYER_ID, 13, 21.95f)));
+    }
+
+    @Test
     void seesAnEnemyOfTheOtherAlignmentFurtherAway() {
         enemy = creature(Player.KEEPER1_ID, 14.2f, 10);
         EntityId hero = creature(Player.GOOD_PLAYER_ID, 10, 10);
