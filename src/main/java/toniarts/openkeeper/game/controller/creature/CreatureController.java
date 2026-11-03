@@ -121,6 +121,7 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float SPEED_MULTIPLIER = 2f;
     // DK II's 0xD000, under 13 square tiles from the heart's centre
     private static final float NEAR_OWN_HEART_DISTANCE_SQUARED = 13 * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
+    private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -1475,6 +1476,16 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean goToEat() {
+        double gameTime = gameTimer.getGameTime();
+        CreatureHunger hunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (hunger == null || gameTime - hunger.lastEatAttemptTime
+                < EAT_ATTEMPT_INTERVAL_TICKS / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
+            return false;
+        }
+        // Native attempts are throttled to one per four ticks
+        CreatureHunger updated = new CreatureHunger(hunger.lastEatTime, hunger.amountNeeded);
+        updated.lastEatAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignEatTask(this);
     }
 
