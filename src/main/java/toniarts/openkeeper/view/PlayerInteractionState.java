@@ -409,6 +409,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return getRoomTooltip(tile, terrain);
         }
 
+        // Text 0 is "Jelly", the terrains that have it have no tooltip
+        if (terrain.getTooltipStringId() == 0) {
+            return "";
+        }
+
         return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
     }
 
