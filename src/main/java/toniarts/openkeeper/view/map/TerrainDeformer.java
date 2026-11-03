@@ -114,6 +114,8 @@ public final class TerrainDeformer {
     private final BiFunction<Integer, Integer, TileShape> tiles;
     private final float[] displacements; // x, y, z for each of the levels, for each point
     private final boolean[] valid;
+    private final int[] doorPinned; // How many doors pin the lattice point (the 3 x 3 points of the door tile)
+    private final java.util.Set<Long> doorTiles = new java.util.HashSet<>();
     private int version; // Changes whenever the shape may have changed
 
     /**
@@ -130,6 +132,30 @@ public final class TerrainDeformer {
         this.tiles = tiles;
         this.displacements = new float[pointsX * pointsY * LEVELS * 3];
         this.valid = new boolean[pointsX * pointsY];
+        this.doorPinned = new int[pointsX * pointsY];
+    }
+
+    /**
+     * A door stands on the tile (or stopped standing there). The lattice points
+     * on the door tile (its corners, edge middles and centre) are not moved: no
+     * wibble and no lean. That is the side of the walls that faces the door, so
+     * the door frame fits its wall, the rest of the wall bends as usual.
+     */
+    public void setDoor(int x, int y, boolean present) {
+        if (x < 0 || y < 0 || x >= width || y >= height) {
+            return;
+        }
+        long key = ((long) x << 32) | (y & 0xFFFFFFFFL);
+        if (present ? !doorTiles.add(key) : !doorTiles.remove(key)) {
+            return; // No change
+        }
+        int delta = present ? 1 : -1;
+        for (int j = 2 * y; j <= 2 * y + 2; j++) {
+            for (int i = 2 * x; i <= 2 * x + 2; i++) {
+                doorPinned[j * pointsX + i] += delta;
+            }
+        }
+        invalidateTile(x, y);
     }
 
     /**
@@ -375,7 +401,8 @@ public final class TerrainDeformer {
         for (int level = 1; level <= LEVELS; level++) {
             int index = 3 - level; // Lean is top, middle, floor
             float x = 0, y = 0, z = 0;
-            boolean pinned = wibbleH == 0 && wibbleV == 0 && params[2 + index] == 0 && params[2 + LEVELS + index] == 0;
+            boolean pinned = doorPinned[j * pointsX + i] > 0
+                    || wibbleH == 0 && wibbleV == 0 && params[2 + index] == 0 && params[2 + LEVELS + index] == 0;
             if (!pinned) {
                 lean(i, j, level, lean);
                 lean.multLocal(LEAN_SCALE);

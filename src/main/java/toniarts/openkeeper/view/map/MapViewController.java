@@ -183,6 +183,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (DEFORM_TERRAIN) {
             deformer = new TerrainDeformer(getMapData().getWidth(), getMapData().getHeight(),
                     (x, y) -> TerrainDeformer.TileShape.of(getTerrain(getMapData().getTile(x, y))));
+
+            // The terrain around a door stays straight
+            for (Thing.Door door : kwdFile.getThings(Thing.Door.class)) {
+                deformer.setDoor(door.getPosX(), door.getPosY(), true);
+            }
         }
         Node terrain = new Node(TERRAIN_NODE);
         generatePages(terrain);
@@ -238,6 +243,19 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     public TerrainDeformer getDeformer() {
         return deformer;
+    }
+
+    /**
+     * A door appeared on or vanished from a tile after the load (the ones in
+     * the map file are known already). The terrain around it is rebuilt
+     * straight (or bent again).
+     */
+    public void setDoor(int x, int y, boolean present) {
+        if (deformer == null) {
+            return;
+        }
+        deformer.setDoor(x, y, present);
+        updateTiles(new Point(x, y));
     }
 
     public IMapDataInformation<IMapTileInformation> getMapData() {
