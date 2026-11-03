@@ -32,6 +32,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
+import com.jme3.post.filters.TranslucentBucketFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
@@ -273,6 +274,29 @@ public final class Main extends SimpleApplication {
      */
     public static AppSettings getSettings() {
         return SettingUtils.getInstance().getSettings();
+    }
+
+    /**
+     * A minimised window reports a 0x0 framebuffer. Resizing the cameras, the
+     * post processors and Nifty to that breaks them (NaN aspect ratio, empty
+     * layouts), so keep the last real size until the window is restored.
+     * <p>
+     * jME 3.9 passes the 0x0 size on. jME 3.10 keeps the reported sizes at
+     * 16x16 or more, see jME issue
+     * <a href="https://github.com/jMonkeyEngine/jmonkeyengine/issues/2618">#2618</a>
+     * and its fix
+     * <a href="https://github.com/jMonkeyEngine/jmonkeyengine/pull/2619">#2619</a>.
+     * Remove this override once OpenKeeper is on jME 3.10 or later.
+     *
+     * @param w the new width
+     * @param h the new height
+     */
+    @Override
+    public void reshape(int w, int h) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        super.reshape(w, h);
     }
 
     /**
@@ -630,6 +654,8 @@ public final class Main extends SimpleApplication {
                     Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
                     Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
+            // Render flames/particles after water, using the original scene depth.
+            fpp.addFilter(new TranslucentBucketFilter());
             viewPort.addProcessor(fpp);
         }
     }

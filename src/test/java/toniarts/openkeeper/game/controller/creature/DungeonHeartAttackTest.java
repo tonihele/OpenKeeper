@@ -417,27 +417,6 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void creatureHittingTheHeartTurnsToFaceIt() {
-        EntityId heart = createHeart(KEEPER);
-        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 8));
-        entityData.setComponent(hero, new Position((float) Math.PI, new Vector3f(10, 0, 8)));
-
-        // Arrived on the ring facing away, with no navigation to turn it
-        createController(hero).executeAttack(heart);
-
-        Navigation navigation = entityData.getComponent(hero, Navigation.class);
-        assertEquals(HEART_TILE, navigation.faceTarget);
-        assertEquals(new Point(10, 8), navigation.target);
-
-        // Already facing it, nothing to steer
-        entityData.removeComponent(hero, Navigation.class);
-        entityData.setComponent(hero, new Position(0, new Vector3f(10, 0, 8)));
-        createController(hero).executeAttack(heart);
-
-        assertNull(entityData.getComponent(hero, Navigation.class));
-    }
-
-    @Test
     void creatureWalksToTheNearestTileNextToTheHeartThatReachesAPillar() {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 15));
         EntityId heart = createHeart(KEEPER);

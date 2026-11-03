@@ -34,6 +34,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.video.tgq.TgqFrame;
 
 /**
@@ -91,6 +92,7 @@ public abstract class MovieState extends AbstractAppState {
                 movieMaterial.videoFrameUpdated(frame);
             }
         };
+        player.setVolume(Main.getUserSettings().getFloat(Settings.Setting.MASTER_VOLUME));
         player.play();
     }
     private final ActionListener actionListener = new ActionListener() {
