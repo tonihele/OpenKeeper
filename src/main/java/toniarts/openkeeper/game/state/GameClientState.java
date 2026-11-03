@@ -616,8 +616,24 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onDoTransition(short pathId, Vector3f start) {
 
+            // Called from the game logic thread, the camera and the scene belong to the render thread
+            Vector3f startPoint = start.clone();
+            app.enqueue(() -> startTransition(pathId, startPoint));
+        }
+
+        /**
+         * Starts the camera transition on the render thread. If the camera
+         * state is not initialized yet, tries again on the next frame.
+         */
+        private void startTransition(short pathId, Vector3f start) {
+            PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
+            if (cameraState == null || !cameraState.isInitialized()) {
+                app.enqueue(() -> startTransition(pathId, start));
+                return;
+            }
+
             // TODO: Refactor
-            stateManager.getState(PlayerCameraState.class).doTransition(pathId, start, new CinematicEventListener() {
+            cameraState.doTransition(pathId, start, new CinematicEventListener() {
                 @Override
                 public void onPlay(CinematicEvent cinematic) {
 
