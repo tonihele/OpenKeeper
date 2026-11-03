@@ -95,11 +95,26 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isAssignedTaskValid();
 
-    public ICreatureController getAttackTarget();
+    /**
+     * Gets the creature, or the enemy Dungeon Heart, we are fighting. Picks a
+     * new target if we don't have a valid one.
+     *
+     * @return the target to attack, or {@code null} if there is none
+     */
+    public IEntityController getAttackTarget();
 
     public boolean isWithinAttackDistance(EntityId attackTarget);
 
     public void stopCreature();
+
+    /**
+     * Turns towards the target at the creature's turn speed, a creature only
+     * attacks the target it faces
+     *
+     * @param attackTarget the target
+     * @return true if we face the target
+     */
+    public boolean turnToAttackTarget(EntityId attackTarget);
 
     public void executeAttack(EntityId attackTarget);
 

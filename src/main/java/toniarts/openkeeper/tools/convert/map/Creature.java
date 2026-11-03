@@ -507,7 +507,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     private FightStyle fightStyle;
     private int meleeDamage; // f14
     private int unk3cb; // f1a
-    private float unk3cc; // f20
+    private float turnSpeed; // f20, in 2048ths of a full circle per second, 1/4096 fixed point
     private int nameStringId;
     private int tooltipStringId;
     private int entranceEffectId; // f36
@@ -1166,12 +1166,12 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         this.unk3cb = unk3cb;
     }
 
-    public float getUnk3cc() {
-        return unk3cc;
+    public float getTurnSpeed() {
+        return turnSpeed;
     }
 
-    protected void setUnk3cc(float unk3cc) {
-        this.unk3cc = unk3cc;
+    protected void setTurnSpeed(float turnSpeed) {
+        this.turnSpeed = turnSpeed;
     }
 
     public int getNameStringId() {

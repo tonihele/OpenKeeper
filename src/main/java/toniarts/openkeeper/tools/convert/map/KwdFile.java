@@ -1453,7 +1453,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             creature.setUnk3cb(reader.readUnsignedShort());
             creature.getAttributes().setPay(reader.readUnsignedShort());
             creature.getAttributes().setMaxGoldHeld(reader.readUnsignedShort());
-            creature.setUnk3cc(reader.readShortAsFloat());
+            creature.setTurnSpeed(reader.readShortAsFloat());
             creature.getAttributes().setDecomposeValue(reader.readUnsignedShort());
             creature.setNameStringId(reader.readUnsignedShort());
             creature.setTooltipStringId(reader.readUnsignedShort());

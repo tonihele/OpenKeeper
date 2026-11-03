@@ -41,6 +41,15 @@ public final class CreatureSleepFixtures {
         return creature;
     }
 
+    public static Creature worker() {
+        Creature creature = sleeper(0);
+        creature.setCreatureId((short) 1);
+        creature.setName("Imp");
+        creature.setFightStyle(Creature.FightStyle.NON_FIGHTER);
+        creature.setFlags(EnumSet.of(Creature.CreatureFlag.IS_WORKER, Creature.CreatureFlag.ALWAYS_FLEE));
+        return creature;
+    }
+
     public static Variable.MiscVariable variable(Variable.MiscVariable.MiscType type, int value) {
         Variable.MiscVariable variable = new Variable.MiscVariable();
         variable.setVariableId(type);
