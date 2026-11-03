@@ -17,8 +17,12 @@
 package toniarts.openkeeper.game.state.session;
 
 import com.jme3.math.Vector3f;
+import com.jme3.network.service.rmi.Asynchronous;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Handles player related requests
@@ -142,5 +146,9 @@ public interface PlayerService {
      * @param playerId the player whose game ends
      */
     public void endGame(boolean win, short playerId);
+
+    @Asynchronous(reliable = false)
+    void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId,
+                 EntityId entity, Point position, Short playerId);
 
 }
