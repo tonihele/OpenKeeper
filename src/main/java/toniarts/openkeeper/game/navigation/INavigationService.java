@@ -44,11 +44,13 @@ public interface INavigationService {
      * oldest room. Otherwise it is on the square ring 4 to 7 tiles away, picked
      * at random, or on a smaller ring if that has none. The ring is gone round
      * from a random tile, and the first tile of the creature's keeper that it
-     * can stand on and that isn't the Dungeon Heart is taken.
+     * can stand on and that isn't the Dungeon Heart is taken. If no ring has
+     * such a tile, the creature's own tile is returned, as DK II walks to a spot
+     * inside it (0x4808E0).
      *
      * @param start starting coordinates
      * @param navigable the navigable entity
-     * @return the tile, {@code null} if there is none
+     * @return the tile, never {@code null}
      */
     Point findIdleWalkTile(Point start, INavigable navigable);
 

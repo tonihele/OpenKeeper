@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
@@ -325,9 +326,28 @@ public final class CreatureController extends EntityController implements ICreat
                     && ownerId != Player.GOOD_PLAYER_ID
                     ? navigationService.findIdleWalkTile(start, this)
                     : navigationService.findRandomAccessibleTile(start, 10, this);
-            if (destination != null) {
+            if (start.equals(destination)) {
+                walkInsideTile(position.position);
+            } else if (destination != null) {
                 createNavigation(start, destination, null);
             }
+        }
+    }
+
+    /**
+     * Walks to a spot inside the tile the creature stands on. DK II does this
+     * when an idle walk finds no tile to go to (0x4808E0): it takes the
+     * creature's own tile and then one of nine spots in it.
+     *
+     * @param position where the creature is now
+     */
+    private void walkInsideTile(Vector3f position) {
+        Point tile = WorldUtils.vectorToPoint(position);
+        Vector2 spot = WorldUtils.pointToVector2(tile);
+        spot.add((FastMath.rand.nextInt(3) - 1) * 0.25f, (FastMath.rand.nextInt(3) - 1) * 0.25f);
+        Vector2 here = new Vector2(position.x, position.z);
+        if (here.dst(spot) > 0.1f) {
+            entityData.setComponent(entityId, new Navigation(tile, null, List.of(here, spot)));
         }
     }
 

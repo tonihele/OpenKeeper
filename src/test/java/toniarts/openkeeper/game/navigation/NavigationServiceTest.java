@@ -64,6 +64,14 @@ class NavigationServiceTest {
     }
 
     @Test
+    void idleWalkStaysOnTheCreaturesOwnTileWhenTheKeeperHasNoLandAround() {
+        NavigationService navigation = navigation(p -> p.equals(START) ? KEEPER : 0, List.of());
+        for (int i = 0; i < 50; i++) {
+            assertEquals(START, navigation.findIdleWalkTile(START, keepersCreature()));
+        }
+    }
+
+    @Test
     void oneIdleWalkInEightGoesToTheKeepersOldestRoom() {
         Point oldest = new Point(28, 28);
         List<IRoomController> rooms = List.of(room(9, 1, new Point(1, 1)), room(5, 6, oldest), room(2, 3, new Point(28, 1)));

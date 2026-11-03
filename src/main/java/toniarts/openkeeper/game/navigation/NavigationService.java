@@ -107,7 +107,9 @@ public final class NavigationService implements INavigationService {
                 }
             }
         }
-        return null;
+
+        // No ring has a tile: DK II walks to a spot inside the creature's own tile (0x4808E0)
+        return start;
     }
 
     /**
