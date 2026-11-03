@@ -26,7 +26,6 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
-import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -110,15 +109,13 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
             if (objectComponent.objectType != null && roomController.hasObjectControl(objectComponent.objectType) && !roomController.getObjectControl(objectComponent.objectType).isFullCapacity()) {
                 short ownerId = roomController.getOwnerId();
                 if (objectComponent.objectType == AbstractRoomController.ObjectType.GOLD) {
-                    synchronized (GameWorldController.GOLD_LOCK) {
-                        Gold gold = entityData.getComponent(entityId, Gold.class);
-                        int goldLeft = (int) roomController.getObjectControl(AbstractRoomController.ObjectType.GOLD).addItem(gold.gold, point);
-                        playerControllers.get(ownerId).getGoldControl().addGold(gold.gold - goldLeft);
-                        if (goldLeft == 0) {
-                            entityData.removeEntity(entityId);
-                        } else {
-                            entityData.setComponent(entityId, new Gold(goldLeft, gold.maxGold));
-                        }
+                    Gold gold = entityData.getComponent(entityId, Gold.class);
+                    int goldLeft = (int) roomController.getObjectControl(AbstractRoomController.ObjectType.GOLD).addItem(gold.gold, point);
+                    playerControllers.get(ownerId).getGoldControl().addGold(gold.gold - goldLeft);
+                    if (goldLeft == 0) {
+                        entityData.removeEntity(entityId);
+                    } else {
+                        entityData.setComponent(entityId, new Gold(goldLeft, gold.maxGold));
                     }
                 } else {
                     roomController.getObjectControl(objectComponent.objectType).addItem(entityId, point);

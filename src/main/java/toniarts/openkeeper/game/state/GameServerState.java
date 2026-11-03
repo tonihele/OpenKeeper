@@ -226,47 +226,47 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            mapController.selectTiles(start, end, select, playerId);
+            game.runPlayerAction(() -> mapController.selectTiles(start, end, select, playerId));
         }
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameWorldController.build(start, end, playerId, roomId);
+            game.runPlayerAction(() -> gameWorldController.build(start, end, playerId, roomId));
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameWorldController.sell(start, end, playerId);
+            game.runPlayerAction(() -> gameWorldController.sell(start, end, playerId));
         }
 
         @Override
         public void onInteract(EntityId entity, short playerId) {
-            gameWorldController.interact(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.interact(entity, playerId));
         }
 
         @Override
         public void onPickUp(EntityId entity, short playerId) {
-            gameWorldController.pickUp(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.pickUp(entity, playerId));
         }
 
         @Override
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-            gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
+            game.runPlayerAction(() -> gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId));
         }
 
         @Override
         public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
-            gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId);
+            game.runPlayerAction(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId));
         }
 
         @Override
         public void onPlaceDoor(short doorId, Point tile, short playerId) {
-            gameWorldController.placeDoor(doorId, tile, playerId);
+            game.runPlayerAction(() -> gameWorldController.placeDoor(doorId, tile, playerId));
         }
 
         @Override
         public void onPlaceTrap(short trapId, Point tile, short playerId) {
-            gameWorldController.placeTrap(trapId, tile, playerId);
+            game.runPlayerAction(() -> gameWorldController.placeTrap(trapId, tile, playerId));
         }
 
         @Override
@@ -295,17 +295,17 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onGetGold(int amount, short playerId) {
-            gameWorldController.getGold(amount, playerId);
+            game.runPlayerAction(() -> gameWorldController.getGold(amount, playerId));
         }
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
-            cheatController.onCheat(cheat, playerId);
+            game.runPlayerAction(() -> cheatController.onCheat(cheat, playerId));
         }
 
         @Override
         public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
-            cheatController.spawnCreature(creatureId, level, amount, playerId);
+            game.runPlayerAction(() -> cheatController.spawnCreature(creatureId, level, amount, playerId));
         }
 
         @Override
@@ -328,10 +328,12 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onEndPossession(short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
-            }
+            game.runPlayerAction(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+                }
+            });
         }
     }
 
