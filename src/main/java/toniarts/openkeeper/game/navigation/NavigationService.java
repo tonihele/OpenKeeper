@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.navigation;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -63,6 +64,37 @@ public final class NavigationService implements INavigationService {
     @Override
     public Point findRandomAccessibleTile(Point start, int radius, INavigable navigable) {
         return findRandomAccessibleTile(start, radius, navigable, null);
+    }
+
+    @Override
+    public Point findIdleWalkTile(Point start, INavigable navigable) {
+        for (int radius = 4 + FastMath.rand.nextInt(4); radius > 0; radius--) {
+            int ringSize = radius * 8;
+            int first = FastMath.rand.nextInt(ringSize);
+            for (int i = 0; i < ringSize; i++) {
+                int index = (first + i) % ringSize;
+                int side = index / (radius * 2);
+                int along = index % (radius * 2) - radius;
+                Point p = switch (side) {
+                    case 0 -> new Point(start.x + along, start.y - radius);
+                    case 1 -> new Point(start.x + radius, start.y + along);
+                    case 2 -> new Point(start.x - along, start.y + radius);
+                    default -> new Point(start.x - radius, start.y - along);
+                };
+                IMapTileInformation tile = mapController.getMapData().getTile(p);
+                if (tile != null && tile.getOwnerId() == navigable.getOwnerId()
+                        && navigable.getCost(null, tile, mapController, entityPositionLookup) != null
+                        && !isDungeonHeart(p)) {
+                    return p;
+                }
+            }
+        }
+        return null;
+    }
+
+    private boolean isDungeonHeart(Point p) {
+        IRoomController room = mapController.getRoomControllerByCoordinates(p);
+        return room != null && room.isDungeonHeart();
     }
 
     @Override

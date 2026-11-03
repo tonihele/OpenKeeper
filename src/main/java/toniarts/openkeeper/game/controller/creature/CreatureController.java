@@ -318,7 +318,13 @@ public final class CreatureController extends EntityController implements ICreat
         final Owner owner = entityData.getComponent(entityId, Owner.class);
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
-            Point destination = navigationService.findRandomAccessibleTile(start, 10, this);
+
+            // An idle keeper's creature walks about on its keeper's land, like in DK II, others anywhere near
+            short ownerId = owner.ownerId;
+            Point destination = stateMachine.isInState(CreatureState.IDLE) && ownerId != Player.NEUTRAL_PLAYER_ID
+                    && ownerId != Player.GOOD_PLAYER_ID
+                    ? navigationService.findIdleWalkTile(start, this)
+                    : navigationService.findRandomAccessibleTile(start, 10, this);
             if (destination != null) {
                 createNavigation(start, destination, null);
             }

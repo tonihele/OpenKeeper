@@ -39,6 +39,19 @@ public interface INavigationService {
     Point findRandomAccessibleTile(Point start, int radius, INavigable navigable);
 
     /**
+     * Get the tile an idle creature of a keeper walks to. As in DK II
+     * (0x4808E0, 0x480A00), it is on the square ring 4 to 7 tiles away, picked
+     * at random, or on a smaller ring if that has none. The ring is gone round
+     * from a random tile, and the first tile of the creature's keeper that it
+     * can stand on and that isn't the Dungeon Heart is taken.
+     *
+     * @param start starting coordinates
+     * @param navigable the navigable entity
+     * @return the tile, {@code null} if there is none
+     */
+    Point findIdleWalkTile(Point start, INavigable navigable);
+
+    /**
      * Get a random tile from current room, that is not a starting tile. The
      * starting tile must be a room.
      *
