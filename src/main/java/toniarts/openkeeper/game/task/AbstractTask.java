@@ -134,6 +134,15 @@ public abstract class AbstractTask implements Task {
         return assignees.size();
     }
 
+    /**
+     * The workers assigned to this task
+     *
+     * @return a copy of the assignees
+     */
+    protected List<ICreatureController> getAssignees() {
+        return List.copyOf(assignees.keySet());
+    }
+
     @Override
     public boolean isFull() {
         return getAssigneeCount() >= getMaxAllowedNumberOfAsignees();

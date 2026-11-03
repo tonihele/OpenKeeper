@@ -1271,7 +1271,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
                 // See if the task is full or the worker is not unemployed anymore or that the task can't actually be handled by this creature
                 if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)
-                        || taskWorkerPriority.task.isFull()
+                        || taskWorkerPriority.task.isFull() && !taskWorkerPriority.task.makeRoomFor(taskWorkerPriority.creature)
                         || !taskWorkerPriority.task.canAssign(taskWorkerPriority.creature)) {
                     iter.remove();
                     continue;
