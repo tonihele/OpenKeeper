@@ -451,7 +451,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
             Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer);
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer, pillarTiles);
             surface.attachChild(ceilingGeometry);
             ceilingMaterials.add(ceilingGeometry.getMaterial());
         }
