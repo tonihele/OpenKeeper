@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
+import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -179,6 +180,7 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
             Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
+            Serializer.registerClass(MeleeHit.class, new FieldSerializer());
             Serializer.registerClass(Portal.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());
