@@ -41,6 +41,11 @@ public final class TerrainFixtures {
         return terrain;
     }
 
+    public static Terrain withMaxManaGain(Terrain terrain, int maxManaGain) {
+        terrain.setMaxManaGain(maxManaGain);
+        return terrain;
+    }
+
     public static Tile tile(short terrainId, short playerId) {
         Tile tile = new Tile();
         tile.setTerrainId(terrainId);
