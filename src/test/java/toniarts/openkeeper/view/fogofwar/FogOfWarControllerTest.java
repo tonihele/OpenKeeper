@@ -109,6 +109,7 @@ class FogOfWarControllerTest {
         createCreature(ENEMY, 11, 10);
         controller.start();
 
+        assertFalse(controller.isEnabled(), "The fog starts disabled");
         update(UPDATES);
 
         assertTrue(sightings.isEmpty(), "No enemy can be sighted before the fog is seeded");
@@ -124,6 +125,7 @@ class FogOfWarControllerTest {
         assertTrue(sightings.isEmpty(), "No enemy can be sighted before the fog is seeded");
 
         controller.seedLevelStart();
+        assertTrue(controller.isEnabled(), "Seeding enables the fog");
         update(UPDATES);
 
         assertEquals(List.of(enemy), sightings);
@@ -161,7 +163,10 @@ class FogOfWarControllerTest {
 
     private void update(int times) {
         for (int i = 0; i < times; i++) {
-            controller.update(0.2f);
+            // What the state manager does
+            if (controller.isEnabled()) {
+                controller.update(0.2f);
+            }
         }
     }
 

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.fogofwar;
 
+import com.jme3.app.state.AbstractAppState;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -64,7 +65,7 @@ import java.util.function.Consumer;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class FogOfWarController implements IFogOfWarInformation {
+public final class FogOfWarController extends AbstractAppState implements IFogOfWarInformation {
 
     private static final float VISION_UPDATE_INTERVAL = 0.15f;
 
@@ -97,13 +98,6 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private EntitySet heartRoomEntities;
 
     /**
-     * Set once {@link #seedLevelStart()} has run. Until then the fog does
-     * nothing, the seeding would wipe it anyway. Seeding runs on the map
-     * loader thread, updates on the render thread.
-     */
-    private volatile boolean seeded;
-
-    /**
      * Whether the heart rooms already in the set have been looked at.
      * Render thread only.
      */
@@ -132,6 +126,10 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
         this.state = new FogState(viewerId, mapData.getWidth(), mapData.getHeight());
         this.losTable = LineOfSightTable.generate(7);
+
+        // Nothing to do until the level start seeding has run, it would wipe
+        // whatever we did before it. seedLevelStart() enables us.
+        setEnabled(false);
     }
 
     /**
@@ -166,17 +164,14 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     /**
      * Advances the fog of war: creature vision, possession, the Dungeon
-     * Heart reveal and the "enemy sighted" check. Does nothing until
-     * {@link #seedLevelStart()} has run, so nothing seen or reported before
-     * the seeding gets wiped by it.
+     * Heart reveal and the "enemy sighted" check. The state is disabled, so
+     * the state manager doesn't call this, until {@link #seedLevelStart()}
+     * has run.
      *
      * @param tpf time since the last update, in seconds
      */
+    @Override
     public void update(float tpf) {
-        if (!seeded) {
-            return;
-        }
-
         // The first time round, every heart room in the set is new to us,
         // including the ones that were already there when the set was made
         heartRoomEntities.applyChanges();
@@ -384,7 +379,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
         if (!dirty.isEmpty()) {
             fireTilesDirty(dirty.toArray(new Point[0]));
         }
-        seeded = true;
+        setEnabled(true);
     }
 
     private void seedOwnedAndAlwaysExploredTiles() {

@@ -187,6 +187,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Tile flash state
         this.stateManager.attach(flashTileControl);
 
+        // The fog of war, disabled until the level start seeding
+        this.stateManager.attach(fogOfWarController);
+
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
     }
@@ -202,6 +205,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Tile flash state
         stateManager.detach(flashTileControl);
+
+        // Fog of war
+        stateManager.detach(fogOfWarController);
 
         // Effects
         stateManager.detach(effectManager);
@@ -220,7 +226,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Always process rooms before the map tiles
         mapRoomContainer.update();
         mapTileContainer.update();
-        fogOfWarController.update(tpf);
     }
 
     public AssetManager getAssetManager() {
