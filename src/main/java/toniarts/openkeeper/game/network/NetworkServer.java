@@ -93,6 +93,7 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
@@ -233,6 +234,7 @@ public final class NetworkServer {
             Serializer.registerClass(Slapped.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
+            Serializer.registerClass(Tremor.class, new FieldSerializer());
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());
             Serializer.registerClass(Threat.class, new FieldSerializer());
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());
