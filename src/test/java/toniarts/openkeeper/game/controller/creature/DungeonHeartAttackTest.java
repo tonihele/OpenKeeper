@@ -77,6 +77,7 @@ class DungeonHeartAttackTest {
     private Set<Point> solidTiles;
     private int pathSearches;
     private boolean walledOff;
+    private boolean cornersWalkable;
 
     @BeforeEach
     void setUp() {
@@ -88,6 +89,7 @@ class DungeonHeartAttackTest {
         solidTiles = new HashSet<>();
         pathSearches = 0;
         walledOff = false;
+        cornersWalkable = false;
     }
 
     @Test
@@ -187,8 +189,9 @@ class DungeonHeartAttackTest {
         createController(hero).navigateToAttackTarget(heart);
 
         assertEquals(new Point(10, 8), entityData.getComponent(hero, Navigation.class).target);
-        // One search to pick the tile, one to build the route
-        assertEquals(2, pathSearches);
+        // One search for each of the two corners of the centre that reach a pillar, which can't be walked on here, one
+        // to pick the tile, one to build the route
+        assertEquals(4, pathSearches);
     }
 
     @Test
@@ -238,6 +241,18 @@ class DungeonHeartAttackTest {
         assertEquals(new Point(8, 11), entityData.getComponent(hero, Navigation.class).target);
     }
 
+    @Test
+    void creatureHitsTheHeartFromACornerOfItsCentreWhenItCanWalkThere() {
+        cornersWalkable = true;
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 15));
+        EntityId heart = createHeart(KEEPER);
+
+        createController(hero).navigateToAttackTarget(heart);
+
+        // 0.4 tiles from the south-west pillar and nearer than (8, 11)
+        assertEquals(new Point(9, 11), entityData.getComponent(hero, Navigation.class).target);
+    }
+
     private boolean isWithinAttackDistance(float x, float y, EntityId heart) {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(0, 0));
         entityData.setComponent(hero, new Position(0, new Vector3f(x, 0, y)));
@@ -284,14 +299,16 @@ class DungeonHeartAttackTest {
             default -> null;
         });
 
-        // The centre 3x3 of the heart can't be walked on
+        // The centre 3x3 of the heart can't be walked on, or only its corners
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> {
             if (!"findPath".equals(name)) {
                 return null;
             }
             pathSearches++;
             Point to = (Point) args[1];
-            boolean onHeart = Math.abs(to.x - HEART_TILE.x) <= 1 && Math.abs(to.y - HEART_TILE.y) <= 1;
+            int dx = Math.abs(to.x - HEART_TILE.x);
+            int dy = Math.abs(to.y - HEART_TILE.y);
+            boolean onHeart = dx <= 1 && dy <= 1 && !(cornersWalkable && dx + dy == 2);
             return onHeart || walledOff ? null : new DefaultGraphPath<>();
         });
         IMapData mapData = stub(IMapData.class, (name, args) -> "getTile".equals(name) && args.length == 1

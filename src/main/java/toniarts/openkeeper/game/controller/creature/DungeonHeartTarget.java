@@ -29,15 +29,17 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * A Dungeon Heart as a target of an attack. The heart stands on the centre 3x3
- * tiles of its room, which no one can walk on, so it is hit from the ring of
- * tiles around them. Like in the original, the attackers go for the three Arch
- * Pillars of the heart and the hits land on the heart.
+ * A Dungeon Heart as a target of an attack. The original keeps creatures off
+ * the middle of the heart with the Dungeon Heart Obstacle, a solid object 3
+ * tiles across at its centre (0x4DB700, 0x4D12B0). It covers the centre tile
+ * and the four next to it, so the heart is hit from the other tiles of its
+ * room. Like in the original, the attackers go for the three Arch Pillars of
+ * the heart and the hits land on the heart.
  */
 public final class DungeonHeartTarget {
 
     /**
-     * How far from the centre of the heart the ring of tiles is
+     * How far from the centre of the heart the edge of its room is
      */
     private static final int RING_DISTANCE = 2;
 
@@ -91,7 +93,7 @@ public final class DungeonHeartTarget {
     }
 
     /**
-     * Finds the tile next to the heart nearest to the given tile that a
+     * Finds the tile of the heart's room nearest to the given tile that a
      * creature can get to and hit the heart from its centre
      *
      * @param from where the creature is
@@ -106,7 +108,8 @@ public final class DungeonHeartTarget {
         for (int x = -RING_DISTANCE; x <= RING_DISTANCE; x++) {
             for (int y = -RING_DISTANCE; y <= RING_DISTANCE; y++) {
                 Point tile = new Point(heartTile.x + x, heartTile.y + y);
-                if (Math.max(Math.abs(x), Math.abs(y)) == RING_DISTANCE
+                // Not on the obstacle: the centre and the four tiles next to it
+                if (Math.abs(x) + Math.abs(y) >= RING_DISTANCE
                         && isInReach(WorldUtils.pointToVector2f(tile), heartTile, meleeRange)) {
                     ring.add(tile);
                 }
