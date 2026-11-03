@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -386,6 +387,35 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void hungryIdleCreatureRetriesEatingEveryFourTicks() {
+        try (Fixture f = new Fixture(9)) {
+            f.reachable.set(false);
+            f.data.setComponent(f.entity, new CreatureHunger(0, 2));
+            for (int i = 0; i < 9; i++) {
+                f.tick();
+            }
+            assertEquals(List.of(.25, 1.25, 2.25), f.eatAttempts);
+            assertEquals(2.25, f.data.getComponent(f.entity, CreatureHunger.class).lastEatAttemptTime);
+        }
+    }
+
+    @Test
+    void hungerInterruptsRoomWorkBeforeFatigue() {
+        for (TaskType type : List.of(TaskType.TRAIN, TaskType.RESEARCH)) {
+            try (Fixture f = new Fixture(9)) {
+                f.startWork(type);
+                f.data.setComponent(f.entity, new CreatureHunger(0, 2));
+                f.data.setComponent(f.entity, new CreatureSleep(f.bed, -20, 0, 0));
+                f.tick();
+                assertEquals(TaskType.GO_TO_EAT, f.controller.getAssignedTask().getTaskType());
+                assertEquals(CreatureState.WORK, f.state());
+                assertEquals(1, f.oldJobUnassignments);
+                assertEquals(0, f.sleepAssignments);
+            }
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
@@ -406,6 +436,7 @@ class CreatureControllerTest {
             events.add((GameEventType) args[0]);
             return null;
         });
+        final List<Double> eatAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
         int oldJobUnassignments;
         double time;
@@ -445,6 +476,16 @@ class CreatureControllerTest {
                     task.assign((ICreatureController) args[0], true);
                     yield true;
                 }
+                case "assignEatTask" -> {
+                    eatAttempts.add(time);
+                    if (!reachable.get()) {
+                        yield false;
+                    }
+                    Task task = task(-2, TaskType.GO_TO_EAT);
+                    tasks.put(-2L, task);
+                    ((ICreatureController) args[0]).setAssignedTask(task);
+                    yield true;
+                }
                 default -> throw new UnsupportedOperationException(method);
             });
             roomHere = lair;
@@ -464,38 +505,43 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             Keeper keeper = new Keeper(false, (short) 3);
-            ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
-                case "getPlayer" -> keeper;
-                default -> throw new UnsupportedOperationException(method);
-            });
             ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> switch (method) {
                 case "isValidEntity" -> false;
                 default -> throw new UnsupportedOperationException(method);
             });
-            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, creatures, lookup, map, levelInfo, null, null, eventService);
-            controller = controllers.get();
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
                 case "getGameLevel" -> CreatureSleepFixtures.level(4);
                 case "getRoomById" -> new Room();
                 default -> throw new UnsupportedOperationException(method);
             });
+            ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
+                case "getLevelData" -> kwd;
+                case "getPlayer" -> keeper;
+                default -> throw new UnsupportedOperationException(method);
+            });
+            controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
+                    settings, creatures, lookup, map, levelInfo, null, null, eventService);
+            controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
             healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);
         }
 
-        void startWork(TaskType type) {
-            Task job = proxy(Task.class, (method, args) -> switch (method) {
-                case "getId" -> -1L;
+        Task task(long id, TaskType type) {
+            return proxy(Task.class, (method, args) -> switch (method) {
+                case "getId" -> id;
                 case "getTaskType" -> type;
                 case "isValid" -> true;
                 case "getTarget" -> new Vector2f(3, 4);
-                case "executeTask" -> null;
+                case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
                 default -> throw new UnsupportedOperationException(method);
             });
+        }
+
+        void startWork(TaskType type) {
+            Task job = task(-1, type);
             tasks.put(-1L, job);
             data.setComponent(entity, new TaskComponent(-1, null, null, type, 0, false));
             data.setComponent(entity, new CreatureAi(0, CreatureState.WORK, (short) 6));
