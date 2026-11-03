@@ -26,7 +26,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.view.ClientEntityData;
 
 /**
- * Tests counting the Guard Posts, i.e. the patrol routes, of a player. The
+ * Tests counting the Guard Posts, i.e. the patrol routes, of one player. The
  * counter gets the client's entity data, which refuses entity lookups, so the
  * tests fail if it ever asks the server for a single entity.
  */
@@ -36,19 +36,17 @@ class GuardPostCounterTest {
     private static final short FIRE_TRAP = 3;
 
     @Test
-    void countsOnlyTheOwnersGuardPosts() {
+    void countsOnlyThePlayersGuardPosts() {
         EntityData entityData = new DefaultEntityData();
         addTrap(entityData, GUARD_POST, 1);
         addTrap(entityData, GUARD_POST, 1);
         addTrap(entityData, GUARD_POST, 2);
         addTrap(entityData, FIRE_TRAP, 1);
 
-        GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), trapId -> trapId == GUARD_POST);
+        GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), (short) 1, trapId -> trapId == GUARD_POST);
         try {
             counter.update(0);
-            assertEquals(2, counter.applyAsInt((short) 1));
-            assertEquals(1, counter.applyAsInt((short) 2));
-            assertEquals(0, counter.applyAsInt((short) 3));
+            assertEquals(2, counter.getAsInt());
         } finally {
             counter.cleanup();
         }
@@ -57,18 +55,18 @@ class GuardPostCounterTest {
     @Test
     void followsGuardPostsBeingAddedAndRemoved() {
         EntityData entityData = new DefaultEntityData();
-        GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), trapId -> trapId == GUARD_POST);
+        GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), (short) 1, trapId -> trapId == GUARD_POST);
         try {
-            assertEquals(0, counter.applyAsInt((short) 1));
+            assertEquals(0, counter.getAsInt());
 
             EntityId post = addTrap(entityData, GUARD_POST, 1);
-            assertEquals(0, counter.applyAsInt((short) 1), "The count only follows the set when it is updated");
+            assertEquals(0, counter.getAsInt(), "The count only follows the set when it is updated");
             counter.update(0);
-            assertEquals(1, counter.applyAsInt((short) 1));
+            assertEquals(1, counter.getAsInt());
 
             entityData.removeEntity(post);
             counter.update(0);
-            assertEquals(0, counter.applyAsInt((short) 1));
+            assertEquals(0, counter.getAsInt());
         } finally {
             counter.cleanup();
         }

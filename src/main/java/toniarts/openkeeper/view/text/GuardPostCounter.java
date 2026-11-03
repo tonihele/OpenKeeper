@@ -20,20 +20,21 @@ import com.jme3.app.state.AbstractAppState;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.util.function.Predicate;
-import java.util.function.ToIntFunction;
+import java.util.function.IntSupplier;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TrapComponent;
 
 /**
- * Counts the Guard Posts a player owns. A Guard Post marks out a patrol route
+ * Counts the Guard Posts of one player, the one the tooltips are shown to. A Guard Post marks out a patrol route
  * from the nearest Guard Room, so the count is the number of patrol routes the
  * Guard Room tooltip reports. The entity set is brought up to date on every
  * frame, as a set left alone piles up its changes.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class GuardPostCounter extends AbstractAppState implements ToIntFunction<Short> {
+public final class GuardPostCounter extends AbstractAppState implements IntSupplier {
 
     private final EntitySet traps;
     private final Predicate<Short> guardPostTrapIds;
@@ -42,25 +43,25 @@ public final class GuardPostCounter extends AbstractAppState implements ToIntFun
      * Creates a new counter
      *
      * @param entityData the entity data to follow
+     * @param ownerId the player whose Guard Posts are counted
      * @param guardPostTrapIds tells whether a trap ID is the Guard Post
      */
-    public GuardPostCounter(EntityData entityData, Predicate<Short> guardPostTrapIds) {
-        this.traps = entityData.getEntities(TrapComponent.class, Owner.class);
+    public GuardPostCounter(EntityData entityData, short ownerId, Predicate<Short> guardPostTrapIds) {
+        this.traps = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", ownerId),
+                TrapComponent.class, Owner.class);
         this.guardPostTrapIds = guardPostTrapIds;
     }
 
     /**
-     * Counts the Guard Posts of a player
+     * Counts the Guard Posts of the player
      *
-     * @param ownerId the player ID
      * @return the number of Guard Posts the player owns
      */
     @Override
-    public int applyAsInt(Short ownerId) {
+    public int getAsInt() {
         int count = 0;
         for (Entity entity : traps) {
-            if (entity.get(Owner.class).ownerId == ownerId
-                    && guardPostTrapIds.test(entity.get(TrapComponent.class).trapId)) {
+            if (guardPostTrapIds.test(entity.get(TrapComponent.class).trapId)) {
                 count++;
             }
         }
