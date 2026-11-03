@@ -1470,20 +1470,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // Validate
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target)) {
+        // Validate. The workers get more expensive the more of them there are
+        int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
+                (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target, manaCost)) {
             return;
-        }
-
-        // The workers get more expensive the more of them there are
-        int manaCost = keeperSpell.getManaCost();
-        if (keeperSpell.getFlags().contains(KeeperSpell.KeeperSpellFlag.CREATE_WORKER)) {
-            int minimumImpCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue();
-            int impCount = playerControllers.get(playerId).getCreatureControl().getImpCount();
-            manaCost *= Math.max(1, impCount + 1 - minimumImpCount);
-            if (manaCost > player.getMana() - player.getManaLoose()) {
-                return;
-            }
         }
 
         // Deduct the mana
