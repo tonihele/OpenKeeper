@@ -132,6 +132,36 @@ class GameEventTest {
     }
 
     @Test
+    void shockOnTheElectricChairZapsTheChairAndTheVictimCries() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getObject" -> SoundFixtures.object("OBJECT_ELECTRIC_CHAIR");
+                    case "getCreature" -> SoundFixtures.creature("CREATURE_TROLL");
+                    default -> null;
+                });
+        GameEvent event = new GameEvent(GameEventType.TORTURE_ELECTROCUTED, ThingFlag.OBJECT, 61, ThingFlag.CREATURE, 10,
+                null, new Point(1, 2));
+
+        assertEquals(List.of(
+                new GameEventSounds.Sound("OBJECT_ELECTRIC_CHAIR", ThingSounds.ELECTRIC_CHAIR_ZAP, new Point(1, 2)),
+                new GameEventSounds.Sound("CREATURE_TROLL", ThingSounds.CREATURE_ELECTROCUTED, new Point(1, 2))),
+                GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
+    void mentorTellsOfAConversion() {
+        GameEvent event = new GameEvent(GameEventType.TORTURE_CONVERTED, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.TORTC004.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
+    void victimOnTheTortureWheelIsNotInterrupted() {
+        assertTrue(GameEventSounds.isExclusive(GameEventType.TORTURE_WHEEL));
+    }
+
+    @Test
     void onlyHurtIsExclusive() {
         assertTrue(GameEventSounds.isExclusive(GameEventType.CREATURE_HURT));
         assertFalse(GameEventSounds.isExclusive(GameEventType.CREATURE_DIE));

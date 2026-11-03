@@ -25,8 +25,10 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -34,6 +36,9 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -47,11 +52,14 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
+    private final GameEventService gameEventService;
     private final EntitySet torturedEntities;
     private final Map<EntityId, IRoomController> chambersByVictim = new HashMap<>();
 
-    public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController) {
+    public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
+            GameEventService gameEventService) {
         this.entityData = entityData;
+        this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
         this.mapController = mapController;
 
@@ -72,6 +80,9 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             // Keep track of the chamber on every tick, the room may be gone before the next check
             IRoomController chamber = getChamber(entity);
             CreatureTortured creatureTortured = entity.get(CreatureTortured.class);
+            if (chamber != null) {
+                playTortureSounds(entity, creatureTortured.device);
+            }
             if (creatureTortured.tortureCheckTime >= timeElapsed || chamber == null) {
                 continue;
             }
@@ -87,11 +98,36 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                     entityData.removeComponent(entity.getId(), CreatureTortured.class);
                     leaveDevice(entity.getId());
                     creaturesController.createController(entity.getId()).convertCreature(playerId);
+
+                    // The mentor tells both keepers, like DK II (CRoom_sub_4F2800)
+                    gameEventService.emitToPlayer(GameEventType.TORTURE_CONVERTED_BY_ENEMY, owner.ownerId);
+                    gameEventService.emitToPlayer(GameEventType.TORTURE_CONVERTED, playerId);
                     continue;
                 }
             }
 
             entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, timeElapsed, creatureTortured.healthCheckTime, creatureTortured.device));
+        }
+    }
+
+    /**
+     * A victim on a torture device is heard like in DK II (CreatureInstance_cpp_499300): each shock of the
+     * Electric Chair zaps, on the same tick as the victim turns into its skeleton, and on the other devices the
+     * victim cries out all the time
+     */
+    private void playTortureSounds(Entity victim, EntityId device) {
+        ObjectComponent deviceObject = device != null ? entityData.getComponent(device, ObjectComponent.class) : null;
+        if (deviceObject == null) {
+            return;
+        }
+        if (deviceObject.objectId != CreatureViewSystem.ELECTRIC_CHAIR_OBJECT_ID) {
+            gameEventService.emit(GameEventType.TORTURE_WHEEL, victim.getId());
+            return;
+        }
+        CreatureViewState view = entityData.getComponent(victim.getId(), CreatureViewState.class);
+        if (view != null && CreatureViewSystem.isShockDue(view, timeElapsed)) {
+            gameEventService.emitAt(GameEventType.TORTURE_ELECTROCUTED, GameEvent.ThingFlag.OBJECT, deviceObject.objectId,
+                    victim.getId(), victim.get(Position.class).position);
         }
     }
 
