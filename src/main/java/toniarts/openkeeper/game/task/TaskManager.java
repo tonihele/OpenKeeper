@@ -713,7 +713,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 break;
             }
             case KILL_PLAYER: {
-                task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
+
+                // Without the keeper the creature has nobody to go after, it just carries on as usual
+                if (KillPlayer.isTargetPresent(levelInfo, creature.getObjectiveTargetPlayerId())) {
+                    task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
+                }
+                break;
+            }
+            default: {
+
+                // The other objectives don't give the creature a task of its own
                 break;
             }
         }
@@ -885,16 +894,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
 
-            // Give points by distance and priority, no need to know can we do the task as this point as it might be a heavy check
+            // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
+            // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
             for (Task task : taskQueue) {
-                Vector2f target = task.getTarget(creature);
-                if (target == null) {
-
-                    // Can't reach
-                    continue;
-                }
-
-                int points = WorldUtils.calculateDistance(currentLocation, WorldUtils.vectorToPoint(target)) + task.getPriority();
+                int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
                 priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
             }
         }

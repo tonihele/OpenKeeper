@@ -33,4 +33,14 @@ public final class NoopCheatController implements ICheatController {
         // No cheating in multiplayer
     }
 
+    @Override
+    public void addGold(int amount, short playerId) {
+        // No cheating in multiplayer
+    }
+
+    @Override
+    public void addMana(int amount, short playerId) {
+        // No cheating in multiplayer
+    }
+
 }
