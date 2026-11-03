@@ -126,6 +126,7 @@ public final class CreatureController extends EntityController implements ICreat
      * for one to fight. DK II takes 7/8 of the squared distance (0x45B140).
      */
     private static final float OTHER_ALIGNMENT_DISTANCE_FACTOR = (float) Math.sqrt(7 / 8f);
+    private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -1537,6 +1538,16 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean goToEat() {
+        double gameTime = gameTimer.getGameTime();
+        CreatureHunger hunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (hunger == null || gameTime - hunger.lastEatAttemptTime
+                < EAT_ATTEMPT_INTERVAL_TICKS / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
+            return false;
+        }
+        // Native attempts are throttled to one per four ticks
+        CreatureHunger updated = new CreatureHunger(hunger.lastEatTime, hunger.amountNeeded);
+        updated.lastEatAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignEatTask(this);
     }
 
