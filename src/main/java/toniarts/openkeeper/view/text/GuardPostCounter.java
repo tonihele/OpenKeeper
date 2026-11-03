@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.text;
 
+import com.jme3.app.state.AbstractAppState;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
@@ -27,11 +28,12 @@ import toniarts.openkeeper.game.component.TrapComponent;
 /**
  * Counts the Guard Posts a player owns. A Guard Post marks out a patrol route
  * from the nearest Guard Room, so the count is the number of patrol routes the
- * Guard Room tooltip reports.
+ * Guard Room tooltip reports. The entity set is brought up to date on every
+ * frame, as a set left alone piles up its changes.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class GuardPostCounter implements ToIntFunction<Short>, AutoCloseable {
+public final class GuardPostCounter extends AbstractAppState implements ToIntFunction<Short> {
 
     private final EntitySet traps;
     private final Predicate<Short> guardPostTrapIds;
@@ -55,7 +57,6 @@ public final class GuardPostCounter implements ToIntFunction<Short>, AutoCloseab
      */
     @Override
     public int applyAsInt(Short ownerId) {
-        traps.applyChanges();
         int count = 0;
         for (Entity entity : traps) {
             if (entity.get(Owner.class).ownerId == ownerId
@@ -67,8 +68,14 @@ public final class GuardPostCounter implements ToIntFunction<Short>, AutoCloseab
     }
 
     @Override
-    public void close() {
+    public void update(float tpf) {
+        traps.applyChanges();
+    }
+
+    @Override
+    public void cleanup() {
         traps.release();
+        super.cleanup();
     }
 
 }

@@ -45,11 +45,12 @@ class GuardPostCounterTest {
 
         GuardPostCounter counter = new GuardPostCounter(new ClientEntityData(entityData), trapId -> trapId == GUARD_POST);
         try {
+            counter.update(0);
             assertEquals(2, counter.applyAsInt((short) 1));
             assertEquals(1, counter.applyAsInt((short) 2));
             assertEquals(0, counter.applyAsInt((short) 3));
         } finally {
-            counter.close();
+            counter.cleanup();
         }
     }
 
@@ -61,12 +62,15 @@ class GuardPostCounterTest {
             assertEquals(0, counter.applyAsInt((short) 1));
 
             EntityId post = addTrap(entityData, GUARD_POST, 1);
+            assertEquals(0, counter.applyAsInt((short) 1), "The count only follows the set when it is updated");
+            counter.update(0);
             assertEquals(1, counter.applyAsInt((short) 1));
 
             entityData.removeEntity(post);
+            counter.update(0);
             assertEquals(0, counter.applyAsInt((short) 1));
         } finally {
-            counter.close();
+            counter.cleanup();
         }
     }
 
