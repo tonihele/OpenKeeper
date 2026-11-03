@@ -149,7 +149,7 @@ class DigTileTaskTest {
         private final int damage;
         private final List<Integer> hits = new ArrayList<>();
         private int health;
-        private int tick;
+        private int tick = 0;
 
         private Digging(int health, int damage) {
             this.health = health;
