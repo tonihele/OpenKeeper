@@ -40,7 +40,8 @@ public interface INavigationService {
 
     /**
      * Get the tile an idle creature of a keeper walks to. As in DK II
-     * (0x4808E0, 0x480A00), it is on the square ring 4 to 7 tiles away, picked
+     * (0x4808E0, 0x480A00), one time in eight it is a tile of the keeper's
+     * oldest room. Otherwise it is on the square ring 4 to 7 tiles away, picked
      * at random, or on a smaller ring if that has none. The ring is gone round
      * from a random tile, and the first tile of the creature's keeper that it
      * can stand on and that isn't the Dungeon Heart is taken.

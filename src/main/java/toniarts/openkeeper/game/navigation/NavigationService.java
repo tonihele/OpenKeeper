@@ -34,6 +34,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 /**
@@ -42,8 +43,16 @@ import java.util.Set;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class NavigationService implements INavigationService {
-    
+
     private static final Logger logger = System.getLogger(NavigationService.class.getName());
+
+    /**
+     * The rooms an idle creature may walk to (0x480A00): Treasury, Lair,
+     * Hatchery, Library, Training Room, Guard Room, Work Shop, Prison, Torture
+     * Chamber, Temple, Graveyard, Casino and Combat Pit
+     */
+    private static final Set<Short> IDLE_WALK_ROOM_IDS = Set.of((short) 1, (short) 2, (short) 4, (short) 6, (short) 7,
+            (short) 9, (short) 10, (short) 11, (short) 12, (short) 13, (short) 14, (short) 15, (short) 16);
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
@@ -68,6 +77,15 @@ public final class NavigationService implements INavigationService {
 
     @Override
     public Point findIdleWalkTile(Point start, INavigable navigable) {
+
+        // One walk in eight goes to a room instead (0x480A00)
+        if (FastMath.rand.nextInt(8) == 0) {
+            Point p = findIdleWalkTileInRoom(navigable);
+            if (p != null) {
+                return p;
+            }
+        }
+
         for (int radius = 4 + FastMath.rand.nextInt(4); radius > 0; radius--) {
             int ringSize = radius * 8;
             int first = FastMath.rand.nextInt(ringSize);
@@ -90,6 +108,35 @@ public final class NavigationService implements INavigationService {
             }
         }
         return null;
+    }
+
+    /**
+     * DK II counts the keeper's rooms other than the Portal, the Dungeon
+     * Heart, the bridges and the Hero Gates, and then counts them down again
+     * without drawing a random number. So it always ends on the last of them
+     * in the keeper's list, where a new room is put first (0x4E3800): the
+     * oldest one. The creature walks to a random tile of it that it can stand
+     * on (0x4E8430).
+     */
+    private Point findIdleWalkTileInRoom(INavigable navigable) {
+        IRoomController oldest = null;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (room.getOwnerId() == navigable.getOwnerId() && IDLE_WALK_ROOM_IDS.contains(room.getRoomId())
+                    && !room.isDestroyed() && (oldest == null || room.getEntityId().getId() < oldest.getEntityId().getId())) {
+                oldest = room;
+            }
+        }
+        if (oldest == null) {
+            return null;
+        }
+        List<Point> tiles = new ArrayList<>();
+        for (Point p : oldest.getRoomInstance().getCoordinates()) {
+            IMapTileInformation tile = mapController.getMapData().getTile(p);
+            if (tile != null && navigable.getCost(null, tile, mapController, entityPositionLookup) != null) {
+                tiles.add(p);
+            }
+        }
+        return tiles.isEmpty() ? null : Utils.getRandomItem(tiles);
     }
 
     private boolean isDungeonHeart(Point p) {
