@@ -28,6 +28,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.AndFilter;
 import com.simsilica.es.filter.FieldFilter;
 import de.lessvoid.nifty.Nifty;
 import toniarts.openkeeper.Main;
@@ -125,7 +126,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
-        heartEntities = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
+        heartEntities = entityData.getEntities(new AndFilter(ObjectComponent.class,
+                        new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
+                        new FieldFilter(Owner.class, "ownerId", playerId)),
                 ObjectComponent.class, Owner.class, Health.class);
     }
 
@@ -265,6 +268,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     @Override
     public void update(float tpf) {
+        heartEntities.applyChanges();
         screen.update(tpf);
     }
 
@@ -599,12 +603,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @return health percentage, 0 if we have no heart
      */
     private int getDungeonHeartHealth() {
-        heartEntities.applyChanges();
         for (Entity heart : heartEntities) {
-            if (heart.get(Owner.class).ownerId == playerId) {
-                Health health = heart.get(Health.class);
-                return health.health * 100 / health.maxHealth;
-            }
+            Health health = heart.get(Health.class);
+            return health.health * 100 / health.maxHealth;
         }
 
         return 0;
