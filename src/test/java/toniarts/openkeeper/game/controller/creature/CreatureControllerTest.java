@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -85,6 +86,19 @@ class CreatureControllerTest {
             assertEquals(0, f.sleep().sleepNeed);
             assertEquals(0, f.sleepAssignments);
             assertNull(f.data.getComponent(f.entity, CreatureRecuperating.class));
+        }
+    }
+
+    @Test
+    void idleWorkerLooksForWorkAgainAsSoonAsItStandsStill() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.getComponent(f.entity, CreatureComponent.class).worker = true;
+            f.controller.getStateMachine().changeState(CreatureState.IDLE);
+            f.tick();
+            f.tick();
+
+            // DK II's imp searches again when its wander walk ends, it doesn't stand about for 5 seconds first
+            assertEquals(List.of(0.0, .25, .5), f.workSearches);
         }
     }
 
@@ -407,6 +421,7 @@ class CreatureControllerTest {
             return null;
         });
         final List<Double> eatAttempts = new java.util.ArrayList<>();
+        final List<Double> workSearches = new java.util.ArrayList<>();
         int sleepAssignments;
         int oldJobUnassignments;
         double time;
@@ -455,6 +470,11 @@ class CreatureControllerTest {
                     tasks.put(-2L, task);
                     ((ICreatureController) args[0]).setAssignedTask(task);
                     yield true;
+                }
+                case "addToUnemployedWorkerQueue" -> {
+                    workSearches.add(time);
+                    ((Consumer<Boolean>) args[1]).accept(false);
+                    yield null;
                 }
                 default -> throw new UnsupportedOperationException(method);
             });

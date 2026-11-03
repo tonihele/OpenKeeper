@@ -143,6 +143,41 @@ class CreatureStateTest {
         assertFalse(worker.wentToTreasury.get());
     }
 
+    @Test
+    void idleCreatureThinksAgainAsSoonAsItsWalkEnds() {
+        for (boolean worker : new boolean[]{true, false}) {
+            for (boolean claimed : new boolean[]{true, false}) {
+                AtomicBoolean lookedForWork = new AtomicBoolean();
+                AtomicBoolean walked = new AtomicBoolean();
+                StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(new AtomicReference<>(CreatureState.IDLE));
+                ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                        ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                            case "getStateMachine" -> stateMachine;
+                            case "isWorker" -> worker;
+                            case "isClaimed" -> claimed;
+                            case "isStopped" -> true;
+                            case "findWork" -> {
+                                lookedForWork.set(true);
+                                ((Consumer<Boolean>) args[0]).accept(false);
+                                yield null;
+                            }
+                            case "navigateToRandomPoint" -> {
+                                walked.set(true);
+                                yield null;
+                            }
+                            default -> defaultValue(method.getReturnType());
+                        });
+
+                CreatureState.IDLE.update(creature);
+
+                // In DK II a keeper's or a hero's creature that has walked about decides again at once, a neutral one
+                // keeps its own pace
+                assertEquals(claimed, lookedForWork.get());
+                assertEquals(claimed, walked.get());
+            }
+        }
+    }
+
     /**
      * An imp carrying some gold, its assigned task is no longer valid
      */
