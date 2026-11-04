@@ -36,6 +36,11 @@ import toniarts.openkeeper.Main;
  */
 public final class SaveGameFolder {
 
+    /**
+     * The quick save's name, DK II's quick save also writes over one save
+     */
+    public static final String QUICK_SAVE_NAME = "quicksave";
+
     private static final Logger logger = System.getLogger(SaveGameFolder.class.getName());
 
     private static final String EXTENSION = ".json.gz";

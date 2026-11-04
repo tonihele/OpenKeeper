@@ -879,7 +879,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         stats.show();
                     }
                 }
+            } else if (isKeyPressed(evt, Settings.Setting.QUICK_SAVE)) {
+                stateManager.getState(PlayerState.class).getScreen().quickSave();
+            } else if (isKeyPressed(evt, Settings.Setting.QUICK_LOAD)) {
+                stateManager.getState(PlayerState.class).getScreen().quickLoad();
             }
+        }
+
+        private boolean isKeyPressed(KeyInputEvent evt, Settings.Setting setting) {
+            return evt.getKeyCode() == (Integer) setting.getDefaultValue()
+                    && (setting.getSpecialKey() == null || keys.contains(setting.getSpecialKey()));
         }
 
         @Override
