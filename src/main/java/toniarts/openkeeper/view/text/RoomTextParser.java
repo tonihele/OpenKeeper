@@ -74,9 +74,9 @@ public class RoomTextParser {
             case HEALTH_PERCENTAGE:
                 return Integer.toString(room.getHealthPercent()); // Health
             case ROOM_USED_CAPACITY:
-                return Integer.toString(room.getUsedCapacity(getCapacityType(room))); // Used capacity
+                return Integer.toString(hasShelves(room) ? room.getUsedCapacity(ObjectType.SPELL_BOOK) : room.getUsedCapacity()); // Used capacity
             case ROOM_MAX_CAPACITY:
-                return Integer.toString(room.getMaxCapacity(getCapacityType(room))); // Max capacity
+                return Integer.toString(hasShelves(room) ? room.getMaxCapacity(ObjectType.SPELL_BOOK) : room.getMaxCapacity()); // Max capacity
             case TREASURY_GOLD:
                 return Integer.toString(room.getUsedCapacity(ObjectType.GOLD));
             case TREASURY_MAX_GOLD:
@@ -115,17 +115,14 @@ public class RoomTextParser {
     }
 
     /**
-     * The storage the room's capacity line tells about. In the Library DK II
-     * shows the shelf space there, the researchers have their own line
+     * Does the room have book shelves. The Library shows its shelf space on
+     * the capacity line, as in DK II, the researchers have their own line
      *
      * @param room the room
-     * @return the storage type of the capacity line
+     * @return true if the room has shelves for the spell books
      */
-    private static ObjectType getCapacityType(IRoomInformation room) {
-        if (room.getDefaultStorageType() == ObjectType.RESEARCHER) {
-            return ObjectType.SPELL_BOOK;
-        }
-        return room.getDefaultStorageType();
+    private static boolean hasShelves(IRoomInformation room) {
+        return room.getMaxCapacity(ObjectType.SPELL_BOOK) > 0;
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {
