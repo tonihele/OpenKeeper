@@ -97,10 +97,12 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -1354,7 +1356,14 @@ public final class CreatureController extends EntityController implements ICreat
     private int getFightThreat() {
         AttackTarget ourTarget = entityData.getComponent(entityId, AttackTarget.class);
         int threat = 0;
-        for (EntityId enemy : entityPositionLookup.getSensedEntities(entityId)) {
+
+        // The enemies we fight count however far away they are, not only the ones we sense, so a spell caster
+        // fighting from a distance feels their threat too
+        Set<EntityId> enemies = new HashSet<>(entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", entityId), AttackTarget.class));
+        if (ourTarget != null) {
+            enemies.add(ourTarget.entityId);
+        }
+        for (EntityId enemy : enemies) {
             AttackTarget enemyTarget = entityData.getComponent(enemy, AttackTarget.class);
             int shares = (enemyTarget != null && entityId.equals(enemyTarget.entityId) ? 1 : 0)
                     + (ourTarget != null && enemy.equals(ourTarget.entityId) ? 1 : 0);

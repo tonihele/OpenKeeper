@@ -90,6 +90,21 @@ class CreatureBackOffTest {
     }
 
     @Test
+    void enemyFoughtFromADistanceStillScares() {
+
+        // A Warlock casting at a Knight out of its sense range, as in DK II where it backs off before the first spell
+        EntityId warlock = creature(Player.KEEPER1_ID, 10, 50, 20, 1.08f);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 16, 533, 213, 0.9f);
+        creatures.remove(knight);
+        fight(warlock, knight);
+        CreatureController controller = controller(warlock);
+
+        assertFalse(controller.isScared());
+        assertFalse(controller.isScared());
+        assertTrue(controller.isScared());
+    }
+
+    @Test
     void threatIsSharedBetweenTheTargetAndTheAttackers() {
         EntityId target = creature(Player.KEEPER1_ID, 10, GOBLIN_FEAR, 37, 1.26f);
         EntityId other = creature(Player.KEEPER1_ID, 12, GOBLIN_FEAR, 37, 1.26f);
