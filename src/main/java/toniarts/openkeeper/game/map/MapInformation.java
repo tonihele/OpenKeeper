@@ -76,6 +76,21 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         return terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
     }
 
+    /**
+     * Tells whether rooms can be built on the terrain as land. That is claimed
+     * floor, but not a claimed Mana Vault: it has the same flags as claimed
+     * floor, but is the only one that generates mana of its own
+     *
+     * @param terrain the terrain
+     * @return true if a room can be placed on the terrain
+     */
+    public static boolean isBuildableLand(Terrain terrain) {
+        return !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                && terrain.getMaxManaGain() == 0;
+    }
+
     @Override
     public boolean isBuildable(Point p, short playerId, short roomId) {
         S tile = getMapData().getTile(p);
@@ -88,9 +103,7 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
         // Ownable tile is needed for land building (and needs to be owned by us)
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)
-                && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
-                && !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                && isBuildableLand(terrain)
                 && tile.getOwnerId() == playerId) {
             return true;
         }
