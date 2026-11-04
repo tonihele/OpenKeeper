@@ -28,8 +28,9 @@ public interface ICreatureEntrance extends IEntityGenerator {
         return 0;
     }
 
-    /** Signal an eligible Portal's build-up, three seconds before its generation check. */
-    default void onPrepareSpawn(double preparationTime) {
+    /** Returns true once per eligible Portal build-up, three seconds before its generation check. */
+    default boolean onPrepareSpawn(double preparationTime) {
+        return false;
     }
 
     /** Advance a Portal's generation clock, even when attraction cannot produce a creature. */

@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.RoomListener;
@@ -179,7 +180,11 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         double preparationTime = entrance.getLastSpawnTime() + cooldown - 3;
         if (timeElapsed >= preparationTime && !isCreatureLimitReached(player)
                 && !getPossibleCreatures(player).isEmpty()) {
-            entrance.onPrepareSpawn(preparationTime);
+            if (entrance.onPrepareSpawn(preparationTime)) {
+                gameEventService.emitAt(GameEventType.PORTAL_PREPARING, GameEvent.ThingFlag.ROOM,
+                        entrance.getRoom().getRoomId(), entrance.getEntityId(),
+                        WorldUtils.pointToVector3f(entrance.getEntranceCoordinate()));
+            }
         }
     }
 
