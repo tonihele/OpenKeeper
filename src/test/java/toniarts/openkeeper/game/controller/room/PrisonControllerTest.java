@@ -22,6 +22,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -29,6 +30,8 @@ import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.RoomFixtures.roomWithObjects;
 
 class PrisonControllerTest {
@@ -46,6 +49,58 @@ class PrisonControllerTest {
     @Test
     void prisonWithoutInsideTilesTakesNoPrisoners() {
         assertEquals(0, buildPrison(2).getMaxCapacity(ObjectType.PRISONER));
+    }
+
+    @Test
+    void newPrisonIsOpen() {
+        PrisonController prison = buildPrison(3);
+
+        assertTrue(prison.isOpen());
+        assertFalse(prison.isFullCapacity());
+    }
+
+    @Test
+    void closedPrisonTakesNoCaptives() {
+        PrisonController prison = buildPrison(3);
+
+        prison.setOpen(false);
+
+        assertTrue(prison.isFullCapacity());
+        assertTrue(prison.getObjectControl(ObjectType.PRISONER).isFullCapacity());
+    }
+
+    @Test
+    void doorBarOpensAndClosesThePrison() {
+        EntityData entityData = new DefaultEntityData();
+        PrisonController prison = buildPrison(entityData, 3);
+        EntityId doorBar = entityData.createEntity();
+        entityData.setComponent(doorBar, new ObjectComponent((short) 116, null));
+
+        assertTrue(prison.switchFurniture(doorBar));
+        assertFalse(prison.isOpen());
+        assertTrue(prison.switchFurniture(doorBar));
+        assertTrue(prison.isOpen());
+    }
+
+    @Test
+    void otherFurnitureIsNoSwitch() {
+        EntityData entityData = new DefaultEntityData();
+        PrisonController prison = buildPrison(entityData, 3);
+        EntityId skull = entityData.createEntity();
+        entityData.setComponent(skull, new ObjectComponent((short) 49, null));
+
+        assertFalse(prison.switchFurniture(skull));
+        assertTrue(prison.isOpen());
+    }
+
+    @Test
+    void prisonStaysClosedWhenItGrows() {
+        PrisonController prison = buildPrison(3);
+        prison.setOpen(false);
+
+        prison.construct();
+
+        assertFalse(prison.isOpen());
     }
 
     @Test
