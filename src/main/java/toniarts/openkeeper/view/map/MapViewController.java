@@ -1091,6 +1091,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         spatial.addControl(new TorchControl(kwdFile, assetManager, angleY));
         spatial.rotate(0, angleY, 0);
         Vector3f worldPosition = WorldUtils.pointToVector3f(tile.getLocation()).addLocal(position);
+        if (deformer != null) {
+            // The wall face this torch hangs on is bent by the terrain deformation,
+            // move the torch through the same field so it stays on the wall
+            deformer.deform(worldPosition, worldPosition, null);
+        }
         spatial.setLocalTranslation(worldPosition);
 
         Node parent = (Node) getTileNode(tile.getLocation(), (Node) pageNode.getChild(WALL_INDEX));
