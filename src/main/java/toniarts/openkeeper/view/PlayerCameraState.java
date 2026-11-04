@@ -608,11 +608,13 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     }
 
     /**
-     * The pitch / roll / yaw settings default to Ctrl + Home / End / Del / Page
-     * Down, which now do something else. Skip those so they don't act twice.
+     * The zoom settings default to Home / End and the pitch / roll / yaw
+     * settings to Ctrl + Home / End / Del / Page Down, which the fixed keys
+     * handle. Skip those so they don't act twice.
      */
     private static boolean isFixedCameraKey(String name) {
-        for (Setting s : new Setting[]{Setting.PITCH_CAMERA_UP, Setting.PITCH_CAMERA_DOWN,
+        for (Setting s : new Setting[]{Setting.CAMERA_ZOOM_IN, Setting.CAMERA_ZOOM_OUT,
+            Setting.PITCH_CAMERA_UP, Setting.PITCH_CAMERA_DOWN,
             Setting.ROLL_CAMERA_LEFT, Setting.ROLL_CAMERA_RIGHT,
             Setting.YAW_CAMERA_LEFT, Setting.YAW_CAMERA_RIGHT}) {
             if (name.equals(s.name())) {
