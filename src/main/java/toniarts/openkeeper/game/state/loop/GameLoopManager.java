@@ -53,14 +53,20 @@ import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameLoop;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 /**
  *
@@ -165,6 +171,35 @@ public final class GameLoopManager {
     public void stop() {
         loops.forEach(GameLoop::stop);
         loops.clear();
+    }
+
+    /**
+     * Saves the game. All the game loops are held between frames while the
+     * game is collected, the file is then written in the background.
+     *
+     * @param file the save file
+     * @return completes when the file is written
+     */
+    public CompletableFuture<Void> save(Path file) {
+        SaveGame saveGame = hold(0, () -> new SaveGame(
+                gameController.getLevelInfo().getLevelData().getGameLevel().getName(),
+                gameController.getGameTimer().getGameTime(),
+                gameController.getLevelInfo().getPlayers().values(),
+                gameService.getServerEntityData()));
+        return CompletableFuture.runAsync(() -> {
+            try {
+                saveGame.write(file);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        });
+    }
+
+    private <T> T hold(int loop, Supplier<T> action) {
+        if (loop == loops.size()) {
+            return action.get();
+        }
+        return loops.get(loop).hold(() -> hold(loop + 1, action));
     }
 
     public IGameController getGameController() {
