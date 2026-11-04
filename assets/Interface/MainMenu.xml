@@ -160,12 +160,12 @@
                          col2="${menu.2730};35;java.lang.String;#00752430"
                 />
                 <text id="noSavedGames" style="menuTextSmall" text="${menu.2128}" align="center" />
-                <!-- Not in DK II, an addition -->
-                <text id="deleteSavedGame" style="menuText" text="${menu.202}" align="center" marginTop="20px">
-                    <interact onClick="deleteSavedGame()" />
-                </text>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
+                <!-- Not in DK II, an addition -->
+                <text id="deleteSavedGame" style="menuText" text="${menu.202}" valign="center" marginRight="20px">
+                    <interact onClick="deleteSavedGame()" />
+                </text>
                 <control name="cancelButton" click="goToScreen(singlePlayer)" />
                 <control name="okButton" click="loadSavedGame()" />
             </panel>
