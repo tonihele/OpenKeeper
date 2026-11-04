@@ -131,19 +131,17 @@ class CreatureSeparationTest {
         float x = 5 + KNIGHT_WIDTH / 4;
         EntityId fighter = standing(KNIGHT, x, 5, CreatureState.FIGHT);
         entityData.setComponent(fighter, new Mobile(false, false, false, KNIGHT_SPEED));
-        SeparationSystem separationSystem = new SeparationSystem(entityData, kwdFile(), map(), positionLookup());
 
         // Between its blows it holds its ground
-        separationSystem.processTick(1 / 4f);
+        run(15, frame -> {});
         assertEquals(x, position(fighter).x, 0.0001f);
 
-        // While the blow runs it is pushed away, no further than it walks in a tick
+        // While the blow runs its pilot moves it by the push, no faster than it walks
         entityData.setComponent(fighter, new CreatureAi(0, CreatureState.MELEE_ATTACK, KNIGHT));
-        separationSystem.processTick(1 / 4f);
+        run(15, frame -> {});
         float moved = position(fighter).x - x;
         assertTrue(moved > 0 && moved <= KNIGHT_SPEED / 4 + 0.0001f, "Moved " + moved);
         assertEquals(5, position(fighter).y, 0.0001f);
-        assertNull(entityData.getComponent(fighter, SeparationPush.class));
     }
 
     @Test
@@ -247,6 +245,7 @@ class CreatureSeparationTest {
             case "getTerrain" -> solidTiles.contains(tileLocations.get(args[0])) ? rock : floor;
             case "isSolid" -> solidTiles.contains((Point) args[0]);
             case "isWater", "isLava" -> false;
+            case "getRoomControllerByCoordinates" -> null;
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }

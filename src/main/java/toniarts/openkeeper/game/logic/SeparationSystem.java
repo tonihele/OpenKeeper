@@ -52,9 +52,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * <br>
  * A creature that stands to swing or cast has no path, but DK II runs its pilot
  * too (0x488930) and the fight state leaves it no blocker while the blow runs
- * (0x45F030), so it is pushed about as well (0x4D2B80 only skips blockers). It
- * is moved by the push straight away, as far as a walker's push would move it
- * in a tick.
+ * (0x45F030), so it is pushed about as well (0x4D2B80 only skips blockers).
+ * Its pilot keeps running with the path finished, so the push changes its
+ * velocity and the path following brakes it (see {@link MovementSystem}).
  * <br>
  * DK II adds the weighted push to the velocity of a tick next to the path
  * following (see {@link FollowWaypoints}). The push doesn't push into walls.
@@ -97,16 +97,11 @@ public final class SeparationSystem implements IGameLogicUpdatable {
 
         for (Entity entity : creatures) {
             boolean walking = entityData.getComponent(entity.getId(), Navigation.class) != null;
-            Vector2f push = walking || isSwinging(entity) ? getPush(entity) : new Vector2f();
-            if (walking && !push.equals(Vector2f.ZERO)) {
-                entityData.setComponent(entity.getId(), new SeparationPush(push));
-                continue;
-            }
-            if (entityData.getComponent(entity.getId(), SeparationPush.class) != null) {
-                entityData.removeComponent(entity.getId(), SeparationPush.class);
-            }
+            Vector2f push = walking || isSwinging(entity) ? getPush(entity, walking) : new Vector2f();
             if (!push.equals(Vector2f.ZERO)) {
-                nudge(entity, push);
+                entityData.setComponent(entity.getId(), new SeparationPush(push));
+            } else if (entityData.getComponent(entity.getId(), SeparationPush.class) != null) {
+                entityData.removeComponent(entity.getId(), SeparationPush.class);
             }
         }
     }
@@ -124,33 +119,17 @@ public final class SeparationSystem implements IGameLogicUpdatable {
                 && entityData.getComponent(entity.getId(), Possessed.class) == null;
     }
 
-    /**
-     * Moves a creature that has no path by the push of one tick, at most the
-     * walking speed of a tick. It keeps facing its target.
-     */
-    private void nudge(Entity entity, Vector2f push) {
-        Position position = entity.get(Position.class);
-        float speedPerTick = getSpeedPerTick(entity);
-        Vector2f step = push.length() > speedPerTick ? push.normalizeLocal().multLocal(speedPerTick) : push;
-        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-        slideAlongWalls(step, position, creature.getAttributes().getWidth() / 2 + step.length());
-        entityData.setComponent(entity.getId(), new Position(position.rotation, position.position.add(step.x, 0, step.y)));
-    }
-
-    private float getSpeedPerTick(Entity entity) {
-        return entity.get(Mobile.class).maxSpeed / kwdFile.getGameLevel().getTicksPerSec();
-    }
-
-    private Vector2f getPush(Entity entity) {
+    private Vector2f getPush(Entity entity, boolean walking) {
         Vector2f separation = new Vector2f();
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         if (creature == null || isBlocker(entity.getId(), creature)) {
             return separation;
         }
 
-        // A walking creature faces where it goes, a fighter its target
+        // The more the creature already goes away from the other one the stronger the push, by its velocity
+        // (0x4D2B80): a walker faces where it goes, one swinging where it stands doesn't move
         Position position = entity.get(Position.class);
-        Vector2 heading = SteeringUtils.calculateAngleToVector(new Vector2(), -position.rotation);
+        Vector2 heading = walking ? SteeringUtils.calculateAngleToVector(new Vector2(), -position.rotation) : new Vector2();
         Point tile = WorldUtils.vectorToPoint(position.position);
         for (int x = Math.max(0, tile.x - 1); x <= Math.min(mapController.getMapData().getWidth() - 1, tile.x + 1); x++) {
             for (int y = Math.max(0, tile.y - 1); y <= Math.min(mapController.getMapData().getHeight() - 1, tile.y + 1); y++) {

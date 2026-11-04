@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
 import toniarts.openkeeper.game.navigation.steering.FollowWaypoints;
@@ -63,6 +64,12 @@ public final class MovementSystem implements IGameLogicUpdatable {
      * The radius of what has no creature width
      */
     private static final float DEFAULT_RADIUS = 0.25f;
+
+    /**
+     * The Dungeon Heart Obstacle, a solid object 3 tiles across at the centre
+     * of an intact heart (0x4DB700, 0x4D12B0)
+     */
+    private static final float HEART_OBSTACLE_RADIUS = 1.5f;
     
     private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
     private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
@@ -78,6 +85,8 @@ public final class MovementSystem implements IGameLogicUpdatable {
      */
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
+    private final EntitySet pushedEntities;
+    private final Map<EntityId, Vector2> standingVelocities = new HashMap<>();
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IMapController mapController;
@@ -89,6 +98,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         this.mapController = mapController;
         ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
+        pushedEntities = entityData.getEntities(Position.class, Mobile.class, SeparationPush.class);
 
         processAddedEntities(movableEntities);
     }
@@ -127,6 +137,51 @@ public final class MovementSystem implements IGameLogicUpdatable {
             // Apply steering acceleration
             applySteering(entityId, steerableEntity, steeringOutput, tpf);
         }
+
+        pushedEntities.applyChanges();
+        for (Entity entity : pushedEntities) {
+            if (!steerableEntitiesByEntityId.containsKey(entity.getId())) {
+                standingVelocities.computeIfAbsent(entity.getId(), id -> new Vector2());
+            }
+        }
+        standingVelocities.entrySet().removeIf(entry -> !pushStanding(entry.getKey(), entry.getValue(), tpf));
+    }
+
+    /**
+     * Moves a creature that is pushed where it stands. DK II's pilot runs for
+     * a fighting creature too (0x488930, 0x4D4760). Its path is finished, so
+     * the path following only brakes it (0x4D3C40, weight 0.35) and the push
+     * of a tick changes its velocity.
+     *
+     * @param entityId the creature
+     * @param velocity its velocity, changed here
+     * @param tpf the time of the step
+     * @return false once it walks, or stands still with no push
+     */
+    private boolean pushStanding(EntityId entityId, Vector2 velocity, float tpf) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        if (position == null || mobile == null || steerableEntitiesByEntityId.containsKey(entityId)) {
+            return false;
+        }
+        SeparationPush push = entityData.getComponent(entityId, SeparationPush.class);
+        if (push == null && velocity.isZero(0.01f)) {
+            return false;
+        }
+
+        // A change of the velocity of a tick: the push less the braking
+        float scale = ticksPerSecond * ticksPerSecond;
+        Vector2 acceleration = new Vector2(velocity).scl(-FollowWaypoints.WEIGHT * ticksPerSecond);
+        if (push != null) {
+            acceleration.add(push.push.x * scale, push.push.y * scale);
+        }
+        velocity.mulAdd(acceleration, tpf).limit(mobile.maxSpeed);
+        Vector2 location = new Vector2(position.position.x, position.position.z);
+        move(location, velocity, tpf, true);
+        position.position.x = location.x;
+        position.position.z = location.y;
+        entityData.setComponent(entityId, new Position(position.rotation, position.position));
+        return true;
     }
 
     /**
@@ -286,27 +341,41 @@ public final class MovementSystem implements IGameLogicUpdatable {
      * @param tpf the time of the step
      */
     private void move(ISteerableEntity steerable, float tpf) {
-        Vector2 position = steerable.getPosition();
-        Vector2 velocity = steerable.getLinearVelocity();
+        move(steerable.getPosition(), steerable.getLinearVelocity(), tpf, false);
+    }
+
+    private void move(Vector2 position, Vector2 velocity, float tpf, boolean avoidHeart) {
         float dx = velocity.x * tpf;
         float dy = velocity.y * tpf;
-        if (isFree(position.x + dx, position.y + dy) || !isFree(position.x, position.y)) {
+        if (isFree(avoidHeart, position.x + dx, position.y + dy) || !isFree(avoidHeart, position.x, position.y)) {
             position.add(dx, dy);
-        } else if (isFree(position.x + dx, position.y)) {
+        } else if (isFree(avoidHeart, position.x + dx, position.y)) {
             position.x += dx;
             velocity.y = 0;
-        } else if (isFree(position.x, position.y + dy)) {
+        } else if (isFree(avoidHeart, position.x, position.y + dy)) {
             position.y += dy;
             velocity.x = 0;
-        } else if (isFree(position.x - dy, position.y + dx)) {
+        } else if (isFree(avoidHeart, position.x - dy, position.y + dx)) {
             position.add(-dy, dx);
-        } else if (isFree(position.x + dy, position.y - dx)) {
+        } else if (isFree(avoidHeart, position.x + dy, position.y - dx)) {
             position.add(dy, -dx);
         }
     }
 
-    private boolean isFree(float x, float y) {
-        return !mapController.isSolid(WorldUtils.vectorToPoint(x, y));
+    private boolean isFree(boolean avoidHeart, float x, float y) {
+        Point tile = WorldUtils.vectorToPoint(x, y);
+        if (mapController.isSolid(tile)) {
+            return false;
+        }
+        if (!avoidHeart) {
+            return true;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(tile);
+        if (room == null || !room.isDungeonHeart() || room.getRoomInstance().isDestroyed()) {
+            return true;
+        }
+        Point center = room.getRoomInstance().getCenter();
+        return Vector2.dst2(x, y, center.x, center.y) >= HEART_OBSTACLE_RADIUS * HEART_OBSTACLE_RADIUS;
     }
 
     /**
@@ -360,6 +429,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         movableEntities.release();
+        pushedEntities.release();
         steeringBehaviors.clear();
         steerableEntitiesByEntityId.clear();
         steerableEntitiesBySteeringBehavior.clear();

@@ -47,7 +47,7 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
     /**
      * The weight of the path following (0x4D56E0)
      */
-    private static final float WEIGHT = 0x5999 / 65536f;
+    public static final float WEIGHT = 0x5999 / 65536f;
     private static final float PASS_RADII = 0x13333 / 65536f;
     private static final float WORKER_PASS_DISTANCE = 0.5f;
     private static final float FINISH_RADII = 0.5f;
