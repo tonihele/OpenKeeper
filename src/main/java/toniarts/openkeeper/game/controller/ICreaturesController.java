@@ -93,6 +93,14 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     List<IPartyController> getParties();
 
     /**
+     * Get every party that has been created, also the ones replaced by a newer
+     * party with the same party ID
+     *
+     * @return the created parties
+     */
+    List<IPartyController> getCreatedParties();
+
+    /**
      * Creates an creature controller interface on top of a real entity
      *
      * @param entityId the entity ID

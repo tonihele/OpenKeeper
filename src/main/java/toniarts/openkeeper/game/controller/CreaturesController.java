@@ -636,6 +636,11 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public List<IPartyController> getCreatedParties() {
+        return new ArrayList<>(creaturePartiesById.values());
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {

@@ -196,6 +196,7 @@ public final class GameLoopManager {
                             gameController.getLevelInfo(),
                             gameController.getPlayerControllers().values(),
                             gameController.getTriggerControls(),
+                            gameController.getGameWorldController().getCreaturesController().getCreatedParties(),
                             gameService.getServerEntityData()));
                 } catch (RuntimeException ex) {
                     saveGame.completeExceptionally(ex);

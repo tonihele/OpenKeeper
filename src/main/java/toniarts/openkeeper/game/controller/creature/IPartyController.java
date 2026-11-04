@@ -64,6 +64,14 @@ public interface IPartyController extends INavigable {
      */
     ICreatureController getPartyLeader();
 
+    /**
+     * Get the leader as it is. Unlike {@link #getPartyLeader()}, this doesn't
+     * choose a new leader if the leader is incapacitated.
+     *
+     * @return party leader instance
+     */
+    ICreatureController getLeader();
+
     int getTriggerId();
 
     PartyType getType();

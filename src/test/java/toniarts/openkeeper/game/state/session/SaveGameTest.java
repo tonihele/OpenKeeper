@@ -61,13 +61,18 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.PartyController;
+import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.HeroPartyFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.TriggerFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -120,7 +125,7 @@ class SaveGameTest {
         keeper.setDungeonHeartLocation(new Point(10, 12));
 
         Path file = folder.resolve("saves").resolve("Level6a.json.gz");
-        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), List.of(), entityData).write(file);
+        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), List.of(), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         EntityData loaded = saveGame.createEntityData();
 
@@ -171,12 +176,12 @@ class SaveGameTest {
 
         // Save, load and save again, the files must match
         Path file = folder.resolve("first.json.gz");
-        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), List.of(), entityData).write(file);
+        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), List.of(), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         Path secondFile = folder.resolve("second.json.gz");
         ILevelInfo levelInfo = levelInfo(saveGame.getPlayers().toArray(Keeper[]::new));
         saveGame.restoreLevelInfo(levelInfo);
-        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), List.of(), saveGame.createEntityData()).write(secondFile);
+        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), List.of(), List.of(), saveGame.createEntityData()).write(secondFile);
 
         JsonObject first = readJson(file);
         JsonObject second = readJson(secondFile);
@@ -196,7 +201,7 @@ class SaveGameTest {
         levelInfo.setLevelScore(42);
 
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo, List.of(), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo, List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -215,7 +220,7 @@ class SaveGameTest {
     @Test
     void testNoTimeLimitStaysOff() throws Exception {
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -238,7 +243,7 @@ class SaveGameTest {
         assertEquals(5, levelInfo.getFlag(2));
 
         Path file = folder.resolve("triggers.json.gz");
-        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), new DefaultEntityData()).write(file);
+        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), List.of(), new DefaultEntityData()).write(file);
         SaveGame saveGame = SaveGame.read(file);
         ILevelInfo loadedLevelInfo = levelInfo();
         TriggerControl loaded = new TriggerControl(null, loadedLevelInfo, () -> time[0], null, null, 1);
@@ -257,9 +262,9 @@ class SaveGameTest {
         assertEquals(2, loadedLevelInfo.getFlag(1));
 
         Path first = folder.resolve("first.json.gz");
-        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), new DefaultEntityData()).write(first);
+        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), List.of(), new DefaultEntityData()).write(first);
         Path second = folder.resolve("second.json.gz");
-        new SaveGame("Test", time[0], loadedLevelInfo, List.of(), List.of(loaded), new DefaultEntityData()).write(second);
+        new SaveGame("Test", time[0], loadedLevelInfo, List.of(), List.of(loaded), List.of(), new DefaultEntityData()).write(second);
         assertEquals(readJson(first).get("triggers"), readJson(second).get("triggers"));
     }
 
@@ -275,7 +280,7 @@ class SaveGameTest {
         IPlayerController player = stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", stats));
 
         Path file = folder.resolve("stats.json.gz");
-        new SaveGame("Test", 1, levelInfo(keeper), List.of(player), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo(keeper), List.of(player), List.of(), List.of(), new DefaultEntityData()).write(file);
         SaveGame saveGame = SaveGame.read(file);
         PlayerStatsControl loaded = saveGame.getPlayerStats().get(keeper.getId());
 
@@ -287,8 +292,43 @@ class SaveGameTest {
         // The counts too
         Path secondFile = folder.resolve("second.json.gz");
         IPlayerController loadedPlayer = stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", loaded));
-        new SaveGame("Test", 1, levelInfo(keeper), List.of(loadedPlayer), List.of(), new DefaultEntityData()).write(secondFile);
+        new SaveGame("Test", 1, levelInfo(keeper), List.of(loadedPlayer), List.of(), List.of(), new DefaultEntityData()).write(secondFile);
         assertEquals(readJson(file).get("playerStats"), readJson(secondFile).get("playerStats"));
+    }
+
+    @Test
+    void testPartiesRoundTrip() throws Exception {
+        Thing.HeroParty heroParty = HeroPartyFixtures.heroParty((short) 2, HeroPartyFixtures.member(),
+                HeroPartyFixtures.member(Thing.Creature.CreatureFlag.LEADER), HeroPartyFixtures.member());
+        PartyController party = new PartyController(heroParty);
+        party.setType(PartyType.INVASION_PARTY);
+        party.create();
+        List<Thing.GoodCreature> members = heroParty.getHeroPartyMembers();
+        for (int i = 0; i < members.size(); i++) {
+            party.addMemberInstance(members.get(i), creature(new EntityId(10 + i)));
+        }
+
+        Path file = folder.resolve("parties.json.gz");
+        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), List.of(party), new DefaultEntityData()).write(file);
+        List<PartyController> loaded = SaveGame.read(file).getParties(Map.of(heroParty.getId(), heroParty), SaveGameTest::creature);
+
+        assertEquals(1, loaded.size());
+        PartyController loadedParty = loaded.get(0);
+        assertTrue(loadedParty.isCreated());
+        assertEquals(party.getId(), loadedParty.getId());
+        assertEquals(heroParty.getId(), loadedParty.getPartyId());
+        assertEquals(PartyType.INVASION_PARTY, loadedParty.getType());
+        assertEquals(new EntityId(11), loadedParty.getLeader().getEntityId());
+        assertEquals(List.of(new EntityId(10), new EntityId(11), new EntityId(12)),
+                loadedParty.getActualMembers().stream().map(ICreatureController::getEntityId).toList());
+
+        PartyController newParty = new PartyController(heroParty);
+        newParty.create();
+        assertTrue(newParty.getId() > loadedParty.getId(), "New parties must not reuse saved ids");
+    }
+
+    private static ICreatureController creature(EntityId entityId) {
+        return stub(ICreatureController.class, Map.of("getEntityId", entityId));
     }
 
     /**
