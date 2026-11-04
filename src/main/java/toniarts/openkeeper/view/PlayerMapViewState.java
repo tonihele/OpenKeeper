@@ -18,6 +18,7 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
@@ -81,6 +82,20 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     // while the map was still loading. Render thread only
     private final Set<Point> pendingTileUpdates = new HashSet<>();
 
+    // Takes in the map entities until the map is complete, see initialize()
+    private final AppState mapEntityLoader = new AbstractAppState() {
+
+        @Override
+        public void update(float tpf) {
+            mapRoomContainer.update();
+            mapTileContainer.update();
+            if (lastTerrainIds != null) {
+                stateManager.detach(this);
+            }
+        }
+
+    };
+
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
@@ -117,8 +132,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                     }
                 }
 
-                // Build the map on its own thread, so the client can carry on
-                // setting up its other states meanwhile
+                // Build the map on its own thread, we might be on the render
+                // thread, and the client carries on setting up its other states
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
@@ -171,22 +186,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile);
 
         // Start collecting the map entities. In a local game the whole map is
-        // there already and start() loads it. Over the network the tiles come
-        // in batches, and as we don't update before the map has loaded, take
-        // them in here. We are on the client's loading thread, not the render
-        // thread
+        // there already and start() loads it, over the network see initialize()
         mapRoomContainer.start();
         mapTileContainer.start();
-        while (lastTerrainIds == null) {
-            try {
-                Thread.sleep(10);
-            } catch (InterruptedException ex) {
-                Thread.currentThread().interrupt();
-                break;
-            }
-            mapRoomContainer.update();
-            mapTileContainer.update();
-        }
         fogOfWarController.start();
     }
 
@@ -195,6 +197,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         super.initialize(stateManager, app);
         this.app = (Main) app;
         this.stateManager = stateManager;
+
+        // Over the network the map entities come in batches. We don't update
+        // before the map has loaded, so the loader takes them in until then
+        if (lastTerrainIds == null) {
+            this.stateManager.attach(mapEntityLoader);
+        }
 
         // Effects
         this.stateManager.attach(effectManager);
@@ -226,6 +234,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Tile flash state
         stateManager.detach(flashTileControl);
+
+        // In case we are still loading
+        stateManager.detach(mapEntityLoader);
 
         // Effects
         stateManager.detach(effectManager);
