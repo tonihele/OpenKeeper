@@ -116,6 +116,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private final SaveGameFolder saveGameFolder = new SaveGameFolder();
     private List<SaveGameFolder.Entry> savedGames = List.of();
     private String overwriteSaveName;
+    private String deleteSaveName;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
 
@@ -374,6 +375,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         buildSavedGamesList(page.columnOne, true);
         if (!savedGames.isEmpty()) {
             page.items.add(new GameMenu("i-load", "${menu.143}", "loadSavedGame()", page.columnTwo));
+            addDeleteSavedGame(page, PauseMenuState.LOAD);
         }
         addContinueAndBack(page, PauseMenuState.MAIN);
     }
@@ -389,10 +391,20 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
         }.build(page.columnOne);
         page.items.add(new GameMenu("i-save", "${menu.201}", "saveGame()", page.columnTwo));
+        if (!savedGames.isEmpty()) {
+            addDeleteSavedGame(page, PauseMenuState.SAVE);
+        }
 
         pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
         pauseMenuSettings.buildAutoSave(page.columnTwo);
         addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    /**
+     * Deleting a save isn't in DK II, it's an addition
+     */
+    private static void addDeleteSavedGame(MenuPage page, PauseMenuState listPage) {
+        page.items.add(new GameMenu("I-Delete", "${menu.202}", String.format("deleteSavedGame(%s)", listPage.name()), page.columnTwo));
     }
 
     private void buildGraphicsPage(MenuPage page) {
@@ -580,6 +592,28 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     public void quickSave() {
         writeSaveGame(SaveGameFolder.QUICK_SAVE_NAME);
+    }
+
+    @Override
+    public void deleteSavedGame(String listPage) {
+        List<Integer> selection = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("savedGames", ListBox.class).getSelectedIndices();
+        if (selection.isEmpty()) {
+            return;
+        }
+
+        deleteSaveName = savedGames.get(selection.get(0)).name();
+        pauseMenuNavigate(PauseMenuState.CONFIRMATION.name(), listPage, "${menu.202}", String.format("confirmDeleteSavedGame(%s)", listPage));
+    }
+
+    @Override
+    public void confirmDeleteSavedGame(String listPage) {
+        try {
+            saveGameFolder.delete(deleteSaveName);
+        } catch (IOException ex) {
+            logger.log(Level.ERROR, "Failed to delete " + deleteSaveName + "!", ex);
+            showSystemMessage(ex.getMessage());
+        }
+        pauseMenuNavigate(listPage, null, null, null);
     }
 
     @Override

@@ -81,6 +81,20 @@ public interface IPlayerScreenController extends ScreenController {
     public void loadSavedGame();
 
     /**
+     * Asks whether to delete the save selected in the list of saves
+     *
+     * @param listPage the menu page of the list, to go back to
+     */
+    public void deleteSavedGame(String listPage);
+
+    /**
+     * Deletes the save that was asked about and goes back to the list
+     *
+     * @param listPage the menu page of the list
+     */
+    public void confirmDeleteSavedGame(String listPage);
+
+    /**
      * Saves the game with the name typed in, asks first if a save with the
      * name exists
      */

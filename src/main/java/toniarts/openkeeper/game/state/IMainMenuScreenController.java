@@ -94,6 +94,21 @@ public interface IMainMenuScreenController extends ScreenController {
     public void loadSavedGame();
 
     /**
+     * Asks whether to delete the save selected in the list of saves
+     */
+    public void deleteSavedGame();
+
+    /**
+     * Deletes the selected save and lists the saves again
+     */
+    public void confirmDeleteSavedGame();
+
+    /**
+     * Keeps the selected save
+     */
+    public void cancelDeleteSavedGame();
+
+    /**
      * Cancel level selection and go back to the campaign map selection
      */
     public void cancelLevelSelect();

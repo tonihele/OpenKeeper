@@ -443,6 +443,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             listBox.addItem(new TableRow(i, save.name(), save.level(), dateFormat.format(save.time())));
         }
         screen.findElementById("noSavedGames").setVisible(savedGames.isEmpty());
+        screen.findElementById("deleteSavedGame").setVisible(!savedGames.isEmpty());
     }
 
     @Override
@@ -459,6 +460,41 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             logger.log(Logger.Level.ERROR, "Failed to load " + file + "!", ex);
             showError("${menu.145}", ex.getMessage());
         }
+    }
+
+    @Override
+    public void deleteSavedGame() {
+        if (screen.findNiftyControl("savedGamesTable", ListBox.class).getSelectedIndices().isEmpty()) {
+            return;
+        }
+
+        closePopup();
+        popupElement = nifty.createPopup("confirmDeleteSavedGame");
+        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+    }
+
+    @Override
+    public void confirmDeleteSavedGame() {
+        closePopup();
+        List<Integer> selection = screen.findNiftyControl("savedGamesTable", ListBox.class).getSelectedIndices();
+        if (selection.isEmpty()) {
+            return;
+        }
+
+        String name = savedGames.get(selection.get(0)).name();
+        try {
+            saveGameFolder.delete(name);
+        } catch (IOException ex) {
+            logger.log(Logger.Level.ERROR, "Failed to delete " + name + "!", ex);
+            showError("${menu.202}", ex.getMessage());
+            return;
+        }
+        showLoadGameScreen();
+    }
+
+    @Override
+    public void cancelDeleteSavedGame() {
+        closePopup();
     }
 
     private void showCutsceneScreen() {

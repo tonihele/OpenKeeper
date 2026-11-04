@@ -58,6 +58,17 @@ class SaveGameFolderTest {
     }
 
     @Test
+    void testDelete() throws IOException {
+        SaveGameFolder saves = new SaveGameFolder(folder);
+        write(saves, "keep", "Level1", 1000);
+        write(saves, "autosave1", "Level1", 2000);
+
+        assertTrue(saves.delete("autosave1"));
+        assertFalse(saves.delete("autosave1"), "Already gone");
+        assertEquals(List.of("keep"), saves.list().stream().map(SaveGameFolder.Entry::name).toList());
+    }
+
+    @Test
     void testValidNames() {
         SaveGameFolder saves = new SaveGameFolder(folder);
         assertTrue(saves.isValidName("My dungeon 2"));

@@ -82,6 +82,18 @@ public final class SaveGameFolder {
     }
 
     /**
+     * Deletes a save. DK II can't delete saves, this is an addition.
+     *
+     * @param name the save name
+     * @return {@code true} if the save was deleted, {@code false} if there
+     * was none
+     * @throws IOException if the file can't be deleted
+     */
+    public boolean delete(String name) throws IOException {
+        return Files.deleteIfExists(getFile(name));
+    }
+
+    /**
      * Whether the name can be used as a file name for a save
      *
      * @param name the save name
