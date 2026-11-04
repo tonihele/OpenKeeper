@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -44,6 +44,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 
@@ -59,6 +60,13 @@ class RoomWallFurnitureTest {
     private static final short WHEEL = 8;
     private static final short COALS = 62;
     private static final short WATER = 63;
+
+    /**
+     * The ways an object faces, on the map: a model looks down its +Z, turned
+     * by the rotation
+     */
+    private static final Vector3f SOUTH = new Vector3f(0, 0, 1);
+    private static final Vector3f EAST = new Vector3f(1, 0, 0);
 
     private final EntityData entityData = new DefaultEntityData();
     private final Room tortureChamber = tortureChamber();
@@ -94,12 +102,12 @@ class RoomWallFurnitureTest {
         MapController mapController = mapController();
         IRoomController room = mapController.getRoomControllerByCoordinates(new Point(3, 3));
 
-        // The water trough on the north wall, with a wheel on the wall half a tile up
-        assertPosition(FastMath.PI, new Vector3f(2, WorldUtils.FLOOR_HEIGHT, 1 - 0x480 / 4096f), room, WATER, 2, 1);
-        assertPosition(FastMath.PI, new Vector3f(2, WorldUtils.FLOOR_HEIGHT + 0.5f, 1 - 0x7C0 / 4096f), room, WHEEL, 2, 1);
+        // The water trough on the north wall faces south, with a wheel on the wall half a tile up
+        assertPosition(SOUTH, new Vector3f(2, WorldUtils.FLOOR_HEIGHT, 1 - 0x480 / 4096f), room, WATER, 2, 1);
+        assertPosition(SOUTH, new Vector3f(2, WorldUtils.FLOOR_HEIGHT + 0.5f, 1 - 0x7C0 / 4096f), room, WHEEL, 2, 1);
 
         // The lone wheel on the west wall faces east
-        assertPosition(-FastMath.HALF_PI, new Vector3f(1 - 0x7C0 / 4096f, WorldUtils.FLOOR_HEIGHT + 0.5f, 4), room, WHEEL, 1, 4);
+        assertPosition(EAST, new Vector3f(1 - 0x7C0 / 4096f, WorldUtils.FLOOR_HEIGHT + 0.5f, 4), room, WHEEL, 1, 4);
     }
 
     @Test
@@ -134,12 +142,13 @@ class RoomWallFurnitureTest {
         return placed;
     }
 
-    private void assertPosition(float rotation, Vector3f expected, IRoomController room, short objectId, int x, int y) {
+    private void assertPosition(Vector3f facing, Vector3f expected, IRoomController room, short objectId, int x, int y) {
         for (EntityId object : room.getWallFurniture()) {
             Position position = entityData.getComponent(object, Position.class);
             if (entityData.getComponent(object, ObjectComponent.class).objectId == objectId
                     && WorldUtils.vectorToPoint(position.position).equals(new Point(x, y))) {
-                assertEquals(rotation, position.rotation);
+                Vector3f modelFacing = new Quaternion().fromAngles(0, position.rotation, 0).mult(Vector3f.UNIT_Z);
+                assertTrue(facing.isSimilar(modelFacing, 0.0001f), "Facing " + modelFacing);
                 assertEquals(expected, position.position);
                 return;
             }

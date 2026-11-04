@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
@@ -316,9 +317,14 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final EntityId loadWallObject(short objectId, Point p, WallDirection direction, float distance, float height) {
         Point wall = WallSection.getWallNeighbour(p, direction);
         Vector3f position = WorldUtils.pointToVector3f(p).addLocal((wall.x - p.x) * distance, 0, (wall.y - p.y) * distance);
-        EntityId object = objectsController.loadObject(objectId, (short) 0, position.clone(), direction.getAngle());
+
+        // DK II turns the object the way the wall faces, into the room (yaw ((k + 2) & 3) << 9).
+        // A model looks down its +Z, south at angle 0, but a wall facing north has angle 0, so
+        // the object is half a turn round from the wall's angle
+        float rotation = direction.getAngle() + FastMath.PI;
+        EntityId object = objectsController.loadObject(objectId, (short) 0, position.clone(), rotation);
         if (height != 0) {
-            entityData.setComponent(object, new Position(direction.getAngle(), position.setY(WorldUtils.FLOOR_HEIGHT + height)));
+            entityData.setComponent(object, new Position(rotation, position.setY(WorldUtils.FLOOR_HEIGHT + height)));
         }
         return object;
     }
