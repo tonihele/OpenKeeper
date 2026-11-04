@@ -21,6 +21,7 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -28,6 +29,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
 
@@ -54,6 +56,13 @@ public record WallSection(toniarts.openkeeper.view.map.WallSection.WallDirection
     }
 
     /**
+     * The walls in the order DK II tries them for wall furniture: to the
+     * north, east, south and west of the room tile, given as the way they face
+     */
+    private static final WallDirection[] WALL_FURNITURE_DIRECTIONS = {WallDirection.SOUTH, WallDirection.WEST,
+        WallDirection.NORTH, WallDirection.EAST};
+
+    /**
      * Find room wall sections, continuous sections facing the same way
      *
      * @param roomInstance room instance
@@ -74,6 +83,66 @@ public record WallSection(toniarts.openkeeper.view.map.WallSection.WallDirection
             traverseRoomWalls(p, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints, mapData, kwdFile);
         }
         return sections;
+    }
+
+    /**
+     * Finds the room tiles that get wall furniture, like DK II
+     * (MyRooms_RoomManager_cpp_4EDFC0, 0x4EDFC0, with MyMapElement_sub_454230,
+     * 0x454230). Only a room with special walls and wall objects has any. Only
+     * the inner tiles of a straight wall get furniture, not its ends, and only
+     * every second one: the first such tile lines up all the walls running the
+     * same way. A tile gets one at most, the walls are tried in the order
+     * north, east, south and west.
+     *
+     * @param roomInstance the room, with its wall sections
+     * @return the tiles in the room's tile order, with the way the wall
+     * behind faces
+     */
+    public static Map<Point, WallDirection> findWallFurnitureTiles(RoomInstance roomInstance) {
+        Map<Point, WallDirection> tiles = new LinkedHashMap<>();
+        Room room = roomInstance.getRoom();
+        if (room.getObjects().get(3) == 0 || !room.getFlags().contains(Room.RoomFlag.SPECIAL_WALLS)
+                || roomInstance.getWallSections() == null) {
+            return tiles;
+        }
+
+        // The inner tiles of each wall section
+        Map<Point, Set<WallDirection>> innerWallTiles = new HashMap<>();
+        for (WallSection section : roomInstance.getWallSections()) {
+            List<Point> coordinates = section.coordinates();
+            for (int i = 1; i < coordinates.size() - 1; i++) {
+                innerWallTiles.computeIfAbsent(coordinates.get(i), p -> EnumSet.noneOf(WallDirection.class)).add(section.direction());
+            }
+        }
+
+        // The phases are DK II's CRoom +0x92 (x, walls to the north and south) and +0x96 (y)
+        Integer xParity = null;
+        Integer yParity = null;
+        for (Point p : roomInstance.getCoordinates()) {
+            Set<WallDirection> walls = innerWallTiles.get(p);
+            if (walls == null) {
+                continue;
+            }
+            for (WallDirection direction : WALL_FURNITURE_DIRECTIONS) {
+                if (!walls.contains(direction)) {
+                    continue;
+                }
+                if (direction == WallDirection.NORTH || direction == WallDirection.SOUTH) {
+                    xParity = (xParity == null ? p.x & 1 : xParity);
+                    if ((p.x & 1) != xParity) {
+                        continue;
+                    }
+                } else {
+                    yParity = (yParity == null ? p.y & 1 : yParity);
+                    if ((p.y & 1) != yParity) {
+                        continue;
+                    }
+                }
+                tiles.put(p, direction);
+                break;
+            }
+        }
+        return tiles;
     }
 
     /**

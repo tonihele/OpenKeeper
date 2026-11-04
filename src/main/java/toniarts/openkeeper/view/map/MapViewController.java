@@ -882,20 +882,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()),
                 fogOfWarInformation.isExplored(p));
 
-        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
-        // explored ground: a tile that is merely perceived (claim scan) shows no torches
-        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            handleTorch(tile, pageNode);
-        }
-
         // Room
         boolean isRoomTile = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM);
         RoomInstance roomInstance = null;
+        Room room = null;
         if (isRoomTile) {
 
             // Construct the actual room
-            Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+            room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
             roomInstance = handleRoom(p, room, null);
+        }
+
+        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
+        // explored ground: a tile that is merely perceived (claim scan) shows no torches.
+        // After the room is found, as some rooms put their torches between the wall furniture
+        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            handleTorch(tile, pageNode, roomInstance);
+        }
+
+        if (isRoomTile) {
 
             // Swap the terrain if this is a bridge
             Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
@@ -916,11 +921,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
     }
 
-    private void handleTorch(IMapTileInformation tile, Node pageNode) {
+    private void handleTorch(IMapTileInformation tile, Node pageNode, RoomInstance roomInstance) {
 
         // DKII places at most one torch per tile. At corners, the direction order makes the
         // perpendicular wall skip this tile and resume on the next eligible tile in its run.
-        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY())) {
+        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY(), roomInstance)) {
             Point neighbor = switch (direction) {
                 case NORTH -> new Point(tile.getX(), tile.getY() - 1);
                 case WEST -> new Point(tile.getX() - 1, tile.getY());
