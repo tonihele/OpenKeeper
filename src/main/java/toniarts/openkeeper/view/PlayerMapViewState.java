@@ -109,7 +109,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     };
 
-    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
+    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, boolean loadedGame, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -134,7 +134,11 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
                 // Fog must be seeded before the initial geometry is built, since
                 // the renderer consults it while assembling the map
-                fogOfWarController.seedLevelStart();
+                if (loadedGame) {
+                    fogOfWarController.seedLoadedGame();
+                } else {
+                    fogOfWarController.seedLevelStart();
+                }
 
                 // Snapshot terrain and ownership before rendering any transitions.
                 tileEffects = new MapTileEffectTracker(this, kwdFile, fogOfWarController,

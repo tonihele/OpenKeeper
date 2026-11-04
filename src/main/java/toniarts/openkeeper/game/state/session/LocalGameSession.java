@@ -130,6 +130,9 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
 
         // The client's own part stays on the client, the server gets the rest
         PlayerState.ClientSave clientSave = saveGame.removeClient(PlayerState.ClientSave.class);
+        if (clientSave == null) {
+            clientSave = new PlayerState.ClientSave();
+        }
         stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(new Keeper(false, PLAYER_ID))), gameSession, app,
                 saveGame.getCampaignLevel(), clientSave));
         stateManager.attach(new GameServerState(kwdFile, saveGame, gameSession));
