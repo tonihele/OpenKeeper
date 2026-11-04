@@ -584,7 +584,10 @@ public final class MapController extends Container implements IMapController {
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 if (tile.getOwnerId() == playerId) {
+
+                    // Repairing, which goes on every tick (DK II 0x497AC0)
                     rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
+                    oneTicksWorth = true;
                 } else {
                     rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
                 }

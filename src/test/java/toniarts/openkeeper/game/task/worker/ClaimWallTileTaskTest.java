@@ -36,7 +36,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * the reinforce rate on the tick after the imp starts, the next once the
  * first loop of Imp_Claim1(Land) (26 frames at 40 fps) is over, and then one
  * every tick. Rock starts at 165 of its 660 health. In DK II a lone imp spends
- * 58 ticks in the reinforcing state on a wall.
+ * 58 ticks in the reinforcing state on a wall. Repairing a wall goes the same
+ * way (0x466660, 0x497AC0).
  */
 class ClaimWallTileTaskTest {
 
@@ -55,6 +56,17 @@ class ClaimWallTileTaskTest {
         assertEquals(55, reinforcing.blows.size());
         assertEquals(List.of(1, 4, 5, 6), reinforcing.blows.subList(0, 4));
         assertEquals(57, reinforcing.blows.get(54));
+    }
+
+    @Test
+    void impRepairsWallEveryTick() {
+
+        // A Reinforced Wall of 900 health hit for 30, the repair rate of 22 is 3 a blow for a fresh imp
+        Reinforcing repairing = new Reinforcing(870, 900, TileWork.perTick(22 / TICKS_PER_SECOND, FRESH_IMP));
+        RepairWallTileTask task = new RepairWallTileTask(null, repairing.mapController(), new Point(1, 1), (short) 3);
+
+        assertEquals(12, work(task, repairing));
+        assertEquals(List.of(1, 4, 5, 6, 7, 8, 9, 10, 11, 12), repairing.blows);
     }
 
     private static int work(DigTileTask task, Reinforcing reinforcing) {
