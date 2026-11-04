@@ -84,6 +84,7 @@ dependencies {
     implementation "com.simsilica:zay-es-net:1.6.0"
     implementation "com.simsilica:sio2:1.8.0"
     implementation "com.simsilica:sim-ethereal:1.8.0"
+    implementation "com.google.code.gson:gson:2.9.1"
 
     testImplementation "org.junit.jupiter:junit-jupiter:5.14.4"
     testRuntimeOnly "org.junit.platform:junit-platform-launcher:1.14.4"
