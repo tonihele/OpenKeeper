@@ -52,8 +52,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
 
     private enum ExperienceGainReason {
         NONE,
-        WORKING_OR_FIGHTING,
-        TRAINING
+        WORKING_OR_FIGHTING
     }
 
     private final IKwdFile kwdFile;
@@ -61,6 +60,7 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private final EntitySet trainingEntities;
     private final EntityData entityData;
     private final int impExperienceGainPerSecond;
+    private final int trainingRoomMaxExperienceLevel;
     private final SafeArrayList<EntityId> experienceEntityIds;
     private final SafeArrayList<EntityId> trainingEntityIds;
     private final ICreaturesController creaturesController;
@@ -76,6 +76,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         trainingEntityIds = new SafeArrayList<>(EntityId.class);
 
         impExperienceGainPerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND).getValue();
+        Variable.MiscVariable trainingRoomMaxLevelVariable = gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL);
+        trainingRoomMaxExperienceLevel = trainingRoomMaxLevelVariable != null ? (int) trainingRoomMaxLevelVariable.getValue() : Utils.MAX_CREATURE_LEVEL;
 
         experienceEntities = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureAi.class);
         trainingEntities = entityData.getEntities(new AndFilter(TaskComponent.class, new FieldFilter(TaskComponent.class, "taskStarted", true), new FieldFilter(TaskComponent.class, "taskType", TaskType.TRAIN)), CreatureComponent.class, CreatureExperience.class, CreatureAi.class, TaskComponent.class);
@@ -107,11 +109,70 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
             });
         }
         for (EntityId entityId : trainingEntityIds.getArray()) {
-            Entity entity = trainingEntities.getEntity(entityId);
-            handleEntity(entity, entityId, tpf, () -> {
-                return ExperienceGainReason.TRAINING;
-            });
+            handleTraining(trainingEntities.getEntity(entityId), entityId);
         }
+    }
+
+    /**
+     * Training gives the training experience on every tick, not once a
+     * second. Creatures at the Training Room's maximum level learn nothing
+     * there.
+     */
+    private void handleTraining(Entity entity, EntityId entityId) {
+        CreatureExperience creatureExperience = entity.get(CreatureExperience.class);
+        if (creatureExperience.level >= Utils.MAX_CREATURE_LEVEL || creatureExperience.level >= trainingRoomMaxExperienceLevel) {
+            return;
+        }
+
+        addExperience(entityId, creatureExperience, getTrainingExperienceGain(creatureExperience, getTrainingExperiencePerTick(entity, creatureExperience)));
+    }
+
+    /**
+     * Get the training experience the creature gets on each tick. When the
+     * level loads, DK II divides the training experience per second of the
+     * creature data by the ticks per second, keeping at least 1 if there is
+     * anything to divide. The creature's level percentage is applied to that
+     * per tick value.
+     */
+    private int getTrainingExperiencePerTick(Entity entity, CreatureExperience creatureExperience) {
+        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+        if (creature == null) {
+            return 0;
+        }
+        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(creatureExperience.level);
+        Variable.CreatureStats levelPercent = (stats != null ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND) : null);
+        return getPointsPerTick(creature.getAttributes().getExpPerSecondTraining(), kwdFile.getGameLevel().getTicksPerSec(), levelPercent != null ? levelPercent.getValue() : 100);
+    }
+
+    /**
+     * Turn points per second of the creature data into points per tick, like
+     * DK II
+     *
+     * @param pointsPerSecond the points per second in the creature data
+     * @param ticksPerSecond the level's ticks per second
+     * @param levelPercent the percentage of the creature's level
+     * @return the points per tick
+     */
+    static int getPointsPerTick(int pointsPerSecond, int ticksPerSecond, int levelPercent) {
+        if (pointsPerSecond <= 0) {
+            return 0;
+        }
+        int pointsPerTick = Math.max(1, pointsPerSecond / Math.max(1, ticksPerSecond));
+        return pointsPerTick * levelPercent / 100;
+    }
+
+    /**
+     * Get the experience one tick of training gives. It is never more than
+     * the creature still needs for its next level, so training levels the
+     * creature up with no experience left over.
+     *
+     * @param creatureExperience the creature's experience
+     * @param experiencePerTick the training experience per tick
+     * @return the experience to add
+     */
+    private static int getTrainingExperienceGain(CreatureExperience creatureExperience, int experiencePerTick) {
+        int stillNeeded = creatureExperience.experienceToNextLevel - creatureExperience.experience;
+        return Math.max(0, Math.min(experiencePerTick, stillNeeded));
     }
 
     private void handleEntity(Entity entity, EntityId entityId, float tpf, Supplier<ExperienceGainReason> reasonSupplier) {
@@ -139,7 +200,11 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         }
 
         timeWorkingByEntityId.merge(entityId, -1.0, Double::sum);
-        int experience = creatureExperience.experience + getCreatureExperienceGain(entity, reason);
+        addExperience(entityId, creatureExperience, getCreatureExperienceGain(entity, reason));
+    }
+
+    private void addExperience(EntityId entityId, CreatureExperience creatureExperience, int gain) {
+        int experience = creatureExperience.experience + gain;
 
         // See if we gained a level
         if (experience >= creatureExperience.experienceToNextLevel) {
@@ -179,27 +244,14 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     }
 
     private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
-        switch (reason) {
-            case WORKING_OR_FIGHTING -> {
-                CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                if (kwdFile.getImp().getId() == creatureComponent.creatureId) {
-                    return impExperienceGainPerSecond;
-                } else {
-                    return entity.get(CreatureExperience.class).experiencePerSecond;
-                }
-            }
-            case TRAINING -> {
-                Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-                Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(entity.get(CreatureExperience.class).level);
-
-                return stats != null
-                        ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue()
-                        : creature.getAttributes().getExpPerSecondTraining();
-            }
-            default -> {
-                return 0;
-            }
+        if (reason != ExperienceGainReason.WORKING_OR_FIGHTING) {
+            return 0;
         }
+        CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+        if (kwdFile.getImp().getId() == creatureComponent.creatureId) {
+            return impExperienceGainPerSecond;
+        }
+        return entity.get(CreatureExperience.class).experiencePerSecond;
     }
 
     @Override
