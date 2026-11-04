@@ -28,16 +28,20 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.SeparationPush;
-import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
+import toniarts.openkeeper.game.navigation.steering.FollowWaypoints;
 import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -50,11 +54,15 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final static boolean INDEPENDENT_FACING = false;
 
     /**
-     * DK II counts a path as finished this close to its final waypoint, 0.38
-     * tiles (0x4D3C40). A creature pushed away from a taken end point stops
-     * within it.
+     * A creature pushed away from a taken end point stops this close to it.
+     * DK II plans the walk again when it makes no headway (0x4D3C40).
      */
     private static final float END_TOLERANCE = 0x6148 / 65536f;
+
+    /**
+     * The radius of what has no creature width
+     */
+    private static final float DEFAULT_RADIUS = 0.25f;
     
     private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
     private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
@@ -71,11 +79,15 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
     private final EntityData entityData;
-    private final IMapInformation mapInformation;
+    private final IKwdFile kwdFile;
+    private final IMapController mapController;
+    private final int ticksPerSecond;
 
-    public MovementSystem(EntityData entityData, IMapInformation mapInformation) {
+    public MovementSystem(EntityData entityData, IKwdFile kwdFile, IMapController mapController) {
         this.entityData = entityData;
-        this.mapInformation = mapInformation;
+        this.kwdFile = kwdFile;
+        this.mapController = mapController;
+        ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
 
         processAddedEntities(movableEntities);
@@ -128,10 +140,10 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private float getMaxSpeed(Mobile mobile, Vector2 position) {
         if (!mobile.canFly) {
             Point p = WorldUtils.vectorToPoint(position);
-            if (mapInformation.isWater(p)) {
+            if (mapController.isWater(p)) {
                 return mobile.maxSpeed * 0.5f;
             }
-            if (mapInformation.isLava(p)) {
+            if (mapController.isLava(p)) {
                 return mobile.maxSpeed * 1.5f;
             }
         }
@@ -150,8 +162,11 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Position position = entity.get(Position.class);
 
         // Steering orientation is the rotation negated, as applySteering writes it back
-        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, 0.25f, position.position.x, position.position.z, -position.rotation);
-        EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target);
+        Creature creature = getCreature(entity.getId());
+        float radius = creature != null && creature.getAttributes().getWidth() > 0 ? creature.getAttributes().getWidth() / 2 : DEFAULT_RADIUS;
+        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, radius, position.position.x, position.position.z, -position.rotation);
+        EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target,
+                creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER), ticksPerSecond);
         if (steeringBehavior == null) {
 
             // The fug, can't navigate, are we there already??
@@ -166,6 +181,11 @@ public final class MovementSystem implements IGameLogicUpdatable {
         steeringOutputsBySteeringBehaviors.put(steeringBehavior, new SteeringAcceleration<>(new Vector2()));
         entityIdsBySteeringBehavior.put(steeringBehavior, entity.getId());
         targetPointsByEntityId.put(entity.getId(), navigation.target);
+    }
+
+    private Creature getCreature(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId) : null;
     }
 
     private void processDeletedEntities(Set<Entity> removedEntities) {
@@ -223,7 +243,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
         // apply linear
         steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
-        steerableEntity.getPosition().add(steerableEntity.getLinearVelocity().x * tpf, steerableEntity.getLinearVelocity().y * tpf);
+        move(steerableEntity, tpf);
 
         // Update orientation and angular velocity
         if (INDEPENDENT_FACING
@@ -258,6 +278,38 @@ public final class MovementSystem implements IGameLogicUpdatable {
     }
 
     /**
+     * Moves the entity by its velocity. Like DK II's pilot (0x4D4760) it
+     * doesn't step into a wall: it moves along the one axis that is free and
+     * stops on the other, or else steps sideways, or else stays.
+     *
+     * @param steerable the entity
+     * @param tpf the time of the step
+     */
+    private void move(ISteerableEntity steerable, float tpf) {
+        Vector2 position = steerable.getPosition();
+        Vector2 velocity = steerable.getLinearVelocity();
+        float dx = velocity.x * tpf;
+        float dy = velocity.y * tpf;
+        if (isFree(position.x + dx, position.y + dy) || !isFree(position.x, position.y)) {
+            position.add(dx, dy);
+        } else if (isFree(position.x + dx, position.y)) {
+            position.x += dx;
+            velocity.y = 0;
+        } else if (isFree(position.x, position.y + dy)) {
+            position.y += dy;
+            velocity.x = 0;
+        } else if (isFree(position.x - dy, position.y + dx)) {
+            position.add(-dy, dx);
+        } else if (isFree(position.x + dy, position.y - dx)) {
+            position.add(dy, -dx);
+        }
+    }
+
+    private boolean isFree(float x, float y) {
+        return !mapController.isSolid(WorldUtils.vectorToPoint(x, y));
+    }
+
+    /**
      * Adds the separation push the logic tick worked out (see
      * {@link SeparationSystem}) to the path following. Near the end of its path
      * a pushed creature stops where it is, since the end point is taken.
@@ -280,8 +332,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
             return;
         }
 
-        float scale = steerable.getMaxLinearAcceleration();
-        linear.add(separationPush.push.x * scale, separationPush.push.y * scale).limit(steerable.getMaxLinearAcceleration());
+        // Like the path following, the push changes the velocity of a tick and the sum is capped (0x4D4760)
+        float scale = ticksPerSecond * ticksPerSecond;
+        linear.add(separationPush.push.x * scale, separationPush.push.y * scale).limit(FollowWaypoints.MAX_FORCE * scale);
     }
 
     /**

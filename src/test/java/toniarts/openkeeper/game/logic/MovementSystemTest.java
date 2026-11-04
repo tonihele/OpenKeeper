@@ -30,7 +30,9 @@ import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -50,7 +52,7 @@ class MovementSystemTest {
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(rotation, new Vector3f(15, 0, 23)), new Mobile(false, false, false, 1),
                 new Navigation(new Point(15, 23), new Point(16, 25), new ArrayList<>()));
-        MovementSystem movementSystem = new MovementSystem(entityData, map(false, false));
+        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), map(false, false));
 
         for (int frame = 0; frame < 180 && entityData.getComponent(creature, Navigation.class) != null; frame++) {
             movementSystem.processTick(1 / 60f);
@@ -78,13 +80,13 @@ class MovementSystemTest {
      * Distance walked east at 1 tile a second, in the second after getting up
      * to speed
      */
-    private static float walkedInASecond(IMapInformation map, boolean canFly) {
+    private static float walkedInASecond(IMapController map, boolean canFly) {
         EntityData entityData = new DefaultEntityData();
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(0, new Vector3f(10, 0, 23)), new Mobile(canFly, true, true, 1),
                 new Navigation(new Point(20, 23), null, List.of(new Vector2(10, 23), new Vector2(20, 23))));
-        MovementSystem movementSystem = new MovementSystem(entityData, map);
-        for (int frame = 0; frame < 60; frame++) {
+        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), map);
+        for (int frame = 0; frame < 120; frame++) {
             movementSystem.processTick(1 / 60f);
         }
         float start = entityData.getComponent(creature, Position.class).position.x;
@@ -94,11 +96,17 @@ class MovementSystemTest {
         return entityData.getComponent(creature, Position.class).position.x - start;
     }
 
-    private static IMapInformation map(boolean water, boolean lava) {
-        return (IMapInformation) Proxy.newProxyInstance(IMapInformation.class.getClassLoader(), new Class<?>[]{IMapInformation.class},
+    private static IKwdFile kwdFile() {
+        return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> "getGameLevel".equals(method.getName()) ? CreatureSleepFixtures.level(4) : null);
+    }
+
+    private static IMapController map(boolean water, boolean lava) {
+        return (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "isWater" -> water;
                     case "isLava" -> lava;
+                    case "isSolid" -> false;
                     default -> throw new AssertionError(method.getName());
                 });
     }

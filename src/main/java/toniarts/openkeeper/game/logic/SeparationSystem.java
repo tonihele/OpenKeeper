@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.navigation.steering.FollowWaypoints;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -55,9 +56,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * is moved by the push straight away, as far as a walker's push would move it
  * in a tick.
  * <br>
- * DK II adds the weighted push to a velocity that is capped at the walking
- * speed of a tick, so the push is measured against that speed: it can hold a
- * walker back or turn it round a blocker, but it doesn't push into walls.
+ * DK II adds the weighted push to the velocity of a tick next to the path
+ * following (see {@link FollowWaypoints}). The push doesn't push into walls.
  */
 public final class SeparationSystem implements IGameLogicUpdatable {
 
@@ -68,9 +68,9 @@ public final class SeparationSystem implements IGameLogicUpdatable {
     private static final float MAX_FORCE = 1.5f;
 
     /**
-     * DK II weighs the separation 0.13 and the path following 0.35 (0x4D56E0)
+     * DK II weighs the separation 0.13 (0x4D56E0)
      */
-    private static final float SEPARATION_WEIGHT = 0x2147 / (float) 0x5999;
+    private static final float SEPARATION_WEIGHT = 0x2147 / 65536f;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -130,7 +130,8 @@ public final class SeparationSystem implements IGameLogicUpdatable {
      */
     private void nudge(Entity entity, Vector2f push) {
         Position position = entity.get(Position.class);
-        Vector2f step = (push.length() > 1 ? push.normalizeLocal() : push).multLocal(getSpeedPerTick(entity));
+        float speedPerTick = getSpeedPerTick(entity);
+        Vector2f step = push.length() > speedPerTick ? push.normalizeLocal().multLocal(speedPerTick) : push;
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         slideAlongWalls(step, position, creature.getAttributes().getWidth() / 2 + step.length());
         entityData.setComponent(entity.getId(), new Position(position.rotation, position.position.add(step.x, 0, step.y)));
@@ -165,8 +166,8 @@ public final class SeparationSystem implements IGameLogicUpdatable {
         }
         slideAlongWalls(separation, position, creature.getAttributes().getWidth() / 2);
 
-        // As a share of the path following, that turns the velocity towards the walking speed of a tick
-        return separation.multLocal(SEPARATION_WEIGHT / getSpeedPerTick(entity));
+        // Weighed, it is a change of the velocity of a tick
+        return separation.multLocal(SEPARATION_WEIGHT);
     }
 
     private void addPairPush(Vector2f separation, EntityId entityId, Position position, Vector2 heading,

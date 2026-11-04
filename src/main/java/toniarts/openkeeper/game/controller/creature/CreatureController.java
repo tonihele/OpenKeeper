@@ -680,9 +680,14 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
+        Vector3f position = getPosition();
         if (workPosition != null) {
-            Vector3f position = getPosition();
             SteeringUtils.pathToPosition(navigationPath, new Vector2(position.x, position.z), new Vector2(workPosition.x, workPosition.y));
+        } else if (navigationPath.size() > 1) {
+            navigationPath.addFirst(new Vector2(position.x, position.z));
+        }
+        if (navigationPath.size() > 1) {
+            navigationPath = navigationService.smoothPath(navigationPath, creature.getAttributes().getWidth() / 2, this);
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
         return false;
