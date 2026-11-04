@@ -23,6 +23,7 @@ import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.attribute.FileTime;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -31,7 +32,7 @@ import toniarts.openkeeper.Main;
 
 /**
  * The saved games folder. Like in DK II, a save is known by its file name, and
- * the list shows the newest first.
+ * the list shows the newest first. The auto-saves are in the list too.
  */
 public final class SaveGameFolder {
 
@@ -44,6 +45,8 @@ public final class SaveGameFolder {
      */
     private static final int MAX_NAME_LENGTH = 64;
     private static final String INVALID_CHARACTERS = "\\/:*?\"<>|";
+    private static final String AUTO_SAVE_NAME = "autosave";
+    private static final int AUTO_SAVE_SLOTS = 3;
 
     private final Path folder;
 
@@ -111,6 +114,30 @@ public final class SaveGameFolder {
         }
         saves.sort(Comparator.comparing(Entry::time).reversed());
         return saves;
+    }
+
+    /**
+     * Gets the name for the next auto-save. The auto-saves take turns in
+     * three slots: the first one not used yet, otherwise the oldest.
+     *
+     * @return the save name
+     */
+    public String getNextAutoSaveName() {
+        String oldest = null;
+        FileTime oldestTime = null;
+        for (int slot = 1; slot <= AUTO_SAVE_SLOTS; slot++) {
+            String name = AUTO_SAVE_NAME + slot;
+            try {
+                FileTime time = Files.getLastModifiedTime(getFile(name));
+                if (oldestTime == null || time.compareTo(oldestTime) < 0) {
+                    oldest = name;
+                    oldestTime = time;
+                }
+            } catch (IOException ex) {
+                return name;
+            }
+        }
+        return oldest;
     }
 
     /**

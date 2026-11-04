@@ -169,6 +169,8 @@ public final class Settings {
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS),
         // Cursor
         USE_CURSORS(Boolean.class, true, SettingCategory.MISCELLANEOUS),
+        // Auto-save interval in minutes of game time, 0 is off
+        AUTO_SAVE_INTERVAL(Integer.class, 10, SettingCategory.MISCELLANEOUS),
         // Multiplayer settings
         PLAYER_NAME(String.class, System.getProperty("user.name"), SettingCategory.MISCELLANEOUS),
         GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),

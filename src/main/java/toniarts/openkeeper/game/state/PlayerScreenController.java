@@ -389,6 +389,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
         }.build(page.columnOne);
         page.items.add(new GameMenu("i-save", "${menu.201}", "saveGame()", page.columnTwo));
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildAutoSave(page.columnTwo);
         addContinueAndBack(page, PauseMenuState.MAIN);
     }
 

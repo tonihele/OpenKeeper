@@ -138,6 +138,24 @@ public final class GameServerState extends AbstractAppState {
     }
 
     /**
+     * Whether the game has loaded and can be saved
+     *
+     * @return {@code true} when the game has loaded
+     */
+    public boolean isGameLoaded() {
+        return gameLoaded;
+    }
+
+    /**
+     * Gets the game time
+     *
+     * @return the game time in seconds, 0 until the game has loaded
+     */
+    public double getGameTime() {
+        return gameLoaded ? game.getGameController().getGameTimer().getGameTime() : 0;
+    }
+
+    /**
      * Saves the game, see {@link GameLoopManager#save(Path, CampaignLevel)}
      *
      * @param file the save file
