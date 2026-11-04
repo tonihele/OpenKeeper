@@ -26,6 +26,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class GraveyardControllerTest {
 
+    private final Random random = new Random(1);
+
     @Test
     void oneCryptForEveryTenTiles() {
         assertEquals(0, GraveyardController.getCryptCount(9));
@@ -37,14 +39,14 @@ class GraveyardControllerTest {
     void cryptsStandOnlyOnTilesSurroundedByTheGraveyard() {
         boolean[][] map = room(10, 1);
 
-        assertTrue(GraveyardController.chooseCryptTiles(map, 1, new Random(1)).isEmpty());
+        assertTrue(GraveyardController.chooseCryptTiles(map, 1, random).isEmpty());
     }
 
     @Test
     void cryptsAreNeverNextToEachOther() {
-        for (int seed = 0; seed < 50; seed++) {
+        for (int i = 0; i < 50; i++) {
             boolean[][] map = room(6, 7);
-            List<Point> crypts = GraveyardController.chooseCryptTiles(map, 4, new Random(seed));
+            List<Point> crypts = GraveyardController.chooseCryptTiles(map, 4, random);
 
             assertTrue(crypts.size() >= 1 && crypts.size() <= 4);
             for (Point crypt : crypts) {
@@ -62,7 +64,7 @@ class GraveyardControllerTest {
     void aSingleCentreTileTakesTheOnlyCrypt() {
         boolean[][] map = room(3, 3);
 
-        List<Point> crypts = GraveyardController.chooseCryptTiles(map, 2, new Random(3));
+        List<Point> crypts = GraveyardController.chooseCryptTiles(map, 2, random);
 
         assertEquals(List.of(new Point(1, 1)), crypts);
     }

@@ -34,7 +34,7 @@ import toniarts.openkeeper.utils.Point;
  */
 public abstract class RoomCorpseControl extends AbstractRoomObjectControl<EntityId> {
 
-    public RoomCorpseControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
+    protected RoomCorpseControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.CORPSE);
     }
 
