@@ -161,7 +161,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.taskManager = taskManager;
         this.creature = creature;
         this.gameTimer = gameTimer;
-        this.gameSettings = gameSettings;
+        this.gameSettings = Collections.unmodifiableMap(gameSettings);
         this.creaturesController = creaturesController;
         this.entityPositionLookup = entityPositionLookup;
         this.levelInfo = levelInfo;
@@ -191,27 +191,18 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
-        if (entityData.getComponent(entityId, Fearless.class) == null) {
-            Threat threatComponent = entityData.getComponent(entityId, Threat.class);
-            int threat = threatComponent != null ? threatComponent.threat : 0;
-            int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
-            int threatToUs = getEnemyThreat();
-            int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE)
-                    || isHealthAtCriticalLevel() ? threat : getOurThreat();
-            if (threatToUs - threatCaused > fear && (getFellowFighters() == 0
-                    || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
+        if (entityData.getComponent(entityId, Fearless.class) == null && isThreatTooHigh()) {
 
-                // No longer flee from DHeart
-                IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-                if (roomController == null || !roomController.isDungeonHeart()) {
-                    if (!stateMachine.isInState(CreatureState.FLEE)) {
+            // No longer flee from DHeart
+            IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+            if (roomController == null || !roomController.isDungeonHeart()) {
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
 
-                        stateMachine.changeState(CreatureState.FLEE);
-                    }
-                    return true;
-                } else {
-                    inDHeart = true;
+                    stateMachine.changeState(CreatureState.FLEE);
                 }
+                return true;
+            } else {
+                inDHeart = true;
             }
         }
 
@@ -225,6 +216,24 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    /**
+     * Tells whether the threat to us, less the threat we cause, is over our
+     * fear while no fellow fighters are with us. A creature that always flees
+     * doesn't count on fellow fighters
+     *
+     * @return true if we should flee
+     */
+    private boolean isThreatTooHigh() {
+        Threat threatComponent = entityData.getComponent(entityId, Threat.class);
+        int threat = threatComponent != null ? threatComponent.threat : 0;
+        int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
+        int threatToUs = getEnemyThreat();
+        int threatCaused = creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE)
+                || isHealthAtCriticalLevel() ? threat : getOurThreat();
+        return threatToUs - threatCaused > fear && (getFellowFighters() == 0
+                || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE));
     }
 
     @Override
@@ -591,20 +600,7 @@ public final class CreatureController extends EntityController implements ICreat
             // Pick a new target
             // TODO: is there any preference? Now just take the nearest
             // TODO: creatures only now
-            EntityId nearestEnemy = null;
-            float nearestDistance = Float.MAX_VALUE;
-            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-                if (creaturesController.isValidEntity(entity)
-                        && isEnemy(entity)
-                        && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
-                        && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
-                    float distance = getDistanceToCreature(entity);
-                    if (distance < nearestDistance) {
-                        nearestDistance = distance;
-                        nearestEnemy = entity;
-                    }
-                }
-            }
+            EntityId nearestEnemy = getNearestEnemy();
             if (nearestEnemy != null) {
                 attackTargetController = creaturesController.createController(nearestEnemy);
                 setAttackTarget(nearestEnemy);
@@ -615,6 +611,30 @@ public final class CreatureController extends EntityController implements ICreat
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
         return attackTargetController;
+    }
+
+    /**
+     * Finds the nearest enemy creature we sense and can fight
+     *
+     * @return the creature, or {@code null} if there is none
+     */
+    private EntityId getNearestEnemy() {
+        EntityId nearestEnemy = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            if (creaturesController.isValidEntity(entity)
+                    && isEnemy(entity)
+                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
+                float distance = getDistanceToCreature(entity);
+                if (distance < nearestDistance) {
+                    nearestDistance = distance;
+                    nearestEnemy = entity;
+                }
+            }
+        }
+
+        return nearestEnemy;
     }
 
     private boolean hasPathToEntity(EntityId entity) {
