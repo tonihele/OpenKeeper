@@ -117,62 +117,76 @@ public final class SeparationSystem implements IGameLogicUpdatable {
         // A walking creature faces where it goes
         Position position = entity.get(Position.class);
         Vector2 heading = SteeringUtils.calculateAngleToVector(new Vector2(), -position.rotation);
-        float radius = creature.getAttributes().getWidth() / 2;
-        float mass = Math.max(1, creature.getUnkea8()); // Mass 1-5, 0x4D2A60
         Point tile = WorldUtils.vectorToPoint(position.position);
-        Vector2f away = new Vector2f();
         for (int x = Math.max(0, tile.x - 1); x <= Math.min(mapController.getMapData().getWidth() - 1, tile.x + 1); x++) {
             for (int y = Math.max(0, tile.y - 1); y <= Math.min(mapController.getMapData().getHeight() - 1, tile.y + 1); y++) {
                 for (EntityId otherId : entityPositionLookup.getEntitiesInLocation(x, y)) {
-                    CreatureComponent otherCreature = otherId.equals(entity.getId()) ? null : entityData.getComponent(otherId, CreatureComponent.class);
-                    Position otherPosition = entityData.getComponent(otherId, Position.class);
-                    Creature other = otherCreature == null ? null : kwdFile.getCreature(otherCreature.creatureId);
-                    if (other == null || otherPosition == null) {
-                        continue;
+                    if (!otherId.equals(entity.getId())) {
+                        addPairPush(separation, entity.getId(), position, heading, creature, otherId);
                     }
-
-                    float reach = radius + other.getAttributes().getWidth() / 2;
-                    away.set(position.position.x - otherPosition.position.x, position.position.z - otherPosition.position.z);
-                    float distance = away.length();
-                    if (distance > reach) {
-                        continue;
-                    }
-                    if (distance == 0) {
-
-                        // Exactly on top of each other, split them the same way every time
-                        away.set(entity.getId().getId() < otherId.getId() ? -1 : 1, 0);
-                    }
-                    away.normalizeLocal();
-                    float ratio = distance / reach;
-                    float push;
-                    if (ratio < 0.01f) {
-                        push = MAX_FORCE;
-                    } else if (isBlocker(otherId, other)) {
-                        push = 1 / ratio - 1;
-                    } else {
-                        push = (float) (1 / Math.sqrt(ratio)) - 1;
-                    }
-                    float otherMass = Math.max(1, other.getUnkea8());
-                    float alignment = (away.x * heading.x + away.y * heading.y) / 2 + 0.7f;
-                    separation.addLocal(away.mult(push * otherMass / (mass + otherMass) * alignment));
                 }
             }
         }
         if (separation.length() > MAX_FORCE) {
             separation.normalizeLocal().multLocal(MAX_FORCE);
         }
+        slideAlongWalls(separation, position, creature.getAttributes().getWidth() / 2);
 
-        // Slide along walls, DK II moves a creature per axis when the step is blocked (0x4D4760)
+        // As a share of the path following, that turns the velocity towards the walking speed of a tick
+        float speedPerTick = entity.get(Mobile.class).maxSpeed / kwdFile.getGameLevel().getTicksPerSec();
+        return separation.multLocal(SEPARATION_WEIGHT / speedPerTick);
+    }
+
+    private void addPairPush(Vector2f separation, EntityId entityId, Position position, Vector2 heading,
+            Creature creature, EntityId otherId) {
+        CreatureComponent otherCreature = entityData.getComponent(otherId, CreatureComponent.class);
+        Position otherPosition = entityData.getComponent(otherId, Position.class);
+        Creature other = otherCreature == null ? null : kwdFile.getCreature(otherCreature.creatureId);
+        if (other == null || otherPosition == null) {
+            return;
+        }
+
+        float reach = creature.getAttributes().getWidth() / 2 + other.getAttributes().getWidth() / 2;
+        Vector2f away = new Vector2f(position.position.x - otherPosition.position.x, position.position.z - otherPosition.position.z);
+        float distance = away.length();
+        if (distance > reach) {
+            return;
+        }
+        if (distance == 0) {
+
+            // Exactly on top of each other, split them the same way every time
+            away.set(entityId.getId() < otherId.getId() ? -1 : 1, 0);
+        }
+        away.normalizeLocal();
+        float push = getPushStrength(distance / reach, otherId, other);
+        float mass = Math.max(1, creature.getUnkea8()); // Mass 1-5, 0x4D2A60
+        float otherMass = Math.max(1, other.getUnkea8());
+        float alignment = (away.x * heading.x + away.y * heading.y) / 2 + 0.7f;
+        separation.addLocal(away.multLocal(push * otherMass / (mass + otherMass) * alignment));
+    }
+
+    private float getPushStrength(float ratio, EntityId otherId, Creature other) {
+        if (ratio < 0.01f) {
+            return MAX_FORCE;
+        }
+        if (isBlocker(otherId, other)) {
+            return 1 / ratio - 1;
+        }
+        return (float) (1 / Math.sqrt(ratio)) - 1;
+    }
+
+    /**
+     * DK II moves a creature per axis when the step is blocked (0x4D4760), so
+     * the push along an axis that would take the creature's edge into a wall
+     * is dropped
+     */
+    private void slideAlongWalls(Vector2f separation, Position position, float radius) {
         if (separation.x != 0 && mapController.isSolid(WorldUtils.vectorToPoint(position.position.x + Math.signum(separation.x) * radius, position.position.z))) {
             separation.x = 0;
         }
         if (separation.y != 0 && mapController.isSolid(WorldUtils.vectorToPoint(position.position.x, position.position.z + Math.signum(separation.y) * radius))) {
             separation.y = 0;
         }
-
-        // As a share of the path following, that turns the velocity towards the walking speed of a tick
-        float speedPerTick = entity.get(Mobile.class).maxSpeed / kwdFile.getGameLevel().getTicksPerSec();
-        return separation.multLocal(SEPARATION_WEIGHT / speedPerTick);
     }
 
     /**
