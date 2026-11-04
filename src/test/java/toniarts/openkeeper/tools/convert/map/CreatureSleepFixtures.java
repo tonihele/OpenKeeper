@@ -41,6 +41,21 @@ public final class CreatureSleepFixtures {
         return creature;
     }
 
+    /**
+     * A worker whose eating animation, the one DK II's claim action plays,
+     * has the given frames
+     */
+    public static Creature claimer(int frames, int fps) {
+        ArtResource eating = new ArtResource();
+        eating.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
+        eating.setData(ArtResource.KEY_FRAMES, frames);
+        eating.setData(ArtResource.KEY_FPS, fps);
+        Creature creature = new Creature();
+        creature.setName("Imp");
+        creature.setAnimation(Creature.AnimationType.EATING, eating);
+        return creature;
+    }
+
     public static Variable.MiscVariable variable(Variable.MiscVariable.MiscType type, int value) {
         Variable.MiscVariable variable = new Variable.MiscVariable();
         variable.setVariableId(type);

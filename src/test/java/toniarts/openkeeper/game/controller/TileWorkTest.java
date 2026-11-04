@@ -49,6 +49,14 @@ class TileWorkTest {
     }
 
     @Test
+    void claimingGroundDropsTheFractionOfATick() {
+
+        // Measured in the original: a fresh imp adds 164 a tick to a Dirt Path, the claim rate of 825 at 4 ticks a second
+        assertEquals(164, TileWork.perTick(825 / 4, FRESH_IMP));
+        assertEquals(206, TileWork.perTick(825 / 4, TileWork.FULL_EFFICIENCY));
+    }
+
+    @Test
     void seamReleasesGoldInProportionLikeTheOriginal() {
 
         // The original: a quarter of the rate four times a second, 60 health a swing

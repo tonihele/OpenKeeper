@@ -121,4 +121,18 @@ public final class TileWork {
                 && terrain.getMaxHealthTypeTerrainId() != terrain.getTerrainId();
     }
 
+    /**
+     * How much one tick of claiming ground does. The original keeps the work
+     * variables divided by the ticks per second as whole numbers (0x51CB80),
+     * and each tick of its claim action adds that, scaled by the worker's
+     * efficiency, with the fraction dropped (0x4974C0).
+     *
+     * @param ratePerTick the work variable divided by the ticks per second
+     * @param efficiencyPercentage the worker's efficiency
+     * @return the health change of one tick, never negative
+     */
+    public static int perTick(int ratePerTick, int efficiencyPercentage) {
+        return Math.abs(ratePerTick) * efficiencyPercentage / 100;
+    }
+
 }
