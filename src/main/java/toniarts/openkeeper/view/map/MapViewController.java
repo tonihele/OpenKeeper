@@ -127,6 +127,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Map<Point, EntityInstance<Terrain>> terrainBatchCoordinates = new HashMap<>(); // A quick glimpse whether terrain batch at specific coordinates is already "found"
     private final Map<RoomInstance, Set<Point>> roomPillars = new HashMap<>(); // The straight tiles of the rooms
     private TerrainDeformer deformer; // Bends the terrain and the rooms, null if turned off
+    private boolean initialLoadDone; // Pillars changing after this leave already built neighbours stale
+    private final Set<Point> pillarDirtyTiles = new HashSet<>(); // Tiles around pillars that changed since built
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
     private final LightRules lightRules;
     private final boolean litSolidTerrain;
@@ -237,6 +239,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Create the ceiling
         refreshCeilingSurface();
 
+        initialLoadDone = true;
         long loadTimeMs = (System.nanoTime() - startTime) / 1_000_000L;
         logger.log(Level.INFO, "Map {0} loaded in {1} ms", new Object[]{object.getGameLevel().getName(), loadTimeMs});
 
@@ -583,32 +586,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Set<BatchNode> nodesNeedBatching = new HashSet<>();
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : pointsToUpdate) {
-            IMapTileInformation tile = getMapData().getTile(point);
+            rebuildTile(point, terrainNode, nodesNeedBatching);
+        }
 
-            // Reconstruct and mark for patching
-            // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
-            Node pageNode = getPageNode(point, terrainNode);
-            Node tileNode = getTileNode(point, (Node) pageNode.getChild(FLOOR_INDEX));
-            if (!tileNode.getChildren().isEmpty()) {
-                tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(FLOOR_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
-                nodesNeedBatching.add((BatchNode) pageNode.getChild(FLOOR_INDEX));
+        // The tiles around a pillar that was straightened (or released) while the above was going on were
+        // deformed with the old field, redo them now that the pillars are known
+        Set<Point> stale = new HashSet<>(pillarDirtyTiles);
+        pillarDirtyTiles.clear();
+        for (Point point : stale) {
+            if (getMapData().getTile(point) != null) {
+                rebuildTile(point, terrainNode, nodesNeedBatching);
             }
-            tileNode = getTileNode(point, (Node) pageNode.getChild(WALL_INDEX));
-            if (!tileNode.getChildren().isEmpty()) {
-                tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(WALL_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
-                nodesNeedBatching.add((BatchNode) pageNode.getChild(WALL_INDEX));
-            }
-            tileNode = getTileNode(point, (Node) pageNode.getChild(TOP_INDEX));
-            if (!tileNode.getChildren().isEmpty()) {
-                tileNode.removeFromParent();
-                ((BatchNode) pageNode.getChild(TOP_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
-                nodesNeedBatching.add((BatchNode) pageNode.getChild(TOP_INDEX));
-            }
-
-            // Reconstruct
-            handleTile(tile, (Node) map.getChild(TERRAIN_NODE));
         }
 
         // Batch
@@ -629,6 +617,35 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // and how tall it is - always rebuild it whole, there's no incremental
         // variant, same as the water/lava surfaces above
         refreshCeilingSurface();
+    }
+
+    private void rebuildTile(Point point, Node terrainNode, Set<BatchNode> nodesNeedBatching) {
+        IMapTileInformation tile = getMapData().getTile(point);
+
+        // Reconstruct and mark for patching
+        // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
+        Node pageNode = getPageNode(point, terrainNode);
+        Node tileNode = getTileNode(point, (Node) pageNode.getChild(FLOOR_INDEX));
+        if (!tileNode.getChildren().isEmpty()) {
+            tileNode.removeFromParent();
+            ((BatchNode) pageNode.getChild(FLOOR_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
+            nodesNeedBatching.add((BatchNode) pageNode.getChild(FLOOR_INDEX));
+        }
+        tileNode = getTileNode(point, (Node) pageNode.getChild(WALL_INDEX));
+        if (!tileNode.getChildren().isEmpty()) {
+            tileNode.removeFromParent();
+            ((BatchNode) pageNode.getChild(WALL_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
+            nodesNeedBatching.add((BatchNode) pageNode.getChild(WALL_INDEX));
+        }
+        tileNode = getTileNode(point, (Node) pageNode.getChild(TOP_INDEX));
+        if (!tileNode.getChildren().isEmpty()) {
+            tileNode.removeFromParent();
+            ((BatchNode) pageNode.getChild(TOP_INDEX)).attachChildAt(new Node(tileNode.getName()), getTileNodeIndex(point));
+            nodesNeedBatching.add((BatchNode) pageNode.getChild(TOP_INDEX));
+        }
+
+        // Reconstruct
+        handleTile(tile, (Node) map.getChild(TERRAIN_NODE));
     }
 
     /**
@@ -1815,6 +1832,18 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             roomPillars.put(instance, pillars);
             for (Point p : pillars) {
                 deformer.setStraight(p.x, p.y, true);
+                markAroundDirty(p);
+            }
+        }
+    }
+
+    private void markAroundDirty(Point p) {
+        if (!initialLoadDone) {
+            return;
+        }
+        for (int dy = -1; dy <= 1; dy++) {
+            for (int dx = -1; dx <= 1; dx++) {
+                pillarDirtyTiles.add(new Point(p.x + dx, p.y + dy));
             }
         }
     }
@@ -1872,6 +1901,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (pillars != null && deformer != null) {
             for (Point p : pillars) {
                 deformer.setStraight(p.x, p.y, false);
+                markAroundDirty(p);
             }
         }
     }
