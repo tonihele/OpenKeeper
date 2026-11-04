@@ -57,6 +57,7 @@ import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Position;
@@ -70,6 +71,7 @@ import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
@@ -116,6 +118,8 @@ public final class SaveGame {
      * used up to find the next free id.
      *
      * @param level the level name
+     * @param campaignLevel the campaign level, or {@code null} for
+     * non-campaign
      * @param gameTime the game time in seconds
      * @param levelInfo the players and the level script variables
      * @param playerControllers the player controllers, for the player
@@ -125,12 +129,19 @@ public final class SaveGame {
      * @param rooms the rooms, for their furniture
      * @param entityData the entities
      */
-    public SaveGame(String level, double gameTime, ILevelInfo levelInfo, Collection<IPlayerController> playerControllers,
-            Collection<TriggerControl> triggerControls, Collection<IPartyController> parties, Collection<IRoomController> rooms,
-            EntityData entityData) {
+    public SaveGame(String level, @Nullable CampaignLevel campaignLevel, double gameTime, ILevelInfo levelInfo,
+            Collection<IPlayerController> playerControllers, Collection<TriggerControl> triggerControls,
+            Collection<IPartyController> parties, Collection<IRoomController> rooms, EntityData entityData) {
         json = new JsonObject();
         json.addProperty("version", VERSION);
         json.addProperty("level", level);
+        if (campaignLevel != null) {
+            JsonObject campaign = new JsonObject();
+            campaign.addProperty("type", campaignLevel.getType().name());
+            campaign.addProperty("level", campaignLevel.getLevel());
+            campaign.addProperty("variation", campaignLevel.getVariation());
+            json.add("campaignLevel", campaign);
+        }
         json.addProperty("gameTime", gameTime);
         json.addProperty("nextEntityId", entityData.createEntity().getId());
         json.add("players", GSON.toJsonTree(levelInfo.getPlayers().values(), PLAYERS_TYPE));
@@ -277,6 +288,44 @@ public final class SaveGame {
      */
     public String getLevel() {
         return json.get("level").getAsString();
+    }
+
+    /**
+     * Reads only the level name from the start of a save file, for the list of
+     * saves
+     *
+     * @param file the save file
+     * @return the level name
+     * @throws IOException if the file can't be read or has no level
+     */
+    public static String readLevel(Path file) throws IOException {
+        try (JsonReader reader = new JsonReader(new InputStreamReader(new GZIPInputStream(Files.newInputStream(file)), StandardCharsets.UTF_8))) {
+            reader.beginObject();
+            while (reader.hasNext()) {
+                if ("level".equals(reader.nextName())) {
+                    return reader.nextString();
+                }
+                reader.skipValue();
+            }
+        }
+        throw new IOException("Save game has no level!");
+    }
+
+    /**
+     * Gets the campaign level the game was saved on
+     *
+     * @return the campaign level, or {@code null} if it wasn't a campaign
+     * level
+     */
+    @Nullable
+    public CampaignLevel getCampaignLevel() {
+        JsonObject campaign = json.getAsJsonObject("campaignLevel");
+        if (campaign == null) {
+            return null;
+        }
+        String variation = campaign.get("variation").getAsString();
+        return new CampaignLevel(CampaignLevel.LevelType.valueOf(campaign.get("type").getAsString()),
+                campaign.get("level").getAsInt(), variation.isEmpty() ? null : variation);
     }
 
     /**

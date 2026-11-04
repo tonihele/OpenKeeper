@@ -21,18 +21,17 @@ import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.ConsoleCommands;
 import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
 import de.lessvoid.nifty.tools.Color;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.session.SaveGame;
+import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
@@ -281,7 +280,7 @@ public final class GameConsole {
             return;
         }
 
-        Path file = getSaveFile(name);
+        Path file = new SaveGameFolder().getFile(name);
         console.output("Saving to " + file);
         gameServerState.save(file).whenComplete((result, ex) -> stateManager.getApplication().enqueue(() -> {
             if (ex != null) {
@@ -299,7 +298,7 @@ public final class GameConsole {
             return;
         }
 
-        Path file = getSaveFile(name);
+        Path file = new SaveGameFolder().getFile(name);
         SaveGame saveGame;
         try {
             saveGame = SaveGame.read(file);
@@ -308,10 +307,6 @@ public final class GameConsole {
             return;
         }
         stateManager.getState(PlayerState.class).loadGame(saveGame);
-    }
-
-    private static Path getSaveFile(String name) {
-        return Paths.get(System.getProperty("user.home"), "." + Main.TITLE, "saves", name + ".json.gz");
     }
 
     private boolean showHelpMessage() {

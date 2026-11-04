@@ -133,11 +133,37 @@
                     <text style="menuText" text="${menu.141}" align="center">
                         <interact onClick="startSkirmish()" />
                     </text>
-                    <text id="loadGame" style="menuText" text="${menu.145}" align="center" />
+                    <text id="loadGame" style="menuText" text="${menu.145}" align="center">
+                        <interact onClick="goToScreen(loadGame)" />
+                    </text>
                 </panel>
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <control click="goToScreen(start)" name="cancelButton" marginRight="48px" />
+            </panel>
+        </layer>
+    </screen>
+
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <!-- load a saved game -->
+    <!-- +++++++++++++++++++++++++++++++++++++++ -->
+    <screen id="loadGame" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
+        <layer childLayout="vertical">
+            <panel height="14%" childLayout="center" align="center" valign="center">
+                <text style="menuTitleText" text="${menu.145}" align="center" />
+            </panel>
+            <panel width="80%" height="*" childLayout="vertical" align="center" valign="top">
+                <control id="savedGamesTable" name="table" vertical="on" displayItems="8"
+                         selection="Single" forceSelection="true" colCount="3"
+                         col0="${menu.83};45;java.lang.String;#32050c30"
+                         col1="${menu.2042};25;java.lang.String;#32050c30"
+                         col2="${menu.2730};30;java.lang.String;#00752430"
+                />
+                <text id="noSavedGames" style="menuTextSmall" text="${menu.2128}" align="center" />
+            </panel>
+            <panel childLayout="horizontal" align="right" valign="bottom">
+                <control name="cancelButton" click="goToScreen(singlePlayer)" />
+                <control name="okButton" click="loadSavedGame()" />
             </panel>
         </layer>
     </screen>

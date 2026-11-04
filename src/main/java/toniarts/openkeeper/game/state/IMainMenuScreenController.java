@@ -87,6 +87,12 @@ public interface IMainMenuScreenController extends ScreenController {
     //// screen id="campaign" ////
     public void startLevel(String type);
 
+    //// screen id="loadGame" ////
+    /**
+     * Loads the save selected in the list of saves
+     */
+    public void loadSavedGame();
+
     /**
      * Cancel level selection and go back to the campaign map selection
      */

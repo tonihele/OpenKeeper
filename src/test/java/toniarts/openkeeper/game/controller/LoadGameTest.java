@@ -171,7 +171,7 @@ class LoadGameTest {
     }
 
     private static SaveGame save(GameController game, EntityData entityData, Collection<IPartyController> parties) {
-        return new SaveGame("Test", game.getGameTimer().getGameTime(), game.getLevelInfo(), game.getPlayerControllers().values(),
+        return new SaveGame("Test", null, game.getGameTimer().getGameTime(), game.getLevelInfo(), game.getPlayerControllers().values(),
                 game.getTriggerControls(), parties, game.getGameWorldController().getMapController().getRoomControllers(), entityData);
     }
 

@@ -126,7 +126,8 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public static void createLocalGame(SaveGame saveGame, AppStateManager stateManager, Main app) {
         IKwdFile kwdFile = KwdFile.load(saveGame.getLevel());
         LocalGameSession gameSession = new LocalGameSession(saveGame.createEntityData());
-        stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(new Keeper(false, PLAYER_ID))), gameSession, app, null));
+        stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(new Keeper(false, PLAYER_ID))), gameSession, app,
+                saveGame.getCampaignLevel()));
         stateManager.attach(new GameServerState(kwdFile, saveGame, gameSession));
     }
 
