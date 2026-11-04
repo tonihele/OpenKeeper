@@ -140,11 +140,14 @@ public final class TorchPlacement {
      * The tiles that may carry a torch for the floor tile, in the order the
      * torch is looked for. The tile has a torch if one of these is a torch wall.
      *
+     * @param x the floor tile x
+     * @param y the floor tile y
+     * @param roomInstance the room the floor tile is in, null if none
      * @return the neighbouring tiles, empty if the floor tile has no torch
      */
-    public static List<Point> getTorchWallCandidates(int x, int y) {
+    public static List<Point> getTorchWallCandidates(int x, int y, RoomInstance roomInstance) {
         List<Point> result = new ArrayList<>(4);
-        for (WallDirection direction : getTorchDirections(x, y)) {
+        for (WallDirection direction : getTorchDirections(x, y, roomInstance)) {
             result.add(switch (direction) {
                 case NORTH -> new Point(x, y - 1);
                 case WEST -> new Point(x - 1, y);

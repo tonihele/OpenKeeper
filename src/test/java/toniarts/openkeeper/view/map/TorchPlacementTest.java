@@ -83,6 +83,16 @@ class TorchPlacementTest {
     }
 
     @Test
+    void torchSoundsAreLookedForWhereTheTortureChamberHasItsTorches() {
+        RoomInstance tortureChamber = roomInstance(TORTURE_CHAMBER_ID, 1, 1, 5, 5);
+
+        // Not the west wall beside the furniture at (1, 2), only the north and south walls
+        assertEquals(List.of(new Point(1, 1), new Point(1, 3)), TorchPlacement.getTorchWallCandidates(1, 2, tortureChamber));
+        assertEquals(List.of(new Point(1, 1), new Point(0, 2), new Point(1, 3), new Point(2, 2)),
+                TorchPlacement.getTorchWallCandidates(1, 2, null));
+    }
+
+    @Test
     void otherRoomsKeepTheirTorches() {
         RoomInstance library = roomInstance(LIBRARY_ID, 1, 1, 5, 5);
 

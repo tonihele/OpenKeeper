@@ -457,6 +457,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
+     * Get the room on a tile, as the map shows it
+     *
+     * @param p the tile
+     * @return the room, {@code null} if there is none on the tile
+     */
+    public RoomInstance getRoomInstance(Point p) {
+        return roomCoordinates.get(p);
+    }
+
+    /**
      * @return the ceiling texture override of the room at the tile, or
      * {@code null} if none
      */
