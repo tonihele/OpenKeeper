@@ -84,7 +84,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final Set<EntityId> floorFurniture = new HashSet<>();
     protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
-    private boolean furnitureLoaded = false;
+    private boolean loaded = false;
 
     protected AbstractRoomController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
@@ -123,14 +123,12 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         setupCoordinates();
 
         // Construct the room objects, a loaded room has them already
-        if (furnitureLoaded) {
-            furnitureLoaded = false;
-            return;
-        }
-        removeObjects();
-        constructObjects();
-        if (hasPillars()) {
-            pillars.addAll(constructPillars());
+        if (!loaded) {
+            removeObjects();
+            constructObjects();
+            if (hasPillars()) {
+                pillars.addAll(constructPillars());
+            }
         }
     }
 
@@ -141,8 +139,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         if (hasPillars()) {
             this.pillars.addAll(pillars);
         }
-        furnitureLoaded = true;
+        loaded = true;
         construct();
+        loaded = false;
     }
 
     private boolean hasPillars() {
@@ -257,6 +256,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final <T extends IRoomObjectControl> T addObjectControl(T control) {
         IRoomObjectControl existingControl = objectControls.putIfAbsent(control.getObjectType(), control);
         if (existingControl == null) {
+            if (loaded) {
+                control.restore();
+            }
             return control;
         }
 

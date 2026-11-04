@@ -71,7 +71,6 @@ class RoomLairControlTest {
                     case "getOwnerId" -> (short) 1;
                     case "getRoomInstance" -> roomInstance;
                     case "isTileAccessible" -> true;
-                    case "hasObjectControl" -> false;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         return new RoomLairControl(null, room, entityData, () -> 0, null) {

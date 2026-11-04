@@ -54,7 +54,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     protected final EntityData entityData;
     private final IGameTimer gameTimer;
     protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
-    private final EntityId entityId;
+    private EntityId entityId;
 
     public AbstractRoomObjectControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData,
             IGameTimer gameTimer, AbstractRoomController.ObjectType objectType) {
@@ -63,31 +63,29 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         this.entityData = entityData;
         this.gameTimer = gameTimer;
 
-        // A room of a loaded game has its storage and the stored objects already. A room that is built again keeps its
-        // old control, so then the storage isn't taken over
-        EntityId storage = parent.hasObjectControl(objectType) ? null : findStorage(objectType);
-        if (storage != null) {
-            entityId = storage;
-            for (EntityId object : entityData.findEntities(new FieldFilter(Stored.class, "room", parent.getEntityId()),
-                    Stored.class, ObjectComponent.class, Position.class)) {
-                if (entityData.getComponent(object, Stored.class).objectType == objectType) {
-                    Point p = WorldUtils.vectorToPoint(entityData.getComponent(object, Position.class).position);
-                    objectsByCoordinate.computeIfAbsent(p, key -> new ArrayList<>()).add(object);
-                }
-            }
-        } else {
-            entityId = entityData.createEntity();
-            entityData.setComponent(entityId, new Storage(parent.getEntityId(), objectType, 0, calculateMaxCapacity()));
-        }
+        entityId = entityData.createEntity();
+        entityData.setComponent(entityId, new Storage(parent.getEntityId(), objectType, 0, calculateMaxCapacity()));
     }
 
-    private EntityId findStorage(AbstractRoomController.ObjectType objectType) {
+    @Override
+    public void restore() {
+        AbstractRoomController.ObjectType objectType = getObjectType();
         for (EntityId storage : entityData.findEntities(new FieldFilter(Storage.class, "room", parent.getEntityId()), Storage.class)) {
-            if (entityData.getComponent(storage, Storage.class).objectType == objectType) {
-                return storage;
+            if (!storage.equals(entityId) && entityData.getComponent(storage, Storage.class).objectType == objectType) {
+                entityData.removeEntity(entityId);
+                entityId = storage;
+                break;
             }
         }
-        return null;
+
+        // The stored creatures are only counted, the objects are kept by their tiles
+        for (EntityId object : entityData.findEntities(new FieldFilter(Stored.class, "room", parent.getEntityId()),
+                Stored.class, ObjectComponent.class, Position.class)) {
+            if (entityData.getComponent(object, Stored.class).objectType == objectType) {
+                Point p = WorldUtils.vectorToPoint(entityData.getComponent(object, Position.class).position);
+                objectsByCoordinate.computeIfAbsent(p, key -> new ArrayList<>()).add(object);
+            }
+        }
     }
 
     protected abstract int getObjectsPerTile();
