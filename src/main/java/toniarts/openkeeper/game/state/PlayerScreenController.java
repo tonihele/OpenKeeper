@@ -1458,6 +1458,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 "spell", "gui\\spells\\s-tba", null, null, false, false);
     }
 
+    /** Right-click navigation is separate from selecting an item for placement. */
+    public void cycleDoor(String doorId) {
+        state.cycleDoor(Short.parseShort(doorId));
+    }
+
+    public void cycleTrap(String trapId) {
+        state.cycleTrap(Short.parseShort(trapId));
+    }
+
     private ControlBuilder createDoorIcon(final ResearchableEntity doorInfo) {
         Door door = state.getKwdFile().getDoorById(doorInfo.getId());
         if (doorInfo.isDiscovered()) {
@@ -1465,7 +1474,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String tip = doorIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(door.getGeneralDescriptionStringId())), door, trap);
             String hint = doorIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), door, trap);
 
-            return createIcon(door.getDoorId(), "door", door.getGuiIcon(), tip, hint, true, false);
+            ControlBuilder icon = createIcon(door.getDoorId(), "door", door.getGuiIcon(), tip, hint, true, false);
+            icon.interactOnSecondaryClick("cycleDoor(" + door.getDoorId() + ")");
+            return icon;
         }
 
         return createIcon(door.getId(),
@@ -1478,7 +1489,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String tip = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getGeneralDescriptionStringId())), trap);
             String hint = trapIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), trap);
 
-            return createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), tip, hint, true, false);
+            ControlBuilder icon = createIcon(trap.getTrapId(), "trap", trap.getGuiIcon(), tip, hint, true, false);
+            icon.interactOnSecondaryClick("cycleTrap(" + trap.getTrapId() + ")");
+            return icon;
         }
 
         return createIcon(trap.getId(),
