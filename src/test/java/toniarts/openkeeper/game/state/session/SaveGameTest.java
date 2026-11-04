@@ -90,7 +90,7 @@ class SaveGameTest {
         entityData.removeEntity(removed);
 
         Keeper keeper = new Keeper(false, (short) 3);
-        keeper.setGold(1500);
+        keeper.setGoldMined(1500);
         keeper.setDungeonHeartLocation(new Point(10, 12));
 
         Path file = folder.resolve("saves").resolve("Level6a.json.gz");
@@ -106,7 +106,7 @@ class SaveGameTest {
         assertEquals("Level6a", saveGame.getLevel());
         assertEquals(1234.5, saveGame.getGameTime());
         assertEquals(1, saveGame.getPlayers().size());
-        assertEquals(1500, saveGame.getPlayers().get(0).getGold());
+        assertEquals(1500, saveGame.getPlayers().get(0).getGoldMined());
         assertEquals(new Point(10, 12), saveGame.getPlayers().get(0).getDungeonHeartLocation());
 
         assertEquals(new Vector3f(1.5f, 0.25f, 3f), loaded.getComponent(creature, Position.class).position);
