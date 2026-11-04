@@ -60,6 +60,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
     protected final ICreatureController creature;
     protected final ILevelInfo levelInfo;
     private final Point target;
+    private final Point tunnelTarget;
 
     public KillPlayer(final INavigationService navigationService, final IMapController mapController, final ILevelInfo levelInfo, short targetPlayerId, ICreatureController creature) {
         super(navigationService, mapController, levelInfo.getPlayer(targetPlayerId).getDungeonHeartLocation(), creature.getOwnerId());
@@ -67,7 +68,8 @@ public final class KillPlayer extends AbstractObjectiveTask {
         this.targetPlayerId = targetPlayerId;
         this.creature = creature;
         this.levelInfo = levelInfo;
-        this.target = pickTarget();
+        this.tunnelTarget = pickTunnelTarget();
+        this.target = getStandingTile(tunnelTarget);
         createSubTasks();
     }
 
@@ -135,14 +137,23 @@ public final class KillPlayer extends AbstractObjectiveTask {
     }
 
     /**
-     * The heart tile to go for. Like DK II (0x462490 with CRoom_4E4D90), a
-     * random tile of the heart room, or the next one of the room after it
-     * that can be stood on
+     * The heart tile to tunnel for. Like DK II (0x462490 with CRoom_4E4D90),
+     * any tile of the heart room, the centre too: DK II skips none of a
+     * heart's tiles (sub_454110)
      */
-    private Point pickTarget() {
+    private Point pickTunnelTarget() {
+        List<Point> points = mapController.getRoomControllerByCoordinates(getTaskLocation()).getRoomInstance().getCoordinates();
+        return points.get(FastMath.rand.nextInt(points.size()));
+    }
+
+    /**
+     * The tile to walk to, the given heart tile or the next one of the room
+     * after it that can be stood on
+     */
+    private Point getStandingTile(Point tile) {
         IRoomController heart = mapController.getRoomControllerByCoordinates(getTaskLocation());
         List<Point> points = heart.getRoomInstance().getCoordinates();
-        int first = FastMath.rand.nextInt(points.size());
+        int first = points.indexOf(tile);
         for (int i = 0; i < points.size(); i++) {
             Point point = points.get((first + i) % points.size());
             if (heart.isTileAccessible(null, point)) {
@@ -202,7 +213,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
                 // Along the line, over open ground, until something solid
                 Point next = current;
                 do {
-                    if (next.equals(target)) {
+                    if (next.equals(tunnelTarget)) {
                         return digs;
                     }
                     current = next;
@@ -365,8 +376,8 @@ public final class KillPlayer extends AbstractObjectiveTask {
     }
 
     private Point stepTowardsTarget(Point from) {
-        int dx = target.x - from.x;
-        int dy = target.y - from.y;
+        int dx = tunnelTarget.x - from.x;
+        int dy = tunnelTarget.y - from.y;
         if (Math.abs(dy) < Math.abs(dx)) {
             return new Point(from.x + (dx < 0 ? -1 : 1), from.y);
         }

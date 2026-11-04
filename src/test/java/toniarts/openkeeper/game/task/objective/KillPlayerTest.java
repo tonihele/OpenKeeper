@@ -16,12 +16,15 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import com.jme3.math.Vector2f;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -80,6 +83,18 @@ class KillPlayerTest {
         "X###X###X",
         "X#######X",
         "XXXXXXXXX"};
+
+    /**
+     * A heart of two tiles, one that can be stood on (H) and one that can't
+     * (I), like the centre of a real heart
+     */
+    private static final String[] TWO_HEART_TILES = {
+        "XXXXXXXX",
+        "Xh#####X",
+        "X######X",
+        "X######X",
+        "X####HIX",
+        "XXXXXXXX"};
 
     private final Map<Short, Terrain> terrains = Map.of(
             FLOOR, TerrainFixtures.terrain(FLOOR, TerrainFixtures.flags(), 0, 0, 0, (short) 0),
@@ -156,6 +171,24 @@ class KillPlayerTest {
         assertEquals(new Point(3, 1), task.getCurrentTask().getTaskLocation());
     }
 
+    /**
+     * Like DK II, the tunnel heads for any tile of the heart, also one that
+     * can't be stood on, while the hero walks to one it can stand on
+     */
+    @Test
+    void tunnelHeadsForAnyHeartTile() {
+        Set<List<Point>> tunnels = new HashSet<>();
+        for (int i = 0; i < 64; i++) {
+            KillPlayer task = createTask(TWO_HEART_TILES, true);
+            tunnels.add(getDigs(task));
+            assertEquals(new Vector2f(5, 4), task.getTarget(hero));
+        }
+
+        assertEquals(Set.of(
+                List.of(new Point(2, 1), new Point(2, 2), new Point(3, 2), new Point(3, 3), new Point(4, 3), new Point(4, 4)),
+                List.of(new Point(2, 1), new Point(3, 1), new Point(3, 2), new Point(4, 2), new Point(4, 3), new Point(5, 3))), tunnels);
+    }
+
     private static List<Point> getDigs(KillPlayer task) {
         List<Point> digs = new ArrayList<>();
         for (ObjectiveTask subTask : task.getTaskQueue()) {
@@ -169,7 +202,8 @@ class KillPlayerTest {
     private KillPlayer createTask(String[] map, boolean worker) {
         Map<Point, IMapTileController> tiles = new HashMap<>();
         Point heroTile = null;
-        Point heartTile = null;
+        RoomInstance heartRoom = new RoomInstance(new Room());
+        Set<Point> inaccessible = new HashSet<>();
         for (int y = 0; y < map.length; y++) {
             for (int x = 0; x < map[y].length(); x++) {
                 Point p = new Point(x, y);
@@ -177,14 +211,17 @@ class KillPlayerTest {
                 short terrainId = switch (c) {
                     case '#' -> ROCK;
                     case 'X' -> IMPENETRABLE;
-                    case 'H' -> HEART_ROOM;
+                    case 'H', 'I' -> HEART_ROOM;
                     default -> FLOOR;
                 };
                 terrainIds.put(p, terrainId);
                 if (c == 'h') {
                     heroTile = p;
-                } else if (c == 'H') {
-                    heartTile = p;
+                } else if (c == 'H' || c == 'I') {
+                    heartRoom.addCoordinate(p);
+                    if (c == 'I') {
+                        inaccessible.add(p);
+                    }
                 }
                 tiles.put(p, stub(IMapTileController.class, (name, args) -> switch (name) {
                     case "getLocation" -> p;
@@ -197,10 +234,9 @@ class KillPlayerTest {
             }
         }
         Point heroLocation = heroTile;
-        Point heart = heartTile;
 
         Keeper keeper = new Keeper(false, KEEPER);
-        keeper.setDungeonHeartLocation(heart);
+        keeper.setDungeonHeartLocation(heartRoom.getCoordinates().get(0));
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getTerrain".equals(name) ? terrains.get((Short) args[0]) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getPlayer" -> Map.of(KEEPER, keeper).get((Short) args[0]);
@@ -208,12 +244,9 @@ class KillPlayerTest {
             default -> null;
         });
 
-        // The heart room is the one tile here
-        RoomInstance heartRoom = new RoomInstance(new Room());
-        heartRoom.addCoordinate(heart);
         IRoomController roomController = stub(IRoomController.class, (name, args) -> switch (name) {
             case "getRoomInstance" -> heartRoom;
-            case "isTileAccessible" -> true;
+            case "isTileAccessible" -> !inaccessible.contains((Point) args[1]);
             default -> null;
         });
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> switch (name) {
