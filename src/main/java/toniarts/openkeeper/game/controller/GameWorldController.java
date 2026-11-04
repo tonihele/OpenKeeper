@@ -876,7 +876,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void pickUp(EntityId entity, short playerId) {
-        if (activateSpecialOnOwnLand(entity, playerId)) {
+        if (activateSpecialOnOwnLand(entity, playerId) || switchRoomFurniture(entity, playerId)) {
             return;
         }
 
@@ -915,6 +915,24 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         entityData.removeEntity(entity);
         return true;
+    }
+
+    /**
+     * Some furniture works as a switch when the keeper clicks it in their own
+     * room, instead of being picked up, like the Prison Door Bar in DK II
+     *
+     * @param entity the entity clicked on
+     * @param playerId the player who clicked
+     * @return {@code true} if the entity was a switch and the room used it
+     */
+    private boolean switchRoomFurniture(EntityId entity, short playerId) {
+        Position position = entityData.getComponent(entity, Position.class);
+        if (position == null) {
+            return false;
+        }
+
+        IRoomController room = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
+        return room != null && room.getOwnerId() == playerId && room.switchFurniture(entity);
     }
 
     /**
