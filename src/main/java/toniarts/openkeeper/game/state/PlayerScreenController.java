@@ -117,6 +117,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private List<SaveGameFolder.Entry> savedGames = List.of();
     private String overwriteSaveName;
     private String deleteSaveName;
+    private boolean askQuickLoad = false;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
 
@@ -283,8 +284,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             this.playButtonSound("GUI_BUTTON_OPTIONS");
-            pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
+            if (askQuickLoad) {
+                showQuickLoadConfirmation();
+            } else {
+                pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
+            }
         }
+        askQuickLoad = false;
     }
 
     @Override
@@ -565,14 +571,35 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
-     * Quick load, like DK II's: loads the quick save without asking, and does
-     * nothing if there is none
+     * Quick load. DK II loads the quick save right away, this asks "Are you
+     * sure?" first in the options menu, so a stray key doesn't throw the game
+     * away. Without a quick save it says "No saved games available".
      */
     public void quickLoad() {
-        Path file = saveGameFolder.getFile(SaveGameFolder.QUICK_SAVE_NAME);
-        if (getSinglePlayerServer() != null && Files.exists(file)) {
-            loadGame(file);
+        if (getSinglePlayerServer() == null) {
+            return;
         }
+        if (!Files.exists(saveGameFolder.getFile(SaveGameFolder.QUICK_SAVE_NAME))) {
+            showSystemMessage("${menu.2128}");
+            return;
+        }
+
+        // The menu opens once the game has paused
+        if (state.isPaused()) {
+            showQuickLoadConfirmation();
+        } else {
+            askQuickLoad = true;
+            pauseMenu();
+        }
+    }
+
+    private void showQuickLoadConfirmation() {
+        pauseMenuNavigate(PauseMenuState.CONFIRMATION.name(), PauseMenuState.MAIN.name(), "${menu.1753}", "confirmQuickLoad()");
+    }
+
+    @Override
+    public void confirmQuickLoad() {
+        loadGame(saveGameFolder.getFile(SaveGameFolder.QUICK_SAVE_NAME));
     }
 
     private void loadGame(Path file) {

@@ -106,6 +106,11 @@ public interface IPlayerScreenController extends ScreenController {
     public void overwriteSaveGame();
 
     /**
+     * Loads the quick save, after asking
+     */
+    public void confirmQuickLoad();
+
+    /**
      *
      * @param tpf
      */
