@@ -19,11 +19,13 @@ package toniarts.openkeeper.view.text;
 import com.simsilica.es.EntityId;
 import java.util.Map;
 import java.util.function.ToIntFunction;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.TextUtils;
+import toniarts.openkeeper.utils.Utils;
 
 /**
  * Parses room tooltip text using room and owning player data.
@@ -44,6 +46,7 @@ public class RoomTextParser {
             Map.entry(TextParameter.COMBAT_PIT_COUNT, 16),
             Map.entry(TextParameter.TORTURE_CHAMBER_COUNT, 12),
             Map.entry(TextParameter.PRISON_COUNT, 11),
+            Map.entry(TextParameter.PRISON_COUNT_ALTERNATIVE, 11),
             Map.entry(TextParameter.GRAVEYARD_COUNT, 14),
             Map.entry(TextParameter.TEMPLE_COUNT, 13),
             Map.entry(TextParameter.CASINO_COUNT, 15));
@@ -71,9 +74,35 @@ public class RoomTextParser {
             case HEALTH_PERCENTAGE:
                 return Integer.toString(room.getHealthPercent()); // Health
             case ROOM_USED_CAPACITY:
-                return Integer.toString(room.getUsedCapacity()); // Used capacity
+                return Integer.toString(room.getUsedCapacity(getCapacityType(room))); // Used capacity
             case ROOM_MAX_CAPACITY:
-                return Integer.toString(room.getMaxCapacity()); // Max capacity
+                return Integer.toString(room.getMaxCapacity(getCapacityType(room))); // Max capacity
+            case TREASURY_GOLD:
+                return Integer.toString(room.getUsedCapacity(ObjectType.GOLD));
+            case TREASURY_MAX_GOLD:
+                return Integer.toString(room.getMaxCapacity(ObjectType.GOLD));
+            case LIBRARY_RESEARCHER_COUNT:
+                return Integer.toString(room.getUsedCapacity(ObjectType.RESEARCHER));
+            case LIBRARY_MAX_RESEARCHER_COUNT:
+                return Integer.toString(room.getMaxCapacity(ObjectType.RESEARCHER));
+            case GUARD_ROOM_GUARD_COUNT:
+            case PRISONER_COUNT:
+            case WORKSHOP_USED_CAPACITY:
+                // DK II fills the guards and the captives from the room's capacity. The
+                // Workshop's crates aren't counted yet, so they show its capacity too
+                return Integer.toString(room.getUsedCapacity());
+            case GUARD_ROOM_MAX_GUARD_COUNT:
+            case MAX_PRISONER_COUNT:
+            case MAX_SKELETON_COUNT:
+            case GRAVEYARD_MAX_VAMPIRE_COUNT:
+            case WORKSHOP_MAX_CAPACITY:
+                return Integer.toString(room.getMaxCapacity());
+            case PRISON_STATUS:
+                // The Prison's door isn't opened in OpenKeeper, DK II shows "Closed." for a shut one
+                return Utils.getMainTextResourceBundle().getString("2455");
+            case CASINO_PAYOUT:
+                // The pay-out lever can't be pulled yet, so the Casino is a generous one
+                return Utils.getMainTextResourceBundle().getString("2508");
             case PATROL_ROUTE_COUNT:
                 return Integer.toString(patrolRouteCounter.applyAsInt(room.getOwnerId()));
             case DUNGEON_HEART_MANA:
@@ -83,6 +112,20 @@ public class RoomTextParser {
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
+    }
+
+    /**
+     * The storage the room's capacity line tells about. In the Library DK II
+     * shows the shelf space there, the researchers have their own line
+     *
+     * @param room the room
+     * @return the storage type of the capacity line
+     */
+    private static ObjectType getCapacityType(IRoomInformation room) {
+        if (room.getDefaultStorageType() == ObjectType.RESEARCHER) {
+            return ObjectType.SPELL_BOOK;
+        }
+        return room.getDefaultStorageType();
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {
