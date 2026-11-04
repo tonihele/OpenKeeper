@@ -79,6 +79,10 @@ public final class Settings {
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
         SSAO_SCALE(Float.class, 0.33f, SettingCategory.GRAPHICS),
         SSAO_BIAS(Float.class, 0.1f, SettingCategory.GRAPHICS),
+        // Lighting
+        AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
+        CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),
+        TORCHES_ENABLED(Boolean.class, true, SettingCategory.GRAPHICS),
         // Controls
         CAMERA_ZOOM_IN(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_W, SettingCategory.CONTROLS, 124),
         CAMERA_ZOOM_OUT(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_S, SettingCategory.CONTROLS, 125),
@@ -282,8 +286,7 @@ public final class Settings {
         settings.setTitle(TITLE);
         settings.setIcons(getApplicationIcons());
 
-        // We don't allow this to be changed, assets were not meant to use this
-        settings.setGammaCorrection(false);
+        // Gamma correction is on by default (AppSettings default), the user can toggle it in the graphics settings
     }
 
     /**
@@ -417,7 +420,7 @@ public final class Settings {
      * @return number of attempts to a level
      */
     public int getLevelAttempts(CampaignLevel level) {
-        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
+        return (int) getSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel() + level.getVariation(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 
     /**
@@ -565,12 +568,12 @@ public final class Settings {
         // Reset secret levels
         for (int i = 1; i < 6; i++) {
             CampaignLevel secretLevel = new CampaignLevel(Secret, i);
-            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel, SecretLevelStatus.NOT_DISCOVED);
+            setSetting(Setting.SECRET_LEVEL_STATUS.toString() + secretLevel.getLevel(), SecretLevelStatus.NOT_DISCOVED);
         }
     }
 
     private void resetCampaignLevel(CampaignLevel level) {
         setLevelStatus(level, LevelStatus.NOT_COMPLETED);
-        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level, Setting.LEVEL_ATTEMPTS.getDefaultValue());
+        setSetting(Setting.LEVEL_ATTEMPTS.toString() + level.getLevel() + level.getVariation(), Setting.LEVEL_ATTEMPTS.getDefaultValue());
     }
 }

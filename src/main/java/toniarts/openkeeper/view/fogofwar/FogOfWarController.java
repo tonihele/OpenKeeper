@@ -94,6 +94,8 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
     private final LineOfSightTable losTable;
 
     private EntitySet creatureEntities;
+    private EntitySet imprisonedCreatures;
+    private EntitySet deadCreatures;
     private EntitySet doorEntities;
     private EntitySet heartRoomEntities;
 
@@ -152,12 +154,16 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
 
     public void start() {
         creatureEntities = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
+        imprisonedCreatures = entityData.getEntities(CreatureImprisoned.class);
+        deadCreatures = entityData.getEntities(Death.class);
         doorEntities = entityData.getEntities(Position.class, DoorComponent.class, DoorViewState.class);
         heartRoomEntities = entityData.getEntities(RoomComponent.class, Owner.class, DungeonHeart.class);
     }
 
     public void stop() {
         creatureEntities.release();
+        imprisonedCreatures.release();
+        deadCreatures.release();
         doorEntities.release();
         heartRoomEntities.release();
     }
@@ -220,7 +226,9 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
     public void markPendingTagged(List<Point> points, boolean tagged) {
         List<Point> changed = new ArrayList<>();
         for (Point p : points) {
-            if (isVisible(p)) {
+
+            // A drag can run past the map edge, there is no tile there
+            if (mapData.getTile(p) == null || isVisible(p)) {
                 continue;
             }
             boolean wasPending = pendingTaggedTiles.contains(p);
@@ -271,14 +279,15 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
 
     private void updateCreatureVision() {
         creatureEntities.applyChanges();
+        imprisonedCreatures.applyChanges();
+        deadCreatures.applyChanges();
 
         for (Entity e : creatureEntities) {
             Owner owner = e.get(Owner.class);
             if (owner.ownerId != viewerId) {
                 continue;
             }
-            if (entityData.getComponent(e.getId(), CreatureImprisoned.class) != null
-                    || entityData.getComponent(e.getId(), Death.class) != null) {
+            if (imprisonedCreatures.containsId(e.getId()) || deadCreatures.containsId(e.getId())) {
                 continue;
             }
 
@@ -323,7 +332,7 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
         if (possessedCreature == null) {
             return;
         }
-        Entity e = entityData.getEntity(possessedCreature, Position.class);
+        Entity e = creatureEntities.getEntity(possessedCreature);
         Position position = e != null ? e.get(Position.class) : null;
         if (position == null) {
             // The creature is gone (e.g. killed), possession end is on its way
