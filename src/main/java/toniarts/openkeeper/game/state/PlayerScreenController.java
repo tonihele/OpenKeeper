@@ -371,7 +371,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private void buildLoadPage(MenuPage page) {
         page.title.setText("${menu.143}");
 
-        buildSavedGamesList(page.columnOne);
+        buildSavedGamesList(page.columnOne, true);
         if (!savedGames.isEmpty()) {
             page.items.add(new GameMenu("i-load", "${menu.143}", "loadSavedGame()", page.columnTwo));
         }
@@ -381,7 +381,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private void buildSavePage(MenuPage page) {
         page.title.setText("${menu.201}");
 
-        buildSavedGamesList(page.columnOne);
+        buildSavedGamesList(page.columnOne, false);
         buildTextLabel("${menu.1393}", "textNormal", page.columnOne);
         new TextFieldBuilder("saveGameName", "") {
             {
@@ -500,8 +500,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     /**
      * Lists the saves like DK II does, the newest first with the name and when
      * it was saved
+     *
+     * @param parent the element to add the list to
+     * @param selectNewest whether to select the newest save
      */
-    private void buildSavedGamesList(Element parent) {
+    private void buildSavedGamesList(Element parent, boolean selectNewest) {
         savedGames = saveGameFolder.list();
         if (savedGames.isEmpty()) {
             buildTextLabel("${menu.2128}", "textNormal", parent);
@@ -513,10 +516,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 parameter("vertical", "on");
                 parameter("displayItems", "8");
                 parameter("selection", "Single");
+                parameter("forceSelection", Boolean.toString(selectNewest));
                 parameter("colCount", "3");
                 parameter("col0", "${menu.83};45;java.lang.String;#32050c30");
-                parameter("col1", "${menu.2042};25;java.lang.String;#32050c30");
-                parameter("col2", "${menu.2730};30;java.lang.String;#00752430");
+                parameter("col1", "${menu.2042};20;java.lang.String;#32050c30");
+                parameter("col2", "${menu.2730};35;java.lang.String;#00752430");
                 width("90%");
             }
         }.build(parent);

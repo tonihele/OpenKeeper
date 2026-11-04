@@ -124,7 +124,9 @@ public final class GameServerState extends AbstractAppState {
         } else {
             humanPlayers = 1;
         }
-        multiplayer = (humanPlayers > 1);
+        // Only single player games are saved. The saved players are all of the
+        // level's, and the good and neutral players aren't AI ones either
+        multiplayer = saveGame == null && humanPlayers > 1;
 
         // Add the listener
         gameService.addGameSessionServiceListener(gameSessionListener);

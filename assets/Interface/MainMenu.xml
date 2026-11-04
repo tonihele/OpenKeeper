@@ -156,8 +156,8 @@
                 <control id="savedGamesTable" name="table" vertical="on" displayItems="8"
                          selection="Single" forceSelection="true" colCount="3"
                          col0="${menu.83};45;java.lang.String;#32050c30"
-                         col1="${menu.2042};25;java.lang.String;#32050c30"
-                         col2="${menu.2730};30;java.lang.String;#00752430"
+                         col1="${menu.2042};20;java.lang.String;#32050c30"
+                         col2="${menu.2730};35;java.lang.String;#00752430"
                 />
                 <text id="noSavedGames" style="menuTextSmall" text="${menu.2128}" align="center" />
             </panel>
