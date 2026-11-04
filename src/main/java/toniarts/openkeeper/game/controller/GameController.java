@@ -434,16 +434,13 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     private static class LevelInfo implements ILevelInfo {
 
-        private static final int LEVEL_TIMER_MAX_COUNT = 16;
-        private static final int LEVEL_FLAG_MAX_COUNT = 128;
-
         private final IKwdFile kwdFile;
         private int levelScore = 0;
         private Float timeLimit = null;
 
         private final SortedMap<Short, Keeper> players = new TreeMap<>();
-        private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
-        private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
+        private final List<Integer> flags = new ArrayList<>(FLAG_COUNT);
+        private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, TIMER_COUNT);
         private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
         private final List<ActionPoint> actionPoints = new ArrayList<>();
 
@@ -455,11 +452,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             // Action points
             loadActionPoints();
             // Triggers data
-            for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
+            for (short i = 0; i < FLAG_COUNT; i++) {
                 flags.add(i, 0);
             }
             // Timers data
-            for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
+            for (byte i = 0; i < TIMER_COUNT; i++) {
                 timers.add(i, new GameTimer());
             }
         }

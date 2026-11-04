@@ -193,7 +193,7 @@ public final class GameLoopManager {
                     saveGame.complete(new SaveGame(
                             gameController.getLevelInfo().getLevelData().getGameLevel().getName(),
                             gameController.getGameTimer().getGameTime(),
-                            gameController.getLevelInfo().getPlayers().values(),
+                            gameController.getLevelInfo(),
                             gameService.getServerEntityData()));
                 } catch (RuntimeException ex) {
                     saveGame.completeExceptionally(ex);

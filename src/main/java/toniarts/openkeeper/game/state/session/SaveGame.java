@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -45,7 +46,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -56,16 +56,18 @@ import java.util.zip.GZIPOutputStream;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.chicken.ChickenState;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 
 /**
- * A saved game: the level, the game time, the players and every entity
- * component, written as gzipped JSON. The entity ids are kept as they are, so
- * the ids inside the components stay valid. Rooms, indexes, tasks and the
- * state machines are not saved, they are built again from the components on
- * load.
+ * A saved game: the level, the game time, the players, the level script
+ * variables and every entity component, written as gzipped JSON. The entity
+ * ids are kept as they are, so the ids inside the components stay valid.
+ * Rooms, indexes, tasks and the state machines are not saved, they are built
+ * again from the components and the level on load.
  */
 public final class SaveGame {
 
@@ -96,16 +98,31 @@ public final class SaveGame {
      *
      * @param level the level name
      * @param gameTime the game time in seconds
-     * @param players the players
+     * @param levelInfo the players and the level script variables
      * @param entityData the entities
      */
-    public SaveGame(String level, double gameTime, Collection<Keeper> players, EntityData entityData) {
+    public SaveGame(String level, double gameTime, ILevelInfo levelInfo, EntityData entityData) {
         json = new JsonObject();
         json.addProperty("version", VERSION);
         json.addProperty("level", level);
         json.addProperty("gameTime", gameTime);
         json.addProperty("nextEntityId", entityData.createEntity().getId());
-        json.add("players", GSON.toJsonTree(players, PLAYERS_TYPE));
+        json.add("players", GSON.toJsonTree(levelInfo.getPlayers().values(), PLAYERS_TYPE));
+
+        JsonObject script = new JsonObject();
+        JsonArray flags = new JsonArray();
+        for (int i = 0; i < ILevelInfo.FLAG_COUNT; i++) {
+            flags.add(levelInfo.getFlag(i));
+        }
+        script.add("flags", flags);
+        JsonArray timers = new JsonArray();
+        for (int i = 0; i < ILevelInfo.TIMER_COUNT; i++) {
+            timers.add(GSON.toJsonTree(levelInfo.getTimer(i)));
+        }
+        script.add("timers", timers);
+        script.addProperty("timeLimit", levelInfo.getTimeLimit());
+        script.addProperty("levelScore", levelInfo.getLevelScore());
+        json.add("levelInfo", script);
 
         JsonObject components = new JsonObject();
         for (Map.Entry<String, Class<? extends EntityComponent>> type : COMPONENT_TYPES.entrySet()) {
@@ -208,6 +225,29 @@ public final class SaveGame {
      */
     public List<Keeper> getPlayers() {
         return GSON.fromJson(json.get("players"), PLAYERS_TYPE);
+    }
+
+    /**
+     * Sets the level script variables (flags, timers, time limit and level
+     * score) of a newly loaded level to the saved values
+     *
+     * @param levelInfo the level info to restore
+     */
+    public void restoreLevelInfo(ILevelInfo levelInfo) {
+        JsonObject script = json.getAsJsonObject("levelInfo");
+        JsonArray flags = script.getAsJsonArray("flags");
+        for (int i = 0; i < flags.size(); i++) {
+            levelInfo.setFlag(i, flags.get(i).getAsInt());
+        }
+        JsonArray timers = script.getAsJsonArray("timers");
+        for (int i = 0; i < timers.size(); i++) {
+            GameTimer timer = GSON.fromJson(timers.get(i), GameTimer.class);
+            levelInfo.getTimer(i).set(timer.getTime(), timer.isActive());
+        }
+        if (!script.get("timeLimit").isJsonNull()) {
+            levelInfo.setTimeLimit(script.get("timeLimit").getAsFloat());
+        }
+        levelInfo.setLevelScore(script.get("levelScore").getAsInt());
     }
 
     /**
