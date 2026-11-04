@@ -194,6 +194,27 @@ public final class PlayerCamera {
         setLens(presets.getLensValue());
     }
 
+    /**
+     * Gets the camera mode (F1 - F3) the camera is in
+     *
+     * @return the camera mode
+     */
+    public Thing.Camera.CameraMode getMode() {
+        return presets.getId();
+    }
+
+    /**
+     * Puts the camera where it was, in a saved game
+     *
+     * @param mode the camera record of the saved camera mode
+     * @param location the saved location
+     * @param rotation the saved rotation
+     */
+    public void setView(Thing.Camera mode, Vector3f location, Quaternion rotation) {
+        switchTo(mode, 0f);
+        cam.setFrame(location, rotation);
+    }
+
     protected void zoom(float value) {
         if (presets.getFlags().contains(Thing.Camera.CameraFlag.DISABLE_ZOOM)) {
             return;

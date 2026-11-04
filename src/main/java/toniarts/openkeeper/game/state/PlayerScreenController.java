@@ -689,7 +689,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
 
         Path file = saveGameFolder.getFile(name);
-        gameServerState.save(file).whenComplete((result, ex) -> state.app.enqueue(() -> {
+        gameServerState.save(file, state.getClientSave()).whenComplete((result, ex) -> state.app.enqueue(() -> {
             if (ex != null) {
                 logger.log(Level.ERROR, "Failed to save " + file + "!", ex);
                 showSystemMessage(ex.getMessage());

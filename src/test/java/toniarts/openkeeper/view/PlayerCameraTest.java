@@ -17,6 +17,7 @@
 package toniarts.openkeeper.view;
 
 import com.jme3.math.FastMath;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import java.lang.reflect.Field;
@@ -86,6 +87,37 @@ class PlayerCameraTest {
         assertEquals(-1f, camera.getDirection().y, 1e-3f);
         // 5 * height / 5 back to the original, but the range is 4 - 13
         assertEquals(Math.min(13f, height), camera.getLocation().y, 1e-2f);
+    }
+
+    @Test
+    void setViewPutsTheCameraBackInTheSavedMode() throws ReflectiveOperationException {
+        Thing.Camera standard = mode(220, 10f, 4f, 13f, 2f, 1f);
+        set(standard, "id", Thing.Camera.CameraMode.GAME);
+        Thing.Camera far = mode(240, 29f, 4f, 52f, 10f, 1.5f);
+        set(far, "id", Thing.Camera.CameraMode.FAR);
+        Camera camera = new Camera(800, 600);
+        PlayerCamera playerCamera = new PlayerCamera(camera, standard);
+        playerCamera.switchTo(far, 0f);
+        playerCamera.setLookAt(20.5f, 30.5f);
+        playerCamera.rotateAround(1.234f);
+        playerCamera.zoom(-3f);
+        Thing.Camera.CameraMode mode = playerCamera.getMode();
+        Vector3f location = camera.getLocation().clone();
+        Quaternion rotation = camera.getRotation().clone();
+        float fov = camera.getFov();
+
+        Camera loadedCamera = new Camera(800, 600);
+        PlayerCamera loaded = new PlayerCamera(loadedCamera, standard);
+        loaded.setView(far, location, rotation);
+
+        assertEquals(Thing.Camera.CameraMode.FAR, mode);
+        assertEquals(mode, loaded.getMode());
+        assertEquals(location, loadedCamera.getLocation());
+        assertEquals(rotation, loadedCamera.getRotation());
+        assertEquals(fov, loadedCamera.getFov(), 1e-4f);
+        assertEquals(20.5f, loaded.getLookAt().x, 1e-3f);
+        assertEquals(30.5f, loaded.getLookAt().z, 1e-3f);
+        assertEquals(1.5f, loaded.getLookAt().y, 1e-6f);
     }
 
     @Test

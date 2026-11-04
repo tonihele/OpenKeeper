@@ -284,7 +284,7 @@ public final class GameConsole {
 
         Path file = new SaveGameFolder().getFile(name);
         console.output("Saving to " + file);
-        gameServerState.save(file).whenComplete((result, ex) -> stateManager.getApplication().enqueue(() -> {
+        gameServerState.save(file, stateManager.getState(PlayerState.class).getClientSave()).whenComplete((result, ex) -> stateManager.getApplication().enqueue(() -> {
             if (ex != null) {
                 console.outputError("Failed to save: " + ex);
             } else {

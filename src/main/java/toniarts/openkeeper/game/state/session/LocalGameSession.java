@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -109,7 +110,7 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         Keeper keeper = new Keeper(false, PLAYER_ID);
 
         // The client
-        stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(keeper)), gameSession, app, campaignLevel));
+        stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(keeper)), gameSession, app, campaignLevel, null));
 
         // The game server
         GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : List.of(keeper), campaign, gameSession, campaignLevel);
@@ -126,8 +127,11 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public static void createLocalGame(SaveGame saveGame, AppStateManager stateManager, Main app) {
         IKwdFile kwdFile = KwdFile.load(saveGame.getLevel());
         LocalGameSession gameSession = new LocalGameSession(saveGame.createEntityData());
+
+        // The client's own part stays on the client, the server gets the rest
+        PlayerState.ClientSave clientSave = saveGame.removeClient(PlayerState.ClientSave.class);
         stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(new Keeper(false, PLAYER_ID))), gameSession, app,
-                saveGame.getCampaignLevel()));
+                saveGame.getCampaignLevel(), clientSave));
         stateManager.attach(new GameServerState(kwdFile, saveGame, gameSession));
     }
 

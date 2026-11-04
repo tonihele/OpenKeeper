@@ -164,17 +164,20 @@ public final class GameServerState extends AbstractAppState {
     }
 
     /**
-     * Saves the game, see {@link GameLoopManager#save(Path, CampaignLevel)}
+     * Saves the game, see
+     * {@link GameLoopManager#save(Path, CampaignLevel, Object)}
      *
      * @param file the save file
+     * @param client the client's own part of the save, or {@code null} for
+     * none
      * @return completes when the file is written, or right away with an
      * exception if the game hasn't loaded yet
      */
-    public CompletableFuture<Void> save(Path file) {
+    public CompletableFuture<Void> save(Path file, @Nullable Object client) {
         if (!gameLoaded) {
             return CompletableFuture.failedFuture(new IllegalStateException("The game hasn't loaded yet!"));
         }
-        return game.save(file, levelObject);
+        return game.save(file, levelObject, client);
     }
 
     private void loadGame(List<Keeper> players) {
