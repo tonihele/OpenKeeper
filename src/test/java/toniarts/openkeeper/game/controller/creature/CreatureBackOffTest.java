@@ -196,6 +196,17 @@ class CreatureBackOffTest {
     }
 
     @Test
+    void scaredCasterBacksOffWithoutFinishingTheSpell() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.CAST_SPELL);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
+                new AtomicReference<>(true));
+
+        CreatureState.CAST_SPELL.update(creature);
+
+        assertEquals(CreatureState.BACK_OFF, state.get());
+    }
+
+    @Test
     void scaredFighterBacksOffThenFightsAgainOrWithdraws() {
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
         AtomicReference<Boolean> scared = new AtomicReference<>(true);
