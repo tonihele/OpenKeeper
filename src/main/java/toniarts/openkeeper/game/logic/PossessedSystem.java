@@ -26,11 +26,11 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
-import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
  * Maintains possessed state, sees when we need to stop possessing. Also swings
@@ -39,7 +39,7 @@ import toniarts.openkeeper.utils.GameTimeCounter;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class PossessedSystem extends GameTimeCounter {
+public final class PossessedSystem implements IGameLogicUpdatable {
 
     private final EntitySet possessedEntities;
     private final Map<Short, PlayerManaControl> manaControls;
@@ -63,13 +63,11 @@ public final class PossessedSystem extends GameTimeCounter {
 
         // Listen for posessed entities
         possessedEntities = entityData.getEntities(Possessed.class, Owner.class);
-        processAddedEntities(possessedEntities);
     }
 
     @Override
     public void processTick(float tpf) {
-        super.processTick(tpf);
-
+        double gameTime = gameController.getGameTimer().getGameTime();
         if (possessedEntities.applyChanges()) {
             processAddedEntities(possessedEntities.getAddedEntities());
             processDeletedEntities(possessedEntities.getRemovedEntities());
@@ -80,7 +78,7 @@ public final class PossessedSystem extends GameTimeCounter {
             // See if the player is running out of mana
             Possessed possessed = entity.get(Possessed.class);
             Owner owner = entity.get(Owner.class);
-            if (timeElapsed - possessed.manaCheckTime < 1) {
+            if (gameTime - possessed.manaCheckTime < 1) {
                 continue;
             }
 
@@ -92,7 +90,7 @@ public final class PossessedSystem extends GameTimeCounter {
                 // Keep the attack that the session thread may have written meanwhile
                 Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
                 if (live != null) {
-                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime));
+                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, gameTime, live.attackHeld, live.attackPressTime));
                 }
             }
         }
@@ -117,9 +115,17 @@ public final class PossessedSystem extends GameTimeCounter {
         }
     }
 
+    /**
+     * A loaded game may start in possession. The players are told when the
+     * game starts, before that the clients aren't listening. Nobody is
+     * moving the creature yet.
+     */
     @Override
     public void start() {
-
+        for (Entity entity : possessedEntities) {
+            entityData.removeComponent(entity.getId(), PossessedMovement.class);
+        }
+        processAddedEntities(possessedEntities);
     }
 
     @Override

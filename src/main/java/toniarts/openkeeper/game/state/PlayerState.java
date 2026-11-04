@@ -106,6 +106,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
     protected PlayerInteractionState interactionState;
     private PossessionInteractionState possessionState;
+
+    // A loaded game may start in possession, before our states are up
+    private EntityId pendingPossession;
     protected PlayerCameraState cameraState;
     private PossessionCameraState possessionCameraState;
 
@@ -295,6 +298,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void update(float tpf) {
         heartEntities.applyChanges();
+        if (pendingPossession != null && cameraState.isInitialized()) {
+            startPossession(pendingPossession);
+            pendingPossession = null;
+        }
         screen.update(tpf);
         autoSave();
     }
@@ -755,10 +762,15 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             if (possessionState == null) {
                 return;
             }
-            if (target != null) {
+            if (target != null && !cameraState.isInitialized()) {
+                pendingPossession = target;
+            } else if (target != null) {
                 startPossession(target);
-            } else if (possessionState.isEnabled()) {
-                possessionState.setEnabled(false);
+            } else {
+                pendingPossession = null;
+                if (possessionState.isEnabled()) {
+                    possessionState.setEnabled(false);
+                }
             }
         });
     }
