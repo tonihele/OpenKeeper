@@ -63,8 +63,9 @@ public class ClaimTileTask extends AbstractTileTask {
      * worth of the claim rate, until the tile turns, and then the worker plays
      * the loop of its work animation out before it moves on. While it does,
      * the stored execution duration is the time on the task when the loop
-     * ends, negated. The work animation is the worker's eating one, the imp's
-     * is called Imp_ClaimFloor.
+     * ends, negated. A room is claimed in blows too (0x466180, 0x497BF0). The
+     * work animation is the worker's eating one, the imp's is called
+     * Imp_ClaimFloor.
      *
      * @param creature the worker
      * @param executionDuration the time the worker has spent on the task
@@ -92,9 +93,8 @@ public class ClaimTileTask extends AbstractTileTask {
             return;
         }
 
-        // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
+        // A room
+        if (isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
 
             mapController.applyClaimTile(getTaskLocation(), playerId, creature);
 

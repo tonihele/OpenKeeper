@@ -61,6 +61,15 @@ class TileWorkTest {
     }
 
     @Test
+    void attacksLandATicksWorth() {
+
+        // Measured in the original: an enemy's floor 28 a blow, a neutral room 4000 and an enemy's room 800
+        assertEquals(28, TileWork.perSwing(-140 / 4, FRESH_IMP));
+        assertEquals(4000, TileWork.perSwing(-20000 / 4, FRESH_IMP));
+        assertEquals(800, TileWork.perSwing(-4000 / 4, FRESH_IMP));
+    }
+
+    @Test
     void seamReleasesGoldInProportionLikeTheOriginal() {
 
         // The original: a quarter of the rate four times a second, 60 health a swing

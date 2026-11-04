@@ -474,7 +474,7 @@ public final class MapController extends Container implements IMapController {
         Terrain terrain = getTerrain(tile);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                damageRoom(point, playerId);
+                damageRoom(point, playerId, creature);
             } else {
                 damageTile(point, playerId, creature);
             }
@@ -632,22 +632,23 @@ public final class MapController extends Container implements IMapController {
     }
 
     /**
-     * Damage a room
+     * Damage a room. As in DK II (0x497BF0, 0x4E5300) a blow lands a tick's
+     * worth on the room as a whole, and the room is the claimer's once its
+     * health is gone.
      *
      * @param point tile coordinate
      * @param playerId for the player
+     * @param creature the worker, {@code null} if nobody is working
      */
-    private void damageRoom(Point point, short playerId) {
+    private void damageRoom(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
 
         // Calculate the damage
-        int damage;
         short owner = tile.getOwnerId();
-        if (owner == Player.NEUTRAL_PLAYER_ID) {
-            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
-        } else {
-            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
-        }
+        Variable.MiscVariable.MiscType rate = (owner == Player.NEUTRAL_PLAYER_ID
+                ? Variable.MiscVariable.MiscType.CONVERT_NEUTRAL_ROOM_HEALTH
+                : Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
+        int damage = TileWork.perSwing((int) getLevelVariable(rate) / kwdFile.getGameLevel().getTicksPerSec(), getEfficiency(creature));
 
         // Get the room
         IRoomController room = getRoomControllerByCoordinates(point);
@@ -655,11 +656,12 @@ public final class MapController extends Container implements IMapController {
 
         // Apply the damage equally to all tiles so that the overall condition can be checked easily
         // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
-        int damagePerTile = Math.abs(damage / roomTiles.size());
+        int damagePerTile = damage / roomTiles.size();
+        int remainder = damage % roomTiles.size();
         int currentHealth = 0;
         for (Point p : roomTiles) {
             IMapTileController roomTile = getMapData().getTile(p);
-            if (applyDamage(roomTile, damagePerTile)) {
+            if (applyDamage(roomTile, damagePerTile + (remainder-- > 0 ? 1 : 0))) {
 
                 // If one of the tiles runs out (everyone should run out of the same time, unless a new tile has recently being added..)
                 for (Point p2 : roomTiles) {

@@ -106,6 +106,40 @@ class ClaimTileTaskTest {
         assertEquals(List.of(27, 28, 29, 30, 31), claiming.claims);
     }
 
+    @Test
+    void impClaimsANeutralRoomInBlows() {
+
+        // A 3 x 3 neutral Lair has 90000 health in DK II, 4000 a blow: 23 blows, the second once the first loop is over
+        List<Integer> blows = new ArrayList<>();
+        int[] room = {90000};
+        int[] tick = {0};
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isClaimableTile" ->
+                false;
+            case "isClaimableRoom" ->
+                room[0] > 0;
+            case "applyClaimTile" -> {
+                blows.add(tick[0]);
+                room[0] -= TileWork.perSwing(-20000 / TICKS_PER_SECOND, FRESH_IMP);
+                yield null;
+            }
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
+        task.assign(imp, false);
+
+        for (; tick[0] < 100 && task.isValid(imp); tick[0]++) {
+            task.executeTask(imp, (float) tick[0] / TICKS_PER_SECOND);
+        }
+
+        assertEquals(23, blows.size());
+        assertEquals(List.of(1, 4, 5), blows.subList(0, 3));
+        assertEquals(25, blows.get(22));
+    }
+
     private static ICreatureController creature(Creature creature) {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
