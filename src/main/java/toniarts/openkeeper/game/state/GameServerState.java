@@ -25,7 +25,9 @@ import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.CheatController;
@@ -113,6 +115,20 @@ public final class GameServerState extends AbstractAppState {
 
     public boolean isMultiplayer() {
         return multiplayer;
+    }
+
+    /**
+     * Saves the game, see {@link GameLoopManager#save(Path)}
+     *
+     * @param file the save file
+     * @return completes when the file is written, or right away with an
+     * exception if the game hasn't loaded yet
+     */
+    public CompletableFuture<Void> save(Path file) {
+        if (!gameLoaded) {
+            return CompletableFuture.failedFuture(new IllegalStateException("The game hasn't loaded yet!"));
+        }
+        return game.save(file);
     }
 
     private void loadGame(List<Keeper> players) {
