@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -27,6 +28,8 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
@@ -75,14 +78,33 @@ class MovementSystemTest {
     }
 
     /**
+     * A creature other than a worker walks at half speed below a fifth of its
+     * health (DKII.EXE 0x488930), on top of the water and lava change
+     */
+    @Test
+    void lowHealthHalvesTheWalkingSpeed() {
+        assertEquals(1f, walkedInASecond(map(false, false), false, new Health(20, 100), creature(false)), 0.1f);
+        assertEquals(0.5f, walkedInASecond(map(false, false), false, new Health(19, 100), creature(false)), 0.1f);
+        assertEquals(0.25f, walkedInASecond(map(true, false), false, new Health(19, 100), creature(false)), 0.05f);
+        assertEquals(1f, walkedInASecond(map(false, false), false, new Health(19, 100), creature(true)), 0.1f);
+    }
+
+    private static CreatureComponent creature(boolean worker) {
+        CreatureComponent creature = new CreatureComponent();
+        creature.worker = worker;
+        return creature;
+    }
+
+    /**
      * Distance walked east at 1 tile a second, in the second after getting up
      * to speed
      */
-    private static float walkedInASecond(IMapInformation map, boolean canFly) {
+    private static float walkedInASecond(IMapInformation map, boolean canFly, EntityComponent... components) {
         EntityData entityData = new DefaultEntityData();
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(0, new Vector3f(10, 0, 23)), new Mobile(canFly, true, true, 1),
                 new Navigation(new Point(20, 23), null, List.of(new Vector2(10, 23), new Vector2(20, 23))));
+        entityData.setComponents(creature, components);
         MovementSystem movementSystem = new MovementSystem(entityData, map);
         for (int frame = 0; frame < 60; frame++) {
             movementSystem.processTick(1 / 60f);
