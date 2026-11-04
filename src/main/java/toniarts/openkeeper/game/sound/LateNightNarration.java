@@ -44,14 +44,15 @@ public final class LateNightNarration {
         if (!enabled) {
             return null;
         }
+        // Native text references are zero-based; MentorType/audio event IDs are one-based.
         MentorType speech = switch (minute.getHour() * 60 + minute.getMinute()) {
             // DK II uses a separate Halloween message at midnight on October 31.
             case 0 -> minute.getMonth() == Month.OCTOBER && minute.getDayOfMonth() == 31
-                    ? null : MentorType.SILLY007;
-            case 60 -> MentorType.SILLY008;
-            case 120 -> MentorType.SILLY009;
-            case 180 -> MentorType.SILLY011;
-            case 195 -> MentorType.SILLY010;
+                    ? null : MentorType.SILLY008;
+            case 60 -> MentorType.SILLY009;
+            case 120 -> MentorType.SILLY010;
+            case 180 -> MentorType.SILLY012;
+            case 195 -> MentorType.SILLY011;
             default -> null;
         };
         return speech == null ? null : new Reminder(speech, minute.toInstant(), minute.plusMinutes(1).toInstant());

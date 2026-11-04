@@ -26,8 +26,8 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class LateNightNarrationTest {
     @ParameterizedTest
-    @CsvSource({"00:00, SILLY007", "01:00, SILLY008", "02:00, SILLY009",
-        "03:00, SILLY011", "03:15, SILLY010"})
+    @CsvSource({"00:00, SILLY008", "01:00, SILLY009", "02:00, SILLY010",
+        "03:00, SILLY012", "03:15, SILLY011"})
     void usesTheNativeScheduleEvenWhenFirstObservedMidMinute(String time, MentorType speech) {
         var clock = new MutableClock("2026-11-04T" + time + ":37Z");
         var narration = new LateNightNarration(clock);
@@ -43,7 +43,7 @@ class LateNightNarrationTest {
     void usesTheClientsTimeZoneRatherThanUtc() {
         Clock utc = Clock.fixed(Instant.parse("2026-11-03T23:00:30Z"), ZoneId.of("UTC"));
         assertNull(new LateNightNarration(utc).poll(true));
-        assertEquals(MentorType.SILLY007,
+        assertEquals(MentorType.SILLY008,
                 new LateNightNarration(utc.withZone(ZoneId.of("Europe/Brussels"))).poll(true).speech());
     }
 
@@ -53,9 +53,9 @@ class LateNightNarrationTest {
         var narration = new LateNightNarration(clock);
         assertNull(narration.poll(true));
         clock.advance(1);
-        assertEquals(MentorType.SILLY007, narration.poll(true).speech());
+        assertEquals(MentorType.SILLY008, narration.poll(true).speech());
         clock.advance(86400);
-        assertEquals(MentorType.SILLY007, narration.poll(true).speech());
+        assertEquals(MentorType.SILLY008, narration.poll(true).speech());
     }
 
     @Test
@@ -70,7 +70,7 @@ class LateNightNarrationTest {
         clock.set("2026-11-04T03:14:59Z");
         assertNull(narration.poll(true));
         clock.advance(1);
-        assertEquals(MentorType.SILLY010, narration.poll(true).speech());
+        assertEquals(MentorType.SILLY011, narration.poll(true).speech());
         clock.set("2026-11-04T04:00:00Z");
         assertNull(narration.poll(true));
     }
@@ -83,7 +83,7 @@ class LateNightNarrationTest {
         clock.advance(10);
         assertNull(narration.poll(true));
         clock.set("2026-11-04T03:00:10Z");
-        assertEquals(MentorType.SILLY011, narration.poll(true).speech());
+        assertEquals(MentorType.SILLY012, narration.poll(true).speech());
     }
 
     @Test
@@ -107,7 +107,7 @@ class LateNightNarrationTest {
         var narration = new LateNightNarration(clock);
         assertNull(narration.poll(true));
         clock.set("2026-10-31T01:00:30Z");
-        assertEquals(MentorType.SILLY008, narration.poll(true).speech());
+        assertEquals(MentorType.SILLY009, narration.poll(true).speech());
     }
 
     private static final class MutableClock extends Clock {
