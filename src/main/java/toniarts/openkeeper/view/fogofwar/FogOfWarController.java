@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.fogofwar;
 
-import com.jme3.app.state.AbstractAppState;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -65,7 +64,7 @@ import java.util.function.Consumer;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class FogOfWarController extends AbstractAppState implements IFogOfWarInformation {
+public final class FogOfWarController implements IFogOfWarInformation {
 
     private static final float VISION_UPDATE_INTERVAL = 0.15f;
 
@@ -128,10 +127,6 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
 
         this.state = new FogState(viewerId, mapData.getWidth(), mapData.getHeight());
         this.losTable = LineOfSightTable.generate(7);
-
-        // Nothing to do until the level start seeding has run, it would wipe
-        // whatever we did before it. seedLevelStart() enables us.
-        setEnabled(false);
     }
 
     /**
@@ -170,13 +165,11 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
 
     /**
      * Advances the fog of war: creature vision, possession, the Dungeon
-     * Heart reveal and the "enemy sighted" check. The state is disabled, so
-     * the state manager doesn't call this, until {@link #seedLevelStart()}
-     * has run.
+     * Heart reveal and the "enemy sighted" check. Must not be called before
+     * {@link #seedLevelStart()}, the seeding would wipe what this did.
      *
      * @param tpf time since the last update, in seconds
      */
-    @Override
     public void update(float tpf) {
         // The first time round, every heart room in the set is new to us,
         // including the ones that were already there when the set was made
@@ -388,7 +381,6 @@ public final class FogOfWarController extends AbstractAppState implements IFogOf
         if (!dirty.isEmpty()) {
             fireTilesDirty(dirty.toArray(new Point[0]));
         }
-        setEnabled(true);
     }
 
     private void seedOwnedAndAlwaysExploredTiles() {
