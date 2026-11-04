@@ -577,7 +577,7 @@ public final class MapController extends Container implements IMapController {
 
         // See the amount of healing, the work variables are rates per game second
         float rate;
-        boolean everyTick = false;
+        boolean oneTicksWorth = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
@@ -587,19 +587,22 @@ public final class MapController extends Container implements IMapController {
                     rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
                 }
             } else {
+
+                // Reinforcing, which goes on every tick (DK II 0x497960)
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
+                oneTicksWorth = true;
             }
         } else if (TileWork.convertsAtFullHealth(terrain)) {
 
             // Claiming ground nobody owns, which goes on every tick (DK II 0x4974C0)
             rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
-            everyTick = true;
+            oneTicksWorth = true;
         } else {
             rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
         }
 
         // Apply
-        int healing = everyTick
+        int healing = oneTicksWorth
                 ? TileWork.perTick((int) rate / kwdFile.getGameLevel().getTicksPerSec(), getEfficiency(creature))
                 : TileWork.perApplication(rate, getEfficiency(creature));
         if (applyHealing(tile, healing)) {

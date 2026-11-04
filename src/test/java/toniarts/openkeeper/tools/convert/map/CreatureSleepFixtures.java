@@ -42,17 +42,17 @@ public final class CreatureSleepFixtures {
     }
 
     /**
-     * A worker whose eating animation, the one DK II's claim action plays,
-     * has the given frames
+     * A worker whose animation for its work, eating for claiming and sleeping
+     * for reinforcing in DK II, has the given frames
      */
-    public static Creature claimer(int frames, int fps) {
-        ArtResource eating = new ArtResource();
-        eating.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
-        eating.setData(ArtResource.KEY_FRAMES, frames);
-        eating.setData(ArtResource.KEY_FPS, fps);
+    public static Creature claimer(Creature.AnimationType animation, int frames, int fps) {
+        ArtResource work = new ArtResource();
+        work.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
+        work.setData(ArtResource.KEY_FRAMES, frames);
+        work.setData(ArtResource.KEY_FPS, fps);
         Creature creature = new Creature();
         creature.setName("Imp");
-        creature.setAnimation(Creature.AnimationType.EATING, eating);
+        creature.setAnimation(animation, work);
         return creature;
     }
 

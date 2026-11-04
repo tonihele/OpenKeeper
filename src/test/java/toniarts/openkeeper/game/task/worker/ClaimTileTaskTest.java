@@ -52,7 +52,7 @@ class ClaimTileTaskTest {
     void impClaimsDirtPathInFiveTicks() {
         Claiming claiming = new Claiming(1, TileWork.perTick(825 / TICKS_PER_SECOND, FRESH_IMP));
         ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
-        ICreatureController imp = creature(CreatureSleepFixtures.claimer(11, 20));
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
         task.assign(imp, false);
 
         int leaves = -1;
@@ -72,14 +72,14 @@ class ClaimTileTaskTest {
     void othersCantTakeTheClaimedTileWhileTheImpFinishes() {
         Claiming claiming = new Claiming(657, 164);
         ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
-        ICreatureController imp = creature(CreatureSleepFixtures.claimer(11, 20));
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
         task.assign(imp, false);
 
         task.executeTask(imp, 0);
         task.executeTask(imp, 0.25f);
 
         assertEquals(true, task.isValid(imp));
-        assertFalse(task.isValid(creature(CreatureSleepFixtures.claimer(11, 20))));
+        assertFalse(task.isValid(creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20))));
         assertFalse(task.isValid(null));
     }
 
