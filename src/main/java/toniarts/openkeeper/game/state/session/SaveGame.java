@@ -46,6 +46,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
@@ -61,10 +62,11 @@ import toniarts.openkeeper.game.controller.chicken.ChickenState;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.trigger.TriggerControl;
 
 /**
  * A saved game: the level, the game time, the players, the level script
- * variables and every entity component, written as gzipped JSON. The entity
+ * variables and triggers and every entity component, written as gzipped JSON. The entity
  * ids are kept as they are, so the ids inside the components stay valid.
  * Rooms, indexes, tasks and the state machines are not saved, they are built
  * again from the components and the level on load.
@@ -99,9 +101,11 @@ public final class SaveGame {
      * @param level the level name
      * @param gameTime the game time in seconds
      * @param levelInfo the players and the level script variables
+     * @param triggerControls the level script triggers
      * @param entityData the entities
      */
-    public SaveGame(String level, double gameTime, ILevelInfo levelInfo, EntityData entityData) {
+    public SaveGame(String level, double gameTime, ILevelInfo levelInfo, Collection<TriggerControl> triggerControls,
+            EntityData entityData) {
         json = new JsonObject();
         json.addProperty("version", VERSION);
         json.addProperty("level", level);
@@ -123,6 +127,12 @@ public final class SaveGame {
         script.addProperty("timeLimit", levelInfo.getTimeLimit());
         script.addProperty("levelScore", levelInfo.getLevelScore());
         json.add("levelInfo", script);
+
+        JsonObject triggers = new JsonObject();
+        for (TriggerControl triggerControl : triggerControls) {
+            triggers.add(Integer.toString(triggerControl.getTriggerId()), GSON.toJsonTree(triggerControl.getState()));
+        }
+        json.add("triggers", triggers);
 
         JsonObject components = new JsonObject();
         for (Map.Entry<String, Class<? extends EntityComponent>> type : COMPONENT_TYPES.entrySet()) {
@@ -248,6 +258,22 @@ public final class SaveGame {
             levelInfo.setTimeLimit(script.get("timeLimit").getAsFloat());
         }
         levelInfo.setLevelScore(script.get("levelScore").getAsInt());
+    }
+
+    /**
+     * Sets the trigger trees of a newly loaded level to the saved state. The
+     * trees are matched by their first trigger
+     *
+     * @param triggerControls the trigger controls to restore
+     */
+    public void restoreTriggers(Collection<TriggerControl> triggerControls) {
+        JsonObject triggers = json.getAsJsonObject("triggers");
+        for (TriggerControl triggerControl : triggerControls) {
+            JsonElement state = triggers.get(Integer.toString(triggerControl.getTriggerId()));
+            if (state != null) {
+                triggerControl.setState(GSON.fromJson(state, TriggerControl.State.class));
+            }
+        }
     }
 
     /**

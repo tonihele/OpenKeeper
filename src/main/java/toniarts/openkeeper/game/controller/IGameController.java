@@ -22,8 +22,10 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
+import java.util.List;
 import java.util.Map;
 
 /**
@@ -60,6 +62,14 @@ public interface IGameController {
     ILevelInfo getLevelInfo();
 
     IGameTimer getGameTimer();
+
+    /**
+     * Get every trigger control: the level's, the players', the parties', the
+     * action points' and the things'
+     *
+     * @return the trigger controls
+     */
+    List<TriggerControl> getTriggerControls();
 
     float getLevelVariable(Variable.MiscVariable.MiscType variable);
 

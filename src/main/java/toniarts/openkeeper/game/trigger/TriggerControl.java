@@ -19,7 +19,11 @@ package toniarts.openkeeper.game.trigger;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
@@ -52,6 +56,7 @@ public class TriggerControl extends Control {
 
     protected TriggerGenericData trigger;
     protected final TriggerGenericData root;
+    private final int triggerId;
 
     protected final ILevelInfo levelInfo;
     protected final IGameTimer gameTimer;
@@ -68,12 +73,99 @@ public class TriggerControl extends Control {
         this.gameTimer = gameTimer;
         this.mapController = mapController;
         this.creaturesController = creaturesController;
+        this.triggerId = triggerId;
 
         root = new TriggerLoader(levelInfo.getLevelData()).load(triggerId);
         if (root == null) {
             throw new IllegalArgumentException("trigger can not be null");
         }
         trigger = root;
+    }
+
+    /**
+     * Get the first trigger of the tree in the level, it tells the trees apart
+     *
+     * @return the trigger ID
+     */
+    public int getTriggerId() {
+        return triggerId;
+    }
+
+    /**
+     * Get the state of the trigger tree: where it is, the triggers and actions
+     * that are left and the repeats the triggers have left. The tree itself
+     * comes from the level.
+     *
+     * @return the state
+     */
+    public State getState() {
+        State state = new State();
+        state.trigger = trigger.getId();
+        addNodes(root, state.nodes);
+        return state;
+    }
+
+    /**
+     * Set the trigger tree to a saved state. The tree must be as it was loaded
+     * from the level.
+     *
+     * @param state the state from {@link #getState()}
+     */
+    public void setState(State state) {
+        restoreNodes(root, state.nodes);
+        TriggerGenericData current = findTrigger(root, state.trigger);
+        trigger = (current != null ? current : root);
+    }
+
+    private static void addNodes(TriggerGenericData trigger, Map<Integer, State.Node> nodes) {
+        State.Node node = new State.Node();
+        node.repeatTimes = trigger.getRepeatTimes();
+        int lastTriggerIndex = trigger.getLastTriggerIndex();
+        node.lastTrigger = (lastTriggerIndex >= 0 ? trigger.getChild(lastTriggerIndex).getId() : null);
+        for (TriggerData child : trigger.getChildren()) {
+            node.children.add(child.getId());
+            if (child instanceof TriggerGenericData triggerGenericData) {
+                addNodes(triggerGenericData, nodes);
+            }
+        }
+        nodes.put(trigger.getId(), node);
+    }
+
+    private static void restoreNodes(TriggerGenericData trigger, Map<Integer, State.Node> nodes) {
+        State.Node node = nodes.get(trigger.getId());
+        if (node == null) {
+            return;
+        }
+
+        // Only the actions that have run and the triggers that are done are gone from the tree
+        trigger.setLastTrigger(null);
+        for (int i = trigger.getQuantity() - 1; i >= 0; i--) {
+            TriggerData child = trigger.getChild(i);
+            if (!node.children.contains(child.getId())) {
+                trigger.detachChildAt(i);
+            } else if (child instanceof TriggerGenericData triggerGenericData) {
+                restoreNodes(triggerGenericData, nodes);
+                if (node.lastTrigger != null && node.lastTrigger == child.getId()) {
+                    trigger.setLastTrigger(triggerGenericData);
+                }
+            }
+        }
+        trigger.setRepeatTimes(node.repeatTimes);
+    }
+
+    private static TriggerGenericData findTrigger(TriggerGenericData trigger, int id) {
+        if (trigger.getId() == id) {
+            return trigger;
+        }
+        for (TriggerData child : trigger.getChildren()) {
+            if (child instanceof TriggerGenericData triggerGenericData) {
+                TriggerGenericData found = findTrigger(triggerGenericData, id);
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+        return null;
     }
 
     @Override
@@ -380,6 +472,25 @@ public class TriggerControl extends Control {
             return gameController.getPlayerController(Player.KEEPER1_ID); // Current player
         } else {
             return gameController.getPlayerController(playerId);
+        }
+    }
+
+    /**
+     * The state of a trigger tree, for saving the game
+     */
+    public static final class State {
+
+        private int trigger;
+        private final Map<Integer, Node> nodes = new HashMap<>();
+
+        /**
+         * A trigger in the tree, the root is 0
+         */
+        private static final class Node {
+
+            private short repeatTimes;
+            private Integer lastTrigger;
+            private final List<Integer> children = new ArrayList<>();
         }
     }
 }

@@ -78,6 +78,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private final List<TriggerControl> triggerControls = new ArrayList<>();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -139,30 +140,43 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings);
 
         // The triggers
-        controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
-                gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        PartyTriggerLogicController partyTriggers = new PartyTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController());
+        CreatureTriggerLogicController creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData));
-        controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
+                playerService, entityData);
+        ObjectTriggerLogicController objectTriggers = new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData, gameWorldController.getObjectsController()));
-        controllers.add(new DoorTriggerLogicController(this, levelInfo, gameTimer,
+                playerService, entityData, gameWorldController.getObjectsController());
+        DoorTriggerLogicController doorTriggers = new DoorTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData, gameWorldController.getDoorsController()));
-        controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
+                playerService, entityData, gameWorldController.getDoorsController());
+        ActionPointTriggerLogicController actionPointTriggers = new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                positionSystem));
-        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+                positionSystem);
+        PlayerTriggerLogicController playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+                playerService);
+        controllers.add(partyTriggers);
+        controllers.add(creatureTriggers);
+        controllers.add(objectTriggers);
+        controllers.add(doorTriggers);
+        controllers.add(actionPointTriggers);
+        controllers.add(playerTriggers);
         controllers.add(gameTimer);
         controllers.add(positionSystem);
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
             triggerControl = new TriggerControl(this, levelInfo, gameTimer, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), triggerId);
+            triggerControls.add(triggerControl);
         }
+        triggerControls.addAll(partyTriggers.getTriggerControls());
+        triggerControls.addAll(creatureTriggers.getTriggerControls());
+        triggerControls.addAll(objectTriggers.getTriggerControls());
+        triggerControls.addAll(doorTriggers.getTriggerControls());
+        triggerControls.addAll(actionPointTriggers.getTriggerControls());
+        triggerControls.addAll(playerTriggers.getTriggerControls());
 
     }
 
@@ -430,6 +444,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     @Override
     public IGameTimer getGameTimer() {
         return gameTimer;
+    }
+
+    @Override
+    public List<TriggerControl> getTriggerControls() {
+        return triggerControls;
     }
 
     private static class LevelInfo implements ILevelInfo {

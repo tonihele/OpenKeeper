@@ -44,6 +44,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
@@ -60,7 +61,10 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Tile;
+import toniarts.openkeeper.tools.convert.map.TriggerFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -73,6 +77,18 @@ import static org.junit.jupiter.api.Assumptions.assumeTrue;
  * Writes save games and reads them back
  */
 class SaveGameTest {
+
+    /**
+     * The level script: a trigger that runs once and adds to flag 0, a
+     * trigger that keeps adding to flag 1 from 2 seconds on, and an action of
+     * the root that adds to flag 2 once
+     */
+    private static final IKwdFile LEVEL = stub(IKwdFile.class, "getTriggers", Map.of(
+            1, TriggerFixtures.levelTime(1, 3, 2, (short) 1, 0),
+            2, TriggerFixtures.addToFlag(2, 0, (short) 0, 1),
+            3, TriggerFixtures.levelTime(3, 5, 4, (short) 255, 2),
+            4, TriggerFixtures.addToFlag(4, 0, (short) 1, 1),
+            5, TriggerFixtures.addToFlag(5, 0, (short) 2, 5)));
 
     @TempDir
     Path folder;
@@ -99,7 +115,7 @@ class SaveGameTest {
         keeper.setDungeonHeartLocation(new Point(10, 12));
 
         Path file = folder.resolve("saves").resolve("Level6a.json.gz");
-        new SaveGame("Level6a", 1234.5, levelInfo(keeper), entityData).write(file);
+        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         EntityData loaded = saveGame.createEntityData();
 
@@ -150,12 +166,12 @@ class SaveGameTest {
 
         // Save, load and save again, the files must match
         Path file = folder.resolve("first.json.gz");
-        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), entityData).write(file);
+        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         Path secondFile = folder.resolve("second.json.gz");
         ILevelInfo levelInfo = levelInfo(saveGame.getPlayers().toArray(Keeper[]::new));
         saveGame.restoreLevelInfo(levelInfo);
-        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, saveGame.createEntityData()).write(secondFile);
+        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), saveGame.createEntityData()).write(secondFile);
 
         JsonObject first = readJson(file);
         JsonObject second = readJson(secondFile);
@@ -175,7 +191,7 @@ class SaveGameTest {
         levelInfo.setLevelScore(42);
 
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo, new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo, List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -194,11 +210,52 @@ class SaveGameTest {
     @Test
     void testNoTimeLimitStaysOff() throws Exception {
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
         assertNull(loaded.getTimeLimit());
+    }
+
+    @Test
+    void testTriggersRoundTrip() throws Exception {
+        double[] time = {0};
+        ILevelInfo levelInfo = levelInfo();
+        TriggerControl triggerControl = new TriggerControl(null, levelInfo, () -> time[0], null, null, 1);
+
+        // Part way through: the actions that run once have run, the repeating trigger is next
+        for (int tick = 0; tick < 5; tick++) {
+            triggerControl.update(0.5f);
+            time[0] += 0.5;
+        }
+        assertEquals(1, levelInfo.getFlag(0));
+        assertEquals(0, levelInfo.getFlag(1));
+        assertEquals(5, levelInfo.getFlag(2));
+
+        Path file = folder.resolve("triggers.json.gz");
+        new SaveGame("Test", time[0], levelInfo, List.of(triggerControl), new DefaultEntityData()).write(file);
+        SaveGame saveGame = SaveGame.read(file);
+        ILevelInfo loadedLevelInfo = levelInfo();
+        TriggerControl loaded = new TriggerControl(null, loadedLevelInfo, () -> time[0], null, null, 1);
+        saveGame.restoreLevelInfo(loadedLevelInfo);
+        saveGame.restoreTriggers(List.of(loaded));
+
+        // Both carry on the same way, the once only actions don't run again
+        for (int tick = 0; tick < 6; tick++) {
+            triggerControl.update(0.5f);
+            loaded.update(0.5f);
+            time[0] += 0.5;
+        }
+        for (int flag = 0; flag < 3; flag++) {
+            assertEquals(levelInfo.getFlag(flag), loadedLevelInfo.getFlag(flag), "Flag " + flag);
+        }
+        assertEquals(2, loadedLevelInfo.getFlag(1));
+
+        Path first = folder.resolve("first.json.gz");
+        new SaveGame("Test", time[0], levelInfo, List.of(triggerControl), new DefaultEntityData()).write(first);
+        Path second = folder.resolve("second.json.gz");
+        new SaveGame("Test", time[0], loadedLevelInfo, List.of(loaded), new DefaultEntityData()).write(second);
+        assertEquals(readJson(first).get("triggers"), readJson(second).get("triggers"));
     }
 
     /**
@@ -216,6 +273,9 @@ class SaveGameTest {
         Object[] timeLimitAndScore = {null, 0};
         return (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(), new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> {
             switch (method.getName()) {
+                case "getLevelData" -> {
+                    return LEVEL;
+                }
                 case "getPlayers" -> {
                     return playersById;
                 }
@@ -242,6 +302,11 @@ class SaveGameTest {
             }
             return null;
         });
+    }
+
+    private static <T> T stub(Class<T> type, String methodName, Object value) {
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
+                (proxy, method, args) -> methodName.equals(method.getName()) ? value : null));
     }
 
     private static JsonObject readJson(Path file) throws IOException {
