@@ -163,9 +163,14 @@
             </panel>
             <panel childLayout="horizontal" align="right" valign="bottom">
                 <!-- Not in DK II, an addition -->
-                <text id="deleteSavedGame" style="menuText" text="${menu.202}" valign="center" marginRight="20px">
-                    <interact onClick="deleteSavedGame()" />
-                </text>
+                <panel id="deleteSavedGame" childLayout="overlay" paddingLeft="7px" paddingRight="7px" width="48px" height="48px" margin="5px">
+                    <image filename="Textures/GUI/Options/I-Delete.png" width="48px" height="48px">
+                        <effect>
+                            <onClick neverStopRendering="true" name="engineSound" category="OBJECT_FE_PARCHMENT" event="0x30E"/>
+                        </effect>
+                        <interact onClick="deleteSavedGame()" />
+                    </image>
+                </panel>
                 <control name="cancelButton" click="goToScreen(singlePlayer)" />
                 <control name="okButton" click="loadSavedGame()" />
             </panel>

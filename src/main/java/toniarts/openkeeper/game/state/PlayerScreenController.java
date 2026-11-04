@@ -548,9 +548,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public void onSavedGameSelected(final String id, final ListBoxSelectionChangedEvent<TableRow> event) {
 
         // On the save page, a save to overwrite
-        TextField saveName = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("saveGameName", TextField.class);
+        Element saveName = nifty.getScreen(SCREEN_HUD_ID).findElementById("saveGameName");
         if (saveName != null && !event.getSelectionIndices().isEmpty()) {
-            saveName.setText(savedGames.get(event.getSelectionIndices().get(0)).name());
+            saveName.getNiftyControl(TextField.class).setText(savedGames.get(event.getSelectionIndices().get(0)).name());
         }
     }
 
