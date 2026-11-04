@@ -509,12 +509,14 @@ public final class MapController extends Container implements IMapController {
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
 
-            // Attack enemy tile
-            rate = getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
+            // Attack enemy tile, which goes on every tick (DK II 0x497670)
+            rate = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH) / kwdFile.getGameLevel().getTicksPerSec();
         } else {
             throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
         }
-        int damage = TileWork.perApplication(rate, getEfficiency(creature));
+        int damage = terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                ? TileWork.perApplication(rate, getEfficiency(creature))
+                : TileWork.perSwing((int) rate, getEfficiency(creature));
 
         // Do the damage
         boolean tileDestroyed;

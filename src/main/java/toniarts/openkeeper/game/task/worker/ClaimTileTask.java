@@ -56,34 +56,36 @@ public class ClaimTileTask extends AbstractTileTask {
     }
 
     /**
-     * Claims the tile. Ground nobody owns is claimed the way DK II's claim
-     * action does it (0x496AA0, 0x4974C0): from the tick after the worker
-     * starts, every tick adds a tick's worth of the claim rate until the tile
-     * turns, and then the worker plays its claim animation to the end of the
-     * loop before it moves on. While it does, the stored execution duration
-     * is the time on the task when the animation ends, negated to keep it
-     * apart from the once a second steps of the other claims.
+     * Claims the tile as DK II's claim actions do it (0x496AA0). An enemy's
+     * floor is attacked first (0x465F20, 0x497670), in blows of a tick's
+     * worth of the attack rate. Ground nobody owns is claimed (0x465CD0,
+     * 0x4974C0) every tick from the tick after the worker starts, a tick's
+     * worth of the claim rate, until the tile turns, and then the worker plays
+     * the loop of its work animation out before it moves on. While it does,
+     * the stored execution duration is the time on the task when the loop
+     * ends, negated. The work animation is the worker's eating one, the imp's
+     * is called Imp_ClaimFloor.
      *
      * @param creature the worker
      * @param executionDuration the time the worker has spent on the task
      */
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        float animationEnd = -getExecutionDuration(creature);
-        if (animationEnd > 0) {
-            if (executionDuration >= animationEnd) {
+        float loopEnd = -getExecutionDuration(creature);
+        if (loopEnd > 0) {
+            if (executionDuration >= loopEnd) {
                 setExecutionDuration(creature, 0);
             }
             return;
         }
-        if (mapController.isClaimableTile(getTaskLocation(), playerId) && isGround()) {
-            if (executionDuration > 0) {
+        if (mapController.isClaimableTile(getTaskLocation(), playerId)) {
+            if (isGround() ? executionDuration > 0 : isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
                 mapController.applyClaimTile(getTaskLocation(), playerId, creature);
                 if (!isValid(creature)) {
                     creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
-                    animationEnd = getLoopEnd(creature.getCreature(), Creature.AnimationType.EATING, executionDuration);
-                    if (animationEnd > executionDuration) {
-                        setExecutionDuration(creature, -animationEnd);
+                    loopEnd = getLoopEnd(creature.getCreature(), Creature.AnimationType.EATING, executionDuration);
+                    if (loopEnd > executionDuration) {
+                        setExecutionDuration(creature, -loopEnd);
                     }
                 }
             }

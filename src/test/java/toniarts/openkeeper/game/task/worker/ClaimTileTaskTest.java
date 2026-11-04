@@ -83,6 +83,29 @@ class ClaimTileTaskTest {
         assertFalse(task.isValid(null));
     }
 
+    @Test
+    void impAttacksEnemyFloorEveryTickAndThenClaimsIt() {
+
+        // 28 a blow, 660 health: 24 blows, the second once the first loop (2.2 ticks) is over, as measured in DK II
+        Claiming claiming = new Claiming(1, TileWork.perTick(825 / TICKS_PER_SECOND, FRESH_IMP));
+        claiming.enemyHealth = 660;
+        claiming.perBlow = TileWork.perSwing(-140 / TICKS_PER_SECOND, FRESH_IMP);
+        ClaimTileTask task = new ClaimTileTask(null, claiming.mapController(), new Point(1, 1), PLAYER);
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
+        task.assign(imp, false);
+
+        for (int tick = 0; tick < 100 && task.isValid(imp); tick++) {
+            claiming.tick = tick;
+            task.executeTask(imp, (float) tick / TICKS_PER_SECOND);
+        }
+
+        assertEquals(28, claiming.perBlow);
+        assertEquals(24, claiming.blows.size());
+        assertEquals(List.of(1, 4, 5), claiming.blows.subList(0, 3));
+        assertEquals(26, claiming.blows.get(23));
+        assertEquals(List.of(27, 28, 29, 30, 31), claiming.claims);
+    }
+
     private static ICreatureController creature(Creature creature) {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
@@ -100,12 +123,17 @@ class ClaimTileTaskTest {
     }
 
     /**
-     * One Dirt Path being claimed, a claimed path once its health is full
+     * One Dirt Path being claimed, a claimed path once its health is full.
+     * With enemy health it starts as the enemy's claimed path, which turns
+     * into the Dirt Path once that health is gone
      */
     private static final class Claiming {
 
         private final int perTick;
         private final List<Integer> claims = new ArrayList<>();
+        private final List<Integer> blows = new ArrayList<>();
+        private int enemyHealth = 0;
+        private int perBlow;
         private int health;
         private int tick = 0;
 
@@ -127,12 +155,17 @@ class ClaimTileTaskTest {
                 case "getMapData" ->
                     mapData;
                 case "getTerrain" ->
-                    health < DIRT_PATH.getMaxHealth() ? DIRT_PATH : CLAIMED_PATH;
+                    enemyHealth == 0 && health < DIRT_PATH.getMaxHealth() ? DIRT_PATH : CLAIMED_PATH;
                 case "isClaimableTile" ->
-                    health < DIRT_PATH.getMaxHealth();
+                    enemyHealth > 0 || health < DIRT_PATH.getMaxHealth();
                 case "applyClaimTile" -> {
-                    claims.add(tick);
-                    health = Math.min(DIRT_PATH.getMaxHealth(), health + perTick);
+                    if (enemyHealth > 0) {
+                        blows.add(tick);
+                        enemyHealth = Math.max(0, enemyHealth - perBlow);
+                    } else {
+                        claims.add(tick);
+                        health = Math.min(DIRT_PATH.getMaxHealth(), health + perTick);
+                    }
                     yield null;
                 }
                 default ->
