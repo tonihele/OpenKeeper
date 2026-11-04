@@ -109,20 +109,15 @@ class RoomTextParserTest {
             Map<ObjectType, int[]> capacities) {
         IRoomInformation room = (IRoomInformation) Proxy.newProxyInstance(RoomTextParserTest.class.getClassLoader(),
                 new Class<?>[]{IRoomInformation.class}, (proxy, method, args) -> {
-                    ObjectType type = args == null ? defaultStorageType : (ObjectType) args[0];
-                    int[] capacity = type == null ? new int[2] : capacities.getOrDefault(type, new int[2]);
-                    switch (method.getName()) {
-                        case "getOwnerId":
-                            return OWNER;
-                        case "getDefaultStorageType":
-                            return defaultStorageType;
-                        case "getUsedCapacity":
-                            return capacity[0];
-                        case "getMaxCapacity":
-                            return capacity[1];
-                        default:
-                            throw new UnsupportedOperationException(method.getName());
+                    if ("getUsedCapacity".equals(method.getName()) || "getMaxCapacity".equals(method.getName())) {
+                        ObjectType type = args == null ? defaultStorageType : (ObjectType) args[0];
+                        int[] capacity = type == null ? new int[2] : capacities.getOrDefault(type, new int[2]);
+                        return "getUsedCapacity".equals(method.getName()) ? capacity[0] : capacity[1];
                     }
+                    if ("getOwnerId".equals(method.getName())) {
+                        return OWNER;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
                 });
         return (IRoomsInformation<IRoomInformation>) Proxy.newProxyInstance(RoomTextParserTest.class.getClassLoader(),
                 new Class<?>[]{IRoomsInformation.class}, (proxy, method, args) -> {
