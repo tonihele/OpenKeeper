@@ -16,18 +16,24 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.utils.Point;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -44,7 +50,7 @@ class MovementSystemTest {
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(rotation, new Vector3f(15, 0, 23)), new Mobile(false, false, false, 1),
                 new Navigation(new Point(15, 23), new Point(16, 25), new ArrayList<>()));
-        MovementSystem movementSystem = new MovementSystem(entityData);
+        MovementSystem movementSystem = new MovementSystem(entityData, map(false, false));
 
         for (int frame = 0; frame < 180 && entityData.getComponent(creature, Navigation.class) != null; frame++) {
             movementSystem.processTick(1 / 60f);
@@ -54,5 +60,46 @@ class MovementSystemTest {
         float facing = entityData.getComponent(creature, Position.class).rotation;
         double cos = (Math.sin(facing) * 1 + Math.cos(facing) * 2) / Math.sqrt(5);
         assertTrue(cos > Math.cos(0.2), "facing " + Math.toDegrees(Math.acos(cos)) + " degrees away");
+    }
+
+    /**
+     * Walking through water halves the speed and lava speeds it up by half
+     * (DKII.EXE 0x488930), flying is not slowed
+     */
+    @Test
+    void waterHalvesAndLavaRaisesTheWalkingSpeed() {
+        assertEquals(1f, walkedInASecond(map(false, false), false), 0.1f);
+        assertEquals(0.5f, walkedInASecond(map(true, false), false), 0.1f);
+        assertEquals(1.5f, walkedInASecond(map(false, true), false), 0.1f);
+        assertEquals(1f, walkedInASecond(map(true, false), true), 0.1f);
+    }
+
+    /**
+     * Distance walked east at 1 tile a second, in the second after getting up
+     * to speed
+     */
+    private static float walkedInASecond(IMapInformation map, boolean canFly) {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Position(0, new Vector3f(10, 0, 23)), new Mobile(canFly, true, true, 1),
+                new Navigation(new Point(20, 23), null, List.of(new Vector2(10, 23), new Vector2(20, 23))));
+        MovementSystem movementSystem = new MovementSystem(entityData, map);
+        for (int frame = 0; frame < 60; frame++) {
+            movementSystem.processTick(1 / 60f);
+        }
+        float start = entityData.getComponent(creature, Position.class).position.x;
+        for (int frame = 0; frame < 60; frame++) {
+            movementSystem.processTick(1 / 60f);
+        }
+        return entityData.getComponent(creature, Position.class).position.x - start;
+    }
+
+    private static IMapInformation map(boolean water, boolean lava) {
+        return (IMapInformation) Proxy.newProxyInstance(IMapInformation.class.getClassLoader(), new Class<?>[]{IMapInformation.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "isWater" -> water;
+                    case "isLava" -> lava;
+                    default -> throw new AssertionError(method.getName());
+                });
     }
 }
