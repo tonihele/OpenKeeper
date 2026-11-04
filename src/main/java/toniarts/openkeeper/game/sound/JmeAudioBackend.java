@@ -23,6 +23,7 @@ import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /**
  * {@link AudioBackend} on top of a jME {@link AudioNode}.
@@ -60,7 +61,7 @@ public final class JmeAudioBackend implements AudioBackend {
         try {
             // A cached stream is shared by every node of the clip and is not seekable, so a second
             // voice of a clip that has already ended once would fail to rewind it. Streams are not cached.
-            node = new AudioNode(assetManager, path, spec.streamed(), false);
+            node = new AudioNode(assetManager, AssetUtils.getCanonicalAssetKey(path), spec.streamed(), false);
         } catch (RuntimeException ex) {
             throw new IllegalArgumentException("Failed to load " + path, ex);
         }
