@@ -56,9 +56,9 @@ public final class KillPlayer extends AbstractObjectiveTask {
      */
     private static final int MAX_OBSTACLE_LENGTH = 81;
 
-    protected final short targetPlayerId;
-    protected final ICreatureController creature;
-    protected final ILevelInfo levelInfo;
+    private final short targetPlayerId;
+    private final ICreatureController creature;
+    private final ILevelInfo levelInfo;
     private final Point target;
     private final Point tunnelTarget;
 
@@ -197,90 +197,141 @@ public final class KillPlayer extends AbstractObjectiveTask {
      * the tunnel can't go on
      */
     private List<Point> planTunnel(Set<Point> walkable) {
-        List<Point> digs = new ArrayList<>();
-        Set<Point> dug = new HashSet<>();
-        int maxDigs = mapController.getMapData().getWidth() * mapController.getMapData().getHeight();
-        Point current = creature.getCreatureCoordinates();
-        boolean followingWall = false;
-        int direction = 0;
-        int wallSide = 0;
-        Point obstacle = null;
-        Point rejoin = null;
-        while (digs.size() < maxDigs) {
-            Point dig = null;
-            if (!followingWall) {
+        return new TunnelPlan(walkable).plan();
+    }
 
-                // Along the line, over open ground, until something solid
-                Point next = current;
-                do {
-                    if (next.equals(tunnelTarget)) {
-                        return digs;
-                    }
-                    current = next;
-                    next = stepTowardsTarget(current);
-                } while (!isSolid(next, dug) && !isLava(next));
-                if (canDig(next, dug)) {
-                    dig = next;
-                } else {
+    /**
+     * A tunnel being planned: the tiles to dig so far, where it has got to
+     * and, while it goes round an obstacle, which way it goes along the wall
+     */
+    private final class TunnelPlan {
 
-                    // Round the obstacle, back to the line where it can be dug or walked again
-                    obstacle = current;
-                    rejoin = getRejoinTile(current, dug);
-                    if (rejoin == null) {
-                        return digs;
-                    }
-                    direction = getDirection(current, next);
-                    wallSide = getWallSide(current, rejoin, direction, dug);
-                    direction = turn(direction, -wallSide);
-                    followingWall = true;
-                }
+        private final Set<Point> walkable;
+        private final List<Point> digs = new ArrayList<>();
+        private final Set<Point> dug = new HashSet<>();
+        private Point current = creature.getCreatureCoordinates();
+        private boolean followingWall = false;
+        private int direction = 0;
+        private int wallSide = 0;
+        private Point obstacle = null;
+        private Point rejoin = null;
+
+        private TunnelPlan(Set<Point> walkable) {
+            this.walkable = walkable;
+        }
+
+        private List<Point> plan() {
+            int maxDigs = mapController.getMapData().getWidth() * mapController.getMapData().getHeight();
+            boolean goingOn = true;
+            while (goingOn && digs.size() < maxDigs) {
+                goingOn = planNextDig();
             }
+            return digs;
+        }
+
+        /**
+         * Plans the next tile to dig, along the line or round an obstacle
+         *
+         * @return false once the hero can walk to the target or the tunnel
+         * can't go on
+         */
+        private boolean planNextDig() {
             if (followingWall) {
-                Point position = current;
-                int passes = 4;
-                while (dig == null) {
-                    if (position.equals(rejoin)) {
-                        followingWall = false;
-                        current = rejoin;
-                        if (isSolid(rejoin, dug)) {
-                            dig = rejoin;
-                        }
-                        break;
-                    }
-
-                    // Into the wall if it can be dug or opens up, else turn away from it until there is a way on
-                    boolean moved = false;
-                    boolean movedIntoWall = false;
-                    int turn = turn(direction, wallSide);
-                    for (int i = 0; i < 5 && dig == null && !moved; i++) {
-                        Point neighbour = getNeighbour(position, turn);
-                        if (canDig(neighbour, dug)) {
-                            dig = neighbour;
-                            direction = turn;
-                        } else if (!isSolid(neighbour, dug) && !isLava(neighbour)) {
-                            position = neighbour;
-                            direction = turn;
-                            moved = true;
-                            movedIntoWall = (i == 0);
-                        } else {
-                            turn = (i == 0 ? direction : turn(turn, -wallSide));
-                        }
-                    }
-                    if (dig == null && (!moved || (position.equals(obstacle) && (movedIntoWall || --passes == 0)))) {
-                        return digs;
-                    }
-                }
+                return followWall();
             }
-            if (dig != null) {
-                digs.add(dig);
-                dug.add(dig);
-                current = dig;
-                if (isNextToAny(dig, walkable)) {
-                    return digs;
+            Point next = walkAlongLine();
+            if (next == null) {
+                return false;
+            }
+            if (canDig(next, dug)) {
+                return dig(next);
+            }
+            return startRoundObstacle(next) && followWall();
+        }
+
+        /**
+         * Along the line, over open ground, until something solid
+         *
+         * @return the solid tile, or {@code null} if the line reaches the
+         * target
+         */
+        private Point walkAlongLine() {
+            Point next = current;
+            do {
+                if (next.equals(tunnelTarget)) {
+                    return null;
+                }
+                current = next;
+                next = stepTowardsTarget(current);
+            } while (!isSolid(next, dug) && !isLava(next));
+            return next;
+        }
+
+        /**
+         * Round the obstacle, back to the line where it can be dug or walked
+         * again
+         *
+         * @return false if there is no such place on the line
+         */
+        private boolean startRoundObstacle(Point next) {
+            obstacle = current;
+            rejoin = getRejoinTile(current, dug);
+            if (rejoin == null) {
+                return false;
+            }
+            direction = getDirection(current, next);
+            wallSide = getWallSide(current, rejoin, direction, dug);
+            direction = turn(direction, -wallSide);
+            followingWall = true;
+            return true;
+        }
+
+        /**
+         * Along the wall until a tile to dig or the line again. Into the wall
+         * if it can be dug or opens up, else turn away from it until there is
+         * a way on
+         *
+         * @return false once the hero can walk to the target or the tunnel
+         * can't go on
+         */
+        private boolean followWall() {
+            Point position = current;
+            int passes = 4;
+            while (true) {
+                if (position.equals(rejoin)) {
+                    followingWall = false;
+                    current = rejoin;
+                    return !isSolid(rejoin, dug) || dig(rejoin);
+                }
+                int turn = walkAlongWall(position, direction, wallSide, dug);
+                if (turn < 0) {
+                    return false;
+                }
+                boolean movedIntoWall = (turn == turn(direction, wallSide));
+                direction = turn;
+                Point neighbour = getNeighbour(position, turn);
+                if (canDig(neighbour, dug)) {
+                    return dig(neighbour);
+                }
+                position = neighbour;
+                if (position.equals(obstacle) && (movedIntoWall || --passes == 0)) {
+                    return false;
                 }
             }
         }
-        return digs;
+
+        /**
+         * Adds a tile to dig, the tunnel goes on from it
+         *
+         * @return false if the hero can walk to the target from it
+         */
+        private boolean dig(Point tile) {
+            digs.add(tile);
+            dug.add(tile);
+            current = tile;
+            return !isNextToAny(tile, walkable);
+        }
+
     }
 
     /**
