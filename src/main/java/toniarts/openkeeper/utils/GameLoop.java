@@ -79,6 +79,15 @@ public final class GameLoop {
         pauseFlag.set(true);
     }
 
+    /**
+     * Is the loop paused. A frame may still be finishing after the pause.
+     *
+     * @return true if paused
+     */
+    public boolean isPaused() {
+        return pauseFlag.get();
+    }
+
     public void resume() {
         pauseFlag.set(false);
         synchronized (pauseFlag) {

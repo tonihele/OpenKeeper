@@ -21,6 +21,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,6 +72,41 @@ class GameLoopTest {
 
             assertEquals(0, framesWhileHeld);
             assertTrue(frames.get() > 0);
+        } finally {
+            loop.stop();
+        }
+    }
+
+    @Test
+    void testQueuedActionsWaitWhileTheLoopIsHeld() throws Exception {
+        GameLogicManager logic = new GameLogicManager();
+        CountDownLatch actionRun = new CountDownLatch(1);
+        GameLoop loop = new GameLoop(logic, GameLoop.INTERVAL_FPS_60, "Test");
+
+        loop.start();
+        try {
+            boolean runWhileHeld = loop.hold(() -> {
+                logic.enqueueAction(actionRun::countDown);
+                sleep(100);
+                return actionRun.getCount() == 0;
+            });
+
+            assertFalse(runWhileHeld, "A player action ran while the loop was held");
+            assertTrue(actionRun.await(5, TimeUnit.SECONDS));
+        } finally {
+            loop.stop();
+        }
+    }
+
+    @Test
+    void testPausedLoopCanBeHeld() throws Exception {
+        GameLoop loop = new GameLoop(new GameLogicManager(), GameLoop.INTERVAL_FPS_60, "Test");
+
+        loop.start();
+        try {
+            loop.pause();
+            assertTrue(loop.isPaused());
+            assertTrue(loop.hold(() -> true));
         } finally {
             loop.stop();
         }
