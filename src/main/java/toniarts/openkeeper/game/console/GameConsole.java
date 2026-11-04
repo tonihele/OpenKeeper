@@ -27,8 +27,10 @@ import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
+import java.io.IOException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -85,6 +87,7 @@ public final class GameConsole {
         REMOVE_FOW,
         RESET_FOW,
         SAVE_GAME,
+        LOAD_GAME,
         WIN_LEVEL;
     };
 
@@ -157,6 +160,13 @@ public final class GameConsole {
                     break;
                 case SAVE_GAME:
                     saveGame(args.length > 1 ? args[1] : LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")));
+                    break;
+                case LOAD_GAME:
+                    if (args.length > 1) {
+                        loadGame(args[1]);
+                    } else {
+                        console.outputError("Give the name of the save");
+                    }
                     break;
                 case LOOSE_LEVEL:
                 case LEVEL_MAX:
@@ -271,7 +281,7 @@ public final class GameConsole {
             return;
         }
 
-        Path file = Paths.get(System.getProperty("user.home"), "." + Main.TITLE, "saves", name + ".json.gz");
+        Path file = getSaveFile(name);
         console.output("Saving to " + file);
         gameServerState.save(file).whenComplete((result, ex) -> stateManager.getApplication().enqueue(() -> {
             if (ex != null) {
@@ -280,6 +290,28 @@ public final class GameConsole {
                 console.output("Saved " + file);
             }
         }));
+    }
+
+    private void loadGame(String name) {
+        GameServerState gameServerState = stateManager.getState(GameServerState.class);
+        if (gameServerState == null || gameServerState.isMultiplayer()) {
+            console.outputError("Only a single player game can be loaded");
+            return;
+        }
+
+        Path file = getSaveFile(name);
+        SaveGame saveGame;
+        try {
+            saveGame = SaveGame.read(file);
+        } catch (IOException | RuntimeException ex) {
+            console.outputError("Failed to load " + file + ": " + ex);
+            return;
+        }
+        stateManager.getState(PlayerState.class).loadGame(saveGame);
+    }
+
+    private static Path getSaveFile(String name) {
+        return Paths.get(System.getProperty("user.home"), "." + Main.TITLE, "saves", name + ".json.gz");
     }
 
     private boolean showHelpMessage() {

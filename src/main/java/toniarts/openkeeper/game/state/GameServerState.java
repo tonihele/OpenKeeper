@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -63,6 +64,7 @@ public final class GameServerState extends AbstractAppState {
 
     private final IKwdFile kwdFile;
     private final CampaignLevel levelObject;
+    private final SaveGame saveGame;
 
     private final boolean campaign;
     private final boolean multiplayer;
@@ -85,8 +87,26 @@ public final class GameServerState extends AbstractAppState {
      * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
     public GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService, @Nullable toniarts.openkeeper.game.data.CampaignLevel campaignLevel) {
+        this(level, players, campaign, gameService, campaignLevel, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param saveGame the saved game
+     * @param gameService the game service, its server entities are the saved
+     * ones
+     */
+    public GameServerState(IKwdFile level, SaveGame saveGame, GameSessionServerService gameService) {
+        this(level, saveGame.getPlayers(), false, gameService, null, saveGame);
+    }
+
+    private GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService,
+            CampaignLevel campaignLevel, SaveGame saveGame) {
         this.kwdFile = level;
         this.levelObject = campaignLevel;
+        this.saveGame = saveGame;
         this.campaign = campaign;
         this.gameService = gameService;
 
@@ -186,7 +206,7 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void run() {
             // Create the central game controller
-            game = new GameLoopManager(kwdFile, gameService, players);
+            game = saveGame != null ? new GameLoopManager(kwdFile, gameService, saveGame) : new GameLoopManager(kwdFile, gameService, players);
 
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
