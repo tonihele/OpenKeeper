@@ -41,12 +41,14 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.MapData;
 import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.map.MapTileController;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
+import javax.annotation.Nullable;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -77,7 +79,8 @@ public final class MapController extends Container implements IMapController {
     private final Map<Short, SafeArrayList<RoomListener>> roomListeners = new HashMap<>();
 
     /**
-     * Load map data from a KWD file straight (new game)
+     * Load map data from a KWD file straight (new game), or from the entities
+     * of a loaded game
      *
      * @param kwdFile the KWD file
      * @param objectsController objects controller
@@ -85,15 +88,17 @@ public final class MapController extends Container implements IMapController {
      * @param gameTimer
      * @param entityData
      * @param levelInfo
+     * @param gameEventService
+     * @param saveGame the loaded game, {@code null} for a new game
      */
     public MapController(IKwdFile kwdFile, IObjectsController objectsController,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
-            GameEventService gameEventService) {
+            GameEventService gameEventService, @Nullable SaveGame saveGame) {
 
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
-        this.mapData = new MapData(kwdFile, entityData, levelInfo.getPlayers().values());
+        this.mapData = saveGame != null ? new MapData(kwdFile, entityData) : new MapData(kwdFile, entityData, levelInfo.getPlayers().values());
         this.gameSettings = gameSettings;
         this.gameTimer = gameTimer;
         this.entityData = entityData;
@@ -102,20 +107,20 @@ public final class MapController extends Container implements IMapController {
         this.gameEventService = gameEventService;
 
         // Load rooms
-        loadRooms();
+        loadRooms(saveGame);
     }
 
-    private void loadRooms() {
+    private void loadRooms(SaveGame saveGame) {
 
         // Go through the tiles and detect any rooms
         for (int y = 0; y < mapData.getHeight(); y++) {
             for (int x = 0; x < mapData.getWidth(); x++) {
-                loadRoom(new Point(x, y));
+                loadRoom(new Point(x, y), saveGame);
             }
         }
     }
 
-    private void loadRoom(Point p) {
+    private void loadRoom(Point p, SaveGame saveGame) {
         IMapTileController mapTile = mapData.getTile(p);
         if (!kwdFile.getTerrain(mapTile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             return;
@@ -141,9 +146,14 @@ public final class MapController extends Container implements IMapController {
         roomInstance.setHealth(health);
         roomInstance.setMaxHealth(maxHealth);
 
-        // Create a controller for it
-        IRoomController roomController = RoomControllerFactory.constructRoom(entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
-        roomController.construct();
+        // Create a controller for it, a loaded game has the room already
+        EntityId entityId = saveGame != null && mapTile.getRoomId() != null ? mapTile.getRoomId() : entityData.createEntity();
+        IRoomController roomController = RoomControllerFactory.constructRoom(entityId, entityData, kwdFile, roomInstance, objectsController, gameSettings, gameTimer);
+        if (saveGame != null) {
+            saveGame.restoreRoom(roomController);
+        } else {
+            roomController.construct();
+        }
         roomControllers.put(roomController.getEntityId(), roomController);
 
         // Set the room instance to the tiles
@@ -419,7 +429,7 @@ public final class MapController extends Container implements IMapController {
     @Override
     public void updateRooms(Point[] coordinates) {
         for (Point p : coordinates) {
-            loadRoom(p);
+            loadRoom(p, null);
         }
     }
 

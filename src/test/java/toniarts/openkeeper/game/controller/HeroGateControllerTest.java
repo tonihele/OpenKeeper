@@ -79,7 +79,7 @@ class HeroGateControllerTest {
         }
         roomInstance.addCoordinate(new Point(49, 9));
 
-        IRoomController controller = RoomControllerFactory.constructRoom(entityData, null, roomInstance,
+        IRoomController controller = RoomControllerFactory.constructRoom(entityData.createEntity(), entityData, null, roomInstance,
                 objectsController(), Collections.emptyMap(), null);
         controller.construct();
 

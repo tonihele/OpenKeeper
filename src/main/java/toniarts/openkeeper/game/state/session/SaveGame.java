@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
+import com.google.gson.InstanceCreator;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -52,7 +53,7 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Stream;
 import java.util.zip.GZIPInputStream;
 import java.util.zip.GZIPOutputStream;
@@ -68,15 +69,18 @@ import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
  * A saved game: the level, the game time, the players and their statistics,
- * the level script variables and triggers, the hero parties and every entity
- * component, written as gzipped JSON. The entity
+ * the level script variables and triggers, the hero parties, the furniture of
+ * the rooms and every entity component, written as gzipped JSON. The entity
  * ids are kept as they are, so the ids inside the components stay valid.
  * Rooms, indexes, tasks and the state machines are not saved, they are built
  * again from the components and the level on load.
@@ -92,8 +96,9 @@ public final class SaveGame {
     private static final Map<String, Class<? extends EntityComponent>> COMPONENT_TYPES = findComponentTypes();
     private static final Type PLAYERS_TYPE = new TypeToken<List<Keeper>>() {
     }.getType();
-    private static final Type PLAYER_STATS_TYPE = new TypeToken<Map<Short, PlayerStatsControl>>() {
+    private static final Type ENTITY_IDS_TYPE = new TypeToken<List<EntityId>>() {
     }.getType();
+    private static final String[] SECTIONS = {"players", "playerStats", "levelInfo", "triggers", "parties", "rooms", "components"};
     private static final Gson GSON = new GsonBuilder()
             .serializeNulls()
             .serializeSpecialFloatingPointValues()
@@ -117,10 +122,12 @@ public final class SaveGame {
      * statistics
      * @param triggerControls the level script triggers
      * @param parties the hero parties that have been created
+     * @param rooms the rooms, for their furniture
      * @param entityData the entities
      */
     public SaveGame(String level, double gameTime, ILevelInfo levelInfo, Collection<IPlayerController> playerControllers,
-            Collection<TriggerControl> triggerControls, Collection<IPartyController> parties, EntityData entityData) {
+            Collection<TriggerControl> triggerControls, Collection<IPartyController> parties, Collection<IRoomController> rooms,
+            EntityData entityData) {
         json = new JsonObject();
         json.addProperty("version", VERSION);
         json.addProperty("level", level);
@@ -171,6 +178,17 @@ public final class SaveGame {
         }
         json.add("parties", savedParties);
 
+        // Nothing on the furniture tells which room it belongs to
+        JsonObject savedRooms = new JsonObject();
+        for (IRoomController room : rooms) {
+            JsonObject savedRoom = new JsonObject();
+            savedRoom.add("floorFurniture", GSON.toJsonTree(room.getFloorFurniture()));
+            savedRoom.add("wallFurniture", GSON.toJsonTree(room.getWallFurniture()));
+            savedRoom.add("pillars", GSON.toJsonTree(room.getPillars()));
+            savedRooms.add(Long.toString(room.getEntityId().getId()), savedRoom);
+        }
+        json.add("rooms", savedRooms);
+
         JsonObject components = new JsonObject();
         for (Map.Entry<String, Class<? extends EntityComponent>> type : COMPONENT_TYPES.entrySet()) {
             JsonObject entities = new JsonObject();
@@ -201,6 +219,11 @@ public final class SaveGame {
             int version = json.get("version").getAsInt();
             if (version > VERSION) {
                 throw new IOException("Save game version " + version + " is newer than " + VERSION + "!");
+            }
+            for (String section : SECTIONS) {
+                if (!json.has(section)) {
+                    throw new IOException("Save game has no " + section + ", it was saved before games could be loaded!");
+                }
             }
             for (String type : json.getAsJsonObject("components").keySet()) {
                 if (!COMPONENT_TYPES.containsKey(type)) {
@@ -271,42 +294,94 @@ public final class SaveGame {
      * @return new copies of the players
      */
     public List<Keeper> getPlayers() {
-        return GSON.fromJson(json.get("players"), PLAYERS_TYPE);
+        List<Keeper> players = GSON.fromJson(json.get("players"), PLAYERS_TYPE);
+        for (Keeper player : players) {
+
+            // The spells can be upgraded, the JSON only knows they are researchable
+            player.getAvailableSpells().replaceAll(spell -> {
+                PlayerSpell playerSpell = new PlayerSpell(spell.getId(), spell.isDiscovered());
+                playerSpell.setUpgraded(spell.isUpgraded());
+                playerSpell.setResearch(spell.getResearch());
+                return playerSpell;
+            });
+
+            // The research goes on in the available entity itself
+            ResearchableEntity research = player.getCurrentResearch();
+            if (research != null) {
+                Stream.of(player.getAvailableSpells(), player.getAvailableDoors(), player.getAvailableTraps(), player.getAvailableRooms())
+                        .flatMap(List::stream)
+                        .filter(entity -> entity.getResearchableType() == research.getResearchableType() && entity.getId() == research.getId())
+                        .findFirst()
+                        .ifPresent(player::setCurrentResearch);
+            }
+        }
+        return players;
     }
 
     /**
-     * Gets the player statistics: the creatures the players have slapped,
-     * picked up and dropped
+     * Sets the player statistics (the creatures the players have slapped,
+     * picked up and dropped) of newly loaded players to the saved ones
      *
-     * @return new copies of the statistics by player ID
+     * @param playerControllers the player controllers to restore
      */
-    public Map<Short, PlayerStatsControl> getPlayerStats() {
-        return GSON.fromJson(json.get("playerStats"), PLAYER_STATS_TYPE);
+    public void restorePlayerStats(Collection<IPlayerController> playerControllers) {
+        JsonObject playerStats = json.getAsJsonObject("playerStats");
+        for (IPlayerController playerController : playerControllers) {
+            JsonElement stats = playerStats.get(Short.toString(playerController.getKeeper().getId()));
+            if (stats != null) {
+                GSON.newBuilder()
+                        .registerTypeAdapter(PlayerStatsControl.class, (InstanceCreator<PlayerStatsControl>) type -> playerController.getStatsControl())
+                        .create()
+                        .fromJson(stats, PlayerStatsControl.class);
+            }
+        }
     }
 
     /**
-     * Gets the hero parties that had been created
+     * Gets the hero parties that had been created, oldest first
      *
      * @param heroParties the hero parties of the level by party ID
-     * @param creatures gives the creature controller of a saved creature
+     * @param creatures gives the creature controller of a saved member, also
+     * of one that has died and is gone
      * @return new party controllers
      */
-    public List<PartyController> getParties(Map<Short, Thing.HeroParty> heroParties, Function<EntityId, ICreatureController> creatures) {
+    public List<PartyController> getParties(Map<Short, Thing.HeroParty> heroParties, BiFunction<EntityId, Thing.GoodCreature, ICreatureController> creatures) {
         List<PartyController> parties = new ArrayList<>();
         for (JsonElement element : json.getAsJsonArray("parties")) {
             JsonObject savedParty = element.getAsJsonObject();
-            List<ICreatureController> members = new ArrayList<>();
-            for (JsonElement member : savedParty.getAsJsonArray("members")) {
-                members.add(member.isJsonNull() ? null : creatures.apply(GSON.fromJson(member, EntityId.class)));
+            Thing.HeroParty heroParty = heroParties.get(savedParty.get("partyId").getAsShort());
+            JsonArray savedMembers = savedParty.getAsJsonArray("members");
+            List<ICreatureController> members = new ArrayList<>(savedMembers.size());
+            for (int i = 0; i < savedMembers.size(); i++) {
+                members.add(savedMembers.get(i).isJsonNull() ? null
+                        : creatures.apply(GSON.fromJson(savedMembers.get(i), EntityId.class), heroParty.getHeroPartyMembers().get(i)));
             }
-            JsonElement leader = savedParty.get("leader");
+            EntityId leader = GSON.fromJson(savedParty.get("leader"), EntityId.class);
 
-            PartyController party = new PartyController(heroParties.get(savedParty.get("partyId").getAsShort()));
+            PartyController party = new PartyController(heroParty);
             party.restore(savedParty.get("id").getAsLong(), GSON.fromJson(savedParty.get("type"), PartyType.class), members,
-                    leader.isJsonNull() ? null : creatures.apply(GSON.fromJson(leader, EntityId.class)));
+                    members.stream().filter(member -> member != null && member.getEntityId().equals(leader)).findFirst().orElse(null));
             parties.add(party);
         }
+        parties.sort(Comparator.comparingLong(PartyController::getId));
         return parties;
+    }
+
+    /**
+     * Constructs a room of the loaded game. Its furniture is already in the
+     * entities, so the room takes it over instead of making new.
+     *
+     * @param room the room
+     */
+    public void restoreRoom(IRoomController room) {
+        JsonObject savedRoom = json.getAsJsonObject("rooms").getAsJsonObject(Long.toString(room.getEntityId().getId()));
+        if (savedRoom == null) {
+            room.construct();
+            return;
+        }
+        room.construct(GSON.fromJson(savedRoom.get("floorFurniture"), ENTITY_IDS_TYPE),
+                GSON.fromJson(savedRoom.get("wallFurniture"), ENTITY_IDS_TYPE),
+                GSON.fromJson(savedRoom.get("pillars"), ENTITY_IDS_TYPE));
     }
 
     /**

@@ -90,11 +90,28 @@ public final class GameLoopManager {
      * @param players player participating in this game, can be {@code null}
      */
     public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
+        this(level, gameService, players, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param gameService the game service, its server entities are the saved
+     * ones
+     * @param saveGame the saved game
+     */
+    public GameLoopManager(IKwdFile level, GameSessionServerService gameService, SaveGame saveGame) {
+        this(level, gameService, null, saveGame);
+    }
+
+    private GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players, SaveGame saveGame) {
         this.gameService = gameService;
         final EntityData entityData = gameService.getServerEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
 
-        gameController = new GameController(level, players, gameService.getServerEntityData(), gameSettings, gameService);
+        gameController = saveGame != null ? new GameController(level, saveGame, entityData, gameSettings, gameService)
+                : new GameController(level, players, entityData, gameSettings, gameService);
         final ILevelInfo levelInfo = gameController.getLevelInfo();
         final IGameWorldController gameWorldController = gameController.getGameWorldController();
         final IEntityPositionLookup positionSystem = gameController.getEntityLookupService();
@@ -197,6 +214,7 @@ public final class GameLoopManager {
                             gameController.getPlayerControllers().values(),
                             gameController.getTriggerControls(),
                             gameController.getGameWorldController().getCreaturesController().getCreatedParties(),
+                            gameController.getGameWorldController().getMapController().getRoomControllers(),
                             gameService.getServerEntityData()));
                 } catch (RuntimeException ex) {
                     saveGame.completeExceptionally(ex);

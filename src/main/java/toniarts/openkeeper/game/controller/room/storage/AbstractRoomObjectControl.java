@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room.storage;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +29,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -36,6 +38,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Room object controller. FIXME: Cache the coordinates and listen to changes in
@@ -60,8 +63,31 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
         this.entityData = entityData;
         this.gameTimer = gameTimer;
 
-        entityId = entityData.createEntity();
-        entityData.setComponent(entityId, new Storage(parent.getEntityId(), objectType, 0, calculateMaxCapacity()));
+        // A room of a loaded game has its storage and the stored objects already. A room that is built again keeps its
+        // old control, so then the storage isn't taken over
+        EntityId storage = parent.hasObjectControl(objectType) ? null : findStorage(objectType);
+        if (storage != null) {
+            entityId = storage;
+            for (EntityId object : entityData.findEntities(new FieldFilter(Stored.class, "room", parent.getEntityId()),
+                    Stored.class, ObjectComponent.class, Position.class)) {
+                if (entityData.getComponent(object, Stored.class).objectType == objectType) {
+                    Point p = WorldUtils.vectorToPoint(entityData.getComponent(object, Position.class).position);
+                    objectsByCoordinate.computeIfAbsent(p, key -> new ArrayList<>()).add(object);
+                }
+            }
+        } else {
+            entityId = entityData.createEntity();
+            entityData.setComponent(entityId, new Storage(parent.getEntityId(), objectType, 0, calculateMaxCapacity()));
+        }
+    }
+
+    private EntityId findStorage(AbstractRoomController.ObjectType objectType) {
+        for (EntityId storage : entityData.findEntities(new FieldFilter(Storage.class, "room", parent.getEntityId()), Storage.class)) {
+            if (entityData.getComponent(storage, Storage.class).objectType == objectType) {
+                return storage;
+            }
+        }
+        return null;
     }
 
     protected abstract int getObjectsPerTile();

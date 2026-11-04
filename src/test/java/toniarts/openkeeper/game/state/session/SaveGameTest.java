@@ -125,7 +125,7 @@ class SaveGameTest {
         keeper.setDungeonHeartLocation(new Point(10, 12));
 
         Path file = folder.resolve("saves").resolve("Level6a.json.gz");
-        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), List.of(), List.of(), entityData).write(file);
+        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), List.of(), List.of(), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         EntityData loaded = saveGame.createEntityData();
 
@@ -176,12 +176,12 @@ class SaveGameTest {
 
         // Save, load and save again, the files must match
         Path file = folder.resolve("first.json.gz");
-        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), List.of(), List.of(), entityData).write(file);
+        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), List.of(), List.of(), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         Path secondFile = folder.resolve("second.json.gz");
         ILevelInfo levelInfo = levelInfo(saveGame.getPlayers().toArray(Keeper[]::new));
         saveGame.restoreLevelInfo(levelInfo);
-        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), List.of(), List.of(), saveGame.createEntityData()).write(secondFile);
+        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), List.of(), List.of(), List.of(), saveGame.createEntityData()).write(secondFile);
 
         JsonObject first = readJson(file);
         JsonObject second = readJson(secondFile);
@@ -201,7 +201,7 @@ class SaveGameTest {
         levelInfo.setLevelScore(42);
 
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo, List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo, List.of(), List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -220,7 +220,7 @@ class SaveGameTest {
     @Test
     void testNoTimeLimitStaysOff() throws Exception {
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -243,7 +243,7 @@ class SaveGameTest {
         assertEquals(5, levelInfo.getFlag(2));
 
         Path file = folder.resolve("triggers.json.gz");
-        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), List.of(), List.of(), new DefaultEntityData()).write(file);
         SaveGame saveGame = SaveGame.read(file);
         ILevelInfo loadedLevelInfo = levelInfo();
         TriggerControl loaded = new TriggerControl(null, loadedLevelInfo, () -> time[0], null, null, 1);
@@ -262,9 +262,9 @@ class SaveGameTest {
         assertEquals(2, loadedLevelInfo.getFlag(1));
 
         Path first = folder.resolve("first.json.gz");
-        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), List.of(), new DefaultEntityData()).write(first);
+        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), List.of(), List.of(), new DefaultEntityData()).write(first);
         Path second = folder.resolve("second.json.gz");
-        new SaveGame("Test", time[0], loadedLevelInfo, List.of(), List.of(loaded), List.of(), new DefaultEntityData()).write(second);
+        new SaveGame("Test", time[0], loadedLevelInfo, List.of(), List.of(loaded), List.of(), List.of(), new DefaultEntityData()).write(second);
         assertEquals(readJson(first).get("triggers"), readJson(second).get("triggers"));
     }
 
@@ -280,9 +280,10 @@ class SaveGameTest {
         IPlayerController player = stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", stats));
 
         Path file = folder.resolve("stats.json.gz");
-        new SaveGame("Test", 1, levelInfo(keeper), List.of(player), List.of(), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo(keeper), List.of(player), List.of(), List.of(), List.of(), new DefaultEntityData()).write(file);
         SaveGame saveGame = SaveGame.read(file);
-        PlayerStatsControl loaded = saveGame.getPlayerStats().get(keeper.getId());
+        PlayerStatsControl loaded = new PlayerStatsControl();
+        saveGame.restorePlayerStats(List.of(stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", loaded))));
 
         assertTrue(loaded.hasSlapped(imp));
         assertFalse(loaded.hasSlapped(goblin));
@@ -292,7 +293,7 @@ class SaveGameTest {
         // The counts too
         Path secondFile = folder.resolve("second.json.gz");
         IPlayerController loadedPlayer = stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", loaded));
-        new SaveGame("Test", 1, levelInfo(keeper), List.of(loadedPlayer), List.of(), List.of(), new DefaultEntityData()).write(secondFile);
+        new SaveGame("Test", 1, levelInfo(keeper), List.of(loadedPlayer), List.of(), List.of(), List.of(), new DefaultEntityData()).write(secondFile);
         assertEquals(readJson(file).get("playerStats"), readJson(secondFile).get("playerStats"));
     }
 
@@ -309,8 +310,8 @@ class SaveGameTest {
         }
 
         Path file = folder.resolve("parties.json.gz");
-        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), List.of(party), new DefaultEntityData()).write(file);
-        List<PartyController> loaded = SaveGame.read(file).getParties(Map.of(heroParty.getId(), heroParty), SaveGameTest::creature);
+        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), List.of(party), List.of(), new DefaultEntityData()).write(file);
+        List<PartyController> loaded = SaveGame.read(file).getParties(Map.of(heroParty.getId(), heroParty), (entityId, member) -> creature(entityId));
 
         assertEquals(1, loaded.size());
         PartyController loadedParty = loaded.get(0);

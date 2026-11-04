@@ -20,7 +20,12 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.HauledBy;
+import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
@@ -35,6 +40,7 @@ import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.NavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
@@ -54,6 +60,7 @@ import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -102,6 +109,28 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
+        this(level, players, entityData, gameSettings, playerService, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param saveGame the saved game
+     * @param entityData the saved entities, see
+     * {@link SaveGame#createEntityData()}
+     * @param gameSettings
+     * @param playerService
+     */
+    public GameController(IKwdFile level, SaveGame saveGame, EntityData entityData,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            PlayerService playerService) {
+        this(level, saveGame.getPlayers(), entityData, gameSettings, playerService, saveGame);
+    }
+
+    private GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            PlayerService playerService, SaveGame saveGame) {
 
         levelInfo = new LevelInfo(level);
         levelObject = null;
@@ -113,18 +142,23 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 levelInfo.players.put(keeper.getId(), keeper);
             }
         }
-        createNewGame();
+        createNewGame(saveGame);
     }
 
     public void createNewGame() {
+        createNewGame(null);
+    }
+
+    private void createNewGame(SaveGame saveGame) {
         levelInfo.load();
         // The players
-        setupPlayers();
+        setupPlayers(saveGame == null);
 
         gameEventService = new ServerGameEventService(entityData, playerService);
-        gameTimer = new GameTimeController();
+        gameTimer = saveGame != null ? new GameTimeController(saveGame.getGameTime()) : new GameTimeController();
         // The world
-        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer, gameEventService);
+        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer, gameEventService,
+                saveGame);
 
         positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData,
                 gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
@@ -134,10 +168,24 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
-        // Initialize tasks
+        // Initialize tasks. The tasks of a loaded game are not saved, so its creatures pick new ones and put down what
+        // they carried for the old ones
+        if (saveGame != null) {
+            for (EntityId entityId : entityData.findEntities(null, TaskComponent.class)) {
+                entityData.removeComponent(entityId, TaskComponent.class);
+            }
+            for (EntityId entityId : entityData.findEntities(null, HauledBy.class)) {
+                entityData.removeComponent(entityId, HauledBy.class);
+            }
+        }
         taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(),
                 gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(),
                 navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings);
+
+        // The hero parties of a loaded game, before the party triggers take them
+        if (saveGame != null) {
+            gameWorldController.getCreaturesController().restoreParties(saveGame);
+        }
 
         // The triggers
         PartyTriggerLogicController partyTriggers = new PartyTriggerLogicController(this, levelInfo, gameTimer,
@@ -178,9 +226,33 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         triggerControls.addAll(actionPointTriggers.getTriggerControls());
         triggerControls.addAll(playerTriggers.getTriggerControls());
 
+        if (saveGame != null) {
+            restore(saveGame);
+        }
     }
 
-    private void setupPlayers() {
+    /**
+     * Puts back the state of a loaded game that isn't in the entities
+     *
+     * @param saveGame the loaded game
+     */
+    private void restore(SaveGame saveGame) {
+        saveGame.restoreLevelInfo(levelInfo);
+        saveGame.restoreTriggers(triggerControls);
+        saveGame.restorePlayerStats(playerControllers.values());
+
+        // What the keepers hold in hand, the first one picked up has the highest index
+        for (IPlayerController playerController : playerControllers.values()) {
+            PlayerHandControl handControl = playerController.getHandControl();
+            if (handControl != null) {
+                entityData.findEntities(new FieldFilter(InHand.class, "playerId", playerController.getKeeper().getId()), InHand.class).stream()
+                        .sorted(Comparator.comparingInt((EntityId entityId) -> entityData.getComponent(entityId, InHand.class).index).reversed())
+                        .forEach(handControl::push);
+            }
+        }
+    }
+
+    private void setupPlayers(boolean newGame) {
         // Setup players
         boolean addMissingPlayers = levelInfo.players.isEmpty(); // Add all if none is given (campaign...)
         for (Map.Entry<Short, Player> entry : levelInfo.kwdFile.getPlayers().entrySet()) {
@@ -198,13 +270,18 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 PlayerController playerController = new PlayerController(levelInfo.kwdFile, keeper, levelInfo.kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
-                // Spells are all available for research unless otherwise stated
+                // Spells are all available for research unless otherwise stated, a loaded player has them already
                 for (KeeperSpell spell : levelInfo.kwdFile.getKeeperSpells()) {
-                    if (spell.getBonusRTime() != 0) {
+                    if (newGame && spell.getBonusRTime() != 0) {
                         playerController.getSpellControl().setTypeAvailable(spell, true, false);
                     }
                 }
             }
+        }
+
+        // A loaded game has the alliances, availabilities and research in the players already
+        if (!newGame) {
+            return;
         }
 
         // Set the alliances
