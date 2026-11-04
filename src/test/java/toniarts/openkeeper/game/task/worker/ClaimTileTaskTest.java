@@ -167,7 +167,7 @@ class ClaimTileTaskTest {
         private final List<Integer> claims = new ArrayList<>();
         private final List<Integer> blows = new ArrayList<>();
         private int enemyHealth = 0;
-        private int perBlow;
+        private int perBlow = 0;
         private int health;
         private int tick = 0;
 
