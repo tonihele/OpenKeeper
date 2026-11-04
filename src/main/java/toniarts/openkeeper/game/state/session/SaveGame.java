@@ -58,15 +58,18 @@ import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.chicken.ChickenState;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 
 /**
- * A saved game: the level, the game time, the players, the level script
- * variables and triggers and every entity component, written as gzipped JSON. The entity
+ * A saved game: the level, the game time, the players and their statistics,
+ * the level script variables and triggers and every entity component, written
+ * as gzipped JSON. The entity
  * ids are kept as they are, so the ids inside the components stay valid.
  * Rooms, indexes, tasks and the state machines are not saved, they are built
  * again from the components and the level on load.
@@ -81,6 +84,8 @@ public final class SaveGame {
     private static final String COMPONENT_PACKAGE = Position.class.getPackageName();
     private static final Map<String, Class<? extends EntityComponent>> COMPONENT_TYPES = findComponentTypes();
     private static final Type PLAYERS_TYPE = new TypeToken<List<Keeper>>() {
+    }.getType();
+    private static final Type PLAYER_STATS_TYPE = new TypeToken<Map<Short, PlayerStatsControl>>() {
     }.getType();
     private static final Gson GSON = new GsonBuilder()
             .serializeNulls()
@@ -101,17 +106,25 @@ public final class SaveGame {
      * @param level the level name
      * @param gameTime the game time in seconds
      * @param levelInfo the players and the level script variables
+     * @param playerControllers the player controllers, for the player
+     * statistics
      * @param triggerControls the level script triggers
      * @param entityData the entities
      */
-    public SaveGame(String level, double gameTime, ILevelInfo levelInfo, Collection<TriggerControl> triggerControls,
-            EntityData entityData) {
+    public SaveGame(String level, double gameTime, ILevelInfo levelInfo, Collection<IPlayerController> playerControllers,
+            Collection<TriggerControl> triggerControls, EntityData entityData) {
         json = new JsonObject();
         json.addProperty("version", VERSION);
         json.addProperty("level", level);
         json.addProperty("gameTime", gameTime);
         json.addProperty("nextEntityId", entityData.createEntity().getId());
         json.add("players", GSON.toJsonTree(levelInfo.getPlayers().values(), PLAYERS_TYPE));
+
+        JsonObject playerStats = new JsonObject();
+        for (IPlayerController playerController : playerControllers) {
+            playerStats.add(Short.toString(playerController.getKeeper().getId()), GSON.toJsonTree(playerController.getStatsControl()));
+        }
+        json.add("playerStats", playerStats);
 
         JsonObject script = new JsonObject();
         JsonArray flags = new JsonArray();
@@ -235,6 +248,16 @@ public final class SaveGame {
      */
     public List<Keeper> getPlayers() {
         return GSON.fromJson(json.get("players"), PLAYERS_TYPE);
+    }
+
+    /**
+     * Gets the player statistics: the creatures the players have slapped,
+     * picked up and dropped
+     *
+     * @return new copies of the statistics by player ID
+     */
+    public Map<Short, PlayerStatsControl> getPlayerStats() {
+        return GSON.fromJson(json.get("playerStats"), PLAYER_STATS_TYPE);
     }
 
     /**

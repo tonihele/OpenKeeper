@@ -194,6 +194,7 @@ public final class GameLoopManager {
                             gameController.getLevelInfo().getLevelData().getGameLevel().getName(),
                             gameController.getGameTimer().getGameTime(),
                             gameController.getLevelInfo(),
+                            gameController.getPlayerControllers().values(),
                             gameController.getTriggerControls(),
                             gameService.getServerEntityData()));
                 } catch (RuntimeException ex) {

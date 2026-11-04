@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -58,11 +59,15 @@ import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.TriggerFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -83,12 +88,12 @@ class SaveGameTest {
      * trigger that keeps adding to flag 1 from 2 seconds on, and an action of
      * the root that adds to flag 2 once
      */
-    private static final IKwdFile LEVEL = stub(IKwdFile.class, "getTriggers", Map.of(
+    private static final IKwdFile LEVEL = stub(IKwdFile.class, Map.of("getTriggers", Map.of(
             1, TriggerFixtures.levelTime(1, 3, 2, (short) 1, 0),
             2, TriggerFixtures.addToFlag(2, 0, (short) 0, 1),
             3, TriggerFixtures.levelTime(3, 5, 4, (short) 255, 2),
             4, TriggerFixtures.addToFlag(4, 0, (short) 1, 1),
-            5, TriggerFixtures.addToFlag(5, 0, (short) 2, 5)));
+            5, TriggerFixtures.addToFlag(5, 0, (short) 2, 5))));
 
     @TempDir
     Path folder;
@@ -115,7 +120,7 @@ class SaveGameTest {
         keeper.setDungeonHeartLocation(new Point(10, 12));
 
         Path file = folder.resolve("saves").resolve("Level6a.json.gz");
-        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), entityData).write(file);
+        new SaveGame("Level6a", 1234.5, levelInfo(keeper), List.of(), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         EntityData loaded = saveGame.createEntityData();
 
@@ -166,12 +171,12 @@ class SaveGameTest {
 
         // Save, load and save again, the files must match
         Path file = folder.resolve("first.json.gz");
-        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), entityData).write(file);
+        new SaveGame("Test", 1, levelInfo(new Keeper(false, (short) 3)), List.of(), List.of(), entityData).write(file);
         SaveGame saveGame = SaveGame.read(file);
         Path secondFile = folder.resolve("second.json.gz");
         ILevelInfo levelInfo = levelInfo(saveGame.getPlayers().toArray(Keeper[]::new));
         saveGame.restoreLevelInfo(levelInfo);
-        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), saveGame.createEntityData()).write(secondFile);
+        new SaveGame(saveGame.getLevel(), saveGame.getGameTime(), levelInfo, List.of(), List.of(), saveGame.createEntityData()).write(secondFile);
 
         JsonObject first = readJson(file);
         JsonObject second = readJson(secondFile);
@@ -191,7 +196,7 @@ class SaveGameTest {
         levelInfo.setLevelScore(42);
 
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo, List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo, List.of(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -210,7 +215,7 @@ class SaveGameTest {
     @Test
     void testNoTimeLimitStaysOff() throws Exception {
         Path file = folder.resolve("level.json.gz");
-        new SaveGame("Test", 1, levelInfo(), List.of(), new DefaultEntityData()).write(file);
+        new SaveGame("Test", 1, levelInfo(), List.of(), List.of(), new DefaultEntityData()).write(file);
         ILevelInfo loaded = levelInfo();
         SaveGame.read(file).restoreLevelInfo(loaded);
 
@@ -233,7 +238,7 @@ class SaveGameTest {
         assertEquals(5, levelInfo.getFlag(2));
 
         Path file = folder.resolve("triggers.json.gz");
-        new SaveGame("Test", time[0], levelInfo, List.of(triggerControl), new DefaultEntityData()).write(file);
+        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), new DefaultEntityData()).write(file);
         SaveGame saveGame = SaveGame.read(file);
         ILevelInfo loadedLevelInfo = levelInfo();
         TriggerControl loaded = new TriggerControl(null, loadedLevelInfo, () -> time[0], null, null, 1);
@@ -252,10 +257,38 @@ class SaveGameTest {
         assertEquals(2, loadedLevelInfo.getFlag(1));
 
         Path first = folder.resolve("first.json.gz");
-        new SaveGame("Test", time[0], levelInfo, List.of(triggerControl), new DefaultEntityData()).write(first);
+        new SaveGame("Test", time[0], levelInfo, List.of(), List.of(triggerControl), new DefaultEntityData()).write(first);
         Path second = folder.resolve("second.json.gz");
-        new SaveGame("Test", time[0], loadedLevelInfo, List.of(loaded), new DefaultEntityData()).write(second);
+        new SaveGame("Test", time[0], loadedLevelInfo, List.of(), List.of(loaded), new DefaultEntityData()).write(second);
         assertEquals(readJson(first).get("triggers"), readJson(second).get("triggers"));
+    }
+
+    @Test
+    void testPlayerStatsRoundTrip() throws Exception {
+        Creature imp = ShotFixtures.creature((short) 1, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
+        Creature goblin = ShotFixtures.creature((short) 4, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
+        PlayerStatsControl stats = new PlayerStatsControl();
+        stats.creatureSlapped(imp);
+        stats.creatureSlapped(imp);
+        stats.creaturePickedUp(goblin);
+        Keeper keeper = new Keeper(false, (short) 3);
+        IPlayerController player = stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", stats));
+
+        Path file = folder.resolve("stats.json.gz");
+        new SaveGame("Test", 1, levelInfo(keeper), List.of(player), List.of(), new DefaultEntityData()).write(file);
+        SaveGame saveGame = SaveGame.read(file);
+        PlayerStatsControl loaded = saveGame.getPlayerStats().get(keeper.getId());
+
+        assertTrue(loaded.hasSlapped(imp));
+        assertFalse(loaded.hasSlapped(goblin));
+        assertTrue(loaded.hasPickedUp(goblin));
+        assertFalse(loaded.hasDropped());
+
+        // The counts too
+        Path secondFile = folder.resolve("second.json.gz");
+        IPlayerController loadedPlayer = stub(IPlayerController.class, Map.of("getKeeper", keeper, "getStatsControl", loaded));
+        new SaveGame("Test", 1, levelInfo(keeper), List.of(loadedPlayer), List.of(), new DefaultEntityData()).write(secondFile);
+        assertEquals(readJson(file).get("playerStats"), readJson(secondFile).get("playerStats"));
     }
 
     /**
@@ -304,9 +337,9 @@ class SaveGameTest {
         });
     }
 
-    private static <T> T stub(Class<T> type, String methodName, Object value) {
+    private static <T> T stub(Class<T> type, Map<String, Object> values) {
         return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
-                (proxy, method, args) -> methodName.equals(method.getName()) ? value : null));
+                (proxy, method, args) -> values.get(method.getName())));
     }
 
     private static JsonObject readJson(Path file) throws IOException {
