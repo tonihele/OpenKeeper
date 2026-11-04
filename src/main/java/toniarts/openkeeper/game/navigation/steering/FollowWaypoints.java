@@ -21,6 +21,7 @@ import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.math.Vector2;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
 
 /**
  * Walks a creature from waypoint to waypoint the way DK II's follow_path
@@ -33,9 +34,14 @@ import java.util.List;
  * <br>
  * DK II works the steering out once a game tick, as a change of the velocity
  * of a tick, and adds it with the weight 0.35 (0x4D56E0, 0x4D4760). The
- * acceleration here spreads that change over the tick. DK II also slows down
- * for a crowd round the waypoint and turns to face it before walking; neither
- * is done here.
+ * acceleration here spreads that change over the tick.
+ * <br>
+ * A creature slows down for a crowd round its next waypoint: the share of the
+ * way it wants to cover in a tick drops by the sum of the radii of the
+ * creatures there, up to 1 (0x4D15E0). Most creatures nearly stop for a crowd
+ * of 1, workers don't. A chase does it at the last waypoint too, where a walk
+ * otherwise arrives (DK II's path flag 2, 0x471D10). DK II also turns a
+ * creature to face its waypoint before walking, that is not done here.
  */
 public final class FollowWaypoints extends SteeringBehavior<Vector2> {
 
@@ -66,7 +72,9 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
     private static final float ARRIVAL_TICKS = 2;
 
     private final List<Vector2> waypoints;
+    private final ToDoubleFunction<Vector2> crowd;
     private final boolean worker;
+    private final boolean chase;
     private final float ticksPerSecond;
     private int waypoint;
     private boolean finished;
@@ -77,14 +85,19 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
      *
      * @param owner the walking creature, its bounding radius is its radius
      * @param waypoints the waypoints, the first one is where the walk started
+     * @param crowd the sum of the radii of the creatures round a waypoint
      * @param worker whether the creature is a worker
+     * @param chase whether the creature chases an attack target
      * @param ticksPerSecond the game ticks a second
      */
-    public FollowWaypoints(Steerable<Vector2> owner, List<Vector2> waypoints, boolean worker, int ticksPerSecond) {
+    public FollowWaypoints(Steerable<Vector2> owner, List<Vector2> waypoints, ToDoubleFunction<Vector2> crowd, boolean worker,
+            boolean chase, int ticksPerSecond) {
         super(owner);
 
         this.waypoints = waypoints;
+        this.crowd = crowd;
         this.worker = worker;
+        this.chase = chase;
         this.ticksPerSecond = ticksPerSecond;
 
         // Rebuilt half way, the creature is already past the waypoints it is nearer to the next one than they are
@@ -115,12 +128,12 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
             return steering;
         }
 
-        // The velocity of a tick wanted
+        // The velocity of a tick wanted, less with a crowd round the waypoint (0x4D15E0)
         Vector2 desired = steering.linear.set(target).sub(position);
         if (worker) {
-            desired.scl(WORKER_SEEK_SHARE);
-        } else if (waypoint < last) {
-            desired.scl(SEEK_SHARE);
+            desired.scl(WORKER_SEEK_SHARE - (float) Math.min(crowd.applyAsDouble(target), 1));
+        } else if (waypoint < last || chase) {
+            desired.scl(SEEK_SHARE - (float) Math.min(crowd.applyAsDouble(target), 1));
         } else {
             desired.scl(Math.min(owner.getMaxLinearSpeed() / ticksPerSecond, distance / ARRIVAL_TICKS) / distance);
         }

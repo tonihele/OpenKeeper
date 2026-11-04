@@ -70,6 +70,11 @@ public final class MovementSystem implements IGameLogicUpdatable {
      * of an intact heart (0x4DB700, 0x4D12B0)
      */
     private static final float HEART_OBSTACLE_RADIUS = 1.5f;
+
+    /**
+     * How far round a waypoint DK II counts the crowd, 0.95 tiles (0x4D15E0)
+     */
+    private static final float CROWD_SIZE = 0xF333 / 65536f;
     
     private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
     private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
@@ -86,6 +91,13 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
     private final EntitySet pushedEntities;
+    private final EntitySet creatures;
+
+    /**
+     * The sum of the radii of the creatures on each tile, worked out every
+     * step for the crowds round the waypoints
+     */
+    private final Map<Point, Float> radiiByTile = new HashMap<>();
     private final Map<EntityId, Vector2> standingVelocities = new HashMap<>();
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -99,6 +111,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
         pushedEntities = entityData.getEntities(Position.class, Mobile.class, SeparationPush.class);
+        creatures = entityData.getEntities(CreatureComponent.class, Position.class);
 
         processAddedEntities(movableEntities);
     }
@@ -112,6 +125,8 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
             processChangedEntities(movableEntities.getChangedEntities());
         }
+
+        countRadii();
 
         // Process ticks
         for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
@@ -145,6 +160,35 @@ public final class MovementSystem implements IGameLogicUpdatable {
             }
         }
         standingVelocities.entrySet().removeIf(entry -> !pushStanding(entry.getKey(), entry.getValue(), tpf));
+    }
+
+    private void countRadii() {
+        creatures.applyChanges();
+        radiiByTile.clear();
+        for (Entity entity : creatures) {
+            Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+            if (creature != null) {
+                radiiByTile.merge(WorldUtils.vectorToPoint(entity.get(Position.class).position), creature.getAttributes().getWidth() / 2, Float::sum);
+            }
+        }
+    }
+
+    /**
+     * The sum of the radii of the creatures on the tiles round a waypoint. DK
+     * II counts the tiles a square 0.95 tiles across at the waypoint touches,
+     * rounding its far edges up (0x4D15E0).
+     *
+     * @param waypoint the waypoint
+     * @return the sum of the radii
+     */
+    private double getCrowd(Vector2 waypoint) {
+        float crowd = 0;
+        for (int x = (int) Math.floor(waypoint.x + 0.5f - CROWD_SIZE / 2); x <= (int) Math.ceil(waypoint.x + 0.5f + CROWD_SIZE / 2); x++) {
+            for (int y = (int) Math.floor(waypoint.y + 0.5f - CROWD_SIZE / 2); y <= (int) Math.ceil(waypoint.y + 0.5f + CROWD_SIZE / 2); y++) {
+                crowd += radiiByTile.getOrDefault(new Point(x, y), 0f);
+            }
+        }
+        return crowd;
     }
 
     /**
@@ -221,7 +265,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         float radius = creature != null && creature.getAttributes().getWidth() > 0 ? creature.getAttributes().getWidth() / 2 : DEFAULT_RADIUS;
         ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, radius, position.position.x, position.position.z, -position.rotation);
         EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target,
-                creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER), ticksPerSecond);
+                this::getCrowd, creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER), navigation.pursuingAttackTarget, ticksPerSecond);
         if (steeringBehavior == null) {
 
             // The fug, can't navigate, are we there already??
@@ -430,6 +474,8 @@ public final class MovementSystem implements IGameLogicUpdatable {
     public void stop() {
         movableEntities.release();
         pushedEntities.release();
+        creatures.release();
+        radiiByTile.clear();
         steeringBehaviors.clear();
         steerableEntitiesByEntityId.clear();
         steerableEntitiesBySteeringBehavior.clear();

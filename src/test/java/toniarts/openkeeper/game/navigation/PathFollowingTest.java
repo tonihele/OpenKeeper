@@ -119,12 +119,34 @@ class PathFollowingTest {
     void headsStraightForTheWaypointFromWhereverItIs() {
         SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 3, 2.6f, 0);
         FollowWaypoints followWaypoints = new FollowWaypoints(knight,
-                List.of(new Vector2(1, 2), new Vector2(6, 2), new Vector2(6, 6)), false, 4);
+                List.of(new Vector2(1, 2), new Vector2(6, 2), new Vector2(6, 6)), waypoint -> 0, false, false, 4);
 
         Vector2 steering = followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2())).linear;
 
         Vector2 toWaypoint = new Vector2(6, 2).sub(3, 2.6f);
         assertEquals(0, toWaypoint.angle(steering), 0.01f, "Pulled back onto the line");
+    }
+
+    @Test
+    void nearlyStopsForACrowdRoundTheWaypoint() {
+        List<Vector2> waypoints = List.of(new Vector2(1, 2), new Vector2(2, 2), new Vector2(2, 6));
+
+        // Wants (1.02 - crowd) of the way to the waypoint in a tick (0x4D3C40, 0x4D15E0)
+        assertEquals(1.02f / 0.02f, steering(waypoints, 0, false).len() / steering(waypoints, 1.5f, false).len(), 0.5f);
+    }
+
+    @Test
+    void aChaseSlowsDownForACrowdAtItsEndToo() {
+        List<Vector2> waypoints = List.of(new Vector2(1, 2), new Vector2(3, 2));
+
+        assertEquals(steering(waypoints, 0, false), steering(waypoints, 1, false), "A walk arrives at its end");
+        assertTrue(steering(waypoints, 1, true).len() < steering(waypoints, 0, true).len() / 10, "DK II's path flag 2 (0x471D10)");
+    }
+
+    private Vector2 steering(List<Vector2> waypoints, float crowd, boolean chase) {
+        SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 1, 2, 0);
+        FollowWaypoints followWaypoints = new FollowWaypoints(knight, waypoints, waypoint -> crowd, false, chase, 4);
+        return new Vector2(followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2())).linear);
     }
 
     @ParameterizedTest
