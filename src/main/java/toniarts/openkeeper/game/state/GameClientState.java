@@ -429,7 +429,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
                         true, // Built, but hidden until the viewer possesses a creature
-                        savedGame != null, // A loaded game, its explored map isn't saved
+                        savedGame,
                         () -> {
                             synchronized (mapDataLoadingObject) {
                                 mapDataLoaded = true;

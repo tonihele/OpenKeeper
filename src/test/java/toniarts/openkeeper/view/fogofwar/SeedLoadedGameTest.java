@@ -21,6 +21,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Field;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.Arrays;
 import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.AfterEach;
@@ -118,8 +119,8 @@ class SeedLoadedGameTest {
     }
 
     @Test
-    void loadedGameExploresWhatTheCreaturesSeeFromTheOwnedLand() {
-        controller.seedLoadedGame();
+    void loadedGameWithoutTheExploredMapExploresWhatTheCreaturesSeeFromTheOwnedLand() {
+        controller.seedLoadedGame(null);
 
         // Four tiles along the corridor, not five
         assertTrue(controller.isExplored(new Point(ROOM_MAX_X + 4, CORRIDOR_Y)));
@@ -135,6 +136,21 @@ class SeedLoadedGameTest {
 
         // The map border is never explored
         assertFalse(controller.isExplored(new Point(0, CORRIDOR_Y)));
+    }
+
+    @Test
+    void loadedGameGetsTheSavedExploredMap() {
+        String[] exploredTiles = new String[MAP_SIZE];
+        Arrays.fill(exploredTiles, "0".repeat(MAP_SIZE));
+
+        // Far down the corridor, and not the keeper's own room
+        exploredTiles[CORRIDOR_Y] = "0".repeat(15) + "1" + "0".repeat(MAP_SIZE - 16);
+
+        controller.seedLoadedGame(exploredTiles);
+
+        assertTrue(controller.isExplored(new Point(15, CORRIDOR_Y)));
+        assertFalse(controller.isExplored(new Point(14, CORRIDOR_Y)));
+        assertFalse(controller.isExplored(new Point(ROOM_MAX_X, CORRIDOR_Y)));
     }
 
     @SuppressWarnings("unchecked")

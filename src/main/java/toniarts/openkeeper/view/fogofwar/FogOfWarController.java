@@ -50,6 +50,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
+import javax.annotation.Nullable;
 
 /**
  * The live, per-viewer fog-of-war orchestrator. Runs entirely client-side:
@@ -333,15 +334,36 @@ public final class FogOfWarController implements IFogOfWarInformation {
     }
 
     /**
-     * Seeds the fog of a loaded game. The explored map is the client's and
-     * isn't saved, so it is built again: the level start seeding, and round
-     * the viewer's own land what their creatures see from it. Every floor
-     * tile the viewer owns explores the tiles in sight as far as a creature
-     * sees (DK II's creatures all see 4 tiles), walls and doors block the
-     * sight. The land explored further out is dark again, and the creatures
-     * explore it again as they go there.
+     * Seeds the fog of a loaded game. The client saves its explored map, like
+     * DK II keeps an explored bit on every tile, and that is put back. A save
+     * without it is built again: the level start seeding, and round the
+     * viewer's own land what their creatures see from it. Every floor tile the
+     * viewer owns explores the tiles in sight as far as a creature sees (DK
+     * II's creatures all see 4 tiles), walls and doors block the sight. The
+     * land explored further out is dark again then, and the creatures explore
+     * it again as they go there.
+     *
+     * @param exploredTiles the saved explored map, a row of 1s (explored) and
+     * 0s per y, or {@code null} if the save has none
      */
-    public void seedLoadedGame() {
+    public void seedLoadedGame(@Nullable String[] exploredTiles) {
+        if (exploredTiles != null) {
+            state.clearAll();
+            pendingTaggedTiles.clear();
+            for (int y = 0; y < Math.min(exploredTiles.length, mapData.getHeight()); y++) {
+                for (int x = 0; x < Math.min(exploredTiles[y].length(), mapData.getWidth()); x++) {
+                    if (exploredTiles[y].charAt(x) == '1') {
+                        FogOfWarRules.explore(state, x, y);
+                    }
+                }
+            }
+            Set<Point> dirty = state.drainDirtyTiles();
+            if (!dirty.isEmpty()) {
+                fireTilesDirty(dirty.toArray(new Point[0]));
+            }
+            return;
+        }
+
         seedLevelStart();
 
         int radius = 0;

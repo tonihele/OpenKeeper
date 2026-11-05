@@ -252,6 +252,7 @@ class SaveGameTest {
         clientSave.cameraMode = Thing.Camera.CameraMode.OVERHEAD;
         clientSave.cameraLocation = new Vector3f(20.5f, 9f, 31.25f);
         clientSave.cameraRotation = new Quaternion().fromAngles(1.1f, 0.4f, 0f);
+        clientSave.exploredTiles = new String[]{"0110", "1000"};
         Path file = folder.resolve("client.json.gz");
         SaveGame saveGame = new SaveGame("Test", null, 1, levelInfo(), List.of(), List.of(), List.of(), List.of(), new DefaultEntityData());
         saveGame.setClient(clientSave);
@@ -263,6 +264,7 @@ class SaveGameTest {
         assertEquals(Thing.Camera.CameraMode.OVERHEAD, loadedClient.cameraMode);
         assertEquals(clientSave.cameraLocation, loadedClient.cameraLocation);
         assertEquals(clientSave.cameraRotation, loadedClient.cameraRotation);
+        assertEquals(List.of("0110", "1000"), List.of(loadedClient.exploredTiles));
         assertNull(loaded.removeClient(PlayerState.ClientSave.class));
 
         // A save without the client's part, the camera starts where the level starts

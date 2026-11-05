@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -70,6 +71,7 @@ import toniarts.openkeeper.view.PossessionInteractionState;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
@@ -517,9 +519,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     /**
-     * Gets the client's own part of a save: where the camera is. Not while
-     * possessing a creature, the possession is saved on the server, and after
-     * it the camera goes above the creature.
+     * Gets the client's own part of a save: where the camera is and the
+     * explored map. The camera isn't saved while possessing a creature, the
+     * possession is saved on the server, and after it the camera goes above
+     * the creature.
      *
      * @return the client's part of a save
      */
@@ -530,6 +533,21 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             clientSave.cameraMode = camera.getMode();
             clientSave.cameraLocation = camera.getCamera().getLocation().clone();
             clientSave.cameraRotation = camera.getCamera().getRotation().clone();
+        }
+
+        // Like DK II, which keeps an explored bit on every tile
+        GameClientState gameClientState = stateManager.getState(GameClientState.class);
+        IFogOfWarInformation fog = gameClientState.getFogOfWarInformation();
+        if (fog != null) {
+            GameMap map = gameClientState.getLevelData().getMap();
+            clientSave.exploredTiles = new String[map.getHeight()];
+            for (int y = 0; y < map.getHeight(); y++) {
+                StringBuilder row = new StringBuilder(map.getWidth());
+                for (int x = 0; x < map.getWidth(); x++) {
+                    row.append(fog.isExplored(new Point(x, y)) ? '1' : '0');
+                }
+                clientSave.exploredTiles[y] = row.toString();
+            }
         }
         return clientSave;
     }
@@ -805,6 +823,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         public Thing.Camera.CameraMode cameraMode;
         public Vector3f cameraLocation;
         public Quaternion cameraRotation;
+
+        /**
+         * The explored map, a row of 1s (explored) and 0s per y, {@code null}
+         * if it wasn't saved
+         */
+        @Nullable
+        public String[] exploredTiles;
     }
 
 }
