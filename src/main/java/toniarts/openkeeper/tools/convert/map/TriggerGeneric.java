@@ -102,7 +102,16 @@ public final class TriggerGeneric extends Trigger {
         AP_SLAB_TYPES(42), // Action point
         PARTY_CREATED(43), // Party
         PARTY_MEMBERS_KILLED(44), // Party
-        PARTY_MEMBERS_CAPTURED(45), // Party
+        /**
+         * Compares the original party size minus its remaining hero-owned membership
+         * with the configured threshold. An ordinary member loses membership when
+         * knocked unconscious; a leader retains membership on knockout. Conversion
+         * also removes membership, and returning to hero ownership does not restore it.
+         * Dead or removed members count as missing. Merely entering a prison or torture
+         * room does not add to the count. For example, an ordinary member knocked out
+         * and then imprisoned contributes one, not two. The party must be created first.
+         */
+        PARTY_MEMBERS_CAPTURED(45),
         LEVEL_PAY_DAY(46), // Event, This level's...
         PLAYER_KILLED(47), // Event, This player's...
         CREATURE_EXPERIENCE_LEVEL(49), // Attribute, This creature's...
