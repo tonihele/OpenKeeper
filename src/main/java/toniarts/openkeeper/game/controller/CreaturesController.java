@@ -690,6 +690,19 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public int getCreatureCount(short creatureId) {
+        EntitySet entities = creatureId == 0
+                ? entityData.getEntities(CreatureComponent.class, Health.class)
+                : entityData.getEntities(new FieldFilter<>(CreatureComponent.class, "creatureId", creatureId),
+                        CreatureComponent.class, Health.class);
+        try {
+            return entities.size();
+        } finally {
+            entities.release();
+        }
+    }
+
+    @Override
 
     public EntityId getPossessedCreature(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);

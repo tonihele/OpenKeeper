@@ -93,7 +93,15 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_MANA(32), // Player
         PLAYER_DESTROYS(33), // Player
         LEVEL_TIME(34), // Attribute, This level's...
-        LEVEL_CREATURES(35), // Attribute, This level's...
+        /**
+         * Compares the number of living creatures on the whole map with the configured
+         * threshold, across all owners, including heroes and neutral creatures.
+         * The {@code creatureId} filter selects one creature type; zero counts all types.
+         * Unconscious and imprisoned creatures still count; corpses do not.
+         * For example, a less-than comparison with value 5 and a Goblin filter matches
+         * when fewer than five living Goblins remain. A match enables the child actions.
+         */
+        LEVEL_CREATURES(35),
         CREATURE_HEALTH(36), // Attribute, This creature's...
         CREATURE_GOLD_HELD(37), // Attribute, This creature's...
         AP_CONGREGATE_IN(39), // Action point
