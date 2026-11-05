@@ -171,6 +171,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void startBackOff();
 
     /**
+     * Tells whether a back-off would step back from the attack target, rather
+     * than walk away at once
+     *
+     * @return true if we would step back
+     */
+    public boolean canStepBack();
+
+    /**
      * Checks if our time to back off is over
      *
      * @return true if the back-off is over

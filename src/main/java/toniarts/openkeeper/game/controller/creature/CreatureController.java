@@ -2253,23 +2253,35 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void startBackOff() {
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        entityData.setComponent(entityId, new BackOff(backOff != null ? backOff.overThreatChecks : 0,
+                gameTimer.getGameTime() + getBackOffTurns() / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+    }
 
-        // The more we are scared, the sooner we withdraw. We don't back off from one that would catch us (DK II 0x45F030)
+    @Override
+    public boolean canStepBack() {
+        return getBackOffTurns() > 0;
+    }
+
+    /**
+     * Gets how many turns we step back from our target before we walk away.
+     * The more we are scared, the sooner we walk away. We don't step back from
+     * one that would catch us (DK II 0x45F030)
+     *
+     * @return the turns, the durations are in turns despite their names
+     */
+    private int getBackOffTurns() {
         int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         CreatureComponent targetCreature = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CreatureComponent.class) : null;
-        int turns = 0;
         if (fear > 0 && attackTarget != null && creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER
                 && (targetCreature == null || targetCreature.runSpeed <= entityData.getComponent(entityId, CreatureComponent.class).runSpeed)) {
             int minimum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MINIMUM_DURATION_SECONDS).getValue();
             int maximum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MAXIMUM_DURATION_SECONDS).getValue();
-            turns = minimum + (maximum - minimum) * (4 - Math.min(getFightThreat() / fear, 4));
+            return minimum + (maximum - minimum) * (4 - Math.min(getFightThreat() / fear, 4));
         }
 
-        // The durations are in turns, despite the names
-        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
-        entityData.setComponent(entityId, new BackOff(backOff != null ? backOff.overThreatChecks : 0,
-                gameTimer.getGameTime() + turns / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+        return 0;
     }
 
     @Override

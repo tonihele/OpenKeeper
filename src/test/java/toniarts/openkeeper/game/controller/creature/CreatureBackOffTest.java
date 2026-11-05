@@ -221,13 +221,49 @@ class CreatureBackOffTest {
     }
 
     @Test
-    void scaredCasterBacksOffWithoutFinishingTheSpell() {
+    void tooScaredToStepBackWalksAway() {
+
+        // The Knight's threat is four times the Warlock's fear, DK II's Warlocks walk away at once
+        EntityId warlock = creature(Player.KEEPER1_ID, 10, 50, 20, 1.08f);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 11, 533, 213, 0.9f);
+        fight(warlock, knight);
+        fight(knight, warlock);
+        EntityId goblin = creature(Player.KEEPER1_ID, 12, GOBLIN_FEAR, 37, 1.26f);
+        EntityId giant = creature(Player.GOOD_PLAYER_ID, 13, 400, GIANT_THREAT, 0.9f);
+        fight(goblin, giant);
+        fight(giant, goblin);
+
+        assertFalse(controller(warlock).canStepBack());
+        assertTrue(controller(goblin).canStepBack());
+    }
+
+    @Test
+    void scaredCasterStepsBackCastingOrWalksAwayCuttingItShort() {
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.CAST_SPELL);
+        AtomicReference<Boolean> stepsBack = new AtomicReference<>(true);
         ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
-                new AtomicReference<>(true));
+                new AtomicReference<>(true), stepsBack);
 
         CreatureState.CAST_SPELL.update(creature);
+        assertEquals(CreatureState.CAST_SPELL, state.get());
 
+        stepsBack.set(false);
+        CreatureState.CAST_SPELL.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+    }
+
+    @Test
+    void scaredFighterStepsBackSwingingOrWalksAwayCuttingItShort() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.MELEE_ATTACK);
+        AtomicReference<Boolean> stepsBack = new AtomicReference<>(true);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
+                new AtomicReference<>(true), stepsBack);
+
+        CreatureState.MELEE_ATTACK.update(creature);
+        assertEquals(CreatureState.MELEE_ATTACK, state.get());
+
+        stepsBack.set(false);
+        CreatureState.MELEE_ATTACK.update(creature);
         assertEquals(CreatureState.BACK_OFF, state.get());
     }
 
@@ -237,7 +273,7 @@ class CreatureBackOffTest {
         AtomicReference<Boolean> scared = new AtomicReference<>(true);
         AtomicReference<Boolean> over = new AtomicReference<>(false);
         AtomicReference<Boolean> canBackOff = new AtomicReference<>(true);
-        ICreatureController creature = creature(state, scared, over, canBackOff);
+        ICreatureController creature = creature(state, scared, over, canBackOff, new AtomicReference<>(true));
 
         CreatureState.FIGHT.update(creature);
         assertEquals(CreatureState.BACK_OFF, state.get());
@@ -306,7 +342,7 @@ class CreatureBackOffTest {
     }
 
     private static ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
-            AtomicReference<Boolean> over, AtomicReference<Boolean> canBackOff) {
+            AtomicReference<Boolean> over, AtomicReference<Boolean> canBackOff, AtomicReference<Boolean> stepsBack) {
         StateMachine<?, ?> stateMachine = proxy(StateMachine.class, (method, args) -> switch (method) {
             case "changeState" -> {
                 state.set((CreatureState) args[0]);
@@ -323,6 +359,8 @@ class CreatureBackOffTest {
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
+            case "canStepBack" -> stepsBack.get();
+            case "isStateTimeExceeded" -> false;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();
