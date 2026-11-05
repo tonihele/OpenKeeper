@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -24,6 +25,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
@@ -40,6 +42,7 @@ import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -66,6 +69,8 @@ class CreatureBackOffTest {
     private final Set<EntityId> creatures = new HashSet<>();
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private final Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
+    private final AtomicReference<Boolean> cornered = new AtomicReference<>(false);
+    private final Set<Point> walkable = new HashSet<>();
     private double time;
 
     CreatureBackOffTest() {
@@ -316,6 +321,37 @@ class CreatureBackOffTest {
         assertEquals(CreatureState.FIGHT, state.get());
     }
 
+    @Test
+    void corneredCreatureFightsOnInsteadOfBackingOff() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false), new AtomicReference<>(false),
+                new AtomicReference<>(false));
+        cornered.set(true);
+
+        // DK II's fight state checks the fear only when the creature isn't cornered (0x45F030, 0x460C50)
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+
+        // Backing off with no step back, cornered it fights again (0x4602E0)
+        state.set(CreatureState.BACK_OFF);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+    }
+
+    @Test
+    void corneredWhenEveryTileItCanWalkToHoldsAnEnemyFightingIt() {
+        EntityId goblin = creature(Player.KEEPER1_ID, 10, GOBLIN_FEAR, 10, 1);
+        EntityId east = creature(Player.GOOD_PLAYER_ID, 11, 100, GIANT_THREAT, 1);
+        EntityId west = creature(Player.GOOD_PLAYER_ID, 9, 100, GIANT_THREAT, 1);
+        walkable.addAll(List.of(new Point(9, 10), new Point(11, 10)));
+        fight(east, goblin);
+
+        assertFalse(controller(goblin).isCornered(), "The west tile is free");
+
+        fight(west, goblin);
+        assertTrue(controller(goblin).isCornered());
+    }
+
     private EntityId creature(short ownerId, float x, int fear, int threat, float runSpeed) {
         EntityId entity = data.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -342,6 +378,12 @@ class CreatureBackOffTest {
                 sensed.remove(entity);
                 yield sensed;
             }
+            case "getEntitiesInLocation" -> creatures.stream()
+                    .filter(creature -> WorldUtils.vectorToPoint(data.getComponent(creature, Position.class).position).equals(args[0])).toList();
+            default -> throw new UnsupportedOperationException(method);
+        });
+        INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
+            case "findPath" -> walkable.contains((Point) args[1]) ? new DefaultGraphPath<>() : null;
             default -> throw new UnsupportedOperationException(method);
         });
         IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
@@ -355,11 +397,11 @@ class CreatureBackOffTest {
             case "getLevelData" -> kwd;
             default -> throw new UnsupportedOperationException(method);
         });
-        return new CreatureController(entity, data, definition, null, null, () -> time,
+        return new CreatureController(entity, data, definition, navigation, null, () -> time,
                 settings, null, lookup, null, levelInfo, null, null, null);
     }
 
-    private static ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
+    private ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
             AtomicReference<Boolean> over, AtomicReference<Boolean> canBackOff, AtomicReference<Boolean> stepsBack) {
         StateMachine<?, ?> stateMachine = proxy(StateMachine.class, (method, args) -> switch (method) {
             case "changeState" -> {
@@ -374,6 +416,9 @@ class CreatureBackOffTest {
             case "getStateMachine" -> stateMachine;
             case "getAttackTarget" -> self.get();
             case "isScared" -> scared.get();
+            case "isCornered" -> cornered.get();
+            case "isWithinAttackDistance" -> true;
+            case "stopCreature", "executeAttack", "getEntityId" -> null;
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;

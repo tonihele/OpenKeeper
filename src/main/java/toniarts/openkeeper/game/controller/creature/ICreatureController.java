@@ -166,6 +166,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isScared();
 
     /**
+     * Whether we are cornered: no tile next to us that we can walk to is free
+     * of an enemy that fights us. A cornered creature doesn't back off or
+     * withdraw, it fights on (DK II 0x460C50)
+     *
+     * @return true if we are cornered
+     */
+    public boolean isCornered();
+
+    /**
      * Starts backing off from the attack target, sets how long we back off
      */
     public void startBackOff();

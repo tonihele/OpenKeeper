@@ -2182,6 +2182,35 @@ public final class CreatureController extends EntityController implements ICreat
         return false;
     }
 
+    @Override
+    public boolean isCornered() {
+        Point location = getCreatureCoordinates();
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                Point tile = new Point(location.x + x, location.y + y);
+                if ((x != 0 || y != 0) && navigationService.findPath(location, tile, this) != null && !isHeldAgainstUs(tile)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether an enemy that fights us stands on the tile
+     */
+    private boolean isHeldAgainstUs(Point tile) {
+        for (EntityId entity : entityPositionLookup.getEntitiesInLocation(tile)) {
+            AttackTarget target = entityData.getComponent(entity, AttackTarget.class);
+            if (target != null && entityId.equals(target.entityId) && isEnemy(entity)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private int getThreat(EntityId entity) {
         Threat threat = entityData.getComponent(entity, Threat.class);
         if (threat != null) {
