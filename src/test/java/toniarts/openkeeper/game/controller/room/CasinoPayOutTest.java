@@ -23,6 +23,8 @@ import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -68,6 +70,16 @@ class CasinoPayOutTest {
         assertEquals(PayOut.MONEY, casino.getPayOut());
         assertTrue(casino.switchFurniture(adjuster));
         assertEquals(PayOut.SMILES, casino.getPayOut());
+    }
+
+    @Test
+    void adjusterShowsTheIndicatorOfThePayOut() {
+        CasinoController casino = buildCasino(5);
+        EntityId adjuster = findObject(PAY_OUT_ADJUSTER);
+
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_1, entityData.getComponent(adjuster, ObjectViewState.class).animState);
+        casino.switchFurniture(adjuster);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_2, entityData.getComponent(adjuster, ObjectViewState.class).animState);
     }
 
     @Test
@@ -123,6 +135,7 @@ class CasinoPayOutTest {
                     EntityId entityId = entityData.createEntity();
                     entityData.setComponents(entityId,
                             new ObjectComponent((short) args[0], null),
+                            new ObjectViewState((short) args[0], null, GameObjectAnimState.MESH_RESOURCE, true),
                             new Position(0, WorldUtils.pointToVector3f((int) args[2], (int) args[3])));
                     return entityId;
                 });

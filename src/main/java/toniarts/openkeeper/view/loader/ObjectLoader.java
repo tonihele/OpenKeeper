@@ -23,6 +23,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
 
@@ -44,7 +45,16 @@ public final class ObjectLoader implements ILoader<ObjectViewState> {
     @Override
     public Spatial load(AssetManager assetManager, ObjectViewState object) {
         try {
-            ArtResource artResource = kwdFile.getObject(object.objectId).getMeshResource();
+            GameObject gameObject = kwdFile.getObject(object.objectId);
+            ArtResource artResource = gameObject.getMeshResource();
+
+            // An object without a model of its own, like the Casino's pay out adjuster, shows one of its other
+            // resources
+            int additional = object.animState.ordinal() - ObjectViewState.GameObjectAnimState.ADDITIONAL_RESOURCE_1.ordinal();
+            if (artResource == null && additional >= 0 && gameObject.getAdditionalResources() != null
+                    && additional < gameObject.getAdditionalResources().size()) {
+                artResource = gameObject.getAdditionalResources().get(additional);
+            }
             if (artResource == null) {
                 // Some objects, like the Hero Gate Table, are only a light source and have no model
                 return null;

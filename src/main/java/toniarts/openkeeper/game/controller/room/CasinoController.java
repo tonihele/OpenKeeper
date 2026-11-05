@@ -23,6 +23,8 @@ import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CasinoPayOut;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -101,6 +103,21 @@ public final class CasinoController extends NormalRoomController {
      */
     public void setPayOut(PayOut payOut) {
         entityData.setComponent(entityId, new CasinoPayOut(payOut));
+        showPayOut();
+    }
+
+    /**
+     * The pay out adjuster has no model of its own, it shows one of its two
+     * indicators: the first one while the Casino pays out in smiles, the second
+     * one when it takes money (DK II 0x4D6890)
+     */
+    private void showPayOut() {
+        ObjectViewState viewState = payOutAdjuster != null ? entityData.getComponent(payOutAdjuster, ObjectViewState.class) : null;
+        if (viewState != null) {
+            entityData.setComponent(payOutAdjuster, new ObjectViewState(viewState.objectId, viewState.state,
+                    getPayOut() == PayOut.SMILES ? GameObjectAnimState.ADDITIONAL_RESOURCE_1 : GameObjectAnimState.ADDITIONAL_RESOURCE_2,
+                    viewState.visible));
+        }
     }
 
     @Override
@@ -137,6 +154,7 @@ public final class CasinoController extends NormalRoomController {
                 floorFurniture.remove(piece);
                 entityData.removeEntity(piece);
                 payOutAdjuster = objectsController.loadObject(OBJECT_PAY_OUT_ADJUSTER_ID, roomInstance.getOwnerId(), p.x, p.y);
+                showPayOut();
                 return;
             }
         }
