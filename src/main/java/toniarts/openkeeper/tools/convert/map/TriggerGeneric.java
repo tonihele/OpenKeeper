@@ -96,7 +96,15 @@ public final class TriggerGeneric extends Trigger {
         LEVEL_CREATURES(35), // Attribute, This level's...
         CREATURE_HEALTH(36), // Attribute, This creature's...
         CREATURE_GOLD_HELD(37), // Attribute, This creature's...
-        AP_CONGREGATE_IN(39), // Action point
+        /**
+         * Counts creatures currently inside this action point's rectangle and compares
+         * that count with the configured threshold. Filters select an owner and creature
+         * type; zero means any owner or type. For example, a greater-or-equal comparison
+         * with value 3 matches while at least three matching creatures are inside.
+         * This checks the current occupants rather than counting entry events.
+         * OpenKeeper currently supports creature targets; object targets are unsupported.
+         */
+        AP_CONGREGATE_IN(39),
         AP_CLAIM_PART_OF(40), // Action point
         AP_CLAIM_ALL_OF(41), // Action point
         AP_SLAB_TYPES(42), // Action point
