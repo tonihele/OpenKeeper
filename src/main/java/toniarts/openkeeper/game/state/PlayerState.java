@@ -92,6 +92,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     private EntitySet heartEntities;
     private boolean paused = false;
+    private boolean gameEnded = false;
 
     private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
     protected PlayerInteractionState interactionState;
@@ -569,13 +570,21 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
      * @param win did we win or not
      */
     protected void endGame(boolean win) {
+        if (gameEnded) {
+            return;
+        }
+        gameEnded = true;
 
-        // Save campaign progress on win
-        if (win && campaignLevel != null) {
+        // Save campaign progress and the defeat history used by LEVEL_PLAYED.
+        if (campaignLevel != null) {
             Settings settings = Main.getUserSettings();
-            settings.increaseLevelAttempts(campaignLevel);
-            settings.setLevelStatus(campaignLevel, Settings.LevelStatus.COMPLETED);
-            settings.setSetting(Settings.Setting.LEVEL_NUMBER, campaignLevel.getLevel() + 1);
+            if (win) {
+                settings.increaseLevelAttempts(campaignLevel);
+                settings.setLevelStatus(campaignLevel, Settings.LevelStatus.COMPLETED);
+                settings.setSetting(Settings.Setting.LEVEL_NUMBER, campaignLevel.getLevel() + 1);
+            } else {
+                settings.increaseLevelDefeats(campaignLevel);
+            }
             try {
                 settings.save();
             } catch (IOException ex) {
