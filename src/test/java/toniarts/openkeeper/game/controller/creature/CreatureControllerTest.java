@@ -39,6 +39,8 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.HauledBy;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
@@ -73,6 +75,45 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureControllerTest {
+
+    @Test
+    void releasingAHauledCreatureNotifiesTheCarriersPlayerExactlyOnce() {
+        try (Fixture f = new Fixture(4)) {
+            EntityId carrier = f.data.createEntity();
+            f.data.setComponent(carrier, new Owner((short) 4, (short) 4));
+            f.data.setComponent(f.entity, new HauledBy(carrier));
+            f.controller.setHaulable(null);
+            f.controller.setHaulable(null);
+            assertEquals(List.of((short) 4), f.droppingPlayers);
+        }
+    }
+
+    @Test
+    void attachingToACarrierDoesNotGenerateADrop() {
+        try (Fixture f = new Fixture(4)) {
+            EntityId carrier = f.data.createEntity();
+            f.data.setComponent(carrier, new Owner((short) 4, (short) 4));
+            ICreatureController control = proxy(ICreatureController.class, (method, args) -> {
+                if (method.equals("getEntityId")) {
+                    return carrier;
+                }
+                throw new UnsupportedOperationException(method);
+            });
+            f.controller.setHaulable(control);
+            assertTrue(f.droppingPlayers.isEmpty());
+            f.controller.setHaulable(null);
+            assertEquals(List.of((short) 4), f.droppingPlayers);
+        }
+    }
+
+    @Test
+    void anUnknownCarrierDoesNotInventADroppingPlayer() {
+        try (Fixture f = new Fixture(4)) {
+            f.data.setComponent(f.entity, new HauledBy(f.data.createEntity()));
+            f.controller.setHaulable(null);
+            assertTrue(f.droppingPlayers.isEmpty());
+        }
+    }
 
     @Test
     void lowHealthWithoutDebtDoesNotAutonomouslyStartSleep() {
@@ -407,6 +448,7 @@ class CreatureControllerTest {
             return null;
         });
         final List<Double> eatAttempts = new java.util.ArrayList<>();
+        final List<Short> droppingPlayers = new java.util.ArrayList<>();
         int sleepAssignments;
         int oldJobUnassignments;
         double time;
@@ -481,8 +523,15 @@ class CreatureControllerTest {
                 case "getLevelData" -> kwd;
                 default -> throw new UnsupportedOperationException(method);
             });
+            ICreaturesController creatures = proxy(ICreaturesController.class, (method, args) -> {
+                if (method.equals("onCreatureDropped")) {
+                    droppingPlayers.add((Short) args[0]);
+                    return null;
+                }
+                throw new UnsupportedOperationException(method);
+            });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, levelInfo, null, null, eventService);
+                    settings, creatures, lookup, map, levelInfo, null, null, eventService);
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);

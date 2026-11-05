@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * The game controller, runs the game simulation itself
@@ -78,6 +79,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private PlayerTriggerLogicController playerTriggers;
+    private final ConcurrentLinkedQueue<Short> creatureDropEvents = new ConcurrentLinkedQueue<>();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -113,6 +116,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             }
         }
         createNewGame();
+    }
+
+    @Override
+    public void onCreatureDropped(short playerId) {
+        creatureDropEvents.add(playerId);
     }
 
     public void createNewGame() {
@@ -153,9 +161,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 positionSystem));
-        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
-                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+        playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
+        controllers.add(playerTriggers);
         controllers.add(gameTimer);
         controllers.add(positionSystem);
 
@@ -285,6 +293,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // Advance game timers
         for (GameTimer timer : levelInfo.timers.getArray()) {
             timer.update(tpf);
+        }
+
+        Short droppingPlayer;
+        while ((droppingPlayer = creatureDropEvents.poll()) != null) {
+            playerTriggers.onCreatureDropped(droppingPlayer);
         }
 
         if (triggerControl != null) {

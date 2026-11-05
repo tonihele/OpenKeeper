@@ -1197,6 +1197,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             IRoomController roomController = mapController.getRoomControllerByCoordinates(tile);
             if (entityData.getComponent(entity, CreatureComponent.class) != null) {
                 dropCreature(roomController, entity, tile, coordinates, playerId);
+                creaturesController.onCreatureDropped(playerId);
             } else {
 
                 // TODO: handle giving item to creature
