@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.navigation.steering;
 
+import com.badlogic.gdx.ai.steer.SteeringBehavior;
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
 import com.badlogic.gdx.math.Vector2;
 
@@ -35,6 +36,20 @@ public final class EntitySteeringBehavior extends PrioritySteering<Vector2> impl
         super(owner);
 
         this.steerableEntity = owner;
+    }
+
+    /**
+     * The path following of the steering
+     *
+     * @return the path following, null if the entity only turns
+     */
+    public FollowWaypoints getPathFollowing() {
+        for (SteeringBehavior<Vector2> behavior : behaviors) {
+            if (behavior instanceof FollowWaypoints followWaypoints) {
+                return followWaypoints;
+            }
+        }
+        return null;
     }
 
     @Override

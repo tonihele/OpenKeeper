@@ -114,6 +114,13 @@ public final class MovementSystem implements IGameLogicUpdatable {
      */
     private final Map<Point, Float> radiiByTile = new HashMap<>();
     private final Map<EntityId, Vector2> standingVelocities = new HashMap<>();
+
+    /**
+     * The walkers touching the Dungeon Heart Obstacle this tick, with the
+     * direction from its centre to them
+     */
+    private final Map<EntityId, Vector2> heartContacts = new HashMap<>();
+    private float tickTime;
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IMapController mapController;
@@ -142,6 +149,11 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
 
         countRadii();
+        tickTime += tpf;
+        if (tickTime >= 1f / ticksPerSecond) {
+            tickTime -= 1f / ticksPerSecond;
+            findHeartContacts();
+        }
 
         // Process ticks
         for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
@@ -162,6 +174,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
              */
             if (!steeringOutput.linear.isZero()) {
                 separate(entityId, steerableEntity, steeringOutput.linear);
+                holdOffHeart(entityId, steerableEntity, steeringOutput.linear);
             }
 
             // Apply steering acceleration
@@ -292,17 +305,94 @@ public final class MovementSystem implements IGameLogicUpdatable {
         if (creatureAi == null || !FIGHTING.contains(creatureAi.getCreatureState()) || creature == null) {
             return null;
         }
-        IRoomController room = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
-        if (room == null || !room.isDungeonHeart() || room.getRoomInstance().isDestroyed()) {
+        return getHeartContact(new Vector2(position.position.x, position.position.z), creature.getAttributes().getWidth() / 2);
+    }
+
+    /**
+     * Something touching the Dungeon Heart Obstacle
+     *
+     * @param position where it is
+     * @param radius its radius
+     * @return the direction from the centre of the heart to it, or null if it
+     * doesn't touch it
+     */
+    private Vector2 getHeartContact(Vector2 position, float radius) {
+        Point center = getIntactHeartCenter(position.x, position.y);
+        if (center == null) {
             return null;
         }
-        Point center = room.getRoomInstance().getCenter();
-        Vector2 normal = new Vector2(position.position.x - center.x, position.position.z - center.y);
+        Vector2 normal = new Vector2(position).sub(center.x, center.y);
         float distance = normal.len();
-        if (distance == 0 || distance > HEART_OBSTACLE_RADIUS + creature.getAttributes().getWidth() / 2) {
+        if (distance == 0 || distance > HEART_OBSTACLE_RADIUS + radius) {
             return null;
         }
         return normal.scl(1 / distance);
+    }
+
+    /**
+     * The centre of the intact Dungeon Heart a point is on, where its obstacle
+     * stands
+     *
+     * @param x the x of the point
+     * @param y the y of the point
+     * @return the centre, null if there is no intact heart
+     */
+    private Point getIntactHeartCenter(float x, float y) {
+        IRoomController room = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(x, y));
+        if (room == null || !room.isDungeonHeart() || room.getRoomInstance().isDestroyed()) {
+            return null;
+        }
+        return room.getRoomInstance().getCenter();
+    }
+
+    private boolean isInHeartObstacle(Vector2 point) {
+        Point center = getIntactHeartCenter(point.x, point.y);
+        return center != null && point.dst2(center.x, center.y) <= HEART_OBSTACLE_RADIUS * HEART_OBSTACLE_RADIUS;
+    }
+
+    /**
+     * Once a game tick DK II's pilot finds the solid obstacles a walking
+     * creature touches, within their and its radii (0x4D31D0, 0x4D3020),
+     * after it notes its headway (0x4D4760). A creature held up too long walks
+     * through them.
+     */
+    private void findHeartContacts() {
+        heartContacts.clear();
+        for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
+            FollowWaypoints pathFollowing = steeringBehavior.getPathFollowing();
+            if (pathFollowing == null) {
+                continue;
+            }
+            pathFollowing.countHeadway();
+            ISteerableEntity steerable = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
+            Vector2 normal = pathFollowing.isThroughObstacles() ? null : getHeartContact(steerable.getPosition(), steerable.getBoundingRadius());
+            if (normal != null) {
+                heartContacts.put(entityIdsBySteeringBehavior.get(steeringBehavior), normal);
+            }
+        }
+    }
+
+    /**
+     * Keeps a walking creature that touches the Dungeon Heart Obstacle off it,
+     * it slides along the edge, see {@link #slideAlongHeart}
+     *
+     * @param entityId the creature
+     * @param steerable its steering state, its velocity is changed here
+     * @param linear the steering acceleration, changed here
+     */
+    private void holdOffHeart(EntityId entityId, ISteerableEntity steerable, Vector2 linear) {
+        Vector2 normal = heartContacts.get(entityId);
+        if (normal == null) {
+            return;
+        }
+
+        // In the changes of the velocity of a tick and the velocities of a tick, as the pilot works
+        float scale = ticksPerSecond * ticksPerSecond;
+        Vector2 force = new Vector2(linear).scl(1 / scale);
+        Vector2 tickVelocity = new Vector2(steerable.getLinearVelocity()).scl(1f / ticksPerSecond);
+        slideAlongHeart(normal, force, tickVelocity);
+        linear.set(force.limit(FollowWaypoints.MAX_FORCE)).scl(scale);
+        steerable.getLinearVelocity().set(tickVelocity).scl(ticksPerSecond);
     }
 
     /**
@@ -345,7 +435,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         float radius = creature != null && creature.getAttributes().getWidth() > 0 ? creature.getAttributes().getWidth() / 2 : DEFAULT_RADIUS;
         ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, radius, position.position.x, position.position.z, -position.rotation);
         EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target,
-                this::getCrowd, creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER), navigation.pursuingAttackTarget, ticksPerSecond);
+                this::getCrowd, this::isInHeartObstacle, creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER), navigation.pursuingAttackTarget, ticksPerSecond);
         if (steeringBehavior == null) {
 
             // The fug, can't navigate, are we there already??
@@ -556,6 +646,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         pushedEntities.release();
         creatures.release();
         radiiByTile.clear();
+        heartContacts.clear();
         steeringBehaviors.clear();
         steerableEntitiesByEntityId.clear();
         steerableEntitiesBySteeringBehavior.clear();

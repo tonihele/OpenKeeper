@@ -119,7 +119,7 @@ class PathFollowingTest {
     void headsStraightForTheWaypointFromWhereverItIs() {
         SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 3, 2.6f, 0);
         FollowWaypoints followWaypoints = new FollowWaypoints(knight,
-                List.of(new Vector2(1, 2), new Vector2(6, 2), new Vector2(6, 6)), waypoint -> 0, false, false, 4);
+                List.of(new Vector2(1, 2), new Vector2(6, 2), new Vector2(6, 6)), waypoint -> 0, waypoint -> false, false, false, 4);
 
         Vector2 steering = followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2())).linear;
 
@@ -145,7 +145,7 @@ class PathFollowingTest {
 
     private Vector2 steering(List<Vector2> waypoints, float crowd, boolean chase) {
         SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 1, 2, 0);
-        FollowWaypoints followWaypoints = new FollowWaypoints(knight, waypoints, waypoint -> crowd, false, chase, 4);
+        FollowWaypoints followWaypoints = new FollowWaypoints(knight, waypoints, waypoint -> crowd, waypoint -> false, false, chase, 4);
         return new Vector2(followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2())).linear);
     }
 
@@ -265,6 +265,7 @@ class PathFollowingTest {
             case "isSolid" -> MAP[((Point) args[0]).y].charAt(((Point) args[0]).x) == '#';
             case "isWater" -> MAP[((Point) args[0]).y].charAt(((Point) args[0]).x) == '~';
             case "isLava" -> false;
+            case "getRoomControllerByCoordinates" -> null;
             case "getTerrain" -> {
                 Point p = ((IMapTileInformation) args[0]).getLocation();
                 yield switch (MAP[p.y].charAt(p.x)) {

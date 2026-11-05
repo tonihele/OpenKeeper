@@ -107,6 +107,7 @@ class MovementSystemTest {
                     case "isWater" -> water;
                     case "isLava" -> lava;
                     case "isSolid" -> false;
+                    case "getRoomControllerByCoordinates" -> null;
                     default -> throw new AssertionError(method.getName());
                 });
     }
