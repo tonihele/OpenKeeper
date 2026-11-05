@@ -40,7 +40,8 @@ public final class PlayerBreachFixtures {
             condition.setUserData("targetId", (short) 1);
             condition.setUserData("flag", (short) 1);
             condition.setUserData("value", 1);
-        } else if (type == TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED) {
+        } else if ((type == TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED
+                || type == TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED)) {
             condition.setUserData("playerId", (short) 255);
         }
         return condition;

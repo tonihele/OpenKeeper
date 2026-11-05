@@ -59,6 +59,14 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         }
     }
 
+    public void onDungeonBreached(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onDungeonBreached();
+            }
+        }
+    }
+
     @Override
     public void start() {
 

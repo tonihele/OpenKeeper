@@ -129,6 +129,9 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      */
     int damageTile(Point point, short playerId, ICreatureController creature);
 
+    /** Attacks a non-Neutral, non-gold solid wall; returns whether this hit collapsed it. */
+    boolean attackWall(Point point, short playerId);
+
     /**
      * Attempt to claim the tile or room, applies either damage or heal,
      * depending on whose tile is it
