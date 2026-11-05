@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
@@ -33,6 +34,7 @@ import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -92,6 +94,22 @@ class WorkerTaskAssignmentTest {
         assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
     }
 
+    @Test
+    void workerThatIsNoLongerIdleDoesNotGetWork() {
+        TaskManager taskManager = taskManager();
+        Task task = task(new Point(5, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, task);
+        ICreatureController imp = imp(new Point(1, 10));
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp, results::add);
+        imp.getStateMachine().setInitialState(CreatureState.FIGHT);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(), results);
+        assertEquals(0, ((TestTask) Proxy.getInvocationHandler(task)).assignees.get());
+    }
+
     private static int assignedCount(List<Task> tasks) {
         int count = 0;
         for (Task task : tasks) {
@@ -121,10 +139,12 @@ class WorkerTaskAssignmentTest {
 
     private ICreatureController imp(Point location) {
         var entityId = entityData.createEntity();
+        var stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(null, CreatureState.IDLE);
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> location;
             case "getOwnerId" -> PLAYER_ID;
             case "getEntityId" -> entityId;
+            case "getStateMachine" -> stateMachine;
             default -> null;
         });
     }

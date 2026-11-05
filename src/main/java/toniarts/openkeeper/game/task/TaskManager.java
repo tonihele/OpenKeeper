@@ -57,6 +57,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
@@ -834,15 +835,16 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return;
         }
 
-        unemployedCreatures
+        // The queue is from the last tick, workers that have got something else to do since don't look for work
+        Map<Short, List<Entry<ICreatureController, Consumer<Boolean>>>> workersByOwnerId = unemployedCreatures
                 .entrySet()
                 .stream()
-                .collect(Collectors.groupingBy((creature) -> creature.getKey().getOwnerId()))
-                .entrySet()
-                .forEach((creaturesByOwnerId) -> {
-                    processUnemployedWorkers(taskQueues.getOrDefault(creaturesByOwnerId.getKey(), Collections.emptySet()), creaturesByOwnerId.getValue());
-                });
+                .filter((creature) -> creature.getKey().getStateMachine().isInState(CreatureState.IDLE))
+                .collect(Collectors.groupingBy((creature) -> creature.getKey().getOwnerId()));
         unemployedCreatures.clear();
+        workersByOwnerId.forEach((ownerId, workers) -> {
+            processUnemployedWorkers(taskQueues.getOrDefault(ownerId, Collections.emptySet()), workers);
+        });
     }
 
     private void processUnemployedWorkers(Set<Task> tasks, List<Entry<ICreatureController, Consumer<Boolean>>> workers) {
