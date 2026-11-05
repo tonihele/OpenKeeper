@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.component;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 
 /**
@@ -26,13 +27,19 @@ import com.simsilica.es.EntityComponent;
 public final class ShotViewState implements EntityComponent {
 
     public short shotId;
+    public Vector3f velocity; // Tiles per second, null when the shot doesn't fly
 
     public ShotViewState() {
         // For serialization
     }
 
     public ShotViewState(short shotId) {
+        this(shotId, null);
+    }
+
+    public ShotViewState(short shotId, Vector3f velocity) {
         this.shotId = shotId;
+        this.velocity = velocity;
     }
 
 }

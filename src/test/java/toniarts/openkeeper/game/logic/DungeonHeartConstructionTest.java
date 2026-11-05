@@ -17,17 +17,22 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.utils.WorldUtils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -41,6 +46,8 @@ class DungeonHeartConstructionTest {
 
     private static final short PLAYER_ID = 3;
     private static final float TICK = 1 / 60f;
+    private static final int PLUG_EFFECT_ID = 208;
+    private static final int TICKS_PER_SECOND = 4;
 
     private EntityData entityData;
     private EntityId plug;
@@ -57,7 +64,7 @@ class DungeonHeartConstructionTest {
 
     @Test
     void stepsAndArchesAreHiddenUntilTheHeartIsBuilt() {
-        new DungeonHeartConstruction(entityData, 0);
+        new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
 
         assertFalse(isVisible(steps));
         assertFalse(isVisible(arches));
@@ -66,7 +73,7 @@ class DungeonHeartConstructionTest {
 
     @Test
     void heartOpensWithoutADelay() {
-        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0);
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
 
         runFor(construction, 5.9f);
         assertPlugPresent();
@@ -85,7 +92,7 @@ class DungeonHeartConstructionTest {
     void heartOpensAfterTheLevelsDelay() {
 
         // Level 2 waits 15 seconds and level 8 16 seconds before the construction begins
-        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 15);
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 15, PLUG_EFFECT_ID, TICKS_PER_SECOND);
 
         runFor(construction, 20.9f);
         assertPlugPresent();
@@ -103,13 +110,79 @@ class DungeonHeartConstructionTest {
 
     @Test
     void plugIsRemovedEvenIfATickSkipsPastTheWholeConstruction() {
-        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0);
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
 
         construction.processTick(12f);
 
         assertPlugRemoved();
         assertTrue(isVisible(steps));
         assertTrue(isVisible(arches));
+    }
+
+    @Test
+    void levelStartsWithItsEffectAtTheHeart() {
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
+
+        runFor(construction, TICK);
+
+        assertEquals(1, countEffects(225));
+        assertEquals(0, countEffects(223));
+    }
+
+    @Test
+    void plugCracklesWithStaticWhileTheLevelWaits() {
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 15, PLUG_EFFECT_ID, TICKS_PER_SECOND);
+
+        runFor(construction, 2f);
+
+        // Every game tick, four a second
+        assertEquals(8, countEffects(223));
+        assertEquals(0, countEffects(225));
+    }
+
+    @Test
+    void plugBreaksApartWithItsEffect() {
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
+
+        runFor(construction, 5.9f);
+        assertEquals(0, countEffects(PLUG_EFFECT_ID));
+
+        runFor(construction, 0.2f);
+        assertEquals(1, countEffects(PLUG_EFFECT_ID));
+    }
+
+    @Test
+    void archesFadeInWithTheirEffect() {
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
+
+        runFor(construction, 6.9f);
+        assertEquals(0, countEffects(314));
+
+        runFor(construction, 0.2f);
+        assertEquals(1, countEffects(314));
+    }
+
+    @Test
+    void effectsPlayOnTheFloorInTheMiddleOfTheHeart() {
+        DungeonHeartConstruction construction = new DungeonHeartConstruction(entityData, 0, PLUG_EFFECT_ID, TICKS_PER_SECOND);
+
+        runFor(construction, TICK);
+
+        EntitySet effects = entityData.getEntities(EffectTrigger.class, Position.class);
+        assertEquals(new Vector3f(0, WorldUtils.FLOOR_HEIGHT, 0), effects.iterator().next().get(Position.class).position);
+        effects.release();
+    }
+
+    private int countEffects(int effectId) {
+        int count = 0;
+        EntitySet effects = entityData.getEntities(EffectTrigger.class);
+        for (Entity effect : effects) {
+            if (effect.get(EffectTrigger.class).effectId == effectId) {
+                count++;
+            }
+        }
+        effects.release();
+        return count;
     }
 
     private EntityId createObject(short objectId) {
