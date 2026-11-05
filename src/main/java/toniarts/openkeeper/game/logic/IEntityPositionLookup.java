@@ -121,6 +121,18 @@ public interface IEntityPositionLookup {
     boolean isTileBlocked(IMapTileInformation mapTile, short playerId);
 
     /**
+     * Gets the door that blocks a tile for player's entity. A door blocks
+     * everyone but its owner, and everyone if it is locked. Door blueprints
+     * block no one.
+     *
+     * @param x the x coordinate
+     * @param y the y coordinate
+     * @param playerId the player ID of which entity is wanting to know
+     * @return the door entity, or {@code null} if no door blocks the tile
+     */
+    EntityId getBlockingDoor(int x, int y, short playerId);
+
+    /**
      * Gets all the entities around given entity that you see or hear at this
      * given moment
      *
