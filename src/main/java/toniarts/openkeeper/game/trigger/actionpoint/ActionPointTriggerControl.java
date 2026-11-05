@@ -79,13 +79,13 @@ public final class ActionPointTriggerControl extends TriggerControl {
                             }
                         }
                         break;
-                    case 6: // Object
-                        break;
+                    case 6: // Object congregation is not implemented yet.
+                        return false;
                     default:
                         logger.log(Level.WARNING, "AP_CONGREGATE_IN unknown targetType {0}", type);
-                        break;
+                        return false;
                 }
-                return false;
+                break;
 
             case AP_POSESSED_CREATURE_ENTERS:
                 playerId = trigger.getUserData("playerId", short.class);
