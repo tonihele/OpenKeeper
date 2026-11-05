@@ -89,6 +89,9 @@ public interface IRoomController extends IRoomInformation {
 
     public Room getRoom();
 
+    /** Transfers a stored object's ownership through the object event service. */
+    void setObjectOwner(EntityId entityId, short playerId);
+
     /**
      * Are we the dungeon heart?
      *

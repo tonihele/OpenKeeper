@@ -367,6 +367,11 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      * @return the room type
      */
     @Override
+    public void setObjectOwner(EntityId entityId, short playerId) {
+        objectsController.setOwner(entityId, playerId);
+    }
+
+    @Override
     public Room getRoom() {
         return roomInstance.getRoom();
     }
