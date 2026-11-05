@@ -1410,7 +1410,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     reader.readIntegerAsFloat(),
                     reader.readIntegerAsFloat()
             );
-            creature.setUnkea0(reader.readInteger());
+            creature.getAttributes().setWidth(reader.readIntegerAsFloat());
             creature.getAttributes().setHeight(reader.readIntegerAsFloat());
             creature.setUnkea8(reader.readIntegerAsFloat());
             creature.setUnk3ab(reader.readUnsignedInteger());
