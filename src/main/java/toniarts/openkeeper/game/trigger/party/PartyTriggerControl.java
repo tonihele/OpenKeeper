@@ -64,7 +64,11 @@ public final class PartyTriggerControl extends TriggerControl {
                 return false;
 
             case PARTY_MEMBERS_CAPTURED:
+                if (!partyController.isCreated()) {
+                    return false;
+                }
                 value = (int) trigger.getUserData("value");
+                target = partyController.getCapturedMemberCount();
                 break;
 
             case PARTY_MEMBERS_INCAPACITATED:

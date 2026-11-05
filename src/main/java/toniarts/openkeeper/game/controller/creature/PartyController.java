@@ -16,8 +16,10 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.simsilica.es.EntityId;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -52,6 +54,10 @@ public final class PartyController implements IPartyController {
     private PartyType type;
     private ICreatureController leader;
     private boolean created = false;
+    // Preserve the native party identity independently of the historical instance roster.
+    private final Set<EntityId> detachedMembers = new HashSet<>();
+    // An incapacitated leader retains its native leader role after a successor is promoted.
+    private final Set<EntityId> membersWithLeaderRole = new HashSet<>();
 
     public PartyController(Thing.HeroParty heroParty) {
         partyId = heroParty.getId();
@@ -72,6 +78,33 @@ public final class PartyController implements IPartyController {
     @Override
     public boolean isCreated() {
         return created;
+    }
+
+    @Override
+    public int getCapturedMemberCount() {
+        if (!created) {
+            return 0;
+        }
+        int remaining = 0;
+        for (ICreatureController creature : members.values()) {
+            if (creature != null && !detachedMembers.contains(creature.getEntityId())
+                    && !creature.isDead() && creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                remaining++;
+            }
+        }
+        return members.size() - remaining;
+    }
+
+    @Override
+    public void onMemberUnconscious(EntityId entityId) {
+        if (!membersWithLeaderRole.contains(entityId)) {
+            detachedMembers.add(entityId);
+        }
+    }
+
+    @Override
+    public void onMemberConverted(EntityId entityId) {
+        detachedMembers.add(entityId);
     }
 
     @Override
@@ -114,8 +147,11 @@ public final class PartyController implements IPartyController {
     public void addMemberInstance(Thing.GoodCreature creature, ICreatureController entity) {
         members.put(creature, entity);
 
-        if (leader == null && creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER)) {
-            leader = entity;
+        if (creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER)) {
+            membersWithLeaderRole.add(entity.getEntityId());
+            if (leader == null) {
+                leader = entity;
+            }
         }
     }
 
@@ -165,6 +201,7 @@ public final class PartyController implements IPartyController {
             if (!leaderCandidates.isEmpty()) {
                 ICreatureController oldLeader = leader;
                 leader = Utils.getRandomItem(leaderCandidates);
+                membersWithLeaderRole.add(leader.getEntityId());
 
                 // Swap duties
                 // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
