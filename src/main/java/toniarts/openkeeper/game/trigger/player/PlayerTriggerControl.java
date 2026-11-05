@@ -115,7 +115,10 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_HAPPY_CREATURES:
                 return false;
             case PLAYER_ANGRY_CREATURES:
-                return false;
+                creatureId = trigger.getUserData("creatureId", short.class);
+                target = creaturesController.getAngryCreatureCount(playerId, creatureId);
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_CREATURES_KILLED:
                 return false;
             case PLAYER_KILLS_CREATURES:

@@ -2440,11 +2440,17 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                         case PLAYER_CREATURES:
                         case PLAYER_HAPPY_CREATURES:
-                        case PLAYER_ANGRY_CREATURES:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("creatureId", reader.readUnsignedByte());
                             trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case PLAYER_ANGRY_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                            reader.skipBytes(2); // Native anger count uses a fixed threshold, not another player.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
