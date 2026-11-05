@@ -29,6 +29,8 @@ import toniarts.openkeeper.utils.Point;
  */
 public interface IGameWorldController {
 
+    IDoorsController getDoorsController();
+
     /**
      * Add a lump sum of gold to a player, distributes the gold to the available
      * rooms
