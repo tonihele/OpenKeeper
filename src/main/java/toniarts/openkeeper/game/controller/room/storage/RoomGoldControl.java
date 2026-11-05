@@ -126,7 +126,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         // Create the loose gold
         if (!storedGoldList.isEmpty()) {
             for (Entry<Point, Integer> entry : storedGoldList.entrySet()) {
-                objectsController.addLooseGold(parent.getOwnerId(), entry.getKey().x, entry.getKey().y, entry.getValue(), getGoldPerObject());
+                objectsController.addLooseGold(entry.getKey().x, entry.getKey().y, entry.getValue(), getGoldPerObject());
             }
         }
     }
