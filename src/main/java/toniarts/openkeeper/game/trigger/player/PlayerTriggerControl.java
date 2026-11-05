@@ -450,11 +450,10 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private int getCreaturesCount(short playerId, short creatureId) {
-        if (creatureId == 0) {
-            return getPlayerController(playerId).getCreatureControl().getTypeCount();
-        } else {
-            return getPlayerController(playerId).getCreatureControl().getTypeCount(levelInfo.getLevelData().getCreature(creatureId));
-        }
+
+        // Not from the player's creature control, it only catches up on the next tick and a hero party
+        // created by an earlier trigger on this tick has to count already (Level19 is lost at once otherwise)
+        return creaturesController.getCreatureCount(getPlayer(playerId).getId(), creatureId);
     }
 
     private int getRoomSlabsCount(short playerId, short roomId) {
