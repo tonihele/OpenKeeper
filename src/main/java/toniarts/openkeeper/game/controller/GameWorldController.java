@@ -706,7 +706,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 if (goldLeft > 0) {
 
                     // Add loose gold to this tile
-                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                    objectsController.addLooseGold(moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
                 }
             }
         }
@@ -1130,8 +1130,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (owner == null || owner.controlId != playerId) {
+        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
             return false;
         }
 
@@ -1146,7 +1147,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         return EntityPickupValidator.isValidLocation(
-                entityData.getComponent(entityId, ObjectComponent.class),
+                objectComponent,
+                owner,
                 entityData.getComponent(entityId, Position.class),
                 playerId,
                 mapController.getMapData());
@@ -1331,10 +1333,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
             // The treasury is filled first, the rest forms a loose pile in the treasury
             if (leftOverGold > 0) {
-                dropLooseGold(playerId, tile, null, leftOverGold);
+                dropLooseGold(tile, null, leftOverGold);
             }
         } else {
-            dropLooseGold(playerId, tile, coordinates, gold.gold);
+            dropLooseGold(tile, coordinates, gold.gold);
         }
         entityData.removeEntity(entity);
     }
@@ -1342,27 +1344,26 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     /**
      * Drops loose gold from the hand. Like in DK II, the gold is added to a
      * loose gold pile already lying on the tile, there is no limit to the pile
-     * size. Gold can only be dropped on own land, and in DK II loose gold
-     * belongs to the owner of the land, so the pile becomes ours
+     * size. Like in DK II, the gold dropped from the hand has no owner, the
+     * land it lies on decides who can take it
      *
-     * @param playerId the player dropping the gold
      * @param tile the tile to drop the gold to
      * @param coordinates exact coordinates for a new pile, {@code null} for
      * anywhere on the tile
      * @param amount the amount of gold
      */
-    private void dropLooseGold(short playerId, Point tile, Vector2f coordinates, int amount) {
+    private void dropLooseGold(Point tile, Vector2f coordinates, int amount) {
         synchronized (GOLD_LOCK) {
             EntityId goldPile = findLooseGoldPile(entityData, entityPositionLookup, tile);
             if (goldPile != null) {
                 Gold gold = entityData.getComponent(goldPile, Gold.class);
                 entityData.setComponent(goldPile, new Gold(gold.gold + amount, gold.maxGold));
-                entityData.setComponent(goldPile, new Owner(playerId, playerId));
+                entityData.setComponent(goldPile, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
                 return;
             }
         }
 
-        EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        EntityId newGold = objectsController.addLooseGold(tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         if (coordinates != null) {
             Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
             entityData.setComponent(newGold, new Position(0, pos));
@@ -1414,7 +1415,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 int leftOverRequest = substractGold(realAmount, playerId);
                 realAmount -= leftOverRequest;
                 if (realAmount > 0) {
-                    EntityId goldEntity = objectsController.addLooseGold(playerId, 0, 0, realAmount, maxGold);
+                    EntityId goldEntity = objectsController.addLooseGold(0, 0, realAmount, maxGold);
                     putToKeeperHand(playerHandControl, goldEntity, playerId);
                 }
             }
@@ -1487,20 +1488,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // Validate
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target)) {
+        // Validate. The workers get more expensive the more of them there are
+        int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
+                (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target, manaCost)) {
             return;
-        }
-
-        // The workers get more expensive the more of them there are
-        int manaCost = keeperSpell.getManaCost();
-        if (keeperSpell.getFlags().contains(KeeperSpell.KeeperSpellFlag.CREATE_WORKER)) {
-            int minimumImpCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue();
-            int impCount = playerControllers.get(playerId).getCreatureControl().getImpCount();
-            manaCost *= Math.max(1, impCount + 1 - minimumImpCount);
-            if (manaCost > player.getMana() - player.getManaLoose()) {
-                return;
-            }
         }
 
         // Deduct the mana
