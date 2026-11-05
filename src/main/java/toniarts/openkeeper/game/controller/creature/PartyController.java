@@ -100,6 +100,8 @@ public final class PartyController implements IPartyController {
         if (!membersWithLeaderRole.contains(entityId)) {
             detachedMembers.add(entityId);
         }
+        // Native knockout promotes a successor before the next member can take damage.
+        checkPartyLeader();
     }
 
     @Override

@@ -261,15 +261,15 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private void processUnconscious(EntityId entityId, Health health) {
-        Party party = entityData.getComponent(entityId, Party.class);
-        if (party != null) {
-            creaturesController.getPartyById(party.partyId).onMemberUnconscious(entityId);
-        }
         entityData.removeComponent(entityId, AttackTarget.class);
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
         creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
+        Party party = entityData.getComponent(entityId, Party.class);
+        if (party != null) {
+            creaturesController.getPartyById(party.partyId).onMemberUnconscious(entityId);
+        }
         entityData.removeComponent(entityId, Navigation.class);
     }
 

@@ -102,6 +102,19 @@ class PartyCapturedTriggerTest {
     }
 
     @Test
+    void imprisoningAKnockedOutMemberDoesNotCountItTwice() {
+        try (Fixture f = new Fixture()) {
+            f.knockOut(1);
+            f.data.setComponent(f.ids.get(1), new CreatureImprisoned(0, 0));
+            f.data.setComponent(f.ids.get(1), new Owner(Player.GOOD_PLAYER_ID, (short) 3));
+            assertEquals(1, f.party.getCapturedMemberCount());
+            f.data.removeComponent(f.ids.get(1), CreatureImprisoned.class);
+            f.recover(1);
+            assertEquals(1, f.party.getCapturedMemberCount());
+        }
+    }
+
+    @Test
     void leaderKnockoutDoesNotCountAndPromotedLeadersKeepThatRole() {
         try (Fixture f = new Fixture(2)) {
             f.knockOut(0);
@@ -111,6 +124,15 @@ class PartyCapturedTriggerTest {
             assertEquals(0, f.party.getCapturedMemberCount());
             f.recover(0);
             f.knockOut(0);
+            assertEquals(0, f.party.getCapturedMemberCount());
+        }
+    }
+
+    @Test
+    void successiveKnockoutsPromoteLeadersWithoutAnInterveningLeaderQuery() {
+        try (Fixture f = new Fixture(2)) {
+            f.knockOut(0);
+            f.knockOut(1);
             assertEquals(0, f.party.getCapturedMemberCount());
         }
     }
