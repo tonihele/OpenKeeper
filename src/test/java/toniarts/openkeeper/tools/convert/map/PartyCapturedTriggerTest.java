@@ -138,6 +138,53 @@ class PartyCapturedTriggerTest {
     }
 
     @Test
+    void successorsFollowReverseSpawnOrderAndNeverReelectFormerLeaders() {
+        try (Fixture f = new Fixture(4)) {
+            f.knockOut(0);
+            assertSame(f.controllers.get(3), f.party.getPartyLeader());
+            f.recover(0);
+            f.knockOut(3);
+            assertSame(f.controllers.get(2), f.party.getPartyLeader());
+            f.recover(3);
+            f.knockOut(2);
+            assertSame(f.controllers.get(1), f.party.getPartyLeader());
+            assertEquals(0, f.party.getCapturedMemberCount());
+        }
+    }
+
+    @Test
+    void convertedAndRecoveredOrdinaryMembersCannotBecomeSuccessors() {
+        try (Fixture f = new Fixture(4)) {
+            f.convert(3, (short) 3);
+            f.convert(3, Player.GOOD_PLAYER_ID);
+            f.knockOut(2);
+            f.recover(2);
+            f.knockOut(0);
+            assertSame(f.controllers.get(1), f.party.getPartyLeader());
+            assertEquals(2, f.party.getCapturedMemberCount());
+        }
+    }
+
+    @Test
+    void anUnflaggedMemberIsNotAFallbackSuccessor() {
+        try (Fixture f = new Fixture(2, false)) {
+            f.knockOut(0);
+            assertSame(f.controllers.get(0), f.party.getPartyLeader());
+            f.knockOut(1);
+            assertEquals(1, f.party.getCapturedMemberCount());
+        }
+    }
+
+    @Test
+    void aMissingFollowerIsSkippedDuringSuccession() {
+        try (Fixture f = new Fixture(3)) {
+            f.data.removeEntity(f.ids.get(2));
+            f.knockOut(0);
+            assertSame(f.controllers.get(1), f.party.getPartyLeader());
+        }
+    }
+
+    @Test
     void conversionAndReturningToHeroesFollowTheNativeCountSequence() {
         try (Fixture f = new Fixture()) {
             assertEquals(0, f.party.getCapturedMemberCount());
@@ -209,7 +256,9 @@ class PartyCapturedTriggerTest {
 
         Fixture() { this(3); }
 
-        Fixture(int count) {
+        Fixture(int count) { this(count, true); }
+
+        Fixture(int count, boolean followerFlags) {
             definition.setCreatureId((short) 7);
             definition.setFlags(EnumSet.of(Creature.CreatureFlag.GENERATE_DEAD_BODY));
             var members = new ArrayList<Thing.GoodCreature>();
@@ -217,7 +266,8 @@ class PartyCapturedTriggerTest {
                 var member = new Thing.GoodCreature();
                 member.setCreatureId((short) 7);
                 member.setFlags(i == 0 ? EnumSet.of(Thing.Creature.CreatureFlag.LEADER)
-                        : EnumSet.noneOf(Thing.Creature.CreatureFlag.class));
+                        : (followerFlags ? EnumSet.of(Thing.Creature.CreatureFlag.FOLLOWER)
+                                : EnumSet.noneOf(Thing.Creature.CreatureFlag.class)));
                 members.add(member);
             }
             roster.setHeroPartyMembers(members);
