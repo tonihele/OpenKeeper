@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.creature;
 
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -41,12 +42,29 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
+    private final EntityData entityData;
+    private final ICreaturesController creaturesController;
+
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
         super(initTriggers(levelInfo.getLevelData(), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(CreatureComponent.class, Trigger.class),
                 creaturesController);
+        this.entityData = entityData;
+        this.creaturesController = creaturesController;
+    }
+
+    /** Runs the event now, independently of the ordinary trigger traversal. */
+    public void onAngry(EntityId entityId) {
+        Trigger binding = entityData.getComponent(entityId, Trigger.class);
+        if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {
+            return;
+        }
+        CreatureTriggerControl control = (CreatureTriggerControl) getTriggerControl(binding.triggerId);
+        if (control != null) {
+            control.onAngry(creaturesController.createController(entityId));
+        }
     }
 
     private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(IKwdFile kwdFile, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
