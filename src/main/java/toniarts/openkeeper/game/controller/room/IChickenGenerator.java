@@ -23,4 +23,11 @@ package toniarts.openkeeper.game.controller.room;
  */
 public interface IChickenGenerator extends IEntityGenerator {
 
+    /**
+     * Has this generator spawned a chicken since it was built or captured
+     *
+     * @return true if it has
+     */
+    boolean hasSpawned();
+
 }

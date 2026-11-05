@@ -361,11 +361,15 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     protected static ColorRGBA getPlayerColor(short ownerId) {
-        return getColor(MapThumbnailGenerator.getPlayerColor(ownerId));
+        Color color = MapThumbnailGenerator.getPlayerColor(ownerId);
+        if (color == null) {
+            return null;
+        }
+        return getColor(color);
     }
 
     protected final void setFlowerColor(ColorRGBA c) {
-        if (material != null) {
+        if (material != null && c != null) {
             material.setColor("Color", c);
         }
     }

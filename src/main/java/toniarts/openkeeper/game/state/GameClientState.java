@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
+import toniarts.openkeeper.view.text.GuardPostCounter;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -109,6 +111,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
     private TextParser textParser;
+    private GuardPostCounter guardPostCounter;
 
     /**
      * Single use game states
@@ -192,6 +195,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
         stateManager.detach(effectManagerState);
+        stateManager.detach(guardPostCounter);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -416,6 +420,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+                guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
+                        trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
+                textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
@@ -431,6 +438,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
                 stateManager.attach(effectManagerState);
+                stateManager.attach(guardPostCounter);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
@@ -628,8 +636,24 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onDoTransition(short pathId, Vector3f start) {
 
+            // Called from the game logic thread, the camera and the scene belong to the render thread
+            Vector3f startPoint = start.clone();
+            app.enqueue(() -> startTransition(pathId, startPoint));
+        }
+
+        /**
+         * Starts the camera transition on the render thread. If the camera
+         * state is not initialized yet, tries again on the next frame.
+         */
+        private void startTransition(short pathId, Vector3f start) {
+            PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
+            if (cameraState == null || !cameraState.isInitialized()) {
+                app.enqueue(() -> startTransition(pathId, start));
+                return;
+            }
+
             // TODO: Refactor
-            stateManager.getState(PlayerCameraState.class).doTransition(pathId, start, new CinematicEventListener() {
+            cameraState.doTransition(pathId, start, new CinematicEventListener() {
                 @Override
                 public void onPlay(CinematicEvent cinematic) {
 
