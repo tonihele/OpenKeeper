@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -115,6 +116,33 @@ class WorkerTaskAssignmentTest {
 
         assertEquals(List.of(true, true, true, true, false, false), List.of(results));
         assertEquals(4, assignedCount(tasks));
+    }
+
+    @Test
+    void droppedWorkerLooksForWorkPastTheFourOfATick() {
+
+        // DK II's idle imp state (0x463DF0) lets a just dropped imp (+0x99) look without counting it
+        TaskManager taskManager = taskManager();
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            Task task = task(new Point(10 + i, 10), creature -> true);
+            tasks.add(task);
+            taskManager.addTask(PLAYER_ID, task);
+        }
+        Boolean[] results = new Boolean[6];
+        for (int i = 0; i < results.length; i++) {
+            int worker = i;
+            ICreatureController imp = imp(new Point(i, 10));
+            if (i == 4) {
+                entityData.setComponent(imp.getEntityId(), new DropArea(new Point(i, 10)));
+            }
+            taskManager.addToUnemployedWorkerQueue(imp, gotWork -> results[worker] = gotWork);
+        }
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(true, true, true, true, true, false), List.of(results));
+        assertEquals(5, assignedCount(tasks));
     }
 
     @Test

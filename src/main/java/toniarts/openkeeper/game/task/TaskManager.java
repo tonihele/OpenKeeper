@@ -863,16 +863,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Only so many of a player's workers look for work on one tick, the others wander off and look again later. In
         // DK II the idle imp state (0x463DF0) counts the searches of the player's imps (CPlayer +0x7a, reset every tick
-        // in 0x4B9EC0) and sends the fifth and the next ones to wander
-        int searching = Math.min(workers.size(), MAX_WORKERS_LOOKING_FOR_WORK);
-        for (Entry<ICreatureController, Consumer<Boolean>> worker : workers.subList(searching, workers.size())) {
-            worker.getValue().accept(Boolean.FALSE);
+        // in 0x4B9EC0) and sends the fifth and the next ones to wander. A just dropped imp (CState +0x99) always looks and
+        // isn't counted
+        int searching = 0;
+        Map<ICreatureController, Consumer<Boolean>> unemployedWorkers = new HashMap<>();
+        for (Entry<ICreatureController, Consumer<Boolean>> worker : workers) {
+            boolean dropped = entityData.getComponent(worker.getKey().getEntityId(), DropArea.class) != null;
+            if (dropped || searching++ < MAX_WORKERS_LOOKING_FOR_WORK) {
+                unemployedWorkers.put(worker.getKey(), worker.getValue());
+            } else {
+                worker.getValue().accept(Boolean.FALSE);
+            }
         }
         Set<Task> taskQueue = new HashSet<>(tasks);
-        Map<ICreatureController, Consumer<Boolean>> unemployedWorkers = workers
-                .subList(0, searching)
-                .stream()
-                .collect(Collectors.toMap((entry) -> entry.getKey(), (entry) -> entry.getValue()));
 
         // Process each available task for each available worker
         List<TaskWorkerPriority> priorizedTasks = new LinkedList<>();
