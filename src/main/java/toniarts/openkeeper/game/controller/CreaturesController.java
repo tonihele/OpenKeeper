@@ -690,7 +690,33 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public int getHappyCreatureCount(short playerId, short creatureId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, CreatureComponent.class, Health.class, CreatureMood.class);
+        try {
+            int count = 0;
+            for (Entity entity : entities) {
+                short type = entity.get(CreatureComponent.class).creatureId;
+                if (creatureId != 0 && type != creatureId) {
+                    continue;
+                }
+                Creature creature = kwdFile.getCreature(type);
+                if (creature == null || creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
+                    continue;
+                }
+                int unhappyThreshold = CreatureMood.toRuntimeThreshold(
+                        creature.getAttributes().getUnhappyThreshold());
+                if (entity.get(CreatureMood.class).getState(unhappyThreshold) == 0) {
+                    count++;
+                }
+            }
+            return count;
+        } finally {
+            entities.release();
+        }
+    }
 
+    @Override
     public EntityId getPossessedCreature(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
         try {

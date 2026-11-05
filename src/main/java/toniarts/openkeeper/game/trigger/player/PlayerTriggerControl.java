@@ -113,7 +113,11 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case PLAYER_HAPPY_CREATURES:
-                return false;
+                creatureId = trigger.getUserData("creatureId", short.class);
+                target = creaturesController.getHappyCreatureCount(playerId, creatureId);
+                // DKII ignores the authored other-player operand for this condition.
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_ANGRY_CREATURES:
                 return false;
             case PLAYER_CREATURES_KILLED:

@@ -144,6 +144,9 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     EntityId getPossessedCreature(short playerId);
 
+    /** Counts owned non-worker creatures in normal mood; type zero selects all types. */
+    int getHappyCreatureCount(short playerId, short creatureId);
+
     /**
      * Spawns creatures at the given player's dungeon heart entrance. Does nothing if the player has no
      * dungeon heart to spawn creatures at.
