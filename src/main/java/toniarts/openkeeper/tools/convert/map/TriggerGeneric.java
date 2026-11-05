@@ -127,6 +127,15 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_SLAPS(71), // Player
         GUI_TRANSITION_ENDS(72), // GUI
         PLAYER_CREATURES_GROUPED(73), // Player
+        /**
+         * Compares the number of this player's unconscious creatures with a fixed
+         * threshold. The {@code creatureId} filter selects one creature type; zero
+         * counts all types. Ownership determines whose count a creature contributes to,
+         * independently of its attacker or captor. Low health alone does not qualify,
+         * recovered creatures stop counting, and corpses are excluded.
+         * For example, a greater-or-equal comparison with value 2 matches while at
+         * least two of this player's matching creatures are knocked unconscious.
+         */
         PLAYER_CREATURES_DYING(74);
 
         // Player

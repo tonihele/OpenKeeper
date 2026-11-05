@@ -261,7 +261,10 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURES_GROUPED:
                 return false;
             case PLAYER_CREATURES_DYING:
-                return false;
+                creatureId = trigger.getUserData("creatureId", short.class);
+                target = creaturesController.getDyingCreatureCount(playerId, creatureId);
+                value = trigger.getUserData("value", int.class);
+                break;
 
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
