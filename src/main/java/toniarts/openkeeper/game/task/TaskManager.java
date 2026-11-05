@@ -517,13 +517,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId, levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
         } // Repair wall
         else if (mapController.isRepairableWall(mapTile, terrain, playerId)) {
             addTask(playerId, new RepairWallTileTask(navigationService, mapController, tile, playerId));
         } // Claim room
         else if (mapController.isClaimableRoom(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimRoomTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new ClaimRoomTask(navigationService, mapController, tile, playerId, levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
         }
     }
 
