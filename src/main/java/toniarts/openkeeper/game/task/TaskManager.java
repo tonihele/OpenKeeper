@@ -32,6 +32,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
@@ -109,6 +110,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+    private static final int MAX_WORKERS_LOOKING_FOR_WORK = 4;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -128,7 +130,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
-    private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
+    private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new LinkedHashMap<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
@@ -848,8 +850,17 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void processUnemployedWorkers(Set<Task> tasks, List<Entry<ICreatureController, Consumer<Boolean>>> workers) {
+
+        // Only so many of a player's workers look for work on one tick, the others wander off and look again later. In
+        // DK II the idle imp state (0x463DF0) counts the searches of the player's imps (CPlayer +0x7a, reset every tick
+        // in 0x4B9EC0) and sends the fifth and the next ones to wander
+        int searching = Math.min(workers.size(), MAX_WORKERS_LOOKING_FOR_WORK);
+        for (Entry<ICreatureController, Consumer<Boolean>> worker : workers.subList(searching, workers.size())) {
+            worker.getValue().accept(Boolean.FALSE);
+        }
         Set<Task> taskQueue = new HashSet<>(tasks);
         Map<ICreatureController, Consumer<Boolean>> unemployedWorkers = workers
+                .subList(0, searching)
                 .stream()
                 .collect(Collectors.toMap((entry) -> entry.getKey(), (entry) -> entry.getValue()));
 

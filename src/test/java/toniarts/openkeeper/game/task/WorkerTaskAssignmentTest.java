@@ -95,6 +95,29 @@ class WorkerTaskAssignmentTest {
     }
 
     @Test
+    void onlyFourWorkersOfAPlayerLookForWorkOnATick() {
+
+        // DK II's idle imps (0x463DF0) send the fifth imp of a player looking for work on a tick off to wander
+        TaskManager taskManager = taskManager();
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            Task task = task(new Point(10 + i, 10), creature -> true);
+            tasks.add(task);
+            taskManager.addTask(PLAYER_ID, task);
+        }
+        Boolean[] results = new Boolean[6];
+        for (int i = 0; i < results.length; i++) {
+            int worker = i;
+            taskManager.addToUnemployedWorkerQueue(imp(new Point(i, 10)), gotWork -> results[worker] = gotWork);
+        }
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(true, true, true, true, false, false), List.of(results));
+        assertEquals(4, assignedCount(tasks));
+    }
+
+    @Test
     void workerThatIsNoLongerIdleDoesNotGetWork() {
         TaskManager taskManager = taskManager();
         Task task = task(new Point(5, 10), creature -> true);
