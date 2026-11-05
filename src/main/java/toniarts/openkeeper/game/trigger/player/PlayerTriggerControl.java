@@ -150,7 +150,10 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case PLAYER_ROOM_SIZE:
-                return false;
+                roomId = trigger.getUserData("roomId", short.class);
+                target = getPlayerController(playerId).getRoomControl().getLargestRoomSize(roomId);
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_DOORS:
                 return false;
             case PLAYER_TRAPS:

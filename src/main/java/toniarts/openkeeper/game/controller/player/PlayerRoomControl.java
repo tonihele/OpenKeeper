@@ -177,6 +177,25 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
     }
 
     /**
+     * Get the tile count of the largest individual owned room.
+     *
+     * @param roomId room type to consider, or zero for all room types
+     * @return largest room tile count, or zero when no matching room exists
+     */
+    public int getLargestRoomSize(short roomId) {
+        int largest = 0;
+        for (Map.Entry<Room, Set<IRoomController>> entry : roomControllers.entrySet()) {
+            if (roomId != 0 && entry.getKey().getRoomId() != roomId) {
+                continue;
+            }
+            for (IRoomController room : entry.getValue()) {
+                largest = Math.max(largest, room.getRoomInstance().getCoordinates().size());
+            }
+        }
+        return largest;
+    }
+
+    /**
      * Returns the dungeon heart of the player
      *
      * @return the dungeon heart
