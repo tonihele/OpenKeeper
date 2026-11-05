@@ -32,6 +32,7 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
+import com.jme3.post.filters.TranslucentBucketFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
@@ -653,6 +654,8 @@ public final class Main extends SimpleApplication {
                     Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
                     Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
+            // Render flames/particles after water, using the original scene depth.
+            fpp.addFilter(new TranslucentBucketFilter());
             viewPort.addProcessor(fpp);
         }
     }
