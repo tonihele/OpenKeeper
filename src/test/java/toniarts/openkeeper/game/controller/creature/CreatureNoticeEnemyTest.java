@@ -29,6 +29,7 @@ import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -102,6 +103,7 @@ class CreatureNoticeEnemyTest {
     @Test
     void seesAnEnemyOffTheMapAxes() {
         enemy = creature(Player.KEEPER1_ID, 12, 13);
+        walk = List.of(new Point(11, 11), new Point(12, 12), new Point(12, 13));
 
         assertEquals(enemy, attackTarget(creature(Player.GOOD_PLAYER_ID, 10, 10)));
     }
@@ -118,8 +120,19 @@ class CreatureNoticeEnemyTest {
     }
 
     @Test
+    void leavesAnEnemyInSightAloneWhenThereIsNoWayToIt() {
+        enemy = creature(Player.KEEPER1_ID, 13, 10);
+        EntityId hero = creature(Player.GOOD_PLAYER_ID, 10, 10);
+        data.setComponent(hero, new CreatureMeleeAttack(0, 10, 1, 0.6f));
+
+        // DK II picks a creature only when there is a path to it (0x45CB00 through 0x4D0E60)
+        assertNull(attackTarget(hero));
+    }
+
+    @Test
     void seesAnEnemyOfTheOtherAlignmentFurtherAway() {
         enemy = creature(Player.KEEPER1_ID, 14.2f, 10);
+        walk = List.of(new Point(11, 10), new Point(12, 10), new Point(13, 10), new Point(14, 10));
         EntityId hero = creature(Player.GOOD_PLAYER_ID, 10, 10);
 
         assertNull(attackTarget(hero));

@@ -587,7 +587,8 @@ public final class CreatureController extends EntityController implements ICreat
                 if (creaturesController.isValidEntity(entity)
                         && isEnemy(entity)
                         && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
-                        && isNoticed(entity)) {
+                        && isNoticed(entity)
+                        && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                     float distance = getDistanceToCreature(entity);
                     if (distance < nearestDistance) {
                         nearestDistance = distance;
@@ -605,6 +606,17 @@ public final class CreatureController extends EntityController implements ICreat
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
         return attackTargetController;
+    }
+
+    /**
+     * Whether we can walk to the creature. DK II picks a creature it notices
+     * only when there is a path to it (0x45CB00 through 0x4D0E60).
+     */
+    private boolean hasPathToEntity(EntityId entity) {
+        Point ourPos = WorldUtils.vectorToPoint(getPosition());
+        Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
+
+        return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
     }
 
     /**
