@@ -124,7 +124,24 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_ROOM_FURNITURE(68), // Player
         AP_TAG_ALL_OF(69), // Action point
         AP_POSESSED_CREATURE_ENTERS(70), // Action point
-        PLAYER_SLAPS(71), // Player
+        /**
+         * Compares this player's cumulative slap counter with the script's
+         * numeric value. Accepted creature and object hand slaps increase the
+         * counter; the target's owner receives credit, including when another
+         * keeper slaps a prisoner. Repeated slaps count separately even while
+         * the target still has an active slap effect.
+         * <p>
+         * For example, a map can show a warning after ten slaps. Secret1 uses
+         * this condition with a threshold of at least eleven. This is a polled
+         * numeric condition, not the creature-specific PLAYER_CREATURE_SLAPPED
+         * condition or an event that fires once per slap.
+         * <p>
+         * DKII always compares against the stored numeric value, ignoring the
+         * authored value/player flag and other-player selector. Its manual
+         * trap activation paths also write this counter; those interactions
+         * still need their own gameplay implementation in OpenKeeper.
+         */
+        PLAYER_SLAPS(71),
         GUI_TRANSITION_ENDS(72), // GUI
         PLAYER_CREATURES_GROUPED(73), // Player
         PLAYER_CREATURES_DYING(74);

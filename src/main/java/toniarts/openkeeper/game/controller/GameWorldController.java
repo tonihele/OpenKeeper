@@ -1178,9 +1178,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void notifySlap(EntityId entity, short playerId) {
+        recordSlap(entityData, playerControllers, entity);
         // The slap comes from the player's hand, so it has no place and only the player gets it
         gameEventService.emitToPlayer(GameEventType.HAND_SLAP, playerId);
         gameEventService.emit(GameEventType.SLAPPED, entity);
+    }
+
+    /** Records an accepted slap for the target owner, as DKII does even for prisoners. */
+    static void recordSlap(EntityData entityData, Map<Short, IPlayerController> playerControllers, EntityId entity) {
+        Owner owner = entityData.getComponent(entity, Owner.class);
+        IPlayerController player = owner != null ? playerControllers.get(owner.ownerId) : null;
+        if (player != null) {
+            player.getStatsControl().entitySlapped();
+        }
     }
 
     @Override
