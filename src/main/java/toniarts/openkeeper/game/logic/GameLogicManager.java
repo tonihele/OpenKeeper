@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
+import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
  * Runs the game logic tasks, well, doesn't literally run them but wraps them up
@@ -37,6 +38,20 @@ public final class GameLogicManager implements IGameLogicUpdatable {
 
     public GameLogicManager(IGameLogicUpdatable... updatables) {
         this.updatables = updatables;
+    }
+
+    /**
+     * Sets the clocks of the systems that count their own time, see
+     * {@link GameTimeCounter#setTimeElapsed(double)}
+     *
+     * @param time the time to count from, in seconds
+     */
+    public void setTimeElapsed(double time) {
+        for (IGameLogicUpdatable updatable : updatables) {
+            if (updatable instanceof GameTimeCounter counter) {
+                counter.setTimeElapsed(time);
+            }
+        }
     }
 
     @Override

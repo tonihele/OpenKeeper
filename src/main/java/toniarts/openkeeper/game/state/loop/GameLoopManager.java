@@ -173,6 +173,12 @@ public final class GameLoopManager {
         loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData),
                 new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
+
+        // A loaded game goes on from the time it was saved at, the times in its components are from that clock
+        if (saveGame != null) {
+            gameLogicThread.setTimeElapsed(saveGame.getGameTime());
+            gameAnimationThread.setTimeElapsed(saveGame.getGameTime());
+        }
     }
 
     public void pause() {

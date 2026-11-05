@@ -16,10 +16,21 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.tools.convert.map.PassiveExperienceFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Queued player actions run on the logic thread at the start of a tick, never
@@ -70,5 +81,26 @@ class GameLogicManagerTest {
 
         manager.processTick(0.25f);
         assertEquals(List.of("first", "second"), events);
+    }
+    @Test
+    void aCorpseOfALoadedGameDecaysOnSchedule() {
+        DefaultEntityData entityData = new DefaultEntityData();
+
+        // Died 1000 seconds in, the game was saved and loaded 10 seconds later
+        EntityId corpse = entityData.createEntity();
+        entityData.setComponent(corpse, new Death(1000));
+        IEntityController controller = (IEntityController) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IEntityController.class}, (proxy, method, args) -> null);
+        IEntityPositionLookup positions = (IEntityPositionLookup) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> controller);
+        GameLogicManager manager = new GameLogicManager(new DeathSystem(entityData, Map.of(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS,
+                PassiveExperienceFixtures.miscVariable(Variable.MiscVariable.MiscType.DEAD_BODY_DIES_AFTER_SECONDS, 30)), positions));
+        manager.setTimeElapsed(1010);
+
+        manager.processTick(19f);
+        assertNotNull(entityData.getComponent(corpse, Death.class));
+
+        manager.processTick(1f);
+        assertNull(entityData.getComponent(corpse, Death.class));
     }
 }
