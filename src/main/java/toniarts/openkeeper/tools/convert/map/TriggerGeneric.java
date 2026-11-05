@@ -91,7 +91,20 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_GOLD(30), // Player
         PLAYER_GOLD_MINED(31), // Player
         PLAYER_MANA(32), // Player
-        PLAYER_DESTROYS(33), // Player
+        /**
+         * Always succeeds in DKII. Despite its name, this condition does not
+         * measure anything the player has destroyed: the native evaluator
+         * ignores its comparison, target, player operand and threshold.
+         * <p>
+         * Child actions can therefore run even with an impossible comparison
+         * or with no destruction at all. Enclosing conditions and the script's
+         * repeat limits still apply. For example, a condition authored as
+         * greater than 1000 does not wait for 1000 destroyed things.
+         * <p>
+         * TODO: Implement real destruction tracking and evaluate the authored
+         * target and comparison instead of the native unconditional result.
+         */
+        PLAYER_DESTROYS(33),
         LEVEL_TIME(34), // Attribute, This level's...
         LEVEL_CREATURES(35), // Attribute, This level's...
         CREATURE_HEALTH(36), // Attribute, This creature's...

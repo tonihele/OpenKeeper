@@ -203,7 +203,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case PLAYER_DESTROYS:
-                return false;
+                return true; // DKII returns true here without consulting the operands.
             case PLAYER_CREATURES_AT_LEVEL:
                 return false;
             case PLAYER_KILLED:
