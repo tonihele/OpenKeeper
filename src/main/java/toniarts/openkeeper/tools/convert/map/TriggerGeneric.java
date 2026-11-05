@@ -111,7 +111,24 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_HUNGER_SATED(54), // Event, This creature is
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
         PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
-        PLAYER_ENEMY_BREACHED(57), // Event, This player's...
+        /**
+         * Fires for the player whose tile work destroys another owner's solid,
+         * ownable wall and replaces its terrain type. Partial damage, breaking
+         * one's own walls, digging unowned rock and attacking floors do not
+         * produce this event. Ownership inequality, rather than alliance state,
+         * determines eligibility.
+         * <p>
+         * For example, an Imp breaking a rival keeper's reinforced wall can
+         * trigger a message or advance an objective. Matching player-root
+         * branches and their child conditions run before terrain replacement;
+         * this is an event, not a persistent record of a past breach. DKII's
+         * dispatcher ignores the authored other-player filter for this event.
+         * <p>
+         * This covers DKII's tile-damage event source. A separate native wall
+         * attack caller emits additional events with different player routing;
+         * OpenKeeper's missing creature wall-attack path does not reproduce it.
+         */
+        PLAYER_ENEMY_BREACHED(57),
         PLAYER_CREATURE_PICKED_UP(58), // Event, This player's...
         PLAYER_CREATURE_DROPPED(59), // Event, This player's...
         PLAYER_CREATURE_SLAPPED(60), // Event, This player's...
