@@ -61,7 +61,7 @@ class AbstractRoomControllerTest {
     }
 
     @Test
-    void creaturesCanWalkOnTheCornersOfTheHeartsCentreButNothingIsStoredThere() {
+    void creaturesCanWalkOnTheHeartButItsCentreAndNothingIsStoredInside() {
         EntityData entityData = new DefaultEntityData();
         RoomInstance roomInstance = new RoomInstance(new Room());
         for (int y = 10; y < 15; y++) {
@@ -75,8 +75,9 @@ class AbstractRoomControllerTest {
 
         assertTrue(heart.isTileAccessible(new Point(20, 11), new Point(21, 11)));
         assertTrue(heart.isTileAccessible(new Point(23, 14), new Point(23, 13)));
-        assertFalse(heart.isTileAccessible(new Point(22, 10), new Point(22, 11)));
+        assertTrue(heart.isTileAccessible(new Point(22, 10), new Point(22, 11)));
         assertFalse(heart.isTileAccessible(new Point(21, 11), new Point(22, 12)));
+        assertFalse(heart.isTileAccessible(new Point(22, 11), new Point(22, 12)));
         assertFalse(heart.isTileAccessible(null, new Point(21, 11)));
         assertTrue(heart.isTileAccessible(null, new Point(20, 12)));
     }
