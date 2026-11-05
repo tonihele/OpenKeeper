@@ -221,9 +221,19 @@ public class EntityController implements IEntityController {
     }
 
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
-        Damage damage = entityData.getComponent(entityId, Damage.class);
-        int damageTotal = damage != null ? damage.damage : 0;
-        entityData.setComponent(entityId, new Damage(damageTotal + damageAmount));
+        setDamage(entityData, entityId, damageAmount, (short) 0);
+    }
+
+    /** Accumulates damage, preserving the player whose hit first makes this batch lethal. */
+    public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount, short playerId) {
+        Damage pending = entityData.getComponent(entityId, Damage.class);
+        int damageTotal = pending != null ? pending.damage : 0;
+        short creditedPlayer = pending != null ? pending.playerId : 0;
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (damageAmount > 0 && (health == null || damageTotal < health.health)) {
+            creditedPlayer = playerId;
+        }
+        entityData.setComponent(entityId, new Damage(damageTotal + damageAmount, creditedPlayer));
     }
 
     @Override

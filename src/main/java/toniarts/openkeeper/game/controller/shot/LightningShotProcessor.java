@@ -82,7 +82,7 @@ public final class LightningShotProcessor implements IShotProcessor {
             if (isOnWater(targetPosition)) {
                 damage *= 2;
             }
-            EntityController.setDamage(entityData, target, damage);
+            EntityController.setDamage(entityData, target, damage, request.playerId());
 
             if (creature != null && canBeKnockedDown(target, creature)) {
                 creaturesController.createController(target).knockDown();
