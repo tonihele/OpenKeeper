@@ -38,6 +38,12 @@ public final class Navigation implements EntityComponent {
      */
     public boolean pursuingAttackTarget;
 
+    /**
+     * The end of the walk may be inside an obstacle, like the Dungeon Heart's
+     * (DK II's walks with request flag 0x20 or 0x40)
+     */
+    public boolean endInObstacle;
+
     public Navigation() {
         // For serialization
     }
@@ -51,6 +57,11 @@ public final class Navigation implements EntityComponent {
         this.faceTarget = faceTarget;
         this.navigationPath = navigationPath;
         this.pursuingAttackTarget = pursuingAttackTarget;
+    }
+
+    public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath, boolean pursuingAttackTarget, boolean endInObstacle) {
+        this(target, faceTarget, navigationPath, pursuingAttackTarget);
+        this.endInObstacle = endInObstacle;
     }
 
 }

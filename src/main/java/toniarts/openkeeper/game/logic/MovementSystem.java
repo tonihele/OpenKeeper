@@ -442,6 +442,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
             entityData.removeComponent(entity.getId(), Navigation.class);
             return;
         }
+        if (steeringBehavior.getPathFollowing() != null) {
+            steeringBehavior.getPathFollowing().setEndInObstacle(navigation.endInObstacle);
+        }
         steerableEntitiesByEntityId.put(entity.getId(), steerableEntity);
         steeringBehaviorsBySteerableEntity.put(steerableEntity, steeringBehavior);
         steerableEntitiesBySteeringBehavior.put(steeringBehavior, steerableEntity);
@@ -512,7 +515,12 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
         // apply linear
         steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
-        move(steerableEntity, tpf);
+        FollowWaypoints pathFollowing = steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing();
+        if (pathFollowing != null && pathFollowing.isLanding(steerableEntity.getLinearVelocity())) {
+            land(steerableEntity, pathFollowing.getEnd(), tpf);
+        } else {
+            move(steerableEntity, tpf);
+        }
 
         // Update orientation and angular velocity
         if (INDEPENDENT_FACING
@@ -556,6 +564,26 @@ public final class MovementSystem implements IGameLogicUpdatable {
      */
     private void move(ISteerableEntity steerable, float tpf) {
         move(steerable.getPosition(), steerable.getLinearVelocity(), tpf, false);
+    }
+
+    /**
+     * Goes straight to the end of the walk at the same speed and stops there
+     *
+     * @param steerable the entity
+     * @param end the end of its walk
+     * @param tpf the time of the step
+     */
+    private static void land(ISteerableEntity steerable, Vector2 end, float tpf) {
+        Vector2 position = steerable.getPosition();
+        Vector2 velocity = steerable.getLinearVelocity();
+        float speed = velocity.len();
+        if (position.dst(end) <= Math.max(speed * tpf, 0.001f)) {
+            position.set(end);
+            velocity.setZero();
+        } else {
+            velocity.set(end).sub(position).setLength(speed);
+            position.mulAdd(velocity, tpf);
+        }
     }
 
     private void move(Vector2 position, Vector2 velocity, float tpf, boolean avoidHeart) {

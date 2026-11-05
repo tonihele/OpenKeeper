@@ -97,6 +97,8 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
     private int stalls;
     private float remaining = Float.MAX_VALUE;
     private boolean throughObstacles;
+    private boolean endInObstacle;
+    private boolean landing;
 
     /**
      * Follows the waypoints from the first one the creature hasn't walked past
@@ -147,7 +149,7 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
         }
         Vector2 target = waypoints.get(waypoint);
         float distance = position.dst(target);
-        if (waypoint == last && distance < (worker ? WORKER_FINISH_DISTANCE : FINISH_RADII * owner.getBoundingRadius())) {
+        if (waypoint == last && (landing ? distance == 0 : distance < (worker ? WORKER_FINISH_DISTANCE : FINISH_RADII * owner.getBoundingRadius()))) {
             finished = true;
             return steering;
         }
@@ -192,7 +194,54 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
      * @return true if the obstacles don't hold it
      */
     public boolean isThroughObstacles() {
-        return throughObstacles && !finished;
+        return (throughObstacles || endInObstacle && isNearTheEnd()) && !finished;
+    }
+
+    /**
+     * Lets the walk end inside an obstacle. DK II's pilot doesn't hold such a
+     * walk off obstacles on its last leg within a tile and the creature's
+     * radius of the end (0x4D0F60, 0x4D31D0)
+     *
+     * @param endInObstacle whether the walk may end inside an obstacle
+     */
+    public void setEndInObstacle(boolean endInObstacle) {
+        this.endInObstacle = endInObstacle;
+    }
+
+    /**
+     * Whether the creature gets to the end of a walk that may end inside an
+     * obstacle within a game tick at its velocity. DK II's pilot then puts it
+     * on the end and stops it (0x4D4760).
+     *
+     * @param velocity the velocity of the creature
+     * @return true if it lands on the end
+     */
+    public boolean isLanding(Vector2 velocity) {
+        landing |= endInObstacle && waypoint == waypoints.size() - 1
+                && getOctagonalDistance(getEnd().x - owner.getPosition().x, getEnd().y - owner.getPosition().y)
+                < getOctagonalDistance(velocity.x, velocity.y) / ticksPerSecond;
+        return landing && !finished;
+    }
+
+    /**
+     * Where the walk ends
+     *
+     * @return the last waypoint
+     */
+    public Vector2 getEnd() {
+        return waypoints.get(waypoints.size() - 1);
+    }
+
+    private boolean isNearTheEnd() {
+        return waypoint == waypoints.size() - 1 && getOctagonalDistance(getEnd().x - owner.getPosition().x,
+                getEnd().y - owner.getPosition().y) <= owner.getBoundingRadius() + 1;
+    }
+
+    /**
+     * DK II's distance, the longer side plus half the shorter one
+     */
+    private static float getOctagonalDistance(float dx, float dy) {
+        return Math.max(Math.abs(dx), Math.abs(dy)) + Math.min(Math.abs(dx), Math.abs(dy)) / 2;
     }
 
 }

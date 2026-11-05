@@ -664,6 +664,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition,
             boolean pursuingAttackTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, workPosition, pursuingAttackTarget, false);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition,
+            boolean pursuingAttackTarget, boolean endInObstacle) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
@@ -694,7 +699,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (navigationPath.size() > 1) {
             navigationPath = navigationService.smoothPath(navigationPath, creature.getAttributes().getWidth() / 2, this);
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget));
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget, endInObstacle));
         return false;
     }
 
@@ -1599,7 +1604,9 @@ public final class CreatureController extends EntityController implements ICreat
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point p = keeper.getDungeonHeartLocation();
-            createNavigation(getCreatureCoordinates(), new Point(p.x - 2, p.y - 2), null);
+
+            // The walk may end inside the heart's obstacle (DK II's withdraw 0x4611D0 asks for it with 0x20 / 0x40)
+            createNavigation(getCreatureCoordinates(), new Point(p.x - 2, p.y - 2), null, null, false, true);
         } else {
             navigateToRandomPoint();
         }

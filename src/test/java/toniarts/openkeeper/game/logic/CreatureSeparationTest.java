@@ -67,6 +67,7 @@ class CreatureSeparationTest {
     private static final short KNIGHT = 13;
     private static final short GIANT = 9;
     private static final short IMP = 1;
+    private static final short WORKER = 2;
     private static final short REAPER = 27;
     private static final float KNIGHT_WIDTH = 0.33f;
     private static final float KNIGHT_SPEED = 0.5f;
@@ -76,6 +77,7 @@ class CreatureSeparationTest {
             KNIGHT, ShotFixtures.creature(KNIGHT, KNIGHT_WIDTH, 4),
             GIANT, ShotFixtures.creature(GIANT, 0.9f, 5),
             IMP, ShotFixtures.creature(IMP, 0.9f, 1),
+            WORKER, ShotFixtures.creature(WORKER, EnumSet.of(Creature.CreatureFlag.IS_WORKER), EnumSet.noneOf(Creature.CreatureFlag3.class)),
             REAPER, ShotFixtures.creature(REAPER, EnumSet.of(Creature.CreatureFlag.IS_HORNY), EnumSet.noneOf(Creature.CreatureFlag3.class)));
     private final Set<Point> solidTiles = Set.of(new Point(2, 1), new Point(3, 1), new Point(4, 1), new Point(5, 1), new Point(6, 1),
             new Point(2, 3), new Point(3, 3), new Point(4, 3), new Point(5, 3), new Point(6, 3));
@@ -194,6 +196,20 @@ class CreatureSeparationTest {
 
         assertNull(entityData.getComponent(walker, Navigation.class), "Still walking");
         assertEquals(0, position(walker).dst(5, 6), 0.1f);
+    }
+
+    @Test
+    void aWithdrawingCreatureLandsOnItsEndInsideTheHeart() {
+        heart();
+        EntityId walker = creature(WORKER, new Point(6, 3), new Point(6, 6));
+        Navigation navigation = entityData.getComponent(walker, Navigation.class);
+        entityData.setComponent(walker, new Navigation(navigation.target, null, navigation.navigationPath, false, true));
+
+        // A walk asked with 0x20 / 0x40 isn't held off obstacles near its end and lands on it (0x4D31D0, 0x4D4760)
+        run(60 * 7, frame -> {});
+
+        assertNull(entityData.getComponent(walker, Navigation.class), "Still walking");
+        assertEquals(0, position(walker).dst(6, 6), 0.001f);
     }
 
     @Test
