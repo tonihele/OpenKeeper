@@ -30,6 +30,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Health;
@@ -235,6 +236,23 @@ class CreatureBackOffTest {
 
         assertFalse(controller(warlock).canStepBack());
         assertTrue(controller(goblin).canStepBack());
+    }
+
+    @Test
+    void creatureThatWalkedAwayTakesNoShare() {
+
+        // Two Warlocks cast at a Knight and one has walked away, so the other takes the Knight's whole threat
+        EntityId warlock = creature(Player.KEEPER1_ID, 10, 50, 20, 1.08f);
+        EntityId walkedAway = creature(Player.KEEPER1_ID, 12, 50, 20, 1.08f);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 11, 533, 213, 0.9f);
+        fight(warlock, knight);
+        fight(walkedAway, knight);
+        fight(knight, warlock);
+        CreatureController controller = controller(warlock);
+        assertTrue(controller.canStepBack());
+
+        data.setComponent(walkedAway, new CreatureAi(0, CreatureState.FLEE, (short) 5));
+        assertFalse(controller.canStepBack());
     }
 
     @Test

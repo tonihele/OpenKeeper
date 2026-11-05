@@ -2233,8 +2233,11 @@ public final class CreatureController extends EntityController implements ICreat
             AttackTarget enemyTarget = entityData.getComponent(enemy, AttackTarget.class);
             int shares = (enemyTarget != null && entityId.equals(enemyTarget.entityId) ? 1 : 0)
                     + (ourTarget != null && enemy.equals(ourTarget.entityId) ? 1 : 0);
-            if (shares > 0 && isEnemy(enemy) && isThreat(enemy)) {
-                int opponents = entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", enemy), AttackTarget.class).size()
+            if (shares > 0 && isEnemy(enemy) && isThreat(enemy) && !isFleeing(enemy)) {
+
+                // A creature that walked away has left the fight, it takes no share (DK II 0x4602E0)
+                int opponents = (int) entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", enemy), AttackTarget.class)
+                        .stream().filter(attacker -> !isFleeing(attacker)).count()
                         + (enemyTarget != null ? 1 : 0);
                 threat += shares * (getThreat(enemy) / opponents);
             }
