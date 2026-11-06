@@ -30,6 +30,18 @@ public final class CreatureImprisonedFixtures {
         return creature;
     }
 
+    public static Creature tortureVictim() {
+        Creature creature=creature();
+        creature.getAttributes().setTortureHpChange((short)-10);
+        return creature;
+    }
+
+    public static Creature imp() {
+        Creature imp=creature();
+        imp.setCreatureId((short)1);
+        return imp;
+    }
+
     public static Thing.GoodCreature hero() {
         Thing.GoodCreature hero=CreatureAngryFixtures.thing(1);
         hero.setCreatureId((short)6);hero.setLevel((short)1);

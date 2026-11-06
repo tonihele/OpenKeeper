@@ -26,6 +26,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -98,12 +100,12 @@ class CreatureTorturedTriggerTest {
     }
 
     @Test
-    void spawningInAnOwnedTortureRoomDoesNotCreateAnAdmission() {
+    void spawningInAnOwnedTortureRoomAlsoCreatesAnAdmission() {
         try(Fixture f=new Fixture(255,false)) {
             f.instance.setOwnerId((short)1);
             f.factory(true);
-            f.assertLoaded(CreatureState.IDLE,true);
-            assertNull(f.lastAdmission);
+            f.assertLoaded(CreatureState.TORTURED,true);
+            assertNotNull(f.lastAdmission);
         }
     }
 
@@ -120,7 +122,41 @@ class CreatureTorturedTriggerTest {
     void aDeadBodyPlacedInTortureDoesNotEmitAnAdmission() {
         try(Fixture f=new Fixture(255,false)) {
             f.loadBody=true;f.factory(true);
-            f.assertLoaded(CreatureState.TORTURED,false);
+            f.assertLoaded(CreatureState.IDLE,false);
+            assertNull(f.lastAdmission);
+        }
+    }
+
+    @Test
+    void runtimeSpawnOnEmptyFloorStaysIdleWithoutAnEvent() {
+        try(Fixture f=new Fixture(255,false)) {
+            f.data.removeComponent(f.entity,Trigger.class);
+            CreaturesController factory=f.factory(false);f.bindScripts();
+            factory.spawnCreature(CreatureImprisonedFixtures.hero(),new Vector2f(0,1));
+            f.assertLoaded(CreatureState.IDLE,true);f.tick();assertEquals(0,f.flags[0]);
+            assertNull(f.lastAdmission);
+        }
+    }
+
+    @Test
+    void runtimeSpawnCannotDisplaceAnExistingTortureOccupant() {
+        try(Fixture f=new Fixture(255,false)) {
+            f.data.removeComponent(f.entity,Trigger.class);
+            f.storage.tryAdmit(f.entity,new Vector2f(1,1));
+            CreaturesController factory=f.factory(false);f.bindScripts();
+            factory.spawnCreature(CreatureImprisonedFixtures.hero(),new Vector2f(1,1));
+            f.assertLoaded(CreatureState.IDLE,true);f.tick();assertEquals(0,f.flags[0]);
+            assertNull(f.lastAdmission);
+        }
+    }
+
+    @Test
+    void ownRoomImpSpawnDoesNotCreateATortureAdmission() {
+        try(Fixture f=new Fixture(255,false)) {
+            f.data.removeComponent(f.entity,Trigger.class);
+            CreaturesController factory=f.factory(false);f.bindScripts();
+            factory.spawnCreature((short)1,(short)3,(short)1,new Vector2f(1,1),ICreaturesController.SpawnType.PLACE);
+            f.assertLoaded(CreatureState.IDLE,true);f.tick();assertEquals(0,f.flags[0]);
             assertNull(f.lastAdmission);
         }
     }
@@ -250,6 +286,7 @@ class CreatureTorturedTriggerTest {
         final EntityData data=new DefaultEntityData();
         final EntityId entity=data.createEntity();
         final EntityId roomId=data.createEntity();
+        final EntityId device=data.createEntity();
         final int[] flags=new int[4];
         final List<Integer> actionOrder=new ArrayList<>();
         final Thread simulation=Thread.currentThread();
@@ -277,13 +314,16 @@ class CreatureTorturedTriggerTest {
             records.put(1,CreatureAngryFixtures.condition(1,CREATURE_TORTURED,-1,0,repeats));
             records.put(-1,CreatureAngryFixtures.action(-1,0));
             instance.setOwnerId((short)3);instance.addCoordinate(new Point(1,1));
+            data.setComponents(device,new ObjectComponent((short)61,ObjectType.TORTUREE),
+                    new Position(0,new Vector3f(1,0,1)));
             CreatureComponent component=new CreatureComponent();component.creatureId=6;
             data.setComponents(entity,component,new Trigger(1),new Health(100,100),
                     new Owner((short)1,(short)1),new Position(0,new Vector3f(1,0,1)),
                     new CreatureAi(0,CreatureState.IDLE,(short)6));
             kwd=proxy(IKwdFile.class,(name,args)->switch(name) {
                 case "getTriggers" -> records;
-                case "getCreature","getImp" -> creature;
+                case "getCreature" -> ((Number)args[0]).shortValue()==1 ? CreatureImprisonedFixtures.imp() : creature;
+                case "getImp" -> CreatureImprisonedFixtures.imp();
                 case "getCreatureStats" -> null;
                 case "getGameLevel" -> CreatureSleepFixtures.level(4);
                 case "getThings" -> !includeThings ? List.of() : loadBody
@@ -321,6 +361,8 @@ class CreatureTorturedTriggerTest {
                 case "getRoomInstance" -> instance;
                 case "hasObjectControl" -> args[0]==ObjectType.TORTUREE;
                 case "getObjectControl" -> storage;
+                case "getFloorFurniture" -> Set.of(device);
+                case "getWallFurniture" -> Set.of();
                 default -> throw new UnsupportedOperationException(name);
             });
             storage=new RoomTortureeControl(kwd,room,data,()->20) {

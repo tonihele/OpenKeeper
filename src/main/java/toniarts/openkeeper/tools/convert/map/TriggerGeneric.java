@@ -127,11 +127,12 @@ public final class TriggerGeneric extends Trigger {
          * delivery-time state; ordinary polling stays false. This differs from
          * native synchronous timing and does not independently dispatch nested events.
          * <p>
-         * TODO #1010: current OpenKeeper admission rules still accept arbitrary
-         * enemy torture-room tiles, without DK II's device/proximity/occupancy
-         * checks. Own-room admissions are not supported by those existing paths.
-         * Event delivery preserves these gameplay rules; it does not establish
-         * full native torture admission or repeat-counter parity.
+         * Both producers require a living creature at an available chair or wheel
+         * on the same tile, within DK II's fixed-point proximity check. Another
+         * creature undergoing torture blocks the tile; idle bystanders do not. Own-room creatures
+         * can enter torture, except Imps. Rejected drops release the creature and
+         * emit no admission. This does not establish full native command-eligibility,
+         * synchronous timing or repeat-counter parity.
          * <p>
          * Example: dropping a scripted captured hero into torture runs a message
          * or objective branch once on admission, rather than every tick throughout
