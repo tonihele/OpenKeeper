@@ -2459,12 +2459,18 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                         case PLAYER_ROOMS:
                         case PLAYER_ROOM_SLABS:
-                        case PLAYER_ROOM_SIZE:
                         case PLAYER_ROOM_FURNITURE:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("roomId", reader.readUnsignedByte());
                             trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case PLAYER_ROOM_SIZE:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("roomId", reader.readUnsignedByte());
+                            reader.skipBytes(2); // The native largest-room condition ignores these bytes.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 

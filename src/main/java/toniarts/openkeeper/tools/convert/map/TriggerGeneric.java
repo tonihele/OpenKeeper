@@ -84,7 +84,17 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_KILLS_CREATURES(23), // Player
         PLAYER_ROOM_SLABS(24), // Player
         PLAYER_ROOMS(25), // Player
-        PLAYER_ROOM_SIZE(26), // Player
+        /**
+         * Compares the tile count of this player's largest individual room with a
+         * fixed threshold. The {@code roomId} filter selects one room type; zero
+         * considers every type, including nonbuildable rooms. With no matching room,
+         * the size is zero.
+         * Separate rooms are not added together: two 9-tile rooms have a largest
+         * size of 9, not 18. For example, a greater-or-equal comparison with value
+         * 25 matches when the player owns a matching room of at least 25 tiles.
+         * This measures room area, not its furniture count or creature capacity.
+         */
+        PLAYER_ROOM_SIZE(26),
         PLAYER_DOORS(27), // Player
         PLAYER_TRAPS(28), // Player
         PLAYER_KEEPER_SPELL(29), // Player
