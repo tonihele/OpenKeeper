@@ -46,7 +46,9 @@ public final class BenchmarkSuiteRunner {
         int runs = 3;
         List<String> workloads = new ArrayList<>();
         Path outRoot = Path.of("baselines", "performance");
+        Path compareBaseline = null;
         boolean updateVisualRefsOnFirstRun = true;
+        boolean writeOfficial = true;
         boolean fullSuite = false;
         double duration = -1;
 
@@ -60,7 +62,9 @@ public final class BenchmarkSuiteRunner {
                 }
                 case "--full" -> fullSuite = true;
                 case "--out" -> outRoot = Path.of(args[++i]);
+                case "--compare" -> compareBaseline = Path.of(args[++i]);
                 case "--no-update-visual-refs" -> updateVisualRefsOnFirstRun = false;
+                case "--no-official" -> writeOfficial = false;
                 case "--duration" -> duration = Double.parseDouble(args[++i]);
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
@@ -97,7 +101,8 @@ public final class BenchmarkSuiteRunner {
                 WorkloadProfile profile = WorkloadProfile.byId(workloadId);
                 Path outJson = runDir.resolve(profile.getId() + ".json");
                 Path childLog = runDir.resolve(profile.getId() + ".log");
-                int exit = launchMain(profile, outJson, childLog, run, updateVisualRefsOnFirstRun && run == 1, duration);
+                int exit = launchMain(profile, outJson, childLog, run, updateVisualRefsOnFirstRun && run == 1,
+                        duration, compareBaseline);
                 produced.add(outJson.toString().replace('\\', '/'));
                 if (exit != 0) {
                     throw new IllegalStateException("Benchmark child failed for " + profile.getId()
@@ -119,13 +124,27 @@ public final class BenchmarkSuiteRunner {
                     primaryRunFiles, BaselineAggregator.defaultMachineId());
             baseline.put("sessionDir", sessionDir.toString().replace('\\', '/'));
             baseline.put("workloadId", WorkloadProfile.LATE_CAMPAIGN_DENSE.getId());
-            Path official = outRoot.resolve("official-baseline-" + BaselineAggregator.defaultMachineId() + ".json");
-            BaselineAggregator.write(official, baseline);
-            // Stable pointer
-            Path latest = outRoot.resolve("official-baseline-latest.json");
-            BaselineAggregator.write(latest, baseline);
-            logger.log(Level.INFO, "Official baseline written to {0}", official.toAbsolutePath());
-            System.out.println("OFFICIAL_BASELINE=" + official.toAbsolutePath());
+            Path aggregatePath = outRoot.resolve("candidate-baseline-" + BaselineAggregator.defaultMachineId() + ".json");
+            BaselineAggregator.write(aggregatePath, baseline);
+            System.out.println("CANDIDATE_BASELINE=" + aggregatePath.toAbsolutePath());
+
+            if (writeOfficial) {
+                Path official = outRoot.resolve("official-baseline-" + BaselineAggregator.defaultMachineId() + ".json");
+                BaselineAggregator.write(official, baseline);
+                Path latest = outRoot.resolve("official-baseline-latest.json");
+                BaselineAggregator.write(latest, baseline);
+                logger.log(Level.INFO, "Official baseline written to {0}", official.toAbsolutePath());
+                System.out.println("OFFICIAL_BASELINE=" + official.toAbsolutePath());
+            }
+
+            if (compareBaseline != null && Files.isRegularFile(compareBaseline)) {
+                Map<String, Object> compareReport = RegressionComparer.compareAggregates(
+                        compareBaseline, aggregatePath);
+                Path reportPath = outRoot.resolve("regression-vs-baseline.json");
+                BenchmarkResultWriter.write(reportPath, compareReport);
+                System.out.println("REGRESSION_REPORT=" + reportPath.toAbsolutePath());
+                System.out.println("REGRESSION_STATUS=" + compareReport.get("overall"));
+            }
         } else {
             logger.log(Level.WARNING, "Skipped official aggregate; primary workload files={0} runs={1}",
                     primaryRunFiles.size(), runs);
@@ -133,7 +152,7 @@ public final class BenchmarkSuiteRunner {
     }
 
     private static int launchMain(WorkloadProfile profile, Path outJson, Path childLog, int runIndex,
-            boolean updateVisualRefs, double durationOverride) throws Exception {
+            boolean updateVisualRefs, double durationOverride, Path compareBaseline) throws Exception {
         String java = ProcessHandle.current().info().command().orElse("java");
         String cp = System.getProperty("java.class.path");
         List<String> cmd = new ArrayList<>();
@@ -157,6 +176,10 @@ public final class BenchmarkSuiteRunner {
         }
         if (updateVisualRefs) {
             cmd.add("-benchmark-update-visual-refs");
+        }
+        if (compareBaseline != null) {
+            cmd.add("-benchmark-compare");
+            cmd.add(compareBaseline.toString());
         }
         cmd.add("-nomovies");
 

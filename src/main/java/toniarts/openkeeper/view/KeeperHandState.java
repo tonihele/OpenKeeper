@@ -156,8 +156,6 @@ public abstract class KeeperHandState extends AbstractAppState {
 
         updateHandCamera();
 
-        // Held things are outside the world's lighting: always fully lit
-        AssetUtils.applyFullLight(handRootNode);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
     }
@@ -363,6 +361,9 @@ public abstract class KeeperHandState extends AbstractAppState {
             if (currentItem instanceof ObjectViewControl) {
                 AnimationLoader.playAnimation(itemNode, currentItem.getInHandMesh(), assetManager);
             }
+            // Held things are outside the world's lighting: fully lit once
+            // when hand content changes (not every frame)
+            AssetUtils.applyFullLight(handRootNode);
         }
     }
 

@@ -181,6 +181,13 @@ public final class LightRules {
     }
 
     /**
+     * @see SceneLights#hasAmbientMap()
+     */
+    public boolean hasAmbientMap() {
+        return sceneLights.hasAmbientMap();
+    }
+
+    /**
      * @see SceneLights#setTileAmbient(int, int, ColorRGBA, boolean)
      */
     public void setTileAmbient(int x, int y, ColorRGBA ambient, boolean explored) {

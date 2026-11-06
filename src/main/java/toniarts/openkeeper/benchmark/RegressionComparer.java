@@ -48,6 +48,89 @@ public final class RegressionComparer {
         return compareJson(baselineJson, candidate);
     }
 
+    /**
+     * Compares two official/candidate aggregate baselines by their median
+     * metrics (and visualAllPassed). Does not mutate either file.
+     */
+    public static Map<String, Object> compareAggregates(Path baselinePath, Path candidatePath)
+            throws IOException {
+        String baselineJson = Files.readString(baselinePath, StandardCharsets.UTF_8);
+        String candidateJson = Files.readString(candidatePath, StandardCharsets.UTF_8);
+
+        Map<String, Object> report = new LinkedHashMap<>();
+        report.put("baselinePath", baselinePath.toString().replace('\\', '/'));
+        report.put("candidatePath", candidatePath.toString().replace('\\', '/'));
+
+        List<Map<String, Object>> findings = new ArrayList<>();
+        addDelta(findings, "avgFps.median",
+                aggregateMedian(baselineJson, "avgFps"), aggregateMedian(candidateJson, "avgFps"),
+                true, FPS_REGRESSION_THRESHOLD);
+        addDelta(findings, "onePercentLowFps.median",
+                aggregateMedian(baselineJson, "onePercentLowFps"),
+                aggregateMedian(candidateJson, "onePercentLowFps"),
+                true, FPS_REGRESSION_THRESHOLD);
+        addDelta(findings, "pointOnePercentLowFps.median",
+                aggregateMedian(baselineJson, "pointOnePercentLowFps"),
+                aggregateMedian(candidateJson, "pointOnePercentLowFps"),
+                true, FPS_REGRESSION_THRESHOLD);
+        addDelta(findings, "frameTimeP50.median",
+                aggregateMedian(baselineJson, "frameTimeP50"),
+                aggregateMedian(candidateJson, "frameTimeP50"),
+                false, FRAME_TIME_REGRESSION_THRESHOLD);
+        addDelta(findings, "frameTimeP99.median",
+                aggregateMedian(baselineJson, "frameTimeP99"),
+                aggregateMedian(candidateJson, "frameTimeP99"),
+                false, FRAME_TIME_REGRESSION_THRESHOLD);
+        addDelta(findings, "heapPeakMb.median",
+                aggregateMedian(baselineJson, "heapPeakMb"),
+                aggregateMedian(candidateJson, "heapPeakMb"),
+                false, 0.15);
+        addDelta(findings, "drawCallsAvg.median",
+                aggregateMedian(baselineJson, "drawCallsAvg"),
+                aggregateMedian(candidateJson, "drawCallsAvg"),
+                false, 0.10);
+        addDelta(findings, "lightsAvg.median",
+                aggregateMedian(baselineJson, "lightsAvg"),
+                aggregateMedian(candidateJson, "lightsAvg"),
+                false, 0.10);
+
+        boolean baseVisual = Boolean.parseBoolean(String.valueOf(
+                readBoolean(baselineJson, "visualAllPassed").orElse(Boolean.TRUE)));
+        boolean candVisual = Boolean.parseBoolean(String.valueOf(
+                readBoolean(candidateJson, "visualAllPassed").orElse(Boolean.TRUE)));
+        findings.add(Map.of(
+                "metric", "visualAllPassed",
+                "baseline", baseVisual,
+                "candidate", candVisual,
+                "status", candVisual ? "pass" : "fail"));
+
+        long regressions = findings.stream().filter(f -> "regression".equals(f.get("status"))).count();
+        report.put("findings", findings);
+        report.put("regressionCount", regressions);
+        report.put("visualPass", candVisual);
+        report.put("overall", regressions == 0 && candVisual ? "pass" : "fail");
+        report.put("baselineCvAvgFps", aggregateField(baselineJson, "avgFps", "cv"));
+        report.put("candidateCvAvgFps", aggregateField(candidateJson, "avgFps", "cv"));
+        return report;
+    }
+
+    private static Double aggregateMedian(String json, String metric) {
+        return aggregateField(json, metric, "median");
+    }
+
+    private static Double aggregateField(String json, String metric, String field) {
+        Pattern p = Pattern.compile("\"" + Pattern.quote(metric)
+                + "\"\\s*:\\s*\\{[^}]*\"" + Pattern.quote(field) + "\"\\s*:\\s*(-?\\d+(?:\\.\\d+)?)");
+        Matcher m = p.matcher(json);
+        return m.find() ? Double.parseDouble(m.group(1)) : null;
+    }
+
+    private static java.util.Optional<Boolean> readBoolean(String json, String field) {
+        Pattern p = Pattern.compile("\"" + Pattern.quote(field) + "\"\\s*:\\s*(true|false)");
+        Matcher m = p.matcher(json);
+        return m.find() ? java.util.Optional.of(Boolean.parseBoolean(m.group(1))) : java.util.Optional.empty();
+    }
+
     public static Map<String, Object> compareJson(String baselineJson, Map<String, Object> candidate) {
         Map<String, Object> report = new LinkedHashMap<>();
         report.put("baselinePresent", true);

@@ -246,11 +246,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.update();
         shotModelContainer.update();
 
-        // Lighting: re-derive attached-light positions and bind the
-        // vertex-lit models every frame -- lights on other things
-        // (a nearby flickering torch) change even for a thing that hasn't
-        // itself moved, so this can't rely on EntityContainer's own
-        // change-driven updateObject().
+        // Lighting: keep thing-light positions in sync every frame (owners move).
+        // Vertex material binds are cached on each spatial — applyVertexLight is
+        // a no-op once ready; flicker lives in the shared LightData texture from
+        // LightRules.update, so we do not re-traverse model trees every frame.
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
             // Create missing thing lights and follow the (possibly moving)
@@ -261,12 +260,6 @@ public class PlayerEntityViewState extends AbstractAppState {
                 applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity(), tracked.honourPulse(), tracked.objectLight());
             }
             for (Spatial object : objectModelContainer.getModels()) {
-                // The parts of the dungeon heart take no light from objects
-                // (the heart's own glow, the arches' light), only from
-                // effects, the hand, creatures, etc.
-                ObjectViewControl control = object.getControl(ObjectViewControl.class);
-                int objectId = control != null ? control.getDataObject().getObjectId() : -1;
-
                 AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
             for (Spatial object : creatureModelContainer.getModels()) {

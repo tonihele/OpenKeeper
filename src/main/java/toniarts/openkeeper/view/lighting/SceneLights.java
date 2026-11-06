@@ -334,6 +334,15 @@ public final class SceneLights {
     }
 
     /**
+     * Whether the map-sized ambient texture has been created.
+     *
+     * @return true after {@link #initAmbientMap(int, int)}
+     */
+    public boolean hasAmbientMap() {
+        return ambientMap != null;
+    }
+
+    /**
      * Sets one tile's vertex ambient and explored flag in the ambient texture. Safe to call
      * from the map loader thread: it only writes bytes and flags the image
      * for re-upload, which the render thread performs.

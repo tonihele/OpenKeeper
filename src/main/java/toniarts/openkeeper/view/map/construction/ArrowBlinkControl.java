@@ -22,9 +22,10 @@ import com.jme3.math.FastMath;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Geometry;
-import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 
@@ -42,11 +43,18 @@ public class ArrowBlinkControl extends AbstractControl {
     private static final float BLINK_SPEED = 1.5f;
 
     private final Spatial arrowSpatial;
+    private final List<Material> materials = new ArrayList<>();
     private boolean solidRed = false;
     private float elapsed = 0f;
+    private final ColorRGBA scratch = new ColorRGBA();
 
     public ArrowBlinkControl(Spatial arrowSpatial) {
         this.arrowSpatial = arrowSpatial;
+        arrowSpatial.depthFirstTraversal(spatial -> {
+            if (spatial instanceof Geometry geometry) {
+                materials.add(geometry.getMaterial());
+            }
+        });
     }
 
     /**
@@ -70,8 +78,8 @@ public class ArrowBlinkControl extends AbstractControl {
 
         elapsed += tpf;
         float alpha = (FastMath.sin(elapsed * BLINK_SPEED * FastMath.TWO_PI) + 1f) / 2f;
-        ColorRGBA current = new ColorRGBA().interpolateLocal(ColorRGBA.White, RED, alpha);
-        applyColor(current);
+        scratch.set(ColorRGBA.White).interpolateLocal(RED, alpha);
+        applyColor(scratch);
     }
 
     @Override
@@ -79,27 +87,19 @@ public class ArrowBlinkControl extends AbstractControl {
     }
 
     private void applyColor(ColorRGBA color) {
-        arrowSpatial.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial spatial) {
-                if (!(spatial instanceof Geometry)) {
-                    return;
+        for (Material material : materials) {
+            try {
+                if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
+                    material.setColor("Ambient", color);
+                } else {
+                    material.setColor("Color", color);
                 }
-
-                try {
-                    Material material = ((Geometry) spatial).getMaterial();
-                    if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
-                        material.setColor("Ambient", color);
-                    } else {
-                        material.setColor("Color", color);
-                    }
-                    if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
-                        material.setBoolean("UseMaterialColors", true);
-                    }
-                } catch (Exception e) {
-                    logger.log(Level.WARNING, "Failed to set arrow material color!", e);
+                if (material.getMaterialDef().getMaterialParam("UseMaterialColors") != null) {
+                    material.setBoolean("UseMaterialColors", true);
                 }
+            } catch (Exception e) {
+                logger.log(Level.WARNING, "Failed to set arrow material color!", e);
             }
-        });
+        }
     }
 }

@@ -137,6 +137,9 @@ public final class AnimationLoader {
             child.removeFromParent();
         }
         attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
+        // New meshes need a fresh Vertex-light bind (shared LightData texture
+        // still updates every frame; only the material walk is invalidated)
+        AssetUtils.invalidateVertexLight(spatial);
 
         if(anim == null) {
             logger.log(Level.WARNING, "Animation null!");
