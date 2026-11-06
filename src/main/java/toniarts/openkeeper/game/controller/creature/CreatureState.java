@@ -94,6 +94,27 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // See if we want to gamble
+            if (entity.goGambling()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return; // Found work
+            }
+
+            // Collect the jackpot won in the Casino
+            if (entity.collectWinnings()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return;
+            }
+
+            // Dance in the keeper's Casino while it is in disco mode
+            if (entity.goToDisco()) {
+                entity.getStateMachine().changeState(CreatureState.DANCING);
+                workResult.accept(true);
+                return;
+            }
+
             // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
             entity.findWork((foundWork) -> {
                 if (foundWork) {
@@ -691,6 +712,61 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.getStateMachine().changeState(CreatureState.IDLE);
             }
 
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, DANCING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // Dance until the disco is over
+            if (entity.isStopped() && !entity.isAtDisco()) {
+                entity.getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CELEBRATING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Then go to collect the jackpot
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(entity.collectWinnings() ? CreatureState.WORK : CreatureState.IDLE);
+            }
         }
 
         @Override

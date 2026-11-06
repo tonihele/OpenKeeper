@@ -77,6 +77,9 @@ public final class ThingSounds {
     public static final int ROOM_WORKSHOP_STEAM = 0x2E9;
     public static final int ROOM_LIBRARY_PAPER = 0x2FD;
     public static final int ROOM_HEART_BEAT = 0x150;
+    public static final int ROOM_CASINO_DISCO_MUSIC = 0x316;
+    public static final int ROOM_CASINO_DISCO_OVER = 0x33E; // the needle comes off the record
+    public static final int FIREWORKS = 0x344; // in the global effects bank
     public static final String CATEGORY_WORKSHOP = "ROOM_WORKSHOP";
     public static final String CATEGORY_LIBRARY = "ROOM_LIBRARY";
     public static final String CATEGORY_DUNGEON_HEART = "ROOM_DUNGEON_HEART";

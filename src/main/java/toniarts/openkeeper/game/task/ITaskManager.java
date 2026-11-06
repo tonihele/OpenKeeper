@@ -101,6 +101,15 @@ public interface ITaskManager {
     boolean assignEatTask(ICreatureController creature);
 
     /**
+     * Assigns the big winner of a Casino to collect its jackpot from the
+     * nearest Treasury or Dungeon Heart it can reach
+     *
+     * @param creature the big winner
+     * @return true if the task was assigned
+     */
+    boolean assignCollectWinningsTask(ICreatureController creature);
+
+    /**
      * Adds a creature to unemployment queue. You need to separately process the
      * queue
      *
