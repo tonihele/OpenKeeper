@@ -474,7 +474,7 @@ public final class MapController extends Container implements IMapController {
         Terrain terrain = getTerrain(tile);
         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                damageRoom(point, playerId);
+                damageRoom(point, playerId, creature);
             } else {
                 damageTile(point, playerId, creature);
             }
@@ -489,32 +489,8 @@ public final class MapController extends Container implements IMapController {
         IMapTileController tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
 
-        // Calculate the damage, the work variables are rates per game second
-        float rate;
+        int damage = getDamage(tile, terrain, playerId, creature);
         int returnedGold = 0;
-        int multiplier = (creature != null && kwdFile.getDwarf() == creature.getCreature() ? (int) getLevelVariable(Variable.MiscVariable.MiscType.DWARF_DIGGING_MULTIPLIER) : 1);
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-                if (tile.getOwnerId() == playerId) {
-                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
-                } else {
-                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
-                }
-            } else if (tile.getGold() > 0) {
-
-                // Mining damages the seam like any dig, the gold comes out in proportion, gems included
-                rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
-            } else {
-                rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
-            }
-        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
-
-            // Attack enemy tile
-            rate = getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
-        } else {
-            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
-        }
-        int damage = TileWork.perApplication(rate, getEfficiency(creature));
 
         // Do the damage
         boolean tileDestroyed;
@@ -564,6 +540,45 @@ public final class MapController extends Container implements IMapController {
     }
 
     /**
+     * How much one application of work damages a tile
+     *
+     * @param tile the tile
+     * @param terrain the tile's terrain
+     * @param playerId the player doing the damage
+     * @param creature the worker, {@code null} if nobody is working
+     * @return the damage
+     */
+    private int getDamage(IMapTileController tile, Terrain terrain, short playerId, ICreatureController creature) {
+        // Calculate the damage, the work variables are rates per game second
+        float rate;
+        int multiplier = (creature != null && kwdFile.getDwarf() == creature.getCreature() ? (int) getLevelVariable(Variable.MiscVariable.MiscType.DWARF_DIGGING_MULTIPLIER) : 1);
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                if (tile.getOwnerId() == playerId) {
+                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
+                } else {
+                    rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH) * multiplier;
+                }
+            } else if (tile.getGold() > 0) {
+
+                // Mining damages the seam like any dig, the gold comes out in proportion, gems included
+                rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
+            } else {
+                rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
+            }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
+
+            // Attack enemy tile, which goes on every tick (DK II 0x497670)
+            rate = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH) / kwdFile.getGameLevel().getTicksPerSec();
+        } else {
+            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + tile.getLocation() + "!");
+        }
+        return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                ? TileWork.perApplication(rate, getEfficiency(creature))
+                : TileWork.perSwing((int) rate, getEfficiency(creature));
+    }
+
+    /**
      * Heal a tile
      *
      * @param point the point
@@ -577,27 +592,38 @@ public final class MapController extends Container implements IMapController {
 
         // See the amount of healing, the work variables are rates per game second
         float rate;
+        boolean oneTicksWorth = false;
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 if (tile.getOwnerId() == playerId) {
+
+                    // Repairing, which goes on every tick (DK II 0x497AC0)
                     rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_WALL_HEALTH);
+                    oneTicksWorth = true;
                 } else {
                     rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
                 }
             } else {
+
+                // Reinforcing, which goes on every tick (DK II 0x497960)
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.REINFORCE_WALL_HEALTH);
+                oneTicksWorth = true;
             }
         } else if (TileWork.convertsAtFullHealth(terrain)) {
 
-            // Claiming ground nobody owns
+            // Claiming ground nobody owns, which goes on every tick (DK II 0x4974C0)
             rate = getLevelVariable(Variable.MiscVariable.MiscType.CLAIM_TILE_HEALTH);
+            oneTicksWorth = true;
         } else {
             rate = getLevelVariable(Variable.MiscVariable.MiscType.REPAIR_TILE_HEALTH);
         }
 
         // Apply
-        if (applyHealing(tile, TileWork.perApplication(rate, getEfficiency(creature)))) {
+        int healing = oneTicksWorth
+                ? TileWork.perTick((int) rate / kwdFile.getGameLevel().getTicksPerSec(), getEfficiency(creature))
+                : TileWork.perApplication(rate, getEfficiency(creature));
+        if (applyHealing(tile, healing)) {
 
             // TODO: checks
             // The tile is upgraded; the claim effect (terrain.getMaxHealthEffectId()) is
@@ -619,22 +645,23 @@ public final class MapController extends Container implements IMapController {
     }
 
     /**
-     * Damage a room
+     * Damage a room. As in DK II (0x497BF0, 0x4E5300) a blow lands a tick's
+     * worth on the room as a whole, and the room is the claimer's once its
+     * health is gone.
      *
      * @param point tile coordinate
      * @param playerId for the player
+     * @param creature the worker, {@code null} if nobody is working
      */
-    private void damageRoom(Point point, short playerId) {
+    private void damageRoom(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
 
         // Calculate the damage
-        int damage;
         short owner = tile.getOwnerId();
-        if (owner == Player.NEUTRAL_PLAYER_ID) {
-            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
-        } else {
-            damage = (int) getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH);
-        }
+        Variable.MiscVariable.MiscType rate = (owner == Player.NEUTRAL_PLAYER_ID
+                ? Variable.MiscVariable.MiscType.CONVERT_NEUTRAL_ROOM_HEALTH
+                : Variable.MiscVariable.MiscType.CONVERT_ROOM_HEALTH);
+        int damage = TileWork.perSwing((int) getLevelVariable(rate) / kwdFile.getGameLevel().getTicksPerSec(), getEfficiency(creature));
 
         // Get the room
         IRoomController room = getRoomControllerByCoordinates(point);
@@ -642,11 +669,12 @@ public final class MapController extends Container implements IMapController {
 
         // Apply the damage equally to all tiles so that the overall condition can be checked easily
         // I don't know if this model is correct or not, but like this the bigger the room the more effort it requires to claim
-        int damagePerTile = Math.abs(damage / roomTiles.size());
+        int damagePerTile = damage / roomTiles.size();
+        int remainder = damage % roomTiles.size();
         int currentHealth = 0;
         for (Point p : roomTiles) {
             IMapTileController roomTile = getMapData().getTile(p);
-            if (applyDamage(roomTile, damagePerTile)) {
+            if (applyDamage(roomTile, damagePerTile + (remainder-- > 0 ? 1 : 0))) {
 
                 // If one of the tiles runs out (everyone should run out of the same time, unless a new tile has recently being added..)
                 for (Point p2 : roomTiles) {
