@@ -35,7 +35,6 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
-import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
@@ -63,6 +62,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -288,8 +288,6 @@ public final class CreaturesController implements ICreaturesController {
 
         setFlagDrivenComponents(entity, creature);
 
-        CreatureState creatureState = setCreatureStateAndPosition(entity, spawnType, x, y, ownerId, creatureId);
-
         // Regeneration
         Regeneration regeneration = new Regeneration();
 
@@ -333,10 +331,19 @@ public final class CreaturesController implements ICreaturesController {
 
         setInteractionIfApplicable(entity, creature);
 
+        CreatureState creatureState = setCreatureStateAndPosition(entity, spawnType, x, y, ownerId, creatureId);
+
         // Visuals
         Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
+        if (healthComponent != null) {
+            if (creatureState == CreatureState.IMPRISONED) {
+                onImprisoned(entity);
+            } else if (creatureState == CreatureState.TORTURED) {
+                gameController.onCreatureTortured(entity);
+            }
+        }
         return entity;
     }
 
@@ -365,7 +372,7 @@ public final class CreaturesController implements ICreaturesController {
                 creatureState = CreatureState.ENTERING_DUNGEON;
             }
             case PLACE -> {
-                creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
+                creatureState = getCreatureStateByMapLocation(new Vector2f(x, y), ownerId, entity);
             }
             case CONJURE -> {
                 creatureState = null;
@@ -433,21 +440,23 @@ public final class CreaturesController implements ICreaturesController {
         return Creature.AnimationType.IDLE_1;
     }
 
-    private CreatureState getCreatureStateByMapLocation(Point location, short ownerId, EntityId entityId) {
+    private CreatureState getCreatureStateByMapLocation(Vector2f position, short ownerId, EntityId entityId) {
+        Point location = WorldUtils.vectorToPoint(position);
         IRoomController room = mapController.getRoomControllerByCoordinates(location);
-        if (room != null && room.getRoomInstance().getOwnerId() != ownerId) {
+        if (room != null) {
 
             // See if tortured or imprisoned
-            // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+            // TODO: Prison capacity on initial placement; torture checks its device capacity.
+            if (room.getOwnerId() != ownerId && room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
-                room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
-                entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
-                return CreatureState.TORTURED;
+                RoomTortureeControl control = room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
+                if (control.tryAdmit(entityId, position)) {
+                    return CreatureState.TORTURED;
+                }
             }
         }
         return CreatureState.IDLE;
@@ -636,6 +645,16 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void onStunned(EntityId entityId) {
+        gameController.onCreatureStunned(entityId);
+    }
+
+    @Override
+    public void onImprisoned(EntityId entityId) {
+        gameController.onCreatureImprisoned(entityId);
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
@@ -660,7 +679,8 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService(),
+                gameController::onCreatureAfraid);
     }
 
     @Override
