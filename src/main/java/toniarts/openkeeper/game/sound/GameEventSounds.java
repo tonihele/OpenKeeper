@@ -58,7 +58,7 @@ public final class GameEventSounds {
      * The event is not restarted while the previous one of the same entity and type still plays
      */
     public static boolean isExclusive(GameEventType type) {
-        return type == GameEventType.CREATURE_HURT;
+        return type == GameEventType.CREATURE_HURT || type == GameEventType.TORTURE_WHEEL;
     }
 
     /**
@@ -104,6 +104,17 @@ public final class GameEventSounds {
                 addShotHit(sounds, event, kwdFile, subject);
             case IMPS_CREATED ->
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
+            case TORTURE_ELECTROCUTED -> {
+                add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
+                add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,
+                        event.position);
+            }
+            case TORTURE_WHEEL ->
+                add(sounds, subject, ThingSounds.CREATURE_TORTURED, event.position);
+            case TORTURE_CONVERTED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC004.getId(), null);
+            case TORTURE_CONVERTED_BY_ENEMY ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC006.getId(), null);
             case ROOM_TILES_LAID ->
                 add(sounds, subject, ThingSounds.ROOM_LAY_TILE, event.position);
             case ROOM_TILE_BUILT ->

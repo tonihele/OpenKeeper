@@ -15,6 +15,12 @@ public final class SoundFixtures {
         return object;
     }
 
+    public static Creature creature(String soundCategory) {
+        Creature creature = new Creature();
+        creature.setSoundCategory(soundCategory);
+        return creature;
+    }
+
     public static Room room(String soundCategory) {
         Room room = new Room();
         room.setSoundCategory(soundCategory);
