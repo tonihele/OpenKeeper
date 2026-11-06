@@ -107,6 +107,7 @@ public class EffectManagerState extends AbstractAppState {
      * @param effectId the effect ID to load
      * @param infinite the effect should restart always, infinite effect (room
      * effects...?)
+     * @return the effect, {@code null} if there is none
      */
     public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite) {
         return load(node, location, effectId, infinite, Player.NEUTRAL_PLAYER_ID);
@@ -123,6 +124,7 @@ public class EffectManagerState extends AbstractAppState {
      * @param infinite the effect should restart always, infinite effect (room
      * effects...?)
      * @param ownerId the player who owns the effect
+     * @return the effect, {@code null} if there is none
      */
     public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
 
