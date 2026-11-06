@@ -188,10 +188,11 @@ public final class CustomScroll extends AbstractController {
         for (Element element : elements) {
             resizeRowElement(element);
 
+            // Every element is moved in order, so each row gets its elements in
+            // order. Don't reorder the children afterwards with setIndex: Nifty
+            // keeps a separate render order set that it doesn't update
             Element currentRow = getCurrentRow();
-            element.markForMove(currentRow, () -> {
-                element.setIndex(elements.indexOf(element) / rows.size());
-            });
+            element.markForMove(currentRow);
             currentRowIndex++;
             if (rows.size() < currentRowIndex) {
                 currentRowIndex = 1;
