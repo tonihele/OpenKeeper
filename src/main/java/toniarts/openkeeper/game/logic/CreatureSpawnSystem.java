@@ -133,7 +133,8 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         boolean spawned = false;
         EntityId entityId = null;
         if (timeSinceLastSpawn >= freeImpCoolDownTime && entrance.isDungeonHeart()) {
-            if (player.getCreatureControl().getImpCount() < minimumImpCount) {
+            // A defeated keeper gets no free imps
+            if (player.getCreatureControl().getImpCount() < minimumImpCount && !player.getKeeper().isDestroyed()) {
 
                 // Spawn imp
                 Point entranceCoordinate = entrance.getEntranceCoordinate();

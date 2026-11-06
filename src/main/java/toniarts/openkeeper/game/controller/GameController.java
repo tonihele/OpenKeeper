@@ -302,6 +302,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     @Override
     public void endGame(short playerId, boolean win) {
 
+        // A player's game ends only once, the first result stands
+        Keeper keeper = levelInfo.getPlayer(playerId);
+        if (keeper != null && !keeper.claimResult()) {
+            return;
+        }
+
         // Determine what happens to the game & players
         gameResult = new GameResult();
         gameResult.setData(GameResult.ResultType.LEVEL_WON, win);

@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -128,6 +129,60 @@ class PortalSpawnCooldownTest {
         timer.processTick(0.25f);
         system.processTick(0.25f);
         assertEquals(List.of((short) 7), spawned);
+    }
+
+    @Test
+    void keeperInTheGameGetsAFreeImp() {
+        assertEquals(1, freeImps(false));
+    }
+
+    @Test
+    void defeatedKeeperGetsNoFreeImp() {
+        assertEquals(0, freeImps(true));
+    }
+
+    private static int freeImps(boolean defeated) {
+        DefaultEntityData entities = new DefaultEntityData();
+        GameTimeController timer = new GameTimeController();
+        Keeper keeper = new Keeper(false, (short) 4);
+        if (defeated) {
+            keeper.setDestroyed((short) 0);
+        }
+        Creature imp = new Creature();
+        IPlayerController player = stub(IPlayerController.class, (method, args) -> switch (method) {
+            case "getKeeper" -> keeper;
+            case "getRoomControl" -> new PlayerRoomControl(keeper, List.of());
+            case "getCreatureControl" -> new PlayerCreatureControl(keeper, imp, List.of(imp));
+            default -> throw new AssertionError(method);
+        });
+        List<RoomListener> listeners = new ArrayList<>();
+        IMapController map = stub(IMapController.class, (method, args) -> listeners.add((RoomListener) args[1]));
+        List<Short> spawned = new ArrayList<>();
+        ICreaturesController spawner = stub(ICreaturesController.class, (method, args) -> {
+            spawned.add((Short) args[0]);
+            return entities.createEntity();
+        });
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
+                new EnumMap<>(Variable.MiscVariable.MiscType.class);
+        setting(settings, Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS, 18);
+        setting(settings, Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD, 4);
+        setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, 10);
+        setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
+        setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 5);
+        CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
+                stub(ILevelInfo.class, (method, args) -> stub(IKwdFile.class, (m, a) -> imp)), map,
+                stub(GameEventService.class, (method, args) -> null));
+        listeners.get(0).onBuild(stub(ICreatureEntrance.class, (method, args) -> switch (method) {
+            case "isDungeonHeart" -> true;
+            case "isDestroyed" -> false;
+            case "getLastSpawnTime" -> 0.0;
+            case "getOwnerId" -> keeper.getId();
+            case "getEntranceCoordinate" -> new Point(1, 1);
+            default -> null;
+        }));
+        timer.processTick(6);
+        system.processTick(6);
+        return spawned.size();
     }
 
     private static void setting(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings,
