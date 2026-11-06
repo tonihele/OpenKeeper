@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.system.Timer;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
@@ -39,6 +40,7 @@ import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -51,6 +53,8 @@ import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -60,6 +64,7 @@ import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -71,6 +76,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -132,6 +138,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     };
 
     private AppStateManager stateManager;
+    private Timer timer; // The clock the torture wheels and their victims share
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
@@ -168,6 +175,15 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+    /** DK II lifts the victim on a torture wheel by 0x200 (1/8 tile) */
+    private static final float TORTURE_WHEEL_VICTIM_LIFT = 0.125f;
+    /** The coals and water troughs under the wheels on the wall, and their effects (DK II 0x499300) */
+    private static final short TORTURE_WHEEL_OBJECT_ID = 8;
+    private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
+    private static final short TORTURE_COALS_OBJECT_ID = 62;
+    private static final short TORTURE_WATER_OBJECT_ID = 63;
+    private static final int TORTURE_COALS_EFFECT_ID = 274;
+    private static final int TORTURE_WATER_EFFECT_ID = 279;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -233,6 +249,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
+        this.timer = app.getTimer();
 
         // Attach the entities
         rootNode.attachChild(root);
@@ -292,6 +309,83 @@ public class PlayerEntityViewState extends AbstractAppState {
             for (Spatial object : trapModelContainer.getModels()) {
                 AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
+        }
+    }
+
+    /**
+     * The torture wheels spin all the time, and their victims with them. Each
+     * gets a control, and they share the same clock so they stay at the same
+     * angle.
+     */
+    private void setTortureWheelSpin(Spatial object, boolean spinning, boolean victim) {
+        TortureWheelSpinControl control = object.getControl(TortureWheelSpinControl.class);
+        if (spinning && control == null) {
+            float ticksPerSecond = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.GAME_TICKS).getValue();
+            object.addControl(victim
+                    ? new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond,
+                            () -> findObjectOnTile(object, o -> o.getCurrentState().state == GameObject.State.TORTURE_WHEEL_SPIN),
+                            () -> findObjectOnTile(object, o -> o.getCurrentState().objectId == TORTURE_COALS_OBJECT_ID
+                                    || o.getCurrentState().objectId == TORTURE_WATER_OBJECT_ID),
+                            trough -> splashTrough(object, trough))
+                    : new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond));
+        } else if (!spinning && control != null) {
+            object.removeControl(control);
+        }
+    }
+
+    /**
+     * Gets the victim on a torture device
+     *
+     * @param device the model of an object
+     * @return the control of the creature tortured on the device, {@code null}
+     * if the object is no torture device or there is nobody on it
+     */
+    public IEntityViewControl getTortureVictimOn(Spatial device) {
+        ObjectViewControl deviceControl = device.getControl(ObjectViewControl.class);
+        if (deviceControl == null || deviceControl.getCurrentState() == null
+                || (deviceControl.getCurrentState().objectId != TORTURE_WHEEL_OBJECT_ID
+                && deviceControl.getCurrentState().objectId != ELECTRIC_CHAIR_OBJECT_ID)) {
+            return null;
+        }
+        Point tile = WorldUtils.vectorToPoint(device.getLocalTranslation());
+        for (Spatial creature : creatureModelContainer.getModels()) {
+            CreatureViewControl control = creature.getControl(CreatureViewControl.class);
+            if (control != null && (control.getCurrentState() == Creature.AnimationType.TORTURED_WHEEL
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR_SKELETON)
+                    && WorldUtils.vectorToPoint(creature.getLocalTranslation()).equals(tile)) {
+                return control;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Finds an object on the same tile as the given one
+     */
+    private Spatial findObjectOnTile(Spatial like, Predicate<ObjectViewControl> filter) {
+        Point tile = WorldUtils.vectorToPoint(like.getLocalTranslation());
+        for (Spatial object : objectModelContainer.getModels()) {
+            ObjectViewControl control = object.getControl(ObjectViewControl.class);
+            if (control != null && control.getCurrentState() != null && filter.test(control)
+                    && WorldUtils.vectorToPoint(object.getLocalTranslation()).equals(tile)) {
+                return object;
+            }
+        }
+        return null;
+    }
+
+    private void splashTrough(Spatial victim, Spatial trough) {
+        boolean coals = trough.getControl(ObjectViewControl.class).getCurrentState().objectId == TORTURE_COALS_OBJECT_ID;
+        stateManager.getState(EffectManagerState.class).load(nodeObjects, trough.getWorldTranslation().clone(),
+                coals ? TORTURE_COALS_EFFECT_ID : TORTURE_WATER_EFFECT_ID, false);
+
+        // And the victim cries out, from its own sounds (DK II 0x499300)
+        CreatureViewControl creature = victim.getControl(CreatureViewControl.class);
+        if (creature != null && creature.getDataObject() != null) {
+            SoundManager.playSound(creature.getDataObject().getSoundCategory(),
+                    coals ? ThingSounds.CREATURE_TORTURE_FIRE : ThingSounds.CREATURE_TORTURE_WATER,
+                    WorldUtils.vectorToPoint(victim.getWorldTranslation()));
         }
     }
 
@@ -573,6 +667,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
         control.setTargetState(viewState.state);
+        setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL, true);
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
@@ -610,6 +705,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
+        setTortureWheelSpin(object, viewState.state == GameObject.State.TORTURE_WHEEL_SPIN, false);
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
 
         GameObject gameObject = kwdFile.getObject(viewState.objectId);
@@ -844,6 +940,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
+            if (e.get(CreatureViewState.class).state == Creature.AnimationType.TORTURED_WHEEL) {
+                object.move(0, TORTURE_WHEEL_VICTIM_LIFT, 0);
+            }
             updateCreatureModelAnimation(object, e);
         }
 

@@ -43,9 +43,12 @@ import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.map.MapTileController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.map.WallSection;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -131,6 +134,7 @@ public final class MapController extends Container implements IMapController {
         roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart() && (owner == null || owner.isDestroyed()));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
+        roomInstance.setWallSections(WallSection.findWallSections(roomInstance, mapData, kwdFile));
         int health = 0;
         int maxHealth = 0;
         for (Point coordinate : roomInstance.getCoordinates()) {
@@ -719,6 +723,8 @@ public final class MapController extends Container implements IMapController {
             tile.setSelected(false, Player.KEEPER3_ID);
             tile.setSelected(false, Player.KEEPER4_ID);
         }
+
+        updateRoomWalls(tile.getLocation());
     }
 
     @Override
@@ -891,9 +897,33 @@ public final class MapController extends Container implements IMapController {
 
     @Override
     public void addRoomCoordinate(EntityId roomInstance, Collection<Point> points) {
-        roomControllers.get(roomInstance).getRoomInstance().addCoordinates(points);
+        RoomInstance instance = roomControllers.get(roomInstance).getRoomInstance();
+        instance.addCoordinates(points);
+        instance.setWallSections(WallSection.findWallSections(instance, mapData, kwdFile));
         for (Point point : points) {
             getMapData().getTile(point).setRoomId(roomInstance);
+        }
+    }
+
+    /**
+     * A tile next to rooms has become a wall or stopped being one. Like in DK
+     * II (MyRooms_4ECDB0, 0x4ECDB0), the rooms next to it that have wall
+     * furniture lay out their furniture again.
+     *
+     * @param p the changed tile
+     */
+    private void updateRoomWalls(Point p) {
+        Set<IRoomController> rooms = new HashSet<>();
+        for (Point neighbour : WorldUtils.getSurroundingTiles(mapData, p, false)) {
+            IRoomController roomController = getRoomControllerByCoordinates(neighbour);
+            if (roomController != null && roomController.getRoom().getFlags().contains(Room.RoomFlag.SPECIAL_WALLS)) {
+                rooms.add(roomController);
+            }
+        }
+        for (IRoomController roomController : rooms) {
+            RoomInstance instance = roomController.getRoomInstance();
+            instance.setWallSections(WallSection.findWallSections(instance, mapData, kwdFile));
+            roomController.construct();
         }
     }
 }
