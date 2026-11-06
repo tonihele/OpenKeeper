@@ -214,6 +214,18 @@ public final class RegressionComparer {
         if (lights != null && asDouble(lights.get("avg")) != null && asDouble(lights.get("avg")) > 200) {
             out.add("Many uploaded lights — vertex light loop / culling pressure");
         }
+        Map<String, Object> rebuild = (Map<String, Object>) metrics.get("tileRebuild");
+        if (rebuild != null) {
+            Double geomCalls = asDouble(rebuild.get("geometryRebuildCalls"));
+            Double geomMs = asDouble(rebuild.get("geometryTotalMs"));
+            if (geomCalls != null && geomCalls > 200) {
+                out.add("Frequent tile geometry rebuilds (" + geomCalls.intValue()
+                        + " calls) — dirty coalesce / overlay path candidates");
+            }
+            if (geomMs != null && geomMs > 500) {
+                out.add("Heavy tile rebuild time (" + geomMs + " ms measure window)");
+            }
+        }
         Map<String, Object> trends = (Map<String, Object>) metrics.get("trends");
         if (trends != null && Boolean.TRUE.equals(trends.get("possibleThrottling"))) {
             out.add("FPS drift over the run — possible thermal throttling or accumulating work");

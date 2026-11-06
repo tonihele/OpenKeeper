@@ -81,6 +81,20 @@ public final class BenchmarkSampler {
         enableRendererStats(app);
     }
 
+    /**
+     * Resets tile/room rebuild counters so measure-window totals exclude load
+     * and warm-up storms.
+     */
+    public void beginRebuildWindow(GameClientState client) {
+        if (client == null) {
+            return;
+        }
+        PlayerMapViewState mapView = client.getPlayerMapViewState();
+        if (mapView != null && mapView.getMapLoader() != null) {
+            mapView.getMapLoader().getRebuildStats().reset();
+        }
+    }
+
     public void sample(Application app, GameClientState client, double measureElapsedSec) {
         this.measureElapsed = measureElapsedSec;
         long now = System.nanoTime();
@@ -178,6 +192,17 @@ public final class BenchmarkSampler {
             memory.put("threadAllocatedMbTotal", mb(totalAllocated));
         }
         metrics.put("memory", memory);
+        return metrics;
+    }
+
+    public Map<String, Object> summarize(double measuredSeconds, GameClientState client) {
+        Map<String, Object> metrics = summarize(measuredSeconds);
+        if (client != null) {
+            PlayerMapViewState mapView = client.getPlayerMapViewState();
+            if (mapView != null && mapView.getMapLoader() != null) {
+                metrics.put("tileRebuild", mapView.getMapLoader().getRebuildStats().summarize());
+            }
+        }
         return metrics;
     }
 

@@ -118,6 +118,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Spatial lavaSurface; // Currently attached merged lava mesh, if any
     private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
     private boolean ceilingVisible = true; // Runtime show/hide toggle, independent of ceilingEnabled (which decides whether it's built at all)
+    /**
+     * When the ceiling is hidden (normal play until possession), tile updates
+     * must not rebuild the whole-map ceiling mesh every dig/fog tick. Mark dirty
+     * instead and rebuild once on the next show.
+     */
+    private boolean ceilingGeometryDirty = true;
+    private final TileRebuildStats rebuildStats = new TileRebuildStats();
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
@@ -366,15 +373,39 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * the current map, a patch for every open tile the fog-of-war currently
      * reveals, grouped into one merged mesh per resolved material. Like
      * {@link #refreshWaterAndLavaSurfaces}, there's no incremental variant -
-     * every dig, room change or fog reveal just rebuilds the whole thing.
+     * dig/fog/room changes mark it dirty and rebuild only when visible (or on
+     * the initial load).
      */
     private void refreshCeilingSurface() {
+        refreshCeilingSurface(false);
+    }
+
+    private void refreshCeilingSurface(boolean force) {
+        if (!ceilingEnabled) {
+            if (ceilingSurface != null) {
+                ceilingSurface.removeFromParent();
+                ceilingSurface = null;
+            }
+            ceilingGeometryDirty = false;
+            return;
+        }
+
+        // Hidden ceiling: drop a stale mesh if present, defer the expensive
+        // whole-map rebuild until possession (or any other show) needs it.
+        if (!force && !ceilingVisible) {
+            ceilingGeometryDirty = true;
+            if (ceilingSurface != null) {
+                ceilingSurface.removeFromParent();
+                ceilingSurface = null;
+            }
+            rebuildStats.recordCeilingSkippedHidden();
+            return;
+        }
+
+        long t0 = System.nanoTime();
         if (ceilingSurface != null) {
             ceilingSurface.removeFromParent();
             ceilingSurface = null;
-        }
-        if (!ceilingEnabled) {
-            return;
         }
 
         IMapDataInformation<IMapTileInformation> mapData = getMapData();
@@ -411,6 +442,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         if (batchTiles.isEmpty()) {
+            ceilingGeometryDirty = false;
+            rebuildStats.recordCeilingRebuild(System.nanoTime() - t0);
             return;
         }
 
@@ -429,6 +462,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
         ceilingSurface = surface;
         map.attachChild(ceilingSurface);
+        ceilingGeometryDirty = false;
+        rebuildStats.recordCeilingRebuild(System.nanoTime() - t0);
     }
 
     /**
@@ -470,50 +505,92 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Shows or hides the already-built ceiling without rebuilding it - a
-     * runtime debug toggle, e.g. for the model viewer. Has no effect if this
-     * scene was constructed with the ceiling disabled entirely.
+     * Shows or hides the ceiling. When shown after deferred dirties, rebuilds
+     * once so possession sees up-to-date clearance/patches without paying that
+     * cost on every tile update while the ceiling stays hidden.
      *
      * @param visible show the ceiling if built
      */
     public void setCeilingVisible(boolean visible) {
+        boolean wasVisible = ceilingVisible;
         ceilingVisible = visible;
-        if (ceilingSurface != null) {
+        if (visible && (!wasVisible || ceilingGeometryDirty || ceilingSurface == null)) {
+            refreshCeilingSurface(true);
+        } else if (ceilingSurface != null) {
             ceilingSurface.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
         }
     }
 
+    public TileRebuildStats getRebuildStats() {
+        return rebuildStats;
+    }
+
     /**
-     * Update the selected tiles (and neighbouring tiles if needed)
+     * Update the selected tiles (and neighbouring tiles if needed). Room
+     * instances are torn down and rebuilt (topology-safe default).
      *
      * @param points tile coordinates to update
      */
     public void updateTiles(Point... points) {
+        updateTiles(true, points);
+    }
+
+    /**
+     * Update tiles with optional room teardown.
+     * <p>
+     * Fog-of-war / highlight refreshes often dirty tiles whose terrain id did
+     * not change. Tearing down every touched room on those paths was the core
+     * of the rebuild storm — pass {@code rebuildRooms=false} when only
+     * visibility, decay, or similar non-topology state changed.
+     *
+     * @param rebuildRooms when false, skip room instance removal/expansion
+     * @param points tile coordinates to update
+     */
+    public void updateTiles(boolean rebuildRooms, Point... points) {
+        if (points == null || points.length == 0 || map == null) {
+            return;
+        }
+
+        long t0 = System.nanoTime();
         Set<Point> pointsToUpdate = new HashSet<>();
+        Set<RoomInstance> roomsToRemove = new LinkedHashSet<>();
 
-        // FIXME: This is really quite heavy and unneeded, just a quick "fix"
-        // If this touches any rooms, reconstruct them and add the neighbouring tiles to update list
-        for (Point point : points) {
-            pointsToUpdate.add(point);
-            RoomInstance roomInstance = roomCoordinates.get(point);
-            if (roomInstance != null) {
-                pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), point, true)));
-                for (Point roomCoordinate : roomInstance.getCoordinates()) {
-                    pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), roomCoordinate, true)));
-                    pointsToUpdate.add(roomCoordinate);
-                }
-                removeRoomInstances(roomInstance);
-            } else {
-                Point[] surroundingTiles = WorldUtils.getSurroundingTiles(getMapData(), point, true);
-                pointsToUpdate.addAll(Arrays.asList(surroundingTiles));
-
-                // Also remove the surrounding rooms, if this room needs to be merged to other rooms
-                for (Point surroundingPoint : surroundingTiles) {
-                    roomInstance = roomCoordinates.get(surroundingPoint);
-                    if (roomInstance != null) {
-                        removeRoomInstances(roomInstance);
+        if (rebuildRooms) {
+            // Expand once per unique room / neighbour set instead of tearing the
+            // same room down repeatedly when many of its tiles arrive in one batch
+            for (Point point : points) {
+                pointsToUpdate.add(point);
+                RoomInstance roomInstance = roomCoordinates.get(point);
+                if (roomInstance != null) {
+                    roomsToRemove.add(roomInstance);
+                } else {
+                    Point[] surroundingTiles = WorldUtils.getSurroundingTiles(getMapData(), point, true);
+                    pointsToUpdate.addAll(Arrays.asList(surroundingTiles));
+                    for (Point surroundingPoint : surroundingTiles) {
+                        roomInstance = roomCoordinates.get(surroundingPoint);
+                        if (roomInstance != null) {
+                            roomsToRemove.add(roomInstance);
+                        }
                     }
                 }
+            }
+
+            for (RoomInstance roomInstance : roomsToRemove) {
+                for (Point roomCoordinate : roomInstance.getCoordinates()) {
+                    pointsToUpdate.add(roomCoordinate);
+                    pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), roomCoordinate, true)));
+                }
+            }
+            if (!roomsToRemove.isEmpty()) {
+                removeRoomInstances(roomsToRemove.toArray(RoomInstance[]::new));
+            }
+        } else {
+            // Visibility / material refresh: still update neighbours for wall
+            // faces, but leave intact room meshes alone (handleTile no-ops an
+            // already-registered room instance after refreshing tile lights)
+            for (Point point : points) {
+                pointsToUpdate.add(point);
+                pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), point, true)));
             }
         }
 
@@ -524,6 +601,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
         for (Point point : pointsToUpdate) {
             IMapTileInformation tile = getMapData().getTile(point);
+            if (tile == null) {
+                continue;
+            }
 
             // Reconstruct and mark for patching
             // The tile node needs to created anew, somehow the BatchNode just doesn't get it if I remove children from subnode
@@ -548,7 +628,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
 
             // Reconstruct
-            handleTile(tile, (Node) map.getChild(TERRAIN_NODE));
+            handleTile(tile, terrainNode);
         }
 
         // Batch
@@ -565,10 +645,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         refreshWaterAndLavaSurfaces(waterBatches.size() != waterBatchesBefore,
                 lavaBatches.size() != lavaBatchesBefore);
 
-        // Dig, fog and room changes all reshape which tiles get a ceiling patch
-        // and how tall it is - always rebuild it whole, there's no incremental
-        // variant, same as the water/lava surfaces above
+        // Dig, fog and room changes reshape ceiling patches - rebuild only when
+        // visible; otherwise mark dirty (see refreshCeilingSurface)
         refreshCeilingSurface();
+        rebuildStats.recordGeometryRebuild(points.length, pointsToUpdate.size(), System.nanoTime() - t0, rebuildRooms);
     }
 
     /**
@@ -657,13 +737,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             } else if (tagged) {
                 material.setColor("Tint", TAG_BASE);
                 material.setColor("TintOverlay", TAG_OVERLAY);
+            } else {
+                // Overlay path must clear as well as set - geometry rebuilds used
+                // to recreate untinted materials instead
+                material.setColor("Tint", ColorRGBA.BlackNoAlpha);
+                material.setColor("TintOverlay", ColorRGBA.BlackNoAlpha);
             }
             return;
         }
         if (flashing) {
             setAmbientColour(material, COLOR_FLASH);
-        }
-        if (tagged) {
+        } else if (tagged) {
             setAmbientColour(material, TAG_BASE);
         }
     }
@@ -1206,13 +1290,89 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     public void flashTile(boolean enabled, List<Point> points) {
+        if (points == null || points.isEmpty()) {
+            return;
+        }
         if (enabled) {
             flashedTiles.addAll(points);
         } else {
             flashedTiles.removeAll(points);
         }
 
-        updateTiles(points.toArray(Point[]::new));
+        // Flash is a material Tint only - never tear down rooms / rebatch pages /
+        // rebuild the ceiling for a 0.5s blink
+        refreshTileOverlays(points);
+    }
+
+    /**
+     * Re-applies tag/flash/decay Tint on existing tile geometry without a
+     * geometry rebuild. Room floors are not tinted by the legacy flash path
+     * (handleTile returns early for ordinary rooms); only page floor/wall/top
+     * nodes are visited, matching prior visual behaviour.
+     */
+    private void refreshTileOverlays(Collection<Point> points) {
+        if (map == null || points.isEmpty()) {
+            return;
+        }
+        long t0 = System.nanoTime();
+        Node terrainNode = (Node) map.getChild(TERRAIN_NODE);
+        int touched = 0;
+        for (Point point : points) {
+            IMapTileInformation tile = getMapData().getTile(point);
+            if (tile == null) {
+                continue;
+            }
+            Node pageNode = getPageNode(point, terrainNode);
+            boolean any = false;
+            any |= applyOverlayOnTileNode(tile, getTileNode(point, (Node) pageNode.getChild(FLOOR_INDEX)));
+            any |= applyOverlayOnTileNode(tile, getTileNode(point, (Node) pageNode.getChild(WALL_INDEX)));
+            any |= applyOverlayOnTileNode(tile, getTileNode(point, (Node) pageNode.getChild(TOP_INDEX)));
+            if (any) {
+                touched++;
+            }
+        }
+        rebuildStats.recordOverlayRefresh(touched, System.nanoTime() - t0);
+    }
+
+    private boolean applyOverlayOnTileNode(IMapTileInformation tile, Node tileNode) {
+        if (tileNode == null || tileNode.getChildren().isEmpty()) {
+            return false;
+        }
+
+        Terrain terrain = getTerrain(tile);
+        final boolean flashing = isFlashing(tile);
+        final boolean tagged = tile.isSelected(playerId) || fogOfWarInformation.isPendingTagged(tile.getLocation());
+        final boolean decay = terrain.getFlags().contains(Terrain.TerrainFlag.DECAY);
+
+        tileNode.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                if (!(spatial instanceof Geometry geometry)) {
+                    return;
+                }
+                // Same unbatch rule as setTileMaterialToGeometries: BatchNode
+                // refuses setMaterial on still-grouped geometries
+                if (geometry.isGrouped()) {
+                    geometry.unassociateFromGroupNode();
+                }
+                Material material = geometry.getMaterial();
+                // Shared random-texture / batch materials must be cloned before
+                // per-tile Tint mutation
+                if (flashing || tagged || decay) {
+                    material = material.clone();
+                    geometry.setMaterial(material);
+                }
+                if (decay) {
+                    applyDecayTexture(material, spatial, tile, terrain);
+                }
+                if (AssetUtils.isVertexMaterial(material)) {
+                    applyHighlight(material, flashing, tagged);
+                } else if (flashing || tagged) {
+                    applyHighlight(material, flashing, tagged);
+                }
+            }
+        });
+        return true;
     }
 
     /**

@@ -51,7 +51,9 @@ import toniarts.openkeeper.view.map.MapViewController;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.function.Consumer;
 
@@ -84,6 +86,14 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private volatile boolean mapLoaded = false;
     private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
     private final Object tileUpdateLock = new Object();
+    /**
+     * Tile/FOW callbacks often fire several times in one {@link #update(float)}
+     * (entity batch + fog drain). Coalesce into one geometry rebuild per frame.
+     */
+    private final Set<Point> coalescedTileUpdates = new HashSet<>();
+    private int coalescedPointsIn;
+    private boolean coalescedNeedsRoomRebuild;
+    private boolean tileFlushEnqueued;
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
@@ -355,34 +365,81 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     private void updateTiles(Point[] points) {
+        if (points == null || points.length == 0) {
+            return;
+        }
         synchronized (tileUpdateLock) {
             if (!mapLoaded) {
                 pendingTileUpdates.addAll(Arrays.asList(points));
                 return;
             }
-        }
-
-        app.enqueue(() -> {
+            coalescedPointsIn += points.length;
+            coalescedTileUpdates.addAll(Arrays.asList(points));
+            // Terrain-id changes (dig/claim/destroy) need room topology rebuilds;
+            // pure FOW/component refreshes must not tear rooms down
             for (Point point : points) {
                 IMapTileInformation tile = mapInformation.getMapData().getTile(point);
-                short newTerrainId = tile.getTerrainId();
-                short oldTerrainId = lastTerrainIds[point.x][point.y];
-                if (newTerrainId != oldTerrainId) {
-                    Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
-                    if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
-                        effectManager.load(worldNode,
-                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                                oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
-                    } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
-                        effectManager.load(worldNode,
-                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                                oldTerrain.getDestroyedEffectId(), false);
-                    }
-                    lastTerrainIds[point.x][point.y] = newTerrainId;
+                if (tile == null) {
+                    continue;
+                }
+                if (tile.getTerrainId() != lastTerrainIds[point.x][point.y]) {
+                    coalescedNeedsRoomRebuild = true;
+                    break;
                 }
             }
-            mapLoader.updateTiles(points);
-        });
+            if (!tileFlushEnqueued) {
+                tileFlushEnqueued = true;
+                app.enqueue(this::flushCoalescedTileUpdates);
+            }
+        }
+    }
+
+    /**
+     * Drains the coalesced dirty set into a single geometry rebuild on the
+     * render thread (one enqueue per frame even if FOW + ECS both fired).
+     */
+    private Void flushCoalescedTileUpdates() {
+        Point[] points;
+        int pointsIn;
+        boolean rebuildRooms;
+        synchronized (tileUpdateLock) {
+            tileFlushEnqueued = false;
+            if (coalescedTileUpdates.isEmpty()) {
+                coalescedNeedsRoomRebuild = false;
+                return null;
+            }
+            points = coalescedTileUpdates.toArray(Point[]::new);
+            pointsIn = coalescedPointsIn;
+            rebuildRooms = coalescedNeedsRoomRebuild;
+            coalescedTileUpdates.clear();
+            coalescedPointsIn = 0;
+            coalescedNeedsRoomRebuild = false;
+        }
+        mapLoader.getRebuildStats().recordCoalesceFlush(pointsIn, points.length);
+
+        for (Point point : points) {
+            IMapTileInformation tile = mapInformation.getMapData().getTile(point);
+            if (tile == null) {
+                continue;
+            }
+            short newTerrainId = tile.getTerrainId();
+            short oldTerrainId = lastTerrainIds[point.x][point.y];
+            if (newTerrainId != oldTerrainId) {
+                Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
+                if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                            oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
+                } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
+                    effectManager.load(worldNode,
+                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                            oldTerrain.getDestroyedEffectId(), false);
+                }
+                lastTerrainIds[point.x][point.y] = newTerrainId;
+            }
+        }
+        mapLoader.updateTiles(rebuildRooms, points);
+        return null;
     }
 
     public IRoomsInformation getRoomsInformation() {

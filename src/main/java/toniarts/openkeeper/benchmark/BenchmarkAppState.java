@@ -142,6 +142,7 @@ public final class BenchmarkAppState extends AbstractAppState {
                 phaseElapsed += tpf;
                 if (phaseElapsed >= config.getWarmupSeconds()) {
                     sampler.begin(app);
+                    sampler.beginRebuildWindow(client);
                     enter(Phase.MEASURE);
                 }
             }
@@ -210,7 +211,8 @@ public final class BenchmarkAppState extends AbstractAppState {
         finished = true;
         phase = Phase.FINISHING;
         try {
-            Map<String, Object> metrics = sampler.summarize(measureElapsed);
+            GameClientState client = stateManager.getState(GameClientState.class);
+            Map<String, Object> metrics = sampler.summarize(measureElapsed, client);
             Map<String, Object> scenarioReport = new LinkedHashMap<>(scenario.getReport());
             scenarioReport.put("settleSeconds", config.getSettleSeconds());
             scenarioReport.put("warmupSeconds", config.getWarmupSeconds());
