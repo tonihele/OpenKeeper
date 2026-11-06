@@ -28,6 +28,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -78,7 +79,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 entities[x][y] = new HashSet<>();
-                obstacles[x][y] = new HashSet<>();
+
+                // PossessedMovementSystem reads the doors from the steering loop
+                obstacles[x][y] = ConcurrentHashMap.newKeySet();
             }
         }
         entitiesByMapTile = entities;

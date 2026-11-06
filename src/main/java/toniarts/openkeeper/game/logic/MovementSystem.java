@@ -31,6 +31,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
 import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
@@ -45,6 +46,13 @@ import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 public final class MovementSystem implements IGameLogicUpdatable {
     
     private final static boolean INDEPENDENT_FACING = false;
+
+    /**
+     * DK II counts a path as finished this close to its final waypoint, 0.38
+     * tiles (0x4D3C40). A creature pushed away from a taken end point stops
+     * within it.
+     */
+    private static final float END_TOLERANCE = 0x6148 / 65536f;
     
     private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
     private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
@@ -93,8 +101,14 @@ public final class MovementSystem implements IGameLogicUpdatable {
              * faster it moves, the slower it can turn (without going into a skid); it can brake much more quickly than it can
              * accelerate; and it only moves in the direction it is facing (ignoring power slides).
              */
+            EntityId entityId = entityIdsBySteeringBehavior.get(steeringBehavior);
+            ISteerableEntity steerableEntity = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
+            if (!steeringOutput.linear.isZero()) {
+                separate(entityId, steerableEntity, steeringOutput.linear);
+            }
+
             // Apply steering acceleration
-            applySteering(entityIdsBySteeringBehavior.get(steeringBehavior), steerableEntitiesBySteeringBehavior.get(steeringBehavior), steeringOutput, tpf);
+            applySteering(entityId, steerableEntity, steeringOutput, tpf);
         }
     }
 
@@ -215,6 +229,33 @@ public final class MovementSystem implements IGameLogicUpdatable {
             oldPosition.position.z = steerableEntity.getPosition().y;
             entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
         }
+    }
+
+    /**
+     * Adds the separation push the logic tick worked out (see
+     * {@link SeparationSystem}) to the path following. Near the end of its path
+     * a pushed creature stops where it is, since the end point is taken.
+     *
+     * @param entityId the creature
+     * @param steerable its steering state
+     * @param linear the path following acceleration, the push is added to it
+     */
+    private void separate(EntityId entityId, ISteerableEntity steerable, Vector2 linear) {
+        SeparationPush separationPush = entityData.getComponent(entityId, SeparationPush.class);
+        if (separationPush == null) {
+            return;
+        }
+
+        Navigation navigation = entityData.getComponent(entityId, Navigation.class);
+        if (navigation != null && !navigation.navigationPath.isEmpty()
+                && steerable.getPosition().dst(navigation.navigationPath.get(navigation.navigationPath.size() - 1)) <= END_TOLERANCE) {
+            linear.setZero();
+            steerable.getLinearVelocity().setZero();
+            return;
+        }
+
+        float scale = steerable.getMaxLinearAcceleration();
+        linear.add(separationPush.push.x * scale, separationPush.push.y * scale).limit(steerable.getMaxLinearAcceleration());
     }
 
     /**
