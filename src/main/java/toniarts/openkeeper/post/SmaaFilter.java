@@ -34,10 +34,10 @@ import java.util.ArrayList;
  * corner rounding 25) with colour-edge detection for chroma-aware edges.
  * <p>
  * Three intermediate passes (edge detect → blend weights → neighborhood blend)
- * followed by an overlay blit. Designed to run <em>last</em> in the
- * {@link com.jme3.post.FilterPostProcessor} chain (after SSAO / translucent
- * resolve) on the LDR colour buffer. OpenKeeper has no HDR tone-map stage;
- * gamma correction remains an AppSettings / framebuffer concern.
+ * followed by an overlay blit. Installed last by {@link PostProcessPipeline}
+ * (after {@link TranslucentBucketStage} and optional ambient occlusion) on the
+ * LDR colour buffer. OpenKeeper has no HDR tone-map stage; gamma correction
+ * remains an AppSettings / framebuffer concern.
  * <p>
  * SMAA library © Jorge Jimenez et al. (see {@code SMAALib.glsllib} header).
  * jME multi-pass wiring adapted from TheToucher's SMAA prototype.

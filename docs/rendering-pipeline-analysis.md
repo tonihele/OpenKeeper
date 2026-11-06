@@ -25,7 +25,7 @@ OpenKeeper’s world look is driven by a solid, DK-faithful custom lighting path
 | Terrain / rooms | 8×8 `BatchNode` pages + room constructors | Good draw-call reduction; painful to mutate |
 | Lighting | CPU light list → RGBA32F `LightData` → GLSL per-vertex loop | Authentic DK model; cost scales with lights × vertices |
 | Entities | `applyVertexLight` every frame | Correct for flicker coupling; expensive as written |
-| Post | Optional SSAO + `TranslucentBucketFilter` | Useful; incorrectly coupled |
+| Post | `PostProcessPipeline`: translucent (always) → optional AO → optional SMAA | Translucent decoupled from SSAO |
 | Shadows | Modes tagged; no in-game shadow maps | Intentional / incomplete (ModelViewer only) |
 
 ### Pipeline overview
@@ -115,17 +115,13 @@ Priority order used:
 | **Risk** | Low (slightly larger light pools) |
 | **Affected code** | `view/lighting/LightConstants.java`, `assets/Shaders/DkLighting/DkFalloff.glsllib` |
 
-#### Q3 — Decouple `TranslucentBucketFilter` from SSAO
+#### Q3 — Decouple `TranslucentBucketFilter` from SSAO — **done**
 
 | | |
 |--|--|
-| **Problem** | `Main.setViewProcessors()` only adds `TranslucentBucketFilter` when SSAO is on. Torches/particles in the Translucent bucket lose correct depth ordering when SSAO is off. |
-| **Evidence** | `Main.setViewProcessors()`; torch `Bucket.Translucent` + “flames after water” comments |
-| **Solution** | Always attach `TranslucentBucketFilter`; add SSAO as an optional extra filter. |
-| **Benefits** | Correct particle / water compositing at all quality presets |
-| **Complexity** | S |
-| **Risk** | Low |
-| **Affected code** | `Main.java` |
+| **Problem** | Historically, translucent resolve was only added inside the SSAO branch. |
+| **Solution** | `TranslucentBucketStage` + `PostProcessPipeline`: translucent is always planned first; AO/SMAA are optional later stages. Covered by `PostProcessPipelineTest`. |
+| **Affected code** | `post/TranslucentBucketStage.java`, `post/PostProcessPipeline.java`, `Main.setViewProcessors()` |
 
 #### Q4 — Fix vertex light loop bound
 
@@ -281,7 +277,7 @@ Stop assigning Normal/Spec/Parallax into defs that don’t use them; unify tint/
 |----------|------|--------|--------|------------|
 | 1 | Q1 Remove forced Ultra / default MSAA 4 | S | High GPU | — |
 | 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | — |
-| 3 | Q3 Always TranslucentBucketFilter | S | Visual bugs | — |
+| 3 | Q3 Decouple translucent from SSAO | S | Done (`PostProcessPipeline`) | — |
 | 4 | Q4 Dynamic light loop bound | S | GPU VS | — |
 | 5 | Q5 One-shot entity Vertex bind | M | High CPU | Measure |
 | 6 | Q7 Reuse ColorRGBA / Vector3f in light hot path | S | GC | — |
