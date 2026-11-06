@@ -51,6 +51,16 @@ public interface IRoomObjectControl<V> {
     int getCurrentCapacity();
 
     /**
+     * Tells whether the given object is stored in this room by this control
+     *
+     * @param object the object, e.g. a creature that has a job in the room
+     * @return true if it is counted in the used capacity
+     */
+    default boolean contains(EntityId object) {
+        return false;
+    }
+
+    /**
      * Get a room objects
      *
      * @param p the object from point

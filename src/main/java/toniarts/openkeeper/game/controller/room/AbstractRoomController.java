@@ -49,7 +49,28 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      */
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE;
+        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE(true);
+
+        private final boolean occupiedByCreatures;
+
+        private ObjectType() {
+            this(false);
+        }
+
+        private ObjectType(boolean occupiedByCreatures) {
+            this.occupiedByCreatures = occupiedByCreatures;
+        }
+
+        /**
+         * Tells whether the room's used capacity is the number of creatures
+         * that have been given a job in it, like the gamblers of a Casino,
+         * counted from when they set off to it
+         *
+         * @return true if the creatures count
+         */
+        public boolean isOccupiedByCreatures() {
+            return occupiedByCreatures;
+        }
 
     };
 

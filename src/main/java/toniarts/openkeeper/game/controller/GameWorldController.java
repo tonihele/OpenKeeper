@@ -1090,8 +1090,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // TODO: Should we some sort of room component and notify the room handlers instead?
         // Handle stored stuff
         Stored roomStorage = entityData.getComponent(entity, Stored.class);
-        IRoomController roomController = mapController.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
-        if (roomController != null && roomStorage != null) {
+        IRoomController roomController = roomStorage != null ? mapController.getRoomController(roomStorage.room) : null;
+        if (roomController != null) {
             IRoomObjectControl roomObjectControl = roomController.getObjectControl(roomStorage.objectType);
             roomObjectControl.removeItem(entity);
 
