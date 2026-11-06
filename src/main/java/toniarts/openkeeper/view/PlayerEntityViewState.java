@@ -51,6 +51,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -910,7 +911,8 @@ public class PlayerEntityViewState extends AbstractAppState {
             // tile centre
             Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
                     .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f + roomEffect.offsetZ);
-            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, !roomEffect.once,
+                    Player.NEUTRAL_PLAYER_ID, roomEffect.emitOverLifetime);
             if (visualEffect != null && roomEffect.yaw != 0) {
                 visualEffect.getEffectNode().rotate(0, roomEffect.yaw, 0);
             }
