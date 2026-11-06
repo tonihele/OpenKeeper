@@ -153,6 +153,29 @@ class RoomTortureeControlTest {
     }
 
     @Test
+    void victimOfALoadedGameIsOnItsDeviceAndLeavesIt() {
+        EntityId victim = entityData.createEntity();
+        entityData.setComponent(victim, new CreatureTortured(5, 0, 0, control.addItem(victim, new Point(3, 3))));
+
+        // The loaded game builds the room again on the saved entities
+        RoomTortureeControl loaded = new RoomTortureeControl(kwdFile(), room(), entityData, null) {
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return devices.size();
+            }
+        };
+        loaded.restore();
+
+        assertEquals(chair, loaded.addItem(entityData.createEntity(), new Point(3, 3)));
+        loaded.removeItem(victim);
+
+        assertNull(entityData.getComponent(victim, Stored.class));
+        assertEquals(1, loaded.getCurrentCapacity());
+        assertEquals(wheel, loaded.addItem(entityData.createEntity(), new Point(3, 3)));
+    }
+
+    @Test
     void creatureThatCantBeElectrocutedSkipsTheChair() {
         entityData.setComponent(chair, new ObjectComponent((short) 61, ObjectType.TORTUREE));
         CreatureComponent creature = new CreatureComponent();

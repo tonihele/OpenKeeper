@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room.storage;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -79,6 +80,22 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         addCurrentCapacity(1);
 
         return device;
+    }
+
+    /**
+     * The victims of a loaded game are creatures, not objects, so the base class
+     * does not find them. Put them back on the devices they were on.
+     */
+    @Override
+    public void restore() {
+        super.restore();
+        for (EntityId victim : entityData.findEntities(new FieldFilter(Stored.class, "room", parent.getEntityId()),
+                Stored.class, CreatureTortured.class)) {
+            EntityId device = entityData.getComponent(victim, CreatureTortured.class).device;
+            if (device != null && entityData.getComponent(victim, Stored.class).objectType == ObjectType.TORTUREE) {
+                objectsByCoordinate.computeIfAbsent(getDevicePoint(device), point -> new ArrayList<>()).add(victim);
+            }
+        }
     }
 
     /**
