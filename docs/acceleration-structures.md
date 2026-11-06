@@ -130,7 +130,7 @@ Preserve always:
 | D3 | Immutable chunk meshes | **NOT STARTED** | Defer after D1/D2 |
 | E1 | Clustered forward | **NOT STARTED** | Defer until F1 |
 | A1b | Quality presets Low–Ultra | **PARTIAL** | High = shipping/suite; UI + suite pin **ACCEPTED**; Low matrix aborted |
-| F1 | Nsight/RenderDoc VS split | **NOT STARTED** | Process + optional suite hooks |
+| F1 | Nsight/RenderDoc VS split | **PARTIAL** | Process doc **ACCEPTED**; capture numbers still open → [acceleration-f1-nsight.md](acceleration-f1-nsight.md) |
 | Q1 force-max | `applyMaximumGraphicsSettings` | **SUPERSEDED** | Method gone; A1 addresses leftovers |
 
 ---
@@ -144,13 +144,13 @@ Order is **recommended implementation / investigation sequence** given current s
 
 | | |
 |--|--|
-| **Status** | **NOT STARTED** (A3b only measures whole-frame GPU) |
+| **Status** | **PARTIAL** — procedure **ACCEPTED** ([acceleration-f1-nsight.md](acceleration-f1-nsight.md)); numeric VS split still open |
 | **Proposal** | Nsight/RenderDoc capture splitting terrain `LIGHT_INDEX_DATA` VS vs full-list rooms/entities/water; optional later suite markers |
 | **Subsystem / files** | `assets/Shaders/DkLighting/Vertex.vert`; materials from `MapViewController`, rooms, `AssetUtils` |
 | **Expected benefit** | Names the real GPU lever before another index or cluster attempt (**enables** E1 / selective indexing) |
 | **Complexity / risks** | S–M process; low code risk. Mis-attribution if captures aren’t representative |
-| **Dependencies** | A3b shipped |
-| **Bench / accept** | Document VS time share; no FPS gate required. **Do not** start E1/B1-retry without this |
+| **Dependencies** | A3b + High suite pin shipped |
+| **Bench / accept** | Document VS time share on High; no FPS gate. **Do not** start E1/B1-retry without numbers |
 
 ### 2 — A1b · Quality presets + off-suite AA matrix {#a1b-presets}
 
