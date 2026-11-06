@@ -32,6 +32,11 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
 
     public enum SpawnType {
         PLACE,
+        /**
+         * Placed as if dropped by a hand (the level editor's "act as
+         * dropped"), an enemy prison or torture chamber takes it in
+         */
+        DROP,
         ENTRANCE,
         CONJURE
     }
