@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.network;
 
+import com.jme3.network.MessageConnection;
 import com.simsilica.ethereal.net.ObjectStateProtocol;
 import com.simsilica.ethereal.zone.ZoneGrid;
 import com.simsilica.mathd.Vec3i;
@@ -34,7 +35,12 @@ public final class NetworkConstants {
 
     public final static byte LOBBY_CHANNEL = 0;
 
-    public final static byte GAME_CHANNEL = -1;
+    /**
+     * The game session calls go on the main TCP connection. They must arrive,
+     * and in order: the default unreliable channel (-1) is UDP, where the
+     * game could start before a player's load completed.
+     */
+    public final static byte GAME_CHANNEL = MessageConnection.CHANNEL_DEFAULT_RELIABLE;
 
     public final static byte ES_CHANNEL = 2;
 
