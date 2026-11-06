@@ -154,7 +154,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, gameController::onEnemyBreached, gameController::onDungeonBreached);
 
         // Load creatures
         creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);

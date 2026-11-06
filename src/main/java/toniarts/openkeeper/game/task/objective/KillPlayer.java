@@ -128,7 +128,9 @@ public final class KillPlayer extends AbstractObjectiveTask {
                     // See if we should dig
                     Terrain terrain = levelInfo.getLevelData().getTerrain(tile.getTerrainId());
                     if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && (creature.isWorker() || (creature.getParty() != null && creature.getParty().isWorkersAvailable())) && (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH) || terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE))) {
-                        addSubTask(new ObjectiveTaskDecorator(getId(), new ObjectiveDigTileTask(navigationService, mapController, tile.getLocation(), playerId)) {
+                        addSubTask(new ObjectiveTaskDecorator(getId(), terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)
+                                ? new ObjectiveDigTileTask(navigationService, mapController, tile.getLocation(), playerId)
+                                : new ObjectiveAttackWallTask(navigationService, mapController, tile.getLocation(), playerId)) {
 
                             @Override
                             public boolean isWorkerPartyTask() {

@@ -110,8 +110,40 @@ public final class TriggerGeneric extends Trigger {
         GUI_BUTTON_PRESSED(53), // GUI
         CREATURE_HUNGER_SATED(54), // Event, This creature is
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
-        PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
-        PLAYER_ENEMY_BREACHED(57), // Event, This player's...
+        /**
+         * Fires for the owner of a solid, ownable wall when another player's
+         * tile damage collapses it into a different terrain type. Child
+         * conditions run before that terrain replacement. For example, heroes
+         * breaking a keeper's reinforced wall can trigger a defensive warning.
+         * <p>
+         * DKII's separate wall-attack caller also fires this event for the
+         * attacker after a collapse if the post-damage tile owner differs.
+         * Thus one enemy wall collapse can emit both the ordinary defender
+         * warning and this supplemental attacker event. Own-wall collapse can
+         * emit the supplemental event too. The authored other-player selector
+         * is ignored, and this is an event rather than a persistent condition.
+         */
+        PLAYER_DUNGEON_BREACHED(56),
+        /**
+         * Fires for the player whose tile work destroys another owner's solid,
+         * ownable wall and replaces its terrain type. Partial damage, breaking
+         * one's own walls, digging unowned rock and attacking floors do not
+         * produce this event. Ownership inequality, rather than alliance state,
+         * determines eligibility.
+         * <p>
+         * For example, an Imp breaking a rival keeper's reinforced wall can
+         * trigger a message or advance an objective. Matching player-root
+         * branches and their child conditions run before terrain replacement;
+         * this is an event, not a persistent record of a past breach. DKII's
+         * dispatcher ignores the authored other-player filter for this event.
+         * <p>
+         * DKII's separate wall-attack caller also sends this event to the
+         * post-damage tile owner if it differs from the attacker. Terrain
+         * replacement may already have made that owner Neutral. These extra
+         * events are preserved, including those following own-wall collapse;
+         * they are distinct from the ordinary damaging-player event above.
+         */
+        PLAYER_ENEMY_BREACHED(57),
         PLAYER_CREATURE_PICKED_UP(58), // Event, This player's...
         PLAYER_CREATURE_DROPPED(59), // Event, This player's...
         PLAYER_CREATURE_SLAPPED(60), // Event, This player's...

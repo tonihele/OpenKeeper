@@ -54,6 +54,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 
 /**
  * This is controller for the map related functions
@@ -71,6 +72,8 @@ public final class MapController extends Container implements IMapController {
     private final IMapInformation<IMapTileController> mapInformation;
     private final ILevelInfo levelInfo;
     private final GameEventService gameEventService;
+    private final Consumer<Short> enemyBreachListener;
+    private final Consumer<Short> dungeonBreachListener;
 
     private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
@@ -90,6 +93,22 @@ public final class MapController extends Container implements IMapController {
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
             GameEventService gameEventService) {
+        this(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, playerId -> { });
+    }
+
+    public MapController(IKwdFile kwdFile, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
+            GameEventService gameEventService, Consumer<Short> enemyBreachListener) {
+        this(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo,
+                gameEventService, enemyBreachListener, playerId -> { });
+    }
+
+    public MapController(IKwdFile kwdFile, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
+            GameEventService gameEventService, Consumer<Short> enemyBreachListener,
+            Consumer<Short> dungeonBreachListener) {
 
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
@@ -100,6 +119,8 @@ public final class MapController extends Container implements IMapController {
         this.mapInformation = new MapInformation(mapData, kwdFile, levelInfo.getPlayers().values());
         this.levelInfo = levelInfo;
         this.gameEventService = gameEventService;
+        this.enemyBreachListener = enemyBreachListener;
+        this.dungeonBreachListener = dungeonBreachListener;
 
         // Load rooms
         loadRooms();
@@ -486,6 +507,31 @@ public final class MapController extends Container implements IMapController {
 
     @Override
     public int damageTile(Point point, short playerId, ICreatureController creature) {
+        return applyTileDamage(point, playerId, creature, false).gold();
+    }
+
+    @Override
+    public boolean attackWall(Point point, short playerId) {
+        IMapTileController tile = getMapData().getTile(point);
+        Terrain terrain = getTerrain(tile);
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                || terrain.getGoldValue() != 0 || tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+            return false;
+        }
+        TileDamage result = applyTileDamage(point, playerId, null, true);
+        // DKII 0x00498BB0 reads and caches the owner after the damage helper.
+        short ownerAfterDamage = tile.getOwnerId();
+        if (result.collapsed() && ownerAfterDamage != playerId) {
+            dungeonBreachListener.accept(playerId);
+            enemyBreachListener.accept(ownerAfterDamage);
+        }
+        return result.collapsed();
+    }
+
+    private record TileDamage(int gold, boolean collapsed) { }
+
+    private TileDamage applyTileDamage(Point point, short playerId, ICreatureController creature, boolean wallAttack) {
         IMapTileController tile = getMapData().getTile(point);
         Terrain terrain = getTerrain(tile);
 
@@ -493,7 +539,9 @@ public final class MapController extends Container implements IMapController {
         float rate;
         int returnedGold = 0;
         int multiplier = (creature != null && kwdFile.getDwarf() == creature.getCreature() ? (int) getLevelVariable(Variable.MiscVariable.MiscType.DWARF_DIGGING_MULTIPLIER) : 1);
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+        if (wallAttack) {
+            rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ENEMY_WALL_HEALTH);
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                 if (tile.getOwnerId() == playerId) {
                     rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_OWN_WALL_HEALTH) * multiplier;
@@ -538,6 +586,14 @@ public final class MapController extends Container implements IMapController {
 
         // See the results
         if (tileDestroyed) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                    && !terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                    && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                    && tile.getOwnerId() != playerId
+                    && terrain.getDestroyedTypeTerrainId() != terrain.getTerrainId()) {
+                dungeonBreachListener.accept(tile.getOwnerId());
+                enemyBreachListener.accept(playerId);
+            }
 
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore
             // The tile is dead
@@ -560,7 +616,7 @@ public final class MapController extends Container implements IMapController {
 //            mapLoader.updateTiles(point);
         }
 
-        return returnedGold;
+        return new TileDamage(returnedGold, tileDestroyed);
     }
 
     /**
