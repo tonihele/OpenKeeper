@@ -125,7 +125,33 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_AFRAID(12),
         CREATURE_STEALS(13), // Event, This creature is
         CREATURE_LEAVES(14), // Event, This creature is
-        CREATURE_STUNNED(15), // Event, This creature is
+        /**
+         * Event: an explicit stun/knockdown command is accepted for this creature.
+         * DK II emits after accepting the command, including repeated accepted
+         * knockdowns while already down. A rejected command emits nothing.
+         * This is not a persistent test for an AI state named "stunned".
+         * <p>
+         * OpenKeeper emits from its accepted knockDown() path, used by Lightning,
+         * after storing the FALLEN state and restarting its timer. Rejected
+         * knockdowns (including no AI, dead, unconscious, resting, falling or
+         * in-hand creatures) do not enqueue the event.
+         * Initial states, hand-drop landings and ordinary get-up transitions do
+         * not emit merely because their stored state is FALLEN or STUNNED.
+         * <p>
+         * Server simulation drains the event queue and runs matching creature-root
+         * branches, checking nested conditions against delivery-time state.
+         * Ordinary polling stays false; nested events are not independently
+         * dispatched. Existing knockdown eligibility, recovery and repeat limits
+         * are retained; queued delivery is not DK II's synchronous call timing.
+         * <p>
+         * Example: a scripted hero struck by Lightning can advance a branch when
+         * knocked down; another accepted hit can emit again while it is down.
+         * <p>
+         * TODO: validate additional stun causes and their native callers before
+         * wiring them, including whether the separate stun-imps special should
+         * emit. Its passive STUNNED state is not currently an event producer.
+         */
+        CREATURE_STUNNED(15),
         CREATURE_DYING(16), // Event, This creature is
         DOOR_DESTROYED(17), // Event, This door is
         OBJECT_CLAIMED(18), // Event, This object is

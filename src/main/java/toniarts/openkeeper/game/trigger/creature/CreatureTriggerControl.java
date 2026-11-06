@@ -121,9 +121,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
             case CREATURE_LEAVES:
                 return false;
             case CREATURE_STUNNED:
-                if (instanceControl != null) {
-                    return instanceControl.isStunned();
-                }
+                // An accepted knockdown command, not a persistent AI state.
                 return false;
             case CREATURE_DYING:
                 if (instanceControl != null) {

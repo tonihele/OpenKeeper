@@ -58,6 +58,9 @@ public interface IGameController {
     /** Enqueue an accepted creature hand slap for simulation-thread dispatch. */
     void onCreatureSlapped(EntityId entityId);
 
+    /** Enqueue an accepted knockdown for simulation-thread script dispatch. */
+    void onCreatureStunned(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

@@ -1276,6 +1276,7 @@ public final class CreatureController extends EntityController implements ICreat
         // was down already. That keeps a creature that is struck over and over down
         entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId(),
                 entityData.getComponent(entityId, CreatureAi.class).getTargetState()));
+        creaturesController.onStunned(entityId);
     }
 
     private boolean isAlly(EntityId entity) {
