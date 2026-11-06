@@ -20,10 +20,13 @@ import toniarts.openkeeper.game.event.GameEventType;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -44,7 +47,7 @@ public class ClaimTileTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return mapController.isClaimableTile(getTaskLocation(), playerId);
+        return mapController.isClaimableTile(getTaskLocation(), playerId) || getExecutionDuration(creature) < 0;
     }
 
     @Override
@@ -52,20 +55,59 @@ public class ClaimTileTask extends AbstractTileTask {
         return "Claim tile at " + getTaskLocation();
     }
 
+    /**
+     * Claims the tile as DK II's claim actions do it (0x496AA0). An enemy's
+     * floor is attacked first (0x465F20, 0x497670), in blows of a tick's
+     * worth of the attack rate. Ground nobody owns is claimed (0x465CD0,
+     * 0x4974C0) every tick from the tick after the worker starts, a tick's
+     * worth of the claim rate, until the tile turns, and then the worker plays
+     * the loop of its work animation out before it moves on. While it does,
+     * the stored execution duration is the time on the task when the loop
+     * ends, negated. A room is claimed in blows too (0x466180, 0x497BF0). The
+     * work animation is the worker's eating one, the imp's is called
+     * Imp_ClaimFloor.
+     *
+     * @param creature the worker
+     * @param executionDuration the time the worker has spent on the task
+     */
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        float loopEnd = -getExecutionDuration(creature);
+        if (loopEnd > 0) {
+            if (executionDuration >= loopEnd) {
+                setExecutionDuration(creature, 0);
+            }
+            return;
+        }
+        if (mapController.isClaimableTile(getTaskLocation(), playerId)) {
+            if (isGround() ? executionDuration > 0 : isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
+                mapController.applyClaimTile(getTaskLocation(), playerId, creature);
+                if (!isValid(creature)) {
+                    creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
+                    loopEnd = getLoopEnd(creature.getCreature(), Creature.AnimationType.EATING, executionDuration);
+                    if (loopEnd > executionDuration) {
+                        setExecutionDuration(creature, -loopEnd);
+                    }
+                }
+            }
+            return;
+        }
 
-        // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
-
+        // A room
+        if (isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
+            short owner = mapController.getMapData().getTile(getTaskLocation()).getOwnerId();
             mapController.applyClaimTile(getTaskLocation(), playerId, creature);
 
-            // The work is done, let it be heard
-            if (!isValid(creature)) {
+            // Heard once, when the room changes hands. Not when the worker mends its own room after an enemy's blows
+            if (owner != playerId && mapController.getMapData().getTile(getTaskLocation()).getOwnerId() == playerId) {
                 creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
             }
         }
+    }
+
+    private boolean isGround() {
+        Terrain terrain = mapController.getTerrain(mapController.getMapData().getTile(getTaskLocation()));
+        return !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && TileWork.convertsAtFullHealth(terrain);
     }
 
     @Override
