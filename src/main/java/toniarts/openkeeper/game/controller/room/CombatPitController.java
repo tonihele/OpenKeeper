@@ -51,4 +51,15 @@ public final class CombatPitController extends DoubleQuadController {
         }
     }
 
+    /**
+     * Is the tile in the pit itself, where the creatures fight, rather than on
+     * its edge
+     *
+     * @param tile the tile
+     * @return true if the creatures fight on the tile
+     */
+    public boolean isFightingTile(Point tile) {
+        return insideCoordinates.contains(tile);
+    }
+
 }
