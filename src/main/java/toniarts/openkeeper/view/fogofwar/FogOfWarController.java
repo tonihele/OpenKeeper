@@ -53,6 +53,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
 
 /**
@@ -103,6 +104,10 @@ public final class FogOfWarController implements IFogOfWarInformation {
     private final Set<EntityId> seenEnemies = new HashSet<>();
     private final List<PendingHeartReveal> pendingHeartReveals = new ArrayList<>();
     private final Set<Point> pendingTaggedTiles = new HashSet<>();
+
+    // Scripts may run on the game thread; visibility is read by the renderer.
+    // Keep their temporary reveals separate from permanent exploration.
+    private final Set<Point> scriptRevealedTiles = ConcurrentHashMap.newKeySet();
 
     private final List<Consumer<Point[]>> additionalTilesDirtyListeners = new ArrayList<>();
 
@@ -355,12 +360,15 @@ public final class FogOfWarController implements IFogOfWarInformation {
      */
     public void seedLevelStart() {
         state.clearAll();
+        Set<Point> previouslyRevealed = new HashSet<>(scriptRevealedTiles);
+        scriptRevealedTiles.clear();
         pendingTaggedTiles.clear();
         seedOwnedAndAlwaysExploredTiles();
         clearBorder();
         seedActionPoints();
 
-        Set<Point> dirty = state.drainDirtyTiles();
+        Set<Point> dirty = new HashSet<>(state.drainDirtyTiles());
+        dirty.addAll(previouslyRevealed);
         if (!dirty.isEmpty()) {
             fireTilesDirty(dirty.toArray(new Point[0]));
         }
@@ -473,13 +481,23 @@ public final class FogOfWarController implements IFogOfWarInformation {
     }
 
     /**
-     * §6.5: scripted reveal/conceal of an action point's tiles.
+     * Scripted reveal/conceal of an action point's tiles. Ending a cinematic
+     * reveal removes only its temporary visibility, preserving tiles already
+     * explored or discovered by creatures/ownership during the reveal.
      */
-    public void revealActionPointTiles(List<Point> points, boolean explore) {
-        if (explore) {
-            FogOfWarRules.exploreTiles(state, points);
-        } else {
-            FogOfWarRules.unexploreTiles(state, points);
+    public void revealActionPointTiles(List<Point> points, boolean reveal) {
+        List<Point> dirty = new ArrayList<>();
+        for (Point point : points) {
+            if (mapData.getTile(point) == null) {
+                continue;
+            }
+            boolean changed = reveal ? scriptRevealedTiles.add(point) : scriptRevealedTiles.remove(point);
+            if (changed) {
+                dirty.add(point);
+            }
+        }
+        if (!dirty.isEmpty()) {
+            fireTilesDirty(dirty.toArray(new Point[0]));
         }
     }
 
@@ -512,7 +530,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     @Override
     public boolean isVisible(Point p) {
-        if (possessedCreature != null) {
+        if (possessedCreature != null || scriptRevealedTiles.contains(p)) {
             return true;
         }
         IMapTileInformation tile = mapData.getTile(p);
@@ -523,7 +541,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     @Override
     public boolean isExplored(Point p) {
-        return state.isExplored(p.x, p.y);
+        return state.isExplored(p.x, p.y) || scriptRevealedTiles.contains(p);
     }
 
     @Override
