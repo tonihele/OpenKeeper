@@ -96,6 +96,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -128,6 +129,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final Consumer<EntityId> onCreatureSlapped;
+    private final Consumer<EntityId> onCreatureImprisoned;
+    private final Consumer<EntityId> onCreatureTortured;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -144,6 +148,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
+        this.onCreatureSlapped = gameController::onCreatureSlapped;
+        this.onCreatureImprisoned = gameController::onCreatureImprisoned;
+        this.onCreatureTortured = gameController::onCreatureTortured;
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1145,6 +1152,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                onCreatureSlapped.accept(entity);
                 notifySlap(entity, playerId);
             }
             return;
@@ -1235,7 +1243,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
                 if (roomController.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
 
-                    // TODO: you need to exactly drop the creature to a torture device, otherwise you just set him free in your base
+                    // TODO #1010: enforce DK II's usable-device tile/proximity/occupancy
+                    // checks; dropping elsewhere in the room should release the creature.
                     roomController.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entity, tile);
                     creatureState = CreatureState.TORTURED;
                     torture = true;
@@ -1285,6 +1294,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
+        }
+        if (imprison) {
+            onCreatureImprisoned.accept(entity);
+        }
+        if (torture) {
+            onCreatureTortured.accept(entity);
         }
     }
 

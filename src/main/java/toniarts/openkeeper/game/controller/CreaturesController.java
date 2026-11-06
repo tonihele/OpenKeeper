@@ -337,6 +337,13 @@ public final class CreaturesController implements ICreaturesController {
         Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
+        if (healthComponent != null) {
+            if (creatureState == CreatureState.IMPRISONED) {
+                onImprisoned(entity);
+            } else if (creatureState == CreatureState.TORTURED) {
+                gameController.onCreatureTortured(entity);
+            }
+        }
         return entity;
     }
 
@@ -445,6 +452,8 @@ public final class CreaturesController implements ICreaturesController {
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
+                // TODO #1010: enforce DK II's usable-device tile/proximity/occupancy
+                // checks. Current torture admissions still accept arbitrary room tiles.
                 room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.TORTURED;
@@ -636,6 +645,16 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void onStunned(EntityId entityId) {
+        gameController.onCreatureStunned(entityId);
+    }
+
+    @Override
+    public void onImprisoned(EntityId entityId) {
+        gameController.onCreatureImprisoned(entityId);
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
@@ -660,7 +679,8 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService(),
+                gameController::onCreatureAfraid);
     }
 
     @Override
