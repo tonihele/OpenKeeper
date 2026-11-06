@@ -122,6 +122,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     @Override
+    public void onCreatureHungerSated(EntityId entityId) {
+        creatureTriggers.onHungerSated(entityId);
+    }
+
+    @Override
     public void onCreatureAfraid(EntityId entityId) {
         creatureTriggers.onAfraid(entityId);
     }

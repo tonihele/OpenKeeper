@@ -1468,6 +1468,12 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
         }
 
+        // DK II emits after hunger reduction leaves zero, including another
+        // feeding when already full. Merely polling a full creature emits nothing.
+        if (creatureHunger.amountNeeded == 1 || creatureHunger.amountNeeded == 0) {
+            creaturesController.onHungerSated(entityId);
+        }
+
         // Increase health
         setDamage(-creature.getAttributes().getHpFromChicken());
     }

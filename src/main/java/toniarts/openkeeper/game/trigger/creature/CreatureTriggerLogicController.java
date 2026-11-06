@@ -66,6 +66,11 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
         onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
     }
 
+    /** Runs a meal event after hunger has been updated, even if already zero. */
+    public void onHungerSated(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_HUNGER_SATED);
+    }
+
     private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
         Trigger binding = entityData.getComponent(entityId, Trigger.class);
         if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {

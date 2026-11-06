@@ -151,7 +151,8 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_HUNGER_SATED:
-                return !instanceControl.isHungry();
+                // A completed meal event, not a persistent "not hungry" predicate.
+                return false;
             case CREATURE_PICKS_UP_PORTAL_GEM:
                 if (instanceControl != null) {
                     return instanceControl.isPortalGemInPosession();

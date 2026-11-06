@@ -636,6 +636,11 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void onHungerSated(EntityId entityId) {
+        gameController.onCreatureHungerSated(entityId);
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
