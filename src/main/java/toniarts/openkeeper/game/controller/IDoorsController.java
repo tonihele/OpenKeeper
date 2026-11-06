@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.door.IDoorController;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Handles doors
@@ -24,5 +26,24 @@ import toniarts.openkeeper.game.controller.door.IDoorController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IDoorsController extends IEntityWrapper<IDoorController> {
+
+    /**
+     * Places a door blueprint. The door isn't built, it waits for its crate
+     * from the workshop
+     *
+     * @param doorId the door
+     * @param tile the tile to place it on
+     * @param ownerId the owning keeper
+     * @return the door entity
+     */
+    public EntityId addDoorBlueprint(short doorId, Point tile, short ownerId);
+
+    /**
+     * Builds the door of a blueprint when its crate is delivered
+     *
+     * @param blueprint the blueprint, nothing happens if it is not a blueprint
+     * (anymore)
+     */
+    public void buildDoor(EntityId blueprint);
 
 }
