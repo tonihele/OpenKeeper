@@ -182,5 +182,11 @@ class TerrainDeformerTest {
         assertNotEquals(new Vector3f(1f, 1f, 0f), top);
         FloatBuffer normals = (FloatBuffer) mesh.getBuffer(Type.Normal).getData();
         assertEquals(1f, new Vector3f(normals.get(0), normals.get(1), normals.get(2)).length(), 1e-4f);
+
+        // Only the moved positions are a new buffer, the GPU keeps sharing the rest
+        assertNotSame(shared.getBuffer(Type.Position), mesh.getBuffer(Type.Position));
+        for (Type type : new Type[]{Type.Normal, Type.TexCoord, Type.Index}) {
+            assertSame(shared.getBuffer(type), mesh.getBuffer(type), type + " was copied");
+        }
     }
 }

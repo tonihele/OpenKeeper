@@ -350,7 +350,19 @@ public final class TerrainDeformer {
         if (geometry.isGrouped()) {
             geometry.unassociateFromGroupNode();
         }
-        Mesh mesh = original.deepClone();
+        // Only the positions and tangents are copied, the other buffers stay
+        // shared with the cached model. Rooms are rebuilt whole whenever a
+        // tile next to them changes, and each copied buffer is a new one on
+        // the GPU, which jME deletes at most a hundred a frame once dropped
+        Mesh mesh = original.clone();
+        mesh.clearCollisionData();
+        for (Type type : new Type[]{Type.Position, Type.Tangent}) {
+            VertexBuffer buffer = mesh.getBuffer(type);
+            if (buffer != null) {
+                mesh.clearBuffer(type);
+                mesh.setBuffer(buffer.clone());
+            }
+        }
         geometry.setMesh(mesh);
 
         FloatBuffer positions = (FloatBuffer) mesh.getBuffer(Type.Position).getData();
