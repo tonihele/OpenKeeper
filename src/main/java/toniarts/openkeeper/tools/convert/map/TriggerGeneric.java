@@ -113,7 +113,20 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
         PLAYER_ENEMY_BREACHED(57), // Event, This player's...
         PLAYER_CREATURE_PICKED_UP(58), // Event, This player's...
-        PLAYER_CREATURE_DROPPED(59), // Event, This player's...
+        /**
+         * Fires when this player releases a creature from the hand or when one
+         * of this player's carriers releases a hauled creature. The dropping
+         * player receives the event, even when the creature belongs to an enemy.
+         * Objects do not generate this creature event.
+         * <p>
+         * This is an event, not a persistent test that any drop has happened.
+         * Matching root branches run their children together at delivery time;
+         * nested conditions and repeat limits still apply. DKII ignores the
+         * authored creature-type and room-type filters for this event.
+         * For example, a one-shot branch can explain creature drops after the
+         * player's first drop, without firing again on every following tick.
+         */
+        PLAYER_CREATURE_DROPPED(59),
         PLAYER_CREATURE_SLAPPED(60), // Event, This player's...
         PLAYER_CREATURE_SACKED(61), // Event, This player's...
         AP_TAG_PART_OF(62), // Action point
