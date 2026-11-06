@@ -67,10 +67,10 @@ public final class SceneLights {
     /**
      * Layout of {@code LightData}: texel 0 is a header (x = light count,
      * yzw = global ambient), then three texels per light: (x, y, z, radius),
-w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
+     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      * are described in {@code Vertex.vert}.
      */
-    private static final int TEXELS_PER_LIGHT = 3;
+    static final int TEXELS_PER_LIGHT = 3;
 
     /**
      * How far outside the camera's view a light is still uploaded, on top of
@@ -84,6 +84,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     private final Texture2D lightData;
     private final FloatBuffer lightFloats;
     private boolean warnedAboutLightCount;
+    private int uploadedLightCount;
     private volatile Texture2D ambientMap;
     private int ambientMapWidth;
     private int ambientMapHeight;
@@ -167,11 +168,53 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
             writeLight(count, light);
             count++;
         }
+        uploadedLightCount = count;
+        // Header.x is the exact loop bound the Vertex shader uses (after clamp).
         lightFloats.put(0, count);
         lightFloats.put(1, globalAmbient.r);
         lightFloats.put(2, globalAmbient.g);
         lightFloats.put(3, globalAmbient.b);
         lightData.getImage().setUpdateNeeded();
+    }
+
+    /**
+     * Number of lights written into {@code LightData} by the last
+     * {@link #update(List, Camera)} call (0..{@link #MAX_LIGHTS}).
+     *
+     * @return uploaded light count
+     */
+    public int getUploadedLightCount() {
+        return uploadedLightCount;
+    }
+
+    /**
+     * Light count stored in the LightData header (texture texel 0.x). Matches
+     * what the Vertex shader reads as its loop bound.
+     *
+     * @return header light count
+     */
+    public int getHeaderLightCount() {
+        return Math.round(lightFloats.get(0));
+    }
+
+    /**
+     * Width of the LightData texture in texels (header + {@link #MAX_LIGHTS}
+     * lights × 3).
+     *
+     * @return texel width
+     */
+    public static int lightDataTexelWidth() {
+        return 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
+    }
+
+    /**
+     * Highest light index whose three data texels still fit in the buffer.
+     *
+     * @param lightIndex 0-based light index
+     * @return true if {@code writeLight} may write that index
+     */
+    public static boolean isLightIndexInBounds(int lightIndex) {
+        return lightIndex >= 0 && lightIndex < MAX_LIGHTS;
     }
 
     private static Plane[] getFrustumPlanes(Camera camera) {

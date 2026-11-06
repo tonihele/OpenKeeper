@@ -76,6 +76,34 @@ public final class LightRules {
     }
 
     /**
+     * Number of lights written into {@code LightData} by the last
+     * {@link SceneLights#update} call.
+     *
+     * @return uploaded light count
+     */
+    public int getUploadedLightCount() {
+        return sceneLights.getUploadedLightCount();
+    }
+
+    /**
+     * Live light sources currently owned by the lighting system.
+     *
+     * @return source count
+     */
+    public int getSourceCount() {
+        return modulators.getSources().size();
+    }
+
+    /**
+     * Reseeds presentation flicker RNG for reproducible benchmarks.
+     *
+     * @param seed flicker seed
+     */
+    public void setModulatorSeed(long seed) {
+        modulators.setSeed(seed);
+    }
+
+    /**
      * Flips {@code flickers} on every currently-live flicker-capable
      * source when the cheap-lighting setting changes.
      * Newly-created torches/things pick up the current setting directly

@@ -183,6 +183,16 @@ public final class Utils {
     }
 
     /**
+     * Reseeds the shared game RNG. Used by the deterministic benchmark mode;
+     * production play leaves the default seed alone.
+     *
+     * @param seed RNG seed
+     */
+    public static void setSeed(long seed) {
+        RANDOM.setSeed(seed);
+    }
+
+    /**
      * Get the game main text resource bundle
      *
      * @return the main text resource bundle

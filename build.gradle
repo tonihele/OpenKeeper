@@ -40,6 +40,67 @@ tasks.register("modelViewer", JavaExec) {
     mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
+tasks.register("benchmark", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    description = "Run the deterministic late-game performance benchmark (graphical)"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    args = ["-benchmark", "build/benchmark-results/benchmark.json", "-nomovies"]
+    // Allow: ./gradlew benchmark -PbenchmarkArgs="-benchmark-duration 10"
+    if (project.hasProperty("benchmarkArgs")) {
+        args += project.property("benchmarkArgs").toString().tokenize(" ")
+    }
+}
+
+tasks.register("benchmarkHeadless", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    description = "Run the performance benchmark in a headless jME context"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    args = ["-benchmark", "build/benchmark-results/benchmark-headless.json", "-nomovies", "-headless"]
+    if (project.hasProperty("benchmarkArgs")) {
+        args += project.property("benchmarkArgs").toString().tokenize(" ")
+    }
+}
+
+tasks.register("benchmarkSuite", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    description = "Run one suite workload (~20s measure, visual checkpoints, trends)"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = application.mainClass
+    args = [
+        "-benchmark-suite", "build/benchmark-results/suite.json",
+        "-benchmark-workload", "late-campaign-dense",
+        "-benchmark-update-visual-refs",
+        "-nomovies"
+    ]
+    if (project.hasProperty("benchmarkArgs")) {
+        args += project.property("benchmarkArgs").toString().tokenize(" ")
+    }
+}
+
+tasks.register("benchmarkBaseline", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    description = "3× primary workload (~few minutes) and write the official machine baseline"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "toniarts.openkeeper.benchmark.BenchmarkSuiteRunner"
+    args = ["--runs", "3", "--out", "baselines/performance"]
+    if (project.hasProperty("benchmarkArgs")) {
+        args += project.property("benchmarkArgs").toString().tokenize(" ")
+    }
+}
+
+tasks.register("benchmarkBaselineFull", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    description = "3× all workloads (slow); optional extended coverage"
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = "toniarts.openkeeper.benchmark.BenchmarkSuiteRunner"
+    args = ["--runs", "3", "--full", "--out", "baselines/performance"]
+    if (project.hasProperty("benchmarkArgs")) {
+        args += project.property("benchmarkArgs").toString().tokenize(" ")
+    }
+}
+
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')

@@ -43,3 +43,6 @@ local.properties
 
 # gradle stuff #
 /private/
+
+# Benchmark session scratch (keep official JSON + visual/ refs)
+baselines/performance/session-*/

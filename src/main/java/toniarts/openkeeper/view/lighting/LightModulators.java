@@ -54,6 +54,15 @@ public final class LightModulators {
     }
 
     /**
+     * Reseeds the flicker RNG (presentation-only; never shared with sim).
+     *
+     * @param seed flicker seed
+     */
+    public void setSeed(long seed) {
+        random.setSeed(seed);
+    }
+
+    /**
      * Advances both clocks by {@code tpf} seconds of presentation time.
      */
     public void update(float tpf) {

@@ -78,7 +78,10 @@ void main() {
     int numLights = 0;
 #ifdef LIGHT_DATA
     vec4 header = texelFetch(m_LightData, ivec2(0, 0), 0);
-    numLights = int(header.x + 0.5);
+    // Clamp to the texture capacity so a corrupt/oversized header cannot
+    // walk past the LightData buffer. Loop uses this count as its bound
+    // (not DK_MAX_LIGHTS) so the trip count tracks the active light set.
+    numLights = clamp(int(header.x + 0.5), 0, DK_MAX_LIGHTS);
     globalAmbient = header.yzw;
 #endif
 
@@ -87,10 +90,7 @@ void main() {
 #ifdef LIGHT_DATA
     vec3 yieldingSum = vec3(0.0);
     float torchStrength = 0.0;
-    for (int i = 0; i < DK_MAX_LIGHTS; i++) {
-        if (i >= numLights) {
-            break;
-        }
+    for (int i = 0; i < numLights; i++) {
         int base = 1 + 3 * i;
         vec4 posRadius = texelFetch(m_LightData, ivec2(base, 0), 0);
         vec4 colorIntensity = texelFetch(m_LightData, ivec2(base + 1, 0), 0);
