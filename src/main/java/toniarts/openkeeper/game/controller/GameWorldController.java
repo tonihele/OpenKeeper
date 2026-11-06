@@ -1065,7 +1065,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
-        playerHandControl.push(entity);
+        playerHandControl.push(entity, gameTimer.getGameTime());
 
         /**
          * TODO: Basically here we can have a concurrency problem, especially visible with things that have

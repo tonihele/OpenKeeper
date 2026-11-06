@@ -36,16 +36,21 @@ public final class InHand implements EntityComponent {
      * Of the record type
      */
     public short id;
+    /**
+     * Game time when the entity was picked up
+     */
+    public double startTime;
 
     public InHand() {
         // For serialization
     }
 
-    public InHand(int index, short playerId, ViewType type, short id) {
+    public InHand(int index, short playerId, ViewType type, short id, double startTime) {
         this.index = index;
         this.playerId = playerId;
         this.type = type;
         this.id = id;
+        this.startTime = startTime;
     }
 
 }
