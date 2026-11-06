@@ -1401,6 +1401,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void handleTerrainLight(IMapTileInformation tile, Terrain terrain, boolean isRoomTile, RoomInstance roomInstance) {
         Point p = tile.getLocation();
+        // The dungeon heart room gets no terrain light
+        if (isRoomTile && roomInstance != null && roomInstance.getRoom() == kwdFile.getDungeonHeart()) {
+            return;
+        }
         Terrain lightingTerrain = isRoomTile
                 ? (isInteriorRoomSlab(p, roomInstance) ? terrain : null)
                 : terrain;
@@ -1632,7 +1636,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             int r = LightConstants.withBonus(c.getRed(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_RED), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
             int g = LightConstants.withBonus(c.getGreen(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_GREEN), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
             int b = LightConstants.withBonus(c.getBlue(), terrain.getFlags().contains(Terrain.TerrainFlag.AMBIENT_COLOR_BLUE), LightConstants.TERRAIN_OVER_BRIGHT_BONUS);
-            return new ColorRGBA(r / 255f, g / 255f, b / 255f, 1f);
+            float scale = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                    && Main.getUserSettings().getAppSettings().isGammaCorrection() ? LightConstants.ROOM_AMBIENT_SCALE : 1f;
+            return new ColorRGBA(r * scale / 255f, g * scale / 255f, b * scale / 255f, 1f);
         }
 
         // Player-coloured (claimed) paths and walls get no owner tint here: they
