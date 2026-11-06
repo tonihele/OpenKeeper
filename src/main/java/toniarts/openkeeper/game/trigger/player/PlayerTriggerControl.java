@@ -166,13 +166,13 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_GOLD:
                 isValue = trigger.getUserData("flag", short.class) == 1;
 
-                target = getPlayer().getGold();
+                target = getPlayerController(playerId).getGoldControl().getGold();
 
                 if (isValue) {
                     value = trigger.getUserData("value", int.class);
                 } else {
                     short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getGold();
+                    value = getPlayerController(otherPlayerId).getGoldControl().getGold();
                 }
                 break;
 

@@ -41,7 +41,6 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private boolean ai;
     private AIType aiType = AIType.MASTER_KEEPER;
 
-    private int gold;
     private int goldMined;
     private int mana;
     private int manaGain;
@@ -188,16 +187,8 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         allies.remove(playerId);
     }
 
-    public int getGold() {
-        return gold;
-    }
-
     public int getMana() {
         return mana;
-    }
-
-    public void setGold(int gold) {
-        this.gold = gold;
     }
 
     public void setMana(int mana) {
@@ -262,7 +253,6 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(id, "playerId", Integer.valueOf(0).shortValue());
         out.write(ai, "ai", false);
         out.write(aiType, "aiType", null);
-        out.write(gold, "gold", 0);
         out.write(goldMined, "goldMined", 0);
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
@@ -286,7 +276,6 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         id = in.readShort("playerId", id);
         ai = in.readBoolean("ai", ai);
         aiType = in.readEnum("aiType", AIType.class, aiType);
-        gold = in.readInt("gold", gold);
         goldMined = in.readInt("goldMined", goldMined);
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
