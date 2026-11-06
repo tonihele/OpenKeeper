@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.player;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicInteger;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -27,9 +28,19 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  */
 public final class PlayerStatsControl {
 
+    private final AtomicInteger slapCount = new AtomicInteger();
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
+
+    /** All accepted hand slaps credited to this player, independent of effect refreshes. */
+    public int getSlapCount() {
+        return slapCount.get();
+    }
+
+    public void entitySlapped() {
+        slapCount.incrementAndGet();
+    }
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();
