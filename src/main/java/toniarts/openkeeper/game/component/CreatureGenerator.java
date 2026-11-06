@@ -29,16 +29,27 @@ public final class CreatureGenerator implements EntityComponent {
     public Point entrance;
 
     /**
-     * Last entity spawn time, in game time
+     * Last entity spawn time, in game time. For a Portal this is the time of
+     * the last generation check, a creature came in or not
      */
     public double lastSpawnTime;
+
+    /**
+     * Creatures that came in through the Portal since it was built or claimed
+     */
+    public int creaturesEntered;
 
     public CreatureGenerator() {
         // For serialization
     }
 
     public CreatureGenerator(Point entrance, double lastSpawnTime) {
+        this(entrance, lastSpawnTime, 0);
+    }
+
+    public CreatureGenerator(Point entrance, double lastSpawnTime, int creaturesEntered) {
         this.entrance = entrance;
         this.lastSpawnTime = lastSpawnTime;
+        this.creaturesEntered = creaturesEntered;
     }
 }
