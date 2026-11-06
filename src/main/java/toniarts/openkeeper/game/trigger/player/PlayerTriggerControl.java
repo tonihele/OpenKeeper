@@ -86,7 +86,6 @@ public class PlayerTriggerControl extends TriggerControl {
         handlers.put(TriggerAction.ActionType.SET_PORTAL_STATUS, handled(this::setPortalStatus));
         handlers.put(TriggerAction.ActionType.FOLLOW_CAMERA_PATH, handled(this::followCameraPath));
         handlers.put(TriggerAction.ActionType.MAKE_OBJECTIVE, handled(this::makeObjective));
-        handlers.put(TriggerAction.ActionType.DISPLAY_OBJECTIVE, handled(this::displayObjective));
         handlers.put(TriggerAction.ActionType.ZOOM_TO_ACTION_POINT, handled(this::zoomToActionPoint));
         handlers.put(TriggerAction.ActionType.ROTATE_AROUND_ACTION_POINT, handled(this::rotateAroundActionPoint));
         handlers.put(TriggerAction.ActionType.PLAY_SPEECH, handled(this::playSpeech));
@@ -337,15 +336,6 @@ public class PlayerTriggerControl extends TriggerControl {
         int angle = (short) (int) trigger.getUserData("angle", int.class); // Signed 16 bit degrees
         int time = trigger.getUserData("time", int.class);
         playerService.rotateViewAroundPoint(WorldUtils.ActionPointToVector3f(ap), isRelative, angle, time, playerId);
-    }
-
-    private void displayObjective(TriggerActionData trigger) { // Info part
-        int objectiveId = trigger.getUserData("objectiveId", int.class); // limit 32767
-        // DKII keeps the objective text id on the player (DKII.EXE 0x518AD0, case 4); here it goes to the client as a message
-        playerService.showMessage(objectiveId, playerId);
-        short apId = trigger.getUserData("actionPointId", short.class);
-        // if != 0 => Zoom To AP = this
-        zoomToAP(playerId, apId);
     }
 
     private void playSpeech(TriggerActionData trigger) { // Info part

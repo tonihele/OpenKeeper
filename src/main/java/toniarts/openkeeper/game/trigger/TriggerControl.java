@@ -398,9 +398,8 @@ public class TriggerControl extends Control {
     private boolean doPresentationAction(TriggerActionData trigger) {
         switch (trigger.getType()) {
             case DISPLAY_OBJECTIVE:
-                // STUB (partly): the objective text of the local player is not shown, the game has no
-                // service for the objective panel text. Only the "zoom to action point" part works.
-                logStub(trigger, "the objective text is not shown");
+                // DKII keeps the objective text id on the player (DKII.EXE 0x518AD0, case 4); here it goes to the client as a message
+                playerService.showMessage(trigger.getUserData("objectiveId", int.class), getLocalPlayerId());
                 zoomToAP(getLocalPlayerId(), trigger.getUserData("actionPointId", short.class));
                 return true;
 
