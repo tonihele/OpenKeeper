@@ -22,6 +22,7 @@ import java.util.List;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.creature.PartyType;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.Thing;
 
 /**
@@ -91,6 +92,22 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * @return the level defined creature partied
      */
     List<IPartyController> getParties();
+
+    /**
+     * Get every party that has been created, also the ones replaced by a newer
+     * party with the same party ID
+     *
+     * @return the created parties
+     */
+    List<IPartyController> getCreatedParties();
+
+    /**
+     * Puts back the hero parties of a loaded game. A newer party replaces an
+     * older one with the same party ID, as when they were created.
+     *
+     * @param saveGame the loaded game
+     */
+    void restoreParties(SaveGame saveGame);
 
     /**
      * Creates an creature controller interface on top of a real entity

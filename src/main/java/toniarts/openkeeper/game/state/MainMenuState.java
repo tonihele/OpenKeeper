@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.state.lobby.LobbyState;
 import toniarts.openkeeper.game.state.lobby.LocalLobby;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -561,6 +562,16 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         // Start the game
+        setEnabled(false);
+    }
+
+    /**
+     * Called by the GUI, starts a saved game
+     *
+     * @param saveGame the saved game
+     */
+    public void loadGame(SaveGame saveGame) {
+        LocalGameSession.createLocalGame(saveGame, stateManager, app);
         setEnabled(false);
     }
 

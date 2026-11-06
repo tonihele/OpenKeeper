@@ -22,6 +22,7 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
@@ -53,14 +54,30 @@ import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameLoop;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.Supplier;
+import javax.annotation.Nullable;
 
 /**
  *
@@ -68,11 +85,32 @@ import java.util.Map;
  */
 public final class GameLoopManager {
 
+    private static final Logger logger = System.getLogger(GameLoopManager.class.getName());
+
+    /**
+     * How long stopping waits for the saves that were asked for, in seconds
+     */
+    private static final long SAVE_TIMEOUT = 30;
+
     private final List<GameLoop> loops = new ArrayList<>();
+
+    // Saves that are asked for but not yet collected or written. The files are written on a thread
+    // that is not a daemon, so the JVM doesn't exit in the middle of it.
+    private final Set<Runnable> pendingCollects = ConcurrentHashMap.newKeySet();
+    private final Set<CompletableFuture<Void>> pendingWrites = ConcurrentHashMap.newKeySet();
+    private final ThreadPoolExecutor saveWriter = new ThreadPoolExecutor(1, 1, 5, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(), runnable -> new Thread(runnable, "Save game"));
+
+    {
+        // An idle writer thread must not keep the JVM alive
+        saveWriter.allowCoreThreadTimeOut(true);
+    }
 
     private final GameSessionServerService gameService;
 
     private final IGameController gameController;
+
+    private final GameLogicManager gameLogicThread;
 
     /**
      * Single use game states
@@ -82,11 +120,28 @@ public final class GameLoopManager {
      * @param players player participating in this game, can be {@code null}
      */
     public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
+        this(level, gameService, players, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param gameService the game service, its server entities are the saved
+     * ones
+     * @param saveGame the saved game
+     */
+    public GameLoopManager(IKwdFile level, GameSessionServerService gameService, SaveGame saveGame) {
+        this(level, gameService, null, saveGame);
+    }
+
+    private GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players, SaveGame saveGame) {
         this.gameService = gameService;
         final EntityData entityData = gameService.getServerEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
 
-        gameController = new GameController(level, players, gameService.getServerEntityData(), gameSettings, gameService);
+        gameController = saveGame != null ? new GameController(level, saveGame, entityData, gameSettings, gameService)
+                : new GameController(level, players, entityData, gameSettings, gameService);
         final ILevelInfo levelInfo = gameController.getLevelInfo();
         final IGameWorldController gameWorldController = gameController.getGameWorldController();
         final IEntityPositionLookup positionSystem = gameController.getEntityLookupService();
@@ -95,7 +150,7 @@ public final class GameLoopManager {
         final GameEventService gameEventService = gameController.getGameEventService();
 
         // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -146,6 +201,12 @@ public final class GameLoopManager {
         loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData),
                 new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
+
+        // A loaded game goes on from the time it was saved at, the times in its components are from that clock
+        if (saveGame != null) {
+            gameLogicThread.setTimeElapsed(saveGame.getGameTime());
+            gameAnimationThread.setTimeElapsed(saveGame.getGameTime());
+        }
     }
 
     public void pause() {
@@ -162,13 +223,112 @@ public final class GameLoopManager {
         loops.stream().forEach(GameLoop::start);
     }
 
+    /**
+     * Stops the game. A save that was asked for but hasn't been collected yet
+     * is collected first, and the saves that are being written are waited for,
+     * so a game saved just before quitting is not lost.
+     */
     public void stop() {
+        finishSaves();
         loops.forEach(GameLoop::stop);
         loops.clear();
+        saveWriter.shutdown();
+    }
+
+    private void finishSaves() {
+        // The loops are only held between frames here, the logic loop may not run its queue any more
+        pendingCollects.forEach(Runnable::run);
+        try {
+            CompletableFuture.allOf(pendingWrites.toArray(CompletableFuture[]::new)).get(SAVE_TIMEOUT, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException ex) {
+            logger.log(Level.ERROR, "Failed to finish saving the game!", ex);
+        }
+    }
+
+    /**
+     * Saves the game. The game is collected at the start of the next logic
+     * tick, queued like the player actions, so no player action runs in the
+     * middle of it. The animation and steering loops are held between frames
+     * meanwhile. The file is then written in the background. This doesn't
+     * wait for the save, so it can be called from the render thread.
+     *
+     * @param file the save file
+     * @param campaignLevel the campaign level, or {@code null} for
+     * non-campaign
+     * @return completes when the file is written
+     */
+    public CompletableFuture<Void> save(Path file, @Nullable CampaignLevel campaignLevel) {
+        if (loops.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("The game has stopped!"));
+        }
+        CompletableFuture<SaveGame> saveGame = new CompletableFuture<>();
+        Runnable collect = new Runnable() {
+            @Override
+            public void run() {
+                pendingCollects.remove(this);
+                hold(0, () -> {
+                    if (!saveGame.isDone()) {
+                        try {
+                            saveGame.complete(new SaveGame(
+                                    gameController.getLevelInfo().getLevelData().getGameLevel().getName(),
+                                    campaignLevel,
+                                    gameController.getGameTimer().getGameTime(),
+                                    gameController.getLevelInfo(),
+                                    gameController.getPlayerControllers().values(),
+                                    gameController.getTriggerControls(),
+                                    gameController.getGameWorldController().getCreaturesController().getCreatedParties(),
+                                    gameController.getGameWorldController().getMapController().getRoomControllers(),
+                                    gameService.getServerEntityData()));
+                        } catch (RuntimeException ex) {
+                            saveGame.completeExceptionally(ex);
+                        }
+                    }
+                    return null;
+                });
+            }
+        };
+        pendingCollects.add(collect);
+        gameLogicThread.enqueueAction(collect);
+
+        // A paused logic loop doesn't run the queue, but then no player action runs either
+        if (loops.get(0).isPaused()) {
+            collect.run();
+        }
+
+        CompletableFuture<Void> write = saveGame.thenAcceptAsync(save -> {
+            try {
+                save.write(file);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        }, saveWriter);
+        pendingWrites.add(write);
+        write.whenComplete((result, ex) -> pendingWrites.remove(write));
+        return write;
+    }
+
+    private <T> T hold(int loop, Supplier<T> action) {
+        if (loop == loops.size()) {
+            return action.get();
+        }
+        return loops.get(loop).hold(() -> hold(loop + 1, action));
     }
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Queues a player action to run at the start of the next game logic tick.
+     * Player actions come from the render thread (or the network thread) and
+     * change the same state as the game logic does
+     *
+     * @param action the player action
+     */
+    public void runPlayerAction(Runnable action) {
+        gameLogicThread.enqueueAction(action);
     }
 
 }

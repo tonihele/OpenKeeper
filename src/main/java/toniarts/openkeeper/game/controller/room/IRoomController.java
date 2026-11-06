@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
+import java.util.Collection;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -35,6 +36,15 @@ public interface IRoomController extends IRoomInformation {
      * Constructs a room
      */
     public void construct();
+
+    /**
+     * Constructs a room of a loaded game, the furniture is already there
+     *
+     * @param floorFurniture the floor furniture
+     * @param wallFurniture the wall furniture
+     * @param pillars the pillars
+     */
+    public void construct(Collection<EntityId> floorFurniture, Collection<EntityId> wallFurniture, Collection<EntityId> pillars);
 
     /**
      * Checks if the given tile is accessible, from an adjacent tile. If no from
@@ -80,6 +90,13 @@ public interface IRoomController extends IRoomInformation {
      * @return wall furniture
      */
     public Set<EntityId> getWallFurniture();
+
+    /**
+     * Get the pillar IDs
+     *
+     * @return pillars
+     */
+    public Set<EntityId> getPillars();
 
     public boolean canStoreGold();
 

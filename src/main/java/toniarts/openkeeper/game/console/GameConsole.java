@@ -24,9 +24,16 @@ import de.lessvoid.nifty.tools.Color;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.game.state.GameServerState;
 import toniarts.openkeeper.game.state.PlayerState;
+import toniarts.openkeeper.game.state.session.SaveGame;
+import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
+import java.io.IOException;
+import java.nio.file.Path;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 
 /**
@@ -78,6 +85,8 @@ public final class GameConsole {
         UNLOCK_DOORS_TRAPS,
         REMOVE_FOW,
         RESET_FOW,
+        SAVE_GAME,
+        LOAD_GAME,
         WIN_LEVEL;
     };
 
@@ -147,6 +156,16 @@ public final class GameConsole {
                     break;
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
+                    break;
+                case SAVE_GAME:
+                    saveGame(args.length > 1 ? args[1] : LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd_HH-mm-ss")));
+                    break;
+                case LOAD_GAME:
+                    if (args.length > 1) {
+                        loadGame(args[1]);
+                    } else {
+                        console.outputError("Give the name of the save");
+                    }
                     break;
                 case LOOSE_LEVEL:
                 case LEVEL_MAX:
@@ -252,6 +271,42 @@ public final class GameConsole {
             return;
         }
         stateManager.getState(GameClientState.class).getGameClientService().triggerSpawnCreatureCheat(creatureId, level, amount);
+    }
+
+    private void saveGame(String name) {
+        GameServerState gameServerState = stateManager.getState(GameServerState.class);
+        if (gameServerState == null) {
+            console.outputError("Only the host can save the game");
+            return;
+        }
+
+        Path file = new SaveGameFolder().getFile(name);
+        console.output("Saving to " + file);
+        gameServerState.save(file).whenComplete((result, ex) -> stateManager.getApplication().enqueue(() -> {
+            if (ex != null) {
+                console.outputError("Failed to save: " + ex);
+            } else {
+                console.output("Saved " + file);
+            }
+        }));
+    }
+
+    private void loadGame(String name) {
+        GameServerState gameServerState = stateManager.getState(GameServerState.class);
+        if (gameServerState == null || gameServerState.isMultiplayer()) {
+            console.outputError("Only a single player game can be loaded");
+            return;
+        }
+
+        Path file = new SaveGameFolder().getFile(name);
+        SaveGame saveGame;
+        try {
+            saveGame = SaveGame.read(file);
+        } catch (IOException | RuntimeException ex) {
+            console.outputError("Failed to load " + file + ": " + ex);
+            return;
+        }
+        stateManager.getState(PlayerState.class).loadGame(saveGame);
     }
 
     private boolean showHelpMessage() {

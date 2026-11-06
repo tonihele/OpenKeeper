@@ -35,10 +35,12 @@ import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.controls.ListBox;
+import de.lessvoid.nifty.controls.ListBoxSelectionChangedEvent;
 import de.lessvoid.nifty.controls.Tab;
 import de.lessvoid.nifty.controls.TabSelectedEvent;
+import de.lessvoid.nifty.controls.TextField;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
-import de.lessvoid.nifty.controls.listbox.builder.ListBoxBuilder;
 import de.lessvoid.nifty.controls.textfield.builder.TextFieldBuilder;
 import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
@@ -58,6 +60,8 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.state.session.SaveGame;
+import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
@@ -66,6 +70,7 @@ import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
 import toniarts.openkeeper.gui.nifty.guiicon.GuiIconBuilder;
 import toniarts.openkeeper.gui.nifty.icontext.IconTextBuilder;
 import toniarts.openkeeper.gui.nifty.jme.ResearchEffectControl;
+import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell;
@@ -74,6 +79,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.PlayerInteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
 import toniarts.openkeeper.view.PossessionInteractionState;
+import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.DoorIconTextParser;
 import toniarts.openkeeper.view.text.RoomIconTextParser;
@@ -86,8 +92,14 @@ import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.*;
 import java.util.List;
+import javax.annotation.Nullable;
 
 /**
  *
@@ -101,6 +113,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     private PauseMenuSettings pauseMenuSettings;
+    private final SaveGameFolder saveGameFolder = new SaveGameFolder();
+    private List<SaveGameFolder.Entry> savedGames = List.of();
+    private String overwriteSaveName;
+    private String deleteSaveName;
+    private boolean askQuickLoad = false;
 
     private static final String NOT_IMPLEMENTED_TEXT = "Currently not implemented";
 
@@ -267,8 +284,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
         if (paused) {
             this.playButtonSound("GUI_BUTTON_OPTIONS");
-            pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
+            if (askQuickLoad) {
+                showQuickLoadConfirmation();
+            } else {
+                pauseMenuNavigate(PauseMenuState.MAIN.name(), null, null, null);
+            }
         }
+        askQuickLoad = false;
     }
 
     @Override
@@ -320,8 +342,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
         page.items.add(new GameMenu("i-objective", "${menu.537}", navigateAction(PauseMenuState.OBJECTIVE), page.columnOne));
         page.items.add(new GameMenu("i-game", "${menu.97}", navigateAction(PauseMenuState.GAME), page.columnOne));
-        page.items.add(new GameMenu("i-load", "${menu.143}", navigateAction(PauseMenuState.LOAD), page.columnOne));
-        page.items.add(new GameMenu("i-save", "${menu.201}", navigateAction(PauseMenuState.SAVE), page.columnOne));
+        if (getSinglePlayerServer() != null) {
+            page.items.add(new GameMenu("i-load", "${menu.143}", navigateAction(PauseMenuState.LOAD), page.columnOne));
+            page.items.add(new GameMenu("i-save", "${menu.201}", navigateAction(PauseMenuState.SAVE), page.columnOne));
+        }
         page.items.add(new GameMenu("i-quit", "${menu.1266}", String.format("pauseMenuNavigate(%s,%s,null,null)",
                 PauseMenuState.QUIT.name(), PauseMenuState.MAIN.name()), page.columnTwo));
         page.items.add(new GameMenu("i-restart", "${menu.1269}", "pauseMenu()", page.columnTwo));
@@ -354,23 +378,39 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private void buildLoadPage(MenuPage page) {
         page.title.setText("${menu.143}");
 
-        buildSavedGamesList(page.columnOne);
-        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        buildSavedGamesList(page.columnOne, true);
+        if (!savedGames.isEmpty()) {
+            page.items.add(new GameMenu("i-load", "${menu.143}", "loadSavedGame()", page.columnTwo));
+            addDeleteSavedGame(page, PauseMenuState.LOAD);
+        }
         addContinueAndBack(page, PauseMenuState.MAIN);
     }
 
     private void buildSavePage(MenuPage page) {
         page.title.setText("${menu.201}");
 
-        buildSavedGamesList(page.columnOne);
+        buildSavedGamesList(page.columnOne, false);
         buildTextLabel("${menu.1393}", "textNormal", page.columnOne);
         new TextFieldBuilder("saveGameName", "") {
             {
                 width("60%");
             }
         }.build(page.columnOne);
-        buildTextLabel(NOT_IMPLEMENTED_TEXT, "textNormal", page.columnOne);
+        page.items.add(new GameMenu("i-save", "${menu.201}", "saveGame()", page.columnTwo));
+        if (!savedGames.isEmpty()) {
+            addDeleteSavedGame(page, PauseMenuState.SAVE);
+        }
+
+        pauseMenuSettings = new PauseMenuSettings(nifty, state.app, nifty.getScreen(SCREEN_HUD_ID));
+        pauseMenuSettings.buildAutoSave(page.columnTwo);
         addContinueAndBack(page, PauseMenuState.MAIN);
+    }
+
+    /**
+     * Deleting a save isn't in DK II, it's an addition
+     */
+    private static void addDeleteSavedGame(MenuPage page, PauseMenuState listPage) {
+        page.items.add(new GameMenu("I-Delete", "${menu.202}", String.format("deleteSavedGame(%s)", listPage.name()), page.columnTwo));
     }
 
     private void buildGraphicsPage(MenuPage page) {
@@ -475,17 +515,194 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }.build(parent);
     }
 
-    private static void buildSavedGamesList(Element parent) {
-        // There is no saved games storage yet, so the list is always empty
-        new ListBoxBuilder("savedGames") {
+    /**
+     * Lists the saves like DK II does, the newest first with the name and when
+     * it was saved
+     *
+     * @param parent the element to add the list to
+     * @param selectNewest whether to select the newest save
+     */
+    private void buildSavedGamesList(Element parent, boolean selectNewest) {
+        savedGames = saveGameFolder.list();
+        if (savedGames.isEmpty()) {
+            buildTextLabel("${menu.2128}", "textNormal", parent);
+            return;
+        }
+
+        new ControlBuilder("savedGames", "table") {
             {
-                width("60%");
-                displayItems(4);
-                selectionModeSingle();
-                optionalVerticalScrollbar();
-                hideHorizontalScrollbar();
+                parameter("vertical", "on");
+                parameter("displayItems", "8");
+                parameter("selection", "Single");
+                parameter("forceSelection", Boolean.toString(selectNewest));
+                parameter("colCount", "3");
+                parameter("col0", "${menu.83};45;java.lang.String;#32050c30");
+                parameter("col1", "${menu.2042};20;java.lang.String;#32050c30");
+                parameter("col2", "${menu.2730};35;java.lang.String;#00752430");
+                width("90%");
             }
         }.build(parent);
+        ListBox<TableRow> listBox = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("savedGames", ListBox.class);
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault());
+        for (int i = 0; i < savedGames.size(); i++) {
+            SaveGameFolder.Entry save = savedGames.get(i);
+            listBox.addItem(new TableRow(i, save.name(), save.level(), dateFormat.format(save.time())));
+        }
+    }
+
+    @NiftyEventSubscriber(id = "savedGames")
+    public void onSavedGameSelected(final String id, final ListBoxSelectionChangedEvent<TableRow> event) {
+
+        // On the save page, a save to overwrite
+        Element saveName = nifty.getScreen(SCREEN_HUD_ID).findElementById("saveGameName");
+        if (saveName != null && !event.getSelectionIndices().isEmpty()) {
+            saveName.getNiftyControl(TextField.class).setText(savedGames.get(event.getSelectionIndices().get(0)).name());
+        }
+    }
+
+    @Override
+    public void loadSavedGame() {
+        List<Integer> selection = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("savedGames", ListBox.class).getSelectedIndices();
+        if (selection.isEmpty() || getSinglePlayerServer() == null) {
+            return;
+        }
+
+        loadGame(saveGameFolder.getFile(savedGames.get(selection.get(0)).name()));
+    }
+
+    /**
+     * Quick load. DK II loads the quick save right away, this asks "Are you
+     * sure?" first in the options menu, so a stray key doesn't throw the game
+     * away. Without a quick save it says "No saved games available".
+     */
+    public void quickLoad() {
+        if (getSinglePlayerServer() == null) {
+            return;
+        }
+        if (!Files.exists(saveGameFolder.getFile(SaveGameFolder.QUICK_SAVE_NAME))) {
+            showSystemMessage("${menu.2128}");
+            return;
+        }
+
+        // The menu opens once the game has paused
+        if (state.isPaused()) {
+            showQuickLoadConfirmation();
+        } else {
+            askQuickLoad = true;
+            pauseMenu();
+        }
+    }
+
+    private void showQuickLoadConfirmation() {
+        pauseMenuNavigate(PauseMenuState.CONFIRMATION.name(), PauseMenuState.MAIN.name(), "${menu.1753}", "confirmQuickLoad()");
+    }
+
+    @Override
+    public void confirmQuickLoad() {
+        loadGame(saveGameFolder.getFile(SaveGameFolder.QUICK_SAVE_NAME));
+    }
+
+    private void loadGame(Path file) {
+        SaveGame saveGame;
+        try {
+            saveGame = SaveGame.read(file);
+        } catch (IOException | RuntimeException ex) {
+            logger.log(Level.ERROR, "Failed to load " + file + "!", ex);
+            showSystemMessage(ex.getMessage());
+            return;
+        }
+        state.loadGame(saveGame);
+    }
+
+    /**
+     * Quick save, like DK II's: saves over the quick save without asking
+     */
+    public void quickSave() {
+        writeSaveGame(SaveGameFolder.QUICK_SAVE_NAME);
+    }
+
+    @Override
+    public void deleteSavedGame(String listPage) {
+        List<Integer> selection = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("savedGames", ListBox.class).getSelectedIndices();
+        if (selection.isEmpty()) {
+            return;
+        }
+
+        deleteSaveName = savedGames.get(selection.get(0)).name();
+        pauseMenuNavigate(PauseMenuState.CONFIRMATION.name(), listPage, "${menu.202}", String.format("confirmDeleteSavedGame(%s)", listPage));
+    }
+
+    @Override
+    public void confirmDeleteSavedGame(String listPage) {
+        try {
+            saveGameFolder.delete(deleteSaveName);
+        } catch (IOException ex) {
+            logger.log(Level.ERROR, "Failed to delete " + deleteSaveName + "!", ex);
+            showSystemMessage(ex.getMessage());
+        }
+        pauseMenuNavigate(listPage, null, null, null);
+    }
+
+    @Override
+    public void saveGame() {
+        String name = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("saveGameName", TextField.class).getRealText().strip();
+        if (!saveGameFolder.isValidName(name)) {
+            return;
+        }
+
+        // An existing save is only overwritten after asking
+        if (Files.exists(saveGameFolder.getFile(name))) {
+            overwriteSaveName = name;
+            pauseMenuNavigate(PauseMenuState.CONFIRMATION.name(), PauseMenuState.SAVE.name(), "${menu.201}", "overwriteSaveGame()");
+            return;
+        }
+        writeSaveGame(name);
+        pauseMenu();
+    }
+
+    @Override
+    public void overwriteSaveGame() {
+        writeSaveGame(overwriteSaveName);
+        pauseMenu();
+    }
+
+    /**
+     * Saves the game. Says "Game Saved." when the file is written.
+     */
+    private void writeSaveGame(String name) {
+        GameServerState gameServerState = getSinglePlayerServer();
+        if (gameServerState == null) {
+            return;
+        }
+
+        Path file = saveGameFolder.getFile(name);
+        gameServerState.save(file).whenComplete((result, ex) -> state.app.enqueue(() -> {
+            if (ex != null) {
+                logger.log(Level.ERROR, "Failed to save " + file + "!", ex);
+                showSystemMessage(ex.getMessage());
+            } else {
+                showSystemMessage("${menu.562}");
+            }
+        }));
+    }
+
+    private void showSystemMessage(String text) {
+        SystemMessageState systemMessageState = state.stateManager.getState(SystemMessageState.class);
+        if (systemMessageState != null) {
+            systemMessageState.addMessage(SystemMessageState.MessageType.INFO, text);
+        }
+    }
+
+    /**
+     * Gets the game server, the game can only be saved and loaded in a single
+     * player game
+     *
+     * @return the game server, or {@code null} in a multiplayer game
+     */
+    @Nullable
+    private GameServerState getSinglePlayerServer() {
+        GameServerState gameServerState = state.stateManager.getState(GameServerState.class);
+        return gameServerState != null && !gameServerState.isMultiplayer() ? gameServerState : null;
     }
 
     @Override

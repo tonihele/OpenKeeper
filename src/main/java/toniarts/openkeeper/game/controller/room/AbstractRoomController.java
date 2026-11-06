@@ -30,6 +30,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -83,6 +84,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final Set<EntityId> floorFurniture = new HashSet<>();
     protected final Set<EntityId> wallFurniture = new HashSet<>();
     private final Set<EntityId> pillars;
+    private boolean loaded = false;
 
     protected AbstractRoomController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, ObjectType defaultStorageType) {
@@ -120,12 +122,26 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     public void construct() {
         setupCoordinates();
 
-        // Construct the room objects
-        removeObjects();
-        constructObjects();
-        if (hasPillars()) {
-            pillars.addAll(constructPillars());
+        // Construct the room objects, a loaded room has them already
+        if (!loaded) {
+            removeObjects();
+            constructObjects();
+            if (hasPillars()) {
+                pillars.addAll(constructPillars());
+            }
         }
+    }
+
+    @Override
+    public void construct(Collection<EntityId> floorFurniture, Collection<EntityId> wallFurniture, Collection<EntityId> pillars) {
+        this.floorFurniture.addAll(floorFurniture);
+        this.wallFurniture.addAll(wallFurniture);
+        if (hasPillars()) {
+            this.pillars.addAll(pillars);
+        }
+        loaded = true;
+        construct();
+        loaded = false;
     }
 
     private boolean hasPillars() {
@@ -240,6 +256,9 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     protected final <T extends IRoomObjectControl> T addObjectControl(T control) {
         IRoomObjectControl existingControl = objectControls.putIfAbsent(control.getObjectType(), control);
         if (existingControl == null) {
+            if (loaded) {
+                control.restore();
+            }
             return control;
         }
 
@@ -420,6 +439,11 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     @Override
     public Set<EntityId> getWallFurniture() {
         return wallFurniture;
+    }
+
+    @Override
+    public Set<EntityId> getPillars() {
+        return pillars;
     }
 
     /**

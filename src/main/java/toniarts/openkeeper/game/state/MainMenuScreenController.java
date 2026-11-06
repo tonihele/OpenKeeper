@@ -59,6 +59,8 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 import toniarts.openkeeper.game.state.lobby.LobbyState;
+import toniarts.openkeeper.game.state.session.SaveGame;
+import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import toniarts.openkeeper.gui.nifty.chat.Chat;
 import toniarts.openkeeper.gui.nifty.chat.event.ChatTextSendEvent;
@@ -80,6 +82,10 @@ import toniarts.openkeeper.utils.Utils;
 import java.io.File;
 import java.io.IOException;
 import java.lang.System.Logger;
+import java.nio.file.Path;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.time.format.FormatStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -106,6 +112,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private LobbySessionListener lobbySessionListener;
     private String cutsceneMovieName;
     private final Map<String, Runnable> screenStartHandlers = createScreenStartHandlers();
+    private final SaveGameFolder saveGameFolder = new SaveGameFolder();
+    private List<SaveGameFolder.Entry> savedGames = List.of();
 
     /**
      * A popup instance if some screen should need one
@@ -411,6 +419,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         handlers.put("skirmishMapSelect", () -> populateMapSelection(true));
         handlers.put("myPetDungeon", this::unlockMPDMaps);
         handlers.put("myPetDungeonMapSelect", this::showMyPetDungeonMapSelectScreen);
+        handlers.put("loadGame", this::showLoadGameScreen);
         return handlers;
     }
 
@@ -418,6 +427,74 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         state.inputManager.addRawInputListener(state.listener);
         state.refreshCampaignMap();
         state.showArrows();
+    }
+
+    /**
+     * Lists the saves like DK II does, the newest first with the name and when
+     * it was saved
+     */
+    private void showLoadGameScreen() {
+        ListBox<TableRow> listBox = screen.findNiftyControl("savedGamesTable", ListBox.class);
+        listBox.clear();
+        savedGames = saveGameFolder.list();
+        DateTimeFormatter dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT).withZone(ZoneId.systemDefault());
+        for (int i = 0; i < savedGames.size(); i++) {
+            SaveGameFolder.Entry save = savedGames.get(i);
+            listBox.addItem(new TableRow(i, save.name(), save.level(), dateFormat.format(save.time())));
+        }
+        screen.findElementById("noSavedGames").setVisible(savedGames.isEmpty());
+        screen.findElementById("deleteSavedGame").setVisible(!savedGames.isEmpty());
+    }
+
+    @Override
+    public void loadSavedGame() {
+        List<Integer> selection = screen.findNiftyControl("savedGamesTable", ListBox.class).getSelectedIndices();
+        if (selection.isEmpty()) {
+            return;
+        }
+
+        Path file = saveGameFolder.getFile(savedGames.get(selection.get(0)).name());
+        try {
+            state.loadGame(SaveGame.read(file));
+        } catch (IOException | RuntimeException ex) {
+            logger.log(Logger.Level.ERROR, "Failed to load " + file + "!", ex);
+            showError("${menu.145}", ex.getMessage());
+        }
+    }
+
+    @Override
+    public void deleteSavedGame() {
+        if (screen.findNiftyControl("savedGamesTable", ListBox.class).getSelectedIndices().isEmpty()) {
+            return;
+        }
+
+        closePopup();
+        popupElement = nifty.createPopup("confirmDeleteSavedGame");
+        nifty.showPopup(nifty.getCurrentScreen(), popupElement.getId(), null);
+    }
+
+    @Override
+    public void confirmDeleteSavedGame() {
+        closePopup();
+        List<Integer> selection = screen.findNiftyControl("savedGamesTable", ListBox.class).getSelectedIndices();
+        if (selection.isEmpty()) {
+            return;
+        }
+
+        String name = savedGames.get(selection.get(0)).name();
+        try {
+            saveGameFolder.delete(name);
+        } catch (IOException ex) {
+            logger.log(Logger.Level.ERROR, "Failed to delete " + name + "!", ex);
+            showError("${menu.202}", ex.getMessage());
+            return;
+        }
+        showLoadGameScreen();
+    }
+
+    @Override
+    public void cancelDeleteSavedGame() {
+        closePopup();
     }
 
     private void showCutsceneScreen() {

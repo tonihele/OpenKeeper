@@ -58,9 +58,8 @@ public final class RoomControllerFactory {
         // Nope
     }
 
-    public static IRoomController constructRoom(EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, IGameTimer gameTimer) {
+    public static IRoomController constructRoom(EntityId entity, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, IGameTimer gameTimer) {
         String roomName = roomInstance.getRoom().getName();
-        EntityId entity = entityData.createEntity();
 
         switch (roomInstance.getRoom().getTileConstruction()) {
             case _3_BY_3 -> {

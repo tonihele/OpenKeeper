@@ -25,6 +25,7 @@ import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
@@ -52,6 +53,7 @@ import static toniarts.openkeeper.game.controller.room.FiveByFiveRotatedControll
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -127,9 +129,11 @@ public final class ObjectsController implements IObjectsController {
      * @param gameTimer
      * @param gameController
      * @param levelInfo
+     * @param saveGame the loaded game, its objects are in the entities already.
+     * {@code null} for a new game
      */
     public ObjectsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameTimer gameTimer, IGameController gameController, ILevelInfo levelInfo) {
+            IGameTimer gameTimer, IGameController gameController, ILevelInfo levelInfo, @Nullable SaveGame saveGame) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -138,7 +142,9 @@ public final class ObjectsController implements IObjectsController {
         this.levelInfo = levelInfo;
 
         // Load objects
-        loadObjects();
+        if (saveGame == null) {
+            loadObjects();
+        }
     }
 
     private void loadObjects() {
