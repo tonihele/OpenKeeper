@@ -329,7 +329,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), null, sensedEntities);
             }
 
             // Remove us, the caller
@@ -339,18 +339,43 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
-    private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
+    @Override
+    public boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        IMapTileInformation tile = getEntityLocation(entityId);
+        if (senses == null || owner == null || tile == null) {
+            return false;
+        }
+
+        // Sense again, but stop at the doors that block us
+        Set<EntityId> sensedEntities = new HashSet<>();
+        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, sensedEntities);
+
+        return !sensedEntities.contains(sensedEntityId);
+    }
+
+    /**
+     * Adds the entities around the tile to the sensed ones
+     *
+     * @param tile the tile to sense from
+     * @param range how many tiles further to sense
+     * @param playerId the player whose blocking doors stop the senses,
+     * {@code null} to sense through all doors
+     * @param sensedEntities the sensed entities
+     */
+    private void addSensedEntities(IMapTileInformation tile, int range, Short playerId, Set<EntityId> sensedEntities) {
         if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                || range-- < 0) {
+                || range-- < 0 || (playerId != null && isTileBlocked(tile, playerId))) {
             return;
         }
 
         sensedEntities.addAll(getEntitiesInLocation(tile));
 
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, playerId, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, playerId, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, playerId, sensedEntities);
+        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, playerId, sensedEntities);
     }
 
 }

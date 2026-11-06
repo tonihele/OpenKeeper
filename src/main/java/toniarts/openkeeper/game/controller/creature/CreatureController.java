@@ -221,7 +221,11 @@ public final class CreatureController extends EntityController implements ICreat
 
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             Owner owner = entityData.getComponent(entity, Owner.class);
-            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID) {
+
+            // We sense through doors, but the creature behind an enemy or a locked door
+            // is not ours before we get there
+            if (owner != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID
+                    && !entityPositionLookup.isBehindBlockingDoor(entityId, entity)) {
                 convertCreature(entity, ownerId);
             }
         }
