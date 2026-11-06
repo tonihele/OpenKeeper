@@ -22,6 +22,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Simple task manager for creatures
@@ -57,6 +58,15 @@ public interface ITaskManager {
      * @return true if the objective task could be accomplished
      */
     boolean assignObjectiveTask(ICreatureController creature, Thing.HeroParty.Objective objective);
+
+    /**
+     * Assigns a hero the wrecking of the keeper's room tile he has stepped on
+     *
+     * @param creature the hero with the DESTROY_ROOMS flag
+     * @param tile the tile the hero is on
+     * @return true if there is a room tile to wreck and the task was assigned
+     */
+    boolean assignDestroyRoomTask(ICreatureController creature, Point tile);
 
     /**
      * Assigns a go to sleep task to the player if the lair is accessible

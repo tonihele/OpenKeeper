@@ -35,6 +35,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
@@ -505,6 +506,17 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         } else {
             cameraState.setCameraLookAt(position);
         }
+    }
+
+    /**
+     * Get the current position of an entity
+     *
+     * @param entityId the entity
+     * @return the position, or {@code null} if the entity no longer exists
+     */
+    public Vector3f getEntityPosition(EntityId entityId) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        return position != null ? position.position.clone() : null;
     }
 
     /**
