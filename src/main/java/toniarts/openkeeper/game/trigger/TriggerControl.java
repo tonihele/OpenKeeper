@@ -165,7 +165,9 @@ public class TriggerControl extends Control {
                 value = (Integer) trigger.getUserData("value");
                 break;
             case LEVEL_CREATURES:
-                return false;
+                target = creaturesController.getCreatureCount(trigger.getUserData("creatureId", short.class));
+                value = trigger.getUserData("value", int.class);
+                break;
             case LEVEL_PAY_DAY:
                 return false;
             case LEVEL_PLAYED:

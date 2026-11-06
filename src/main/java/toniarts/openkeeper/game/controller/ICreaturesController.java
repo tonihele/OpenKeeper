@@ -58,6 +58,14 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     EntityId spawnCreature(short creatureId, short playerId, int level, Vector2f position, SpawnType spawnType);
 
     /**
+     * Count live creatures across all owners, including unconscious and imprisoned creatures.
+     *
+     * @param creatureId creature type to count, or zero for all types
+     * @return number of live creature entities
+     */
+    int getCreatureCount(short creatureId);
+
+    /**
      * Spawn a hero party
      *
      * @param partyId ID of the party

@@ -2536,9 +2536,15 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                         case CREATURE_GOLD_HELD:
                         case CREATURE_HEALTH:
                         case LEVEL_TIME:
-                        case LEVEL_CREATURES:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             reader.readAndCheckNull(3); // reader.skipBytes(3);
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case LEVEL_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", reader.readUnsignedByte());
+                            reader.readAndCheckNull(2);
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
