@@ -49,6 +49,15 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
+    /** Delivers a transition into full anger to the creature's script immediately. */
+    void onCreatureAngry(EntityId entityId);
+
+    /** Delivers a qualifying fear evaluation to the creature's script immediately. */
+    void onCreatureAfraid(EntityId entityId);
+
+    /** A meal's hunger reduction finished at zero; called by server simulation only. */
+    void onCreatureHungerSated(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);
