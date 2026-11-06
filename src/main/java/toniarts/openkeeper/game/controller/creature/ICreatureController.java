@@ -137,6 +137,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isUnconscious();
 
+    /**
+     * Wakes up a knocked out creature, like when it is carried to a Lair. It
+     * keeps the health that was left of its dying time
+     */
+    public void wakeUp();
+
     public Point getCreatureCoordinates();
 
     public void setAssignedTask(Task task);

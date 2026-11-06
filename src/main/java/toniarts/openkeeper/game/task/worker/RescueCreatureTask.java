@@ -23,6 +23,9 @@ import toniarts.openkeeper.utils.Point;
 import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -59,9 +62,40 @@ public final class RescueCreatureTask extends AbstractTileTask {
         return null;
     }
 
+    /**
+     * Like in DK II, a worker rescues a knocked out creature of its keeper
+     * that lies on the keeper's land, if it has a lair or there is room for
+     * one in a Lair (DKII.EXE 0x46E390, 0x46D810, 0x46E610)
+     */
     @Override
     public boolean isValid(ICreatureController creature) {
-        return this.creature.isUnconscious() && this.creature.hasLair() && !this.creature.isDragged() && !this.creature.isRecuperating();
+        Point location = getTaskLocation();
+        return this.creature.isUnconscious() && !this.creature.isDragged() && !this.creature.isRecuperating()
+                && location != null && mapController.getMapData().getTile(location).getOwnerId() == playerId
+                && getLairLocation() != null;
+    }
+
+    /**
+     * Where the creature is carried to: its own lair, without one the closest
+     * free spot in a Lair (DKII.EXE 0x46E610)
+     *
+     * @return the tile to carry to, {@code null} if there is none
+     */
+    private Point getLairLocation() {
+        if (creature.hasLair()) {
+            return creature.getLairLocation();
+        }
+        Point location = getTaskLocation();
+        Point closest = null;
+        for (IRoomController room : mapController.getRoomsByFunction(ObjectType.LAIR, playerId)) {
+            IRoomObjectControl<?> lairs = room.getObjectControl(ObjectType.LAIR);
+            for (Point p : lairs.getAvailableCoordinates()) {
+                if (closest == null || WorldUtils.calculateDistance(location, p) < WorldUtils.calculateDistance(location, closest)) {
+                    closest = p;
+                }
+            }
+        }
+        return closest;
     }
 
     @Override
@@ -76,10 +110,16 @@ public final class RescueCreatureTask extends AbstractTileTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+
+        // A worker gets up as soon as it is picked up (DKII.EXE 0x468420)
+        if (this.creature.isWorker()) {
+            this.creature.wakeUp();
+            return;
+        }
         this.creature.setHaulable(creature);
 
         // Assign carry to lair
-        CarryCreatureToLairTask task = new CarryCreatureToLairTask(navigationService, mapController, this.creature, playerId);
+        CarryCreatureToLairTask task = new CarryCreatureToLairTask(navigationService, mapController, this.creature, getLairLocation(), playerId);
         taskManager.addTask(playerId, task);
         task.assign(creature, true);
     }
