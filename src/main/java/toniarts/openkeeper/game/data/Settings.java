@@ -74,6 +74,11 @@ public final class Settings {
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         // Graphic
         ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS),
+        /**
+         * Default anti-aliasing: SMAA Ultra (morphological post-process).
+         * Stored as the enum name; see {@link AntiAliasingMode}.
+         */
+        ANTIALIASING(AntiAliasingMode.class, AntiAliasingMode.SMAA_ULTRA, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
@@ -280,6 +285,10 @@ public final class Settings {
                 logger.log(Logger.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
             }
         }
+
+        // Keep AppSettings samples in sync with the selected AA mode (SMAA Ultra by default)
+        applyAntiAliasingMode(getAntiAliasingMode());
+
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
 
         // Assing some app level settings
@@ -287,6 +296,31 @@ public final class Settings {
         settings.setIcons(getApplicationIcons());
 
         // Gamma correction is on by default (AppSettings default), the user can toggle it in the graphics settings
+    }
+
+    /**
+     * Current anti-aliasing mode (defaults to SMAA Ultra).
+     *
+     * @return the selected mode
+     */
+    public AntiAliasingMode getAntiAliasingMode() {
+        Object value = getSetting(Setting.ANTIALIASING);
+        if (value instanceof AntiAliasingMode mode) {
+            return mode;
+        }
+        return AntiAliasingMode.fromStoredName(String.valueOf(value));
+    }
+
+    /**
+     * Persist the anti-aliasing mode and sync {@link AppSettings#setSamples(int)}.
+     *
+     * @param mode the mode to apply
+     */
+    public void applyAntiAliasingMode(AntiAliasingMode mode) {
+        AntiAliasingMode resolved = mode != null ? mode : AntiAliasingMode.SMAA_ULTRA;
+        // Persist the enum constant name (toString() is the UI label)
+        settings.put(Setting.ANTIALIASING.getKey(), resolved.name());
+        settings.setSamples(resolved.getSamples());
     }
 
     /**

@@ -36,6 +36,7 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import org.bushe.swing.event.EventTopicSubscriber;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.AntiAliasingMode;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
@@ -76,7 +77,7 @@ final class PauseMenuSettings {
     void buildGraphics(Element left, Element right) {
         addDropDown(left, "${menu.134}", "resolution", "220px");
         addCheckBox(left, " Fullscreen", "fullscreen");
-        addDropDown(left, "Antialiasing", "antialiasing", "100px");
+        addDropDown(left, "Antialiasing", "antialiasing", "220px");
         addDropDown(left, "OpenGL", "openGl", "220px");
         addCheckBox(left, " SSAO", "ssao");
         addCheckBox(left, "Gamma correction", "gammaCorrection");
@@ -131,11 +132,8 @@ final class PauseMenuSettings {
         find("verticalSync", CheckBox.class).setChecked(settings.isVSync());
 
         DropDown aa = find("antialiasing", DropDown.class);
-        aa.addAllItems(Settings.SAMPLES);
-        if (!Settings.SAMPLES.contains(settings.getSamples())) {
-            aa.addItem(settings.getSamples());
-        }
-        aa.selectItem(settings.getSamples());
+        aa.addAllItems(AntiAliasingMode.VALUES);
+        aa.selectItem(Main.getUserSettings().getAntiAliasingMode());
 
         DropDown af = find("anisotropicFiltering", DropDown.class);
         af.addAllItems(Settings.ANISOTROPHIES);
@@ -169,7 +167,7 @@ final class PauseMenuSettings {
         settings.getAppSettings().setFullscreen(find("fullscreen", CheckBox.class).isChecked());
         settings.getAppSettings().setVSync(find("verticalSync", CheckBox.class).isChecked());
         settings.getAppSettings().setRenderer((String) find("openGl", DropDown.class).getSelection());
-        settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
+        settings.applyAntiAliasingMode((AntiAliasingMode) find("antialiasing", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());
         settings.getAppSettings().setGammaCorrection(find("gammaCorrection", CheckBox.class).isChecked());

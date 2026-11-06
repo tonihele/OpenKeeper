@@ -1,0 +1,19 @@
+MaterialDef SMAA Neighborhood Blending {
+
+    MaterialParameters {
+        Int NumSamples
+        Int NumSamplesDepth
+        Texture2D Texture
+        Texture2D WeightsTexture
+        Vector4 RtMetrics
+    }
+
+    Technique {
+        VertexShader GLSL150:   MatDefs/Post/SMAA/SMAA.vert
+        FragmentShader GLSL150: MatDefs/Post/SMAA/SMAA_NeighborhoodBlending.frag
+
+        Defines {
+            VS_NEIGHBORHOODBLENDING
+        }
+    }
+}

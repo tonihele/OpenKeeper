@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.CampaignLevel.LevelType;
+import toniarts.openkeeper.game.data.AntiAliasingMode;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
@@ -309,7 +310,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setFullscreen(fullscreen.isChecked());
         settings.getAppSettings().setVSync(vsync.isChecked());
         settings.getAppSettings().setRenderer((String) ogl.getSelection());
-        settings.getAppSettings().setSamples((Integer) aa.getSelection());
+        settings.applyAntiAliasingMode((AntiAliasingMode) aa.getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
         settings.getAppSettings().setGammaCorrection(gamma.isChecked());
@@ -822,15 +823,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
         vsync.setChecked(settings.isVSync());
 
-        // Antialiasing
+        // Antialiasing (SMAA Ultra default; MSAA / hybrid also available)
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
-        aa.addAllItems(Settings.SAMPLES);
-        if (Settings.SAMPLES.contains(settings.getSamples())) {
-            aa.selectItem(settings.getSamples());
-        } else {
-            aa.addItem(settings.getSamples());
-            aa.selectItem(settings.getSamples());
-        }
+        aa.addAllItems(AntiAliasingMode.VALUES);
+        aa.selectItem(Main.getUserSettings().getAntiAliasingMode());
 
         // Anisotropic filtering
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);

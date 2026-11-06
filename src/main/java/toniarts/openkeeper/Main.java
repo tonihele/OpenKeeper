@@ -31,8 +31,8 @@ import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
-import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.post.filters.TranslucentBucketFilter;
+import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
@@ -82,6 +82,8 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
+import toniarts.openkeeper.game.data.AntiAliasingMode;
+import toniarts.openkeeper.post.SmaaFilter;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
@@ -639,25 +641,45 @@ public final class Main extends SimpleApplication {
     }
 
     /**
-     * (re-)Sets scene processors to the view port
+     * (re-)Sets scene processors to the view port.
+     * <p>
+     * Order matters: translucent resolve → optional SSAO → SMAA last on the
+     * resolved LDR colour. TranslucentBucketFilter is always attached so torch
+     * flames keep correct depth against water even when SSAO is off.
      */
     public void setViewProcessors() {
 
         // Clear the old ones
         viewPort.clearProcessors();
 
-        // Add SSAO
-        if (Settings.getInstance().getBoolean(Settings.Setting.SSAO)) {
-            FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
-                    Settings.getInstance().getFloat(Settings.Setting.SSAO_INTENSITY),
-                    Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
-                    Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
-            fpp.addFilter(ssaoFilter);
-            // Render flames/particles after water, using the original scene depth.
-            fpp.addFilter(new TranslucentBucketFilter());
-            viewPort.addProcessor(fpp);
+        Settings userSettings = Settings.getInstance();
+        AntiAliasingMode aaMode = userSettings.getAntiAliasingMode();
+        boolean ssao = userSettings.getBoolean(Settings.Setting.SSAO);
+
+        FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
+        int samples = aaMode.getSamples();
+        if (samples > 1) {
+            fpp.setNumSamples(samples);
         }
+
+        // Render flames/particles after water, using the original scene depth.
+        fpp.addFilter(new TranslucentBucketFilter());
+
+        if (ssao) {
+            SSAOFilter ssaoFilter = new SSAOFilter(
+                    userSettings.getFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
+                    userSettings.getFloat(Settings.Setting.SSAO_INTENSITY),
+                    userSettings.getFloat(Settings.Setting.SSAO_SCALE),
+                    userSettings.getFloat(Settings.Setting.SSAO_BIAS));
+            fpp.addFilter(ssaoFilter);
+        }
+
+        // SMAA Ultra (or hybrid) last: morphological AA on the final colour.
+        if (aaMode.isSmaa()) {
+            fpp.addFilter(new SmaaFilter());
+        }
+
+        viewPort.addProcessor(fpp);
     }
 
     /**

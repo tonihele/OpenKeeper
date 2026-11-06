@@ -1,0 +1,20 @@
+MaterialDef SMAA Blend Weight Calculation {
+
+    MaterialParameters {
+        Int NumSamples
+        Int NumSamplesDepth
+        Texture2D EdgesTexture
+        Texture2D AreaTexture
+        Texture2D SearchTexture
+        Vector4 RtMetrics
+    }
+
+    Technique {
+        VertexShader GLSL150:   MatDefs/Post/SMAA/SMAA.vert
+        FragmentShader GLSL150: MatDefs/Post/SMAA/SMAA_BlendingWeightCalculation.frag
+
+        Defines {
+            VS_BLENDING
+        }
+    }
+}
