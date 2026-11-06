@@ -1,0 +1,16 @@
+{
+  "change": "A2 sync Soft_FALLOFF_TAIL_TILES Java to 0.1 matching GLSL",
+  "decision": "ACCEPTED",
+  "reverted": false,
+  "kind": "correctness",
+  "session": "session-2026-11-06T13-32-42.716988600Z",
+  "compareBaseline": "after-a3-light-timers",
+  "medianAvgFps": 37.808,
+  "baselineMedianAvgFps": 37.657,
+  "rationale": [
+    "visual 3/3 pass",
+    "suite overall pass vs A3; avg FPS stable",
+    "lightsAvg +2.3% as expected from larger frustum reach",
+    "not claimed as FPS optimization"
+  ]
+}

@@ -105,17 +105,13 @@ Priority order used:
 | **Risk** | Low |
 | **Affected code** | `game/data/Settings.java` |
 
-#### Q2 — Soft-falloff constant mismatch (Java 0.01 vs GLSL 0.1)
+#### Q2 — Soft-falloff constant mismatch (Java 0.01 vs GLSL 0.1) — **DONE**
 
 | | |
 |--|--|
 | **Problem** | Comments require `LightConstants.SOFT_FALLOFF_TAIL_TILES` == `DK_SOFT_FALLOFF_TAIL_TILES`. They disagree → CPU frustum reach / `computeFlatLight` disagree with GPU falloff. |
-| **Evidence** | `LightConstants.SOFT_FALLOFF_TAIL_TILES = 0.01f`; `DkFalloff.glsllib` `#define DK_SOFT_FALLOFF_TAIL_TILES 0.1` |
-| **Solution** | Single shared value (prefer **0.1**, matching shader comments’ deliberate soften). |
-| **Benefits** | Correctness + visual consistency (terrain vs entities / culling) |
-| **Complexity** | S |
-| **Risk** | Low (slightly larger light pools) |
-| **Affected code** | `view/lighting/LightConstants.java`, `assets/Shaders/DkLighting/DkFalloff.glsllib` |
+| **Shipped** | Both **0.1**; see [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md). |
+| **Affected code** | `view/lighting/LightConstants.java`, `SceneLights.PAGE_LIGHT_REACH_TAIL_TILES` alias |
 
 #### Q3 — Decouple `TranslucentBucketFilter` from SSAO — **done**
 

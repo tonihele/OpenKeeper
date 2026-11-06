@@ -76,9 +76,10 @@ public final class LightConstants {
     public static final float MAX_LIGHT_RADIUS_TILES = 4.5f;
 
     /**
-     * Loose tail stretched past every light's radius
+     * Loose tail stretched past every light's radius. Must match
+     * {@code DK_SOFT_FALLOFF_TAIL_TILES} in {@code DkFalloff.glsllib}.
      */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 0.01f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
 
     /**
      * Largest value of a light colour channel (255 is the plain colour, up to 511 is over-bright).

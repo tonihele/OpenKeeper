@@ -66,15 +66,14 @@ Vertex.vert: terrain pages loop indices (~20 avg); rooms/entities loop numLights
 
 ## A2 — Soft-falloff sync {#a2-soft-falloff}
 
+**Status: ACCEPTED correctness (2026-11-06)** — [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md).
+
 | | |
 |--|--|
-| **Bottleneck** | `LightConstants.SOFT_FALLOFF_TAIL_TILES = 0.01f` vs GLSL `DK_SOFT_FALLOFF_TAIL_TILES 0.1`. Page-index AABB reach already uses **0.1** in Java (`SceneLights.PAGE_LIGHT_REACH_TAIL_TILES`). CPU frustum / flat paths disagree with GPU falloff. |
-| **Evidence** | **Verified** constant mismatch in source. |
-| **Proposal** | Single shared value **0.1** (match shader / page cull). |
-| **Benefit** | Correctness; may slightly increase uploaded lights. |
-| **Complexity / memory** | S / none. |
-| **Risks** | Low — slightly larger light pools. |
-| **Bench** | Visual parity; `lightsAvg` median; no FPS claim without measure. |
+| **Bottleneck** | `LightConstants.SOFT_FALLOFF_TAIL_TILES` was **0.01** vs GLSL / page reach **0.1**. |
+| **Shipped** | Java constant **0.1**; `PAGE_LIGHT_REACH_TAIL_TILES` aliases it. |
+| **Measured** | Visual 3/3; lightsAvg +2.3%; avg FPS stable vs A3 (37.808 vs 37.657). |
+| **Note** | Correctness only — not an FPS claim. |
 
 ---
 

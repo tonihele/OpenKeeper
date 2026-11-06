@@ -93,11 +93,10 @@ public final class SceneLights {
 
     /**
      * Extra reach used when testing whether an uploaded light can affect a
-     * terrain page. Matches {@code DK_SOFT_FALLOFF_TAIL_TILES} in the shader
-     * (Java {@link LightConstants#SOFT_FALLOFF_TAIL_TILES} is still 0.01 for
-     * historical flat-light callers — page culling must not under-reach).
+     * terrain page. Alias of {@link LightConstants#SOFT_FALLOFF_TAIL_TILES}
+     * (must match {@code DK_SOFT_FALLOFF_TAIL_TILES} in the shader).
      */
-    static final float PAGE_LIGHT_REACH_TAIL_TILES = 0.1f;
+    static final float PAGE_LIGHT_REACH_TAIL_TILES = LightConstants.SOFT_FALLOFF_TAIL_TILES;
 
     /** Shader sentinel: page uses the full LightData loop (index overflow). */
     public static final int PAGE_LIGHT_INDEX_FULL_LIST = -1;
