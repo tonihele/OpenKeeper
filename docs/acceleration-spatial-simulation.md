@@ -24,15 +24,14 @@ No app-authored BVH/octree for creatures or shots.
 
 ## C1 — Incremental door index {#c1-door-index}
 
+**Status: REJECTED (2026-11-06)** — [benchmark-fow-door-index.md](benchmark-fow-door-index.md).
+
 | | |
 |--|--|
-| **Bottleneck** | FoW vision tick (~0.15s) **clear+rebuilds** `doorsByPosition` from a full door `EntitySet` scan (`view/fogofwar/FogOfWarController.java`). |
-| **Evidence** | **Verified** in code; called out as remaining work in [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md). Magnitude on suite avg FPS is **Hypothesis** (more likely 1%/FoW-tick CPU). |
-| **Proposed structure** | Maintain `Point → door` (or tile bucket) **incrementally** on ECS add/remove/move — same ownership pattern as `entitiesByMapTile`. |
-| **Expected benefit** | Cheaper FoW ticks; stabler tails with many doors. |
-| **Complexity / memory** | S–M; one map-sized sparse structure. |
-| **Risks** | Missed invalidation on destroy/teleport → wrong vision blocking. |
-| **Bench** | Instrument FoW tick CPU with door-dense map; suite P99/1% lows; vision correctness spot checks. |
+| **Bottleneck** | FoW vision tick clear+rebuilds `doorsByPosition` each 0.15 s. |
+| **Attempt** | Incremental EntitySet add/remove/change index (`EntityId → Point`). |
+| **Result** | Visual OK on clean runs; median avg FPS **37.1** vs A3 **37.7** (no win); high CV. Reverted. |
+| **Lesson** | Not hot on `late-campaign-dense`; retry only with FoW-tick timers + door-dense scenario. |
 
 ---
 

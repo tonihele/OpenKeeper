@@ -17,6 +17,7 @@ Framework version: **2**
 | [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room indices — **REJECTED** |
 | [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | A3 light CPU timers — **ACCEPTED tooling** |
 | [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | C3 A\* connection reuse — **REJECTED** |
+| [benchmark-fow-door-index.md](benchmark-fow-door-index.md) | C1 FoW door index — **REJECTED** |
 
 ## Quick start (fast path)
 
