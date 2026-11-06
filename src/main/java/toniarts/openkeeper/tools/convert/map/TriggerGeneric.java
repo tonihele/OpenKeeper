@@ -88,7 +88,31 @@ public final class TriggerGeneric extends Trigger {
          */
         CREATURE_SLAPPED(5),
         CREATURE_ATTACKED(6), // Event, This creature is
-        CREATURE_IMPRISONED(7), // Event, This creature is
+        /**
+         * Event: this creature is admitted to prison. Remaining imprisoned is
+         * not a repeated event, and manually setting a prison-state component
+         * does not count as an admission. Merely carrying a prisoner also does
+         * not emit: the transfer must reach its admission step.
+         * <p>
+         * DK II emits after room admission succeeds, while subsequent captive
+         * owner/state bookkeeping can still be pending. OpenKeeper instead queues
+         * completed admissions and checks nested conditions at simulation delivery
+         * time, after its admission state has been stored. These timings differ.
+         * <p>
+         * Producers cover carried-prisoner admission, hand drops accepted into
+         * prison, and living creatures placed in prison at spawn/load. The queue
+         * exists before world loading so initial admissions survive until their
+         * script controls exist. Existing admission/capacity rules are retained.
+         * <p>
+         * Matching creature-root branches run at delivery time; ordinary polling
+         * stays false and nested events are not independently dispatched. Existing
+         * repeat limits apply, so a later admission can trigger a repeating branch.
+         * <p>
+         * Example: an Imp finishes delivering a scripted hero to prison, allowing
+         * a message or objective branch to run once. That branch does not fire
+         * every tick while the hero remains locked up.
+         */
+        CREATURE_IMPRISONED(7),
         CREATURE_TORTURED(8), // Event, This creature is
         CREATURE_CONVERTED(9), // Event, This creature is
         CREATURE_CLAIMED(10), // Event, This creature is

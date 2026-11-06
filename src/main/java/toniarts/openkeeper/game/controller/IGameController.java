@@ -61,6 +61,9 @@ public interface IGameController {
     /** Enqueue an accepted knockdown for simulation-thread script dispatch. */
     void onCreatureStunned(EntityId entityId);
 
+    /** Enqueue prison admission, including admissions during initial world loading. */
+    void onCreatureImprisoned(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

@@ -130,6 +130,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
     private final Consumer<EntityId> onCreatureSlapped;
+    private final Consumer<EntityId> onCreatureImprisoned;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -147,6 +148,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
         this.onCreatureSlapped = gameController::onCreatureSlapped;
+        this.onCreatureImprisoned = gameController::onCreatureImprisoned;
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1289,6 +1291,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
+        }
+        if (imprison) {
+            onCreatureImprisoned.accept(entity);
         }
     }
 

@@ -97,9 +97,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_IMPRISONED:
-                if (instanceControl != null) {
-                    return instanceControl.isImprisoned();
-                }
+                // Explicit admission event, not persistent prison occupancy.
                 return false;
             case CREATURE_TORTURED:
                 if (instanceControl != null) {

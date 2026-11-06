@@ -20,7 +20,6 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -45,18 +44,24 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
     private final EntityData entityData;
-    private record QueuedEvent(EntityId entityId, TriggerGeneric.TargetType type) { }
-
-    private final ConcurrentLinkedQueue<QueuedEvent> pendingEvents = new ConcurrentLinkedQueue<>();
+    private final CreatureTriggerEventQueue pendingEvents;
     private final ICreaturesController creaturesController;
 
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
+        this(gameController, levelInfo, gameTimer, mapController, creaturesController, playerService,
+                entityData, new CreatureTriggerEventQueue());
+    }
+
+    public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
+            final CreatureTriggerEventQueue pendingEvents) {
         super(initTriggers(levelInfo.getLevelData(), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(CreatureComponent.class, Trigger.class),
                 creaturesController);
         this.entityData = entityData;
+        this.pendingEvents = pendingEvents;
         this.creaturesController = creaturesController;
     }
 
@@ -72,20 +77,17 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
 
     /** Called by hand/session threads; keep every accepted request, even at the same time. */
     public void enqueueSlapped(EntityId entityId) {
-        pendingEvents.add(new QueuedEvent(entityId, TriggerGeneric.TargetType.CREATURE_SLAPPED));
+        pendingEvents.enqueueSlapped(entityId);
     }
 
     /** Lightning can arrive on a session thread, so only enqueue after state is stored. */
     public void enqueueStunned(EntityId entityId) {
-        pendingEvents.add(new QueuedEvent(entityId, TriggerGeneric.TargetType.CREATURE_STUNNED));
+        pendingEvents.enqueueStunned(entityId);
     }
 
     @Override
     public void processTick(float tpf) {
-        QueuedEvent event;
-        while ((event = pendingEvents.poll()) != null) {
-            onEvent(event.entityId(), event.type());
-        }
+        pendingEvents.drain(this::onEvent);
         super.processTick(tpf);
     }
 

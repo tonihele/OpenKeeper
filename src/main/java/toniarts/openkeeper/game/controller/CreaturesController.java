@@ -337,6 +337,9 @@ public final class CreaturesController implements ICreaturesController {
         Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
+        if (healthComponent != null && creatureState == CreatureState.IMPRISONED) {
+            onImprisoned(entity);
+        }
         return entity;
     }
 
@@ -638,6 +641,11 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public void onStunned(EntityId entityId) {
         gameController.onCreatureStunned(entityId);
+    }
+
+    @Override
+    public void onImprisoned(EntityId entityId) {
+        gameController.onCreatureImprisoned(entityId);
     }
 
     @Override

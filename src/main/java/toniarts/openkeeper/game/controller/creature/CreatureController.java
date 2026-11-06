@@ -1350,6 +1350,7 @@ public final class CreatureController extends EntityController implements ICreat
         entityData.setComponent(entityId, new Owner(owner.ownerId, playerId));
 
         stateMachine.changeState(CreatureState.IMPRISONED);
+        creaturesController.onImprisoned(entityId);
     }
 
     @Override
