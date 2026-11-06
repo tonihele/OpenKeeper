@@ -45,18 +45,18 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
-    /** Native anger events select matching root branches and run their children immediately. */
-    void onAngry(ICreatureController creature) {
+    /** Native creature events select matching root branches and run their children immediately. */
+    void onEvent(TriggerGeneric.TargetType eventType, ICreatureController creature) {
         instanceControl = creature;
         for (TriggerData child : root.getChildren().getArray()) {
             if (child instanceof TriggerGenericData event
-                    && event.getType() == TriggerGeneric.TargetType.CREATURE_ANGRY) {
-                runAngryBranch(event);
+                    && event.getType() == eventType) {
+                runEventBranch(event);
             }
         }
     }
 
-    private void runAngryBranch(TriggerGenericData branch) {
+    private void runEventBranch(TriggerGenericData branch) {
         branch.subRepeatTimes();
         for (TriggerData child : branch.getChildren().getArray()) {
             if (child instanceof TriggerActionData action) {
@@ -65,7 +65,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                     branch.detachChild(action);
                 }
             } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
-                runAngryBranch(condition);
+                runEventBranch(condition);
             }
         }
         if (branch.getQuantity() == 0) {

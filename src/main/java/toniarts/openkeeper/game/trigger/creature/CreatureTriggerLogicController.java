@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.trigger.AbstractThingTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
  * A state for handling creature triggers
@@ -57,13 +58,22 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
 
     /** Runs the event now, independently of the ordinary trigger traversal. */
     public void onAngry(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_ANGRY);
+    }
+
+    /** Runs a qualifying fear event now, even if no escape follows. */
+    public void onAfraid(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
+    }
+
+    private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
         Trigger binding = entityData.getComponent(entityId, Trigger.class);
         if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {
             return;
         }
         CreatureTriggerControl control = (CreatureTriggerControl) getTriggerControl(binding.triggerId);
         if (control != null) {
-            control.onAngry(creaturesController.createController(entityId));
+            control.onEvent(eventType, creaturesController.createController(entityId));
         }
     }
 

@@ -81,7 +81,25 @@ public final class TriggerGeneric extends Trigger {
          * when a particular Warlock becomes fully angry for the first time.
          */
         CREATURE_ANGRY(11),
-        CREATURE_AFRAID(12), // Event, This creature is
+        /**
+         * Fires when this creature passes a qualifying fear evaluation, before
+         * the game attempts an escape. It is an immediate creature-script
+         * event, not a poll of the current fleeing state. The event can occur
+         * even when escape is subsequently suppressed or unavailable.
+         * <p>
+         * For example, a weak creature confronted by an overwhelming enemy
+         * can trigger a warning or reinforcement script. Level4 contains
+         * two uses of this event. An active escape suppresses further events;
+         * later eligible fear checks can deliver it again, subject to the
+         * branch's repeat limit.
+         * <p>
+         * DKII dispatches matching active root branches synchronously and
+         * tests their child conditions at event time. The ordinary script
+         * walk does not match this enum, and nested event conditions are not
+         * searched recursively. OpenKeeper uses its existing fear evaluation;
+         * this condition does not replace fear scoring or flee navigation.
+         */
+        CREATURE_AFRAID(12),
         CREATURE_STEALS(13), // Event, This creature is
         CREATURE_LEAVES(14), // Event, This creature is
         CREATURE_STUNNED(15), // Event, This creature is

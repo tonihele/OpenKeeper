@@ -121,6 +121,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         creatureTriggers.onAngry(entityId);
     }
 
+    @Override
+    public void onCreatureAfraid(EntityId entityId) {
+        creatureTriggers.onAfraid(entityId);
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
