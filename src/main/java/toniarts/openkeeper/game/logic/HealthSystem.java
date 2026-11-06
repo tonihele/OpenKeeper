@@ -275,6 +275,13 @@ public final class HealthSystem extends GameTimeCounter {
                 .getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY);
     }
 
+    private boolean isHorny(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null && levelInfo.getLevelData()
+                .getCreature(creatureComponent.creatureId)
+                .getFlags().contains(Creature.CreatureFlag.IS_HORNY);
+    }
+
     private int calculateHealthChange(EntityId entityId, Health health, double elapsedTime, double gameTime) {
         int delta = 0;
 
@@ -282,9 +289,13 @@ public final class HealthSystem extends GameTimeCounter {
         Entity entity = damageEntities.getEntity(entityId);
         if (entity != null) {
             Damage damage = entity.get(Damage.class);
-            delta -= damage.damage;
-            if (damage.damage > 0) {
-                gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+
+            // The Horned Reaper can't be hurt, only healed
+            if (damage.damage < 0 || !isHorny(entityId)) {
+                delta -= damage.damage;
+                if (damage.damage > 0) {
+                    gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+                }
             }
 
             // Remove the damage
