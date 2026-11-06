@@ -16,28 +16,46 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
-/**
- * Holds out the creatures tortured in a room
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
- */
+/** Server-side device admission and storage for creatures undergoing torture. */
 public abstract class RoomTortureeControl extends AbstractRoomObjectControl<EntityId> {
+
+    // Original world positions use twelve fractional bits per tile.
+    private static final int POSITION_FRACTION_BITS = 12;
+    private static final long POSITION_SCALE = 1L << POSITION_FRACTION_BITS;
+    private final IGameTimer gameTimer;
 
     public RoomTortureeControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.TORTUREE);
+        this.gameTimer = gameTimer;
     }
 
     @Override
@@ -45,45 +63,223 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return 1;
     }
 
+    /** Returns the rejected creature, or null when it was admitted at the tile center. */
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
+        return tryAdmit(torturee, new Vector2f(p.x * WorldUtils.TILE_WIDTH,
+                p.y * WorldUtils.TILE_WIDTH)) ? null : torturee;
+    }
+
+    /**
+     * Admit at the actual drop/spawn position, never at a neighbouring device.
+     * Native DK II requires the same tile and distance below one tile in its
+     * fixed-point measure (each squared axis contribution is truncated first);
+     * another creature already undergoing torture on that tile blocks admission.
+     * An idle bystander and the admitting creature itself do not block it.
+     *
+     * The room lock covers validation and publication of the occupied position/AI,
+     * so two session/loading producers cannot claim the same device together.
+     * This method stores state only; callers queue scripting events afterwards.
+     */
+    public synchronized boolean tryAdmit(EntityId torturee, Vector2f position) {
+        Health health = entityData.getComponent(torturee, Health.class);
+        CreatureComponent creature = entityData.getComponent(torturee, CreatureComponent.class);
+        Owner owner = entityData.getComponent(torturee, Owner.class);
+        if (health == null || health.health <= 0 || creature == null || owner == null
+                || entityData.getComponent(torturee, Death.class) != null
+                || (owner.ownerId == parent.getOwnerId()
+                    && creature.creatureId == kwdFile.getImp().getCreatureId())
+                || !hasAvailableDevice(torturee, position)) {
+            return false;
+        }
+
+        discardStaleItems();
+        boolean alreadyStored = objectsByCoordinate.values().stream().anyMatch(ids -> ids.contains(torturee));
+        objectsByCoordinate.values().forEach(ids -> ids.remove(torturee));
+        objectsByCoordinate.computeIfAbsent(WorldUtils.vectorToPoint(position), p -> new HashSet<>()).add(torturee);
+        if (!alreadyStored) {
+            addCurrentCapacity(1);
+        }
         setRoomStorageToItem(torturee, false);
-        addCurrentCapacity(1);
+        CreatureTortured previous = entityData.getComponent(torturee, CreatureTortured.class);
+        double now = gameTimer.getGameTime();
+        entityData.setComponents(torturee,
+                new Position(0, new Vector3f(position.x, WorldUtils.FLOOR_HEIGHT, position.y)),
+                new CreatureAi(now, CreatureState.TORTURED, creature.creatureId),
+                new CreatureTortured(previous == null ? 0 : previous.timeTortured, now, now));
+        entityData.removeComponent(torturee, CreatureImprisoned.class);
+        entityData.removeComponent(torturee, CreatureFall.class);
+        return true;
+    }
 
-        return torturee;
+    /** Checks current furniture and AI; removed devices and held creatures cannot reserve tiles. */
+    private boolean hasAvailableDevice(EntityId torturee, Vector2f position) {
+        if (!hasDeviceAt(position)) {
+            return false;
+        }
+        Point tile = WorldUtils.vectorToPoint(position);
+        var creatures = entityData.getEntities(CreatureComponent.class, CreatureAi.class, Position.class);
+        try {
+            for (var other : creatures) {
+                if (!other.getId().equals(torturee)
+                        && other.get(CreatureAi.class).getCreatureState() == CreatureState.TORTURED
+                        && tile.equals(WorldUtils.vectorToPoint(other.get(Position.class).position))) {
+                    return false;
+                }
+            }
+        } finally {
+            creatures.release();
+        }
+        return true;
+    }
+
+    /** Geometry-only check for an existing admission; it does not reserve another tile. */
+    private boolean hasDeviceAt(Vector2f position) {
+        if (!Float.isFinite(position.x) || !Float.isFinite(position.y)) {
+            return false;
+        }
+        Point tile = WorldUtils.vectorToPoint(position);
+        boolean deviceFound = false;
+        for (EntityId id : furniture()) {
+            Position devicePosition = devicePosition(id);
+            if (devicePosition != null && tile.equals(WorldUtils.vectorToPoint(devicePosition.position))) {
+                long dx = fixedPosition(position.x) - fixedPosition(devicePosition.position.x);
+                long dy = fixedPosition(position.y) - fixedPosition(devicePosition.position.z);
+                if ((dx * dx >> POSITION_FRACTION_BITS) + (dy * dy >> POSITION_FRACTION_BITS) < POSITION_SCALE) {
+                    deviceFound = true;
+                    break;
+                }
+            }
+        }
+        return deviceFound;
+    }
+
+    private static long fixedPosition(float coordinate) {
+        return (long) Math.floor((double) coordinate * POSITION_SCALE / WorldUtils.TILE_WIDTH);
+    }
+
+    /** Validate before torture damage/conversion, releasing stale admissions once. */
+    public static boolean validate(EntityData data, IMapController map, EntityId id, double now) {
+        if (data.getComponent(id, CreatureTortured.class) == null) {
+            return false;
+        }
+        Position position = data.getComponent(id, Position.class);
+        IRoomController room = position == null ? null
+                : map.getRoomControllerByCoordinates(WorldUtils.vectorToPoint(position.position));
+        RoomTortureeControl control = room != null && room.hasObjectControl(ObjectType.TORTUREE)
+                ? room.getObjectControl(ObjectType.TORTUREE) : null;
+        Stored stored = data.getComponent(id, Stored.class);
+        CreatureAi ai = data.getComponent(id, CreatureAi.class);
+        if (control != null && stored != null && stored.objectType == ObjectType.TORTUREE
+                && stored.room.equals(room.getEntityId()) && ai != null
+                && ai.getCreatureState() == CreatureState.TORTURED
+                && control.hasDeviceAt(new Vector2f(position.position.x, position.position.z))) {
+            return true;
+        }
+        if (control != null && stored != null && stored.objectType == ObjectType.TORTUREE
+                && stored.room.equals(room.getEntityId())) {
+            control.removeItem(id);
+        }
+        release(data, id, now);
+        return false;
+    }
+
+    private Set<EntityId> furniture() {
+        Set<EntityId> furniture = new HashSet<>(parent.getFloorFurniture());
+        furniture.addAll(parent.getWallFurniture());
+        return furniture;
+    }
+
+    private Position devicePosition(EntityId id) {
+        ObjectComponent object = entityData.getComponent(id, ObjectComponent.class);
+        Position position = entityData.getComponent(id, Position.class);
+        if (parent.getRoomInstance().isDestroyed() || object == null || position == null
+                || !Float.isFinite(position.position.x) || !Float.isFinite(position.position.z)
+                || (object.objectId != ObjectsController.OBJECT_TORTURE_CHAIR_ID
+                    && object.objectId != ObjectsController.OBJECT_TORTURE_WHEEL_ID)
+                || !parent.getRoomInstance().getCoordinates().contains(WorldUtils.vectorToPoint(position.position))) {
+            return null;
+        }
+        return position;
+    }
+
+    private void discardStaleItems() {
+        int removed = 0;
+        for (Collection<EntityId> ids : objectsByCoordinate.values()) {
+            int before = ids.size();
+            ids.removeIf(id -> {
+                Stored stored = entityData.getComponent(id, Stored.class);
+                return stored == null || stored.objectType != ObjectType.TORTUREE
+                        || !stored.room.equals(parent.getEntityId());
+            });
+            removed += before - ids.size();
+        }
+        if (removed != 0) {
+            addCurrentCapacity(-removed);
+        }
     }
 
     @Override
-    public void removeItem(EntityId object) {
-        super.removeItem(object);
+    public synchronized void removeItem(EntityId object) {
+        boolean stored = objectsByCoordinate.values().stream().anyMatch(ids -> ids.contains(object));
+        Stored binding = entityData.getComponent(object, Stored.class);
+        if (binding == null || (binding.objectType == ObjectType.TORTUREE
+                && binding.room.equals(parent.getEntityId()))) {
+            super.removeItem(object);
+        } else {
+            objectsByCoordinate.values().forEach(ids -> ids.remove(object));
+        }
+        if (stored) {
+            addCurrentCapacity(-1);
+        }
+    }
 
-        addCurrentCapacity(-1);
+    /** Release a cancelled admission or a creature whose torture device disappeared. */
+    public static void release(EntityData entityData, EntityId creature, double now) {
+        entityData.removeComponent(creature, CreatureTortured.class);
+        Stored stored = entityData.getComponent(creature, Stored.class);
+        if (stored != null && stored.objectType == ObjectType.TORTUREE) {
+            entityData.removeComponent(creature, Stored.class);
+        }
+        CreatureAi ai = entityData.getComponent(creature, CreatureAi.class);
+        if (ai != null && ai.getCreatureState() == CreatureState.TORTURED
+                && entityData.getComponent(creature, Death.class) == null) {
+            entityData.setComponent(creature, new CreatureAi(now, CreatureState.IDLE, ai.creatureId));
+        }
+        Owner owner = entityData.getComponent(creature, Owner.class);
+        if (owner != null && entityData.getComponent(creature, CreatureImprisoned.class) == null) {
+            entityData.setComponent(creature, new Owner(owner.ownerId, owner.ownerId));
+        }
     }
 
     @Override
-    public void destroy() {
+    public synchronized void destroy() {
+        for (Collection<EntityId> ids : objectsByCoordinate.values()) {
+            for (EntityId id : ids) {
+                Stored stored = entityData.getComponent(id, Stored.class);
+                if (stored != null && stored.objectType == ObjectType.TORTUREE
+                        && stored.room.equals(parent.getEntityId())) {
+                    release(entityData, id, gameTimer.getGameTime());
+                }
+            }
+        }
+        objectsByCoordinate.clear();
         super.destroy();
-
-        // TODO: The creature is released
     }
 
     @Override
     public void captured(short playerId) {
-
     }
 
     @Override
     protected Collection<Point> getCoordinates() {
-
-        // Only furniture
-        List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
-        for (EntityId oc : parent.getFloorFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
+        Set<Point> coordinates = new HashSet<>();
+        for (EntityId id : furniture()) {
+            Position position = devicePosition(id);
+            if (position != null) {
+                coordinates.add(WorldUtils.vectorToPoint(position.position));
+            }
         }
-        for (EntityId oc : parent.getWallFurniture()) {
-            coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
-        }
-        return coordinates;
+        return new ArrayList<>(coordinates);
     }
-
 }

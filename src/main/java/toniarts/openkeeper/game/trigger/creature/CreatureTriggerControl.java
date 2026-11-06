@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -44,6 +45,34 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
+    /** Native creature events select matching root branches and run their children immediately. */
+    void onEvent(TriggerGeneric.TargetType eventType, ICreatureController creature) {
+        instanceControl = creature;
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == eventType) {
+                runEventBranch(event);
+            }
+        }
+    }
+
+    private void runEventBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runEventBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
+    }
+
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
         boolean result = false;
@@ -60,24 +89,16 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_SLAPPED:
-                if (instanceControl != null) {
-                    return instanceControl.isSlapped();
-                }
+                // Each accepted slap is an event, not the lingering efficiency effect.
                 return false;
             case CREATURE_ATTACKED:
-                if (instanceControl != null) {
-                    return instanceControl.isAttacked();
-                }
+                // Explicit target-setup notification, not damage or persistent combat state.
                 return false;
             case CREATURE_IMPRISONED:
-                if (instanceControl != null) {
-                    return instanceControl.isImprisoned();
-                }
+                // Explicit admission event, not persistent prison occupancy.
                 return false;
             case CREATURE_TORTURED:
-                if (instanceControl != null) {
-                    return instanceControl.isTortured();
-                }
+                // Explicit admission event, not the lingering torture component.
                 return false;
             case CREATURE_CONVERTED:
                 return instanceControl.getOwnerId() != getPlayerId();
@@ -94,9 +115,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
             case CREATURE_LEAVES:
                 return false;
             case CREATURE_STUNNED:
-                if (instanceControl != null) {
-                    return instanceControl.isStunned();
-                }
+                // An accepted knockdown command, not a persistent AI state.
                 return false;
             case CREATURE_DYING:
                 if (instanceControl != null) {

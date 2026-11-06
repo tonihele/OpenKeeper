@@ -75,7 +75,9 @@ public final class ObjectsController implements IObjectsController {
     //public final static short OBJECT_GOLD_BAG_ID = 2;
     public final static short OBJECT_GOLD_PILE_ID = 3;
     public final static short OBJECT_SPELL_BOOK_ID = 4;
+    public final static short OBJECT_TORTURE_CHAIR_ID = 8;
     public final static short OBJECT_CHICKEN_ID = 9;
+    public final static short OBJECT_TORTURE_WHEEL_ID = 61;
     public final static short OBJECT_EGG_ID = 47;
     public final static short OBJECT_SPECIAL_INCREASE_LEVEL_ID = 117;
     public final static short OBJECT_SPECIAL_REVEAL_MAP_ID = 118;

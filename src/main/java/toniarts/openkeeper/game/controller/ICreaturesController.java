@@ -30,6 +30,15 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreaturesController extends IEntityWrapper<ICreatureController> {
 
+    /** Enqueue an accepted knockdown; script trees belong to the simulation thread. */
+    void onStunned(EntityId entityId);
+
+    /** Report an explicit completed prison admission to the server event buffer. */
+    void onImprisoned(EntityId entityId);
+
+    /** Notify the victim after an attacker explicitly sets it as the attack target. */
+    void onAttacked(EntityId entityId);
+
     public enum SpawnType {
         PLACE,
         ENTRANCE,
