@@ -469,6 +469,7 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
                 case "getSensedEntities" -> Set.of();
+                case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
@@ -495,6 +496,7 @@ class CreatureControllerTest {
                 case "getTaskType" -> type;
                 case "isValid" -> true;
                 case "getTarget" -> new Vector2f(3, 4);
+                case "getWorkPosition" -> null;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
                 default -> throw new UnsupportedOperationException(method);
