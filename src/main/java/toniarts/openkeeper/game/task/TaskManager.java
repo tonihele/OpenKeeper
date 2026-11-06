@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -926,11 +928,21 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 TaskWorkerPriority taskWorkerPriority = iter.next();
 
                 // See if the task is full or the worker is not unemployed anymore or that the task can't actually be handled by this creature
-                if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)
-                        || taskWorkerPriority.task.isFull()
-                        || !taskWorkerPriority.task.canAssign(taskWorkerPriority.creature)) {
+                if (!unemployedWorkers.containsKey(taskWorkerPriority.creature)) {
                     iter.remove();
                     continue;
+                }
+                Task task = taskWorkerPriority.task;
+                ICreatureController carrier = task.isFull() ? getCarrierFurtherAway(task, taskWorkerPriority.creature) : null;
+                if (carrier != null ? !task.isValid(taskWorkerPriority.creature) || !task.isReachable(taskWorkerPriority.creature)
+                        : !task.canAssign(taskWorkerPriority.creature)) {
+                    iter.remove();
+                    continue;
+                }
+
+                // The worker further away goes back to looking for work
+                if (carrier != null) {
+                    carrier.unassingCurrentTask();
                 }
 
                 // Assign task
@@ -970,6 +982,36 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         } else {
             entityData.removeComponent(creature.getEntityId(), DiggingTiles.class);
         }
+    }
+
+    /**
+     * The worker that has the job of carrying off a knocked out creature, if
+     * it is further from the creature than the given worker. Like in DK II
+     * (DKII.EXE 0x46D810), the closer imp takes the job over
+     *
+     * @param task the task
+     * @param creature the worker looking for work
+     * @return the worker that has the task and is further away, {@code null}
+     * if there is none
+     */
+    private ICreatureController getCarrierFurtherAway(Task task, ICreatureController creature) {
+        Point location = task.getTaskLocation();
+        if (location == null || (task.getTaskType() != TaskType.RESCUE_CREATURE && task.getTaskType() != TaskType.CAPTURE_ENEMY_CREATURE)) {
+            return null;
+        }
+        Set<EntityId> carriers = entityData.findEntities(FieldFilter.create(TaskComponent.class, "taskId", task.getId()), TaskComponent.class);
+        if (carriers.size() != 1) {
+            return null;
+        }
+        ICreatureController carrier = creaturesController.createController(carriers.iterator().next());
+        Vector2f body = WorldUtils.pointToVector2f(location);
+        Vector3f position = creature.getPosition();
+        Vector3f carrierPosition = carrier.getPosition();
+        if (carrierPosition == null || (position != null
+                && body.distanceSquared(position.x, position.z) < body.distanceSquared(carrierPosition.x, carrierPosition.z))) {
+            return carrier;
+        }
+        return null;
     }
 
     /**
