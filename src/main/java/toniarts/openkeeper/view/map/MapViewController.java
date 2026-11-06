@@ -112,6 +112,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Node roomsNode;
     private final short playerId;
     private final Set<Point> flashedTiles = new HashSet<>();
+    private short[] drawnTerrainIds; // The terrain each tile and its neighbours were last built with, by tile index
+    private short[] drawnOwnerIds; // And the owner
     private final List<EntityInstance<Terrain>> waterBatches = new ArrayList<>(); // Lakes and rivers
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private Spatial waterSurface; // Currently attached merged water mesh, if any
@@ -192,10 +194,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // Go through the map
         int index = 0;
         int tilesCount = getMapData().getSize();
+        drawnTerrainIds = new short[tilesCount];
+        drawnOwnerIds = new short[tilesCount];
 
         for (IMapTileInformation tile : getMapData()) {
 
             try {
+                isDrawnTileChanged(tile);
                 handleTile(tile, terrain);
             } catch (Exception e) {
                 logger.log(Level.ERROR, "Failed to handle tile at " + tile.getLocation() + "!", e);
@@ -495,6 +500,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // If this touches any rooms, reconstruct them and add the neighbouring tiles to update list
         for (Point point : points) {
             pointsToUpdate.add(point);
+
+            // Most updates (a dig or claim hit, gold, mana, a tag or a flash)
+            // change only the tile's own look, not its neighbours or rooms
+            if (!isDrawnTileChanged(getMapData().getTile(point))) {
+                continue;
+            }
             RoomInstance roomInstance = roomCoordinates.get(point);
             if (roomInstance != null) {
                 pointsToUpdate.addAll(Arrays.asList(WorldUtils.getSurroundingTiles(getMapData(), point, true)));
@@ -569,6 +580,26 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // and how tall it is - always rebuild it whole, there's no incremental
         // variant, same as the water/lava surfaces above
         refreshCeilingSurface();
+    }
+
+    /**
+     * Checks whether the tile now shows another terrain or owner than it was
+     * last built with, and remembers the current ones. Rooms and neighbouring
+     * walls are built from just these.
+     *
+     * @param tile the tile
+     * @return true if the terrain or the owner changed
+     */
+    private boolean isDrawnTileChanged(IMapTileInformation tile) {
+        int index = tile.getIndex();
+        short terrainId = getTerrain(tile).getTerrainId();
+        short ownerId = tile.getOwnerId();
+        if (drawnTerrainIds[index] == terrainId && drawnOwnerIds[index] == ownerId) {
+            return false;
+        }
+        drawnTerrainIds[index] = terrainId;
+        drawnOwnerIds[index] = ownerId;
+        return true;
     }
 
     /**
