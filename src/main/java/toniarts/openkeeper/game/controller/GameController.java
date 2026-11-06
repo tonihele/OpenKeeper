@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
+import toniarts.openkeeper.game.trigger.player.PlayerCreatureEventQueue;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -59,7 +60,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
  * The game controller, runs the game simulation itself
@@ -80,7 +80,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     private TriggerControl triggerControl = null;
     private PlayerTriggerLogicController playerTriggers;
-    private final ConcurrentLinkedQueue<Short> creatureDropEvents = new ConcurrentLinkedQueue<>();
+    private final PlayerCreatureEventQueue playerCreatureEvents = new PlayerCreatureEventQueue();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -120,7 +120,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void onCreatureDropped(short playerId) {
-        creatureDropEvents.add(playerId);
+        playerCreatureEvents.enqueueDropped(playerId);
+    }
+
+    @Override
+    public void onCreaturePickedUp(short playerId) {
+        playerCreatureEvents.enqueuePickedUp(playerId);
     }
 
     public void createNewGame() {
@@ -295,10 +300,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             timer.update(tpf);
         }
 
-        Short droppingPlayer;
-        while ((droppingPlayer = creatureDropEvents.poll()) != null) {
-            playerTriggers.onCreatureDropped(droppingPlayer);
-        }
+        playerCreatureEvents.drain(playerTriggers::onCreatureEvent);
 
         if (triggerControl != null) {
             triggerControl.update(tpf);
@@ -421,6 +423,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void stop() {
+        playerCreatureEvents.clear();
         controllers.stream().forEach(IGameLogicUpdatable::stop);
         controllers.clear();
     }

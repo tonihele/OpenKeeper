@@ -52,6 +52,9 @@ public interface IGameController {
     /** Queues a player's creature-drop event for delivery on the simulation thread. */
     void onCreatureDropped(short playerId);
 
+    /** Enqueue a completed keeper-hand creature pickup for the picking player's scripts. */
+    void onCreaturePickedUp(short playerId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

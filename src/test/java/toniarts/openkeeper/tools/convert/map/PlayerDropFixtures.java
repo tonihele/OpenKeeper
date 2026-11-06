@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-/** Original synthetic player script records for drop-event scenarios. */
+/** Original synthetic player script records for hand-event scenarios. */
 public final class PlayerDropFixtures {
     private PlayerDropFixtures() {
     }
@@ -40,10 +40,18 @@ public final class PlayerDropFixtures {
             condition.setUserData("targetId", (short) 1);
             condition.setUserData("flag", (short) 1);
             condition.setUserData("value", 1);
-        } else if (type == TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED) {
+        } else if (type == TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED
+                || type == TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP) {
             condition.setUserData("creatureId", (short) 255);
             condition.setUserData("roomId", (short) 255);
         }
+        return condition;
+    }
+
+    public static TriggerGeneric pickupCondition(int id, int child, int next, int repeats, int creatureId, int roomId) {
+        TriggerGeneric condition=condition(id,TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP,child,next,repeats);
+        condition.setUserData("creatureId",(short)creatureId);
+        condition.setUserData("roomId",(short)roomId);
         return condition;
     }
 

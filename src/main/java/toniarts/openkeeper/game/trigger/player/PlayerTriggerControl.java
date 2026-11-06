@@ -92,15 +92,23 @@ public class PlayerTriggerControl extends TriggerControl {
 
     /** Native drop events select matching root branches; their authored filters are ignored. */
     void onCreatureDropped() {
+        onCreatureEvent(TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED);
+    }
+
+    /** Native pickup/drop operands do not filter the matching player-root branches. */
+    void onCreatureEvent(TriggerGeneric.TargetType type) {
+        if (type != TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP
+                && type != TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED) {
+            return;
+        }
         for (TriggerData child : root.getChildren().getArray()) {
-            if (child instanceof TriggerGenericData event
-                    && event.getType() == TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED) {
-                runDropBranch(event);
+            if (child instanceof TriggerGenericData event && event.getType() == type) {
+                runCreatureEventBranch(event);
             }
         }
     }
 
-    private void runDropBranch(TriggerGenericData branch) {
+    private void runCreatureEventBranch(TriggerGenericData branch) {
         branch.subRepeatTimes();
         for (TriggerData child : branch.getChildren().getArray()) {
             if (child instanceof TriggerActionData action) {
@@ -109,7 +117,7 @@ public class PlayerTriggerControl extends TriggerControl {
                     branch.detachChild(action);
                 }
             } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
-                runDropBranch(condition);
+                runCreatureEventBranch(condition);
             }
         }
         if (branch.getQuantity() == 0) {
@@ -245,22 +253,13 @@ public class PlayerTriggerControl extends TriggerControl {
                 return false;
 
             case PLAYER_CREATURE_PICKED_UP:
-                PlayerStatsControl psc = getPlayerController(playerId).getStatsControl();
-                creatureId = trigger.getUserData("creatureId", short.class);
-
-                if (creatureId == 0) {
-                    // Any creature
-                    return psc.hasPickedUp();
-                } else {
-                    // Certain creature
-                    return psc.hasPickedUp(levelInfo.getLevelData().getCreature(creatureId));
-                }
+                return false; // Explicit pickup event, not persistent player history.
 
             case PLAYER_CREATURE_DROPPED:
                 return false; // Event-only; delivery runs its root branches separately.
 
             case PLAYER_CREATURE_SLAPPED:
-                psc = getPlayerController(playerId).getStatsControl();
+                PlayerStatsControl psc = getPlayerController(playerId).getStatsControl();
                 creatureId = trigger.getUserData("creatureId", short.class);
 
                 if (creatureId == 0) {
