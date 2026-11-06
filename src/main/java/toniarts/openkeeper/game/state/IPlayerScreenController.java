@@ -42,6 +42,9 @@ public interface IPlayerScreenController extends ScreenController {
      */
     public void select(String iState, String id);
 
+    /** Report a creature card click to the game session. */
+    public void creatureButtonPressed(short creatureId);
+
     public void playSound(String category, String id);
 
     public void playButtonSound(String category);

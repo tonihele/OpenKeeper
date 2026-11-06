@@ -367,6 +367,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void guiButtonPressed(short category, short buttonId) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onGuiButtonPressed(category, buttonId, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void transitionEnd() {
         playerInTransition = false;
         for (GameSessionServiceListener listener : serverListeners.getArray()) {

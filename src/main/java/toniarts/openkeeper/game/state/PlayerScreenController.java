@@ -190,7 +190,36 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (type == Type.SELL) {
             this.playButtonSound(GlobalCategory.GUI_SELL);
         }
-        state.interactionState.setInteractionState(type, Integer.parseInt(id));
+        int itemId = Integer.parseInt(id);
+        state.interactionState.setInteractionState(type, itemId);
+        switch (type) {
+            case ROOM -> state.guiButtonPressed(TriggerAction.MakeType.ROOM, itemId);
+            case SPELL -> state.guiButtonPressed(TriggerAction.MakeType.KEEPER_SPELL, itemId);
+            case DOOR -> state.guiButtonPressed(TriggerAction.MakeType.DOOR, itemId);
+            case TRAP -> state.guiButtonPressed(TriggerAction.MakeType.TRAP, itemId);
+            case SELL -> guiButtonPressed(TriggerAction.ButtonType.SELL_ROOM);
+            default -> { }
+        }
+    }
+
+    @Override
+    public void creatureButtonPressed(short creatureId) {
+        state.guiButtonPressed(TriggerAction.MakeType.CREATURE, creatureId);
+    }
+
+    private void guiButtonPressed(TriggerAction.ButtonType button) {
+        state.guiButtonPressed(TriggerAction.MakeType.MISC_BUTTON, button.getValue());
+    }
+
+    /** Nifty click handler for miscellaneous HUD buttons without a selection. */
+    public void guiButtonPressed(String buttonId) {
+        state.guiButtonPressed(TriggerAction.MakeType.MISC_BUTTON, Integer.parseInt(buttonId));
+    }
+
+    // Listen to the click itself, not TabSelectedEvent (also emitted during setup).
+    @NiftyEventSubscriber(id = "tabs-hud#tab-button-panel#tabButton-0")
+    public void onCreatureTabClick(String id, de.lessvoid.nifty.controls.ButtonClickedEvent event) {
+        guiButtonPressed(TriggerAction.ButtonType.CREATURE_TAB);
     }
 
     public void toggleGui() {
@@ -202,6 +231,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void togglePanel() {
+        guiButtonPressed(TriggerAction.ButtonType.GUI_MIN_MAX);
         // FIXME work but not properly. Map should not move with other things. Need HUD redesign
         Element element = nifty.getScreen(SCREEN_HUD_ID).findElementById("bottomPanel");
 
@@ -504,6 +534,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void grabGold() {
+        guiButtonPressed(TriggerAction.ButtonType.GOLD_VALUE);
         state.grabGold(100);
     }
 
@@ -516,6 +547,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * "Resize Map" button, left click zoom in one level (or into zoomed mode from fit).
      */
     public void resizeMap() {
+        guiButtonPressed(TriggerAction.ButtonType.ZOOM_IN_OUT);
         playButtonSound("GUI_BUTTON_ZOOM");
         MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
         if (minimapPanelState != null) {
@@ -527,6 +559,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * "Resize Map" button, right click: zoom out one level (or back to fit mode).
      */
     public void resizeMapDown() {
+        guiButtonPressed(TriggerAction.ButtonType.ZOOM_IN_OUT);
         MinimapPanelState minimapPanelState = state.stateManager.getState(GameClientState.class).getMinimapPanelState();
         if (minimapPanelState != null) {
             minimapPanelState.zoomOut();
@@ -1812,6 +1845,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
             @Override
             public void zoomTo(short creatureId, CreatureUIState uiState) {
+                playerScreenController.creatureButtonPressed(creatureId);
                 Entity entity = getNextCreature(creatureId, uiState);
                 if (entity != null) {
                     playerScreenController.zoomToPosition(entity.get(Position.class).position);
@@ -1820,6 +1854,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
             @Override
             public void pickUp(short creatureId, CreatureUIState uiState) {
+                playerScreenController.creatureButtonPressed(creatureId);
                 Entity entity = getNextCreature(creatureId, uiState);
                 if (entity != null) {
                     playerScreenController.pickUpEntity(entity.getId());

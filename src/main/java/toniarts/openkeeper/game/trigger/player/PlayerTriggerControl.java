@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -87,6 +88,35 @@ public class PlayerTriggerControl extends TriggerControl {
 
     public short getPlayerId() {
         return playerId;
+    }
+
+    /** Dispatch an exact button match now, independently of the polling cursor. */
+    void onGuiButtonPressed(short category, short buttonId) {
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == TriggerGeneric.TargetType.GUI_BUTTON_PRESSED
+                    && event.<Short>getUserData("targetType") == category
+                    && event.<Short>getUserData("targetId") == buttonId) {
+                runButtonBranch(event);
+            }
+        }
+    }
+
+    private void runButtonBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runButtonBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
     }
 
     @Override
@@ -267,6 +297,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 return !playerService.isInTransition();
 
             case GUI_BUTTON_PRESSED:
+                // Events are delivered only by onGuiButtonPressed(), not remembered.
                 return false;
             default:
                 return super.isActive(trigger);
