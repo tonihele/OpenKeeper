@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -260,7 +261,11 @@ public final class ObjectsController implements IObjectsController {
 
     @Override
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney) {
-        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, 0, money, null, null, null, maxMoney);
+        // DKII chooses a full-turn yaw once, when the container is created.
+        float rotation = Utils.getRandom().nextInt(2048) * (FastMath.TWO_PI / 2048);
+        EntityId entity = loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, rotation, money, null, null, null, maxMoney);
+        StoredGoldVisuals.update(entityData, entity, new Gold(money, maxMoney), kwdFile.getObject(OBJECT_GOLD_PILE_ID));
+        return entity;
     }
 
     @Override
