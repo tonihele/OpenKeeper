@@ -33,6 +33,7 @@ import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -160,6 +161,51 @@ class ClaimTileTaskTest {
 
         // The room is claimed once, it is not heard with every blow
         assertEquals(List.of(GameEventType.CREATURE_CLAIM_TILE), events);
+    }
+
+    @Test
+    void mendingOwnRoomIsNotHeard() {
+
+        // An enemy Imp chips at the keeper's room and the keeper's Imp mends it. The room never changes hands
+        int[] blows = {0};
+        IMapTileController tile = (IMapTileController) Proxy.newProxyInstance(IMapTileController.class.getClassLoader(),
+                new Class<?>[]{IMapTileController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getOwnerId" ->
+                PLAYER;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getTile" ->
+                tile;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" ->
+                mapData;
+            case "isClaimableTile" ->
+                false;
+            case "applyClaimTile" -> {
+                blows[0]++;
+                yield null;
+            }
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER);
+        List<GameEventType> events = new ArrayList<>();
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
+        task.assign(imp, false);
+
+        for (int tick = 0; tick < 40; tick++) {
+            task.executeTask(imp, (float) tick / TICKS_PER_SECOND);
+        }
+
+        assertTrue(blows[0] > 5);
+        assertEquals(List.of(), events);
     }
 
     private static ICreatureController creature(Creature creature) {
