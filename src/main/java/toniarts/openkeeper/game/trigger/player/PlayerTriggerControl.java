@@ -18,16 +18,21 @@ package toniarts.openkeeper.game.trigger.player;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
+import java.util.function.ToIntBiFunction;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
@@ -36,53 +41,66 @@ import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
-import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Trigger control that is targeted for specified player
+ * Trigger control that is targeted for specified player. The player scope: it
+ * knows the conditions and actions that are about a player, forwards the rest
+ * to the level scope.
  *
  * @author ArchDemon
  */
 public class PlayerTriggerControl extends TriggerControl {
-    
+
     private static final Logger logger = System.getLogger(PlayerTriggerControl.class.getName());
 
+    private static final Set<TriggerGeneric.TargetType> EVENT_CONDITIONS = EnumSet.of(
+            TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP, TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED,
+            TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED);
+    private static final Map<TriggerGeneric.TargetType, String> STUB_REASONS = createStubReasons();
+
     private final short playerId;
-    private final PlayerService playerService;
-    private final Map<TriggerAction.ActionType, Consumer<TriggerActionData>> actionHandlers = createActionHandlers();
+    private final Map<TriggerAction.ActionType, Predicate<TriggerActionData>> actionHandlers = createActionHandlers();
+    private final Map<TriggerGeneric.TargetType, ToIntBiFunction<Short, TriggerGenericData>> measures = createMeasures();
+
+    // The statistics seen on the previous poll, the difference is what has happened since
+    private final Map<TriggerGeneric.TargetType, Map<Creature, Integer>> seenStats = new EnumMap<>(TriggerGeneric.TargetType.class);
 
     public PlayerTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
             final PlayerService playerService) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, playerService, triggerId);
         this.playerId = playerId;
-        this.playerService = playerService;
     }
 
-    private Map<TriggerAction.ActionType, Consumer<TriggerActionData>> createActionHandlers() {
-        Map<TriggerAction.ActionType, Consumer<TriggerActionData>> handlers = new EnumMap<>(TriggerAction.ActionType.class);
-        handlers.put(TriggerAction.ActionType.WIN_GAME, this::winGame);
-        handlers.put(TriggerAction.ActionType.LOSE_GAME, this::loseGame);
+    private Map<TriggerAction.ActionType, Predicate<TriggerActionData>> createActionHandlers() {
+        Map<TriggerAction.ActionType, Predicate<TriggerActionData>> handlers = new EnumMap<>(TriggerAction.ActionType.class);
+        handlers.put(TriggerAction.ActionType.WIN_GAME, handled(this::winGame));
+        handlers.put(TriggerAction.ActionType.LOSE_GAME, handled(this::loseGame));
         handlers.put(TriggerAction.ActionType.GENERATE_CREATURE, this::generateCreature);
-        handlers.put(TriggerAction.ActionType.SET_PORTAL_STATUS, this::setPortalStatus);
-        handlers.put(TriggerAction.ActionType.FLASH_BUTTON, this::flashButton);
-        handlers.put(TriggerAction.ActionType.FOLLOW_CAMERA_PATH, this::followCameraPath);
-        handlers.put(TriggerAction.ActionType.MAKE_OBJECTIVE, this::makeObjective);
-        handlers.put(TriggerAction.ActionType.FLASH_ACTION_POINT, this::flashActionPoint);
-        handlers.put(TriggerAction.ActionType.REVEAL_ACTION_POINT, this::revealActionPoint);
-        handlers.put(TriggerAction.ActionType.ZOOM_TO_ACTION_POINT, this::zoomToActionPoint);
-        handlers.put(TriggerAction.ActionType.ROTATE_AROUND_ACTION_POINT, this::rotateAroundActionPoint);
-        handlers.put(TriggerAction.ActionType.DISPLAY_OBJECTIVE, this::displayObjective);
-        handlers.put(TriggerAction.ActionType.PLAY_SPEECH, this::playSpeech);
-        handlers.put(TriggerAction.ActionType.DISPLAY_TEXT_STRING, this::displayTextString);
-        handlers.put(TriggerAction.ActionType.SET_WIDESCREEN_MODE, this::setWidescreenMode);
-        handlers.put(TriggerAction.ActionType.DISPLAY_SLAB_OWNER, this::displaySlabOwner);
-        handlers.put(TriggerAction.ActionType.DISPLAY_NEXT_ROOM_TYPE, this::displayNextRoomType);
+        handlers.put(TriggerAction.ActionType.SET_PORTAL_STATUS, handled(this::setPortalStatus));
+        handlers.put(TriggerAction.ActionType.FOLLOW_CAMERA_PATH, handled(this::followCameraPath));
+        handlers.put(TriggerAction.ActionType.MAKE_OBJECTIVE, handled(this::makeObjective));
+        handlers.put(TriggerAction.ActionType.ZOOM_TO_ACTION_POINT, handled(this::zoomToActionPoint));
+        handlers.put(TriggerAction.ActionType.ROTATE_AROUND_ACTION_POINT, handled(this::rotateAroundActionPoint));
+        handlers.put(TriggerAction.ActionType.PLAY_SPEECH, handled(this::playSpeech));
+        handlers.put(TriggerAction.ActionType.DISPLAY_TEXT_STRING, handled(this::displayTextString));
+        handlers.put(TriggerAction.ActionType.SET_WIDESCREEN_MODE, handled(this::setWidescreenMode));
+        handlers.put(TriggerAction.ActionType.SET_MUSIC_LEVEL, handled(this::setMusicLevel));
+        handlers.put(TriggerAction.ActionType.SET_SLAPS_LIMIT, handled(this::setSlapsLimit));
         return handlers;
+    }
+
+    private static Predicate<TriggerActionData> handled(Consumer<TriggerActionData> action) {
+        return trigger -> {
+            action.accept(trigger);
+            return true;
+        };
     }
 
     public short getPlayerId() {
@@ -90,204 +108,178 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     @Override
+    protected void pollEvents() {
+        super.pollEvents();
+
+        // The player events about the creatures are noticed from the statistics. Fire for each
+        // creature type that has got more than on the previous poll
+        IPlayerController playerController = getPlayerController(playerId);
+        if (isPlayerScope() && playerController != null) {
+            pollStatEvent(TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP, playerController.getStatsControl().getPickUps());
+            pollStatEvent(TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED, playerController.getStatsControl().getDrops());
+            pollStatEvent(TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED, playerController.getStatsControl().getSlaps());
+        }
+    }
+
+    /**
+     * Is this the tree of the player itself. The player events belong to the
+     * player's own tree, the trees of the player's things (creatures...) only
+     * borrow the player's conditions and actions.
+     *
+     * @return true if the tree is the player's own
+     */
+    protected boolean isPlayerScope() {
+        return true;
+    }
+
+    private void pollStatEvent(TriggerGeneric.TargetType event, Map<Creature, Integer> current) {
+        Map<Creature, Integer> previous = seenStats.computeIfAbsent(event, key -> new HashMap<>());
+        for (Map.Entry<Creature, Integer> entry : Map.copyOf(current).entrySet()) {
+            if (entry.getValue() > previous.getOrDefault(entry.getKey(), 0)) {
+                previous.put(entry.getKey(), entry.getValue());
+                fire(event, entry.getKey().getCreatureId(), 0);
+            }
+        }
+    }
+
+    @Override
+    protected boolean eventMatches(TriggerGenericData condition, int arg1, int arg2) {
+        TriggerGeneric.TargetType type = condition.getType();
+        if (type == TriggerGeneric.TargetType.PLAYER_CREATURE_PICKED_UP
+                || type == TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED
+                || type == TriggerGeneric.TargetType.PLAYER_CREATURE_SLAPPED) {
+
+            // The creature type filter, 0 = any. The shipped maps all use 0 here
+            int creatureId = condition.hasUserDataKey("creatureId") ? condition.getUserData("creatureId", short.class) : 0;
+            return creatureId == 0 || creatureId == arg1;
+        }
+        return super.eventMatches(condition, arg1, arg2);
+    }
+
+    @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        int target = 0;
-        int value = 0;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
+
+        ToIntBiFunction<Short, TriggerGenericData> measure = measures.get(targetType);
+        if (measure != null) {
+            int target = measure.applyAsInt(playerId, trigger);
+            int value = isConstant(trigger) ? trigger.getUserData("value", int.class)
+                    : measure.applyAsInt(trigger.getUserData("playerId", short.class), trigger);
+            return compare(trigger, target, value);
+        }
+
+        // Events. They are always false when the tree is walked, see pollEvents() for the ones we notice
+        if (EVENT_CONDITIONS.contains(targetType)) {
+            return false;
+        }
+
+        String stubReason = STUB_REASONS.get(targetType);
+        if (stubReason != null) {
+            logStub(trigger, stubReason);
+            return false;
+        }
+
         switch (targetType) {
-            case PLAYER_CREATURES:
-                short creatureId = trigger.getUserData("creatureId", short.class);
-                boolean isValue = trigger.getUserData("flag", short.class) == 1;
+            case PLAYER_KEEPER_SPELL: {
 
-                target = getCreaturesCount(playerId, creatureId);
-
-                if (isValue) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getCreaturesCount(otherPlayerId, creatureId);
-                }
-                break;
-
-            case PLAYER_HAPPY_CREATURES:
-                return false;
-            case PLAYER_ANGRY_CREATURES:
-                return false;
-            case PLAYER_CREATURES_KILLED:
-                return false;
-            case PLAYER_KILLS_CREATURES:
-                return false;
-
-            case PLAYER_ROOM_SLABS:
-                short roomId = trigger.getUserData("roomId", short.class);
-                isValue = trigger.getUserData("flag", short.class) == 1;
-
-                target = getRoomSlabsCount(playerId, roomId);
-
-                if (isValue) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getRoomSlabsCount(otherPlayerId, roomId);
-                }
-                break;
-
-            case PLAYER_ROOMS:
-                roomId = trigger.getUserData("roomId", short.class);
-                isValue = trigger.getUserData("flag", short.class) == 1;
-
-                target = getRoomCount(playerId, roomId);
-
-                if (isValue) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getRoomCount(otherPlayerId, roomId);
-                }
-                break;
-
-            case PLAYER_ROOM_SIZE:
-                return false;
-            case PLAYER_DOORS:
-                return false;
-            case PLAYER_TRAPS:
-                return false;
-            case PLAYER_KEEPER_SPELL:
-                boolean isAvailable = trigger.getUserData("flag", short.class) == 1;
-                short keeperSpellId = trigger.getUserData("targetId", short.class);
-
-                KeeperSpell keeperSpell = levelInfo.getLevelData().getKeeperSpellById(keeperSpellId);
-
-                return isAvailable == getPlayerController(playerId).getSpellControl().isAvailable(keeperSpell);
-
-            case PLAYER_GOLD:
-                isValue = trigger.getUserData("flag", short.class) == 1;
-
-                target = getPlayer().getGold();
-
-                if (isValue) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getGold();
-                }
-                break;
-
-            case PLAYER_GOLD_MINED:
-                isValue = trigger.getUserData("flag", short.class) == 1;
-
-                target = getPlayer().getGoldMined();
-
-                if (isValue) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getGoldMined();
-                }
-                break;
-
-            case PLAYER_MANA:
-                isValue = trigger.getUserData("flag", short.class) == 1;
-
-                target = getPlayer().getMana();
-
-                if (isValue) {
-                    value = trigger.getUserData("value", int.class);
-                } else {
-                    short otherPlayerId = trigger.getUserData("playerId", short.class);
-                    value = getPlayer(otherPlayerId).getMana();
-                }
-                break;
-
-            case PLAYER_DESTROYS:
-                return false;
-            case PLAYER_CREATURES_AT_LEVEL:
-                return false;
-            case PLAYER_KILLED:
-
-                // TODO: Is player killed specifically by this other player
-                short otherPlayerId = trigger.getUserData("playerId", short.class);
-                return false;
-            case PLAYER_DUNGEON_BREACHED:
-                return false;
-            case PLAYER_ENEMY_BREACHED:
-                return false;
-
-            case PLAYER_CREATURE_PICKED_UP:
-                PlayerStatsControl psc = getPlayerController(playerId).getStatsControl();
-                creatureId = trigger.getUserData("creatureId", short.class);
-
-                if (creatureId == 0) {
-                    // Any creature
-                    return psc.hasPickedUp();
-                } else {
-                    // Certain creature
-                    return psc.hasPickedUp(levelInfo.getLevelData().getCreature(creatureId));
-                }
-
-            case PLAYER_CREATURE_DROPPED:
-                psc = getPlayerController(playerId).getStatsControl();
-                creatureId = trigger.getUserData("creatureId", short.class);
-
-                if (creatureId == 0) {
-                    // Any creature
-                    return psc.hasDropped();
-                } else {
-                    // Certain creature
-                    return psc.hasDropped(levelInfo.getLevelData().getCreature(creatureId));
-                }
-
-            case PLAYER_CREATURE_SLAPPED:
-                psc = getPlayerController(playerId).getStatsControl();
-                creatureId = trigger.getUserData("creatureId", short.class);
-
-                if (creatureId == 0) {
-                    // Any creature
-                    return psc.hasSlapped();
-                } else {
-                    // Certain creature
-                    return psc.hasSlapped(levelInfo.getLevelData().getCreature(creatureId));
-                }
-
-            case PLAYER_CREATURE_SACKED:
-                return false;
-            case PLAYER_ROOM_FURNITURE:
-                return false;
-            case PLAYER_SLAPS:
-                return false;
-            case PLAYER_CREATURES_GROUPED:
-                return false;
-            case PLAYER_CREATURES_DYING:
-                return false;
+                // Is the spell available. Nothing is compared here, the original ignores the flag
+                // and the value bytes
+                KeeperSpell keeperSpell = levelInfo.getLevelData().getKeeperSpellById(trigger.getUserData("targetId", short.class));
+                return getPlayerController(playerId).getSpellControl().isAvailable(keeperSpell);
+            }
 
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
 
-            case GUI_BUTTON_PRESSED:
-                return false;
+            case PLAYER_DESTROYS:
+                return true; // Always true in the original
+
             default:
                 return super.isActive(trigger);
         }
+    }
 
-        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-            result = compare(target, comparisonType, value);
-        }
-
+    /**
+     * The measures that are compared to a constant, or to the same measure of
+     * another player.
+     */
+    private Map<TriggerGeneric.TargetType, ToIntBiFunction<Short, TriggerGenericData>> createMeasures() {
+        Map<TriggerGeneric.TargetType, ToIntBiFunction<Short, TriggerGenericData>> result = new EnumMap<>(TriggerGeneric.TargetType.class);
+        result.put(TriggerGeneric.TargetType.PLAYER_CREATURES,
+                (pid, trigger) -> getCreaturesCount(pid, trigger.getUserData("creatureId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_SLABS,
+                (pid, trigger) -> getRoomSlabsCount(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOMS,
+                (pid, trigger) -> getRoomCount(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_SIZE,
+                (pid, trigger) -> getLargestRoomSize(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_ROOM_FURNITURE,
+                (pid, trigger) -> getFurnitureCount(pid, trigger.getUserData("roomId", short.class)));
+        result.put(TriggerGeneric.TargetType.PLAYER_SLAPS, (pid, trigger) -> getSlapCount(pid));
+        result.put(TriggerGeneric.TargetType.PLAYER_GOLD, (pid, trigger) -> getPlayer(pid).getGold());
+        result.put(TriggerGeneric.TargetType.PLAYER_GOLD_MINED, (pid, trigger) -> getPlayer(pid).getGoldMined());
+        result.put(TriggerGeneric.TargetType.PLAYER_MANA, (pid, trigger) -> getPlayer(pid).getMana());
         return result;
     }
 
-    @Override
-    protected void doAction(TriggerActionData trigger) {
-        Consumer<TriggerActionData> handler = actionHandlers.get(trigger.getType());
-        if (handler != null) {
-            handler.accept(trigger);
-        } else {
-            super.doAction(trigger);
+    private static Map<TriggerGeneric.TargetType, String> createStubReasons() {
+        Map<TriggerGeneric.TargetType, String> result = new EnumMap<>(TriggerGeneric.TargetType.class);
+
+        // STUB, event: a GUI button was clicked, matched by the button group and button
+        // (userdata targetType / targetId). The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)
+        result.put(TriggerGeneric.TargetType.GUI_BUTTON_PRESSED, "The HUD buttons do not report their clicks to the game logic, and the map's button IDs would need a mapping to our own buttons. The place to raise it from is fire(GUI_BUTTON_PRESSED, group, button)");
+
+        // STUB, events: an enemy broke into this dungeon / this player broke into one
+        putStub(result, "Nothing in the game logic detects a dungeon breach, so there is nothing to raise these from",
+                TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED, TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+
+        // STUB, events: a creature left the player / the player was paid
+        putStub(result, "Nothing in the game logic announces either, there is no pay day processing to hook into",
+                TriggerGeneric.TargetType.PLAYER_CREATURE_SACKED, TriggerGeneric.TargetType.LEVEL_PAY_DAY);
+
+        // STUB: non-worker creatures that are happy / angry
+        putStub(result, "Creatures only have anger counters per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original and the thresholds that turn the counters into them are not known",
+                TriggerGeneric.TargetType.PLAYER_HAPPY_CREATURES, TriggerGeneric.TargetType.PLAYER_ANGRY_CREATURES);
+
+        // STUB: creatures lost / killed, optionally by a certain opponent
+        putStub(result, "A creature's death is not attributed to anybody, so there is nothing to count",
+                TriggerGeneric.TargetType.PLAYER_CREATURES_KILLED, TriggerGeneric.TargetType.PLAYER_KILLS_CREATURES);
+
+        // STUB: owned doors / traps by type, blueprints and built ones separately
+        putStub(result, "The door and trap controls only know the availability, their count is a constant 0 and nothing tells blueprints from built",
+                TriggerGeneric.TargetType.PLAYER_DOORS, TriggerGeneric.TargetType.PLAYER_TRAPS);
+
+        // STUB: creatures by level / in the dying state / the size of the current creature group
+        putStub(result, "The player creature control only keeps the creature IDs by type, going through them for these needs the creature controller of every one of them",
+                TriggerGeneric.TargetType.PLAYER_CREATURES_AT_LEVEL, TriggerGeneric.TargetType.PLAYER_CREATURES_DYING,
+                TriggerGeneric.TargetType.PLAYER_CREATURES_GROUPED);
+
+        // STUB: has this player been defeated, by a certain player (userdata playerId)
+        result.put(TriggerGeneric.TargetType.PLAYER_KILLED, "The game does not record who defeated a player");
+        return result;
+    }
+
+    private static void putStub(Map<TriggerGeneric.TargetType, String> map, String reason, TriggerGeneric.TargetType... types) {
+        for (TriggerGeneric.TargetType type : types) {
+            map.put(type, reason);
         }
+    }
+
+    @Override
+    protected boolean doAction(TriggerActionData trigger) {
+        Predicate<TriggerActionData> handler = actionHandlers.get(trigger.getType());
+        if (handler != null) {
+            return handler.test(trigger);
+        }
+        return super.doAction(trigger);
+    }
+
+    /**
+     * Is the value compared to a constant (the bit 0 of the flag byte), or to
+     * the same measure of another player. The editor always writes the former.
+     */
+    private static boolean isConstant(TriggerGenericData trigger) {
+        return (trigger.getUserData("flag", short.class) & 1) != 0;
     }
 
     private void winGame(TriggerActionData trigger) { // Game part. only for keeper x
@@ -298,7 +290,7 @@ public class PlayerTriggerControl extends TriggerControl {
         gameController.endGame(playerId, false);
     }
 
-    private void generateCreature(TriggerActionData trigger) { // Creature part. Only for keeper x
+    private boolean generateCreature(TriggerActionData trigger) { // Creature part. Only for keeper x
         short creatureId = trigger.getUserData("creatureId", short.class);
         short level = trigger.getUserData("level", short.class);
 
@@ -306,10 +298,13 @@ public class PlayerTriggerControl extends TriggerControl {
         Set<IRoomController> rooms = getPlayerController(playerId).getRoomControl().getRoomControllers().get(levelInfo.getLevelData().getPortal());
         if (rooms == null || rooms.isEmpty()) {
             logger.log(Level.WARNING, "Generate creature triggered but no entrances found!");
-            return;
+
+            // Not handled, it is tried again on the next walk. A portal may be built later
+            return false;
         }
         ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
         creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        return true;
     }
 
     private void setPortalStatus(TriggerActionData trigger) { // Creature part. Only for keeper x
@@ -317,101 +312,34 @@ public class PlayerTriggerControl extends TriggerControl {
         getPlayerController(playerId).getRoomControl().setPortalsOpen(available);
     }
 
-    private void flashButton(TriggerActionData trigger) { // gui part. Only for keeper x
-//        if (playerId == playerState.getPlayerId()) {
-        TriggerAction.MakeType buttonType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class),
-                TriggerAction.MakeType.class);
-        short targetId = trigger.getUserData("targetId", short.class);
-        TriggerAction.ButtonType targetButtonType = null;
-        if (buttonType == TriggerAction.MakeType.MISC_BUTTON) {
-            targetButtonType = ConversionUtils.parseEnum(targetId,
-                    TriggerAction.ButtonType.class);
-        }
-        boolean available = trigger.getUserData("available", short.class) != 0;
-        int time = trigger.getUserData("value", int.class);
-        playerService.flashButton(buttonType, targetId, targetButtonType, available, time, playerId);
-//            playerState.flashButton(targetId, buttonType, available, time);
-//        }
-    }
-
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
-//        if (playerId == playerState.getPlayerId()) {
-//            // TODO disable control
-//            //GameState.setEnabled(false);
-//            PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
         ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
-//            pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
-//        }
         playerService.doTransition(trigger.getUserData("pathId", short.class), WorldUtils.ActionPointToVector3f(ap), playerId);
     }
 
     private void makeObjective(TriggerActionData trigger) { // Game part
         short targetId = trigger.getUserData("targetId", short.class);
         if (targetId == 0) { // 0 = Off
-            makeObjectiveOff();
+            makeObjectiveOff(trigger);
         } else {
-            logger.log(Level.WARNING, "Unsupported MAKE_OBJECTIVE target {0}", targetId);
-        }
-    }
-
-    private void flashActionPoint(TriggerActionData trigger) { // AP part
-//        if (playerId == playerState.getPlayerId()) {
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
-        int time = trigger.getUserData("value", int.class);
-        boolean available = trigger.getUserData("available", short.class) != 0;
-        if (available) {
-            mapController.flashTiles(ap.getPoints(), playerId, time);
-        } else {
-            mapController.unFlashTiles(ap.getPoints(), playerId);
-        }
-//            ap.getParent().getWorldState().flashTile(available, ap.getPoints());
-//        }
-    }
-
-    private void revealActionPoint(TriggerActionData trigger) { // AP part
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
-        boolean available = trigger.getUserData("available", short.class) != 0;
-        if (!available) {
-            mapController.revealTiles(ap.getPoints(), playerId);
-        } else {
-            mapController.concealTiles(ap.getPoints(), playerId);
+            logStub(trigger, "unsupported MAKE_OBJECTIVE target " + targetId);
         }
     }
 
     private void zoomToActionPoint(TriggerActionData trigger) { // AP part
-//        if (playerId == playerState.getPlayerId()) {
-        short apId = trigger.getUserData("targetId", short.class);
-        zoomToAP(apId);
-//        }
+        zoomToAP(playerId, trigger.getUserData("targetId", short.class));
     }
 
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
-//        if (playerId == playerState.getPlayerId()) {
         ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
-        int angle = trigger.getUserData("angle", int.class);
+        int angle = (short) (int) trigger.getUserData("angle", int.class); // Signed 16 bit degrees
         int time = trigger.getUserData("time", int.class);
-//
-//            PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-//            ap.addControl(new PlayerCameraRotateControl(pcs.getCamera(), isRelative, angle, time));
         playerService.rotateViewAroundPoint(WorldUtils.ActionPointToVector3f(ap), isRelative, angle, time, playerId);
-//        }
-    }
-
-    private void displayObjective(TriggerActionData trigger) { // Info part
-//        if (playerId == playerState.getPlayerId()) {
-        // TODO this
-        int objectiveId = trigger.getUserData("objectiveId", int.class); // limit 32767
-        short apId = trigger.getUserData("actionPointId", short.class);
-        // if != 0 => Zoom To AP = this
-        zoomToAP(apId);
-//        }
     }
 
     private void playSpeech(TriggerActionData trigger) { // Info part
         int speechId = trigger.getUserData("speechId", int.class);
-        //stateManager.getState(SoundState.class).attachLevelSpeech(speechId);
-        //stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
         int pathId = trigger.getUserData("pathId", int.class);
         // text show when Cinematic camera by pathId
         boolean introduction = trigger.getUserData("introduction", short.class) != 0;
@@ -420,10 +348,8 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void displayTextString(TriggerActionData trigger) { // Info part
-//        if (playerId == playerState.getPlayerId()) {
         int textId = trigger.getUserData("textId", int.class);
         playerService.showMessage(textId, playerId);
-//        }
     }
 
     private void setWidescreenMode(TriggerActionData trigger) { // Info part
@@ -431,18 +357,14 @@ public class PlayerTriggerControl extends TriggerControl {
         playerService.setWidescreen(available, playerId);
     }
 
-    private void displaySlabOwner(TriggerActionData trigger) { // Info part
-//        if (playerId == playerState.getPlayerId()) {
-//            // TODO this
-//            available = trigger.getUserData("available", short.class) != 0;
-//        }
+    private void setMusicLevel(TriggerActionData trigger) {
+        // No-op in the original game as well, the music intensity is never changed by the trigger
     }
 
-    private void displayNextRoomType(TriggerActionData trigger) { // Info part
-//        if (playerId == playerState.getPlayerId()) {
-//            // TODO this
-//            targetId = trigger.getUserData("targetId", short.class); // 0 = Off or roomId
-//        }
+    private void setSlapsLimit(TriggerActionData trigger) {
+        // STUB: limit the number of slaps of the player (value 0 = off). The slap system does not
+        // have a limit to set, the player can slap without any restrictions
+        logStub(trigger, "The slap system does not have a limit to set, the player can slap without any restrictions");
     }
 
     protected Keeper getPlayer() {
@@ -465,6 +387,36 @@ public class PlayerTriggerControl extends TriggerControl {
         }
     }
 
+    private int getLargestRoomSize(short playerId, short roomId) {
+        Room room = roomId == 0 ? null : levelInfo.getLevelData().getRoomById(roomId);
+        int size = 0;
+        for (Map.Entry<Room, Set<IRoomController>> entry : getPlayerController(playerId).getRoomControl().getRoomControllers().entrySet()) {
+            if (room == null || room.equals(entry.getKey())) {
+                for (IRoomController roomController : new ArrayList<>(entry.getValue())) {
+                    size = Math.max(size, roomController.getRoomInstance().getCoordinates().size());
+                }
+            }
+        }
+        return size;
+    }
+
+    private int getFurnitureCount(short playerId, short roomId) {
+        Room room = roomId == 0 ? null : levelInfo.getLevelData().getRoomById(roomId);
+        int count = 0;
+        for (Map.Entry<Room, Set<IRoomController>> entry : getPlayerController(playerId).getRoomControl().getRoomControllers().entrySet()) {
+            if (room == null || room.equals(entry.getKey())) {
+                for (IRoomController roomController : new ArrayList<>(entry.getValue())) {
+                    count += roomController.getFloorFurnitureCount() + roomController.getWallFurnitureCount();
+                }
+            }
+        }
+        return count;
+    }
+
+    private int getSlapCount(short playerId) {
+        return getPlayerController(playerId).getStatsControl().getSlaps().values().stream().mapToInt(Integer::intValue).sum();
+    }
+
     private int getRoomCount(short playerId, short roomId) {
         if (roomId == 0) {
             return getPlayerController(playerId).getRoomControl().getTypeCount();
@@ -473,15 +425,10 @@ public class PlayerTriggerControl extends TriggerControl {
         }
     }
 
-    protected void makeObjectiveOff() {
-        //TODO this
-    }
-
-    private void zoomToAP(short actionPointId) {
-        ActionPoint ap = levelInfo.getActionPoint(actionPointId);
-        if (ap != null) {
-            playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
-        }
+    protected void makeObjectiveOff(TriggerActionData trigger) {
+        // STUB: remove the objective marker of the player. There are no objective markers to
+        // remove, the creatures' MAKE_OBJECTIVE only flags the creature (see the creature scope)
+        logStub(trigger, "There are no objective markers to remove, the creatures' MAKE_OBJECTIVE only flags the creature (see the creature scope)");
     }
 
     protected PlayerService getPlayerService() {

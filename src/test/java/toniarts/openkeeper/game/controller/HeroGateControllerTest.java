@@ -25,6 +25,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.RoomEffect;
+import toniarts.openkeeper.game.controller.room.HeroGateController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.HeroGateFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -65,6 +67,14 @@ class HeroGateControllerTest {
         assertTrue(loadedObjects.contains(OBJECT_CHAIN_ID));
         assertFalse(room.getFloorFurniture().isEmpty());
         assertEquals(loadedObjects.size(), room.getFloorFurniture().size());
+    }
+
+    @Test
+    void threeByOneHeroGateGetsTheHeroGateController() {
+        IRoomController room = constructRoom(HeroGateFixtures.heroGateRoom((short) 23, "Hero Gate [ 3x1 ]", Room.TileConstruction.HERO_GATE_3_BY_1));
+
+        assertInstanceOf(HeroGateController.class, room);
+        assertTrue(loadedObjects.isEmpty(), "Loaded objects " + loadedObjects);
     }
 
     private IRoomController constructRoom(Room room) {
