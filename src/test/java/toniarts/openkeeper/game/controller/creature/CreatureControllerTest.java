@@ -33,12 +33,15 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureHunger;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.MeleeHit;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
@@ -58,6 +61,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -360,6 +364,28 @@ class CreatureControllerTest {
     }
 
     @Test
+    void meleeHitLandsAfterTheShotDelayEvenIfTheTargetStepsAway() {
+        try (Fixture f = new Fixture(9)) {
+            CreatureSleepFixtures.setShotDelay(f.definition, .5f);
+            EntityId target = f.meleeTarget();
+            f.controller.executeAttack(target);
+            assertEquals(CreatureState.MELEE_ATTACK, f.state());
+
+            f.data.setComponent(target, new Position(0, new Vector3f(6, WorldUtils.FLOOR_HEIGHT, 4)));
+            f.time = .25;
+            f.controller.getStateMachine().update();
+            assertNull(f.data.getComponent(target, Damage.class));
+            assertEquals(CreatureState.MELEE_ATTACK, f.state());
+
+            f.time = .5;
+            f.controller.getStateMachine().update();
+            assertEquals(30, f.data.getComponent(target, Damage.class).damage);
+            assertTrue(f.events.contains(GameEventType.MELEE_HIT));
+            assertEquals(CreatureState.FIGHT, f.state());
+        }
+    }
+
+    @Test
     void hungryIdleCreatureRetriesEatingEveryFourTicks() {
         try (Fixture f = new Fixture(9)) {
             f.reachable.set(false);
@@ -369,6 +395,80 @@ class CreatureControllerTest {
             }
             assertEquals(List.of(.25, 1.25, 2.25), f.eatAttempts);
             assertEquals(2.25, f.data.getComponent(f.entity, CreatureHunger.class).lastEatAttemptTime);
+        }
+    }
+
+    @Test
+    void meleeHitDelayIsRoundedDownToWholeTurns() {
+        try (Fixture f = new Fixture(9)) {
+
+            // A Dwarf's 0.47 s is one turn at 4 turns a second
+            CreatureSleepFixtures.setShotDelay(f.definition, .47f);
+            EntityId target = f.meleeTarget();
+            f.controller.executeAttack(target);
+            assertNull(f.data.getComponent(target, Damage.class));
+
+            f.time = .25;
+            f.controller.getStateMachine().update();
+            assertEquals(30, f.data.getComponent(target, Damage.class).damage);
+        }
+    }
+
+    @Test
+    void meleeHitIsLostWhenTheSwingIsInterruptedOrTheTargetLeavesTheMap() {
+        try (Fixture f = new Fixture(9)) {
+            CreatureSleepFixtures.setShotDelay(f.definition, .5f);
+            EntityId target = f.meleeTarget();
+            f.controller.executeAttack(target);
+            f.controller.getStateMachine().changeState(CreatureState.FIGHT);
+            assertNull(f.data.getComponent(f.entity, MeleeHit.class));
+
+            f.time = 2;
+            f.controller.executeAttack(target);
+            f.data.removeComponent(target, Position.class);
+            f.time = 2.5;
+            f.controller.getStateMachine().update();
+            assertNull(f.data.getComponent(target, Damage.class));
+            assertFalse(f.events.contains(GameEventType.MELEE_HIT));
+        }
+    }
+
+    @Test
+    void meleeAttackRechargesInItsRechargeTimeDividedByTheWorkModifier() {
+        try (Fixture f = new Fixture(9)) {
+            EntityId target = f.meleeTarget();
+            f.controller.executeAttack(target);
+            f.controller.getStateMachine().changeState(CreatureState.FIGHT);
+
+            // 1.2 s / 0.8 = 1.5 s, and the attack is ready only after that
+            f.time = 1.5;
+            f.controller.executeAttack(target);
+            assertEquals(CreatureState.FIGHT, f.state());
+
+            f.time = 1.75;
+            f.controller.executeAttack(target);
+            assertEquals(CreatureState.MELEE_ATTACK, f.state());
+        }
+    }
+
+    @Test
+    void swingPlaysItsAnimationPartsOneAfterAnother() {
+        Creature definition = CreatureSleepFixtures.sleeper(9);
+
+        // A Knight's swing: 9 + 30 + 11 frames at 18 fps take 11.1 turns at 4 turns a second, so the last frame comes
+        // on turn 12, the creature is back in FIGHT on turn 12 and swings again on turn 13, as a Knight does in DK II.
+        // Rounding each part up on its own would take 2 + 7 + 3 turns and a turn after each part, 15 turns.
+        CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.MELEE_ATTACK, 30, 18, 9, 11);
+        try (Fixture f = new Fixture(definition)) {
+            f.controller.executeAttack(f.meleeTarget());
+
+            f.time = 2.75;
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.MELEE_ATTACK, f.state());
+
+            f.time = 3;
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.FIGHT, f.state());
         }
     }
 
@@ -388,6 +488,57 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void halfOfTheSwingsPlayTheSecondMeleeAnimationWhenTheFirstIsFlaggedForIt() {
+        Creature definition = CreatureSleepFixtures.sleeper(9);
+
+        // The Knight's first melee animation is flagged, its second one takes 9 + 29 + 12 frames at 30 fps, 6.7 turns,
+        // so a swing with it ends on turn 8
+        CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.MELEE_ATTACK, 30, 18, 9, 11,
+                ArtResource.ArtResourceFlag.UNKNOWN_1);
+        CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.SWIPE, 29, 30, 9, 12);
+        try (Fixture f = new Fixture(definition)) {
+            EntityId target = f.meleeTarget();
+            int swipes = 0;
+            for (int i = 0; i < 40; i++) {
+                f.time = i * 10;
+                f.controller.getStateMachine().changeState(CreatureState.FIGHT);
+                f.controller.executeAttack(target);
+                assertEquals(CreatureState.MELEE_ATTACK, f.state());
+                f.data.setComponent(f.entity, new CreatureAi(f.time, CreatureState.MELEE_ATTACK, (short) 6)); // As the AI tick publishes it
+                boolean swipe = f.data.getComponent(f.entity, CreatureMeleeAttack.class).swipe;
+                if (swipe) {
+                    swipes++;
+                }
+
+                f.time = i * 10 + 1.5;
+                f.controller.getStateMachine().update();
+                assertEquals(CreatureState.MELEE_ATTACK, f.state());
+
+                f.time = i * 10 + 1.75;
+                f.controller.getStateMachine().update();
+                assertEquals(swipe ? CreatureState.FIGHT : CreatureState.MELEE_ATTACK, f.state());
+            }
+            assertTrue(swipes > 0 && swipes < 40);
+        }
+    }
+
+    @Test
+    void swingKeepsToTheFirstMeleeAnimationWhenItIsNotFlagged() {
+        Creature definition = CreatureSleepFixtures.sleeper(9);
+        CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.MELEE_ATTACK, 30, 18, 9, 11);
+        CreatureSleepFixtures.setSwing(definition, Creature.AnimationType.SWIPE, 29, 30, 9, 12);
+        try (Fixture f = new Fixture(definition)) {
+            EntityId target = f.meleeTarget();
+            for (int i = 0; i < 20; i++) {
+                f.time = i * 10;
+                f.controller.getStateMachine().changeState(CreatureState.FIGHT);
+                f.controller.executeAttack(target);
+                assertFalse(f.data.getComponent(f.entity, CreatureMeleeAttack.class).swipe);
+            }
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
@@ -395,6 +546,7 @@ class CreatureControllerTest {
         final EntityId room = data.createEntity();
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
+        final Creature definition;
         CreatureController controller;
         final java.util.function.Supplier<CreatureController> controllers;
         final CreatureSleepSystem sleepSystem;
@@ -412,8 +564,12 @@ class CreatureControllerTest {
         double time;
 
         Fixture(int timeSleep) {
+            this(CreatureSleepFixtures.sleeper(timeSleep));
+        }
+
+        Fixture(Creature definition) {
             fall = new CreatureFallSystem(data, () -> time, eventService);
-            Creature definition = CreatureSleepFixtures.sleeper(timeSleep);
+            this.definition = definition;
             CreatureComponent component = new CreatureComponent();
             component.creatureId = 6;
             component.stunDuration = .1f;
@@ -507,6 +663,14 @@ class CreatureControllerTest {
             data.setComponent(entity, new TaskComponent(-1, null, null, type, 0, false));
             data.setComponent(entity, new CreatureAi(0, CreatureState.WORK, (short) 6));
             controller.getStateMachine().changeState(CreatureState.WORK);
+        }
+
+        EntityId meleeTarget() {
+            EntityId target = data.createEntity();
+            data.setComponents(target, new Position(0, new Vector3f(3.5f, WorldUtils.FLOOR_HEIGHT, 4)), new Health(500, 500));
+            data.setComponent(entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
+            controller.getStateMachine().changeState(CreatureState.FIGHT);
+            return target;
         }
 
         void sleepNow() {
