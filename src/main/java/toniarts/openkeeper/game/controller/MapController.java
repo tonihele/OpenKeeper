@@ -563,6 +563,20 @@ public final class MapController extends Container implements IMapController {
         return returnedGold;
     }
 
+    @Override
+    public void applyTerrainDamage(Point point, int damage) {
+        IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            return;
+        }
+
+        Terrain terrain = getTerrain(tile);
+        if (applyDamage(tile, damage)) {
+            changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
+            notifyTileChange(tile.getLocation());
+        }
+    }
+
     /**
      * Heal a tile
      *
