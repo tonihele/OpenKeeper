@@ -67,6 +67,9 @@ public interface IGameController {
     /** Queue a completed torture admission; only the simulation runs scripts. */
     void onCreatureTortured(EntityId entityId);
 
+    /** Queue an attack-target setup event for the selected victim. */
+    void onCreatureAttacked(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

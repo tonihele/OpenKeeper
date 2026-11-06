@@ -620,6 +620,9 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.removeComponent(entityId, AttackTarget.class);
         } else {
             entityData.setComponent(entityId, new AttackTarget(entity));
+            // Native event 6 belongs to the victim at attack-target setup, before
+            // any strike lands. Stable target queries do not repeat this setup.
+            creaturesController.onAttacked(entity);
         }
     }
 
@@ -891,7 +894,7 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean isAttacked() {
-        // TODO:
+        // Script event only: attack-target setup does not latch a polled state.
         return false;
     }
 

@@ -87,7 +87,33 @@ public final class TriggerGeneric extends Trigger {
          * tick while the efficiency bonus remains active.
          */
         CREATURE_SLAPPED(5),
-        CREATURE_ATTACKED(6), // Event, This creature is
+        /**
+         * Event: an attacker explicitly sets up an attack against this creature.
+         * DK II notifies the selected victim during target/mode setup, before
+         * any strike lands, including repeated explicit setup for the same victim.
+         * Health loss alone is not an attack-setup event.
+         * <p>
+         * OpenKeeper emits when its real target selector assigns or reacquires a
+         * victim. Reading a retained target, remaining in combat, clearing a target,
+         * and applying raw damage do not emit. Reacquisition or another attacker
+         * selecting the same victim creates a separate event. Current combat and
+         * target eligibility rules are retained.
+         * <p>
+         * The server queues the victim's entity ID after storing the attack target.
+         * Only simulation ticks run matching creature-root branches; nested conditions
+         * observe delivery-time state. Ordinary polling stays false, nested event
+         * conditions are not independently dispatched, and existing repeats apply.
+         * A first hit may already have landed by the time this queue is drained.
+         * <p>
+         * OpenKeeper does not model all native attack-mode refresh commands; this
+         * producer covers its target-assignment path. Native synchronous timing and
+         * finite-repeat parity are also not established by this implementation.
+         * <p>
+         * Example: an enemy selects a scripted hero as its attack target, allowing
+         * the hero's warning/objective branch to be queued on target acquisition.
+         * Further hits against the retained target do not repeatedly run that branch.
+         */
+        CREATURE_ATTACKED(6),
         /**
          * Event: this creature is admitted to prison. Remaining imprisoned is
          * not a repeated event, and manually setting a prison-state component

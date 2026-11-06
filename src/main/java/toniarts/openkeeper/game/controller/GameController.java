@@ -140,6 +140,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     @Override
+    public void onCreatureAttacked(EntityId entityId) {
+        creatureTriggerEvents.enqueueAttacked(entityId);
+    }
+
+    @Override
     public void onCreatureSlapped(EntityId entityId) {
         creatureTriggerEvents.enqueueSlapped(entityId);
     }

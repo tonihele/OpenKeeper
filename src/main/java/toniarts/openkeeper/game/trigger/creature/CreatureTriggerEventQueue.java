@@ -46,6 +46,10 @@ public final class CreatureTriggerEventQueue {
         events.add(new Event(entityId, TriggerGeneric.TargetType.CREATURE_TORTURED));
     }
 
+    public void enqueueAttacked(EntityId entityId) {
+        events.add(new Event(entityId, TriggerGeneric.TargetType.CREATURE_ATTACKED));
+    }
+
     void drain(BiConsumer<EntityId, TriggerGeneric.TargetType> dispatch) {
         Event event;
         while ((event = events.poll()) != null) {

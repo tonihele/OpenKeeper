@@ -36,6 +36,9 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     /** Report an explicit completed prison admission to the server event buffer. */
     void onImprisoned(EntityId entityId);
 
+    /** Notify the victim after an attacker explicitly sets it as the attack target. */
+    void onAttacked(EntityId entityId);
+
     public enum SpawnType {
         PLACE,
         ENTRANCE,

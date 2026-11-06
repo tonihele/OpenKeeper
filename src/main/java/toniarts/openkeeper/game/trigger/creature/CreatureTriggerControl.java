@@ -92,9 +92,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 // Each accepted slap is an event, not the lingering efficiency effect.
                 return false;
             case CREATURE_ATTACKED:
-                if (instanceControl != null) {
-                    return instanceControl.isAttacked();
-                }
+                // Explicit target-setup notification, not damage or persistent combat state.
                 return false;
             case CREATURE_IMPRISONED:
                 // Explicit admission event, not persistent prison occupancy.

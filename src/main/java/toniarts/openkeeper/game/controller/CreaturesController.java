@@ -655,6 +655,11 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void onAttacked(EntityId entityId) {
+        gameController.onCreatureAttacked(entityId);
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
