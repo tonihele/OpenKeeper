@@ -1323,15 +1323,23 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void imprison(short playerId, EntityId roomId) {
-
-        // Return health to 20%
         Health health = entityData.getComponent(entityId, Health.class);
         if (health == null) {
             logger.log(Level.INFO, "Tried to imprison me but I don't have any health left!");
             return;
         }
 
-        entityData.setComponent(entityId, new Health((int) Math.floor(health.maxHealth * 0.2f), health.maxHealth));
+        // In DK II the health of a knocked out creature is its dying time in ticks
+        // (DKII.EXE 0x4B2CE0, 0x4599D0). The Prison takes it in with a tenth of its
+        // maximum health on top (0x4E2C70)
+        int healthLeft = health.health;
+        Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
+        if (unconscious != null) {
+            double timeLeft = gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue()
+                    - (gameTimer.getGameTime() - unconscious.startTime);
+            healthLeft = (int) (timeLeft * levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+        }
+        entityData.setComponent(entityId, new Health(Math.clamp(healthLeft + health.maxHealth / 10, 1, health.maxHealth), health.maxHealth));
         entityData.removeComponent(entityId, Unconscious.class);
         entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
         entityData.setComponent(entityId, new Stored(roomId, AbstractRoomController.ObjectType.PRISONER));
