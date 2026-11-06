@@ -78,7 +78,25 @@ public final class TriggerGeneric extends Trigger {
         DOOR_DESTROYED(17), // Event, This door is
         OBJECT_CLAIMED(18), // Event, This object is
         PLAYER_CREATURES(19), // Player
-        PLAYER_HAPPY_CREATURES(20), // Player
+        /**
+         * Compares the current number of this player's happy non-worker
+         * creatures with the script's numeric value. Happy means native mood
+         * state 0: the largest individual anger reason is strictly below that
+         * creature type's unhappy threshold. Some anger is allowed; unhappy
+         * and fully angry creatures do not count.
+         * <p>
+         * Creature type 0 selects all types; a nonzero selector restricts the
+         * count to that type. Workers are excluded even when selected directly.
+         * Ownership is used rather than a prisoner's captor, and unconscious
+         * creatures still in the living roster can count. The count updates as
+         * creatures recover, become unhappy, change owner or leave the roster.
+         * <p>
+         * A map can reward keeping five creatures happy. Level15a checks for
+         * at least one happy creature of type 22. This is a polled count, not
+         * a happiness-change event. DKII uses the stored numeric threshold and
+         * ignores the authored value/player flag and other-player selector.
+         */
+        PLAYER_HAPPY_CREATURES(20),
         PLAYER_ANGRY_CREATURES(21), // Player
         PLAYER_CREATURES_KILLED(22), // Player
         PLAYER_KILLS_CREATURES(23), // Player
