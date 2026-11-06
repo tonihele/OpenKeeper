@@ -109,11 +109,11 @@ public class ClaimTileTask extends AbstractTileTask {
 
         // A room
         if (isBlowDue(creature, executionDuration, Creature.AnimationType.EATING)) {
-
+            short owner = mapController.getMapData().getTile(getTaskLocation()).getOwnerId();
             mapController.applyClaimTile(getTaskLocation(), playerId, creature);
 
-            // The work is done, let it be heard
-            if (!isValid(creature)) {
+            // Heard once, when the room changes hands. Not when the worker mends its own room after an enemy's blows
+            if (owner != playerId && mapController.getMapData().getTile(getTaskLocation()).getOwnerId() == playerId) {
                 creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
             }
         }
