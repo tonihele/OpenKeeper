@@ -16,6 +16,7 @@ Framework version: **2**
 | `benchmark-*-opt.md` / `benchmark-lightrules-lifecycle.md` | Measured before/after change reports |
 | [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room indices — **REJECTED** |
 | [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | A3 light CPU timers — **ACCEPTED tooling** |
+| [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | C3 A\* connection reuse — **REJECTED** |
 
 ## Quick start (fast path)
 

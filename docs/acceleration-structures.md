@@ -87,7 +87,7 @@ Impact is expected real-world gain given current suite behaviour (GPU VS still d
 | 3 | A2 | Sync soft-falloff Java ↔ GLSL (0.1) | S | Correctness | Open | [lighting](acceleration-lighting.md#a2-soft-falloff) |
 | 4 | B1 | Extend light **index lists** to rooms / water | M | High GPU **Hypothesis** | **REJECTED** (2026-11-06) — [benchmark-room-light-index.md](benchmark-room-light-index.md) | [lighting](acceleration-lighting.md#b1-room-water-light-indices) |
 | 5 | C1 | Incremental door spatial index for FoW | S–M | FoW tick / tails | Open | [spatial](acceleration-spatial-simulation.md#c1-door-index) |
-| 6 | C3 | A\* connection / neighbour reuse | S | Path GC / hitch | Open | [spatial](acceleration-spatial-simulation.md#c3-astar-pools) |
+| 6 | C3 | A\* connection / neighbour reuse | S | Path GC / hitch | **REJECTED** — [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | [spatial](acceleration-spatial-simulation.md#c3-astar-pools) |
 | 7 | B3 | AmbientMap dirty pages / coalesced upload | M | FoW upload spikes | Open (prior attempt **reverted**) | [lighting](acceleration-lighting.md#b3-ambientmap) |
 | 8 | B2 | Incremental light cell hash for **upload** cull | M | CPU scale | **Deferred** — A3: upload ~0.45 ms/frame (~1.8% of frame) | [lighting](acceleration-lighting.md#b2-light-upload-hash) |
 | 9 | C2 | Sensing ring cache / offset table | S–M | AI tick | Open | [spatial](acceleration-spatial-simulation.md#c2-sensing-cache) |
@@ -103,8 +103,9 @@ Impact is expected real-world gain given current suite behaviour (GPU VS still d
 |------|-----------|----------|-------|
 | 2026-11-06 | B1 room light indices | **REJECTED** | −1.8% vs same-machine control; code reverted; [report](benchmark-room-light-index.md) |
 | 2026-11-06 | A3 light CPU timers | **ACCEPTED tooling** | `lightUpdateMs` ~0.63 ms (~2.5% of frame); [report](benchmark-a3-light-timers.md) |
+| 2026-11-06 | C3 A\* connection reuse | **REJECTED** | Pooled edges corrupt IndexedA\* NodeRecords; array-only no FPS win; [report](benchmark-astar-connection-pool.md) |
 
-**Next for measurable suite FPS:** not B2/B1-CPU — light CPU is tiny. Prefer **GPU VS attribution** or **A1 settings** (player builds). Hitch work: C1/C3/D1.
+**Next for measurable suite FPS:** **GPU VS attribution** or **A1 settings**. Hitch: **C1** (not C3). Do not pool gdx-ai `Connection` objects.
 
 ### Already shipped (keep; do not re-litigate without new evidence)
 

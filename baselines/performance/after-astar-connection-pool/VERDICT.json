@@ -1,0 +1,22 @@
+{
+  "change": "C3 A* connection reuse (MapIndexedGraph)",
+  "decision": "REJECTED",
+  "reverted": true,
+  "attempts": [
+    {
+      "name": "pooled-connections",
+      "session": "session-2026-11-06T13-04-39.128190400Z",
+      "safe": false,
+      "note": "NodeRecord retains Connection; pooling corrupted paths; false FPS ~88 with visual/draw/heap collapse"
+    },
+    {
+      "name": "array-reuse-only",
+      "session": "session-2026-11-06T13-08-52.517533100Z",
+      "safe": true,
+      "avgFpsRun1": 35.885,
+      "visualPassRun1": true,
+      "note": "No FPS win vs A3 ~37.7; run 2 crashed; full revert"
+    }
+  ],
+  "compareBaseline": "after-a3-light-timers"
+}

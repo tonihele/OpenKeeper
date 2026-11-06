@@ -52,15 +52,14 @@ No app-authored BVH/octree for creatures or shots.
 
 ## C3 — A\* neighbour / connection reuse {#c3-astar-pools}
 
+**Status: REJECTED (2026-11-06)** — [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md).
+
 | | |
 |--|--|
-| **Bottleneck** | `MapIndexedGraph.getConnections` allocates a new `Array` and `DefaultConnection` instances per node expansion (`game/navigation/pathfinding/MapIndexedGraph.java`). |
-| **Evidence** | **Verified** allocation pattern in code. Impact on suite FPS **Hypothesis** (GC / dig hitch more than steady avg). |
-| **Proposed structure** | Thread-local reusable `Array`, pooled connections, or fixed 4/8 neighbour index lists with cost evaluated without `new`. |
-| **Expected benefit** | Lower GC and pathfind latency under many concurrent searches. |
-| **Complexity / memory** | S; tiny pools. |
-| **Risks** | Cross-pathFindable pool reuse bugs; concurrent pathfind on multiple threads needs separate scratch. |
-| **Bench** | Microbench paths/sec + allocation count; dig/claim P99 in suite. |
+| **Bottleneck** | `MapIndexedGraph.getConnections` allocates a new `Array` and `DefaultConnection` per expansion. |
+| **Attempt** | (1) Pooled mutable `Connection`s — **unsafe**: gdx-ai `NodeRecord` retains `Connection` for path rebuild → corrupted paths, false ~88 FPS, visual/draw/heap collapse. (2) Scratch `Array` only + fresh edges — correct but **no suite FPS win**. |
+| **Lesson** | Never pool/mutate `Connection` instances used with stock `IndexedAStarPathFinder`. |
+| **Result** | Fully reverted. |
 
 ---
 
