@@ -34,6 +34,7 @@ public abstract class Trigger {
     private int idChild; // ChildID
     private short repeatTimes; // Repeat x times, 255 = always
     protected Map<String, Number> data = null;
+    private short[] payload = new short[0];
 
     public Trigger(IKwdFile kwdFile) {
         this.kwdFile = kwdFile;
@@ -62,6 +63,19 @@ public abstract class Trigger {
         }
 
         return Collections.emptySet();
+    }
+
+    /**
+     * The 8 raw payload bytes of the trigger record, as the map has them
+     *
+     * @return the payload bytes (unsigned values)
+     */
+    public short[] getPayload() {
+        return payload.clone();
+    }
+
+    protected void setPayload(short[] payload) {
+        this.payload = payload.clone();
     }
 
     public int getId() {

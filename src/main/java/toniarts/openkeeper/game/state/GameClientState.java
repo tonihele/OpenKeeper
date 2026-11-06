@@ -111,6 +111,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
     private TextParser textParser;
+    private volatile boolean systemMessagesEnabled = true;
     private GuardPostCounter guardPostCounter;
 
     /**
@@ -366,6 +367,17 @@ public final class GameClientState extends AbstractPauseAwareState {
         return textParser;
     }
 
+    /**
+     * Are the automatic system messages (enemy sighted and such) shown. The
+     * level script can turn them off, the scripted speeches and texts are
+     * shown regardless. Every level starts with them on.
+     *
+     * @return true if the system messages are shown
+     */
+    public boolean isSystemMessagesEnabled() {
+        return systemMessagesEnabled;
+    }
+
     private final class GameSessionListenerImpl implements GameSessionListener {
 
         private final Object mapDataLoadingObject = new Object();
@@ -396,7 +408,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                         }, (entityId) -> {
                             app.enqueue(() -> {
                                 SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
-                                if (systemMessageState != null) {
+                                if (systemMessageState != null && isSystemMessagesEnabled()) {
                                     systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
                                 }
                             });
@@ -603,6 +615,11 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onSetWidescreen(boolean enable) {
             playerState.setWideScreen(enable);
+        }
+
+        @Override
+        public void onSetSystemMessages(boolean enabled) {
+            systemMessagesEnabled = enabled;
         }
 
         @Override
