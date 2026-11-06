@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -238,7 +239,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 break;
             }
             case ROOM: {
-                playerController.getRoomControl().setTypeAvailable(levelInfo.kwdFile.getRoomById((short) availability.getTypeId()), available, discovered);
+                Room room = levelInfo.kwdFile.getRoomById((short) availability.getTypeId());
+                if (availability.getValue() == Variable.Availability.AvailabilityValue.UNAVAILABLE_ROOM) {
+                    playerController.getRoomControl().setTypeAvailableWhenOwned(room);
+                } else {
+                    playerController.getRoomControl().setTypeAvailable(room, available, discovered);
+                }
                 break;
             }
             case SPELL: {
