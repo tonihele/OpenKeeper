@@ -15,6 +15,7 @@ SceneLights.update: scan sources → frustum + FoW filter → LightData atlas
 rebuildTerrainPageIndices: 8×8 light cells → packed LightIndexData rows
         ↓
 Vertex.vert: terrain pages loop indices (~20 avg); rooms/entities loop numLights (~2.2k)
+(B1 + shared-index retry both **REJECTED** — keep non-page on the full-list variant)
 ```
 
 | Piece | Path |
@@ -89,6 +90,16 @@ Vertex.vert: terrain pages loop indices (~20 avg); rooms/entities loop numLights
 | **Result** | Median avg FPS **36.909** vs same-machine page-cull control **37.586** (−1.8%). No accept. |
 | **Lesson** | Fewer lights/vertex on rooms ≠ frame win when those meshes are not the suite bottleneck; always pair with A3 / same-machine control. |
 | **Retry only if** | Instrumentation shows room VS dominates, or a room-heavy micro-bench beats control. |
+
+### B1-retry — Shared camera-neighbourhood index {#b1-retry-shared-camera-index}
+
+**Status: REJECTED (2026-11-06)** — [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md). Source reverted.
+
+| | |
+|--|--|
+| **Attempt** | One shared `LightIndexData` row for all non-page Vertex mats from camera cell ±2. |
+| **Result** | Median avg FPS **27.294** vs A3 **37.657** (−27.5%); cp01 visual fail 3/3; `lightPageIndexMs` ~4.7 ms. |
+| **Lesson** | Binding `LIGHT_INDEX_DATA` on rooms/entities abandons the fast inlined full-list variant and still misses lights / overflows often. Do not retry without VS attribution + a shader path that keeps unbound materials on the classic loop. |
 
 ---
 

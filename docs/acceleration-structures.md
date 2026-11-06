@@ -26,6 +26,7 @@ This is the **central index**. Implementation detail lives in the companion docs
 | [benchmark-ambient-map-opt.md](benchmark-ambient-map-opt.md) | AmbientMap mid-frame upload | **Reverted** |
 | [benchmark-lightrules-lifecycle.md](benchmark-lightrules-lifecycle.md) | `LightRules` READY publication | Shipped |
 | [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room light indices | **REJECTED** (reverted) |
+| [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md) | B1-retry shared camera neighbourhood index | **REJECTED** (reverted) |
 | [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | A3 lighting CPU phase timers | **ACCEPTED (tooling)** |
 
 **Latest FPS-accepted lighting candidate:** `baselines/performance/after-page-light-cull/` (median avg FPS **~39.6** vs official **~35.0**).  
@@ -85,7 +86,7 @@ Impact is expected real-world gain given current suite behaviour (GPU VS still d
 | 1 | A3 | CPU lighting phase timers in suite | M | Enables ranking | **ACCEPTED tooling** — [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | [lighting](acceleration-lighting.md#a3-instrumentation) |
 | 2 | A1 | Stop forced max graphics; MSAA/quality presets | S–M | High GPU (player settings) | Open | [lighting](acceleration-lighting.md#a1-quality-settings) |
 | 3 | A2 | Sync soft-falloff Java ↔ GLSL (0.1) | S | Correctness | Open | [lighting](acceleration-lighting.md#a2-soft-falloff) |
-| 4 | B1 | Extend light **index lists** to rooms / water | M | High GPU **Hypothesis** | **REJECTED** (2026-11-06) — [benchmark-room-light-index.md](benchmark-room-light-index.md) | [lighting](acceleration-lighting.md#b1-room-water-light-indices) |
+| 4 | B1 | Extend light **index lists** to rooms / water | M | High GPU **Hypothesis** | **REJECTED** (+ shared-index retry) — [benchmark-room-light-index.md](benchmark-room-light-index.md) · [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md) | [lighting](acceleration-lighting.md#b1-room-water-light-indices) |
 | 5 | C1 | Incremental door spatial index for FoW | S–M | FoW tick / tails | **REJECTED** — [benchmark-fow-door-index.md](benchmark-fow-door-index.md) | [spatial](acceleration-spatial-simulation.md#c1-door-index) |
 | 6 | C3 | A\* connection / neighbour reuse | S | Path GC / hitch | **REJECTED** — [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | [spatial](acceleration-spatial-simulation.md#c3-astar-pools) |
 | 7 | B3 | AmbientMap dirty pages / coalesced upload | M | FoW upload spikes | Open (prior attempt **reverted**) | [lighting](acceleration-lighting.md#b3-ambientmap) |
@@ -105,8 +106,9 @@ Impact is expected real-world gain given current suite behaviour (GPU VS still d
 | 2026-11-06 | A3 light CPU timers | **ACCEPTED tooling** | `lightUpdateMs` ~0.63 ms (~2.5% of frame); [report](benchmark-a3-light-timers.md) |
 | 2026-11-06 | C3 A\* connection reuse | **REJECTED** | Pooled edges corrupt IndexedA\* NodeRecords; array-only no FPS win; [report](benchmark-astar-connection-pool.md) |
 | 2026-11-06 | C1 FoW door index | **REJECTED** | No suite FPS/P99 win; door rebuild not hot on Level20; [report](benchmark-fow-door-index.md) |
+| 2026-11-06 | B1-retry shared non-page light index | **REJECTED** | −27.5% FPS vs A3; visual fail; page-index CPU ~4.7 ms; [report](benchmark-shared-nonpage-light-index.md) |
 
-**Next for measurable suite FPS:** **GPU VS attribution** or **A1 settings** (player builds). Sim hitch opts need dedicated micro-scenarios + timers — Level20 suite alone will not move the needle.
+**Next for measurable suite FPS:** **GPU VS attribution** or **A1 settings** (player builds). Sim hitch opts need dedicated micro-scenarios + timers — Level20 suite alone will not move the needle. Do **not** re-bind `LIGHT_INDEX_DATA` on non-page mats without new evidence.
 
 ### Already shipped (keep; do not re-litigate without new evidence)
 
