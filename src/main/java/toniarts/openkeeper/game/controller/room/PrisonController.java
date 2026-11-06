@@ -62,7 +62,10 @@ public final class PrisonController extends DoubleQuadController {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getCoordinates().size();
+
+                // One prisoner per inside tile, plus one, like in DK II
+                int insideTiles = getCoordinates().size();
+                return insideTiles > 0 ? insideTiles + 1 : 0;
             }
 
         });
