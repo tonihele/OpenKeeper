@@ -49,6 +49,9 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
+    /** Runs a Neutral object's claim event before its owner changes, on the simulation thread. */
+    void onObjectClaimed(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

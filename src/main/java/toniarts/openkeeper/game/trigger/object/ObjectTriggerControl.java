@@ -24,6 +24,8 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
+import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
@@ -40,12 +42,35 @@ public final class ObjectTriggerControl extends AbstractThingTriggerControl<IObj
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
+    void onClaimed(IObjectController object) {
+        instanceControl = object;
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == TriggerGeneric.TargetType.OBJECT_CLAIMED) {
+                runClaimBranch(event);
+            }
+        }
+    }
+
+    private void runClaimBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runClaimBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
+    }
+
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        float target = 0;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case OBJECT_CLAIMED:
@@ -53,12 +78,5 @@ public final class ObjectTriggerControl extends AbstractThingTriggerControl<IObj
             default:
                 return super.isActive(trigger);
         }
-
-//        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-//        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-//            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
-//        }
-//
-//        return result;
     }
 }

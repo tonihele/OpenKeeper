@@ -220,7 +220,11 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     private void changeEntityOwner(EntityId entity, short playerId, boolean changeOwner) {
         Owner owner = entityData.getComponent(entity, Owner.class);
         if (owner != null && (owner.ownerId != playerId || owner.controlId != playerId)) {
-            entityData.setComponent(entity, new Owner(changeOwner ? playerId : owner.ownerId, playerId));
+            if (changeOwner && entityData.getComponent(entity, ObjectComponent.class) != null) {
+                parent.setObjectOwner(entity, playerId);
+            } else {
+                entityData.setComponent(entity, new Owner(changeOwner ? playerId : owner.ownerId, playerId));
+            }
         }
     }
 

@@ -43,6 +43,9 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
 
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney);
 
+    /** Changes ownership on the simulation thread, delivering any Neutral claim event first. */
+    void setOwner(EntityId entityId, short playerId);
+
     /**
      * Adds a loose gold pile. Like in DK II, loose gold has no owner (the
      * neutral player owns it), the land it lies on decides who can take it
