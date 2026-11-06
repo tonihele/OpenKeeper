@@ -123,6 +123,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private String cinematicText;
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
+    private EntitySet payDayClocks;
+    private ResearchEffectControl payDayRing;
+    private float payDayTimeLeft;
+    private int payDayCost;
     private int lastImpCount = -1;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
@@ -153,8 +157,47 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
+            if (payDayClocks != null && payDayClocks.applyChanges()) {
+                updatePayDay();
+            }
             lastUpdate = 0;
         }
+    }
+
+    private void updatePayDay() {
+        for (Entity entity : payDayClocks) {
+            PayDayClock payDayClock = entity.get(PayDayClock.class);
+            payDayTimeLeft = payDayClock.getTimeLeftFraction();
+            payDayCost = payDayClock.cost;
+        }
+        if (payDayRing != null) {
+            payDayRing.setResearch(payDayTimeLeft);
+        }
+    }
+
+    /**
+     * The ring round the pay day coin shows the time left to the next pay day,
+     * it empties counterclockwise towards the pay day (DKII.EXE 0x415000).
+     * Like in the original, the ring is behind the coin and shows
+     * through its six windows. Drawn over the HUD, so the coin is drawn again
+     * over the ring, and it is made again each time the HUD comes back.
+     */
+    private void initPayDayRing() {
+        Element payDay = screen.findElementById("payDay");
+        if (payDay == null) {
+            return;
+        }
+        if (payDayRing != null) {
+            payDayRing.getElement().markForRemoval();
+        }
+        payDayRing = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
+            {
+                parameter("image", "Textures/GUI/Windows/payday-Hp.png");
+                parameter("frontImage", "Textures/GUI/Windows/payday-BG.png");
+            }
+        }.build(payDay).getControl(ResearchEffectControl.class);
+        payDayRing.initJme(state.app);
+        payDayRing.setResearch(payDayTimeLeft);
     }
 
     @Override
@@ -163,6 +206,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
             creatureCardManager.cleanup();
             creatureCardManager = null;
         }
+        if (payDayClocks != null) {
+            payDayClocks.release();
+            payDayClocks = null;
+        }
+        payDayRing = null;
 
         // Remove the resource bundle so that we can actually put a new one here
         nifty.getResourceBundles().remove("level");
@@ -537,7 +585,24 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public String getTooltipText(String bundleId) {
         String result = Utils.getMainTextResourceBundle().getString(bundleId);
 
-        return state.getTooltipText(result);
+        return formatTooltipText(result);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public String formatTooltipText(String text) {
+        return state.getTooltipText(text);
+    }
+
+    /**
+     * What the next pay day costs, for the gold's tooltip
+     *
+     * @return the cost
+     */
+    public int getPayDayCost() {
+        return payDayCost;
     }
 
     @Override
@@ -613,6 +678,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     initHud = false;
                     initHudItems(state.assetManager, entityData);
                 }
+                initPayDayRing();
 
                 break;
             }
@@ -944,6 +1010,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
+        if (payDayClocks != null) {
+            payDayClocks.release();
+        }
+        payDayClocks = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
+                PayDayClock.class, Owner.class);
         // Rooms
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
