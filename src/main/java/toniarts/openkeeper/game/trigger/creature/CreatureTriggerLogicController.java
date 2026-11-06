@@ -66,6 +66,11 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
         onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
     }
 
+    /** Runs an explicit conversion event after the new owner has been stored. */
+    public void onConverted(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_CONVERTED);
+    }
+
     private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
         Trigger binding = entityData.getComponent(entityId, Trigger.class);
         if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {

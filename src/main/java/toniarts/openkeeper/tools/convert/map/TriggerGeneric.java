@@ -67,7 +67,28 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_ATTACKED(6), // Event, This creature is
         CREATURE_IMPRISONED(7), // Event, This creature is
         CREATURE_TORTURED(8), // Event, This creature is
-        CREATURE_CONVERTED(9), // Event, This creature is
+        /**
+         * Event: this creature completes an explicit conversion, such as being
+         * converted to a keeper by torture. DK II emits from its torture-room
+         * conversion routine after the new owner has been stored. This is not
+         * a persistent test against the player who authored the creature script.
+         * <p>
+         * Generic ownership changes and recruiting a neutral creature do not
+         * emit this event. DK II's explicit conversion routine emits even if
+         * called with the creature already owned by that room's keeper; the
+         * normal torture path only invokes conversion for a different owner.
+         * <p>
+         * Matching creature-root branches run at conversion time and their
+         * nested conditions observe the new owner. Ordinary polling stays false,
+         * and an event nested beneath another condition is not independently
+         * dispatched. OpenKeeper delivers from its server-side conversion path
+         * and retains its existing script repeat counters.
+         * <p>
+         * Example: when a scripted hero converts in a keeper's Torture Chamber,
+         * play a message or advance an objective once. Merely loading that hero
+         * with a different owner, or later polling it, does not count.
+         */
+        CREATURE_CONVERTED(9),
         CREATURE_CLAIMED(10), // Event, This creature is
         /**
          * Fires when a positive mood change moves this creature into the fully

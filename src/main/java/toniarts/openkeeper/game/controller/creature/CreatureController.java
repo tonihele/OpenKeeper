@@ -1582,6 +1582,9 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void convertCreature(short playerId) {
         convertCreature(entityId, playerId);
+        // The shared ownership helper also recruits neutrals. Only the explicit
+        // conversion path emits event 9, after its ownership/cleanup work.
+        creaturesController.onConverted(entityId);
     }
 
     private void convertCreature(EntityId entity, short playerId) {

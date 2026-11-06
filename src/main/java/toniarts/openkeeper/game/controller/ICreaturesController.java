@@ -30,6 +30,9 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreaturesController extends IEntityWrapper<ICreatureController> {
 
+    /** Deliver an explicit completed conversion on the server simulation thread. */
+    void onConverted(EntityId entityId);
+
     public enum SpawnType {
         PLACE,
         ENTRANCE,

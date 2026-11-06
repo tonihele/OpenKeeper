@@ -109,7 +109,8 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_CONVERTED:
-                return instanceControl.getOwnerId() != getPlayerId();
+                // Explicit conversion event, not an ownership-difference predicate.
+                return false;
             case CREATURE_CLAIMED:
                 if (instanceControl != null) {
                     return instanceControl.isClaimed();

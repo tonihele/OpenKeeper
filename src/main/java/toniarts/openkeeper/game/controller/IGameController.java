@@ -55,6 +55,9 @@ public interface IGameController {
     /** Delivers a qualifying fear evaluation to the creature's script immediately. */
     void onCreatureAfraid(EntityId entityId);
 
+    /** Deliver a completed conversion after the new ownership is stored. */
+    void onCreatureConverted(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);
