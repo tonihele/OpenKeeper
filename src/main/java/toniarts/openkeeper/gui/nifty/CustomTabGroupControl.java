@@ -386,6 +386,16 @@ public final class CustomTabGroupControl extends AbstractController implements T
     }
 
     /**
+     * Get the element of the button that selects a tab
+     *
+     * @param index the index of the tab
+     * @return the button element, or {@code null} if there is no such tab
+     */
+    public Element getTabButton(final int index) {
+        return getButton(index);
+    }
+
+    /**
      * Get the button element at a specified index.
      * <p/>
      * This function ignores the template-button as needed. This is required
