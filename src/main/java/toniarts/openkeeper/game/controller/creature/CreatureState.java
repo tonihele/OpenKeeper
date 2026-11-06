@@ -40,6 +40,11 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // An enemy trap in sight, when there is no enemy creature to fight
+            if (entity.attackVisibleTrap()) {
+                return;
+            }
+
             // Idling is the last resort
             entity.unassingCurrentTask();
             findStuffToDo(entity, (foundWork) -> {
@@ -110,6 +115,11 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // An enemy trap in sight, when there is no enemy creature to fight
+            if (entity.attackVisibleTrap()) {
                 return;
             }
 
@@ -651,6 +661,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+            entity.releaseCastShot();
             if (entity.isStateTimeExceeded()) {
                 entity.getStateMachine().changeState(FIGHT);
             }
@@ -658,7 +669,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void exit(ICreatureController entity) {
-
+            entity.cancelCastShot();
         }
 
         @Override
