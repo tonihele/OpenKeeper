@@ -1,0 +1,18 @@
+{
+  "change": "High-preset control baseline immediately before VS distance early-reject attempt",
+  "decision": "CONTROL",
+  "reverted": false,
+  "graphicsPreset": "HIGH",
+  "session": "session-2026-11-06T15-10-43.664171900Z",
+  "compareBaseline": "after-smaa-final-pass",
+  "gitRevision": "73f60937",
+  "hardware": "Windows 10 amd64, NVIDIA GeForce RTX 2060 SUPER",
+  "medianAvgFps": 36.203,
+  "medianGpuFrameTimeMs": 9.692,
+  "baselineCvAvgFps": 0.055,
+  "notes": [
+    "Paired control for after-vs-distance-reject (REJECTED)",
+    "High run-to-run CV; run3 cp01 visual flake",
+    "Use only for that paired Δ — absolute FPS not a new accepted baseline"
+  ]
+}

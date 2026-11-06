@@ -28,6 +28,8 @@ Framework version: **2**
 | [benchmark-frustum-margin-3.md](benchmark-frustum-margin-3.md) | Frustum margin 5→3 — **REJECTED** |
 | [benchmark-a1b-graphics-presets.md](benchmark-a1b-graphics-presets.md) | A1b presets / High suite pin — **PARTIAL** |
 | [benchmark-smaa-thin-rts.md](benchmark-smaa-thin-rts.md) | P1 SMAA thin RTs on High — **REJECTED** |
+| [benchmark-page-frustum-index-skip.md](benchmark-page-frustum-index-skip.md) | Off-camera page light-index skip — **REJECTED** |
+| [benchmark-vs-distance-reject.md](benchmark-vs-distance-reject.md) | VS LightData early distance-reject — **REJECTED** |
 | [acceleration-f1-nsight.md](acceleration-f1-nsight.md) | F1 Nsight/RenderDoc VS split procedure — **PARTIAL** |
 | [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | C3 A\* connection reuse — **REJECTED** |
 | [benchmark-fow-door-index.md](benchmark-fow-door-index.md) | C1 FoW door index — **REJECTED** |

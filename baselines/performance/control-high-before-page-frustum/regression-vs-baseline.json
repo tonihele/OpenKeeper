@@ -1,0 +1,81 @@
+{
+  "baselinePath": "baselines/performance/after-smaa-final-pass/candidate-baseline-windows-10-amd64.json",
+  "candidatePath": "baselines/performance/control-high-before-page-frustum/candidate-baseline-windows-10-amd64.json",
+  "findings": [
+    {
+      "metric": "avgFps.median",
+      "baseline": 37.17,
+      "candidate": 41.062,
+      "delta": 3.892,
+      "relative": 0.105,
+      "status": "improvement"
+    },
+    {
+      "metric": "onePercentLowFps.median",
+      "baseline": 5.092,
+      "candidate": 5.528,
+      "delta": 0.436,
+      "relative": 0.086,
+      "status": "improvement"
+    },
+    {
+      "metric": "pointOnePercentLowFps.median",
+      "baseline": 1.657,
+      "candidate": 1.55,
+      "delta": -0.107,
+      "relative": -0.065,
+      "status": "regression"
+    },
+    {
+      "metric": "frameTimeP50.median",
+      "baseline": 20.299,
+      "candidate": 17.848,
+      "delta": -2.451,
+      "relative": -0.121,
+      "status": "improvement"
+    },
+    {
+      "metric": "frameTimeP99.median",
+      "baseline": 67.209,
+      "candidate": 57.683,
+      "delta": -9.526,
+      "relative": -0.142,
+      "status": "improvement"
+    },
+    {
+      "metric": "heapPeakMb.median",
+      "baseline": 1057.275,
+      "candidate": 1028.547,
+      "delta": -28.728,
+      "relative": -0.027,
+      "status": "stable"
+    },
+    {
+      "metric": "drawCallsAvg.median",
+      "baseline": 3104.18,
+      "candidate": 3063.578,
+      "delta": -40.602,
+      "relative": -0.013,
+      "status": "stable"
+    },
+    {
+      "metric": "lightsAvg.median",
+      "baseline": 2213.446,
+      "candidate": 2209.659,
+      "delta": -3.787,
+      "relative": -0.002,
+      "status": "stable"
+    },
+    {
+      "candidate": false,
+      "status": "fail",
+      "metric": "visualAllPassed",
+      "baseline": true
+    }
+  ],
+  "regressionCount": 1,
+  "visualPass": false,
+  "overall": "fail",
+  "baselineCvAvgFps": 0.022,
+  "candidateCvAvgFps": 0.018
+}

@@ -23,6 +23,8 @@ This file is the **authoritative index** for completed work and remaining opport
 | [benchmark-lighting-alloc-opt.md](benchmark-lighting-alloc-opt.md) | Alloc-free light hot path | **IMPLEMENTED** |
 | [benchmark-tile-rebuild-opt.md](benchmark-tile-rebuild-opt.md) | FOW/room rebuild gating | **PARTIAL** (ceiling/topology remain) |
 | [benchmark-page-light-cull.md](benchmark-page-light-cull.md) | Per-page terrain light indices | **IMPLEMENTED** (FPS-accepted) |
+| [benchmark-page-frustum-index-skip.md](benchmark-page-frustum-index-skip.md) | Skip off-camera page index rebuild | **REJECTED** (reverted) |
+| [benchmark-vs-distance-reject.md](benchmark-vs-distance-reject.md) | VS LightData early distance-reject | **REJECTED** (reverted) |
 | [benchmark-ambient-map-opt.md](benchmark-ambient-map-opt.md) | AmbientMap mid-frame upload | **REJECTED** (reverted) |
 | [benchmark-lightrules-lifecycle.md](benchmark-lightrules-lifecycle.md) | `LightRules` READY publication | **IMPLEMENTED** |
 | [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room light indices | **REJECTED** (reverted) |
@@ -294,6 +296,8 @@ Order is **recommended implementation / investigation sequence** given current s
 | 2026-11-06 | Frustum margin 5→3 | **REJECTED** | Lights −7%; FPS/visual fail; reverted; [report](benchmark-frustum-margin-3.md) |
 | 2026-11-06 | A1b graphics presets (High pin) | **PARTIAL** | Suite defaults High; [report](benchmark-a1b-graphics-presets.md) |
 | 2026-11-06 | P1 SMAA thin RTs (RGB8/Depth16) | **REJECTED** | −5% FPS on High; visual flake; reverted; [report](benchmark-smaa-thin-rts.md) |
+| 2026-11-06 | Off-camera page light-index skip | **REJECTED** | −7% FPS vs High control; pageIdx ~0.13 ms flat; reverted; [report](benchmark-page-frustum-index-skip.md) |
+| 2026-11-06 | VS LightData early distance-reject | **REJECTED** | FPS↑ but gpuFrameTimeMs flat; high-CV control; reverted; [report](benchmark-vs-distance-reject.md) |
 
 ---
 
@@ -324,6 +328,8 @@ Order is **recommended implementation / investigation sequence** given current s
 | Full deferred / PBR | Fights remake lighting identity |
 | Mid-frame AmbientMap `modifyTexture` | **REJECTED** |
 | LightIndex dirty-skip upload | **REJECTED** (suite) |
+| Off-camera terrain page index skip | **REJECTED** (suite; pageIdx already ~0.13 ms) |
+| VS LightData early distance-reject | **REJECTED** (suite; no gpuFrameTimeMs win / unstable control) |
 | Per-material light lists without shared atlas | Border seams |
 | Re-binding `LIGHT_INDEX_DATA` on rooms/entities | **REJECTED** (−27% / no win) without F1 + separate full-list shader path |
 | Entity bind steady-state skip (Q5b) | **REJECTED** (suite) |
@@ -353,9 +359,9 @@ Suite defaults: [benchmark.md](benchmark.md).
 |------------|------------|------------|
 | World + post GPU (~10.2 ms after SMAA final-pass) vs CPU render submit (~16.8 ms) | **Verified** magnitudes | **F1** VS split; remaining P1 Off/SSAO matrix |
 | Non-page full-list Vertex path | **Hypothesis** share of GPU | **F1** before any index retry |
-| Lighting CPU | **Verified** low (~0.6 ms) | Do **not** prioritize B2 / index dirty-skip |
+| Lighting CPU | **Verified** low (~0.6 ms) | Do **not** prioritize B2 / index dirty-skip / off-camera page-index skip |
 | Ceiling rebuild when visible | **Verified** full-map path | **D1** + ceiling-on scenario |
 | Player quality / AA | High off-suite | **A1b** |
 | FoW AmbientMap full upload | **Verified** API shape; not suite avg-FPS | **B3** deferred (FoW-stress only) |
 
-**Next actionable step:** High-preset suite wins only (SMAA Ultra). **F1** (Nsight VS split) before E1/B1-retry. Prefer post/render bandwidth and hitch (**D1**) over quality downgrades. **B3** deferred.
+**Next actionable step:** High-preset suite wins only (SMAA Ultra). **F1** (Nsight VS split) before E1/B1-retry or another Vertex fetch micro-opt. Prefer hitch (**D1**) / post bandwidth characterization over lighting-CPU elision. **B3** deferred. Page-index skips and VS distance early-out **REJECTED** on High suite evidence.

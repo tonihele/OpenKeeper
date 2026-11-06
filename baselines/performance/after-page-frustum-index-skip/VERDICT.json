@@ -1,0 +1,25 @@
+{
+  "change": "Skip LightIndex rebuild for off-camera terrain pages (frustum + FRUSTUM_MARGIN_TILES)",
+  "decision": "REJECTED",
+  "reverted": true,
+  "graphicsPreset": "HIGH",
+  "session": "session-2026-11-06T15-02-48.850131800Z",
+  "controlSession": "session-2026-11-06T15-00-33.703389200Z",
+  "compareBaseline": "control-high-before-page-frustum",
+  "gitRevision": "73f60937",
+  "hardware": "Windows 10 amd64, NVIDIA GeForce RTX 2060 SUPER",
+  "medianAvgFps": 38.182,
+  "baselineMedianAvgFps": 41.062,
+  "medianGpuFrameTimeMs": 9.301,
+  "baselineMedianGpuFrameTimeMs": 8.969,
+  "medianLightPageIndexMs": 0.127,
+  "baselineMedianLightPageIndexMs": 0.134,
+  "medianPageIndexSkippedOffCamera": 81.619,
+  "rationale": [
+    "avg FPS median −7.0% vs same-session High control (41.062 → 38.182)",
+    "1% low and frameTime P50 regressed; suite regression overall fail",
+    "Skipped ~82 pages/frame but lightPageIndexMs stayed ~0.13 ms (grid build dominates)",
+    "GPU frame time not improved; visualAllPassed false (cp01 flake on run 2)",
+    "Source fully reverted"
+  ]
+}

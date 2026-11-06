@@ -1,0 +1,81 @@
+{
+  "baselinePath": "baselines/performance/control-high-before-vs-distance-reject/candidate-baseline-windows-10-amd64.json",
+  "candidatePath": "baselines/performance/after-vs-distance-reject/candidate-baseline-windows-10-amd64.json",
+  "findings": [
+    {
+      "metric": "avgFps.median",
+      "baseline": 36.203,
+      "candidate": 40.747,
+      "delta": 4.544,
+      "relative": 0.126,
+      "status": "improvement"
+    },
+    {
+      "metric": "onePercentLowFps.median",
+      "baseline": 4.84,
+      "candidate": 5.378,
+      "delta": 0.538,
+      "relative": 0.111,
+      "status": "improvement"
+    },
+    {
+      "metric": "pointOnePercentLowFps.median",
+      "baseline": 1.604,
+      "candidate": 1.665,
+      "delta": 0.061,
+      "relative": 0.038,
+      "status": "stable"
+    },
+    {
+      "metric": "frameTimeP50.median",
+      "baseline": 20.89,
+      "candidate": 18.232,
+      "delta": -2.658,
+      "relative": -0.127,
+      "status": "improvement"
+    },
+    {
+      "metric": "frameTimeP99.median",
+      "baseline": 62.449,
+      "candidate": 60.363,
+      "delta": -2.086,
+      "relative": -0.033,
+      "status": "stable"
+    },
+    {
+      "metric": "heapPeakMb.median",
+      "baseline": 1100.0,
+      "candidate": 1057.965,
+      "delta": -42.035,
+      "relative": -0.038,
+      "status": "stable"
+    },
+    {
+      "metric": "drawCallsAvg.median",
+      "baseline": 3120.101,
+      "candidate": 3056.084,
+      "delta": -64.017,
+      "relative": -0.021,
+      "status": "stable"
+    },
+    {
+      "metric": "lightsAvg.median",
+      "baseline": 2210.73,
+      "candidate": 2203.081,
+      "delta": -7.649,
+      "relative": -0.003,
+      "status": "stable"
+    },
+    {
+      "metric": "visualAllPassed",
+      "baseline": false,
+      "candidate": false,
+      "status": "fail"
+    }
+  ],
+  "regressionCount": 0,
+  "visualPass": false,
+  "overall": "fail",
+  "baselineCvAvgFps": 0.055,
+  "candidateCvAvgFps": 0.024
+}
