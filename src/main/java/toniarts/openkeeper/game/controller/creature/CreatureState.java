@@ -94,6 +94,13 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // See if we want to gamble
+            if (entity.goGambling()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return; // Found work
+            }
+
             // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
             entity.findWork((foundWork) -> {
                 if (foundWork) {
@@ -225,7 +232,8 @@ public enum CreatureState implements State<ICreatureController> {
             // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
-                    || task.getTaskType() == TaskType.RESEARCH)
+                    || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.GAMBLE)
                     && ((entity.isHungry() && entity.goToEat())
                     || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot

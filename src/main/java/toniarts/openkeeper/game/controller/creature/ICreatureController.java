@@ -237,6 +237,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goToEat();
 
     /**
+     * Sends the creature to gamble in the Casino, if it wants to: a keeper's
+     * creature that holds more gold than the stake of the Casino's money mode
+     *
+     * @return {@code true} if the creature was given a place to gamble
+     */
+    public boolean goGambling();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree
