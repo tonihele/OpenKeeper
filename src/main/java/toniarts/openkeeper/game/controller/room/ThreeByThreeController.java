@@ -55,6 +55,20 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
         return roomInstance.getCenter();
     }
 
+    /**
+     * Whether a creature dropped on the tile leaves the dungeon. Like in DK II,
+     * a creature that lands on the middle tile of its own keeper's portal is
+     * gone for good, only imps stay.
+     *
+     * @param tile the tile the creature is dropped on
+     * @param creatureOwnerId the owner of the creature
+     * @param imp whether the creature is an imp
+     * @return whether the creature leaves the dungeon
+     */
+    public boolean isLeavingDungeon(Point tile, short creatureOwnerId, boolean imp) {
+        return !imp && getOwnerId() == creatureOwnerId && roomInstance.getCenter().equals(tile);
+    }
+
     @Override
     public double getLastSpawnTime() {
         return getEntityComponent(CreatureGenerator.class).lastSpawnTime;

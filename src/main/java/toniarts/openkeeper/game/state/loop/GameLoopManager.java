@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
+import toniarts.openkeeper.game.logic.CreatureLeaveSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
@@ -106,8 +107,9 @@ public final class GameLoopManager {
                 new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
-                        gameController.getGameTimer(), gameSettings),
-                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
+                        gameController.getGameTimer(), gameSettings, gameController::onCreatureAngry),
+                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
+                        gameController::onCreatureAngry),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
@@ -124,6 +126,7 @@ public final class GameLoopManager {
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
+                new CreatureLeaveSystem(entityData, gameWorldController.getCreaturesController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
