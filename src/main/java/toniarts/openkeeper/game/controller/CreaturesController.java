@@ -337,8 +337,12 @@ public final class CreaturesController implements ICreaturesController {
         Creature.AnimationType animationType = getStartingAnimation(healthComponent, creatureState);
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
-        if (healthComponent != null && creatureState == CreatureState.IMPRISONED) {
-            onImprisoned(entity);
+        if (healthComponent != null) {
+            if (creatureState == CreatureState.IMPRISONED) {
+                onImprisoned(entity);
+            } else if (creatureState == CreatureState.TORTURED) {
+                gameController.onCreatureTortured(entity);
+            }
         }
         return entity;
     }
@@ -448,6 +452,8 @@ public final class CreaturesController implements ICreaturesController {
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
+                // TODO #1010: enforce DK II's usable-device tile/proximity/occupancy
+                // checks. Current torture admissions still accept arbitrary room tiles.
                 room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.TORTURED;

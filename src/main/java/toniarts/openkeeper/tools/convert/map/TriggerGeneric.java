@@ -113,7 +113,31 @@ public final class TriggerGeneric extends Trigger {
          * every tick while the hero remains locked up.
          */
         CREATURE_IMPRISONED(7),
-        CREATURE_TORTURED(8), // Event, This creature is
+        /**
+         * Event: this creature is admitted to torture. Remaining in torture does
+         * not repeatedly trigger it; merely setting a torture-state component
+         * does not emit an admission either. A later accepted admission may emit
+         * again, subject to the existing branch repeat limit.
+         * <p>
+         * DK II validates a usable torture device on the creature's tile, switches
+         * to its torture command, then emits before later captive bookkeeping.
+         * OpenKeeper queues its completed hand-drop and living spawn/load
+         * admissions. The buffer exists before world loading, and only simulation
+         * ticks run matching creature-root branches. Nested conditions see the
+         * delivery-time state; ordinary polling stays false. This differs from
+         * native synchronous timing and does not independently dispatch nested events.
+         * <p>
+         * TODO #1010: current OpenKeeper admission rules still accept arbitrary
+         * enemy torture-room tiles, without DK II's device/proximity/occupancy
+         * checks. Own-room admissions are not supported by those existing paths.
+         * Event delivery preserves these gameplay rules; it does not establish
+         * full native torture admission or repeat-counter parity.
+         * <p>
+         * Example: dropping a scripted captured hero into torture runs a message
+         * or objective branch once on admission, rather than every tick throughout
+         * the hero's captivity or only after conversion.
+         */
+        CREATURE_TORTURED(8),
         CREATURE_CONVERTED(9), // Event, This creature is
         CREATURE_CLAIMED(10), // Event, This creature is
         /**

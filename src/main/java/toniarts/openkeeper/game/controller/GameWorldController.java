@@ -131,6 +131,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final GameEventService gameEventService;
     private final Consumer<EntityId> onCreatureSlapped;
     private final Consumer<EntityId> onCreatureImprisoned;
+    private final Consumer<EntityId> onCreatureTortured;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -149,6 +150,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.gameEventService = gameEventService;
         this.onCreatureSlapped = gameController::onCreatureSlapped;
         this.onCreatureImprisoned = gameController::onCreatureImprisoned;
+        this.onCreatureTortured = gameController::onCreatureTortured;
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1241,7 +1243,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
                 if (roomController.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
 
-                    // TODO: you need to exactly drop the creature to a torture device, otherwise you just set him free in your base
+                    // TODO #1010: enforce DK II's usable-device tile/proximity/occupancy
+                    // checks; dropping elsewhere in the room should release the creature.
                     roomController.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entity, tile);
                     creatureState = CreatureState.TORTURED;
                     torture = true;
@@ -1294,6 +1297,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
         if (imprison) {
             onCreatureImprisoned.accept(entity);
+        }
+        if (torture) {
+            onCreatureTortured.accept(entity);
         }
     }
 

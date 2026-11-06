@@ -64,6 +64,9 @@ public interface IGameController {
     /** Enqueue prison admission, including admissions during initial world loading. */
     void onCreatureImprisoned(EntityId entityId);
 
+    /** Queue a completed torture admission; only the simulation runs scripts. */
+    void onCreatureTortured(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);
