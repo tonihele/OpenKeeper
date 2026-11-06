@@ -335,6 +335,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             @Override
+            public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+                // Not interested
+            }
+
+            @Override
             public void onFogOfWarDisabled(short keeperId) {
                 // Not interested
             }
