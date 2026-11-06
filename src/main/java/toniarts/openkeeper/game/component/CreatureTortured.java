@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
+import com.simsilica.es.EntityId;
 
 /**
  * Tags creature is being tortured (not the kinky kind)
@@ -28,15 +29,21 @@ public final class CreatureTortured implements EntityComponent {
     public double timeTortured;
     public double tortureCheckTime;
     public double healthCheckTime;
+    public EntityId device;
 
     public CreatureTortured() {
         // For serialization
     }
 
     public CreatureTortured(double timeTortured, double tortureCheckTime, double healthCheckTime) {
+        this(timeTortured, tortureCheckTime, healthCheckTime, null);
+    }
+
+    public CreatureTortured(double timeTortured, double tortureCheckTime, double healthCheckTime, EntityId device) {
         this.timeTortured = timeTortured;
         this.tortureCheckTime = tortureCheckTime;
         this.healthCheckTime = healthCheckTime;
+        this.device = device;
     }
 
 }
