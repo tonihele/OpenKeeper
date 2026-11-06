@@ -16,11 +16,18 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -33,10 +40,38 @@ public final class SendToActionPoint extends GoToTask {
     protected final ActionPoint actionPoint;
     private boolean executed = false;
 
-    public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, short playerId) {
-        super(navigationService, mapController, WorldUtils.vectorToPoint(actionPoint.getCenter()), playerId);
+    public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, ICreatureController creature) {
+        super(navigationService, mapController, getDestination(navigationService, mapController, actionPoint, creature), creature.getOwnerId());
 
         this.actionPoint = actionPoint;
+    }
+
+    /**
+     * Like the original, the creature heads for a random tile of the action
+     * point that it can get to. The middle of the area can well be a wall
+     */
+    private static Point getDestination(INavigationService navigationService, IMapController mapController, ActionPoint actionPoint,
+            ICreatureController creature) {
+        Point start = creature.getCreatureCoordinates();
+        List<Point> tiles = new ArrayList<>(actionPoint.getPoints());
+        Collections.shuffle(tiles, Utils.getRandom());
+        for (Point tile : tiles) {
+
+            // No path leads into a solid tile, and a path search that fails goes
+            // through every tile the creature can get to
+            if (!tile.equals(start) && isSolid(mapController, tile)) {
+                continue;
+            }
+            if (navigationService.findPath(start, tile, creature) != null) {
+                return tile;
+            }
+        }
+        return WorldUtils.vectorToPoint(actionPoint.getCenter());
+    }
+
+    private static boolean isSolid(IMapController mapController, Point p) {
+        IMapTileInformation tile = mapController.getMapData().getTile(p);
+        return tile != null && mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
     @Override
@@ -52,13 +87,14 @@ public final class SendToActionPoint extends GoToTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // TODO: Wait delay
-        executed = true;
-        if (actionPoint.getNextWaypointId() != 0) {
-
-            // Assign new objective
-            creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
+        // The creature waits at the point for its wait delay (seconds) before moving on
+        if (executionDuration < actionPoint.getWaitDelay()) {
+            return;
         }
+        executed = true;
+
+        // Assign new objective. Past the last waypoint (0) there is no action point left to go to
+        creature.setObjectiveTargetActionPointId(actionPoint.getNextWaypointId());
     }
 
 }
