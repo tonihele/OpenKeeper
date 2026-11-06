@@ -725,7 +725,7 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public void spawnCreatures(short creatureId, short playerId, int level, int amount) {
         IRoomController dungeonHeart = gameController.getPlayerController(playerId).getRoomControl().getDungeonHeart();
-        if (!(dungeonHeart instanceof ICreatureEntrance entrance)) {
+        if (!(dungeonHeart instanceof ICreatureEntrance entrance) || entrance.isDestroyed()) {
             logger.log(Level.WARNING, "Player {0} has no dungeon heart to spawn creatures at!", playerId);
             return;
         }
