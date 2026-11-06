@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -51,6 +52,7 @@ class PortalSpawnCooldownTest {
         Keeper keeper = new Keeper(false, (short) 3);
         Creature goblin = new Creature();
         goblin.setCreatureId((short) 7);
+        goblin.setFlags(java.util.EnumSet.of(Creature.CreatureFlag.AVAILABLE_VIA_PORTAL));
         Creature.Attraction lairRequirement = new Creature.Attraction();
         lairRequirement.setRoomId(2);
         lairRequirement.setPresent(1);
