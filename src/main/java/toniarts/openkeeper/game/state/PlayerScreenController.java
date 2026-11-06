@@ -122,6 +122,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private boolean initHud = false;
     private String cinematicText;
     private EntityData entityData;
+    private RoomCycling roomCycling;
     private CreatureCardManager creatureCardManager;
     private int lastImpCount = -1;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
@@ -159,6 +160,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void cleanup() {
+        if (roomCycling != null) {
+            roomCycling.close();
+            roomCycling = null;
+        }
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
             creatureCardManager = null;
@@ -759,6 +764,21 @@ public final class PlayerScreenController implements IPlayerScreenController {
         nifty.gotoScreen(IPlayerScreenController.SCREEN_HUD_ID);
 
         hud.layoutLayers();
+        if (roomCycling != null) {
+            roomCycling.close();
+        }
+        roomCycling = new RoomCycling(entityData, state.getPlayerId());
+    }
+
+    /** Right-click camera navigation uses only the replicated client rooms. */
+    public void cycleRoom(String roomId) {
+        if (state == null || roomCycling == null) {
+            return;
+        }
+        var location = roomCycling.next(Short.parseShort(roomId));
+        if (location != null) {
+            state.zoomToPosition(toniarts.openkeeper.utils.WorldUtils.pointToVector3f(location), true);
+        }
     }
 
     public void setPause(boolean paused) {
@@ -1438,8 +1458,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
             String tip = roomIconTextParser.parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(room.getGeneralDescriptionStringId())), room);
             String hint = roomIconTextParser.parseText(Utils.getMainTextResourceBundle().getString("1783"), room);
 
-            return createIcon(room.getRoomId(), "room", room.getGuiIcon(), tip,
+            ControlBuilder icon = createIcon(room.getRoomId(), "room", room.getGuiIcon(), tip,
                     hint, true, false);
+            icon.interactOnSecondaryClick("cycleRoom(" + room.getRoomId() + ")");
+            return icon;
         }
 
         return createIcon(room.getId(),
