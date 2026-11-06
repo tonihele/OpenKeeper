@@ -65,6 +65,12 @@ public final class ConsoleInputListener implements RawInputListener {
         if (evt.isPressed() && evt.getKeyCode() == ConsoleState.KEY) {
             app.setEnabled(false);
         }
+
+        // What we type is for the console, not the camera or the other key bindings. The key releases go
+        // through, so a key held down when the console opened doesn't stay down
+        if (evt.isPressed() || evt.isRepeating()) {
+            evt.setConsumed();
+        }
     }
 
     @Override
