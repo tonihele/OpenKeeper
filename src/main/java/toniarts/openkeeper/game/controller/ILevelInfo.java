@@ -76,4 +76,23 @@ public interface ILevelInfo {
      */
     List<ActionPoint> getActionPoints();
 
+    /**
+     * Script toggles set by the level triggers. Nothing in the game reads them
+     * yet, they are here so that the trigger system has somewhere to put the
+     * values and the consumers can pick them up later.
+     *
+     * @return the toggle state
+     */
+    boolean isCreatureMoodsEnabled();
+
+    void setCreatureMoodsEnabled(boolean enabled);
+
+    boolean isSystemMessagesEnabled();
+
+    void setSystemMessagesEnabled(boolean enabled);
+
+    boolean isTimerSpeechEnabled();
+
+    void setTimerSpeechEnabled(boolean enabled);
+
 }
