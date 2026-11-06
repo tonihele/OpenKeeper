@@ -17,8 +17,10 @@
 package toniarts.openkeeper.game.trigger.creature;
 
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -33,6 +35,7 @@ import toniarts.openkeeper.game.trigger.AbstractThingTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
  * A state for handling creature triggers
@@ -41,12 +44,66 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
+    private final EntityData entityData;
+    private record QueuedEvent(EntityId entityId, TriggerGeneric.TargetType type) { }
+
+    private final ConcurrentLinkedQueue<QueuedEvent> pendingEvents = new ConcurrentLinkedQueue<>();
+    private final ICreaturesController creaturesController;
+
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
         super(initTriggers(levelInfo.getLevelData(), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(CreatureComponent.class, Trigger.class),
                 creaturesController);
+        this.entityData = entityData;
+        this.creaturesController = creaturesController;
+    }
+
+    /** Runs the event now, independently of the ordinary trigger traversal. */
+    public void onAngry(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_ANGRY);
+    }
+
+    /** Runs a qualifying fear event now, even if no escape follows. */
+    public void onAfraid(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
+    }
+
+    /** Called by hand/session threads; keep every accepted request, even at the same time. */
+    public void enqueueSlapped(EntityId entityId) {
+        pendingEvents.add(new QueuedEvent(entityId, TriggerGeneric.TargetType.CREATURE_SLAPPED));
+    }
+
+    /** Lightning can arrive on a session thread, so only enqueue after state is stored. */
+    public void enqueueStunned(EntityId entityId) {
+        pendingEvents.add(new QueuedEvent(entityId, TriggerGeneric.TargetType.CREATURE_STUNNED));
+    }
+
+    @Override
+    public void processTick(float tpf) {
+        QueuedEvent event;
+        while ((event = pendingEvents.poll()) != null) {
+            onEvent(event.entityId(), event.type());
+        }
+        super.processTick(tpf);
+    }
+
+    @Override
+    public void stop() {
+        pendingEvents.clear();
+        super.stop();
+    }
+
+    private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
+        Trigger binding = entityData.getComponent(entityId, Trigger.class);
+        if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {
+            return;
+        }
+        CreatureTriggerControl control = (CreatureTriggerControl) getTriggerControl(binding.triggerId);
+        if (control != null) {
+            control.onEvent(eventType, creaturesController.createController(entityId));
+        }
     }
 
     private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(IKwdFile kwdFile, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
