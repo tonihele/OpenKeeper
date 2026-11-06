@@ -255,7 +255,15 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURE_SACKED:
                 return false;
             case PLAYER_ROOM_FURNITURE:
-                return false;
+                roomId = trigger.getUserData("roomId", short.class);
+                target = getPlayerController(playerId).getRoomControl().getRoomFurnitureCount(roomId);
+                // DKII ignores the value/player option and uses the stored number.
+                value = trigger.getUserData("value", int.class);
+                if (trigger.getComparison() == null || trigger.getComparison() == TriggerGeneric.ComparisonType.NONE) {
+                    return false;
+                }
+                // Many Prison counters can exceed float's exact integer range.
+                return compare(Integer.compare(target, value), trigger.getComparison(), 0);
             case PLAYER_SLAPS:
                 return false;
             case PLAYER_CREATURES_GROUPED:

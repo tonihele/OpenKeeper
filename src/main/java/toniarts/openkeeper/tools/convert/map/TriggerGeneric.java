@@ -121,7 +121,34 @@ public final class TriggerGeneric extends Trigger {
         PARTY_MEMBERS_INCAPACITATED(64), // Party
         CREATURE_PICKED_UP(65), // Event, This creature is
         LEVEL_PLAYED(67), // Attribute, This level's...
-        PLAYER_ROOM_FURNITURE(68), // Player
+        /**
+         * Compares the sum of this player's owned room script counters with
+         * the fixed numeric operand. Type 0 selects every room; a nonzero
+         * selector restricts the room type. The value/player flag and other
+         * player byte are ignored. Comparison NONE does not match.
+         * <p>
+         * The name is misleading: this reads DKII's room-specific capacity
+         * counter, not a general tally of visible furniture or occupied slots.
+         * Libraries, Training Rooms, Workshops and Casinos count objects whose
+         * types match the room definition's first six object slots, adding one
+         * per nonempty room. Torture Chambers use that object count directly.
+         * Thus a Training Room with one matching object contributes 2. Level2
+         * and Level3 use positive/zero checks to test room readiness.
+         * <p>
+         * Every Prison contributes 65535 (UINT16_MAX), regardless of its size,
+         * gate state or occupancy. Two Prisons contribute 131070. Zero/nonzero
+         * therefore tests Prison ownership, not usable cells or prisoner count.
+         * This exposes the native generic counter's 0xFFFF value to scripts.
+         * <p>
+         * Portals contribute zero. Temples and Combat Pits count boundary
+         * tiles; Graveyards count interior tiles without a crypt (object 75).
+         * Other room types contribute their tile count. An interior tile has
+         * all eight neighbors in the same room. Each room counter is unsigned
+         * 16-bit; those counters are summed without a 16-bit clamp on the total.
+         * OpenKeeper's visible furniture counts and gameplay capacities are
+         * independent of this compatibility calculation.
+         */
+        PLAYER_ROOM_FURNITURE(68),
         AP_TAG_ALL_OF(69), // Action point
         AP_POSESSED_CREATURE_ENTERS(70), // Action point
         PLAYER_SLAPS(71), // Player

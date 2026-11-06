@@ -135,6 +135,20 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
         this.portalsOpen = portalsOpen;
     }
 
+    /** Sums current owned room script counters; type zero selects every room type. */
+    public int getRoomFurnitureCount(short roomId) {
+        int count = 0;
+        for (Map.Entry<Room, Set<IRoomController>> entry : roomControllers.entrySet()) {
+            if (roomId == 0 || entry.getKey().getRoomId() == roomId) {
+                for (IRoomController room : entry.getValue()) {
+                    // Each room contributes an unsigned short; the aggregate is wider.
+                    count += room.getScriptFurnitureCount();
+                }
+            }
+        }
+        return count;
+    }
+
     public Map<Room, Set<IRoomController>> getRoomControllers() {
         return roomControllers;
     }
