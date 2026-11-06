@@ -52,7 +52,8 @@ public interface IEntityViewControl<T, S> extends Control {
      * Get control tooltip
      *
      * @param playerId the player who is asking
-     * @return the tooltip string
+     * @return the tooltip string, or {@code null} if the entity has no tooltip
+     * of its own and the tile's tooltip should show instead
      */
     public String getTooltip(short playerId);
 
@@ -102,11 +103,38 @@ public interface IEntityViewControl<T, S> extends Control {
     public void slap(short playerId);
 
     /**
+     * Get the effect ID to play when the control is slapped
+     *
+     * @param playerId the player who wants to slap
+     * @return the effect ID, or 0 if none
+     */
+    public default int getSlapEffectId(short playerId) {
+        return 0;
+    }
+
+    /**
+     * Get the effect ID to play when the control dies
+     *
+     * @return the effect ID, or 0 if none
+     */
+    public default int getDeathEffectId() {
+        return 0;
+    }
+
+    /**
      * Get the in hand cursor
      *
      * @return cursor type when the control is held by the keeper
      */
     public CursorFactory.CursorType getInHandCursor();
+
+    /**
+     * Get the cursor animation the hand plays once when it drops this
+     *
+     * @return cursor type when the keeper drops the control, {@code null} for
+     * no animation
+     */
+    public CursorFactory.CursorType getDropCursor();
 
     /**
      * Get in hand mesh, when the keeper dangles the control in hand
@@ -194,6 +222,13 @@ public interface IEntityViewControl<T, S> extends Control {
     public EntityId getEntityId();
 
     public void setTargetState(S state);
+
+    /**
+     * Get the currently playing/played state
+     *
+     * @return the current state
+     */
+    public S getCurrentState();
 
     public T getDataObject();
 

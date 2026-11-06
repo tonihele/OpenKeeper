@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -34,8 +35,9 @@ import java.util.Set;
 
 /**
  * Shared client/server validation for an entire room-building selection.
- * Selections are deliberately all-or-nothing: one invalid tile rejects the
- * whole build.
+ * Rooms on land are built on the valid tiles of the selection, invalid tiles
+ * are skipped. Bridge selections are all-or-nothing: one invalid tile rejects
+ * the whole build.
  */
 public final class RoomPlacementValidator {
 
@@ -86,12 +88,26 @@ public final class RoomPlacementValidator {
             return terrainResult;
         }
 
-        long cost = (long) plots.size() * room.getCost();
+        // Only the tiles actually built cost gold
+        long cost = (long) terrainResult.plots().size() * room.getCost();
         if (cost > availableGold) {
             return invalid(Failure.NOT_ENOUGH_GOLD);
         }
 
-        return new Result(Failure.NONE, Collections.unmodifiableList(plots));
+        return terrainResult;
+    }
+
+    /**
+     * Determines whether an object prevents room construction on its tile.
+     * Only obstacles block. Loose items such as gold, spell books and crates
+     * don't, they are either stored by the new room or fetched by the workers.
+     * Neither do things like wandering chickens or the Call To Arms banner.
+     *
+     * @param object the object type, {@code null} if unknown
+     * @return {@code true} if the object blocks room construction
+     */
+    public static boolean isConstructionBlockingObject(GameObject object) {
+        return object == null || object.getFlags().contains(GameObject.ObjectFlag.OBSTACLE);
     }
 
     private static boolean isBuildableRoom(Room room) {
@@ -121,15 +137,24 @@ public final class RoomPlacementValidator {
 
     private static Result validateLand(IMapInformation<?> mapInformation,
             Set<Point> blockedTiles, List<Point> plots, short playerId, short roomId) {
+        List<Point> buildablePlots = new ArrayList<>(plots.size());
+        boolean blockedByEntity = false;
         for (Point plot : plots) {
             if (!mapInformation.isBuildable(plot, playerId, roomId)) {
-                return invalid(Failure.INVALID_TERRAIN);
+                continue;
             }
             if (blockedTiles.contains(plot)) {
-                return invalid(Failure.BLOCKED_BY_ENTITY);
+                blockedByEntity = true;
+                continue;
             }
+            buildablePlots.add(plot);
         }
-        return new Result(Failure.NONE, Collections.unmodifiableList(plots));
+
+        // Nothing to build at all
+        if (buildablePlots.isEmpty()) {
+            return invalid(blockedByEntity ? Failure.BLOCKED_BY_ENTITY : Failure.INVALID_TERRAIN);
+        }
+        return new Result(Failure.NONE, Collections.unmodifiableList(buildablePlots));
     }
 
     private static Result validateBridge(IKwdFile kwdFile, IMapInformation<?> mapInformation,

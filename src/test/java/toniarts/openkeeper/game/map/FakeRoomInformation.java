@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.map;
 
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * An {@link IRoomInformation} test double. Public: also reused by
@@ -28,6 +29,7 @@ public final class FakeRoomInformation implements IRoomInformation {
     private final EntityId entityId;
     public short ownerId;
     public short roomId;
+    public Point location;
     public boolean dungeonHeart;
     public boolean removed;
 
@@ -68,6 +70,11 @@ public final class FakeRoomInformation implements IRoomInformation {
     @Override
     public short getRoomId() {
         return roomId;
+    }
+
+    @Override
+    public Point getLocation() {
+        return location;
     }
 
     @Override

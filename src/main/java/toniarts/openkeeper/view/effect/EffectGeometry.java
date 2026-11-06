@@ -57,6 +57,14 @@ public class EffectGeometry extends Geometry {
     }
 
     public EffectGeometry(String name) {
+        this(name, false);
+    }
+
+    /**
+     * @param flat true for a FLAT-flagged art resource - lies the geometry
+     * down on the floor instead of standing it upright.
+     */
+    public EffectGeometry(String name, boolean flat) {
         super(name);
 
         this.setBatchHint(BatchHint.Never);
@@ -69,7 +77,7 @@ public class EffectGeometry extends Geometry {
         // particles are usually transparent
         this.setQueueBucket(RenderQueue.Bucket.Transparent);
 
-        particleMesh = new EffectMesh();
+        particleMesh = new EffectMesh(flat);
         this.setMesh(particleMesh);
 
         controls.add(new EffectGeometryControl());

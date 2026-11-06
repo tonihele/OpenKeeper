@@ -54,8 +54,6 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
 
     @Override
     public void destroy() {
-        super.destroy();
-
         // We don't destroy the chickens, that would be inhumane, but we set them free
         List<Collection<EntityId>> objectList = new ArrayList<>(objectsByCoordinate.values());
         for (Collection<EntityId> objects : objectList) {
@@ -63,6 +61,9 @@ public abstract class RoomFoodControl extends AbstractRoomObjectControl<EntityId
                 removeItem(obj);
             }
         }
+
+        // The storage entity must still exist while the chickens are freed, it keeps their count
+        super.destroy();
     }
 
     @Override

@@ -485,6 +485,10 @@ public final class MinimapPanelState extends AbstractAppState {
                     float localY = (evt.getY() - panelJmeY) / panelHeight;
                     if (localX >= 0f && localX <= 1f && localY >= 0f && localY <= 1f) {
                         cancelToolAndRecompute();
+                        FullscreenMapState fullscreenMap = stateManager.getState(FullscreenMapState.class);
+                        if (fullscreenMap != null) {
+                            fullscreenMap.open();
+                        }
                     }
                 }
             }

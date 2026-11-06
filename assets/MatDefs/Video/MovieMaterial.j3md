@@ -8,6 +8,7 @@ MaterialDef MovieMaterial {
         Vector2 ValidRange
         Color LetterboxColor
         Boolean NoFrame
+        Boolean GammaCorrection
 
 	// Alpha threshold for fragment discarding
         Float AlphaDiscardThreshold (AlphaTestFallOff)
@@ -25,6 +26,7 @@ MaterialDef MovieMaterial {
 			DISCARD_ALPHA: AlphaDiscardThreshold
 			LETTERBOX: LetterboxColor
                         NO_FRAME: NoFrame
+                        GAMMA_CORRECTION: GammaCorrection
         }
     }
 
