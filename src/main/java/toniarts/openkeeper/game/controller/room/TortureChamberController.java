@@ -28,6 +28,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.map.WallSection.WallDirection;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -70,8 +71,10 @@ public final class TortureChamberController extends NormalRoomController {
         // Extending the room builds the furniture again, the victims need the new devices
         control.refreshDevices();
 
-        // Like in DK II, the torture wheels spin all the time
-        for (EntityId furniture : getWallFurniture()) {
+        // Like in DK II, the torture wheels spin all the time, on the floor and on the walls
+        List<EntityId> furnitures = new ArrayList<>(getFloorFurniture());
+        furnitures.addAll(getWallFurniture());
+        for (EntityId furniture : furnitures) {
             ObjectViewState viewState = entityData.getComponent(furniture, ObjectViewState.class);
             if (viewState != null && viewState.objectId == OBJECT_TORTURE_WHEEL_ID) {
                 entityData.setComponent(furniture, new ObjectViewState(viewState.objectId,

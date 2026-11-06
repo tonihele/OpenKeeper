@@ -164,6 +164,17 @@ class RoomTortureeControlTest {
         assertEquals(wheel, control.addItem(victim, new Point(5, 3)));
     }
 
+    @Test
+    void troughUnderAWheelOnTheWallHoldsNoVictim() {
+
+        // The trough is closer, but only the wheel above it takes a victim
+        EntityId trough = device(new Point(6, 3));
+        entityData.setComponent(trough, new ObjectComponent((short) 62, ObjectType.TORTUREE));
+        devices.remove(chair);
+
+        assertEquals(wheel, control.addItem(entityData.createEntity(), new Point(6, 3)));
+    }
+
     private IKwdFile kwdFile() {
         return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
