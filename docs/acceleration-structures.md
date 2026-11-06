@@ -129,7 +129,7 @@ Preserve always:
 | D2 | Page dirty dependency graph | **NOT STARTED** | |
 | D3 | Immutable chunk meshes | **NOT STARTED** | Defer after D1/D2 |
 | E1 | Clustered forward | **NOT STARTED** | Defer until F1 |
-| A1b | Quality presets Low–Ultra | **NOT STARTED** | Remainder of A1 |
+| A1b | Quality presets Low–Ultra | **PARTIAL** | High = shipping/suite; UI + suite pin **ACCEPTED**; Low matrix aborted |
 | F1 | Nsight/RenderDoc VS split | **NOT STARTED** | Process + optional suite hooks |
 | Q1 force-max | `applyMaximumGraphicsSettings` | **SUPERSEDED** | Method gone; A1 addresses leftovers |
 
@@ -156,19 +156,19 @@ Order is **recommended implementation / investigation sequence** given current s
 
 | | |
 |--|--|
-| **Status** | **NOT STARTED** (A1 UX slice **PARTIAL**) |
-| **Proposal** | Named Low/Med/High/Ultra presets (MSAA/SMAA/SSAO/AF); measure SMAA Ultra vs Off vs MSAA 4× outside default assumptions |
-| **Subsystem / files** | `Settings`, `AntiAliasingMode`, `PostProcessPipeline`, UI controllers |
-| **Expected benefit** | High **player** GPU headroom; suite (`samples: 0` + SMAA) understates this |
-| **Complexity / risks** | M; UX clarity; visual SSIM if defaults change |
+| **Status** | **PARTIAL** — High shipping/suite pin + UI **ACCEPTED** ([benchmark-a1b-graphics-presets.md](benchmark-a1b-graphics-presets.md)); optional Off matrix not for High accept/reject |
+| **Proposal** | Named Low/Med/High/Ultra; suite **always High** unless explicitly probing |
+| **Subsystem / files** | `GraphicsQualityPreset`, `Settings`, MainMenu/Pause UI, `BenchmarkSuiteRunner` |
+| **Expected benefit** | Player headroom on Low/Med; reproducible High suites |
+| **Complexity / risks** | M; never silently downgrade accept/reject path |
 | **Dependencies** | A1 prefs hygiene done |
-| **Bench / accept** | Explicit AA matrix (not only default suite); frame time + visual; no silent default downgrade without UI |
+| **Bench / accept** | High suite = visual + FPS gates; other presets = opt-in matrix only |
 
 ### 3 — P1 · Post / SMAA cost characterization {#p1-post-cost}
 
 | | |
 |--|--|
-| **Status** | **PARTIAL** — High-as-default **REJECTED**; Overlay/FBO elim **ACCEPTED** ([benchmark-smaa-final-pass.md](benchmark-smaa-final-pass.md)); Off/High/SSAO matrix still open |
+| **Status** | **PARTIAL** — Overlay/FBO elim **ACCEPTED**; SMAA High-as-default quality name **REJECTED**; thin RTs **REJECTED** ([benchmark-smaa-thin-rts.md](benchmark-smaa-thin-rts.md)); Off matrix not for High accept path |
 | **Proposal** | Suite/micro matrix: SMAA Off vs Ultra vs High, SSAO on/off, using A3b timers — **measure before** changing defaults |
 | **Subsystem / files** | `PostProcessPipeline`, `SmaaFilter`, benchmark config hooks |
 | **Expected benefit** | Quantifies remaining post share after final-pass wiring (~10.2 ms GPU median) |
@@ -291,6 +291,9 @@ Order is **recommended implementation / investigation sequence** given current s
 | 2026-11-06 | P1 SMAA final-pass (drop Overlay) | **ACCEPTED** | gpuFrameTimeMs −0.53 ms; visual 3/3; [report](benchmark-smaa-final-pass.md) |
 | 2026-11-06 | Q5b entity bind steady-state skip | **REJECTED** | No CPU/FPS win; visual flake; reverted; [report](benchmark-entity-bind-skip.md) |
 | 2026-11-06 | LightIndex dirty-skip upload | **REJECTED** | −4.7% FPS / visual fail; reverted; [report](benchmark-light-index-dirty.md) |
+| 2026-11-06 | Frustum margin 5→3 | **REJECTED** | Lights −7%; FPS/visual fail; reverted; [report](benchmark-frustum-margin-3.md) |
+| 2026-11-06 | A1b graphics presets (High pin) | **PARTIAL** | Suite defaults High; [report](benchmark-a1b-graphics-presets.md) |
+| 2026-11-06 | P1 SMAA thin RTs (RGB8/Depth16) | **REJECTED** | −5% FPS on High; visual flake; reverted; [report](benchmark-smaa-thin-rts.md) |
 
 ---
 
@@ -355,4 +358,4 @@ Suite defaults: [benchmark.md](benchmark.md).
 | Player quality / AA | High off-suite | **A1b** |
 | FoW AmbientMap full upload | **Verified** API shape; not suite avg-FPS | **B3** deferred (FoW-stress only) |
 
-**Next actionable step:** **F1** (Nsight VS split) in parallel with **A1b** presets / remaining P1 Off–SSAO matrix. Q5b entity bind skip **REJECTED**. Do not start E1 or another B1-shaped change without F1 evidence. **B3** stays deferred pending FoW-stress.
+**Next actionable step:** High-preset suite wins only (SMAA Ultra). **F1** (Nsight VS split) before E1/B1-retry. Prefer post/render bandwidth and hitch (**D1**) over quality downgrades. **B3** deferred.

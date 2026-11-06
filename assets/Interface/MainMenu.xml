@@ -400,6 +400,10 @@
                         <text style="menuTextSmall" text=" Fullscreen" />
                     </panel>
                     <panel childLayout="vertical" padding="10px">
+                        <text style="menuTextSmall" text="Quality preset: " />
+                        <control width="220px" name="dropDown" id="graphicsQualityPreset" />
+                    </panel>
+                    <panel childLayout="vertical" padding="10px">
                         <text style="menuTextSmall" text="Antialiasing: " />
                         <control width="220px" name="dropDown" id="antialiasing" />
                     </panel>

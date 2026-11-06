@@ -1,0 +1,17 @@
+{
+  "change": "SMAA edge RGB8 + Depth16 intermediate RTs (Ultra algorithm unchanged)",
+  "decision": "REJECTED",
+  "reverted": true,
+  "graphicsPreset": "HIGH",
+  "session": "session-2026-11-06T14-49-06.912324100Z",
+  "compareBaseline": "after-smaa-final-pass",
+  "compareGit": "65bb3679",
+  "medianAvgFps": 35.263,
+  "baselineMedianAvgFps": 37.17,
+  "rationale": [
+    "avg FPS −5.1% (regression) on High / SMAA Ultra",
+    "1%/P99 regressions; visual cp01 fail runs 2–3",
+    "Thinner RTs not a free bandwidth win on this path",
+    "Source reverted to RGBA8 + Depth intermediates"
+  ]
+}

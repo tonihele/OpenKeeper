@@ -68,6 +68,7 @@ import javax.swing.JFrame;
 import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.game.data.GraphicsQualityPreset;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -159,6 +160,15 @@ public final class Main extends SimpleApplication {
     private static void applyBenchmarkSettings(Main app) {
         Utils.setSeed(benchmarkConfig.getSeed());
         FastMath.rand.setSeed(benchmarkConfig.getSeed());
+        // Optional named graphics preset (A1b / P1 matrix). Does not persist to
+        // the player's openkeeper.properties — only mutates the in-memory Settings
+        // for this process.
+        String presetName = params.get("benchmark-graphics-preset");
+        if (presetName != null && !presetName.isBlank()) {
+            Settings.getInstance().applyGraphicsQualityPreset(
+                    GraphicsQualityPreset.fromStoredName(presetName));
+            app.settings.setSamples(Settings.getInstance().getAntiAliasingMode().getSamples());
+        }
         app.settings.setVSync(benchmarkConfig.isVsync());
         // Prefer uncapped / high caps so FPS reflects actual cost, not the refresh rate.
         if (!benchmarkConfig.isVsync()) {

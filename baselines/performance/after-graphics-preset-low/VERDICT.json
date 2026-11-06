@@ -1,0 +1,7 @@
+{
+  "change": "A1b Low preset suite probe (SMAA Off)",
+  "decision": "ABORTED",
+  "reverted": false,
+  "note": "User requires High settings for accept/reject suite. Low matrix aborted mid-run (child exit -805306369 on run 3). Do not use Low for official comparisons.",
+  "shippingDefault": "HIGH"
+}

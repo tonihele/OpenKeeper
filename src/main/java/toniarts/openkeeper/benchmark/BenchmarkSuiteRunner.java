@@ -50,6 +50,8 @@ public final class BenchmarkSuiteRunner {
         boolean updateVisualRefsOnFirstRun = true;
         boolean writeOfficial = true;
         boolean fullSuite = false;
+        boolean noVisual = false;
+        String graphicsPreset = null;
         double duration = -1;
 
         for (int i = 0; i < args.length; i++) {
@@ -65,9 +67,16 @@ public final class BenchmarkSuiteRunner {
                 case "--compare" -> compareBaseline = Path.of(args[++i]);
                 case "--no-update-visual-refs" -> updateVisualRefsOnFirstRun = false;
                 case "--no-official" -> writeOfficial = false;
+                case "--no-visual" -> noVisual = true;
+                case "--graphics-preset" -> graphicsPreset = args[++i];
                 case "--duration" -> duration = Double.parseDouble(args[++i]);
                 default -> throw new IllegalArgumentException("Unknown arg: " + args[i]);
             }
+        }
+        // Official / accept-reject suite path stays on High (SMAA Ultra). Other
+        // presets are opt-in matrix probes only — never the silent default.
+        if (graphicsPreset == null || graphicsPreset.isBlank()) {
+            graphicsPreset = "HIGH";
         }
         if (workloads.isEmpty()) {
             List<WorkloadProfile> profiles = fullSuite
@@ -102,7 +111,7 @@ public final class BenchmarkSuiteRunner {
                 Path outJson = runDir.resolve(profile.getId() + ".json");
                 Path childLog = runDir.resolve(profile.getId() + ".log");
                 int exit = launchMain(profile, outJson, childLog, run, updateVisualRefsOnFirstRun && run == 1,
-                        duration, compareBaseline);
+                        duration, compareBaseline, noVisual, graphicsPreset);
                 produced.add(outJson.toString().replace('\\', '/'));
                 if (exit != 0) {
                     throw new IllegalStateException("Benchmark child failed for " + profile.getId()
@@ -152,7 +161,8 @@ public final class BenchmarkSuiteRunner {
     }
 
     private static int launchMain(WorkloadProfile profile, Path outJson, Path childLog, int runIndex,
-            boolean updateVisualRefs, double durationOverride, Path compareBaseline) throws Exception {
+            boolean updateVisualRefs, double durationOverride, Path compareBaseline,
+            boolean noVisual, String graphicsPreset) throws Exception {
         String java = ProcessHandle.current().info().command().orElse("java");
         String cp = System.getProperty("java.class.path");
         List<String> cmd = new ArrayList<>();
@@ -180,6 +190,13 @@ public final class BenchmarkSuiteRunner {
         if (compareBaseline != null) {
             cmd.add("-benchmark-compare");
             cmd.add(compareBaseline.toString());
+        }
+        if (noVisual) {
+            cmd.add("-benchmark-no-visual");
+        }
+        if (graphicsPreset != null && !graphicsPreset.isBlank()) {
+            cmd.add("-benchmark-graphics-preset");
+            cmd.add(graphicsPreset);
         }
         cmd.add("-nomovies");
 

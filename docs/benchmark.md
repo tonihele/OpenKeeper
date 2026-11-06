@@ -25,6 +25,9 @@ Framework version: **2**
 | [benchmark-smaa-final-pass.md](benchmark-smaa-final-pass.md) | P1 SMAA drop Overlay FBO — **ACCEPTED** |
 | [benchmark-entity-bind-skip.md](benchmark-entity-bind-skip.md) | Q5b entity bind steady-state skip — **REJECTED** |
 | [benchmark-light-index-dirty.md](benchmark-light-index-dirty.md) | LightIndex dirty-skip upload — **REJECTED** |
+| [benchmark-frustum-margin-3.md](benchmark-frustum-margin-3.md) | Frustum margin 5→3 — **REJECTED** |
+| [benchmark-a1b-graphics-presets.md](benchmark-a1b-graphics-presets.md) | A1b presets / High suite pin — **PARTIAL** |
+| [benchmark-smaa-thin-rts.md](benchmark-smaa-thin-rts.md) | P1 SMAA thin RTs on High — **REJECTED** |
 | [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | C3 A\* connection reuse — **REJECTED** |
 | [benchmark-fow-door-index.md](benchmark-fow-door-index.md) | C1 FoW door index — **REJECTED** |
 

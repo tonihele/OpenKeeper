@@ -79,6 +79,12 @@ public final class Settings {
          * Stored as the enum name; see {@link AntiAliasingMode}.
          */
         ANTIALIASING(AntiAliasingMode.class, AntiAliasingMode.SMAA_ULTRA, SettingCategory.GRAPHICS),
+        /**
+         * Named quality bundle; {@link GraphicsQualityPreset#HIGH} matches the
+         * historical SMAA Ultra + SSAO-off shipping defaults. {@code CUSTOM}
+         * means the player mixed individual controls.
+         */
+        GRAPHICS_QUALITY_PRESET(GraphicsQualityPreset.class, GraphicsQualityPreset.HIGH, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
@@ -326,6 +332,45 @@ public final class Settings {
         // Persist the enum constant name (toString() is the UI label)
         settings.put(Setting.ANTIALIASING.getKey(), resolved.name());
         settings.setSamples(resolved.getSamples());
+    }
+
+    /**
+     * Current named graphics quality preset (defaults to {@link GraphicsQualityPreset#HIGH}).
+     *
+     * @return the selected preset
+     */
+    public GraphicsQualityPreset getGraphicsQualityPreset() {
+        Object value = getSetting(Setting.GRAPHICS_QUALITY_PRESET);
+        if (value instanceof GraphicsQualityPreset preset) {
+            return preset;
+        }
+        return GraphicsQualityPreset.fromStoredName(String.valueOf(value));
+    }
+
+    /**
+     * Applies a named preset to AA / SSAO / AF / cheap-lighting and records it.
+     * Does not restart the renderer — callers that change MSAA samples must
+     * restart / rebuild post like the graphics options screen.
+     *
+     * @param preset bundle to apply ({@link GraphicsQualityPreset#CUSTOM} is ignored)
+     */
+    public void applyGraphicsQualityPreset(GraphicsQualityPreset preset) {
+        if (preset == null || preset == GraphicsQualityPreset.CUSTOM) {
+            return;
+        }
+        applyAntiAliasingMode(preset.getAntiAliasing());
+        setSetting(Setting.SSAO, preset.isSsao());
+        setSetting(Setting.ANISOTROPY, preset.getAnisotropy());
+        setSetting(Setting.CHEAP_LIGHTING, preset.isCheapLighting());
+        settings.put(Setting.GRAPHICS_QUALITY_PRESET.getKey(), preset.name());
+    }
+
+    /**
+     * Marks the stored preset as {@link GraphicsQualityPreset#CUSTOM} after the
+     * player edits AA / SSAO / AF / cheap-lighting individually.
+     */
+    public void markGraphicsQualityCustom() {
+        settings.put(Setting.GRAPHICS_QUALITY_PRESET.getKey(), GraphicsQualityPreset.CUSTOM.name());
     }
 
     /**

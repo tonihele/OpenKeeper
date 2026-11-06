@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.data.HiScores;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.CampaignLevel.LevelType;
 import toniarts.openkeeper.game.data.AntiAliasingMode;
+import toniarts.openkeeper.game.data.GraphicsQualityPreset;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.data.Settings.LevelStatus;
 import toniarts.openkeeper.game.network.chat.ChatClientService;
@@ -296,6 +297,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         CheckBox fullscreen = screen.findNiftyControl("fullscreen", CheckBox.class);
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
+        DropDown quality = screen.findNiftyControl("graphicsQualityPreset", DropDown.class);
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
@@ -310,9 +312,22 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setFullscreen(fullscreen.isChecked());
         settings.getAppSettings().setVSync(vsync.isChecked());
         settings.getAppSettings().setRenderer((String) ogl.getSelection());
-        settings.applyAntiAliasingMode((AntiAliasingMode) aa.getSelection());
-        settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
-        settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
+        GraphicsQualityPreset preset = (GraphicsQualityPreset) quality.getSelection();
+        AntiAliasingMode aaMode = (AntiAliasingMode) aa.getSelection();
+        int anisotropy = (Integer) af.getSelection();
+        boolean ssaoOn = ssao.isChecked();
+        // Preset dropdown is authoritative when the knobs still match it; otherwise
+        // the player mixed controls → CUSTOM.
+        if (preset != null && aaMode == preset.getAntiAliasing()
+                && ssaoOn == preset.isSsao()
+                && anisotropy == preset.getAnisotropy()) {
+            settings.applyGraphicsQualityPreset(preset);
+        } else {
+            settings.applyAntiAliasingMode(aaMode);
+            settings.setSetting(Settings.Setting.ANISOTROPY, anisotropy);
+            settings.setSetting(Settings.Setting.SSAO, ssaoOn);
+            settings.markGraphicsQualityCustom();
+        }
         settings.getAppSettings().setGammaCorrection(gamma.isChecked());
 
         // This fails and crashes on invalid settings
@@ -628,6 +643,23 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         }
     }
 
+    @NiftyEventSubscriber(id = "graphicsQualityPreset")
+    public void onGraphicsQualityPresetChanged(final String id,
+            final DropDownSelectionChangedEvent<GraphicsQualityPreset> event) {
+        GraphicsQualityPreset preset = event.getSelection();
+        if (preset == null || preset == GraphicsQualityPreset.CUSTOM) {
+            return;
+        }
+        DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
+        aa.selectItem(preset.getAntiAliasing());
+        DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
+        if (!Settings.ANISOTROPHIES.contains(preset.getAnisotropy())) {
+            af.addItem(preset.getAnisotropy());
+        }
+        af.selectItem(preset.getAnisotropy());
+        screen.findNiftyControl("ssao", CheckBox.class).setChecked(preset.isSsao());
+    }
+
     @NiftyEventSubscriber(id = "multiplayerChat")
     public void onChatTextSend(final String id, final ChatTextSendEvent event) {
         state.chatTextSend(event.getText());
@@ -822,6 +854,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // VSync
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
         vsync.setChecked(settings.isVSync());
+
+        // Named quality preset (Low–Ultra). Custom prefs still show High here;
+        // Apply with a selected preset rewrites the individual knobs.
+        DropDown quality = screen.findNiftyControl("graphicsQualityPreset", DropDown.class);
+        quality.addAllItems(GraphicsQualityPreset.VALUES);
+        GraphicsQualityPreset storedPreset = Main.getUserSettings().getGraphicsQualityPreset();
+        quality.selectItem(storedPreset == GraphicsQualityPreset.CUSTOM
+                ? GraphicsQualityPreset.HIGH
+                : storedPreset);
 
         // Antialiasing (SMAA Ultra default; MSAA / hybrid also available)
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);

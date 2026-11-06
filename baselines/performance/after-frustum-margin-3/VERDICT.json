@@ -1,0 +1,17 @@
+{
+  "change": "FRUSTUM_MARGIN_TILES 5 → 3",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T14-28-50.039475700Z",
+  "compareBaseline": "after-smaa-final-pass",
+  "medianAvgFps": 35.883,
+  "baselineMedianAvgFps": 37.17,
+  "lightsAvgMedian": 2061.676,
+  "baselineLightsAvgMedian": 2213.446,
+  "rationale": [
+    "lightsUploaded −6.9% but avg FPS −3.5% and visual fail",
+    "1%/0.1% low regressions",
+    "Edge lighting / pop outweighs smaller atlas for suite",
+    "Source fully reverted to margin 5"
+  ]
+}
