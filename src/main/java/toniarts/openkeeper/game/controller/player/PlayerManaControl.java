@@ -32,6 +32,7 @@ public final class PlayerManaControl {
 
     private final Keeper keeper;
     private final SafeArrayList<PlayerManaListener> listeners = new SafeArrayList<>(PlayerManaListener.class);
+    private int manaSpent;
 
     public PlayerManaControl(Keeper keeper,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
@@ -48,12 +49,26 @@ public final class PlayerManaControl {
      */
     public void updateMana(int gain, int loose) {
 
+        // The mana spent at once this second is gone already, it only shows with the loss
         keeper.setManaGain(gain);
-        keeper.setManaLoose(loose);
+        keeper.setManaLoose(loose + manaSpent);
+        manaSpent = 0;
 
-        addMana(keeper.getManaGain() - keeper.getManaLoose());
+        addMana(gain - loose);
 
         updateListerners();
+    }
+
+    /**
+     * Spends mana at once, like a spell that is cast. DKII.EXE adds it to the
+     * keeper's loss of the second it is spent in (0x4C17A0), so it shows with
+     * the other losses
+     *
+     * @param amount the mana spent
+     */
+    public void spendMana(int amount) {
+        addMana(-amount);
+        manaSpent += amount;
     }
 
     public void addMana(int value) {
