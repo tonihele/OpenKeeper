@@ -69,6 +69,7 @@ public final class Settings {
         // Campaign
         LEVEL_NUMBER(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_ATTEMPTS(Integer.class, 0, SettingCategory.CAMPAIGN),
+        LEVEL_DEFEATS(Integer.class, 0, SettingCategory.CAMPAIGN),
         LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         SECRET_LEVEL_STATUS(LevelStatus.class, SecretLevelStatus.NOT_DISCOVED, SettingCategory.CAMPAIGN),
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
@@ -413,6 +414,20 @@ public final class Settings {
         return settings.containsKey(setting.getKey());
     }
 
+    /** Saved defeats for scripting, isolated by level type, number and variation. */
+    public int getLevelDefeats(CampaignLevel level) {
+        return (int) getSetting(levelDefeatsKey(level), 0);
+    }
+
+    public void increaseLevelDefeats(CampaignLevel level) {
+        setSetting(levelDefeatsKey(level), getLevelDefeats(level) + 1);
+    }
+
+    private static String levelDefeatsKey(CampaignLevel level) {
+        return Setting.LEVEL_DEFEATS.getKey() + "." + level.getType() + "."
+                + level.getLevel() + "." + level.getVariation();
+    }
+
     /**
      * Get level attempts
      *
@@ -540,6 +555,7 @@ public final class Settings {
      * and secret/MPD level statuses.
      */
     public void resetCampaignProgress() {
+        settings.keySet().removeIf(key -> key.startsWith(Setting.LEVEL_DEFEATS.getKey() + "."));
         // Reset the current level number back to the start
         setSetting(Setting.LEVEL_NUMBER, Setting.LEVEL_NUMBER.getDefaultValue());
 

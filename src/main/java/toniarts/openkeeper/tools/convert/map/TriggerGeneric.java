@@ -120,7 +120,21 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_SACKED(63), // Event, This creature is
         PARTY_MEMBERS_INCAPACITATED(64), // Party
         CREATURE_PICKED_UP(65), // Event, This creature is
-        LEVEL_PLAYED(67), // Attribute, This level's...
+        /**
+         * Compares the number of previously recorded defeats on this campaign
+         * level with the script value. The first attempt reads zero; after two
+         * defeats, a retry reads two. The current attempt, wins and abandoned
+         * games do not increase this counter.
+         * <p>
+         * A map can use LEVEL_PLAYED >= 2 to offer extra gold or advice after
+         * repeated failures. This is a polled numeric condition, not an event.
+         * <p>
+         * DKII reads a saved defeat counter here despite the enum's name.
+         * OpenKeeper snapshots that counter when starting the simulation;
+         * maps without campaign history and older profiles without a recorded
+         * defeat count start at zero.
+         */
+        LEVEL_PLAYED(67),
         PLAYER_ROOM_FURNITURE(68), // Player
         AP_TAG_ALL_OF(69), // Action point
         AP_POSESSED_CREATURE_ENTERS(70), // Action point

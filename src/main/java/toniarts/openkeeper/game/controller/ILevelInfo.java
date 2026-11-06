@@ -51,6 +51,9 @@ public interface ILevelInfo {
      */
     int getLevelScore();
 
+    /** Number of defeats recorded before this campaign attempt; zero without campaign history. */
+    int getLevelPlayed();
+
     Float getTimeLimit();
 
     GameTimer getTimer(int id);
