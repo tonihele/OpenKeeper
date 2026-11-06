@@ -39,8 +39,30 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * <p>
  * Deliberately presentation-only: nothing here is read by the simulation
  * state.
+ * <p>
+ * <b>Lifecycle.</b> Instances start in {@link Phase#LOADING}. The loader
+ * thread (or a synchronous load on the caller thread) may register lights,
+ * bind materials and fill ambient/page data. Consumers on the render thread
+ * must not drive the frame upload until {@link #publishReady()} — a volatile
+ * write that publishes the completed registries. After that, only the render
+ * thread mutates and consumes. {@link #dispose()} ends the lifecycle; all
+ * consumer APIs become no-ops. Readiness is owned here so callers cannot
+ * reintroduce load races by forgetting an external gate.
  */
 public final class LightRules {
+
+    /**
+     * Publication phases for the light registries and {@link SceneLights}
+     * page/material bindings.
+     */
+    public enum Phase {
+        /** Map/mesh load may still be mutating registries. */
+        LOADING,
+        /** Load finished; safe for per-frame update and flat-light sampling. */
+        READY,
+        /** Torn down; consumer APIs no-op. */
+        DISPOSED
+    }
 
     private final LightModulators modulators = new LightModulators();
     private final SceneLights sceneLights;
@@ -48,6 +70,8 @@ public final class LightRules {
     private boolean cheapLighting;
     // Replaced, never mutated: read on the render thread, set from the UI
     private volatile EnumSet<LightSource.Group> disabledGroups = EnumSet.noneOf(LightSource.Group.class);
+    /** Happens-before publication of load-time light/material state. */
+    private volatile Phase phase = Phase.LOADING;
 
     /**
      * Torch and terrain lights, keyed by their owner tile -- a tile
@@ -60,6 +84,13 @@ public final class LightRules {
     private final Map<Object, LightSource> thingLights = new HashMap<>();
 
     private LightSource cursorLight;
+    /** Reused when debug groups filter the upload set. */
+    private LightSource[] filteredSnapshot = new LightSource[0];
+    private final Vector3f thingPosScratch = new Vector3f();
+    /** Last-frame CPU for the whole {@link #update(float, Camera)} call. */
+    private long lastUpdateNanos;
+    /** Last-frame CPU for modulator tick/flicker only. */
+    private long lastModulatorNanos;
 
     public LightRules() {
         this(IFogOfWarInformation.ALWAYS_VISIBLE);
@@ -76,12 +107,89 @@ public final class LightRules {
     }
 
     /**
+     * Current publication phase. Prefer {@link #isReady()} at call sites.
+     *
+     * @return lifecycle phase
+     */
+    public Phase getPhase() {
+        return phase;
+    }
+
+    /**
+     * {@code true} once {@link #publishReady()} has run and before
+     * {@link #dispose()}. Safe to call from any thread.
+     *
+     * @return whether per-frame lighting consumers may use this instance
+     */
+    public boolean isReady() {
+        return phase == Phase.READY;
+    }
+
+    /**
+     * Publishes load-time registries for consumption. Call exactly once after
+     * the last load-time mutation (same critical section as any external
+     * "map loaded" flag). Idempotent while still {@link Phase#LOADING} or
+     * already {@link Phase#READY}; ignored after {@link #dispose()}.
+     */
+    public void publishReady() {
+        Phase current = phase;
+        if (current == Phase.LOADING) {
+            phase = Phase.READY;
+        }
+    }
+
+    /**
+     * Ends the lifecycle. Further {@link #update}, flat-light samples and
+     * settings flips become no-ops. Idempotent.
+     */
+    public void dispose() {
+        phase = Phase.DISPOSED;
+    }
+
+    /**
+     * Number of lights written into {@code LightData} by the last
+     * {@link SceneLights#update} call.
+     *
+     * @return uploaded light count
+     */
+    public int getUploadedLightCount() {
+        return sceneLights.getUploadedLightCount();
+    }
+
+    /**
+     * Live light sources currently owned by the lighting system.
+     *
+     * @return source count
+     */
+    public int getSourceCount() {
+        return modulators.size();
+    }
+
+    /**
+     * Reseeds presentation flicker RNG for reproducible benchmarks.
+     *
+     * @param seed flicker seed
+     */
+    public void setModulatorSeed(long seed) {
+        modulators.setSeed(seed);
+    }
+
+    /**
      * Flips {@code flickers} on every currently-live flicker-capable
      * source when the cheap-lighting setting changes.
      * Newly-created torches/things pick up the current setting directly
      * from the current setting at creation time.
      */
     public void setCheapLighting(boolean cheapLighting) {
+        if (phase == Phase.DISPOSED) {
+            return;
+        }
+        if (phase == Phase.LOADING) {
+            // Flag only: new sources pick it up at create. Do not iterate
+            // registries — that would race a concurrent loader thread.
+            this.cheapLighting = cheapLighting;
+            return;
+        }
         if (this.cheapLighting == cheapLighting) {
             return;
         }
@@ -111,8 +219,107 @@ public final class LightRules {
      * @param camera the camera whose frustum gates the per-frame upload
      */
     public void update(float tpf, Camera camera) {
+        // No-op until publishReady(): avoids racing the loader's registry and
+        // terrain-page mutations (ConcurrentModificationException / torn GL state).
+        if (phase != Phase.READY) {
+            lastUpdateNanos = 0L;
+            lastModulatorNanos = 0L;
+            return;
+        }
+        long t0 = System.nanoTime();
         modulators.update(tpf);
-        sceneLights.update(activeSources(), camera);
+        int n = modulators.captureSnapshot();
+        LightSource[] snap = modulators.currentSnapshot();
+        long t1 = System.nanoTime();
+        lastModulatorNanos = t1 - t0;
+        Set<LightSource.Group> disabled = disabledGroups;
+        if (disabled.isEmpty()) {
+            sceneLights.update(snap, n, camera);
+        } else {
+            if (filteredSnapshot.length < n) {
+                filteredSnapshot = new LightSource[Math.max(n, filteredSnapshot.length == 0 ? 256 : filteredSnapshot.length * 2)];
+            }
+            int kept = 0;
+            for (int i = 0; i < n; i++) {
+                LightSource light = snap[i];
+                if (light != null && !disabled.contains(LightSource.Group.of(light))) {
+                    filteredSnapshot[kept++] = light;
+                }
+            }
+            sceneLights.update(filteredSnapshot, kept, camera);
+        }
+        lastUpdateNanos = System.nanoTime() - t0;
+    }
+
+    /**
+     * CPU time of the last {@link #update(float, Camera)}, in milliseconds.
+     */
+    public double getLastUpdateMs() {
+        return lastUpdateNanos / 1_000_000.0;
+    }
+
+    /**
+     * CPU time of modulator tick/flicker + snapshot capture on the last update.
+     */
+    public double getLastModulatorMs() {
+        return lastModulatorNanos / 1_000_000.0;
+    }
+
+    /**
+     * @see SceneLights#getLastUploadMs()
+     */
+    public double getLastLightUploadMs() {
+        return sceneLights.getLastUploadMs();
+    }
+
+    /**
+     * @see SceneLights#getLastPageIndexRebuildMs()
+     */
+    public double getLastPageIndexRebuildMs() {
+        return sceneLights.getLastPageIndexRebuildMs();
+    }
+
+    /**
+     * @see SceneLights#clearTerrainPages()
+     */
+    public void clearTerrainPages() {
+        sceneLights.clearTerrainPages();
+    }
+
+    /**
+     * @see SceneLights#setTerrainPage(int, float, float, float, float, float, float, List)
+     */
+    public void setTerrainPage(int pageIndex, float minX, float maxX,
+            float minY, float maxY, float minZ, float maxZ, List<Material> materials) {
+        sceneLights.setTerrainPage(pageIndex, minX, maxX, minY, maxY, minZ, maxZ, materials);
+    }
+
+    /**
+     * @see SceneLights#getPageLightIndexAvg()
+     */
+    public double getPageLightIndexAvg() {
+        return sceneLights.getPageLightIndexAvg();
+    }
+
+    /**
+     * @see SceneLights#getPageLightIndexMax()
+     */
+    public int getPageLightIndexMax() {
+        return sceneLights.getPageLightIndexMax();
+    }
+
+    /**
+     * @see SceneLights#getPageFullListFallbacks()
+     */
+    public int getPageFullListFallbacks() {
+        return sceneLights.getPageFullListFallbacks();
+    }
+
+    /**
+     * @see SceneLights#getTerrainPageCount()
+     */
+    public int getTerrainPageCount() {
+        return sceneLights.getTerrainPageCount();
     }
 
     /**
@@ -131,14 +338,13 @@ public final class LightRules {
     }
 
     private List<LightSource> activeSources() {
-        List<LightSource> sources = modulators.getSources();
+        int n = modulators.captureSnapshot();
+        LightSource[] snap = modulators.currentSnapshot();
         Set<LightSource.Group> disabled = disabledGroups;
-        if (disabled.isEmpty()) {
-            return sources;
-        }
-        List<LightSource> result = new ArrayList<>(sources.size());
-        for (LightSource light : sources) {
-            if (!disabled.contains(LightSource.Group.of(light))) {
+        List<LightSource> result = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            LightSource light = snap[i];
+            if (light != null && (disabled.isEmpty() || !disabled.contains(LightSource.Group.of(light)))) {
                 result.add(light);
             }
         }
@@ -150,6 +356,13 @@ public final class LightRules {
      */
     public void initAmbientMap(int width, int height) {
         sceneLights.initAmbientMap(width, height);
+    }
+
+    /**
+     * @see SceneLights#hasAmbientMap()
+     */
+    public boolean hasAmbientMap() {
+        return sceneLights.hasAmbientMap();
     }
 
     /**
@@ -176,9 +389,13 @@ public final class LightRules {
 
     /**
      * The "flat" sample for a thing/effect's material. Callers own re-deriving {@code worldPos} each frame
-     * from the owner's current position + light offset.
+     * from the owner's current position + light offset. Returns global ambient
+     * only when not yet {@link #isReady()} (safe during load).
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos) {
+        if (phase != Phase.READY) {
+            return sceneLights.getGlobalAmbient().clone();
+        }
         return SceneLights.computeFlatLight(worldPos, activeSources());
     }
 
@@ -187,6 +404,9 @@ public final class LightRules {
      * lights carried by game objects
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos, boolean ignoreObjectLights) {
+        if (phase != Phase.READY) {
+            return sceneLights.getGlobalAmbient().clone();
+        }
         return SceneLights.computeFlatLight(worldPos, activeSources(), ignoreObjectLights);
     }
 
@@ -339,9 +559,10 @@ public final class LightRules {
         if (playerColoured && playerColour != null) {
             radius = Math.min(radius, LightConstants.PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES);
         }
-        Vector3f position = ownerPosition.add(offset);
+        // Scratch is copied inside LightSource — safe across creates
+        thingPosScratch.set(ownerPosition).addLocal(offset);
 
-        LightSource light = new LightSource(LightSource.Kind.THING, owner, position,
+        LightSource light = new LightSource(LightSource.Kind.THING, owner, thingPosScratch,
                 r, g, b, intensity, radius);
         if (pulse) {
             light.startPulse();
@@ -366,7 +587,8 @@ public final class LightRules {
     public void updateThingLightPosition(Object owner, Vector3f ownerPosition, Vector3f offset) {
         LightSource light = thingLights.get(owner);
         if (light != null) {
-            light.setPosition(ownerPosition.add(offset));
+            // Mutate in place — avoids a Vector3f alloc every frame per moving light
+            light.getPosition().set(ownerPosition).addLocal(offset);
         }
     }
 

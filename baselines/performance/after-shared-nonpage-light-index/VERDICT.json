@@ -1,0 +1,16 @@
+{
+  "change": "B1-retry shared camera-neighbourhood light index for non-page Vertex materials",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T13-24-46.126265800Z",
+  "compareBaseline": "after-a3-light-timers",
+  "medianAvgFps": 27.294,
+  "baselineMedianAvgFps": 37.657,
+  "rationale": [
+    "avg FPS −27.5% vs after-a3-light-timers",
+    "visual cp01 failed on all 3 runs",
+    "lightPageIndexMs ~4.7ms (~30× A3); sharedNonPageIndexOverflow ~41% of frames",
+    "LIGHT_INDEX_DATA on non-page mats regresses the inlined full-list path",
+    "Source fully reverted"
+  ]
+}

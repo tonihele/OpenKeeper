@@ -1,0 +1,58 @@
+{
+  "baseline": "baselines/performance/after-lighting-alloc-opt/candidate-baseline-windows-10-amd64.json",
+  "candidate": "baselines/performance/after-tile-rebuild-opt/candidate-baseline-windows-10-amd64.json",
+  "candidateSession": "session-2026-11-06T11-30-39.186820600Z",
+  "rejectedSession": "session-2026-11-06T11-25-18.432996200Z",
+  "overall": "improvement",
+  "findings": [
+    {
+      "metric": "avgFps.median",
+      "baseline": 37.329,
+      "candidate": 39.141,
+      "relative": 0.0485,
+      "status": "improvement"
+    },
+    {
+      "metric": "onePercentLowFps.median",
+      "baseline": 3.893,
+      "candidate": 5.048,
+      "relative": 0.2967,
+      "status": "improvement"
+    },
+    {
+      "metric": "pointOnePercentLowFps.median",
+      "baseline": 1.491,
+      "candidate": 1.705,
+      "relative": 0.1435,
+      "status": "improvement"
+    },
+    {
+      "metric": "frameTimeP50.median",
+      "baseline": 18.964,
+      "candidate": 18.157,
+      "relative": -0.0426,
+      "status": "stable"
+    },
+    {
+      "metric": "frameTimeP99.median",
+      "baseline": 82.593,
+      "candidate": 62.629,
+      "relative": -0.2417,
+      "status": "improvement"
+    },
+    {
+      "metric": "visualAllPassed",
+      "baseline": false,
+      "candidate": true,
+      "status": "improvement"
+    }
+  ],
+  "rebuildDiagnosticsMedianRun": {
+    "geometryWithRoomRebuild": 0,
+    "geometryWithoutRoomRebuild": 36,
+    "ceilingRebuilds": 0,
+    "ceilingSkippedHidden": 36,
+    "geometryTotalMs": 123.448
+  },
+  "notes": "Manual median comparison against the latest pre-fix candidate (lighting alloc elimination). Official baseline comparison is regression-vs-baseline.json."
+}

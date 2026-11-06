@@ -76,9 +76,10 @@ public final class LightConstants {
     public static final float MAX_LIGHT_RADIUS_TILES = 4.5f;
 
     /**
-     * Loose tail stretched past every light's radius
+     * Loose tail stretched past every light's radius. Must match
+     * {@code DK_SOFT_FALLOFF_TAIL_TILES} in {@code DkFalloff.glsllib}.
      */
-    public static final float SOFT_FALLOFF_TAIL_TILES = 0.01f;
+    public static final float SOFT_FALLOFF_TAIL_TILES = 0.1f;
 
     /**
      * Largest value of a light colour channel (255 is the plain colour, up to 511 is over-bright).
@@ -310,7 +311,19 @@ public final class LightConstants {
      * light at floor level, half a tile to the side.
      */
     public static com.jme3.math.Vector3f toJmeOffset(javax.vecmath.Vector3f mKPos) {
-        return new com.jme3.math.Vector3f(mKPos.x, mKPos.z, mKPos.y);
+        return toJmeOffset(mKPos, new com.jme3.math.Vector3f());
+    }
+
+    /**
+     * Writes the jME light offset into {@code store} (no allocation).
+     *
+     * @param mKPos data-file offset (x, y, z-up)
+     * @param store destination vector
+     * @return {@code store}
+     */
+    public static com.jme3.math.Vector3f toJmeOffset(javax.vecmath.Vector3f mKPos,
+            com.jme3.math.Vector3f store) {
+        return store.set(mKPos.x, mKPos.z, mKPos.y);
     }
 
     /**

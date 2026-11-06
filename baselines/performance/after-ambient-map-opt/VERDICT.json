@@ -1,0 +1,18 @@
+{
+  "verdict": "reverted",
+  "reason": "Mid-frame glTexSubImage2D and coalesce-only variants both failed to beat after-page-light-cull; AmbientMap is not a suite FPS hotspot.",
+  "preChangeBaseline": "baselines/performance/after-page-light-cull/candidate-baseline-windows-10-amd64.json",
+  "preChangeMedianAvgFps": 39.631,
+  "attemptA_partialSubimage": {
+    "session": "session-2026-11-06T11-58-44.015585900Z",
+    "medianAvgFps": 34.737,
+    "deltaVsPreChange": -0.123,
+    "note": "Partial uploads worked (~547 B/upload) but FPS regressed"
+  },
+  "attemptB_coalescedSetUpdateNeeded": {
+    "session": "session-2026-11-06T12-02-48.220303300Z",
+    "avgFpsValues": [33.497, 24.603, 25.113],
+    "note": "Unstable and slower; not accepted"
+  },
+  "codeState": "AmbientMap source restored to HEAD (page-light-cull). Experiment artifacts retained."
+}

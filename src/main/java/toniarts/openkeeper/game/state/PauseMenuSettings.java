@@ -36,6 +36,8 @@ import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.screen.Screen;
 import org.bushe.swing.event.EventTopicSubscriber;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.AntiAliasingMode;
+import toniarts.openkeeper.game.data.GraphicsQualityPreset;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
@@ -64,6 +66,7 @@ final class PauseMenuSettings {
 
     private final EventTopicSubscriber<DropDownSelectionChangedEvent> resolutionSubscriber = this::onResolutionChanged;
     private final EventTopicSubscriber<CheckBoxStateChangedEvent> fullscreenSubscriber = this::onFullscreenChanged;
+    private final EventTopicSubscriber<DropDownSelectionChangedEvent> qualityPresetSubscriber = this::onQualityPresetChanged;
 
     PauseMenuSettings(Nifty nifty, Main app, Screen screen) {
         this.nifty = nifty;
@@ -76,7 +79,8 @@ final class PauseMenuSettings {
     void buildGraphics(Element left, Element right) {
         addDropDown(left, "${menu.134}", "resolution", "220px");
         addCheckBox(left, " Fullscreen", "fullscreen");
-        addDropDown(left, "Antialiasing", "antialiasing", "100px");
+        addDropDown(left, "Quality preset", "graphicsQualityPreset", "220px");
+        addDropDown(left, "Antialiasing", "antialiasing", "220px");
         addDropDown(left, "OpenGL", "openGl", "220px");
         addCheckBox(left, " SSAO", "ssao");
         addCheckBox(left, "Gamma correction", "gammaCorrection");
@@ -92,8 +96,10 @@ final class PauseMenuSettings {
 
         nifty.unsubscribe("resolution", resolutionSubscriber);
         nifty.unsubscribe("fullscreen", fullscreenSubscriber);
+        nifty.unsubscribe("graphicsQualityPreset", qualityPresetSubscriber);
         nifty.subscribe(screen, "resolution", DropDownSelectionChangedEvent.class, resolutionSubscriber);
         nifty.subscribe(screen, "fullscreen", CheckBoxStateChangedEvent.class, fullscreenSubscriber);
+        nifty.subscribe(screen, "graphicsQualityPreset", DropDownSelectionChangedEvent.class, qualityPresetSubscriber);
     }
 
     private void loadGraphics() {
@@ -130,12 +136,16 @@ final class PauseMenuSettings {
 
         find("verticalSync", CheckBox.class).setChecked(settings.isVSync());
 
+        DropDown quality = find("graphicsQualityPreset", DropDown.class);
+        quality.addAllItems(GraphicsQualityPreset.VALUES);
+        GraphicsQualityPreset storedPreset = Main.getUserSettings().getGraphicsQualityPreset();
+        quality.selectItem(storedPreset == GraphicsQualityPreset.CUSTOM
+                ? GraphicsQualityPreset.HIGH
+                : storedPreset);
+
         DropDown aa = find("antialiasing", DropDown.class);
-        aa.addAllItems(Settings.SAMPLES);
-        if (!Settings.SAMPLES.contains(settings.getSamples())) {
-            aa.addItem(settings.getSamples());
-        }
-        aa.selectItem(settings.getSamples());
+        aa.addAllItems(AntiAliasingMode.VALUES);
+        aa.selectItem(Main.getUserSettings().getAntiAliasingMode());
 
         DropDown af = find("anisotropicFiltering", DropDown.class);
         af.addAllItems(Settings.ANISOTROPHIES);
@@ -169,9 +179,20 @@ final class PauseMenuSettings {
         settings.getAppSettings().setFullscreen(find("fullscreen", CheckBox.class).isChecked());
         settings.getAppSettings().setVSync(find("verticalSync", CheckBox.class).isChecked());
         settings.getAppSettings().setRenderer((String) find("openGl", DropDown.class).getSelection());
-        settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
-        settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
-        settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());
+        GraphicsQualityPreset preset = (GraphicsQualityPreset) find("graphicsQualityPreset", DropDown.class).getSelection();
+        AntiAliasingMode aaMode = (AntiAliasingMode) find("antialiasing", DropDown.class).getSelection();
+        int anisotropy = (Integer) find("anisotropicFiltering", DropDown.class).getSelection();
+        boolean ssaoOn = find("ssao", CheckBox.class).isChecked();
+        if (preset != null && aaMode == preset.getAntiAliasing()
+                && ssaoOn == preset.isSsao()
+                && anisotropy == preset.getAnisotropy()) {
+            settings.applyGraphicsQualityPreset(preset);
+        } else {
+            settings.applyAntiAliasingMode(aaMode);
+            settings.setSetting(Settings.Setting.ANISOTROPY, anisotropy);
+            settings.setSetting(Settings.Setting.SSAO, ssaoOn);
+            settings.markGraphicsQualityCustom();
+        }
         settings.getAppSettings().setGammaCorrection(find("gammaCorrection", CheckBox.class).isChecked());
 
         save();
@@ -195,6 +216,21 @@ final class PauseMenuSettings {
 
     private void onFullscreenChanged(String id, CheckBoxStateChangedEvent event) {
         find("refreshRate", DropDown.class).setEnabled(event.isChecked());
+    }
+
+    private void onQualityPresetChanged(String id, DropDownSelectionChangedEvent event) {
+        Object selection = event.getSelection();
+        if (!(selection instanceof GraphicsQualityPreset preset)
+                || preset == GraphicsQualityPreset.CUSTOM) {
+            return;
+        }
+        find("antialiasing", DropDown.class).selectItem(preset.getAntiAliasing());
+        DropDown af = find("anisotropicFiltering", DropDown.class);
+        if (!Settings.ANISOTROPHIES.contains(preset.getAnisotropy())) {
+            af.addItem(preset.getAnisotropy());
+        }
+        af.selectItem(preset.getAnisotropy());
+        find("ssao", CheckBox.class).setChecked(preset.isSsao());
     }
 
     // --------------------------------------------------------------- sound
@@ -276,6 +312,7 @@ final class PauseMenuSettings {
     void cleanup() {
         nifty.unsubscribe("resolution", resolutionSubscriber);
         nifty.unsubscribe("fullscreen", fullscreenSubscriber);
+        nifty.unsubscribe("graphicsQualityPreset", qualityPresetSubscriber);
     }
 
     private void save() {

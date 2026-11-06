@@ -1,0 +1,15 @@
+{
+  "change": "C2 sensing BFS with coordinate visited set",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T14-06-56.255786300Z",
+  "compareBaseline": "after-a3-gpu-timers",
+  "medianAvgFps": 33.228,
+  "baselineMedianAvgFps": 37.259,
+  "rationale": [
+    "No reproducible FPS win; run 2 collapsed to 23.5 FPS",
+    "visual unstable (cp01 flake)",
+    "Suite avg FPS is the wrong gate for AI sense work",
+    "Source fully reverted"
+  ]
+}

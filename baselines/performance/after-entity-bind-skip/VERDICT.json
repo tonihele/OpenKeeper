@@ -1,0 +1,16 @@
+{
+  "change": "Q5b skip per-frame entity applyVertexLight once all READY (generation gate)",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T14-17-36.658113400Z",
+  "compareBaseline": "after-smaa-final-pass",
+  "medianAvgFps": 36.573,
+  "baselineMedianAvgFps": 37.17,
+  "rationale": [
+    "No avg-FPS or cpuUpdateMs win vs SMAA final-pass baseline",
+    "1% / 0.1% low regressions flagged",
+    "visualAllPassed false (cp01 fail run 3)",
+    "Anim invalidations keep re-triggering full scans under dense creatures",
+    "Source fully reverted"
+  ]
+}

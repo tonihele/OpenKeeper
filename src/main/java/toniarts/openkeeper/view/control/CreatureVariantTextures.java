@@ -58,5 +58,7 @@ final class CreatureVariantTextures {
                 geometry.setMaterial(uniqueMaterial);
             }
         });
+        // Cloned materials are unbound until the next applyVertexLight
+        AssetUtils.invalidateVertexLight(model);
     }
 }

@@ -1,0 +1,329 @@
+# OpenKeeper Rendering Pipeline — Architecture Review
+
+**Date:** 2026-11-06  
+**Scope:** End-to-end rendering analysis (architecture, algorithms, fidelity, performance, resources, hardware)  
+**Method:** Static codebase analysis of OpenKeeper (jMonkeyEngine 3.9 + LWJGL3 OpenGL). No GPU profiler capture was taken in this session; items needing measurement are marked.
+
+> **Living roadmap:** Prioritized acceleration structures, updated ship/revert status, and companion deep-dives live in **[acceleration-structures.md](acceleration-structures.md)** (plus `acceleration-lighting.md`, `acceleration-spatial-simulation.md`, `acceleration-mesh-scene.md`). Prefer that index for implementation order; this document remains the original pipeline audit and fidelity notes.
+
+---
+
+## Verdict
+
+OpenKeeper’s world look is driven by a solid, DK-faithful custom lighting path (`DkLighting` + shared `LightData`), not stock jME Phong.
+
+**Historical risks from this audit (status as of 2026-11-06 accel roadmap):**
+
+1. **Per-frame entity `applyVertexLight`** → **IMPLEMENTED** bind-once (avg FPS still GPU-bound)
+2. **Mesh rebuild storms on tile/FoW changes** → **PARTIAL** (FOW/room gating shipped; ceiling/topology remain)
+3. **Soft-falloff mismatch / translucent↔SSAO** → **IMPLEMENTED** (A2 + Q3)
+4. **Forced max / 16× MSAA** → **SUPERSEDED / PARTIAL** (force-max gone; MSAA 16× hidden; presets open)
+
+**Current bottlenecks:** see [acceleration-structures.md](acceleration-structures.md) (GPU ~11 ms + CPU render ~17 ms; lighting CPU ~0.6 ms; F1 VS split next).
+
+---
+
+## Architecture snapshot
+
+| Layer | Mechanism | Assessment |
+|--------|-----------|------------|
+| API | OpenGL via LWJGL3 / jME 3.9 | Fine for fidelity goal; no Vulkan / DirectX / Metal path |
+| Terrain / rooms | 8×8 `BatchNode` pages + room constructors | Good draw-call reduction; painful to mutate |
+| Lighting | CPU light list → RGBA32F `LightData` → GLSL per-vertex loop | Authentic DK model; cost scales with lights × vertices |
+| Entities | Vertex bind-once + shared `LightData` | Flicker lives in atlas upload; DFS bind removed |
+| Post | `PostProcessPipeline`: translucent (always) → optional AO → optional SMAA Ultra default | Translucent decoupled from SSAO |
+| Shadows | Modes tagged; no in-game shadow maps | Intentional / incomplete (ModelViewer only) |
+
+### Pipeline overview
+
+```
+DK2 assets → convert → j3o / textures
+         ↓
+MapViewController builds tile / room meshes (BatchNode)
+         ↓
+Materials swapped to DkLighting Vertex / Flat (before batch)
+         ↓
+LightRules owns LightSources (torches, terrain, objects, cursor…)
+         ↓
+each frame: LightModulators → SceneLights uploads LightData + AmbientMap
+         ↓
+Vertex.vert lights terrain per-vertex; entities bind shared LightData
+         ↓
+optional SSAO + TranslucentBucketFilter (Main.setViewProcessors)
+         ↓
+Nifty HUD / minimap (mostly Unshaded)
+```
+
+### Key files
+
+| Area | Paths |
+|------|--------|
+| Boot / post | `src/main/java/toniarts/openkeeper/Main.java` |
+| Settings | `src/main/java/toniarts/openkeeper/game/data/Settings.java` |
+| Map view | `view/PlayerMapViewState.java`, `view/map/MapViewController.java`, `Water.java`, `Ceiling.java`, `construction/RoomConstructor.java` |
+| Lighting | `view/lighting/{SceneLights,LightRules,LightConstants,LightSource}.java` |
+| Materials | `utils/AssetUtils.java`, `assets/MatDefs/DkLighting/*`, `assets/Shaders/DkLighting/*` |
+| Entities / FX | `view/PlayerEntityViewState.java`, `view/control/*`, `view/effect/*` |
+
+---
+
+## Custom lighting model (core)
+
+Two techniques under `assets/MatDefs/DkLighting/`:
+
+1. **`Vertex.j3md`** — terrain / rooms  
+   - Shared `LightData` texture (RGBA32F, up to **3084** lights): header + 3 texels/light  
+   - `AmbientMap`: per-tile ambient + explored flag, bilinearly blended  
+   - Shader loops lights per vertex: DK falloff, fog, torch override, soft-clamp  
+
+2. **`Flat.j3md`** — legacy flat evaluation (CPU `computeFlatLight`)  
+   - Entities increasingly use **Vertex** via `AssetUtils.applyVertexLight`
+
+**Preserve:** shared `LightData` (avoids tile-border light seams), exact `dkFalloff` behaviour (including documented out-of-range limb), FoW gating.
+
+**Deliberate deviations from original DK** (do not “fix” without A/B): soft falloff tail, torch edge tint, soft-clamp of summed light, optional min ambient floor.
+
+---
+
+## Prioritized findings
+
+Priority order used:
+
+1. **Quick wins** — low effort, high impact  
+2. **Severity** — correctness, stability, quality, performance  
+3. **Long-term** — architecture and advanced techniques  
+
+---
+
+### 1. Quick wins
+
+#### Q1 — Cap MSAA; stop forcing Ultra every launch — **DONE (partial)**
+
+| | |
+|--|--|
+| **Problem** | Historical `applyMaximumGraphicsSettings()` forced Samples=16 / SSAO / AF every launch; frameRate floor also stomped prefs. |
+| **Shipped** | Force-max method already removed earlier; A1: first-run-only frameRate floor; MSAA 16× hidden from UI. Default is SMAA Ultra. See [benchmark-a1-settings.md](benchmark-a1-settings.md). |
+| **Still open** | Named quality presets (S4). |
+
+#### Q2 — Soft-falloff constant mismatch (Java 0.01 vs GLSL 0.1) — **DONE**
+
+| | |
+|--|--|
+| **Problem** | Comments require `LightConstants.SOFT_FALLOFF_TAIL_TILES` == `DK_SOFT_FALLOFF_TAIL_TILES`. They disagree → CPU frustum reach / `computeFlatLight` disagree with GPU falloff. |
+| **Shipped** | Both **0.1**; see [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md). |
+| **Affected code** | `view/lighting/LightConstants.java`, `SceneLights.PAGE_LIGHT_REACH_TAIL_TILES` alias |
+
+#### Q3 — Decouple `TranslucentBucketFilter` from SSAO — **done**
+
+| | |
+|--|--|
+| **Problem** | Historically, translucent resolve was only added inside the SSAO branch. |
+| **Solution** | `TranslucentBucketStage` + `PostProcessPipeline`: translucent is always planned first; AO/SMAA are optional later stages. Covered by `PostProcessPipelineTest`. |
+| **Affected code** | `post/TranslucentBucketStage.java`, `post/PostProcessPipeline.java`, `Main.setViewProcessors()` |
+
+#### Q4 — Fix vertex light loop bound
+
+| | |
+|--|--|
+| **Problem** | `Vertex.vert` loops `for (i = 0; i < 3084; i++)` with an inner `break`. A compile-time trip count of 3084 is a classic driver / occupancy hazard. |
+| **Evidence** | `Vertex.vert`; `SceneLights.MAX_LIGHTS = 3084` |
+| **Solution** | `for (int i = 0; i < numLights; ++i)` using header count. Optionally lower `MAX_LIGHTS` after measuring near-camera peaks (e.g. 256–512). |
+| **Benefits** | Lower terrain vertex shader cost |
+| **Complexity** | S |
+| **Risk** | Low |
+| **Affected code** | `assets/Shaders/DkLighting/Vertex.vert` (± `SceneLights.java` if cap changes) |
+
+#### Q5 — Stop per-frame entity scene-graph walks
+
+| | |
+|--|--|
+| **Problem** | `PlayerEntityViewState.update` calls `AssetUtils.applyVertexLight` on every object / creature / door / trap **every frame** (DFS + `ArrayList`). `bindMaterials` itself is mostly a no-op after first bind (`LightData`/`AmbientMap` set only if null); the cost is repeated traversals and allocations, not texture rebinding. |
+| **Evidence** | `PlayerEntityViewState` (~249–281); `AssetUtils.applyVertexLight`; `SceneLights.bindMaterials` |
+| **Solution** | Convert + bind once on spawn; per-frame only refresh thing light positions (`trackedLights`). Keep global light upload in `LightRules.update`. |
+| **Benefits** | Likely top CPU win in gameplay (**hypothesis until profiled**; path is clearly O(entities × geoms) / frame) |
+| **Complexity** | S–M |
+| **Risk** | Medium (must not miss first AmbientMap bind / `IgnoreObjectLights`) |
+| **Affected code** | `PlayerEntityViewState.java`, `AssetUtils.java` |
+
+#### Q7 — Cut per-frame lighting allocations
+
+| | |
+|--|--|
+| **Problem** | Hot path allocates every frame: `new ColorRGBA(ambient…)` in `PlayerMapViewState`, `ownerPosition.add(offset)` for thing lights, occasional `activeSources()` copies. |
+| **Evidence** | Deep audit of `PlayerMapViewState.update`, thing-light position updates, `LightRules.activeSources` |
+| **Solution** | Reuse mutable `ColorRGBA` / `Vector3f` (`set` in place). |
+| **Benefits** | Lower GC pressure with many creatures / torches |
+| **Complexity** | S |
+| **Risk** | Low |
+| **Affected code** | `PlayerMapViewState.java`, `LightRules.java` / thing-light helpers |
+
+#### Q6 — Drop or isolate unused root `AmbientLight`
+
+| | |
+|--|--|
+| **Problem** | White `AmbientLight` on `rootNode` is a BatchNode workaround; world shading uses `DkLighting`. |
+| **Evidence** | `Main` onLoadComplete FIXME |
+| **Solution** | Verify no in-game geometry still uses `Lighting.j3md`; remove or isolate the light. |
+| **Benefits** | Cleaner lighting ownership |
+| **Complexity** | S |
+| **Risk** | Medium if something still depends on it |
+| **Affected code** | `Main.java` |
+
+---
+
+### 2. Severity
+
+#### S1 — Tile / room update rebuild storm *(critical performance)*
+
+| | |
+|--|--|
+| **Problem** | `updateTiles` expands to whole rooms + surroundings, tears down rooms, `handleTile` per point, re-`batch()` pages, and **always** `refreshCeilingSurface()`; water/lava rebuild when batch counts change. Author FIXME: “really quite heavy… quick fix”. |
+| **Evidence** | `MapViewController.updateTiles` (~491–571) |
+| **Impact** | Digging, claiming, FoW reveal → frame spikes / hitching |
+| **Solution** | (1) Dirty ceiling only when openness/height set changes. (2) Rebuild water/lava only for affected components. (3) Prefer partial room rebuilds. (4) Long-term: chunk mesh pools instead of mutating BatchNodes. |
+| **Benefits** | Removes gameplay hitching under construction / combat digs |
+| **Complexity** | M→L |
+| **Risk** | High (visual seams, FoW bugs) |
+| **Affected code** | `MapViewController.java`, room constructors, `Ceiling.java`, `Water.java` |
+
+#### S2 — Per-vertex × many lights on batched terrain *(GPU)*
+
+| | |
+|--|--|
+| **Problem** | Every terrain vertex may evaluate all uploaded near-camera lights. Dense torch corridors + large pages ⇒ high VS cost. |
+| **Evidence** | `SceneLights.update` + `Vertex.vert` loop; pages are 8×8 batched |
+| **Solution** | After Q4: per-page light index lists (UBO/SSBO) or clustered forward **keeping `dkFalloff`**. Do not split to per-material lists without a continuity plan (shared LightData exists specifically to avoid border seams). |
+| **Benefits** | Scales lighting with content density |
+| **Complexity** | L |
+| **Risk** | Medium |
+| **Affected code** | `SceneLights`, shaders, page bind path |
+
+#### S3 — AmbientMap whole-texture dirty on every tile write
+
+| | |
+|--|--|
+| **Problem** | `setTileAmbient` marks the entire AmbientMap `setUpdateNeeded()` per tile. FoW floods re-upload full RGBA8 repeatedly. |
+| **Evidence** | `SceneLights.setTileAmbient` |
+| **Solution** | Frame-coalesced single upload; or dirty rectangles / subimage updates if jME allows |
+| **Benefits** | Fewer FoW-related CPU→GPU spikes |
+| **Complexity** | M |
+| **Risk** | Low–Med |
+| **Affected code** | `SceneLights.java` |
+
+#### S4 — Forced max settings vs hardware utilization
+
+| | |
+|--|--|
+| **Problem** | 16× MSAA + SSAO + high FPS target fights custom lighting cost. Fine on RTX 2060 SUPER; harsh on mid / iGPU. |
+| **Evidence** | Settings force path; `MAX_FPS = 200` |
+| **Solution** | Quality presets (Low/Med/High/Ultra) for MSAA / SSAO / AF / flicker; do not force Ultra in constructor |
+| **Benefits** | Predictable performance across hardware |
+| **Complexity** | S–M |
+| **Risk** | Low |
+| **Affected code** | `Settings.java`, pause / main-menu graphics UI |
+
+#### S5 — LightRules load race — **fixed** (lifecycle publication)
+
+| | |
+|--|--|
+| **Problem** | Map load vs entity lighting CME risk was gated only by external `isMapLoaded()`; new callers that skipped the gate reintroduced races. |
+| **Fix** | `LightRules` owns `Phase` (`LOADING` → `READY` → `DISPOSED`). `publishReady()` is the volatile publication after the last load-time mutation; `update` / flat-light sampling no-op until ready; `dispose()` ends the lifecycle. Call sites use `isReady()`. |
+| **Benefits** | Race eliminated at the ownership boundary; no opt-in external gate required for safety |
+| **Affected code** | `LightRules.java`, `PlayerMapViewState`, entity / effect / menu / model-viewer view states |
+
+#### S6 — Visual fidelity debt (know it; don’t blindly “fix”)
+
+- Decay textures: FIXME on material model (`setTileMaterialToGeometries`)
+- Soft-clamp / torch edge / soft tail are deliberate — preserve unless A/B proves better
+- No in-game shadow maps: classic DK2 is not a modern shadow-mapped look; optional “enhanced” only
+
+---
+
+### 3. Long-term
+
+#### L1 — Mesh architecture beyond BatchNode
+
+Replace mutable `BatchNode` pages with immutable chunk meshes + pooled rebuilds (or GPU tile instances). Solves S1 at the root.  
+**Complexity:** L · **Risk:** High
+
+#### L2 — Lighting evolution (keep DK math)
+
+1. Per-page light index lists (best fidelity-preserving step)  
+2. Clustered forward with shared `dkFalloff`  
+3. Avoid full deferred / PBR unless art direction changes  
+
+#### L3 — Optional enhanced mode (not default)
+
+TAA vs MSAA, HBAO, optional shadows — shipped as a preset fork; keep **classic** default for remake fidelity.
+
+#### L4 — Instrumentation (required before big bets)
+
+**PARTIAL:** suite lighting CPU timers (A3) + whole-frame GPU / CPU update-render (A3b) shipped. Technique-level terrain vs full-list VS (**F1**) and `updateTiles` wall-clock splits still open. F6 `DetailedProfilerState` remains for interactive use.
+
+#### L5 — Material pipeline cleanup
+
+Stop assigning Normal/Spec/Parallax into defs that don’t use them; unify tint/highlight paths; finish room constructor static-style FIXMEs.
+
+---
+
+## Actionable roadmap
+
+**Superseded for ordering/status** by [acceleration-structures.md](acceleration-structures.md). Snapshot of this audit’s original table with later status annotations:
+
+| Priority | Item | Effort | Impact | Status (accel taxonomy) |
+|----------|------|--------|--------|-------------------------|
+| 1 | Q1 Remove forced Ultra / MSAA hygiene | S | High GPU (player) | **PARTIAL** — [A1](benchmark-a1-settings.md); presets → **A1b** |
+| 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | **IMPLEMENTED** — [A2](benchmark-a2-soft-falloff.md) |
+| 3 | Q3 Decouple translucent from SSAO | S | — | **IMPLEMENTED** |
+| 4 | Q4 Dynamic light loop bound | S | GPU VS | **IMPLEMENTED** (`numLights` + terrain page indices) |
+| 5 | Q5 One-shot entity Vertex bind | M | High CPU | **IMPLEMENTED** |
+| 6 | Q7 Reuse ColorRGBA / Vector3f in light hot path | S | GC | **IMPLEMENTED** |
+| 7 | S4 Quality presets | M | UX + perf | **NOT STARTED** — **A1b** |
+| 8 | S3 Coalesce AmbientMap uploads | M | FoW spikes | **DEFERRED** (mid-frame + coalesce **REJECTED**) — **B3** |
+| 9 | S1 Incremental ceiling/water + milder tile updates | M–L | Hitching | **PARTIAL** — FOW/room done; ceiling → **D1** |
+| 10 | L4 Profiling / timers | M | Enables ranking | **PARTIAL** — A3/A3b done; technique VS → **F1** |
+| 11 | S2 / L2 Clustered or per-page lights | L | Scale | Terrain pages **IMPLEMENTED**; room index **REJECTED**; cluster → **E1** after F1 |
+| 12 | L1 Chunk mesh architecture | L | Architecture | **NOT STARTED** — **D3** |
+| 13 | L3 Optional “enhanced” post / shadows | L | Quality fork | **NOT STARTED** |
+| — | S5 LightRules load race | M | Stability | **IMPLEMENTED** |
+
+---
+
+## Addendum — deep audit notes
+
+From [Deep rendering audit](21d6408f-feea-4675-8c34-7668fa3bb04b):
+
+- **Water/lava** rebuild only when batch-*list size* changes; **ceiling** rebuilds when visible (skipped/deferred when hidden).
+- **`applyFlatLight` / `computeFlatLight`**: defined in `AssetUtils` / `LightRules` but **no external callers** — entity path is Vertex; don’t optimize Flat first.
+- **Anisotropy** is applied at `assetRequested` only — changing AF at runtime won’t retouch already-loaded textures without reload.
+- **Force-max graphics** (`applyMaximumGraphicsSettings`) is **gone**; A1 fixed remaining frameRate prefs stomp.
+- LightData footprint is small (~9253×1 RGBA32F ≈ 148 KB); the cost is the VS loop, not VRAM.
+
+---
+
+## What to preserve
+
+- Shared `LightData` (tile-border light continuity)
+- Exact `dkFalloff` table behaviour
+- FoW explored gating (shader + CPU fog light cull)
+- Pre-batch Vertex material swap discipline
+- Classic look as default unless a change **demonstrably** improves fidelity or performance without breaking authenticity
+
+---
+
+## Suggested first profiling session
+
+Tools: RenderDoc / Nsight / jME `DetailedProfilerState` (F6) + suite A3/A3b metrics
+
+1. Idle camera, torch-dense corridor — capture **F1** terrain-index VS vs full-list VS  
+2. Same + dig ~10 tiles with ceiling **on** (catch `updateTiles` / ceiling hitch)  
+3. Compare suite `gpuFrameTimeMs` / `cpuRenderMs` with SMAA Off vs Ultra (**P1**)  
+4. Do **not** re-litigate B1 without F1 evidence  
+
+---
+
+## Bottom line
+
+Quick wins from this audit that are **IMPLEMENTED** (or **PARTIAL** with a clear remainder) are tracked in [acceleration-structures.md](acceleration-structures.md). Room light indices (**B1**) were **REJECTED**; do not treat them as the next step.
+
+**Next:** **F1** (technique VS split) in parallel with **A1b** presets / remaining P1 Off–SSAO matrix. Hitch work (**D1**) with ceiling-on scenarios; **B3** deferred pending FoW-stress. Clustered lighting (**E1**) and chunk meshes (**D3**) stay deferred.

@@ -1,0 +1,18 @@
+{
+  "change": "P1 SMAA neighborhood as final filter pass (drop Overlay FBO/blit)",
+  "decision": "ACCEPTED",
+  "reverted": false,
+  "session": "session-2026-11-06T14-13-31.214178700Z",
+  "compareBaseline": "after-a3-gpu-timers",
+  "medianAvgFps": 37.17,
+  "baselineMedianAvgFps": 37.259,
+  "medianGpuFrameTimeMs": 10.20,
+  "baselineMedianGpuFrameTimeMs": 10.73,
+  "rationale": [
+    "visual 3/3 pass",
+    "suite regression overall pass vs after-a3-gpu-timers",
+    "avg FPS stable (−0.2%)",
+    "gpuFrameTimeMs median −0.53 ms (−5% of GPU elapsed)",
+    "removes redundant intermediate FBO + 1:1 Overlay blit; same Ultra neighborhood shader"
+  ]
+}

@@ -98,6 +98,7 @@ public final class MainMenuState extends AbstractAppState {
     protected Main app;
     protected Node rootNode;
     protected AssetManager assetManager;
+    private final ColorRGBA ambientScratch = new ColorRGBA();
     protected AppStateManager stateManager;
     protected InputManager inputManager;
     private final MainMenuScreenController screen;
@@ -201,9 +202,10 @@ public final class MainMenuState extends AbstractAppState {
 
         };
         menuNode.attachChild(mapLoader.load(assetManager, frontEndKwd));
+        mapLoader.getLightRules().publishReady();
 
-        // No fog of war here, so the whole scene is lit; update() drives the lights.
-        // Published only once the load is done (the load may run on a loader thread).
+        // No fog of war here, so the whole scene is lit; update() drives the lights
+        // after publishReady().
         mapViewController = mapLoader;
 
         // Reflect current campaign progress (playable levels / arrow wiring) as soon
@@ -224,7 +226,11 @@ public final class MainMenuState extends AbstractAppState {
         // No PlayerMapViewState in the menu, the effects are lit by the menu map's own light rules
         effectManagerState.setLightRulesSupplier(() -> {
             MapViewController controller = mapViewController;
-            return controller != null ? controller.getLightRules() : null;
+            if (controller == null) {
+                return null;
+            }
+            LightRules rules = controller.getLightRules();
+            return rules.isReady() ? rules : null;
         });
         app.getStateManager().attach(effectManagerState);
 
@@ -240,16 +246,20 @@ public final class MainMenuState extends AbstractAppState {
         // frame (flicker, pulse, ...), as PlayerMapViewState does
         MapViewController controller = mapViewController;
         if (controller != null && isEnabled() && app != null) {
-            Settings settings = Main.getUserSettings();
-            float ambient = settings.getFloat(Setting.AMBIENT_LIGHT);
-            controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
-            controller.getLightRules().setCheapLighting(settings.getBoolean(Setting.CHEAP_LIGHTING));
-            controller.getLightRules().update(tpf, app.getCamera());
+            LightRules lightRules = controller.getLightRules();
+            if (lightRules.isReady()) {
+                Settings settings = Main.getUserSettings();
+                float ambient = settings.getFloat(Setting.AMBIENT_LIGHT);
+                ambientScratch.set(ambient, ambient, ambient, 1f);
+                lightRules.setGlobalAmbient(ambientScratch);
+                lightRules.setCheapLighting(settings.getBoolean(Setting.CHEAP_LIGHTING));
+                lightRules.update(tpf, app.getCamera());
 
-            // Every animation change loads a new creature model, light them like creatures in the game
-            Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
-            if (mpdCreature != null) {
-                AssetUtils.applyVertexLight(assetManager, mpdCreature, controller.getLightRules(), false, false);
+                // Every animation change loads a new creature model, light them like creatures in the game
+                Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
+                if (mpdCreature != null) {
+                    AssetUtils.applyVertexLight(assetManager, mpdCreature, lightRules, false, false);
+                }
             }
         }
     }
@@ -301,7 +311,10 @@ public final class MainMenuState extends AbstractAppState {
 
     @Override
     public void cleanup() {
-        mapViewController = null;
+        if (mapViewController != null) {
+            mapViewController.getLightRules().dispose();
+            mapViewController = null;
+        }
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
@@ -833,7 +846,11 @@ public final class MainMenuState extends AbstractAppState {
         @Override
         protected LightRules getLightRules() {
             MapViewController controller = mapViewController;
-            return controller != null ? controller.getLightRules() : null;
+            if (controller == null) {
+                return null;
+            }
+            LightRules lightRules = controller.getLightRules();
+            return lightRules.isReady() ? lightRules : null;
         }
 
     }

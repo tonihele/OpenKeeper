@@ -1,0 +1,18 @@
+{
+  "change": "High-preset control baseline immediately before page-frustum index-skip attempt",
+  "decision": "CONTROL",
+  "reverted": false,
+  "graphicsPreset": "HIGH",
+  "session": "session-2026-11-06T15-00-33.703389200Z",
+  "compareBaseline": "after-smaa-final-pass",
+  "gitRevision": "73f60937",
+  "hardware": "Windows 10 amd64, NVIDIA GeForce RTX 2060 SUPER",
+  "medianAvgFps": 41.062,
+  "medianGpuFrameTimeMs": 8.969,
+  "medianLightPageIndexMs": 0.134,
+  "notes": [
+    "Same-machine control for after-page-frustum-index-skip (REJECTED)",
+    "Run1 cp01 visual flake; runs 2–3 visual 3/3",
+    "Absolute FPS higher than after-smaa-final-pass session earlier same day — use for paired Δ only"
+  ]
+}

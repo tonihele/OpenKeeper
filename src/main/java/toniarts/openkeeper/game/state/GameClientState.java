@@ -817,6 +817,25 @@ public final class GameClientState extends AbstractPauseAwareState {
         return playerModelViewState;
     }
 
+    /**
+     * Local player's map / lighting view. Prefer this over looking up
+     * {@link PlayerMapViewState} on the state manager (menu may attach one too).
+     *
+     * @return map view, or {@code null} before load
+     */
+    public PlayerMapViewState getPlayerMapViewState() {
+        return playerMapViewState;
+    }
+
+    /**
+     * Whether the client finished its loading barrier and entered play.
+     *
+     * @return true once the game has started for this client
+     */
+    public boolean isGameStarted() {
+        return gameStarted;
+    }
+
     public IMapInformation getMapClientService() {
         return mapInformation;
     }

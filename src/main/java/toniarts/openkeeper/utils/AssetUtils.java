@@ -82,7 +82,17 @@ public final class AssetUtils {
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
-    
+    /**
+     * Cached materials from the last {@link #applyVertexLight} DFS. Cleared by
+     * {@link #invalidateVertexLight(Spatial)} when the hierarchy or materials change.
+     */
+    public final static String USER_DATA_KEY_VERTEX_LIGHT_MATERIALS = "VertexLightMaterials";
+    /**
+     * When true, Vertex lighting is fully bound (LightData + AmbientMap as needed)
+     * and per-frame re-traversal is skipped until invalidated.
+     */
+    public final static String USER_DATA_KEY_VERTEX_LIGHT_READY = "VertexLightReady";
+
     private static volatile boolean preWarmedAssets = false;
 
     private AssetUtils() {
@@ -307,8 +317,14 @@ public final class AssetUtils {
      * Lights a model per vertex, like the floor it stands on: sets up its
      * {@code Vertex} materials for a thing (no rock floor) and hooks them
      * up to the shared light data. Materials still on {@code Flat} (old
-     * generated material files) are swapped once. Call once per frame, as the
-     * ambient map may only exist after the first call.
+     * generated material files) are swapped once.
+     * <p>
+     * Safe to call every frame: after the first successful bind the spatial is
+     * marked ready and further calls are no-ops. Flicker/pulse live in the
+     * shared {@code LightData} texture updated by {@link LightRules#update},
+     * so re-walking the model tree each frame is unnecessary. Call
+     * {@link #invalidateVertexLight(Spatial)} when children or materials are
+     * replaced (animation swap, charred overlay, variant textures).
      *
      * @param ignoreObjectLights true to leave out the lights carried by game
      * objects
@@ -325,31 +341,76 @@ public final class AssetUtils {
      */
     public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
             boolean ignoreObjectLights, boolean useTileAmbient) {
-        List<Material> materials = new ArrayList<>();
-        spatial.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial s) {
-                if (!(s instanceof Geometry geometry) || geometry.isBatched()) {
-                    return;
-                }
-                Material material = geometry.getMaterial();
-                if (!isVertexMaterial(material)) {
-                    if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+        if (spatial == null || lightRules == null) {
+            return;
+        }
+        if (Boolean.TRUE.equals(spatial.getUserData(USER_DATA_KEY_VERTEX_LIGHT_READY))) {
+            return;
+        }
+
+        @SuppressWarnings("unchecked")
+        List<Material> materials = spatial.getUserData(USER_DATA_KEY_VERTEX_LIGHT_MATERIALS);
+        if (materials == null) {
+            materials = new ArrayList<>();
+            List<Material> collected = materials;
+            spatial.depthFirstTraversal(new SceneGraphVisitor() {
+                @Override
+                public void visit(Spatial s) {
+                    if (!(s instanceof Geometry geometry) || geometry.isBatched()) {
                         return;
                     }
-                    Material vertex = createVertexMaterial(assetManager, material, ColorRGBA.Black);
-                    vertex.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
-                    vertex.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
-                    geometry.setMaterial(vertex);
-                    material = vertex;
+                    Material material = geometry.getMaterial();
+                    if (!isVertexMaterial(material)) {
+                        if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                            return;
+                        }
+                        Material vertex = createVertexMaterial(assetManager, material, ColorRGBA.Black);
+                        vertex.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
+                        vertex.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
+                        geometry.setMaterial(vertex);
+                        material = vertex;
+                    }
+                    material.setFloat("MinLight", 0f);
+                    material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                    material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
+                    collected.add(material);
                 }
-                material.setFloat("MinLight", 0f);
-                material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
-                material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
-                materials.add(material);
-            }
-        });
+            });
+            spatial.setUserData(USER_DATA_KEY_VERTEX_LIGHT_MATERIALS, materials);
+        }
+
         lightRules.bindMaterials(materials);
+        if (vertexLightFullyBound(materials, lightRules)) {
+            spatial.setUserData(USER_DATA_KEY_VERTEX_LIGHT_READY, Boolean.TRUE);
+        }
+    }
+
+    /**
+     * Clears Vertex-light material caches on {@code spatial} so the next
+     * {@link #applyVertexLight} re-walks the hierarchy. Call after replacing
+     * children or materials.
+     *
+     * @param spatial model root (may be null)
+     */
+    public static void invalidateVertexLight(Spatial spatial) {
+        if (spatial == null) {
+            return;
+        }
+        spatial.setUserData(USER_DATA_KEY_VERTEX_LIGHT_READY, null);
+        spatial.setUserData(USER_DATA_KEY_VERTEX_LIGHT_MATERIALS, null);
+    }
+
+    private static boolean vertexLightFullyBound(List<Material> materials, LightRules lightRules) {
+        boolean needAmbient = lightRules.hasAmbientMap();
+        for (Material material : materials) {
+            if (material.getTextureParam("LightData") == null) {
+                return false;
+            }
+            if (needAmbient && material.getTextureParam("AmbientMap") == null) {
+                return false;
+            }
+        }
+        return true;
     }
 
     /**

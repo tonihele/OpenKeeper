@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 2,
+  "benchmark": "openkeeper-official-baseline",
+  "frameworkVersion": "2",
+  "timestamp": "2026-11-06T13:00:53.982629100Z",
+  "machineId": "windows-10-amd64",
+  "runCount": 3,
+  "rawRuns": [
+    "D:/Project/OpenKeeper/baselines/performance/after-a3-light-timers/session-2026-11-06T12-59-07.279438600Z/run-1/late-campaign-dense.json",
+    "D:/Project/OpenKeeper/baselines/performance/after-a3-light-timers/session-2026-11-06T12-59-07.279438600Z/run-2/late-campaign-dense.json",
+    "D:/Project/OpenKeeper/baselines/performance/after-a3-light-timers/session-2026-11-06T12-59-07.279438600Z/run-3/late-campaign-dense.json"
+  ],
+  "visualAllPassed": false,
+  "aggregates": {
+    "avgFps": {
+      "values": [
+        39.2,
+        37.657,
+        37.493
+      ],
+      "mean": 38.117,
+      "median": 37.657,
+      "stdDev": 0.769,
+      "cv": 0.02,
+      "min": 37.493,
+      "max": 39.2
+    },
+    "onePercentLowFps": {
+      "values": [
+        4.943,
+        4.583,
+        4.389
+      ],
+      "mean": 4.638,
+      "median": 4.583,
+      "stdDev": 0.23,
+      "cv": 0.049,
+      "min": 4.389,
+      "max": 4.943
+    },
+    "pointOnePercentLowFps": {
+      "values": [
+        1.525,
+        1.433,
+        1.596
+      ],
+      "mean": 1.518,
+      "median": 1.525,
+      "stdDev": 0.067,
+      "cv": 0.044,
+      "min": 1.433,
+      "max": 1.596
+    },
+    "frameTimeP50": {
+      "values": [
+        18.655,
+        19.664,
+        18.979
+      ],
+      "mean": 19.099,
+      "median": 18.979,
+      "stdDev": 0.421,
+      "cv": 0.022,
+      "min": 18.655,
+      "max": 19.664
+    },
+    "frameTimeP95": {
+      "values": [
+        44.154,
+        46.202,
+        49.175
+      ],
+      "mean": 46.51,
+      "median": 46.202,
+      "stdDev": 2.061,
+      "cv": 0.044,
+      "min": 44.154,
+      "max": 49.175
+    },
+    "frameTimeP99": {
+      "values": [
+        63.647,
+        56.914,
+        77.596
+      ],
+      "mean": 66.052,
+      "median": 63.647,
+      "stdDev": 8.613,
+      "cv": 0.13,
+      "min": 56.914,
+      "max": 77.596
+    },
+    "drawCallsAvg": {
+      "values": [
+        3049.507,
+        3015.238,
+        2900.458
+      ],
+      "mean": 2988.401,
+      "median": 3015.238,
+      "stdDev": 63.739,
+      "cv": 0.021,
+      "min": 2900.458,
+      "max": 3049.507
+    },
+    "trianglesAvg": {
+      "values": [
+        87220.466,
+        87648.534,
+        86287.779
+      ],
+      "mean": 87052.26,
+      "median": 87220.466,
+      "stdDev": 568.116,
+      "cv": 0.007,
+      "min": 86287.779,
+      "max": 87648.534
+    },
+    "lightsAvg": {
+      "values": [
+        2185.982,
+        2163.372,
+        2120.499
+      ],
+      "mean": 2156.618,
+      "median": 2163.372,
+      "stdDev": 27.157,
+      "cv": 0.013,
+      "min": 2120.499,
+      "max": 2185.982
+    },
+    "heapPeakMb": {
+      "values": [
+        1179.953,
+        1032.046,
+        1047.724
+      ],
+      "mean": 1086.574,
+      "median": 1047.724,
+      "stdDev": 66.338,
+      "cv": 0.061,
+      "min": 1032.046,
+      "max": 1179.953
+    }
+  },
+  "stability": {
+    "avgFpsCoefficientOfVariation": 0.02,
+    "unstable": false,
+    "note": "Run-to-run variance within expected noise"
+  },
+  "engine": "{\n    \"name\": \"OpenKeeper\",\n    \"version\": \"*ALPHA*\",\n    \"jmonkeyengine\": \"3.9.0-stable\",\n    \"javaVersion\": \"25.0.4.1\",\n    \"javaVendor\": \"Eclipse Adoptium\",\n    \"javaVmName\": \"OpenJDK 64-Bit Server VM\",\n    \"osName\": \"Windows 10\",\n    \"osArch\": \"amd64\",\n    \"osVersion\": \"10.0\"\n  }",
+  "hardware": "{\n    \"availableProcessors\": 12,\n    \"maxMemoryMb\": 8192.0,\n    \"systemLoadAverage\": -1.0,\n    \"renderer\": \"LWJGL-OpenGL45\",\n    \"width\": 1920,\n    \"height\": 1080,\n    \"fullscreen\": false,\n    \"samples\": 0,\n    \"vsync\": false,\n    \"frameRateCap\": -1,\n    \"frequency\": 144\n  }",
+  "parameters": "{\n    \"frameworkVersion\": \"2\",\n    \"suite\": true,\n    \"workloadId\": \"late-campaign-dense\",\n    \"level\": \"Level20\",\n    \"seed\": 42,\n    \"warmupSeconds\": 3.0,\n    \"durationSeconds\": 20.0,\n    \"settleSeconds\": 2.0,\n    \"creatureCount\": 100,\n    \"impCount\": 40,\n    \"headless\": false,\n    \"vsync\": false,\n    \"visual\": true,\n    \"updateVisualRefs\": false,\n    \"width\": 1920,\n    \"height\": 1080,\n    \"runIndex\": 1,\n    \"visualCheckpointFractions\": [\n      0.0,\n      0.5,\n      1.0\n    ],\n    \"maxMismatchRatio\": 0.5,\n    \"minSsim\": 0.92,\n    \"maxMae\": 4.0,\n    \"outputPath\": \"baselines/performance/after-a3-light-timers/session-2026-11-06T12-59-07.279438600Z/run-1/late-campaign-dense.json\",\n    \"baselineDir\": \"baselines/performance\",\n    \"compareBaselinePath\": \"baselines/performance/after-page-light-cull/candidate-baseline-windows-10-amd64.json\"\n  }",
+  "notes": "Official machine baseline from consecutive identical suite runs. Use -benchmark-compare <this-file> on future runs.",
+  "sessionDir": "baselines/performance/after-a3-light-timers/session-2026-11-06T12-59-07.279438600Z",
+  "workloadId": "late-campaign-dense"
+}

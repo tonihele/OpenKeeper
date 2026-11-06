@@ -632,8 +632,7 @@ public class VisualEffect {
     public boolean update(float tpf) {
         updateCircularPath(tpf);
 
-        // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
-        // own position is set once at construction and never moves.
+        // Lighting: bind once (cached); flicker is in the shared LightData upload.
         LightRules lightRules = getLightRules();
         if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
             AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);

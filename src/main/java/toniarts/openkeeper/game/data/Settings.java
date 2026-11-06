@@ -74,6 +74,17 @@ public final class Settings {
         MPD_LEVEL_STATUS(LevelStatus.class, LevelStatus.NOT_COMPLETED, SettingCategory.CAMPAIGN),
         // Graphic
         ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS),
+        /**
+         * Default anti-aliasing: SMAA Ultra (morphological post-process).
+         * Stored as the enum name; see {@link AntiAliasingMode}.
+         */
+        ANTIALIASING(AntiAliasingMode.class, AntiAliasingMode.SMAA_ULTRA, SettingCategory.GRAPHICS),
+        /**
+         * Named quality bundle; {@link GraphicsQualityPreset#HIGH} matches the
+         * historical SMAA Ultra + SSAO-off shipping defaults. {@code CUSTOM}
+         * means the player mixed individual controls.
+         */
+        GRAPHICS_QUALITY_PRESET(GraphicsQualityPreset.class, GraphicsQualityPreset.HIGH, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
@@ -272,7 +283,8 @@ public final class Settings {
         // Init the settings
         this.settings = settings;
 
-        if (Files.exists(USER_SETTINGS_FILE)) {
+        boolean firstRun = !Files.exists(USER_SETTINGS_FILE);
+        if (!firstRun) {
             try (InputStream in = Files.newInputStream(USER_SETTINGS_FILE);
                     BufferedInputStream bin = new BufferedInputStream(in)) {
                 settings.load(bin);
@@ -280,13 +292,85 @@ public final class Settings {
                 logger.log(Logger.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
             }
         }
-        this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+
+        // Keep AppSettings samples in sync with the selected AA mode (SMAA Ultra by default)
+        applyAntiAliasingMode(getAntiAliasingMode());
+
+        // High uncapped-ish floor only on first run. Returning players keep the
+        // frameRate persisted in openkeeper.properties (do not stomp prefs).
+        if (firstRun) {
+            this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+        }
 
         // Assing some app level settings
         settings.setTitle(TITLE);
         settings.setIcons(getApplicationIcons());
 
         // Gamma correction is on by default (AppSettings default), the user can toggle it in the graphics settings
+    }
+
+    /**
+     * Current anti-aliasing mode (defaults to SMAA Ultra).
+     *
+     * @return the selected mode
+     */
+    public AntiAliasingMode getAntiAliasingMode() {
+        Object value = getSetting(Setting.ANTIALIASING);
+        if (value instanceof AntiAliasingMode mode) {
+            return mode;
+        }
+        return AntiAliasingMode.fromStoredName(String.valueOf(value));
+    }
+
+    /**
+     * Persist the anti-aliasing mode and sync {@link AppSettings#setSamples(int)}.
+     *
+     * @param mode the mode to apply
+     */
+    public void applyAntiAliasingMode(AntiAliasingMode mode) {
+        AntiAliasingMode resolved = mode != null ? mode : AntiAliasingMode.SMAA_ULTRA;
+        // Persist the enum constant name (toString() is the UI label)
+        settings.put(Setting.ANTIALIASING.getKey(), resolved.name());
+        settings.setSamples(resolved.getSamples());
+    }
+
+    /**
+     * Current named graphics quality preset (defaults to {@link GraphicsQualityPreset#HIGH}).
+     *
+     * @return the selected preset
+     */
+    public GraphicsQualityPreset getGraphicsQualityPreset() {
+        Object value = getSetting(Setting.GRAPHICS_QUALITY_PRESET);
+        if (value instanceof GraphicsQualityPreset preset) {
+            return preset;
+        }
+        return GraphicsQualityPreset.fromStoredName(String.valueOf(value));
+    }
+
+    /**
+     * Applies a named preset to AA / SSAO / AF / cheap-lighting and records it.
+     * Does not restart the renderer — callers that change MSAA samples must
+     * restart / rebuild post like the graphics options screen.
+     *
+     * @param preset bundle to apply ({@link GraphicsQualityPreset#CUSTOM} is ignored)
+     */
+    public void applyGraphicsQualityPreset(GraphicsQualityPreset preset) {
+        if (preset == null || preset == GraphicsQualityPreset.CUSTOM) {
+            return;
+        }
+        applyAntiAliasingMode(preset.getAntiAliasing());
+        setSetting(Setting.SSAO, preset.isSsao());
+        setSetting(Setting.ANISOTROPY, preset.getAnisotropy());
+        setSetting(Setting.CHEAP_LIGHTING, preset.isCheapLighting());
+        settings.put(Setting.GRAPHICS_QUALITY_PRESET.getKey(), preset.name());
+    }
+
+    /**
+     * Marks the stored preset as {@link GraphicsQualityPreset#CUSTOM} after the
+     * player edits AA / SSAO / AF / cheap-lighting individually.
+     */
+    public void markGraphicsQualityCustom() {
+        settings.put(Setting.GRAPHICS_QUALITY_PRESET.getKey(), GraphicsQualityPreset.CUSTOM.name());
     }
 
     /**

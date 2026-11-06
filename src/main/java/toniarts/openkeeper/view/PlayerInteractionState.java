@@ -117,6 +117,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private CursorIcon cursorIcon;
     private CursorIcon.Price cursorPrice;
     private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
+    private final Vector3f cursorLightPosition = new Vector3f();
     private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
     private Element view;
@@ -528,11 +529,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     private void updateCursorLight() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
-        // The map loader thread mutates the light list until the map is loaded
-        if (mapViewState == null || !mapViewState.isMapLoaded()) {
+        if (mapViewState == null) {
             return;
         }
         LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+        // Loader thread mutates registries until publishReady()
+        if (!lightRules.isReady()) {
+            return;
+        }
 
         boolean visible = isOnMap && !isOnGui && interactionState.getType() != Type.ROOM;
         Point p = selectionHandler.getPointedTileIndex();
@@ -553,13 +557,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 || (fogOfWar != null && !fogOfWar.isExplored(p));
         float height = overSolid ? LightConstants.CURSOR_LIGHT_HEIGHT : LightConstants.CURSOR_LIGHT_HEIGHT_OPEN;
         Vector2f pointed = selectionHandler.getPointedPositionAtHeight(height);
-        Vector3f position = new Vector3f(pointed.x, height, pointed.y);
+        cursorLightPosition.set(pointed.x, height, pointed.y);
 
         // Border tiles: light stays on but black. Over unexplored
         // ground it stays white: the hand lights the fog it points at, which
         // is otherwise completely black (a deviation from the original).
         boolean explored = visible && !onBorder;
-         lightRules.updateCursorLight(visible, position, explored);
+        lightRules.updateCursorLight(visible, cursorLightPosition, explored);
     }
 
     private boolean isOnMap() {

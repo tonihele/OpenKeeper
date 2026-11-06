@@ -1,0 +1,20 @@
+{
+  "change": "A3 lighting CPU phase timers (suite metrics)",
+  "decision": "ACCEPTED_TOOLING",
+  "fpsClaim": false,
+  "session": "session-2026-11-06T12-59-07.279438600Z",
+  "findings": {
+    "lightUpdateMsAvg": 0.628,
+    "lightUploadMsAvg": 0.454,
+    "lightPageIndexMsAvg": 0.135,
+    "lightModulatorMsAvg": 0.037,
+    "frameTimeMsAvgRun1": 25.51,
+    "lightCpuShareOfFrame": "~2.5%"
+  },
+  "implications": [
+    "Do not pursue B2 light-upload hash for avg FPS — upload CPU too small",
+    "Page-index rebuild CPU negligible — further index CPU opts won't move suite FPS",
+    "Next FPS work needs GPU attribution or non-suite settings (A1)"
+  ],
+  "fpsBaselineUnchanged": "after-page-light-cull"
+}

@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 2,
+  "benchmark": "openkeeper-official-baseline",
+  "frameworkVersion": "2",
+  "timestamp": "2026-11-06T12:18:30.081790300Z",
+  "machineId": "windows-10-amd64",
+  "runCount": 3,
+  "rawRuns": [
+    "D:/Project/OpenKeeper/baselines/performance/after-lightrules-lifecycle/session-2026-11-06T12-16-43.098916100Z/run-1/late-campaign-dense.json",
+    "D:/Project/OpenKeeper/baselines/performance/after-lightrules-lifecycle/session-2026-11-06T12-16-43.098916100Z/run-2/late-campaign-dense.json",
+    "D:/Project/OpenKeeper/baselines/performance/after-lightrules-lifecycle/session-2026-11-06T12-16-43.098916100Z/run-3/late-campaign-dense.json"
+  ],
+  "visualAllPassed": false,
+  "aggregates": {
+    "avgFps": {
+      "values": [36.395, 35.329, 34.925],
+      "mean": 35.55,
+      "median": 35.329,
+      "stdDev": 0.62,
+      "cv": 0.017,
+      "min": 34.925,
+      "max": 36.395
+    },
+    "onePercentLowFps": {
+      "values": [4.064, 4.777, 4.659],
+      "mean": 4.5,
+      "median": 4.659,
+      "stdDev": 0.312,
+      "cv": 0.069,
+      "min": 4.064,
+      "max": 4.777
+    },
+    "pointOnePercentLowFps": {
+      "values": [1.129, 1.608, 1.741],
+      "mean": 1.493,
+      "median": 1.608,
+      "stdDev": 0.263,
+      "cv": 0.176,
+      "min": 1.129,
+      "max": 1.741
+    },
+    "frameTimeP50": {
+      "values": [18.687, 20.305, 21.732],
+      "mean": 20.241,
+      "median": 20.305,
+      "stdDev": 1.244,
+      "cv": 0.061,
+      "min": 18.687,
+      "max": 21.732
+    },
+    "frameTimeP99": {
+      "values": [63.761, 69.621, 82.543],
+      "mean": 71.975,
+      "median": 69.621,
+      "stdDev": 7.846,
+      "cv": 0.109,
+      "min": 63.761,
+      "max": 82.543
+    },
+    "lightsAvg": {
+      "values": [2139.376, 2167.708, 2168.44],
+      "mean": 2158.508,
+      "median": 2167.708,
+      "stdDev": 13.532,
+      "cv": 0.006,
+      "min": 2139.376,
+      "max": 2168.44
+    }
+  },
+  "stability": {
+    "avgFpsCoefficientOfVariation": 0.017,
+    "unstable": false,
+    "note": "Accepted session for LightRules lifecycle; later sessions discarded due to machine contention"
+  },
+  "sessionDir": "baselines/performance/after-lightrules-lifecycle/session-2026-11-06T12-16-43.098916100Z",
+  "workloadId": "late-campaign-dense",
+  "notes": "Accepted candidate for LightRules lifecycle publication fix."
+}

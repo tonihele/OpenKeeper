@@ -1,0 +1,20 @@
+{
+  "change": "A3b GPU TIME_ELAPSED + CPU update/render suite timers",
+  "decision": "ACCEPTED",
+  "reverted": false,
+  "kind": "tooling",
+  "session": "session-2026-11-06T13-47-27.414258700Z",
+  "compareBaseline": "after-a1-settings",
+  "medianAvgFps": 37.259,
+  "baselineMedianAvgFps": 38.885,
+  "gpuFrameTimeMsAvgRun1": 10.922,
+  "cpuUpdateMsAvgRun1": 8.707,
+  "cpuRenderMsAvgRun1": 17.059,
+  "rationale": [
+    "visual 3/3 pass",
+    "gpuFrameTimeMs / cpuUpdateMs / cpuRenderMs populated on all 3 runs",
+    "avg FPS within noise of A1 (−4.2% stable); suite overall fail is 1%/P99 noise",
+    "not claimed as FPS optimization",
+    "technique-level VS split still open (Nsight/RenderDoc)"
+  ]
+}

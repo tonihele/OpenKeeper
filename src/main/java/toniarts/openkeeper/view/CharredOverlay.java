@@ -79,6 +79,8 @@ public final class CharredOverlay {
                 charr(geometry, charred);
             }
         });
+        // Cloned materials need a fresh LightData / AmbientMap bind
+        AssetUtils.invalidateVertexLight(spatial);
     }
 
     /**

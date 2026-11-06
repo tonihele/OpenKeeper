@@ -1,0 +1,19 @@
+{
+  "executedAt": "2026-11-06T10:14:45.6214901Z",
+  "runs": 3,
+  "visualPassCriteria": "SSIM>=0.92 and MAE<=4.0 (pixel mismatch informational for live sim)",
+  "durationSeconds": 90,
+  "visualRefDir": "baselines/performance/visual",
+  "workloads": [
+    "late-campaign-dense",
+    "caverns-complex",
+    "pressure-skirmish"
+  ],
+  "sessionDir": "D:/Project/OpenKeeper/baselines/performance/session-2026-11-06T09-56-27.623472Z",
+  "runsVisualWouldPassUnderNewCriteria": [
+    true,
+    true,
+    true
+  ],
+  "visualRefsEstablished": true
+}

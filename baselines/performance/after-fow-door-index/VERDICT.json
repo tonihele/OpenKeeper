@@ -1,0 +1,15 @@
+{
+  "change": "C1 incremental FoW door index",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T13-17-42.992818700Z",
+  "compareBaseline": "after-a3-light-timers",
+  "medianAvgFps": 37.121,
+  "baselineMedianAvgFps": 37.657,
+  "rationale": [
+    "avg FPS stable/slightly down; P99 unchanged",
+    "1% low median +8% but candidate CV 0.057 (unstable) and run 2 hitch",
+    "Door rebuild not a suite bottleneck after A3 GPU-bound finding",
+    "Source fully reverted"
+  ]
+}

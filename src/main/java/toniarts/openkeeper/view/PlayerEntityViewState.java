@@ -29,10 +29,10 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -158,10 +158,26 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
 
     /**
-     * A thing whose light is created and positioned every frame (see
-     * {@link #update(float)}), not only when its entity changes.
+     * A thing whose light is created once and positioned every frame (see
+     * {@link #update(float)}), not only when its entity changes. Offset is
+     * cached so the hot path allocates nothing.
      */
-    private record TrackedLight(Spatial spatial, Light light, float intensity, boolean honourPulse, boolean objectLight) {
+    private static final class TrackedLight {
+        private Spatial spatial;
+        private Light light;
+        private float intensity;
+        private boolean honourPulse;
+        private boolean objectLight;
+        private final Vector3f offset = new Vector3f();
+
+        private void set(Spatial spatial, Light light, float intensity, boolean honourPulse, boolean objectLight) {
+            this.spatial = spatial;
+            this.light = light;
+            this.intensity = intensity;
+            this.honourPulse = honourPulse;
+            this.objectLight = objectLight;
+            LightConstants.toJmeOffset(light.getmKPos(), offset);
+        }
     }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
@@ -246,27 +262,26 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.update();
         shotModelContainer.update();
 
-        // Lighting: re-derive attached-light positions and bind the
-        // vertex-lit models every frame -- lights on other things
-        // (a nearby flickering torch) change even for a thing that hasn't
-        // itself moved, so this can't rely on EntityContainer's own
-        // change-driven updateObject().
+        // Lighting: keep thing-light positions in sync every frame (owners move).
+        // Vertex material binds are cached on each spatial — applyVertexLight is
+        // a no-op once ready; flicker lives in the shared LightData texture from
+        // LightRules.update, so we do not re-traverse model trees every frame.
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
             // Create missing thing lights and follow the (possibly moving)
             // owners: the local translation is what updateModelPosition just
-            // set, whereas the world one lags a frame behind
-            for (Map.Entry<EntityId, TrackedLight> entry : new ArrayList<>(trackedLights.entrySet())) {
+            // set, whereas the world one lags a frame behind. Iterate without
+            // allocating a snapshot list; remove via the iterator when disabled.
+            Iterator<Map.Entry<EntityId, TrackedLight>> lights = trackedLights.entrySet().iterator();
+            while (lights.hasNext()) {
+                Map.Entry<EntityId, TrackedLight> entry = lights.next();
                 TrackedLight tracked = entry.getValue();
-                applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity(), tracked.honourPulse(), tracked.objectLight());
+                if (!syncThingLight(entry.getKey(), tracked, lightRules)) {
+                    lights.remove();
+                    lightOwners.remove(entry.getKey());
+                }
             }
             for (Spatial object : objectModelContainer.getModels()) {
-                // The parts of the dungeon heart take no light from objects
-                // (the heart's own glow, the arches' light), only from
-                // effects, the hand, creatures, etc.
-                ObjectViewControl control = object.getControl(ObjectViewControl.class);
-                int objectId = control != null ? control.getDataObject().getObjectId() : -1;
-
                 AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
             for (Spatial object : creatureModelContainer.getModels()) {
@@ -284,9 +299,12 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     protected LightRules getLightRules() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
-        // Guard against racing the map loader thread's LightRules writes
-        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
-        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
+        // LightRules.isReady() is the publication gate (not an external mapLoaded flag).
+        if (mapViewState == null) {
+            return null;
+        }
+        LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+        return lightRules.isReady() ? lightRules : null;
     }
 
     @Override
@@ -367,7 +385,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
             for (Map.Entry<EntityId, TrackedLight> entry : trackedLights.entrySet()) {
-                Spatial spatial = entry.getValue().spatial();
+                Spatial spatial = entry.getValue().spatial;
                 if (spatial == previous || spatial == hiddenSpatial) {
                     lightRules.removeThingLight(entry.getKey());
                     lightOwners.remove(entry.getKey());
@@ -630,20 +648,35 @@ public class PlayerEntityViewState extends AbstractAppState {
             }
             return;
         }
-        trackedLights.put(id, new TrackedLight(object, light, intensity, honourPulse, objectLight));
-        if (lightRules == null) {
-            // Map still loading: update() creates the light as soon as the
-            // map is ready, without waiting for the entity to change again
-            // (an idle imp might never)
-            return;
+        TrackedLight tracked = trackedLights.get(id);
+        if (tracked == null) {
+            tracked = new TrackedLight();
+            trackedLights.put(id, tracked);
+        }
+        tracked.set(object, light, intensity, honourPulse, objectLight);
+        if (lightRules != null) {
+            syncThingLight(id, tracked, lightRules);
+        }
+        // else map still loading: update() creates the light once ready
+    }
+
+    /**
+     * Ensures the thing light exists and follows the owner. Returns false when
+     * the light was disabled and should be dropped from {@code trackedLights}.
+     */
+    private boolean syncThingLight(EntityId id, TrackedLight tracked, LightRules lightRules) {
+        if (!LightConstants.isLightEnabled(tracked.light)) {
+            lightRules.removeThingLight(id);
+            return false;
         }
 
+        Spatial object = tracked.spatial;
+        Light light = tracked.light;
         // A PLAYER_COLOURED light takes the owner's colour, so a change of
         // owner (e.g. a converted creature) needs the light rebuilt
         // ...except the creature being possessed, whose light stays neutral
         boolean possessed = object == hiddenSpatial;
         boolean playerColoured = !possessed && light.getFlags().contains(Light.LightFlag.PLAYER_COLOURED);
-        // The view control already watches the entity's Owner
         IEntityViewControl viewControl = playerColoured ? entityViewControls.get(id) : null;
         Short ownerId = viewControl != null ? Short.valueOf(viewControl.getOwnerId()) : null;
         if (playerColoured && lightRules.getThingLight(id) != null
@@ -651,21 +684,21 @@ public class PlayerEntityViewState extends AbstractAppState {
             lightRules.removeThingLight(id);
         }
 
-        Vector3f offset = LightConstants.toJmeOffset(light.getmKPos());
         if (lightRules.getThingLight(id) == null) {
             if (playerColoured) {
                 lightOwners.put(id, ownerId);
             }
             LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
-                    intensity, honourPulse, !possessed);
-            source.setObjectLight(objectLight);
-            if (objectLight) {
+                    tracked.intensity, tracked.honourPulse, !possessed);
+            source.setObjectLight(tracked.objectLight);
+            if (tracked.objectLight) {
                 source.setRadius(Math.min(source.getRadius() * LightConstants.OBJECT_LIGHT_RADIUS_SCALE,
                         LightConstants.MAX_LIGHT_RADIUS_TILES));
             }
         } else {
-            lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
+            lightRules.updateThingLightPosition(id, object.getLocalTranslation(), tracked.offset);
         }
+        return true;
     }
 
     /**

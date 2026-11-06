@@ -1,0 +1,49 @@
+{
+  "baseline": "baselines/performance/after-tile-rebuild-opt/candidate-baseline-windows-10-amd64.json",
+  "candidate": "baselines/performance/after-page-light-cull/candidate-baseline-windows-10-amd64.json",
+  "candidateSession": "session-2026-11-06T11-50-03.613472Z",
+  "overall": "improvement",
+  "findings": [
+    {
+      "metric": "avgFps.median",
+      "baseline": 39.141,
+      "candidate": 39.631,
+      "relative": 0.0125,
+      "status": "improvement"
+    },
+    {
+      "metric": "onePercentLowFps.median",
+      "baseline": 5.048,
+      "candidate": 5.112,
+      "relative": 0.0127,
+      "status": "stable"
+    },
+    {
+      "metric": "frameTimeP50.median",
+      "baseline": 18.157,
+      "candidate": 18.983,
+      "relative": 0.0455,
+      "status": "stable"
+    },
+    {
+      "metric": "frameTimeP99.median",
+      "baseline": 62.629,
+      "candidate": 57.857,
+      "relative": -0.0762,
+      "status": "improvement"
+    },
+    {
+      "metric": "visualAllPassed",
+      "baseline": true,
+      "candidate": true,
+      "status": "pass"
+    }
+  ],
+  "lightEvaluation": {
+    "lightsUploadedAvg": 2204,
+    "pageLightIndexAvg": 20.5,
+    "reductionFactorApprox": 107,
+    "pageFullListFallbacks": 0
+  },
+  "notes": "Manual median comparison against the latest pre-change candidate (tile/room rebuild opt). Official comparison is regression-vs-baseline.json."
+}

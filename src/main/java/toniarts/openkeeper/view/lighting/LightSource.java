@@ -103,7 +103,8 @@ public final class LightSource {
             int red, int green, int blue, float intensity, float radius) {
         this.kind = kind;
         this.owner = owner;
-        this.position = position;
+        // Always own the vector so callers can reuse scratch positions
+        this.position = position == null ? new Vector3f() : new Vector3f(position);
         this.baseColour[0] = red;
         this.baseColour[1] = green;
         this.baseColour[2] = blue;
@@ -143,7 +144,11 @@ public final class LightSource {
     }
 
     public void setPosition(Vector3f position) {
-        this.position = position;
+        if (this.position == null) {
+            this.position = new Vector3f(position);
+        } else {
+            this.position.set(position);
+        }
     }
 
     /**

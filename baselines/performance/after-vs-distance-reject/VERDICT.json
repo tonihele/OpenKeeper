@@ -1,0 +1,22 @@
+{
+  "change": "VS LightData early distance-reject (skip colour/flags texelFetch when out of soft-tail reach)",
+  "decision": "REJECTED",
+  "reverted": true,
+  "graphicsPreset": "HIGH",
+  "session": "session-2026-11-06T15-13-16.758652200Z",
+  "controlSession": "session-2026-11-06T15-10-43.664171900Z",
+  "compareBaseline": "control-high-before-vs-distance-reject",
+  "gitRevision": "73f60937",
+  "hardware": "Windows 10 amd64, NVIDIA GeForce RTX 2060 SUPER",
+  "medianAvgFps": 40.747,
+  "baselineMedianAvgFps": 36.203,
+  "medianGpuFrameTimeMs": 9.978,
+  "baselineMedianGpuFrameTimeMs": 9.692,
+  "rationale": [
+    "avg FPS median +12.6% and 1% lows improved, but hypothesized GPU lever did not: gpuFrameTimeMs median +0.29 ms",
+    "control avgFps CV 5.5% with declining run trend (39.7→36.2→34.9) — not a stable paired baseline",
+    "suite overall fail only on visualAllPassed (cp01 flake run3; control also failed visualAllPassed)",
+    "Cannot attribute FPS gain to the shader change without gpuFrameTimeMs / F1 confirmation",
+    "Source fully reverted"
+  ]
+}

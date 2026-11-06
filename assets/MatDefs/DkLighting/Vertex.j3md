@@ -41,6 +41,13 @@ MaterialDef DK Terrain Lighting {
         // 4 = override light (player-coloured creatures).
         Texture2D LightData
 
+        // Per-page index list into LightData (terrain BatchNode pages). Row =
+        // LightIndexRow, count = LightIndexCount (< 0 = full-list fallback).
+        // Rooms / water / entities omit these and loop the full atlas.
+        Texture2D LightIndexData
+        Int LightIndexRow
+        Int LightIndexCount
+
         // Scale of the minimum light every explored vertex gets: 1 for
         // walkable terrain, 0 for solid terrain (black where no light reaches)
         Float MinLight : 1.0
@@ -83,6 +90,7 @@ MaterialDef DK Terrain Lighting {
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap
             LIGHT_DATA : LightData
+            LIGHT_INDEX_DATA : LightIndexData
             IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
         }
     }

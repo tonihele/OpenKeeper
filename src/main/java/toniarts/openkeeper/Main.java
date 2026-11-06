@@ -30,13 +30,12 @@ import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
-import com.jme3.post.FilterPostProcessor;
-import com.jme3.post.ssao.SSAOFilter;
-import com.jme3.post.filters.TranslucentBucketFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
+import com.jme3.system.JmeContext;
 import com.jme3.system.JmeSystem;
+import com.jme3.math.FastMath;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
@@ -69,6 +68,7 @@ import javax.swing.JFrame;
 import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
+import toniarts.openkeeper.game.data.GraphicsQualityPreset;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -82,9 +82,13 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
+import toniarts.openkeeper.benchmark.BenchmarkAppState;
+import toniarts.openkeeper.benchmark.BenchmarkConfig;
+import toniarts.openkeeper.post.PostProcessPipeline;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.video.MovieState;
 
 /**
@@ -105,6 +109,7 @@ public final class Main extends SimpleApplication {
     private static final Object LOCK = new Object();
     private static Map<String, String> params;
     private static boolean debug;
+    private static BenchmarkConfig benchmarkConfig = BenchmarkConfig.disabled();
 
     private NiftyJmeDisplay niftyDisplay;
     private byte[] gameUiXml;
@@ -118,6 +123,7 @@ public final class Main extends SimpleApplication {
         // Create main application instance
         parseArguments(args);
         debug = params.containsKey("debug");
+        benchmarkConfig = BenchmarkConfig.fromParams(params);
         final Main app = new Main();
         app.setPauseOnLostFocus(false);
 
@@ -127,16 +133,61 @@ public final class Main extends SimpleApplication {
         if (debug)
             app.settings.putBoolean("RendererDebug", true); // create a debug GL context
 
+        if (benchmarkConfig.isEnabled()) {
+            applyBenchmarkSettings(app);
+        }
+
         // set a better logging format
         System.setProperty("java.util.logging.SimpleFormatter.format", "%1$tF %1$tT %4$s %2$s - %5$s%6$s%n");
         suppressMissingAssetWarnings();
 
         // Finally start it if everything went ok
         if (checkSetup(app)) {
-            app.start();
+            if (benchmarkConfig.isEnabled() && benchmarkConfig.isHeadless()) {
+                app.start(JmeContext.Type.Headless);
+            } else {
+                app.start();
+            }
         } else {
             logger.log(Level.WARNING, "Application setup not complete!!");
         }
+    }
+
+    /**
+     * Seeds RNGs, disables VSync (unless requested), and prepares headless
+     * rendering so measurement is not capped by the display.
+     */
+    private static void applyBenchmarkSettings(Main app) {
+        Utils.setSeed(benchmarkConfig.getSeed());
+        FastMath.rand.setSeed(benchmarkConfig.getSeed());
+        // Optional named graphics preset (A1b / P1 matrix). Does not persist to
+        // the player's openkeeper.properties — only mutates the in-memory Settings
+        // for this process.
+        String presetName = params.get("benchmark-graphics-preset");
+        if (presetName != null && !presetName.isBlank()) {
+            Settings.getInstance().applyGraphicsQualityPreset(
+                    GraphicsQualityPreset.fromStoredName(presetName));
+            app.settings.setSamples(Settings.getInstance().getAntiAliasingMode().getSamples());
+        }
+        app.settings.setVSync(benchmarkConfig.isVsync());
+        // Prefer uncapped / high caps so FPS reflects actual cost, not the refresh rate.
+        if (!benchmarkConfig.isVsync()) {
+            app.settings.setFrameRate(-1);
+        }
+        // Lock resolution for visual parity / reproducible fill-rate.
+        if (benchmarkConfig.isSuite() || benchmarkConfig.isVisual()) {
+            app.settings.setResolution(benchmarkConfig.getWidth(), benchmarkConfig.getHeight());
+            app.settings.setFullscreen(false);
+        }
+        if (benchmarkConfig.isHeadless()) {
+            app.settings.setRenderer(null);
+            app.settings.setAudioRenderer(null);
+            app.settings.setUseInput(false);
+        }
+        logger.log(Level.INFO,
+                "Benchmark mode enabled (suite={0}, workload={1}, level={2}, seed={3}, headless={4}, visual={5})",
+                benchmarkConfig.isSuite(), benchmarkConfig.getWorkloadId(), benchmarkConfig.getLevel(),
+                benchmarkConfig.getSeed(), benchmarkConfig.isHeadless(), benchmarkConfig.isVisual());
     }
 
     private static void suppressMissingAssetWarnings() {
@@ -471,7 +522,8 @@ public final class Main extends SimpleApplication {
                     }
 
                     // Initialize persistent app states
-                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
+                    boolean skipMenuScene = params.containsKey("level") || benchmarkConfig.isEnabled();
+                    MainMenuState mainMenuState = new MainMenuState(!skipMenuScene, assetManager, Main.this);
                     DetailedProfilerState detailedProfilerState = new DetailedProfilerState();
                     detailedProfilerState.setEnabled(false); // F6
                     getStateManager().getState(StatsAppState.class).toggleStats(); // F5
@@ -481,6 +533,9 @@ public final class Main extends SimpleApplication {
 
                     getStateManager().attach(mainMenuState);
                     getStateManager().attach(detailedProfilerState);
+                    if (benchmarkConfig.isEnabled()) {
+                        getStateManager().attach(new BenchmarkAppState(benchmarkConfig));
+                    }
 
                     // Eventually we are going to use Nifty, the XML files take some time to parse
                     nifty.addXml(new ByteArrayInputStream(mainMenuUiXml));
@@ -498,7 +553,7 @@ public final class Main extends SimpleApplication {
                 al.setColor(ColorRGBA.White);
                 rootNode.addLight(al);
 
-                if (params.containsKey("nomovies") || params.containsKey("level")) {
+                if (params.containsKey("nomovies") || params.containsKey("level") || benchmarkConfig.isEnabled()) {
                     startGame();
                 } else {
                     // The fireworks!
@@ -639,25 +694,13 @@ public final class Main extends SimpleApplication {
     }
 
     /**
-     * (re-)Sets scene processors to the view port
+     * (re-)Sets scene processors on the view port via
+     * {@link PostProcessPipeline}. Translucent resolve is always installed and
+     * is independent of whether SSAO (or any other AO) is enabled.
      */
     public void setViewProcessors() {
-
-        // Clear the old ones
-        viewPort.clearProcessors();
-
-        // Add SSAO
-        if (Settings.getInstance().getBoolean(Settings.Setting.SSAO)) {
-            FilterPostProcessor fpp = new FilterPostProcessor(assetManager);
-            SSAOFilter ssaoFilter = new SSAOFilter(Settings.getInstance().getFloat(Settings.Setting.SSAO_SAMPLE_RADIUS),
-                    Settings.getInstance().getFloat(Settings.Setting.SSAO_INTENSITY),
-                    Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
-                    Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
-            fpp.addFilter(ssaoFilter);
-            // Render flames/particles after water, using the original scene depth.
-            fpp.addFilter(new TranslucentBucketFilter());
-            viewPort.addProcessor(fpp);
-        }
+        PostProcessPipeline.applyTo(viewPort, assetManager,
+                PostProcessPipeline.Config.fromSettings(Settings.getInstance()));
     }
 
     /**
@@ -689,9 +732,12 @@ public final class Main extends SimpleApplication {
      * Starts the game, opens up the start menu / level
      */
     private void startGame() {
-        if (params.containsKey("level")) {
+        if (params.containsKey("level") || benchmarkConfig.isEnabled()) {
             try {
-                LocalGameSession.createLocalGame(params.get("level"), false, stateManager, this, null);
+                String level = params.containsKey("level")
+                        ? params.get("level")
+                        : benchmarkConfig.getLevel();
+                LocalGameSession.createLocalGame(level, false, stateManager, this, null);
             } catch (IOException ex) {
                 throw new RuntimeException("Failed to start the game!", ex);
             }
@@ -791,6 +837,24 @@ public final class Main extends SimpleApplication {
      */
     public static boolean isDebug() {
         return debug;
+    }
+
+    /**
+     * Whether a deterministic performance benchmark is running.
+     *
+     * @return true when {@code -benchmark} was passed on the CLI
+     */
+    public static boolean isBenchmark() {
+        return benchmarkConfig != null && benchmarkConfig.isEnabled();
+    }
+
+    /**
+     * Active benchmark configuration, or a disabled default.
+     *
+     * @return benchmark config
+     */
+    public static BenchmarkConfig getBenchmarkConfig() {
+        return benchmarkConfig;
     }
 
 }

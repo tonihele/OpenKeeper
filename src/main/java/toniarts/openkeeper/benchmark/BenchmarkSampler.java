@@ -1,0 +1,308 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.benchmark;
+
+import com.jme3.app.Application;
+import com.jme3.renderer.Statistics;
+import java.lang.management.GarbageCollectorMXBean;
+import java.lang.management.ManagementFactory;
+import java.lang.management.MemoryMXBean;
+import java.lang.management.ThreadMXBean;
+import java.util.LinkedHashMap;
+import java.util.Map;
+import toniarts.openkeeper.game.state.GameClientState;
+import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.view.lighting.LightRules;
+
+/**
+ * Collects per-frame samples and downsampled trends during measurement.
+ */
+public final class BenchmarkSampler {
+
+    private static final int IDX_VERTICES = 0;
+    private static final int IDX_TRIANGLES = 1;
+    private static final int IDX_OBJECTS = 3;
+    private static final int IDX_SHADER_SWITCHES = 4;
+    private static final int IDX_TEXTURE_BINDS = 7;
+
+    private final FrameTimeStats frameTimes = new FrameTimeStats();
+    private final RunningStat drawCalls = new RunningStat();
+    private final RunningStat triangles = new RunningStat();
+    private final RunningStat vertices = new RunningStat();
+    private final RunningStat shaderSwitches = new RunningStat();
+    private final RunningStat textureBinds = new RunningStat();
+    private final RunningStat lightsUploaded = new RunningStat();
+    private final RunningStat lightSources = new RunningStat();
+    private final RunningStat pageLightIndexAvg = new RunningStat();
+    private final RunningStat pageLightIndexMax = new RunningStat();
+    private final RunningStat pageFullListFallbacks = new RunningStat();
+    private final RunningStat lightUpdateMs = new RunningStat();
+    private final RunningStat lightModulatorMs = new RunningStat();
+    private final RunningStat lightUploadMs = new RunningStat();
+    private final RunningStat lightPageIndexMs = new RunningStat();
+    private final RunningStat gpuFrameTimeMs = new RunningStat();
+    private final RunningStat cpuUpdateMs = new RunningStat();
+    private final RunningStat cpuRenderMs = new RunningStat();
+    private final RunningStat usedHeapMb = new RunningStat();
+    private final RunningStat allocBytesPerFrame = new RunningStat();
+    private final TrendSeries trends = new TrendSeries(1.0);
+    private boolean gpuTimerSeen;
+
+    private final int[] statsScratch = new int[13];
+    private long lastFrameNanos;
+    private long startHeapBytes;
+    private long peakHeapBytes;
+    private long startGcCount;
+    private long startGcTimeMs;
+    private long startAllocatedBytes;
+    private long lastAllocatedBytes;
+    private long measureThreadId;
+    private boolean heapBaselineSet;
+    private boolean statsEnabled;
+    private boolean allocTrackingEnabled;
+    private double measureElapsed;
+
+    public void begin(Application app) {
+        lastFrameNanos = 0L;
+        measureElapsed = 0.0;
+        MemoryMXBean memory = ManagementFactory.getMemoryMXBean();
+        startHeapBytes = memory.getHeapMemoryUsage().getUsed();
+        peakHeapBytes = startHeapBytes;
+        startGcCount = totalGcCount();
+        startGcTimeMs = totalGcTimeMs();
+        heapBaselineSet = true;
+        measureThreadId = Thread.currentThread().threadId();
+        startAllocatedBytes = threadAllocatedBytes(measureThreadId);
+        lastAllocatedBytes = startAllocatedBytes;
+        allocTrackingEnabled = startAllocatedBytes >= 0L;
+        enableRendererStats(app);
+    }
+
+    /**
+     * Resets tile/room rebuild counters so measure-window totals exclude load
+     * and warm-up storms.
+     */
+    public void beginRebuildWindow(GameClientState client) {
+        if (client == null) {
+            return;
+        }
+        PlayerMapViewState mapView = client.getPlayerMapViewState();
+        if (mapView != null && mapView.getMapLoader() != null) {
+            mapView.getMapLoader().getRebuildStats().reset();
+        }
+    }
+
+    public void sample(Application app, GameClientState client, double measureElapsedSec) {
+        sample(app, client, measureElapsedSec, null);
+    }
+
+    /**
+     * @param frameProfiler optional suite profiler for GPU / CPU update-render splits
+     */
+    public void sample(Application app, GameClientState client, double measureElapsedSec,
+            BenchmarkFrameProfiler frameProfiler) {
+        this.measureElapsed = measureElapsedSec;
+        long now = System.nanoTime();
+        double frameTimeMs = 0;
+        if (lastFrameNanos > 0L) {
+            frameTimeMs = (now - lastFrameNanos) / 1_000_000.0;
+            frameTimes.addFrameTimeMs(frameTimeMs);
+        }
+        lastFrameNanos = now;
+
+        if (frameProfiler != null && frameProfiler.hasSample()) {
+            cpuUpdateMs.add(frameProfiler.getLastCpuUpdateMs());
+            cpuRenderMs.add(frameProfiler.getLastCpuRenderMs());
+            double gpuMs = frameProfiler.getLastGpuMs();
+            if (!Double.isNaN(gpuMs) && gpuMs >= 0.0 && gpuMs <= 250.0) {
+                gpuFrameTimeMs.add(gpuMs);
+                gpuTimerSeen = true;
+            }
+        }
+
+        int draws = 0;
+        int tris = 0;
+        int lights = 0;
+        if (app.getRenderer() != null) {
+            Statistics stats = app.getRenderer().getStatistics();
+            if (stats != null) {
+                if (!statsEnabled) {
+                    stats.setEnabled(true);
+                    statsEnabled = true;
+                }
+                stats.getData(statsScratch);
+                vertices.add(statsScratch[IDX_VERTICES]);
+                triangles.add(statsScratch[IDX_TRIANGLES]);
+                drawCalls.add(statsScratch[IDX_OBJECTS]);
+                shaderSwitches.add(statsScratch[IDX_SHADER_SWITCHES]);
+                textureBinds.add(statsScratch[IDX_TEXTURE_BINDS]);
+                draws = statsScratch[IDX_OBJECTS];
+                tris = statsScratch[IDX_TRIANGLES];
+            }
+        }
+
+        if (client != null) {
+            PlayerMapViewState mapView = client.getPlayerMapViewState();
+            if (mapView != null && mapView.isMapLoaded()) {
+                LightRules lightRules = mapView.getMapLoader().getLightRules();
+                lights = lightRules.getUploadedLightCount();
+                lightsUploaded.add(lights);
+                lightSources.add(lightRules.getSourceCount());
+                pageLightIndexAvg.add(lightRules.getPageLightIndexAvg());
+                pageLightIndexMax.add(lightRules.getPageLightIndexMax());
+                pageFullListFallbacks.add(lightRules.getPageFullListFallbacks());
+                lightUpdateMs.add(lightRules.getLastUpdateMs());
+                lightModulatorMs.add(lightRules.getLastModulatorMs());
+                lightUploadMs.add(lightRules.getLastLightUploadMs());
+                lightPageIndexMs.add(lightRules.getLastPageIndexRebuildMs());
+            }
+        }
+
+        long used = ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed();
+        peakHeapBytes = Math.max(peakHeapBytes, used);
+        double heapMb = used / (1024.0 * 1024.0);
+        usedHeapMb.add(heapMb);
+
+        if (allocTrackingEnabled && frameTimeMs > 0) {
+            long allocated = threadAllocatedBytes(measureThreadId);
+            if (allocated >= lastAllocatedBytes) {
+                allocBytesPerFrame.add(allocated - lastAllocatedBytes);
+            }
+            lastAllocatedBytes = allocated;
+        }
+
+        if (frameTimeMs > 0) {
+            trends.offer(measureElapsedSec, frameTimeMs, heapMb, draws, tris, lights);
+        }
+    }
+
+    public Map<String, Object> summarize(double measuredSeconds) {
+        Map<String, Object> metrics = new LinkedHashMap<>();
+        Map<String, Object> frameSummary = frameTimes.summarize();
+        metrics.putAll(frameSummary);
+        metrics.put("durationSec", Math.round(measuredSeconds * 1000.0) / 1000.0);
+        metrics.put("cpuFrameTimeMs", frameSummary.get("frameTimeMs"));
+        metrics.put("gpuFrameTimeMs", gpuTimerSeen ? gpuFrameTimeMs.summarize() : null);
+        metrics.put("cpuUpdateMs", cpuUpdateMs.summarize());
+        metrics.put("cpuRenderMs", cpuRenderMs.summarize());
+        metrics.put("drawCalls", drawCalls.summarize());
+        metrics.put("triangles", triangles.summarize());
+        metrics.put("vertices", vertices.summarize());
+        metrics.put("shaderSwitches", shaderSwitches.summarize());
+        metrics.put("textureBinds", textureBinds.summarize());
+        metrics.put("lightsUploaded", lightsUploaded.summarize());
+        metrics.put("lightSources", lightSources.summarize());
+        metrics.put("pageLightIndexAvg", pageLightIndexAvg.summarize());
+        metrics.put("pageLightIndexMax", pageLightIndexMax.summarize());
+        metrics.put("pageFullListFallbacks", pageFullListFallbacks.summarize());
+        // A3 lighting CPU phase timers (ms / frame) — ranking input, not a FPS claim
+        metrics.put("lightUpdateMs", lightUpdateMs.summarize());
+        metrics.put("lightModulatorMs", lightModulatorMs.summarize());
+        metrics.put("lightUploadMs", lightUploadMs.summarize());
+        metrics.put("lightPageIndexMs", lightPageIndexMs.summarize());
+        metrics.put("trends", trends.summarize());
+
+        Map<String, Object> memory = new LinkedHashMap<>();
+        MemoryMXBean mem = ManagementFactory.getMemoryMXBean();
+        long endUsed = mem.getHeapMemoryUsage().getUsed();
+        long maxHeap = mem.getHeapMemoryUsage().getMax();
+        memory.put("heapUsedStartMb", mb(heapBaselineSet ? startHeapBytes : endUsed));
+        memory.put("heapUsedEndMb", mb(endUsed));
+        memory.put("heapUsedPeakMb", mb(peakHeapBytes));
+        memory.put("heapMaxMb", maxHeap > 0 ? mb(maxHeap) : -1.0);
+        memory.put("heapDeltaMb", mb(endUsed - (heapBaselineSet ? startHeapBytes : endUsed)));
+        memory.put("heapUsedSeriesMb", usedHeapMb.summarize());
+        memory.put("gcCountDelta", totalGcCount() - startGcCount);
+        memory.put("gcTimeMsDelta", totalGcTimeMs() - startGcTimeMs);
+        if (allocTrackingEnabled) {
+            long endAllocated = threadAllocatedBytes(measureThreadId);
+            long totalAllocated = Math.max(0L, endAllocated - startAllocatedBytes);
+            long frames = Math.max(1L, frameTimes.getFrameCount());
+            memory.put("threadAllocatedBytesTotal", totalAllocated);
+            memory.put("threadAllocatedBytesPerFrameAvg", totalAllocated / (double) frames);
+            memory.put("threadAllocatedBytesPerFrame", allocBytesPerFrame.summarize());
+            memory.put("threadAllocatedMbTotal", mb(totalAllocated));
+        }
+        metrics.put("memory", memory);
+        return metrics;
+    }
+
+    public Map<String, Object> summarize(double measuredSeconds, GameClientState client) {
+        Map<String, Object> metrics = summarize(measuredSeconds);
+        if (client != null) {
+            PlayerMapViewState mapView = client.getPlayerMapViewState();
+            if (mapView != null && mapView.getMapLoader() != null) {
+                metrics.put("tileRebuild", mapView.getMapLoader().getRebuildStats().summarize());
+            }
+        }
+        return metrics;
+    }
+
+    public FrameTimeStats getFrameTimes() {
+        return frameTimes;
+    }
+
+    private void enableRendererStats(Application app) {
+        if (app.getRenderer() != null && app.getRenderer().getStatistics() != null) {
+            app.getRenderer().getStatistics().setEnabled(true);
+            statsEnabled = true;
+        }
+    }
+
+    private static double mb(long bytes) {
+        return Math.round((bytes / (1024.0 * 1024.0)) * 1000.0) / 1000.0;
+    }
+
+    /**
+     * HotSpot thread-allocated bytes for the measure thread, or -1 when
+     * unsupported. Enables tracking when available so steady-state lighting
+     * allocation rates show up in the suite report.
+     */
+    private static long threadAllocatedBytes(long threadId) {
+        ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        if (bean instanceof com.sun.management.ThreadMXBean sun
+                && sun.isThreadAllocatedMemorySupported()) {
+            if (!sun.isThreadAllocatedMemoryEnabled()) {
+                sun.setThreadAllocatedMemoryEnabled(true);
+            }
+            return sun.getThreadAllocatedBytes(threadId);
+        }
+        return -1L;
+    }
+
+    private static long totalGcCount() {
+        long total = 0;
+        for (GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+            long c = gc.getCollectionCount();
+            if (c > 0) {
+                total += c;
+            }
+        }
+        return total;
+    }
+
+    private static long totalGcTimeMs() {
+        long total = 0;
+        for (GarbageCollectorMXBean gc : ManagementFactory.getGarbageCollectorMXBeans()) {
+            long t = gc.getCollectionTime();
+            if (t > 0) {
+                total += t;
+            }
+        }
+        return total;
+    }
+}
