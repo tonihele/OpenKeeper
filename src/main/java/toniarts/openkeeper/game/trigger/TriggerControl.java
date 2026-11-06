@@ -351,7 +351,7 @@ public class TriggerControl extends Control {
                 gameController.getGameWorldController().getObjectsController().loadObject(
                         trigger.getUserData("objectId", short.class), trigger.getUserData("playerId", short.class),
                         trigger.getUserData("posX", int.class), trigger.getUserData("posY", int.class));
-                break;
+                return true;
 
             case MAKE:
                 makeAvailable(trigger);
@@ -445,11 +445,6 @@ public class TriggerControl extends Control {
      */
     private boolean doStubAction(TriggerActionData trigger) {
         String reason = switch (trigger.getType()) {
-            // STUB: needs to create a Portal Gem object (object 28 for player 1 in every shipped
-            // record) on a tile. The trigger controls do not have access to the objects
-            // controller, only the creature and the map controllers
-            case CREATE_PORTAL_GEM ->
-                "the objects controller is not available to the triggers";
             // STUB: collapse the hero gate room on the tile (1-based). Rooms can be captured
             // (IRoomController.captured) and destroyed, but there is no "collapse" that plays
             // the gate's own collapse sequence and removes the gate for good
