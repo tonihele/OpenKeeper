@@ -401,7 +401,7 @@
         <panel align="left" valign="center" childLayout="horizontal" margin="6px" visibleToMouse="true">
             <image id="#image" marginRight="6px" align="right" valign="center" filename="$icon">
                 <effect>
-                    <onCustom customKey="hover" name="imageOverlay" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" />
+                    <onCustom customKey="hover" name="menuIconHighlight" neverStopRendering="true" />
                 </effect>
             </image>
             <text id="#text" style="textNormal" text="$text">
