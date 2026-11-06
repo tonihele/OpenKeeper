@@ -50,6 +50,10 @@ public final class BenchmarkSampler {
     private final RunningStat pageLightIndexAvg = new RunningStat();
     private final RunningStat pageLightIndexMax = new RunningStat();
     private final RunningStat pageFullListFallbacks = new RunningStat();
+    private final RunningStat lightUpdateMs = new RunningStat();
+    private final RunningStat lightModulatorMs = new RunningStat();
+    private final RunningStat lightUploadMs = new RunningStat();
+    private final RunningStat lightPageIndexMs = new RunningStat();
     private final RunningStat usedHeapMb = new RunningStat();
     private final RunningStat allocBytesPerFrame = new RunningStat();
     private final TrendSeries trends = new TrendSeries(1.0);
@@ -139,6 +143,10 @@ public final class BenchmarkSampler {
                 pageLightIndexAvg.add(lightRules.getPageLightIndexAvg());
                 pageLightIndexMax.add(lightRules.getPageLightIndexMax());
                 pageFullListFallbacks.add(lightRules.getPageFullListFallbacks());
+                lightUpdateMs.add(lightRules.getLastUpdateMs());
+                lightModulatorMs.add(lightRules.getLastModulatorMs());
+                lightUploadMs.add(lightRules.getLastLightUploadMs());
+                lightPageIndexMs.add(lightRules.getLastPageIndexRebuildMs());
             }
         }
 
@@ -177,6 +185,11 @@ public final class BenchmarkSampler {
         metrics.put("pageLightIndexAvg", pageLightIndexAvg.summarize());
         metrics.put("pageLightIndexMax", pageLightIndexMax.summarize());
         metrics.put("pageFullListFallbacks", pageFullListFallbacks.summarize());
+        // A3 lighting CPU phase timers (ms / frame) — ranking input, not a FPS claim
+        metrics.put("lightUpdateMs", lightUpdateMs.summarize());
+        metrics.put("lightModulatorMs", lightModulatorMs.summarize());
+        metrics.put("lightUploadMs", lightUploadMs.summarize());
+        metrics.put("lightPageIndexMs", lightPageIndexMs.summarize());
         metrics.put("trends", trends.summarize());
 
         Map<String, Object> memory = new LinkedHashMap<>();

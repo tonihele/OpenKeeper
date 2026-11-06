@@ -128,6 +128,10 @@ public final class SceneLights {
     private int pageFullListFallbacks;
     private int[] lightGridHeads = new int[0];
     private int[] lightGridNext = new int[0];
+    /** Last-frame CPU: frustum filter + LightData write (nanoseconds). */
+    private long lastUploadNanos;
+    /** Last-frame CPU: terrain page light-index rebuild (nanoseconds). */
+    private long lastPageIndexNanos;
 
     public SceneLights() {
         int width = 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
@@ -192,6 +196,7 @@ public final class SceneLights {
      * @param camera frustum used for upload culling; may be {@code null}
      */
     public void update(LightSource[] lights, int lightCount, Camera camera) {
+        long t0 = System.nanoTime();
         Plane[] frustum = camera != null ? getFrustumPlanes(camera) : null;
 
         int count = 0;
@@ -228,7 +233,26 @@ public final class SceneLights {
         lightFloats.put(2, globalAmbient.g);
         lightFloats.put(3, globalAmbient.b);
         lightData.getImage().setUpdateNeeded();
+        long t1 = System.nanoTime();
         rebuildTerrainPageIndices();
+        long t2 = System.nanoTime();
+        lastUploadNanos = t1 - t0;
+        lastPageIndexNanos = t2 - t1;
+    }
+
+    /**
+     * CPU time of the last {@link #update} frustum filter + {@code LightData}
+     * write, in milliseconds.
+     */
+    public double getLastUploadMs() {
+        return lastUploadNanos / 1_000_000.0;
+    }
+
+    /**
+     * CPU time of the last terrain page light-index rebuild, in milliseconds.
+     */
+    public double getLastPageIndexRebuildMs() {
+        return lastPageIndexNanos / 1_000_000.0;
     }
 
     /**

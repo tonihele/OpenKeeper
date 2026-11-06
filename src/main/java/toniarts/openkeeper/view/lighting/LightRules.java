@@ -87,6 +87,10 @@ public final class LightRules {
     /** Reused when debug groups filter the upload set. */
     private LightSource[] filteredSnapshot = new LightSource[0];
     private final Vector3f thingPosScratch = new Vector3f();
+    /** Last-frame CPU for the whole {@link #update(float, Camera)} call. */
+    private long lastUpdateNanos;
+    /** Last-frame CPU for modulator tick/flicker only. */
+    private long lastModulatorNanos;
 
     public LightRules() {
         this(IFogOfWarInformation.ALWAYS_VISIBLE);
@@ -218,27 +222,61 @@ public final class LightRules {
         // No-op until publishReady(): avoids racing the loader's registry and
         // terrain-page mutations (ConcurrentModificationException / torn GL state).
         if (phase != Phase.READY) {
+            lastUpdateNanos = 0L;
+            lastModulatorNanos = 0L;
             return;
         }
+        long t0 = System.nanoTime();
         modulators.update(tpf);
         int n = modulators.captureSnapshot();
         LightSource[] snap = modulators.currentSnapshot();
+        long t1 = System.nanoTime();
+        lastModulatorNanos = t1 - t0;
         Set<LightSource.Group> disabled = disabledGroups;
         if (disabled.isEmpty()) {
             sceneLights.update(snap, n, camera);
-            return;
-        }
-        if (filteredSnapshot.length < n) {
-            filteredSnapshot = new LightSource[Math.max(n, filteredSnapshot.length == 0 ? 256 : filteredSnapshot.length * 2)];
-        }
-        int kept = 0;
-        for (int i = 0; i < n; i++) {
-            LightSource light = snap[i];
-            if (light != null && !disabled.contains(LightSource.Group.of(light))) {
-                filteredSnapshot[kept++] = light;
+        } else {
+            if (filteredSnapshot.length < n) {
+                filteredSnapshot = new LightSource[Math.max(n, filteredSnapshot.length == 0 ? 256 : filteredSnapshot.length * 2)];
             }
+            int kept = 0;
+            for (int i = 0; i < n; i++) {
+                LightSource light = snap[i];
+                if (light != null && !disabled.contains(LightSource.Group.of(light))) {
+                    filteredSnapshot[kept++] = light;
+                }
+            }
+            sceneLights.update(filteredSnapshot, kept, camera);
         }
-        sceneLights.update(filteredSnapshot, kept, camera);
+        lastUpdateNanos = System.nanoTime() - t0;
+    }
+
+    /**
+     * CPU time of the last {@link #update(float, Camera)}, in milliseconds.
+     */
+    public double getLastUpdateMs() {
+        return lastUpdateNanos / 1_000_000.0;
+    }
+
+    /**
+     * CPU time of modulator tick/flicker + snapshot capture on the last update.
+     */
+    public double getLastModulatorMs() {
+        return lastModulatorNanos / 1_000_000.0;
+    }
+
+    /**
+     * @see SceneLights#getLastUploadMs()
+     */
+    public double getLastLightUploadMs() {
+        return sceneLights.getLastUploadMs();
+    }
+
+    /**
+     * @see SceneLights#getLastPageIndexRebuildMs()
+     */
+    public double getLastPageIndexRebuildMs() {
+        return sceneLights.getLastPageIndexRebuildMs();
     }
 
     /**

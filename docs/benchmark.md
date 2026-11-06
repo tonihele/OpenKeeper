@@ -4,6 +4,19 @@ Deterministic late-game stress suite with sustained metrics, visual parity check
 
 Framework version: **2**
 
+## Related docs
+
+| Doc | Role |
+|-----|------|
+| [acceleration-structures.md](acceleration-structures.md) | Prioritized acceleration / optimization roadmap (index) |
+| [acceleration-lighting.md](acceleration-lighting.md) | Lighting grids, indices, AmbientMap |
+| [acceleration-spatial-simulation.md](acceleration-spatial-simulation.md) | FoW, A\*, sensing, picking |
+| [acceleration-mesh-scene.md](acceleration-mesh-scene.md) | Pages, ceiling, chunk meshes |
+| [rendering-pipeline-analysis.md](rendering-pipeline-analysis.md) | Original rendering audit |
+| `benchmark-*-opt.md` / `benchmark-lightrules-lifecycle.md` | Measured before/after change reports |
+| [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room indices — **REJECTED** |
+| [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | A3 light CPU timers — **ACCEPTED tooling** |
+
 ## Quick start (fast path)
 
 Default timings are short so a full baseline fits in a few minutes:

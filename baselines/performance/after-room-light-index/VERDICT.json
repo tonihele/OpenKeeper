@@ -1,0 +1,23 @@
+{
+  "change": "B1 room light-index slots (extend terrain page indices to rooms)",
+  "decision": "REJECTED",
+  "reverted": true,
+  "candidateSession": "session-2026-11-06T12-51-11.749771700Z",
+  "sameMachineControl": "control-page-cull-same-machine/session-2026-11-06T12-53-15.362610700Z",
+  "historicalBaseline": "after-page-light-cull (median avg FPS 39.631)",
+  "metrics": {
+    "candidateMedianAvgFps": 36.909,
+    "controlMedianAvgFps": 37.586,
+    "deltaVsControl": -0.677,
+    "relativeVsControl": -0.018,
+    "visualAllPassed": true
+  },
+  "rationale": [
+    "Same-machine 3× control at page-cull HEAD median 37.586 FPS; B1 rooms-only median 36.909 (−1.8%)",
+    "No reproducible improvement vs immediately preceding accepted lighting baseline under matched conditions",
+    "Historical after-page-light-cull 39.631 is quieter-machine; not used alone for accept/reject",
+    "Water/lava indexing abandoned mid-iteration (constant 2 full-list fallbacks + map-wide AABB rebuild cost)",
+    "Visual parity OK on rooms-only session (3/3) — rejection is performance-only",
+    "Source fully reverted; evidence retained under after-room-light-index/ and control-page-cull-same-machine/"
+  ]
+}

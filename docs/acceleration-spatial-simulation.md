@@ -1,0 +1,89 @@
+# Spatial & simulation acceleration
+
+**Parent roadmap:** [acceleration-structures.md](acceleration-structures.md)  
+**Related reports:** [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md) (mentions FoW door rebuild as remaining)
+
+Simulation and interaction in OpenKeeper are **tile-native**. Prefer extending `PositionSystem` grids and FoW tables over continuous-space trees.
+
+---
+
+## Current structures (verified)
+
+| Structure | Path | Role |
+|-----------|------|------|
+| `entitiesByMapTile[][]` / `obstaclesByMapTile` | `game/logic/PositionSystem.java` | O(1) who’s on a tile |
+| Indexed A\* + `MapIndexedGraph` | `game/navigation/pathfinding/` | Tile graph search |
+| FoW `BitSet` explored/perceived | `game/fogofwar/FogState.java` | Compact visibility |
+| `LineOfSightTable` | `game/fogofwar/LineOfSightTable.java` | Precomputed vision rings (r≤7) |
+| `TilePicker` DDA | tile picking utilities / selection | Analytical tile ray |
+| Entity `collideWith(Ray)` | `view/PlayerInteractionState.java` | Interactive object hover |
+
+No app-authored BVH/octree for creatures or shots.
+
+---
+
+## C1 — Incremental door index {#c1-door-index}
+
+| | |
+|--|--|
+| **Bottleneck** | FoW vision tick (~0.15s) **clear+rebuilds** `doorsByPosition` from a full door `EntitySet` scan (`view/fogofwar/FogOfWarController.java`). |
+| **Evidence** | **Verified** in code; called out as remaining work in [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md). Magnitude on suite avg FPS is **Hypothesis** (more likely 1%/FoW-tick CPU). |
+| **Proposed structure** | Maintain `Point → door` (or tile bucket) **incrementally** on ECS add/remove/move — same ownership pattern as `entitiesByMapTile`. |
+| **Expected benefit** | Cheaper FoW ticks; stabler tails with many doors. |
+| **Complexity / memory** | S–M; one map-sized sparse structure. |
+| **Risks** | Missed invalidation on destroy/teleport → wrong vision blocking. |
+| **Bench** | Instrument FoW tick CPU with door-dense map; suite P99/1% lows; vision correctness spot checks. |
+
+---
+
+## C2 — Sensing cache / offset expansion {#c2-sensing-cache}
+
+| | |
+|--|--|
+| **Bottleneck** | `PositionSystem.getSensedEntities` uses recursive flood; TODO references proper hearing/vision (#261). Work is O(range²) with revisits controlled by a set. |
+| **Evidence** | **Verified** algorithm shape in `PositionSystem`; hotness under AI load is **Hypothesis** until logic-thread timers exist. |
+| **Proposed structure** | (1) Per-tick cache `EntityId → sensed set`, or (2) expand via **precomputed offsets** (same idea as `LineOfSightTable`) reading `entitiesByMapTile`. Do **not** introduce a creature octree. |
+| **Expected benefit** | AI/sense queries scale cleanly with movers × ring size. |
+| **Complexity / memory** | S–M; cache maps or static offset tables. |
+| **Risks** | Stale sets if cache key ignores tick/move; behaviour change if flood semantics drift. |
+| **Bench** | Count tiles visited / sense call; creature-dense logic profiling; suite only if AI shows in frame hitch profiles. |
+
+---
+
+## C3 — A\* neighbour / connection reuse {#c3-astar-pools}
+
+| | |
+|--|--|
+| **Bottleneck** | `MapIndexedGraph.getConnections` allocates a new `Array` and `DefaultConnection` instances per node expansion (`game/navigation/pathfinding/MapIndexedGraph.java`). |
+| **Evidence** | **Verified** allocation pattern in code. Impact on suite FPS **Hypothesis** (GC / dig hitch more than steady avg). |
+| **Proposed structure** | Thread-local reusable `Array`, pooled connections, or fixed 4/8 neighbour index lists with cost evaluated without `new`. |
+| **Expected benefit** | Lower GC and pathfind latency under many concurrent searches. |
+| **Complexity / memory** | S; tiny pools. |
+| **Risks** | Cross-pathFindable pool reuse bugs; concurrent pathfind on multiple threads needs separate scratch. |
+| **Bench** | Microbench paths/sec + allocation count; dig/claim P99 in suite. |
+
+---
+
+## C4 — Tile-first entity picking {#c4-picking}
+
+| | |
+|--|--|
+| **Bottleneck** | Hover/selection for interactive objects uses `root.collideWith(Ray, CollisionResults)` on the entity scene graph (`PlayerInteractionState`), scaling with attached geometry. |
+| **Evidence** | **Verified** call site; cost under hundreds of entities is **Hypothesis**. |
+| **Proposed structure** | Reuse **tile DDA** (`TilePicker`) / cursor tile, then test only entities in `entitiesByMapTile` along the ray (or under the pointed tile). Optional per-tile world AABBs for large props. **Prefer this over a mesh BVH** — world is tile-quantized and occupancy already exists. |
+| **Expected benefit** | Pick cost ~ O(tiles along ray × entities per tile), independent of total dungeon population. |
+| **Complexity / memory** | M; may need multi-tile object registration. |
+| **Risks** | Miss non-grid-aligned meshes; behaviour change vs jME collide precision. |
+| **Bench** | Stress 500+ entities under cursor; pick time µs vs `collideWith`; correctness parity checklist. |
+
+---
+
+## Pathfinding / AI — non-goals
+
+| Idea | Why not first |
+|------|----------------|
+| Navmesh | Tile + door costs define legality; A\* graph matches rules |
+| Continuous steering spatial hash | Steering already runs on discrete movers; measure before adding |
+| Global AI influence maps | Separate design concern; not required for current bottlenecks |
+
+Navigation entry points: `game/navigation/NavigationService.java`, `game/logic/CreatureAiSystem.java`, `game/logic/MovementSystem.java`.

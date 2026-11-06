@@ -4,6 +4,8 @@
 **Scope:** End-to-end rendering analysis (architecture, algorithms, fidelity, performance, resources, hardware)  
 **Method:** Static codebase analysis of OpenKeeper (jMonkeyEngine 3.9 + LWJGL3 OpenGL). No GPU profiler capture was taken in this session; items needing measurement are marked.
 
+> **Living roadmap:** Prioritized acceleration structures, updated ship/revert status, and companion deep-dives live in **[acceleration-structures.md](acceleration-structures.md)** (plus `acceleration-lighting.md`, `acceleration-spatial-simulation.md`, `acceleration-mesh-scene.md`). Prefer that index for implementation order; this document remains the original pipeline audit and fidelity notes.
+
 ---
 
 ## Verdict
@@ -270,21 +272,24 @@ Stop assigning Normal/Spec/Parallax into defs that don’t use them; unify tint/
 
 ## Actionable roadmap
 
-| Priority | Item | Effort | Impact | Depends on |
-|----------|------|--------|--------|------------|
-| 1 | Q1 Remove forced Ultra / default MSAA 4 | S | High GPU | — |
-| 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | — |
-| 3 | Q3 Decouple translucent from SSAO | S | Done (`PostProcessPipeline`) | — |
-| 4 | Q4 Dynamic light loop bound | S | GPU VS | — |
-| 5 | Q5 One-shot entity Vertex bind | M | High CPU | Measure |
-| 6 | Q7 Reuse ColorRGBA / Vector3f in light hot path | S | GC | — |
-| 7 | S4 Quality presets | M | UX + perf | Q1 |
-| 8 | S3 Coalesce AmbientMap uploads | M | FoW spikes | — |
-| 9 | S1 Incremental ceiling/water + milder tile updates | M–L | Hitching | Design |
-| 10 | L4 Profiling HUD / timers | M | Enables L2 | — |
-| 11 | S2 / L2 Clustered or per-page lights | L | Scale | L4 |
-| 12 | L1 Chunk mesh architecture | L | Architecture | S1 lessons |
-| 13 | L3 Optional “enhanced” post / shadows | L | Quality fork | Presets |
+**Superseded for ordering/status** by [acceleration-structures.md](acceleration-structures.md). Snapshot of this audit’s original table with later status annotations:
+
+| Priority | Item | Effort | Impact | Status (2026-11-06) |
+|----------|------|--------|--------|---------------------|
+| 1 | Q1 Remove forced Ultra / default MSAA 4 | S | High GPU | Open — see accel A1 |
+| 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | Open — see accel A2 |
+| 3 | Q3 Decouple translucent from SSAO | S | — | **Done** |
+| 4 | Q4 Dynamic light loop bound | S | GPU VS | **Done** (`numLights`); page indices for terrain **Done** |
+| 5 | Q5 One-shot entity Vertex bind | M | High CPU | **Done** — [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md) |
+| 6 | Q7 Reuse ColorRGBA / Vector3f in light hot path | S | GC | **Done** — [benchmark-lighting-alloc-opt.md](benchmark-lighting-alloc-opt.md) |
+| 7 | S4 Quality presets | M | UX + perf | Open — with A1 |
+| 8 | S3 Coalesce AmbientMap uploads | M | FoW spikes | Open — mid-frame attempt **reverted**; see accel B3 |
+| 9 | S1 Incremental ceiling/water + milder tile updates | M–L | Hitching | **Partial** — [benchmark-tile-rebuild-opt.md](benchmark-tile-rebuild-opt.md); ceiling/deps remain |
+| 10 | L4 Profiling HUD / timers | M | Enables L2 | Open — accel A3 |
+| 11 | S2 / L2 Clustered or per-page lights | L | Scale | Terrain page indices **Done**; rooms/clustered open — accel B1/E1 |
+| 12 | L1 Chunk mesh architecture | L | Architecture | Open — accel D3 |
+| 13 | L3 Optional “enhanced” post / shadows | L | Quality fork | Open |
+| — | S5 LightRules load race | M | Stability | **Done** — [benchmark-lightrules-lifecycle.md](benchmark-lightrules-lifecycle.md) |
 
 ---
 
@@ -323,4 +328,6 @@ Tools: RenderDoc / Nsight / jME `DetailedProfilerState` (F6)
 
 ## Bottom line
 
-Fix **settings force**, **soft-falloff sync**, **translucent coupling**, **shader loop bound**, and **entity bind cadence** first. Then attack **tile rebuilds** with measurement. Defer deferred / PBR / shadow overhauls—they fight the remake’s lighting identity unless shipped as an explicit enhanced mode.
+Several original quick wins (translucent decoupling, shader `numLights` bound, entity bind-once, lighting alloc reuse, terrain page light indices, LightRules lifecycle, partial tile-rebuild gating) are **shipped** — see the status table above and [acceleration-structures.md](acceleration-structures.md).
+
+**Next:** instrumentation (A3), settings/falloff correctness (A1/A2), then **extend light indices to rooms/water (B1)** before clustered lighting or chunk-mesh rewrites. Defer deferred / PBR / shadow overhauls unless shipped as an explicit enhanced mode.
