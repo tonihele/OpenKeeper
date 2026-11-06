@@ -55,6 +55,9 @@ public interface IGameController {
     /** Delivers a qualifying fear evaluation to the creature's script immediately. */
     void onCreatureAfraid(EntityId entityId);
 
+    /** Enqueue an accepted creature hand slap for simulation-thread dispatch. */
+    void onCreatureSlapped(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

@@ -20,6 +20,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -44,6 +45,7 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
     private final EntityData entityData;
+    private final ConcurrentLinkedQueue<EntityId> slapEvents = new ConcurrentLinkedQueue<>();
     private final ICreaturesController creaturesController;
 
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
@@ -64,6 +66,26 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
     /** Runs a qualifying fear event now, even if no escape follows. */
     public void onAfraid(EntityId entityId) {
         onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
+    }
+
+    /** Called by hand/session threads; keep every accepted request, even at the same time. */
+    public void enqueueSlapped(EntityId entityId) {
+        slapEvents.add(entityId);
+    }
+
+    @Override
+    public void processTick(float tpf) {
+        EntityId entityId;
+        while ((entityId = slapEvents.poll()) != null) {
+            onEvent(entityId, TriggerGeneric.TargetType.CREATURE_SLAPPED);
+        }
+        super.processTick(tpf);
+    }
+
+    @Override
+    public void stop() {
+        slapEvents.clear();
+        super.stop();
     }
 
     private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {

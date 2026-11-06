@@ -63,7 +63,30 @@ public final class TriggerGeneric extends Trigger {
         TIMER(2),
         CREATURE_CREATED(3), // Event, This creature is
         CREATURE_KILLED(4), // Event, This creature is
-        CREATURE_SLAPPED(5), // Event, This creature is
+        /**
+         * Event: this creature receives an accepted hand slap. Each accepted
+         * request is separate, even if several requests refresh the same slap
+         * effect before a simulation tick. It is not a persistent test for the
+         * creature's temporary slap animation or work-efficiency bonus.
+         * <p>
+         * DK II emits creature event 5 on its normal slap paths before the
+         * companion player event 60. OpenKeeper queues accepted creature hand
+         * slaps and dispatches them on the server simulation thread. Conditions
+         * observe delivery-time state rather than synchronous native call state.
+         * Object slaps and rejected hand interactions do not enqueue this event.
+         * Existing hand admission and
+         * slap mechanics are retained; this does not reproduce every native
+         * special-state or Horny slap path.
+         * <p>
+         * Matching creature-root branches run at delivery time, with nested
+         * conditions checked then. Ordinary polling stays false; nested events
+         * are not independently dispatched. Existing repeat counters still apply.
+         * <p>
+         * Example: a scripted creature reacts with a message on its first slap.
+         * A repeating branch can react to later slaps too, without firing every
+         * tick while the efficiency bonus remains active.
+         */
+        CREATURE_SLAPPED(5),
         CREATURE_ATTACKED(6), // Event, This creature is
         CREATURE_IMPRISONED(7), // Event, This creature is
         CREATURE_TORTURED(8), // Event, This creature is

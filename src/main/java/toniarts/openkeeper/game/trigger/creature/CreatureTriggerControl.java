@@ -89,9 +89,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_SLAPPED:
-                if (instanceControl != null) {
-                    return instanceControl.isSlapped();
-                }
+                // Each accepted slap is an event, not the lingering efficiency effect.
                 return false;
             case CREATURE_ATTACKED:
                 if (instanceControl != null) {
