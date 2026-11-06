@@ -475,6 +475,19 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public int getCreatureCount(short playerId, short creatureId) {
+        Creature imp = kwdFile.getImp();
+        int count = 0;
+        for (EntityId entityId : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class)) {
+            short type = entityData.getComponent(entityId, CreatureComponent.class).creatureId;
+            if (creatureId == 0 ? imp == null || type != imp.getCreatureId() : type == creatureId) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    @Override
     public void levelUpCreature(EntityId entityId, int level, int experience) {
 
         // Get all the components needed
