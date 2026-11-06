@@ -86,7 +86,27 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_ROOMS(25), // Player
         PLAYER_ROOM_SIZE(26), // Player
         PLAYER_DOORS(27), // Player
-        PLAYER_TRAPS(28), // Player
+        /**
+         * Compares this player's placed trap count with the script's numeric
+         * value. The ordinary count includes built traps and blueprints;
+         * type 0 selects all types and a nonzero selector restricts the type.
+         * Stored Workshop crates and door-mounted traps do not count.
+         * <p>
+         * Flag bit 8 counts only blueprints and bit 16 only built traps. Both
+         * modes ignore the type selector; bit 8 takes precedence when both
+         * are set. Other-player options do not replace the numeric operand.
+         * <p>
+         * Ordinary typed counts for traps firing shot 26 also include owned
+         * rolling boulder objects (object 74). All-type and blueprint/built
+         * counts do not include those objects. For example, Secret1 and
+         * Secret4 wait until no boulder traps or rolling boulders remain.
+         * <p>
+         * Comparison NONE tests availability and discovery instead of a count;
+         * type 0 means any available, discovered trap type. This is a live
+         * condition, not a construction or trap-firing event. Level3 uses
+         * blueprint-only and built-only counts to guide trap construction.
+         */
+        PLAYER_TRAPS(28),
         PLAYER_KEEPER_SPELL(29), // Player
         PLAYER_GOLD(30), // Player
         PLAYER_GOLD_MINED(31), // Player

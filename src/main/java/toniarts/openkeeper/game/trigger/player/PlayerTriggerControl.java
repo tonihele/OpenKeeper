@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ITrapsController.TrapCountMode;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -154,7 +155,21 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_DOORS:
                 return false;
             case PLAYER_TRAPS:
-                return false;
+                short trapId = trigger.getUserData("targetId", short.class);
+                if (trigger.getComparison() == TriggerGeneric.ComparisonType.NONE) {
+                    return getPlayerController(playerId).getTrapControl().getTypes().entrySet().stream()
+                            .anyMatch(entry -> (trapId == 0 || entry.getKey().getTrapId() == trapId)
+                            && entry.getValue().isDiscovered());
+                }
+                short trapFlags = trigger.getUserData("flag", short.class);
+                TrapCountMode mode = (trapFlags & 8) != 0 ? TrapCountMode.BLUEPRINTS
+                        : (trapFlags & 16) != 0 ? TrapCountMode.BUILT : TrapCountMode.ALL;
+                // Native filtered modes count all trap types, ignoring the authored selector.
+                target = gameController.getGameWorldController().getTrapsController()
+                        .getTrapCount(playerId, mode == TrapCountMode.ALL ? trapId : 0, mode);
+                // The native evaluator always uses the fixed numeric operand.
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_KEEPER_SPELL:
                 boolean isAvailable = trigger.getUserData("flag", short.class) == 1;
                 short keeperSpellId = trigger.getUserData("targetId", short.class);

@@ -27,6 +27,14 @@ import toniarts.openkeeper.utils.Point;
  */
 public interface ITrapsController extends IEntityWrapper<ITrapController> {
 
+    enum TrapCountMode { ALL, BLUEPRINTS, BUILT }
+
+    /**
+     * Counts placed owned traps, including blueprints. Type zero selects all
+     * types. Ordinary typed boulder-trap counts also include owned boulders.
+     */
+    int getTrapCount(short playerId, short trapId, TrapCountMode mode);
+
     /**
      * Places a trap blueprint. The trap isn't armed, it waits for its crate
      * from the workshop
