@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.listener.RoomListener;
