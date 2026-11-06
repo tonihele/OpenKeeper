@@ -80,6 +80,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     // before MapViewController.load() has built its scene graph - queue those
     // and flush them once the map actually exists, instead of crashing
     private volatile boolean mapLoaded = false;
+
+    // Scripted reveals/conceals (action point triggers) that arrive before the fog has been seeded
+    // would be wiped by the seeding, so they wait for it and are applied right after
+    private final Object fogSeedLock = new Object();
+    private boolean fogSeeded = false;
+    private final List<Runnable> pendingFogChanges = new ArrayList<>();
     private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier) {
@@ -109,7 +115,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
                 // Fog must be seeded before the initial geometry is built, since
                 // the renderer consults it while assembling the map
-                fogOfWarController.seedLevelStart();
+                synchronized (fogSeedLock) {
+                    fogOfWarController.seedLevelStart();
+                    fogSeeded = true;
+                    pendingFogChanges.forEach(Runnable::run);
+                    pendingFogChanges.clear();
+                }
 
                 // Snapshot the initial terrain of every tile, so we can later detect
                 // claim/repair transitions (terrain type changing to its max-health variant)
@@ -268,6 +279,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+        synchronized (fogSeedLock) {
+            if (!fogSeeded) {
+                pendingFogChanges.add(() -> fogOfWarController.revealActionPointTiles(points, explore));
+                return;
+            }
+        }
         fogOfWarController.revealActionPointTiles(points, explore);
     }
 
