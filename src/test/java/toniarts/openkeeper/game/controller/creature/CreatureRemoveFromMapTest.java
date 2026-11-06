@@ -51,7 +51,7 @@ class CreatureRemoveFromMapTest {
         entityData.setComponent(entityId, new Gold(100, 300));
 
         new CreatureController(entityId, entityData, null, null, null, null, null, null, null, null, null,
-                objectsController, null).removeFromMap();
+                objectsController, null, null).removeFromMap();
 
         assertNull(entityData.getComponent(entityId, Position.class));
         assertNull(entityData.getComponent(entityId, Gold.class));
