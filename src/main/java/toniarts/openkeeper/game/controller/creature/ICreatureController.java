@@ -117,6 +117,33 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void flee();
 
+    /**
+     * Weighs the threat of the enemies we fight against our fear. Call once on
+     * every turn of a fight, it takes a few turns in a row to scare us
+     *
+     * @return true if we are scared and should back off
+     */
+    public boolean isScared();
+
+    /**
+     * Starts backing off from the attack target, sets how long we back off
+     */
+    public void startBackOff();
+
+    /**
+     * Checks if our time to back off is over
+     *
+     * @return true if the back-off is over
+     */
+    public boolean isBackOffOver();
+
+    /**
+     * Backs away from the attack target, or stands if it is far enough
+     *
+     * @return false if we can't back away
+     */
+    public boolean backOff();
+
     public boolean isAttacked();
 
     public boolean isEnoughSleep();
