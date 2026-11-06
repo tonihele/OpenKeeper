@@ -101,6 +101,14 @@ class GameEventTest {
     }
 
     @Test
+    void mentorTellsOfAVampireRisenInTheGraveyard() {
+        GameEvent event = new GameEvent(GameEventType.GRAVEYARD_VAMPIRE_RISEN, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
     void slappedObjectSquawksOnItsOwnCategory() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getObject") ? SoundFixtures.object("OBJECT_CHICKEN") : null);

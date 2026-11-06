@@ -182,6 +182,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case FETCH_OBJECT -> {
                 return Utils.getMainTextResourceBundle().getString("2608");
             }
+            case FETCH_CORPSE, CARRY_CORPSE_TO_GRAVEYARD -> {
+                return Utils.getMainTextResourceBundle().getString("2618");
+            }
             case GO_TO_LOCATION -> {
                 return Utils.getMainTextResourceBundle().getString("2670");
             }
