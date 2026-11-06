@@ -23,14 +23,18 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomWorshipperControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.map.WallSection;
 
 /**
- * The temple... there is the hand and special pillar (rather torch) placement
+ * The temple... there is the hand and special pillar (rather torch) placement.
+ * Creatures pray on the floor around the pool, and creatures dropped into the
+ * pool are sacrificed
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -39,8 +43,47 @@ public final class TempleController extends DoubleQuadController {
     public static final short OBJECT_TEMPLE_HAND_ID = 66;
     private static final int MIN_HAND_SIZE = 5;
 
-    public TempleController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+    private final IGameTimer gameTimer;
+    private final SacrificeHistory sacrificeHistory = new SacrificeHistory();
+
+    public TempleController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController,
+            IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.WORSHIPPER);
+
+        this.gameTimer = gameTimer;
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomWorshipperControl(kwdFile, this, entityData, gameTimer) {
+
+            @Override
+            protected int getNumberOfAccessibleTiles() {
+                return roomInstance.getCoordinates().size() - insideCoordinates.size();
+            }
+        });
+    }
+
+    /**
+     * Is the tile part of the pool, where creatures are sacrificed. The pool is
+     * every tile with the temple all around it
+     *
+     * @param p the tile
+     * @return true if the tile is in the pool
+     */
+    public boolean isSacrificePool(Point p) {
+        return insideCoordinates.contains(p);
+    }
+
+    /**
+     * Get the sacrifices made in this temple
+     *
+     * @return the sacrifice history
+     */
+    public SacrificeHistory getSacrificeHistory() {
+        return sacrificeHistory;
     }
 
     @Override
