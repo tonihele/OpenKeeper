@@ -1072,6 +1072,12 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void removeFromMap() {
+        entityData.removeComponent(entityId, Gold.class); // Carried gold vanishes with the creature
+        remove();
+    }
+
+    @Override
     public Point getLairLocation() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         if (creatureSleep != null && creatureSleep.lairObjectId != null) {
