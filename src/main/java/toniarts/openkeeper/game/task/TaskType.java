@@ -41,5 +41,6 @@ public enum TaskType {
     REPAIR_WALL,
     RESCUE_CREATURE,
     GO_TO_EAT,
-    TRAIN
+    TRAIN,
+    GUARD
 }

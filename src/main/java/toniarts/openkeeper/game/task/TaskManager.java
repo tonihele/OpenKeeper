@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -75,6 +76,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -673,6 +675,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
             }
+            case GUARD -> {
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                        (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        FastMath.rand);
+            }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
                 return null;
@@ -746,6 +754,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+            }
+            case GUARD: {
+                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
             }
             default:
                 return false;
