@@ -277,7 +277,8 @@ public final class Settings {
         // Init the settings
         this.settings = settings;
 
-        if (Files.exists(USER_SETTINGS_FILE)) {
+        boolean firstRun = !Files.exists(USER_SETTINGS_FILE);
+        if (!firstRun) {
             try (InputStream in = Files.newInputStream(USER_SETTINGS_FILE);
                     BufferedInputStream bin = new BufferedInputStream(in)) {
                 settings.load(bin);
@@ -289,7 +290,11 @@ public final class Settings {
         // Keep AppSettings samples in sync with the selected AA mode (SMAA Ultra by default)
         applyAntiAliasingMode(getAntiAliasingMode());
 
-        this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+        // High uncapped-ish floor only on first run. Returning players keep the
+        // frameRate persisted in openkeeper.properties (do not stomp prefs).
+        if (firstRun) {
+            this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
+        }
 
         // Assing some app level settings
         settings.setTitle(TITLE);

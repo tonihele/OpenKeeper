@@ -52,15 +52,14 @@ Vertex.vert: terrain pages loop indices (~20 avg); rooms/entities loop numLights
 
 ## A1 — Quality settings / MSAA {#a1-quality-settings}
 
+**Status: ACCEPTED UX (2026-11-06)** — [benchmark-a1-settings.md](benchmark-a1-settings.md). Force-max launcher already gone; prefs/UI slice shipped. Quality presets still open.
+
 | | |
 |--|--|
-| **Bottleneck** | Player/default AA and quality toggles can dominate GPU before custom lighting is tuned. Historical analysis flagged force-max / 16× MSAA paths; suite often records `samples: 0`, so **suite alone understates** this cost. |
-| **Evidence** | **Verified** in `Settings` AA plumbing (`game/data/Settings.java`); **Hypothesis** for magnitude on shipping defaults — needs MSAA matrix. |
-| **Proposal** | Quality presets (Low/Med/High/Ultra); do not overwrite user prefs every launch; prefer SMAA / modest MSAA for classic look. |
-| **Benefit** | Large GPU headroom on real configs (**Hypothesis** until measured). |
-| **Complexity / memory** | S–M / none. |
-| **Risks** | Perceived quality drop if defaults change without UI clarity. |
-| **Bench** | Explicit samples/SMAA matrix outside default suite; compare frame time + visual SSIM. **Not** a substitute for lighting structure work. |
+| **Bottleneck** | Player AA / prefs stomps can dominate GPU; suite (`samples: 0` + SMAA Ultra) understates high-MSAA cost. |
+| **Shipped** | First-run-only frame-rate floor; `MSAA_16` hidden from settings UI (still loadable). Default remains SMAA Ultra. |
+| **Measured** | Suite vs A2: visual 3/3, `overall: pass` — no FPS claim (suite already on SMAA / 0 samples). |
+| **Still open** | Named Low/Med/High/Ultra presets; off-suite MSAA matrix. |
 
 ---
 

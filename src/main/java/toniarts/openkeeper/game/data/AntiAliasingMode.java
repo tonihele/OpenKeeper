@@ -25,6 +25,10 @@ import java.util.List;
  * post-process AA with the official ULTRA search quality. Optional MSAA
  * modes remain for users who prefer hardware multisampling, and a hybrid
  * mode combines light MSAA resolve with SMAA.
+ * <p>
+ * {@link #MSAA_16} stays loadable for saved prefs but is omitted from
+ * {@link #VALUES} — 16× MSAA is rarely worth the GPU cost at typical
+ * resolutions versus 4×/8× or SMAA.
  */
 public enum AntiAliasingMode {
 
@@ -33,10 +37,13 @@ public enum AntiAliasingMode {
     MSAA_2(2, false, "MSAA 2x"),
     MSAA_4(4, false, "MSAA 4x"),
     MSAA_8(8, false, "MSAA 8x"),
+    /** Retained for migration; not offered in the settings UI. */
     MSAA_16(16, false, "MSAA 16x"),
     SMAA_ULTRA_MSAA_4(4, true, "SMAA Ultra + MSAA 4x");
 
-    public static final List<AntiAliasingMode> VALUES = Collections.unmodifiableList(Arrays.asList(values()));
+    /** Modes shown in graphics settings (excludes {@link #MSAA_16}). */
+    public static final List<AntiAliasingMode> VALUES = Collections.unmodifiableList(Arrays.asList(
+            OFF, SMAA_ULTRA, MSAA_2, MSAA_4, MSAA_8, SMAA_ULTRA_MSAA_4));
 
     private final int samples;
     private final boolean smaa;

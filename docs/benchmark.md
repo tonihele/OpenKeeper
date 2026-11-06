@@ -18,6 +18,7 @@ Framework version: **2**
 | [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md) | B1-retry shared non-page index — **REJECTED** |
 | [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | A3 light CPU timers — **ACCEPTED tooling** |
 | [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md) | A2 soft-falloff sync — **ACCEPTED correctness** |
+| [benchmark-a1-settings.md](benchmark-a1-settings.md) | A1 settings prefs / MSAA UI — **ACCEPTED UX** |
 | [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | C3 A\* connection reuse — **REJECTED** |
 | [benchmark-fow-door-index.md](benchmark-fow-door-index.md) | C1 FoW door index — **REJECTED** |
 

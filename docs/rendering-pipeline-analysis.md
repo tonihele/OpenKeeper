@@ -93,17 +93,13 @@ Priority order used:
 
 ### 1. Quick wins
 
-#### Q1 — Cap MSAA; stop forcing Ultra every launch
+#### Q1 — Cap MSAA; stop forcing Ultra every launch — **DONE (partial)**
 
 | | |
 |--|--|
-| **Problem** | `Settings.applyMaximumGraphicsSettings()` always forces Samples=16, SSAO on, AF 16, etc., overwriting user prefs. 16× MSAA is among the most expensive desktop GL quality toggles and rarely beats 4× at 1080p. |
-| **Evidence** | `Settings.java` → `applyMaximumGraphicsSettings()` |
-| **Solution** | Remove force-every-launch (or gate behind a one-shot preset). Default MSAA to **4**; keep 8/16 optional. Persist real user settings. |
-| **Benefits** | Large GPU frame-time win; restores settings UX |
-| **Complexity** | S |
-| **Risk** | Low |
-| **Affected code** | `game/data/Settings.java` |
+| **Problem** | Historical `applyMaximumGraphicsSettings()` forced Samples=16 / SSAO / AF every launch; frameRate floor also stomped prefs. |
+| **Shipped** | Force-max method already removed earlier; A1: first-run-only frameRate floor; MSAA 16× hidden from UI. Default is SMAA Ultra. See [benchmark-a1-settings.md](benchmark-a1-settings.md). |
+| **Still open** | Named quality presets (S4). |
 
 #### Q2 — Soft-falloff constant mismatch (Java 0.01 vs GLSL 0.1) — **DONE**
 
@@ -272,7 +268,7 @@ Stop assigning Normal/Spec/Parallax into defs that don’t use them; unify tint/
 
 | Priority | Item | Effort | Impact | Status (2026-11-06) |
 |----------|------|--------|--------|---------------------|
-| 1 | Q1 Remove forced Ultra / default MSAA 4 | S | High GPU | Open — see accel A1 |
+| 1 | Q1 Remove forced Ultra / default MSAA 4 | S | High GPU | **Partial** — see accel A1 / [benchmark-a1-settings.md](benchmark-a1-settings.md) |
 | 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | Open — see accel A2 |
 | 3 | Q3 Decouple translucent from SSAO | S | — | **Done** |
 | 4 | Q4 Dynamic light loop bound | S | GPU VS | **Done** (`numLights`); page indices for terrain **Done** |

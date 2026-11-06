@@ -1,0 +1,17 @@
+{
+  "change": "A1 stop frameRate prefs overwrite; hide MSAA 16x from UI",
+  "decision": "ACCEPTED",
+  "reverted": false,
+  "kind": "ux",
+  "session": "session-2026-11-06T13-37-04.543289700Z",
+  "compareBaseline": "after-a2-soft-falloff",
+  "medianAvgFps": 38.885,
+  "baselineMedianAvgFps": 37.808,
+  "rationale": [
+    "visual 3/3 pass",
+    "suite overall pass vs A2; FPS delta treated as noise",
+    "applyMaximumGraphicsSettings already absent; remaining prefs stomp fixed",
+    "MSAA_16 omitted from UI VALUES; still loadable for migration",
+    "not claimed as suite FPS optimization"
+  ]
+}
