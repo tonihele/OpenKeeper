@@ -96,6 +96,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -128,6 +129,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final Consumer<EntityId> onCreatureSlapped;
+    private final Consumer<EntityId> onCreatureImprisoned;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -144,6 +147,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
+        this.onCreatureSlapped = gameController::onCreatureSlapped;
+        this.onCreatureImprisoned = gameController::onCreatureImprisoned;
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1145,6 +1150,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                onCreatureSlapped.accept(entity);
                 notifySlap(entity, playerId);
             }
             return;
@@ -1285,6 +1291,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
+        }
+        if (imprison) {
+            onCreatureImprisoned.accept(entity);
         }
     }
 
