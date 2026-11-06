@@ -17,13 +17,21 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
@@ -32,6 +40,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
 import toniarts.openkeeper.game.controller.trap.TrapController;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -55,6 +64,12 @@ public final class TrapsController implements ITrapsController {
     private Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private IGameController gameController;
     private ILevelInfo levelInfo;
+
+    /**
+     * The traps and crates for the manufacturing orders, set up on first use
+     */
+    private EntitySet trapEntities;
+    private EntitySet crateEntities;
 
     public TrapsController() {
         // For serialization
@@ -108,17 +123,9 @@ public final class TrapsController implements ITrapsController {
         pos.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
-        Trap trap = kwdFile.getTrapById(trapId);
-
         // Health and threat
         if (!blueprint) {
-            entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
-            entityData.setComponent(entity, new Threat(trap.getThreat()));
-
-            // Regeneration
-            if (trap.getHealthGain() > 0) {
-                entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
-            }
+            setArmed(entity, kwdFile.getTrapById(trapId));
         }
 
         // Add some interaction properties
@@ -130,9 +137,70 @@ public final class TrapsController implements ITrapsController {
         return entity;
     }
 
+    private void setArmed(EntityId entity, Trap trap) {
+        entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
+        entityData.setComponent(entity, new Threat(trap.getThreat()));
+
+        // Regeneration
+        if (trap.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
+        }
+
+        // An armed trap costs its owner mana every second, whether it needs mana to fire or not (DKII.EXE 0x4A96D0,
+        // 0x4C1B60). The upkeep goes with the trap entity
+        if (trap.getManaUsage() > 0) {
+            entityData.setComponent(entity, new Mana(-trap.getManaUsage()));
+        }
+    }
+
+    @Override
+    public void armTrap(EntityId blueprint) {
+        TrapViewState viewState = entityData.getComponent(blueprint, TrapViewState.class);
+        if (viewState == null || !viewState.blueprint) {
+            return;
+        }
+
+        setArmed(blueprint, kwdFile.getTrapById(viewState.trapId));
+        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false));
+    }
+
     @Override
     public EntityId addTrapBlueprint(short trapId, Point tile, short ownerId) {
         return loadTrap(tile.x, tile.y, trapId, ownerId, true);
+    }
+
+    @Override
+    public Trap getTrapToManufacture(short playerId) {
+        if (trapEntities == null) {
+            trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class);
+            crateEntities = entityData.getEntities(Crate.class, Owner.class);
+        }
+        trapEntities.applyChanges();
+        crateEntities.applyChanges();
+
+        // The blueprints in the order they were placed
+        List<Entity> blueprints = new ArrayList<>();
+        for (Entity entity : trapEntities) {
+            if (entity.get(TrapViewState.class).blueprint && entity.get(Owner.class).ownerId == playerId) {
+                blueprints.add(entity);
+            }
+        }
+        blueprints.sort(Comparator.comparingLong(entity -> entity.getId().getId()));
+        List<Short> blueprintTrapIds = new ArrayList<>(blueprints.size());
+        for (Entity blueprint : blueprints) {
+            blueprintTrapIds.add(blueprint.get(TrapComponent.class).trapId);
+        }
+
+        Map<Short, Integer> crates = new HashMap<>();
+        for (Entity entity : crateEntities) {
+            Crate crate = entity.get(Crate.class);
+            if (crate.type == ResearchableType.TRAP && entity.get(Owner.class).ownerId == playerId) {
+                crates.merge(crate.typeId, 1, Integer::sum);
+            }
+        }
+
+        Short trapId = ManufactureOrders.next(blueprintTrapIds, crates);
+        return trapId != null ? kwdFile.getTrapById(trapId) : null;
     }
 
     @Override
