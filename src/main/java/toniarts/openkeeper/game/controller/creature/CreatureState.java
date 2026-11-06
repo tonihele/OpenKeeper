@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
+import com.jme3.math.FastMath;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
@@ -43,7 +44,9 @@ public enum CreatureState implements State<ICreatureController> {
             // Idling is the last resort
             entity.unassingCurrentTask();
             findStuffToDo(entity, (foundWork) -> {
-                if (!foundWork) {
+
+                // Neutral creatures first play an idle animation, then wander off
+                if (!foundWork && entity.isClaimed()) {
                     entity.navigateToRandomPoint();
                 }
             });
@@ -123,7 +126,11 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
-                        entity.navigateToRandomPoint();
+                        if (entity.isClaimed()) {
+                            entity.navigateToRandomPoint();
+                        } else {
+                            entity.getStateMachine().changeState(WANDER);
+                        }
                     }
                 });
             }
@@ -143,14 +150,27 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
-//                    entity.wander();
+            entity.navigateToRandomPoint();
         }
 
         @Override
         public void update(ICreatureController entity) {
-//                    if (entity.idleTimeExceeded()) {
-//                        entity.getStateMachine().changeState(IDLE);
-//                    }
+
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // A creature the keeper has claimed goes back to look for work, a neutral one keeps strolling
+            if (entity.isClaimed()) {
+                entity.getStateMachine().changeState(IDLE);
+            } else if (entity.isStopped()) {
+                if (FastMath.rand.nextFloat() < 0.07f) { // ~8 % of the time, as logged from DK II
+                    entity.getStateMachine().changeState(IDLE);
+                } else {
+                    entity.navigateToRandomPoint();
+                }
+            }
         }
 
         @Override
