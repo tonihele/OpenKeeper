@@ -21,11 +21,14 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -54,6 +57,27 @@ class AbstractRoomControllerTest {
         room.remove();
 
         assertTrue(originalControl.destroyed);
+    }
+
+    @Test
+    void creaturesCanWalkOnTheCornersOfTheHeartsCentreButNothingIsStoredThere() {
+        EntityData entityData = new DefaultEntityData();
+        RoomInstance roomInstance = new RoomInstance(new Room());
+        for (int y = 10; y < 15; y++) {
+            for (int x = 20; x < 25; x++) {
+                roomInstance.addCoordinate(new Point(x, y));
+            }
+        }
+        FiveByFiveRotatedController heart = new FiveByFiveRotatedController(entityData.createEntity(), entityData, null,
+                roomInstance, null, Map.of(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE,
+                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.MAX_GOLD_PER_DUNGEON_HEART_TILE, 1000)), null);
+
+        assertTrue(heart.isTileAccessible(new Point(20, 11), new Point(21, 11)));
+        assertTrue(heart.isTileAccessible(new Point(23, 14), new Point(23, 13)));
+        assertFalse(heart.isTileAccessible(new Point(22, 10), new Point(22, 11)));
+        assertFalse(heart.isTileAccessible(new Point(21, 11), new Point(22, 12)));
+        assertFalse(heart.isTileAccessible(null, new Point(21, 11)));
+        assertTrue(heart.isTileAccessible(null, new Point(20, 12)));
     }
 
     private static final class TestRoomController extends AbstractRoomController {
