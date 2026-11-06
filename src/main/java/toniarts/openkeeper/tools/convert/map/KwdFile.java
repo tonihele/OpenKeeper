@@ -2484,12 +2484,18 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                         case PLAYER_GOLD_MINED:
                         case PLAYER_MANA:
                         case PLAYER_CREATURES_GROUPED:
-                        case PLAYER_CREATURES_DYING:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             reader.readAndCheckNull(1); // reader.skipBytes(1);
                             // trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0
                             trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case PLAYER_CREATURES_DYING:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", reader.readUnsignedByte());
+                            reader.skipBytes(2); // The native dying-count condition ignores these bytes.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
