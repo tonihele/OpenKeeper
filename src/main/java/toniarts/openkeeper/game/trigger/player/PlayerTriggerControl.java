@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IDoorsController.DoorCountMode;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -152,7 +153,21 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_ROOM_SIZE:
                 return false;
             case PLAYER_DOORS:
-                return false;
+                short doorId = trigger.getUserData("targetId", short.class);
+                if (trigger.getComparison() == TriggerGeneric.ComparisonType.NONE) {
+                    return getPlayerController(playerId).getDoorControl().getTypes().entrySet().stream()
+                            .anyMatch(entry -> (doorId == 0 || entry.getKey().getDoorId() == doorId)
+                            && entry.getValue().isDiscovered());
+                }
+                short doorFlags = trigger.getUserData("flag", short.class);
+                DoorCountMode mode = (doorFlags & 8) != 0 ? DoorCountMode.BLUEPRINTS
+                        : (doorFlags & 16) != 0 ? DoorCountMode.BUILT : DoorCountMode.ALL;
+                // Native filtered modes count all door types, ignoring the authored selector.
+                target = gameController.getGameWorldController().getDoorsController()
+                        .getDoorCount(playerId, mode == DoorCountMode.ALL ? doorId : 0, mode);
+                // The native evaluator uses the numeric operand, not another player's count.
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_TRAPS:
                 return false;
             case PLAYER_KEEPER_SPELL:

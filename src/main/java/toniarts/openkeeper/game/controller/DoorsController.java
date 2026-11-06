@@ -19,6 +19,9 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.Entity;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -85,6 +88,29 @@ public final class DoorsController implements IDoorsController {
 
         // Load doors
         loadDoors();
+    }
+
+    @Override
+    public int getDoorCount(short playerId, short doorId, DoorCountMode mode) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, DoorComponent.class, Health.class);
+        try {
+            int count = 0;
+            for (Entity entity : entities) {
+                DoorComponent door = entity.get(DoorComponent.class);
+                if (doorId != 0 && door.doorId != doorId) {
+                    continue;
+                }
+                if ((mode == DoorCountMode.BLUEPRINTS && !door.blueprint)
+                        || (mode == DoorCountMode.BUILT && door.blueprint)) {
+                    continue;
+                }
+                count++;
+            }
+            return count;
+        } finally {
+            entities.release();
+        }
     }
 
     private void loadDoors() {

@@ -85,7 +85,26 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_ROOM_SLABS(24), // Player
         PLAYER_ROOMS(25), // Player
         PLAYER_ROOM_SIZE(26), // Player
-        PLAYER_DOORS(27), // Player
+        /**
+         * Compares the number of this player's placed doors with the script's
+         * numeric value. The default count includes built doors and blueprints;
+         * type 0 selects all types and a nonzero selector restricts the type.
+         * Stored Workshop crates are not placed doors and do not count.
+         * <p>
+         * Flag bit 8 counts only blueprints and bit 16 only built doors. These
+         * two modes count all types regardless of the authored type selector;
+         * bit 8 takes precedence if both are set. Other-player comparison
+         * options are ignored in favor of the stored numeric threshold.
+         * <p>
+         * With comparison NONE, this tests whether the selected door type is
+         * available and discovered, rather than counting doors. Type 0 means
+         * any available, discovered door type in this mode.
+         * <p>
+         * For example, a map can wait until a door is built before continuing.
+         * Level3 uses flag 17 (built-only) with a threshold of at least one.
+         * This is a live condition, not a door-construction event.
+         */
+        PLAYER_DOORS(27),
         PLAYER_TRAPS(28), // Player
         PLAYER_KEEPER_SPELL(29), // Player
         PLAYER_GOLD(30), // Player
