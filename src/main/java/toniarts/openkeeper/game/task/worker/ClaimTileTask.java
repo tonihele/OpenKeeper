@@ -98,8 +98,8 @@ public class ClaimTileTask extends AbstractTileTask {
 
             mapController.applyClaimTile(getTaskLocation(), playerId, creature);
 
-            // The work is done, let it be heard
-            if (!isValid(creature)) {
+            // The room is claimed, let it be heard once, not with every blow
+            if (mapController.getMapData().getTile(getTaskLocation()).getOwnerId() == playerId) {
                 creature.fireEvent(GameEventType.CREATURE_CLAIM_TILE, getTaskLocation());
             }
         }
