@@ -51,6 +51,7 @@ public final class BenchmarkAppState extends AbstractAppState {
     private final BenchmarkConfig config;
     private final BenchmarkScenario scenario;
     private final BenchmarkSampler sampler = new BenchmarkSampler();
+    private final BenchmarkFrameProfiler frameProfiler = new BenchmarkFrameProfiler();
 
     private Main app;
     private AppStateManager stateManager;
@@ -143,12 +144,13 @@ public final class BenchmarkAppState extends AbstractAppState {
                 if (phaseElapsed >= config.getWarmupSeconds()) {
                     sampler.begin(app);
                     sampler.beginRebuildWindow(client);
+                    frameProfiler.attach(app);
                     enter(Phase.MEASURE);
                 }
             }
             case MEASURE -> {
                 scenario.updateCamera(camera, config.getSettleSeconds() + config.getWarmupSeconds() + measureElapsed);
-                sampler.sample(app, client, measureElapsed);
+                sampler.sample(app, client, measureElapsed, frameProfiler);
                 measureElapsed += tpf;
                 phaseElapsed += tpf;
 
@@ -210,6 +212,7 @@ public final class BenchmarkAppState extends AbstractAppState {
         }
         finished = true;
         phase = Phase.FINISHING;
+        frameProfiler.detach(app);
         try {
             GameClientState client = stateManager.getState(GameClientState.class);
             Map<String, Object> metrics = sampler.summarize(measureElapsed, client);
@@ -219,12 +222,16 @@ public final class BenchmarkAppState extends AbstractAppState {
             scenarioReport.put("measureSeconds", measureElapsed);
             scenarioReport.put("reinforced", reinforced);
 
+            String gpuNote = metrics.get("gpuFrameTimeMs") != null
+                    ? "GPU TIME_ELAPSED around AppStep.RenderFrame→EndFrame (gpuFrameTimeMs). "
+                    + "Technique-level VS split (terrain index vs full-list) still needs Nsight/RenderDoc."
+                    : "GPU timer queries unavailable (gpuFrameTimeMs=null).";
             Map<String, Object> document = BenchmarkResultWriter.buildDocument(
                     config, scenarioReport, metrics, app,
                     "Suite framework v" + BenchmarkConfig.FRAMEWORK_VERSION
                             + ". Wall-clock frame times; CapFrameX-style 1%/0.1% lows. "
-                            + "GPU timer queries not instrumented (gpuFrameTimeMs=null). "
-                            + "Visual checkpoints use fixed camera poses; soft SSIM/MAE thresholds "
+                            + gpuNote
+                            + " Visual checkpoints use fixed camera poses; soft SSIM/MAE thresholds "
                             + "absorb hardware numerical variance.");
             if (visual != null) {
                 document.put("visual", visual.summarize());

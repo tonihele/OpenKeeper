@@ -54,9 +54,13 @@ public final class BenchmarkSampler {
     private final RunningStat lightModulatorMs = new RunningStat();
     private final RunningStat lightUploadMs = new RunningStat();
     private final RunningStat lightPageIndexMs = new RunningStat();
+    private final RunningStat gpuFrameTimeMs = new RunningStat();
+    private final RunningStat cpuUpdateMs = new RunningStat();
+    private final RunningStat cpuRenderMs = new RunningStat();
     private final RunningStat usedHeapMb = new RunningStat();
     private final RunningStat allocBytesPerFrame = new RunningStat();
     private final TrendSeries trends = new TrendSeries(1.0);
+    private boolean gpuTimerSeen;
 
     private final int[] statsScratch = new int[13];
     private long lastFrameNanos;
@@ -103,6 +107,14 @@ public final class BenchmarkSampler {
     }
 
     public void sample(Application app, GameClientState client, double measureElapsedSec) {
+        sample(app, client, measureElapsedSec, null);
+    }
+
+    /**
+     * @param frameProfiler optional suite profiler for GPU / CPU update-render splits
+     */
+    public void sample(Application app, GameClientState client, double measureElapsedSec,
+            BenchmarkFrameProfiler frameProfiler) {
         this.measureElapsed = measureElapsedSec;
         long now = System.nanoTime();
         double frameTimeMs = 0;
@@ -111,6 +123,16 @@ public final class BenchmarkSampler {
             frameTimes.addFrameTimeMs(frameTimeMs);
         }
         lastFrameNanos = now;
+
+        if (frameProfiler != null && frameProfiler.hasSample()) {
+            cpuUpdateMs.add(frameProfiler.getLastCpuUpdateMs());
+            cpuRenderMs.add(frameProfiler.getLastCpuRenderMs());
+            double gpuMs = frameProfiler.getLastGpuMs();
+            if (!Double.isNaN(gpuMs) && gpuMs >= 0.0 && gpuMs <= 250.0) {
+                gpuFrameTimeMs.add(gpuMs);
+                gpuTimerSeen = true;
+            }
+        }
 
         int draws = 0;
         int tris = 0;
@@ -174,7 +196,9 @@ public final class BenchmarkSampler {
         metrics.putAll(frameSummary);
         metrics.put("durationSec", Math.round(measuredSeconds * 1000.0) / 1000.0);
         metrics.put("cpuFrameTimeMs", frameSummary.get("frameTimeMs"));
-        metrics.put("gpuFrameTimeMs", null);
+        metrics.put("gpuFrameTimeMs", gpuTimerSeen ? gpuFrameTimeMs.summarize() : null);
+        metrics.put("cpuUpdateMs", cpuUpdateMs.summarize());
+        metrics.put("cpuRenderMs", cpuRenderMs.summarize());
         metrics.put("drawCalls", drawCalls.summarize());
         metrics.put("triangles", triangles.summarize());
         metrics.put("vertices", vertices.summarize());

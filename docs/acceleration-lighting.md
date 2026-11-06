@@ -38,15 +38,15 @@ Vertex.vert: terrain pages loop indices (~20 avg); rooms/entities loop numLights
 
 ## A3 — Instrumentation {#a3-instrumentation}
 
-**Status: ACCEPTED tooling (2026-11-06)** — [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md). CPU phase timers shipped; GPU VS timers still open.
+**Status: ACCEPTED tooling (2026-11-06)** — CPU: [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) · GPU frame: [benchmark-a3-gpu-timers.md](benchmark-a3-gpu-timers.md).
 
 | | |
 |--|--|
-| **Bottleneck** | Could not attribute frame time to lighting CPU phases vs the rest of the frame. |
-| **Shipped** | Suite metrics `lightUpdateMs` / `lightModulatorMs` / `lightUploadMs` / `lightPageIndexMs`. |
-| **Measured** | `lightUpdateMs` ≈ **0.63 ms** (~2.5% of ~25 ms frame) on `late-campaign-dense`. |
-| **Still open** | GL timer queries for terrain-index VS vs room/entity full-list VS. |
-| **Benefit** | Falsified B2 as next FPS lever; explains B1 rejection (GPU-bound, not room-index CPU). |
+| **Bottleneck** | Could not attribute frame time to lighting CPU vs GPU vs the rest of the frame. |
+| **Shipped** | `lightUpdateMs` / `lightModulatorMs` / `lightUploadMs` / `lightPageIndexMs`; `gpuFrameTimeMs` / `cpuUpdateMs` / `cpuRenderMs`. |
+| **Measured** | Lighting CPU ≈ **0.63 ms**; GPU render elapsed ≈ **10.8 ms**; CPU update ≈ **8.4 ms**; CPU render ≈ **16.8 ms**. |
+| **Still open** | Per-technique VS split (terrain index vs full-list) — Nsight/RenderDoc. |
+| **Benefit** | Falsified B2; whole-frame GPU is real but wall frame is not GPU-only. |
 
 ---
 

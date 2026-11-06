@@ -28,6 +28,7 @@ This is the **central index**. Implementation detail lives in the companion docs
 | [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room light indices | **REJECTED** (reverted) |
 | [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md) | B1-retry shared camera neighbourhood index | **REJECTED** (reverted) |
 | [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | A3 lighting CPU phase timers | **ACCEPTED (tooling)** |
+| [benchmark-a3-gpu-timers.md](benchmark-a3-gpu-timers.md) | A3b GPU frame + CPU update/render timers | **ACCEPTED (tooling)** |
 | [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md) | A2 soft-falloff Java ↔ GLSL | **ACCEPTED (correctness)** |
 | [benchmark-a1-settings.md](benchmark-a1-settings.md) | A1 settings prefs / hide MSAA 16× | **ACCEPTED (UX)** |
 
@@ -85,7 +86,7 @@ Impact is expected real-world gain given current suite behaviour (GPU VS still d
 
 | # | ID | Recommendation | Effort | Impact | Status | Detail |
 |---|----|----------------|--------|--------|--------|--------|
-| 1 | A3 | CPU lighting phase timers in suite | M | Enables ranking | **ACCEPTED tooling** — [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) | [lighting](acceleration-lighting.md#a3-instrumentation) |
+| 1 | A3 | CPU + GPU frame timers in suite | M | Enables ranking | **ACCEPTED tooling** — [benchmark-a3-light-timers.md](benchmark-a3-light-timers.md) · [benchmark-a3-gpu-timers.md](benchmark-a3-gpu-timers.md) | [lighting](acceleration-lighting.md#a3-instrumentation) |
 | 2 | A1 | Stop forced max graphics; MSAA/quality presets | S–M | High GPU (player settings) | **ACCEPTED UX** (presets still open) — [benchmark-a1-settings.md](benchmark-a1-settings.md) | [lighting](acceleration-lighting.md#a1-quality-settings) |
 | 3 | A2 | Sync soft-falloff Java ↔ GLSL (0.1) | S | Correctness | **ACCEPTED** — [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md) | [lighting](acceleration-lighting.md#a2-soft-falloff) |
 | 4 | B1 | Extend light **index lists** to rooms / water | M | High GPU **Hypothesis** | **REJECTED** (+ shared-index retry) — [benchmark-room-light-index.md](benchmark-room-light-index.md) · [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md) | [lighting](acceleration-lighting.md#b1-room-water-light-indices) |
@@ -111,8 +112,9 @@ Impact is expected real-world gain given current suite behaviour (GPU VS still d
 | 2026-11-06 | B1-retry shared non-page light index | **REJECTED** | −27.5% FPS vs A3; visual fail; page-index CPU ~4.7 ms; [report](benchmark-shared-nonpage-light-index.md) |
 | 2026-11-06 | A2 soft-falloff sync | **ACCEPTED** | Java 0.1 matches GLSL; visual 3/3; lightsAvg +2.3%; [report](benchmark-a2-soft-falloff.md) |
 | 2026-11-06 | A1 settings prefs / MSAA UI | **ACCEPTED UX** | Stop frameRate stomp; hide MSAA 16×; suite stable; [report](benchmark-a1-settings.md) |
+| 2026-11-06 | A3b GPU frame timers | **ACCEPTED tooling** | gpu≈10.8 ms, cpuUpdate≈8.4 ms, cpuRender≈16.8 ms; [report](benchmark-a3-gpu-timers.md) |
 
-**Next for measurable suite FPS:** **GPU VS attribution**. Sim hitch opts need dedicated micro-scenarios + timers — Level20 suite alone will not move the needle. Do **not** re-bind `LIGHT_INDEX_DATA` on non-page mats without new evidence. Quality presets remain an A1 follow-up.
+**Next for measurable suite FPS:** **Nsight/RenderDoc VS split** (terrain index vs full-list) or post/SMAA cost. Sim hitch opts need dedicated micro-scenarios. Do **not** re-bind `LIGHT_INDEX_DATA` on non-page mats without new evidence. Quality presets remain an A1 follow-up.
 
 ### Already shipped (keep; do not re-litigate without new evidence)
 
