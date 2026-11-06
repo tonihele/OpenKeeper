@@ -16,6 +16,11 @@
  */
 package toniarts.openkeeper.game.trigger.creature;
 
+import java.util.EnumMap;
+import java.util.EnumSet;
+import java.util.Set;
+import java.util.Map;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -26,209 +31,291 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
+ * The creature scope: the trigger tree of a single creature. Forwards what it
+ * does not know to the owner player's scope, and from there to the level.
  *
  * @author ArchDemon
  */
 public final class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatureController> {
 
+    /**
+     * The creature events, they are raised by {@link #pollEvents()} and never
+     * hold when walked.
+     */
+    private static final Set<TriggerGeneric.TargetType> EVENT_CONDITIONS = EnumSet.of(
+            TriggerGeneric.TargetType.CREATURE_CREATED, TriggerGeneric.TargetType.CREATURE_KILLED,
+            TriggerGeneric.TargetType.CREATURE_SLAPPED, TriggerGeneric.TargetType.CREATURE_ATTACKED,
+            TriggerGeneric.TargetType.CREATURE_IMPRISONED, TriggerGeneric.TargetType.CREATURE_TORTURED,
+            TriggerGeneric.TargetType.CREATURE_CONVERTED, TriggerGeneric.TargetType.CREATURE_CLAIMED,
+            TriggerGeneric.TargetType.CREATURE_STUNNED, TriggerGeneric.TargetType.CREATURE_DYING,
+            TriggerGeneric.TargetType.CREATURE_HUNGER_SATED, TriggerGeneric.TargetType.CREATURE_PICKS_UP_PORTAL_GEM,
+            TriggerGeneric.TargetType.CREATURE_PICKED_UP);
+    private static final Set<TriggerGeneric.TargetType> MEASURED_CONDITIONS = EnumSet.of(
+            TriggerGeneric.TargetType.CREATURE_HEALTH, TriggerGeneric.TargetType.CREATURE_GOLD_HELD,
+            TriggerGeneric.TargetType.CREATURE_EXPERIENCE_LEVEL);
+
+    /**
+     * The creature events that we notice by the creature's state. Each fires
+     * when the state turns on.
+     */
+    private final Map<TriggerGeneric.TargetType, Predicate<ICreatureController>> eventStates = new EnumMap<>(TriggerGeneric.TargetType.class);
+    private final Map<TriggerGeneric.TargetType, Boolean> lastEventStates = new EnumMap<>(TriggerGeneric.TargetType.class);
+    private boolean createdPending = false;
+    private boolean seedPending = false;
+    private final Set<TriggerGeneric.TargetType> watchedEvents = EnumSet.noneOf(TriggerGeneric.TargetType.class);
+    private final boolean heroPartyMember;
+
+    /**
+     * @param heroPartyMember is this a tree of a hero party member, the party
+     * member trees are armed when the member is spawned
+     */
     public CreatureTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
-            final PlayerService playerService) {
+            final PlayerService playerService, final boolean heroPartyMember) {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_SLAPPED, ICreatureController::isSlapped);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_ATTACKED, ICreatureController::isAttacked);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_IMPRISONED, ICreatureController::isImprisoned);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_TORTURED, ICreatureController::isTortured);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_CONVERTED, creature -> creature.getOwnerId() != getPlayerId());
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_CLAIMED, ICreatureController::isClaimed);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_STUNNED, ICreatureController::isStunned);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_DYING, ICreatureController::isUnconscious);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_HUNGER_SATED, creature -> !creature.isHungry());
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_PICKS_UP_PORTAL_GEM, ICreatureController::isPortalGemInPosession);
+        eventStates.put(TriggerGeneric.TargetType.CREATURE_PICKED_UP, ICreatureController::isPickedUp);
+
+        // Events are only matched at the top level of the tree, so those are the only ones to watch
+        for (TriggerData node : root.getChildren().getArray()) {
+            if (!(node instanceof TriggerGenericData condition)) {
+                break;
+            }
+            if (eventStates.containsKey(condition.getType())) {
+                watchedEvents.add(condition.getType());
+            }
+        }
+
+        this.heroPartyMember = heroPartyMember;
+        if (heroPartyMember) {
+
+            // Dormant until the member is spawned, see setThing
+            setTreeArmed(false);
+        }
+    }
+
+    @Override
+    protected void setThing(ICreatureController thingInstance) {
+        super.setThing(thingInstance);
+
+        // What the creature is like when it appears is not an event, only the changes after that are.
+        // The states are read on the first poll, the creature trees get their creatures while the game
+        // is still being put together, and the creature may not be ready to be asked yet
+        lastEventStates.clear();
+        if (thingInstance != null) {
+            seedPending = true;
+            createdPending = true;
+            if (heroPartyMember) {
+                setTreeArmed(true);
+            }
+        }
+    }
+
+    @Override
+    protected void pollEvents() {
+        super.pollEvents();
+
+        boolean dead = instanceControl.isDead();
+        if (seedPending) {
+            seedPending = false;
+            lastEventStates.put(TriggerGeneric.TargetType.CREATURE_KILLED, dead);
+            if (!dead) {
+                watchedEvents.forEach(event -> lastEventStates.put(event, eventStates.get(event).test(instanceControl)));
+            }
+        }
+
+        if (createdPending) {
+            createdPending = false;
+            fire(TriggerGeneric.TargetType.CREATURE_CREATED);
+        }
+
+        // The death is the last event, the data of a dead creature is gone
+        Boolean wasDead = lastEventStates.put(TriggerGeneric.TargetType.CREATURE_KILLED, dead);
+        if (dead) {
+            if (!Boolean.TRUE.equals(wasDead)) {
+                fire(TriggerGeneric.TargetType.CREATURE_KILLED);
+            }
+            return;
+        }
+
+        // Only the events that the tree listens to are watched
+        for (TriggerGeneric.TargetType event : watchedEvents) {
+            boolean now = eventStates.get(event).test(instanceControl);
+            Boolean before = lastEventStates.put(event, now);
+            if (now && !Boolean.TRUE.equals(before)) {
+                fire(event);
+            }
+        }
     }
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
-        boolean result = false;
-
-        float target = 0;
-
         TriggerGeneric.TargetType targetType = trigger.getType();
-        switch (targetType) {
-            case CREATURE_CREATED:
-                return instanceControl != null;
-            case CREATURE_KILLED:
-                if (instanceControl != null) {
-                    return instanceControl.isDead();
-                }
-                return false;
-            case CREATURE_SLAPPED:
-                if (instanceControl != null) {
-                    return instanceControl.isSlapped();
-                }
-                return false;
-            case CREATURE_ATTACKED:
-                if (instanceControl != null) {
-                    return instanceControl.isAttacked();
-                }
-                return false;
-            case CREATURE_IMPRISONED:
-                if (instanceControl != null) {
-                    return instanceControl.isImprisoned();
-                }
-                return false;
-            case CREATURE_TORTURED:
-                if (instanceControl != null) {
-                    return instanceControl.isTortured();
-                }
-                return false;
-            case CREATURE_CONVERTED:
-                return instanceControl.getOwnerId() != getPlayerId();
-            case CREATURE_CLAIMED:
-                if (instanceControl != null) {
-                    return instanceControl.isClaimed();
-                }
-            case CREATURE_ANGRY:
-                return false;
-            case CREATURE_AFRAID:
-                return false;
-            case CREATURE_STEALS:
-                return false;
-            case CREATURE_LEAVES:
-                return false;
-            case CREATURE_STUNNED:
-                if (instanceControl != null) {
-                    return instanceControl.isStunned();
-                }
-                return false;
-            case CREATURE_DYING:
-                if (instanceControl != null) {
-                    return instanceControl.isUnconscious();
-                }
-                return false;
-            case CREATURE_HEALTH:
-                if (instanceControl != null) {
-                    target = ((float) instanceControl.getHealth() / instanceControl.getMaxHealth()) * 100; // Percentage
-                    break;
-                }
-                return false;
-            case CREATURE_GOLD_HELD:
-                if (instanceControl != null) {
-                    target = instanceControl.getGold();
-                    break;
-                }
-                return false;
-            case CREATURE_EXPERIENCE_LEVEL:
-                if (instanceControl != null) {
-                    target = instanceControl.getLevel();
-                    break;
-                }
-                return false;
-            case CREATURE_HUNGER_SATED:
-                return !instanceControl.isHungry();
-            case CREATURE_PICKS_UP_PORTAL_GEM:
-                if (instanceControl != null) {
-                    return instanceControl.isPortalGemInPosession();
-                }
-                return false;
-            case CREATURE_SACKED:
-                return false;
-            case CREATURE_PICKED_UP:
-                if (instanceControl != null) {
-                    return instanceControl.isPickedUp();
-                }
-                return false;
-            default:
-                return super.isActive(trigger);
+
+        // The events, false when walked, see pollEvents()
+        if (EVENT_CONDITIONS.contains(targetType)) {
+            return false;
         }
 
-        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
-        if (comparisonType != null && comparisonType != TriggerGeneric.ComparisonType.NONE) {
-            result = compare(target, comparisonType, (int) trigger.getUserData("value"));
+        if (MEASURED_CONDITIONS.contains(targetType)) {
+            if (instanceControl.isDead()) {
+                return false; // Nothing left to measure
+            }
+            return compare(trigger, measure(targetType), trigger.getUserData("value", int.class));
         }
 
-        return result;
+        String stubReason = getStubReason(targetType);
+        if (stubReason != null) {
+            logStub(trigger, stubReason);
+            return false;
+        }
+        return super.isActive(trigger);
+    }
+
+    private float measure(TriggerGeneric.TargetType targetType) {
+        return switch (targetType) {
+            case CREATURE_HEALTH ->
+                ((float) instanceControl.getHealth() / instanceControl.getMaxHealth()) * 100; // Percentage
+            case CREATURE_GOLD_HELD ->
+                (instanceControl.getMaxGold() > 0) ? ((float) instanceControl.getGold() / instanceControl.getMaxGold()) * 100 : 0; // Percentage
+            default ->
+                instanceControl.getLevel(); // CREATURE_EXPERIENCE_LEVEL
+        };
+    }
+
+    /**
+     * The reason why the condition is a stub.
+     *
+     * @return the reason, null if the condition is not a stub
+     */
+    private static String getStubReason(TriggerGeneric.TargetType targetType) {
+        return switch (targetType) {
+            // STUB, events: the creature became angry / afraid. The state changes can not be told
+            // from the outside: the anger is a set of counters (CreatureMood) with no "became
+            // angry" threshold, and the fear of the creature is a state of its AI
+            case CREATURE_ANGRY, CREATURE_AFRAID ->
+                "The state changes can not be told from the outside: the anger is a set of counters (CreatureMood) with no 'became angry' threshold, and the fear of the creature is a state of its AI";
+            // STUB, event: the creature stole gold / a spell / a crate. The stealing job does not
+            // report to anybody
+            case CREATURE_STEALS ->
+                "The stealing job does not report to anybody";
+            // STUB, events: the creature left the dungeon (leaves has no producer in the original
+            // either) / was sacked. A creature leaving is not announced in the game logic
+            case CREATURE_LEAVES, CREATURE_SACKED ->
+                "A creature leaving is not announced in the game logic";
+            default ->
+                null;
+        };
     }
 
     @Override
-    protected void doAction(TriggerActionData trigger) {
+    protected boolean doAction(TriggerActionData trigger) {
         TriggerAction.ActionType type = trigger.getType();
 
         // Some triggers are bound to the creature itself
         switch (type) {
             case ATTACH_PORTAL_GEM:
-                if (instanceControl != null) {
-                    instanceControl.attachPortalGem();
-                }
-                break;
+                instanceControl.attachPortalGem();
+                return true;
+
+            case FORCE_FIRST_PERSON:
+                // Possess the creature, for the local player (the one who can possess anything)
+                getPlayerService().setPossession(instanceControl.getEntityId(), getLocalPlayerId());
+                return true;
 
             case MAKE_HUNGRY:
                 instanceControl.makeHungry();
-                break;
+                return true;
 
             case SHOW_HEALTH_FLOWER:
-                if (instanceControl != null) {
-                    getPlayerService().showUnitFlower(instanceControl.getEntityId(), trigger.getUserData("value", Integer.class), getPlayer().getId());
-                }
-                break;
+                getPlayerService().showUnitFlower(instanceControl.getEntityId(), trigger.getUserData("value", Integer.class), getPlayer().getId());
+                return true;
 
             case ALTER_SPEED:
-                boolean available = trigger.getUserData("available", short.class) != 0; // 0 = Walk, !0 = Run
-                break;
+                // STUB: 0 = walk, otherwise run. The creature controller has no movement speed to
+                // set, the speed comes from the creature's state and its attributes
+                logStub(trigger, "The creature controller has no movement speed to set, the speed comes from the creature's state and its attributes");
+                return true;
 
             case REMOVE_FROM_MAP:
-                break;
+                // STUB: mode 0 removes the creature silently, 1 kills it. The creature controller
+                // has no way to remove or kill a creature from the outside, it dies by its health
+                logStub(trigger, "The creature controller has no way to remove or kill a creature from the outside, it dies by its health");
+                return true;
 
             case SET_FIGHT_FLAG:
-                available = trigger.getUserData("available", short.class) != 0; // 0 = Don`t Fight, !0 = Fight
-                break;
+                // STUB: 0 = don't fight, otherwise fight. Whether to fight is decided by the
+                // creature's AI, there is no flag to override it
+                logStub(trigger, "Whether to fight is decided by the creature's AI, there is no flag to override it");
+                return true;
 
             case ZOOM_TO:
-                if (instanceControl != null) {
-                    getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
-                }
-                break;
+                getPlayerService().zoomViewToEntity(instanceControl.getEntityId(), getPlayer().getId());
+                return true;
 
             case SET_OBJECTIVE: // Creature part. Only for Good player
-                short playerId = trigger.getUserData("playerId", short.class);
-                Thing.HeroParty.Objective jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Thing.HeroParty.Objective.class);
-                int apId = trigger.getUserData("actionPointId", int.class);
-
-                // Assign to creature
-                if (instanceControl != null) {
-                    if (apId != 0) {
-                        instanceControl.setObjectiveTargetActionPointId(apId);
-                    }
-                    instanceControl.setObjectiveTargetPlayerId(playerId);
-                    instanceControl.setObjective(jobType);
-                }
-                break;
+                setObjective(trigger);
+                return true;
 
             case MAKE_OBJECTIVE: // Game part
-                short targetId = trigger.getUserData("targetId", short.class);
-                if (targetId == 0) {
-                    super.makeObjectiveOff();
-                }
-                if (instanceControl != null) {
-
-                    //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
-                    switch (targetId) {
-                        case 0:
-                            instanceControl.setPlayerObjective(null);
-                            break;
-                        case 1:
-                            instanceControl.setPlayerObjective(ObjectiveType.KILL);
-                            break;
-                        case 2:
-                            instanceControl.setPlayerObjective(ObjectiveType.IMPRISON);
-                            break;
-                        case 3:
-                            instanceControl.setPlayerObjective(ObjectiveType.CONVERT);
-                            break;
-                    }
-                }
-                break;
+                makeObjective(trigger);
+                return true;
 
             default:
-                super.doAction(trigger);
+                return super.doAction(trigger);
+        }
+    }
 
+    private void setObjective(TriggerActionData trigger) {
+        short playerId = trigger.getUserData("playerId", short.class);
+        Thing.HeroParty.Objective jobType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), Thing.HeroParty.Objective.class);
+        int apId = trigger.getUserData("actionPointId", int.class);
+
+        // Heroes only, and not the ones that are prisoners or out cold
+        if (instanceControl.getOwnerId() == Player.GOOD_PLAYER_ID
+                && !instanceControl.isImprisoned() && !instanceControl.isUnconscious()) {
+            if (apId != 0) {
+                instanceControl.setObjectiveTargetActionPointId(apId);
+            }
+            instanceControl.setObjectiveTargetPlayerId(playerId);
+            instanceControl.setObjective(jobType);
+        }
+    }
+
+    private void makeObjective(TriggerActionData trigger) {
+        short targetId = trigger.getUserData("targetId", short.class);
+        if (targetId == 0) {
+            super.makeObjectiveOff(trigger);
+        }
+
+        //0 = Off, 1 = Kill, 2 = Imprison, 3 = Convert;
+        switch (targetId) {
+            case 0 -> instanceControl.setPlayerObjective(null);
+            case 1 -> instanceControl.setPlayerObjective(ObjectiveType.KILL);
+            case 2 -> instanceControl.setPlayerObjective(ObjectiveType.IMPRISON);
+            case 3 -> instanceControl.setPlayerObjective(ObjectiveType.CONVERT);
+            default -> {
+                // Unknown, nothing to set
+            }
         }
     }
 
