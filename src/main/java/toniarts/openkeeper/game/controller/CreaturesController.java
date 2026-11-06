@@ -669,6 +669,14 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void leaveDungeon(EntityId entityId) {
+        // Like in DK II, the creature takes the gold it carries with it
+        entityData.removeComponent(entityId, Gold.class);
+        createController(entityId).removePossession();
+        entityData.removeEntity(entityId);
+    }
+
+    @Override
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId) {
 
         // Remove all the posession
