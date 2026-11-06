@@ -25,7 +25,9 @@ import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.nio.file.Path;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.CheatController;
@@ -40,6 +42,7 @@ import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -61,6 +64,7 @@ public final class GameServerState extends AbstractAppState {
 
     private final IKwdFile kwdFile;
     private final CampaignLevel levelObject;
+    private final SaveGame saveGame;
 
     private final boolean campaign;
     private final boolean multiplayer;
@@ -83,8 +87,26 @@ public final class GameServerState extends AbstractAppState {
      * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
     public GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService, @Nullable toniarts.openkeeper.game.data.CampaignLevel campaignLevel) {
+        this(level, players, campaign, gameService, campaignLevel, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param saveGame the saved game
+     * @param gameService the game service, its server entities are the saved
+     * ones
+     */
+    public GameServerState(IKwdFile level, SaveGame saveGame, GameSessionServerService gameService) {
+        this(level, saveGame.getPlayers(), saveGame.getCampaignLevel() != null, gameService, saveGame.getCampaignLevel(), saveGame);
+    }
+
+    private GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService,
+            CampaignLevel campaignLevel, SaveGame saveGame) {
         this.kwdFile = level;
         this.levelObject = campaignLevel;
+        this.saveGame = saveGame;
         this.campaign = campaign;
         this.gameService = gameService;
 
@@ -102,7 +124,9 @@ public final class GameServerState extends AbstractAppState {
         } else {
             humanPlayers = 1;
         }
-        multiplayer = (humanPlayers > 1);
+        // Only single player games are saved. The saved players are all of the
+        // level's, and the good and neutral players aren't AI ones either
+        multiplayer = saveGame == null && humanPlayers > 1;
 
         // Add the listener
         gameService.addGameSessionServiceListener(gameSessionListener);
@@ -113,6 +137,38 @@ public final class GameServerState extends AbstractAppState {
 
     public boolean isMultiplayer() {
         return multiplayer;
+    }
+
+    /**
+     * Whether the game has loaded and can be saved
+     *
+     * @return {@code true} when the game has loaded
+     */
+    public boolean isGameLoaded() {
+        return gameLoaded;
+    }
+
+    /**
+     * Gets the game time
+     *
+     * @return the game time in seconds, 0 until the game has loaded
+     */
+    public double getGameTime() {
+        return gameLoaded ? game.getGameController().getGameTimer().getGameTime() : 0;
+    }
+
+    /**
+     * Saves the game, see {@link GameLoopManager#save(Path, CampaignLevel)}
+     *
+     * @param file the save file
+     * @return completes when the file is written, or right away with an
+     * exception if the game hasn't loaded yet
+     */
+    public CompletableFuture<Void> save(Path file) {
+        if (!gameLoaded) {
+            return CompletableFuture.failedFuture(new IllegalStateException("The game hasn't loaded yet!"));
+        }
+        return game.save(file, levelObject);
     }
 
     private void loadGame(List<Keeper> players) {
@@ -170,7 +226,7 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void run() {
             // Create the central game controller
-            game = new GameLoopManager(kwdFile, gameService, players);
+            game = saveGame != null ? new GameLoopManager(kwdFile, gameService, saveGame) : new GameLoopManager(kwdFile, gameService, players);
 
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
@@ -204,6 +260,17 @@ public final class GameServerState extends AbstractAppState {
      */
     private final class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
+        // The actions are queued for the next tick, and the client may reuse the points it passed in (the selection
+        // area does), so the queued action gets its own copies
+
+        private static Vector2f copy(Vector2f vector) {
+            return vector != null ? vector.clone() : null;
+        }
+
+        private static Point copy(Point point) {
+            return point != null ? new Point(point.x, point.y) : null;
+        }
+
         @Override
         public void onStartGame() {
 
@@ -226,47 +293,59 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            mapController.selectTiles(start, end, select, playerId);
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> mapController.selectTiles(from, to, select, playerId));
         }
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameWorldController.build(start, end, playerId, roomId);
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> gameWorldController.build(from, to, playerId, roomId));
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameWorldController.sell(start, end, playerId);
+            Vector2f from = start.clone();
+            Vector2f to = end.clone();
+            game.runPlayerAction(() -> gameWorldController.sell(from, to, playerId));
         }
 
         @Override
         public void onInteract(EntityId entity, short playerId) {
-            gameWorldController.interact(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.interact(entity, playerId));
         }
 
         @Override
         public void onPickUp(EntityId entity, short playerId) {
-            gameWorldController.pickUp(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.pickUp(entity, playerId));
         }
 
         @Override
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-            gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
+            Point dropTile = copy(tile);
+            Vector2f dropCoordinates = copy(coordinates);
+            game.runPlayerAction(() -> gameWorldController.drop(entity, dropTile, dropCoordinates, dropOnEntity, playerId));
         }
 
         @Override
         public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
-            gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId);
+            Point castTile = copy(tile);
+            Vector2f castPosition = copy(position);
+            game.runPlayerAction(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, castTile, castPosition, playerId));
         }
 
         @Override
         public void onPlaceDoor(short doorId, Point tile, short playerId) {
-            gameWorldController.placeDoor(doorId, tile, playerId);
+            Point doorTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeDoor(doorId, doorTile, playerId));
         }
 
         @Override
         public void onPlaceTrap(short trapId, Point tile, short playerId) {
-            gameWorldController.placeTrap(trapId, tile, playerId);
+            Point trapTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeTrap(trapId, trapTile, playerId));
         }
 
         @Override
@@ -295,17 +374,17 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onGetGold(int amount, short playerId) {
-            gameWorldController.getGold(amount, playerId);
+            game.runPlayerAction(() -> gameWorldController.getGold(amount, playerId));
         }
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
-            cheatController.onCheat(cheat, playerId);
+            game.runPlayerAction(() -> cheatController.onCheat(cheat, playerId));
         }
 
         @Override
         public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
-            cheatController.spawnCreature(creatureId, level, amount, playerId);
+            game.runPlayerAction(() -> cheatController.spawnCreature(creatureId, level, amount, playerId));
         }
 
         @Override
@@ -328,10 +407,12 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onEndPossession(short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
-            }
+            game.runPlayerAction(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+                }
+            });
         }
     }
 

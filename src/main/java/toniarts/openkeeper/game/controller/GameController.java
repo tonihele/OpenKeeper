@@ -20,7 +20,12 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.HauledBy;
+import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
@@ -35,6 +40,7 @@ import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.NavigationService;
 import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
@@ -54,6 +60,7 @@ import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -78,6 +85,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private final List<TriggerControl> triggerControls = new ArrayList<>();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -101,6 +109,28 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
+        this(level, players, entityData, gameSettings, playerService, null);
+    }
+
+    /**
+     * Loads a saved game
+     *
+     * @param level the level of the saved game
+     * @param saveGame the saved game
+     * @param entityData the saved entities, see
+     * {@link SaveGame#createEntityData()}
+     * @param gameSettings
+     * @param playerService
+     */
+    public GameController(IKwdFile level, SaveGame saveGame, EntityData entityData,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            PlayerService playerService) {
+        this(level, saveGame.getPlayers(), entityData, gameSettings, playerService, saveGame);
+    }
+
+    private GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            PlayerService playerService, SaveGame saveGame) {
 
         levelInfo = new LevelInfo(level);
         levelObject = null;
@@ -112,18 +142,23 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 levelInfo.players.put(keeper.getId(), keeper);
             }
         }
-        createNewGame();
+        createNewGame(saveGame);
     }
 
     public void createNewGame() {
+        createNewGame(null);
+    }
+
+    private void createNewGame(SaveGame saveGame) {
         levelInfo.load();
         // The players
-        setupPlayers();
+        setupPlayers(saveGame == null);
 
         gameEventService = new ServerGameEventService(entityData, playerService);
-        gameTimer = new GameTimeController();
+        gameTimer = saveGame != null ? new GameTimeController(saveGame.getGameTime()) : new GameTimeController();
         // The world
-        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer, gameEventService);
+        gameWorldController = new GameWorldController(this, levelInfo, entityData, gameSettings, playerControllers, gameTimer, gameEventService,
+                saveGame);
 
         positionSystem = new PositionSystem(gameWorldController.getMapController(), entityData,
                 gameWorldController.getCreaturesController(), gameWorldController.getDoorsController(),
@@ -133,40 +168,91 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // Navigation
         navigationService = new NavigationService(gameWorldController.getMapController(), positionSystem);
 
-        // Initialize tasks
+        // Initialize tasks. The tasks of a loaded game are not saved, so its creatures pick new ones and put down what
+        // they carried for the old ones
+        if (saveGame != null) {
+            for (EntityId entityId : entityData.findEntities(null, TaskComponent.class)) {
+                entityData.removeComponent(entityId, TaskComponent.class);
+            }
+            for (EntityId entityId : entityData.findEntities(null, HauledBy.class)) {
+                entityData.removeComponent(entityId, HauledBy.class);
+            }
+        }
         taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(),
                 gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(),
                 navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings);
 
+        // The hero parties of a loaded game, before the party triggers take them
+        if (saveGame != null) {
+            gameWorldController.getCreaturesController().restoreParties(saveGame);
+        }
+
         // The triggers
-        controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
-                gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        PartyTriggerLogicController partyTriggers = new PartyTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController());
+        CreatureTriggerLogicController creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData));
-        controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
+                playerService, entityData);
+        ObjectTriggerLogicController objectTriggers = new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData, gameWorldController.getObjectsController()));
-        controllers.add(new DoorTriggerLogicController(this, levelInfo, gameTimer,
+                playerService, entityData, gameWorldController.getObjectsController());
+        DoorTriggerLogicController doorTriggers = new DoorTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData, gameWorldController.getDoorsController()));
-        controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
+                playerService, entityData, gameWorldController.getDoorsController());
+        ActionPointTriggerLogicController actionPointTriggers = new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                positionSystem));
-        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+                positionSystem);
+        PlayerTriggerLogicController playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+                playerService);
+        controllers.add(partyTriggers);
+        controllers.add(creatureTriggers);
+        controllers.add(objectTriggers);
+        controllers.add(doorTriggers);
+        controllers.add(actionPointTriggers);
+        controllers.add(playerTriggers);
         controllers.add(gameTimer);
         controllers.add(positionSystem);
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
         if (triggerId != 0) {
             triggerControl = new TriggerControl(this, levelInfo, gameTimer, gameWorldController.getMapController(), gameWorldController.getCreaturesController(), triggerId);
+            triggerControls.add(triggerControl);
         }
+        triggerControls.addAll(partyTriggers.getTriggerControls());
+        triggerControls.addAll(creatureTriggers.getTriggerControls());
+        triggerControls.addAll(objectTriggers.getTriggerControls());
+        triggerControls.addAll(doorTriggers.getTriggerControls());
+        triggerControls.addAll(actionPointTriggers.getTriggerControls());
+        triggerControls.addAll(playerTriggers.getTriggerControls());
 
+        if (saveGame != null) {
+            restore(saveGame);
+        }
     }
 
-    private void setupPlayers() {
+    /**
+     * Puts back the state of a loaded game that isn't in the entities
+     *
+     * @param saveGame the loaded game
+     */
+    private void restore(SaveGame saveGame) {
+        saveGame.restoreLevelInfo(levelInfo);
+        saveGame.restoreTriggers(triggerControls);
+        saveGame.restorePlayerStats(playerControllers.values());
+
+        // What the keepers hold in hand, the first one picked up has the highest index
+        for (IPlayerController playerController : playerControllers.values()) {
+            PlayerHandControl handControl = playerController.getHandControl();
+            if (handControl != null) {
+                entityData.findEntities(new FieldFilter(InHand.class, "playerId", playerController.getKeeper().getId()), InHand.class).stream()
+                        .sorted(Comparator.comparingInt((EntityId entityId) -> entityData.getComponent(entityId, InHand.class).index).reversed())
+                        .forEach(handControl::push);
+            }
+        }
+    }
+
+    private void setupPlayers(boolean newGame) {
         // Setup players
         boolean addMissingPlayers = levelInfo.players.isEmpty(); // Add all if none is given (campaign...)
         for (Map.Entry<Short, Player> entry : levelInfo.kwdFile.getPlayers().entrySet()) {
@@ -184,13 +270,18 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 PlayerController playerController = new PlayerController(levelInfo.kwdFile, keeper, levelInfo.kwdFile.getImp(), entityData, gameSettings);
                 playerControllers.put(entry.getKey(), playerController);
 
-                // Spells are all available for research unless otherwise stated
+                // Spells are all available for research unless otherwise stated, a loaded player has them already
                 for (KeeperSpell spell : levelInfo.kwdFile.getKeeperSpells()) {
-                    if (spell.getBonusRTime() != 0) {
+                    if (newGame && spell.getBonusRTime() != 0) {
                         playerController.getSpellControl().setTypeAvailable(spell, true, false);
                     }
                 }
             }
+        }
+
+        // A loaded game has the alliances, availabilities and research in the players already
+        if (!newGame) {
+            return;
         }
 
         // Set the alliances
@@ -432,18 +523,20 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         return gameTimer;
     }
 
-    private static class LevelInfo implements ILevelInfo {
+    @Override
+    public List<TriggerControl> getTriggerControls() {
+        return triggerControls;
+    }
 
-        private static final int LEVEL_TIMER_MAX_COUNT = 16;
-        private static final int LEVEL_FLAG_MAX_COUNT = 128;
+    private static class LevelInfo implements ILevelInfo {
 
         private final IKwdFile kwdFile;
         private int levelScore = 0;
         private Float timeLimit = null;
 
         private final SortedMap<Short, Keeper> players = new TreeMap<>();
-        private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
-        private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, LEVEL_TIMER_MAX_COUNT);
+        private final List<Integer> flags = new ArrayList<>(FLAG_COUNT);
+        private final SafeArrayList<GameTimer> timers = new SafeArrayList<>(GameTimer.class, TIMER_COUNT);
         private final Map<Integer, ActionPoint> actionPointsById = new HashMap<>();
         private final List<ActionPoint> actionPoints = new ArrayList<>();
 
@@ -455,11 +548,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             // Action points
             loadActionPoints();
             // Triggers data
-            for (short i = 0; i < LEVEL_FLAG_MAX_COUNT; i++) {
+            for (short i = 0; i < FLAG_COUNT; i++) {
                 flags.add(i, 0);
             }
             // Timers data
-            for (byte i = 0; i < LEVEL_TIMER_MAX_COUNT; i++) {
+            for (byte i = 0; i < TIMER_COUNT; i++) {
                 timers.add(i, new GameTimer());
             }
         }

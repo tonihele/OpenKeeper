@@ -879,7 +879,25 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         stats.show();
                     }
                 }
+            } else if (isQuickKeyPressed(evt, Settings.Setting.QUICK_SAVE)) {
+                stateManager.getState(PlayerState.class).getScreen().quickSave();
+            } else if (isQuickKeyPressed(evt, Settings.Setting.QUICK_LOAD)) {
+                stateManager.getState(PlayerState.class).getScreen().quickLoad();
             }
+        }
+
+        /**
+         * A quick save or load key, never one that also zooms the camera (zoom
+         * out used to be Ctrl + S)
+         */
+        private boolean isQuickKeyPressed(KeyInputEvent evt, Settings.Setting setting) {
+            return isKeyPressed(evt, setting) && !isKeyPressed(evt, Settings.Setting.CAMERA_ZOOM_IN)
+                    && !isKeyPressed(evt, Settings.Setting.CAMERA_ZOOM_OUT);
+        }
+
+        private boolean isKeyPressed(KeyInputEvent evt, Settings.Setting setting) {
+            return evt.getKeyCode() == Main.getUserSettings().getInteger(setting)
+                    && (setting.getSpecialKey() == null || keys.contains(setting.getSpecialKey()));
         }
 
         @Override

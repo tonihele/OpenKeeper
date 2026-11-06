@@ -84,8 +84,9 @@ public final class Settings {
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),
         TORCHES_ENABLED(Boolean.class, true, SettingCategory.GRAPHICS),
         // Controls
-        CAMERA_ZOOM_IN(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_W, SettingCategory.CONTROLS, 124),
-        CAMERA_ZOOM_OUT(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_S, SettingCategory.CONTROLS, 125),
+        // DK II zooms with Home / End, its Ctrl + S is the quick save
+        CAMERA_ZOOM_IN(Integer.class, null, KeyInput.KEY_HOME, SettingCategory.CONTROLS, 124),
+        CAMERA_ZOOM_OUT(Integer.class, null, KeyInput.KEY_END, SettingCategory.CONTROLS, 125),
         CAMERA_UP(Integer.class, null, KeyInput.KEY_W, SettingCategory.CONTROLS, 118),
         CAMERA_DOWN(Integer.class, null, KeyInput.KEY_S, SettingCategory.CONTROLS, 119),
         CAMERA_LEFT(Integer.class, null, KeyInput.KEY_A, SettingCategory.CONTROLS, 106),
@@ -169,6 +170,8 @@ public final class Settings {
         RECORDER_FPS(Integer.class, 60, SettingCategory.MISCELLANEOUS),
         // Cursor
         USE_CURSORS(Boolean.class, true, SettingCategory.MISCELLANEOUS),
+        // Auto-save interval in minutes of game time, 0 is off
+        AUTO_SAVE_INTERVAL(Integer.class, 10, SettingCategory.MISCELLANEOUS),
         // Multiplayer settings
         PLAYER_NAME(String.class, System.getProperty("user.name"), SettingCategory.MISCELLANEOUS),
         GAME_NAME(String.class, "My OpenKeeper game", SettingCategory.MISCELLANEOUS),

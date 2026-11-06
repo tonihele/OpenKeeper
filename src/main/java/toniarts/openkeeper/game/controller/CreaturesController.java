@@ -63,7 +63,9 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -84,6 +86,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.WeakHashMap;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * This is a controller that controls all the game objects in the world TODO: Hmm, should this be more a
@@ -137,9 +140,11 @@ public final class CreaturesController implements ICreaturesController {
      * @param gameController
      * @param mapController
      * @param levelInfo
+     * @param saveGame the loaded game, its creatures are in the entities
+     * already. {@code null} for a new game
      */
     public CreaturesController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
-            IGameController gameController, IMapController mapController, ILevelInfo levelInfo) {
+            IGameController gameController, IMapController mapController, ILevelInfo levelInfo, @Nullable SaveGame saveGame) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -149,7 +154,10 @@ public final class CreaturesController implements ICreaturesController {
         this.levelInfo = levelInfo;
 
         // Load creatures
-        loadCreatures();
+        if (saveGame == null) {
+            loadCreatures();
+        }
+        loadHeroParties();
     }
 
     private void loadCreatures() {
@@ -187,6 +195,9 @@ public final class CreaturesController implements ICreaturesController {
                 logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
         }
+    }
+
+    private void loadHeroParties() {
         for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
             try {
                 heroParties.put(heroParty.getId(), heroParty);
@@ -445,9 +456,15 @@ public final class CreaturesController implements ICreaturesController {
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
-                room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
-                entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
-                return CreatureState.TORTURED;
+                RoomTortureeControl torturees = room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
+                EntityId device = torturees.addItem(entityId, location);
+                if (device != null) {
+                    Position devicePosition = entityData.getComponent(device, Position.class);
+                    entityData.setComponent(entityId, new Position(devicePosition.rotation,
+                            new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
+                    entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime(), device));
+                    return CreatureState.TORTURED;
+                }
             }
         }
         return CreatureState.IDLE;
@@ -636,27 +653,44 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public List<IPartyController> getCreatedParties() {
+        return new ArrayList<>(creaturePartiesById.values());
+    }
+
+    @Override
+    public void restoreParties(SaveGame saveGame) {
+
+        // A member that has died and is gone gets a controller without an entity, as it has in the running game, so
+        // the party triggers count it as dead
+        for (PartyController party : saveGame.getParties(heroParties, (entityId, member) -> isValidEntity(entityId)
+                ? createController(entityId) : createCreatureController(entityId, member.getCreatureId()))) {
+            creaturePartiesByPartyId.put(party.getPartyId(), party);
+            creaturePartiesById.put(party.getId(), party);
+        }
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a creature!");
         }
         ICreatureController creatureController = creatureControllersByEntityId.computeIfAbsent(entityId, (id) -> {
-            return new WeakReference<>(createCreatureController(id, creatureComponent));
+            return new WeakReference<>(createCreatureController(id, creatureComponent.creatureId));
         }).get();
 
         // Hmm, the entity IDs seem to be referenced somewhere, they outlast the controllers
         // So maybe this is all very unnecessary...
         if (creatureController == null) {
-            creatureController = createCreatureController(entityId, creatureComponent);
+            creatureController = createCreatureController(entityId, creatureComponent.creatureId);
             creatureControllersByEntityId.put(entityId, new WeakReference<>(creatureController));
         }
 
         return creatureController;
     }
 
-    private ICreatureController createCreatureController(EntityId id, CreatureComponent creatureComponent) {
-        return new CreatureController(id, entityData, kwdFile.getCreature(creatureComponent.creatureId),
+    private ICreatureController createCreatureController(EntityId id, short creatureId) {
+        return new CreatureController(id, entityData, kwdFile.getCreature(creatureId),
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),

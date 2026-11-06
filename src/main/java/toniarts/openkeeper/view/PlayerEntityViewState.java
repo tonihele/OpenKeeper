@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.system.Timer;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
@@ -60,6 +61,7 @@ import toniarts.openkeeper.tools.convert.map.Light;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -71,6 +73,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -132,6 +135,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     };
 
     private AppStateManager stateManager;
+    private Timer timer; // The clock the torture wheels and their victims share
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
@@ -168,6 +172,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+    /** DK II lifts the victim on a torture wheel by 0x200 (1/8 tile) */
+    private static final float TORTURE_WHEEL_VICTIM_LIFT = 0.125f;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -233,6 +239,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
+        this.timer = app.getTimer();
 
         // Attach the entities
         rootNode.attachChild(root);
@@ -292,6 +299,20 @@ public class PlayerEntityViewState extends AbstractAppState {
             for (Spatial object : trapModelContainer.getModels()) {
                 AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
             }
+        }
+    }
+
+    /**
+     * The torture wheels spin all the time, and their victims with them. Both
+     * get the same clock, so they stay at the same angle.
+     */
+    private void setTortureWheelSpin(Spatial object, boolean spinning) {
+        TortureWheelSpinControl control = object.getControl(TortureWheelSpinControl.class);
+        if (spinning && control == null) {
+            float ticksPerSecond = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.GAME_TICKS).getValue();
+            object.addControl(new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond));
+        } else if (!spinning && control != null) {
+            object.removeControl(control);
         }
     }
 
@@ -573,6 +594,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
         control.setTargetState(viewState.state);
+        setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
@@ -610,6 +632,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
+        setTortureWheelSpin(object, viewState.state == GameObject.State.TORTURE_WHEEL_SPIN);
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
 
         GameObject gameObject = kwdFile.getObject(viewState.objectId);
@@ -844,6 +867,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
+            if (e.get(CreatureViewState.class).state == Creature.AnimationType.TORTURED_WHEEL) {
+                object.move(0, TORTURE_WHEEL_VICTIM_LIFT, 0);
+            }
             updateCreatureModelAnimation(object, e);
         }
 

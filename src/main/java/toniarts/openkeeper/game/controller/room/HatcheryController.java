@@ -41,7 +41,11 @@ public final class HatcheryController extends NormalRoomController implements IC
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.FOOD);
 
         this.gameTimer = gameTimer;
-        entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
+
+        // A loaded Hatchery carries on with its spawn time
+        if (entityData.getComponent(entityId, ChickenGenerator.class) == null) {
+            entityData.setComponent(entityId, new ChickenGenerator(gameTimer.getGameTime()));
+        }
     }
 
     @Override
