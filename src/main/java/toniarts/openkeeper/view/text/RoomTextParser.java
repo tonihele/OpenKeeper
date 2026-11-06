@@ -56,9 +56,12 @@ public class RoomTextParser {
     }
 
     public String parseText(String text, EntityId room, Keeper roomOwner) {
-        return TextUtils.parseText(text, (parameter) -> {
-            return getReplacement(parameter, roomsInformation.getRoomInformation(room), roomOwner);
-        });
+        // Room entities can disappear before the tile's room reference is replicated.
+        IRoomInformation information = roomsInformation.getRoomInformation(room);
+        if (information == null) {
+            return "";
+        }
+        return TextUtils.parseText(text, parameter -> getReplacement(parameter, information, roomOwner));
     }
 
     protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {

@@ -135,6 +135,13 @@ public class EffectManagerState extends AbstractAppState {
         return visualEffect;
     }
 
+    /** Spawns the value-dependent digit animation used by DK II for sale proceeds. */
+    public void loadGoldValue(Node parent, Vector3f location, int value, com.jme3.renderer.Camera camera) {
+        Node digits = GoldValueEffect.create(value, kwdFile, assetManager, camera);
+        digits.setLocalTranslation(location);
+        parent.attachChild(digits);
+    }
+
     /**
      * For scenes without a {@link PlayerMapViewState} (the main menu): where
      * the effects get their light rules from instead. The supplier may return
