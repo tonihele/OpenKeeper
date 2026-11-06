@@ -36,6 +36,11 @@ public final class TrapTextParser extends EntityTextParser<Trap> {
     protected String getReplacement(TextParameter parameter, Entity entity, Trap trap) {
         switch (parameter) {
             case ENTITY_NAME:
+
+                // The hero traps have no name text, text 0 is "Jelly"
+                if (trap.getNameStringId() == 0) {
+                    return trap.getName();
+                }
                 return Utils.getMainTextResourceBundle().getString(Integer.toString(trap.getNameStringId()));
             case MANA_USAGE:
                 return Integer.toString(trap.getManaUsage());
