@@ -166,6 +166,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** DK II lifts the victim on a torture wheel by 0x200 (1/8 tile) */
     private static final float TORTURE_WHEEL_VICTIM_LIFT = 0.125f;
     /** The coals and water troughs under the wheels on the wall, and their effects (DK II 0x499300) */
+    private static final short TORTURE_WHEEL_OBJECT_ID = 8;
+    private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
     private static final short TORTURE_COALS_OBJECT_ID = 62;
     private static final short TORTURE_WATER_OBJECT_ID = 63;
     private static final int TORTURE_COALS_EFFECT_ID = 274;
@@ -316,6 +318,33 @@ public class PlayerEntityViewState extends AbstractAppState {
         } else if (!spinning && control != null) {
             object.removeControl(control);
         }
+    }
+
+    /**
+     * Gets the victim on a torture device
+     *
+     * @param device the model of an object
+     * @return the control of the creature tortured on the device, {@code null}
+     * if the object is no torture device or there is nobody on it
+     */
+    public IEntityViewControl getTortureVictimOn(Spatial device) {
+        ObjectViewControl deviceControl = device.getControl(ObjectViewControl.class);
+        if (deviceControl == null || deviceControl.getCurrentState() == null
+                || (deviceControl.getCurrentState().objectId != TORTURE_WHEEL_OBJECT_ID
+                && deviceControl.getCurrentState().objectId != ELECTRIC_CHAIR_OBJECT_ID)) {
+            return null;
+        }
+        Point tile = WorldUtils.vectorToPoint(device.getLocalTranslation());
+        for (Spatial creature : creatureModelContainer.getModels()) {
+            CreatureViewControl control = creature.getControl(CreatureViewControl.class);
+            if (control != null && (control.getCurrentState() == Creature.AnimationType.TORTURED_WHEEL
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR_SKELETON)
+                    && WorldUtils.vectorToPoint(creature.getLocalTranslation()).equals(tile)) {
+                return control;
+            }
+        }
+        return null;
     }
 
     /**

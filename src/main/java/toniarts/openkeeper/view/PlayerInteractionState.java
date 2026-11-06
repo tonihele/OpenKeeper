@@ -469,7 +469,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             object = results.getCollision(i).getGeometry().getParent().getParent();
             IEntityViewControl control = object.getControl(IEntityViewControl.class);
             if (control != null) {
-                setInteractiveControl(control);
+
+                // A victim hanging on a wheel is hard to hit, its torture device gives it to the hand too
+                IEntityViewControl victim = playerEntityViewState.getTortureVictimOn(object);
+                setInteractiveControl(victim != null ? victim : control);
                 return;
             }
         }
