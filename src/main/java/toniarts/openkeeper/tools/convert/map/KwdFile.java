@@ -2495,10 +2495,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                         case PLAYER_CREATURES_AT_LEVEL:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            // FIXME some bug in editor
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // = 0, must be a level
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte()); // level also
+                            trigger.setUserData("targetId", reader.readUnsignedByte()); // Ignored by DKII
+                            trigger.setUserData("flag", reader.readUnsignedByte()); // Ignored by DKII
+                            trigger.setUserData("level", reader.readUnsignedByte()); // Minimum experience level
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 

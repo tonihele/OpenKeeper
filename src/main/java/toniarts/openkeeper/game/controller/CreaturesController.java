@@ -454,6 +454,24 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public int getCreatureCountAtLevel(short playerId, int minimumLevel) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, CreatureComponent.class, CreatureExperience.class, Health.class);
+        try {
+            int count = 0;
+            for (Entity entity : entities) {
+                if (!entity.get(CreatureComponent.class).worker
+                        && entity.get(CreatureExperience.class).level >= minimumLevel) {
+                    count++;
+                }
+            }
+            return count;
+        } finally {
+            entities.release();
+        }
+    }
+
+    @Override
     public void levelUpCreatures(short playerId, int level) {
 
         // Find all the living creatures of the wanted player

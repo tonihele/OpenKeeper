@@ -106,7 +106,24 @@ public final class TriggerGeneric extends Trigger {
         LEVEL_PAY_DAY(46), // Event, This level's...
         PLAYER_KILLED(47), // Event, This player's...
         CREATURE_EXPERIENCE_LEVEL(49), // Attribute, This creature's...
-        PLAYER_CREATURES_AT_LEVEL(52), // Player
+        /**
+         * Compares the number of this player's owned non-worker creatures at
+         * or above the requested experience level with the script's numeric
+         * value. Creatures of every type count; workers such as Imps do not.
+         * This is a live roster count, not a cumulative level-up event.
+         * <p>
+         * The minimum level is operand byte 3, in the position used by many
+         * other conditions for a player selector. The type-selector byte and
+         * value/player flag are ignored; the threshold is always numeric.
+         * A minimum level of 0 includes all owned non-worker creatures.
+         * Unconscious or imprisoned creatures still in the living roster
+         * count for their owner, rather than their captor.
+         * <p>
+         * For example, Level2 waits for at least one creature at level 2 or
+         * higher. A level-3 creature also satisfies that requirement, while
+         * a level-2 Imp does not. Comparison NONE does not match.
+         */
+        PLAYER_CREATURES_AT_LEVEL(52),
         GUI_BUTTON_PRESSED(53), // GUI
         CREATURE_HUNGER_SATED(54), // Event, This creature is
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
