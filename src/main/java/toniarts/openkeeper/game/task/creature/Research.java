@@ -52,7 +52,7 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return (researchControl.isAnythingToReaseach() && !getRoom().getObjectControl(getRoomObjectType()).isFullCapacity());
+        return super.isValid(creature) && researchControl.isAnythingToReaseach();
     }
 
     @Override
