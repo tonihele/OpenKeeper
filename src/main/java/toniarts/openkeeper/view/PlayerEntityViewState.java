@@ -27,6 +27,11 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventListener;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -89,6 +94,23 @@ import toniarts.openkeeper.view.text.TextParser;
 public class PlayerEntityViewState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
+
+    private final EventListener<GameEvent> possessionEffectListener = (type, event) -> onShotEvent(event);
+
+    private void onShotEvent(GameEvent event) {
+        if (event.type == GameEventType.SHOT_HIT && event.subjectKind == GameEvent.ThingFlag.SHOT) {
+            stateManager.getApplication().enqueue(() -> {
+                Shot shot = kwdFile.getShotById((short) event.subjectId);
+                // Instant possession shots have no ShotViewState entity to trigger creation effects.
+                if (isInitialized() && shot != null && shot.getProcessType() == Shot.ProcessType.POSSESS_CREATURE) {
+                    Position position = event.entity != null ? entityData.getComponent(event.entity, Position.class) : null;
+                    if (position != null && fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position.position))) {
+                        playShotEffects(shot, position.position);
+                    }
+                }
+            });
+        }
+    }
 
     /**
      * Used where no fog of war applies: everything is simply always visible.
@@ -233,6 +255,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        EventBus.addListener(ClientEvents.GAME_EVENT, possessionEffectListener);
     }
 
     @Override
@@ -291,6 +314,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        EventBus.removeListener(ClientEvents.GAME_EVENT, possessionEffectListener);
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();

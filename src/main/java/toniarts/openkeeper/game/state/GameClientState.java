@@ -799,7 +799,6 @@ public final class GameClientState extends AbstractPauseAwareState {
             // Runs on the network thread; PlayerState applies the possession
             // (including the fog-of-war bypass) on the render thread
             playerState.setPossession(target);
-            setPossessedCreature(target);
             if (ambienceState != null) {
                 ambienceState.setPossessing(target != null);
             }
