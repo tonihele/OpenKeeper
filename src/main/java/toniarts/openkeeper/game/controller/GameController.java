@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
 import toniarts.openkeeper.game.trigger.party.PartyTriggerLogicController;
+import toniarts.openkeeper.game.trigger.player.PlayerCreatureEventQueue;
 import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -78,6 +79,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private PlayerTriggerLogicController playerTriggers;
+    private final PlayerCreatureEventQueue playerCreatureEvents = new PlayerCreatureEventQueue();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -113,6 +116,16 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             }
         }
         createNewGame();
+    }
+
+    @Override
+    public void onCreatureDropped(short playerId) {
+        playerCreatureEvents.enqueueDropped(playerId);
+    }
+
+    @Override
+    public void onCreaturePickedUp(short playerId) {
+        playerCreatureEvents.enqueuePickedUp(playerId);
     }
 
     public void createNewGame() {
@@ -153,9 +166,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 positionSystem));
-        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
-                gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+        playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+                gameWorldController.getMapController(), gameWorldController.getCreaturesController(), playerService);
+        controllers.add(playerTriggers);
         controllers.add(gameTimer);
         controllers.add(positionSystem);
 
@@ -287,6 +300,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             timer.update(tpf);
         }
 
+        playerCreatureEvents.drain(playerTriggers::onCreatureEvent);
+
         if (triggerControl != null) {
             triggerControl.update(tpf);
         }
@@ -408,6 +423,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void stop() {
+        playerCreatureEvents.clear();
         controllers.stream().forEach(IGameLogicUpdatable::stop);
         controllers.clear();
     }

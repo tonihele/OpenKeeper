@@ -144,6 +144,9 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     EntityId getPossessedCreature(short playerId);
 
+    /** Reports that this player released a creature from the hand or a carrier. */
+    void onCreatureDropped(short playerId);
+
     /**
      * Spawns creatures at the given player's dungeon heart entrance. Does nothing if the player has no
      * dungeon heart to spawn creatures at.
