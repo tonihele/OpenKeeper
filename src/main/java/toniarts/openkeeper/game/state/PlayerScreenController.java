@@ -53,6 +53,8 @@ import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.SizeValueType;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.view.filter.PossessionGamma;
+import toniarts.openkeeper.view.filter.PossessionMasks;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
@@ -114,6 +116,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private PlayerState state;
     private Nifty nifty;
     private Screen screen;
+    private Creature.GammaEffect possessionGammaEffect = Creature.GammaEffect.NORMAL;
+    private PossessionGamma possessionGamma;
 
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
@@ -159,6 +163,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void cleanup() {
+        stopPossessionGamma();
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
             creatureCardManager = null;
@@ -654,13 +659,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             return;
         }
 
-        String filterImageName = creature.getFirstPersonFilterResource() != null
-                ? creature.getFirstPersonFilterResource().getName()
-                : getFilterResourceName(creature.getCreatureId());
-        setPossessionFilterImage(contentPanel, filterImageName);
-
-        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(creature.getFirstPersonGammaEffect() != null
-                ? getGammaEffectColor(creature.getFirstPersonGammaEffect()) : new Color(0, 0, 0, 0));
+        setPossessionFilterImage(contentPanel, PossessionMasks.forCreature(creature));
+        possessionGammaEffect = creature.getFirstPersonGammaEffect();
+        contentPanel.getRenderer(PanelRenderer.class).setBackgroundColor(new Color(0, 0, 0, 0));
 
         // Revealed once the camera has entered the creature, see showPossessionFilter
         state.app.enqueue(() -> contentPanel.hide());
@@ -834,6 +835,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (filter != null) {
                 // skipcq: JAVA-W1062
                 filter.show();
+                stopPossessionGamma();
+                if (PossessionGamma.isSupported(possessionGammaEffect)
+                        && possessionGammaEffect != Creature.GammaEffect.NORMAL) {
+                    possessionGamma = new PossessionGamma(state.app.getAssetManager());
+                    possessionGamma.setEffect(possessionGammaEffect);
+                    state.app.getGuiViewPort().addProcessor(possessionGamma);
+                }
             }
         });
     }
@@ -845,6 +853,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     public void resetPossessionFilter() {
         state.app.enqueue(() -> {
+            stopPossessionGamma();
             Element filter = nifty.getScreen(SCREEN_POSSESSION_ID).findElementById("creature-filter");
             if (filter == null) {
                 return;
@@ -1193,68 +1202,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
     }
 
-    // FIXME where filter resource?
-    private String getFilterResourceName(int id) {
-        String resource = null;
-        switch (id) {
-            case 12:
-                resource = "Textures/GUI/Filters/F-FireFly.png";
-                break;
-            case 13:
-                resource = "Textures/GUI/Filters/F-Knight.png";
-                break;
-            case 22:
-                resource = "Textures/GUI/Filters/F-Black_Knight.png";
-                break;
-            case 25:
-                resource = "Textures/GUI/Filters/F-Guard.png";
-                break;
+    private void stopPossessionGamma() {
+        if (possessionGamma != null) {
+            if (state != null) state.app.getGuiViewPort().removeProcessor(possessionGamma);
+            possessionGamma.cleanup();
+            possessionGamma = null;
         }
-        return resource;
-    }
-
-    // FIXME Gamma Effect not a Color. It`s post effect of render.
-    private Color getGammaEffectColor(Creature.GammaEffect type) {
-        Color c = new Color(0, 0, 0, 0);
-
-        switch (type) {
-            case NORMAL:
-                c = new Color(1f, 1f, 1f, 0);
-                break;
-
-            case VAMPIRE_RED:
-                c = new Color(0.8f, 0, 0, 0.2f);
-                break;
-
-            case DARK_ELF_PURPLE:
-                c = new Color(0.9f, 0, 0.9f, 0.2f);
-                break;
-
-            case SKELETON_BLACK_N_WHITE:
-                c = new Color(0, 0, 1f, 0.1f);
-                break;
-
-            case SALAMANDER_INFRARED:
-                c = new Color(1f, 0, 0, 0.1f);
-                break;
-
-            case MARTINS_TEST_1:
-            case MARTINS_TEST_2:
-            case MARTINS_TEST_3:
-            case MARTINS_TEST_4:
-            case DARK_ANGER_BRIGHT_BLUE:
-            case DEATH_VIEW_HALF_RED:
-            case FREEZE_VIEW_ONLY_BLUE:
-            case BLACKOUT:
-            case GHOST:
-            case MAIDEN:
-            case REDOUT:
-            case WHITEOUT:
-                break;
-
-        }
-
-        return c;
     }
 
     // FIXME I doesn`t find resources to abilities
