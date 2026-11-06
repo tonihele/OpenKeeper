@@ -47,6 +47,9 @@ public final class BenchmarkSampler {
     private final RunningStat textureBinds = new RunningStat();
     private final RunningStat lightsUploaded = new RunningStat();
     private final RunningStat lightSources = new RunningStat();
+    private final RunningStat pageLightIndexAvg = new RunningStat();
+    private final RunningStat pageLightIndexMax = new RunningStat();
+    private final RunningStat pageFullListFallbacks = new RunningStat();
     private final RunningStat usedHeapMb = new RunningStat();
     private final RunningStat allocBytesPerFrame = new RunningStat();
     private final TrendSeries trends = new TrendSeries(1.0);
@@ -133,6 +136,9 @@ public final class BenchmarkSampler {
                 lights = lightRules.getUploadedLightCount();
                 lightsUploaded.add(lights);
                 lightSources.add(lightRules.getSourceCount());
+                pageLightIndexAvg.add(lightRules.getPageLightIndexAvg());
+                pageLightIndexMax.add(lightRules.getPageLightIndexMax());
+                pageFullListFallbacks.add(lightRules.getPageFullListFallbacks());
             }
         }
 
@@ -168,6 +174,9 @@ public final class BenchmarkSampler {
         metrics.put("textureBinds", textureBinds.summarize());
         metrics.put("lightsUploaded", lightsUploaded.summarize());
         metrics.put("lightSources", lightSources.summarize());
+        metrics.put("pageLightIndexAvg", pageLightIndexAvg.summarize());
+        metrics.put("pageLightIndexMax", pageLightIndexMax.summarize());
+        metrics.put("pageFullListFallbacks", pageFullListFallbacks.summarize());
         metrics.put("trends", trends.summarize());
 
         Map<String, Object> memory = new LinkedHashMap<>();

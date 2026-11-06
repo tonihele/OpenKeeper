@@ -772,11 +772,17 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * @param root where to generate pages on
      */
     private void generatePages(Node root) {
+        lightRules.clearTerrainPages();
         pages = new ArrayList<>(((int) Math.ceil(getMapData().getHeight() / (float) PAGE_SQUARE_SIZE))
                 * ((int) Math.ceil(getMapData().getWidth() / (float) PAGE_SQUARE_SIZE)));
+        int pageIndex = 0;
         for (int y = 0; y < (int) Math.ceil(getMapData().getHeight() / (float) PAGE_SQUARE_SIZE); y++) {
             for (int x = 0; x < (int) Math.ceil(getMapData().getWidth() / (float) PAGE_SQUARE_SIZE); x++) {
                 Node page = new Node(x + "_" + y);
+                page.setUserData("pageIndex", pageIndex);
+                page.setUserData("pageX", x);
+                page.setUserData("pageY", y);
+                pageIndex++;
 
                 // Create batch nodes for ceiling, floor and walls
                 BatchNode floor = new BatchNode("floor");
@@ -815,6 +821,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
     /**
      * Hooks the Vertex materials of a page's batched geometry up to the lighting
+     * and registers the page AABB for per-page light-index culling.
      */
     private void bindPageBatchMaterials(Node page) {
         if (page == null) {
@@ -837,6 +844,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
         lightRules.bindMaterials(materials);
+
+        Integer pageIndex = page.getUserData("pageIndex");
+        Integer pageX = page.getUserData("pageX");
+        Integer pageY = page.getUserData("pageY");
+        if (pageIndex == null || pageX == null || pageY == null || materials.isEmpty()) {
+            return;
+        }
+        // Tile centres sit on integers; page covers [origin, origin+7] ± 0.5.
+        // Y spans underfloor through wall tops so elevated torch positions still
+        // hit the page AABB during index rebuild.
+        float originX = pageX * PAGE_SQUARE_SIZE;
+        float originZ = pageY * PAGE_SQUARE_SIZE;
+        float minX = originX - 0.5f;
+        float maxX = originX + PAGE_SQUARE_SIZE - 0.5f;
+        float minZ = originZ - 0.5f;
+        float maxZ = originZ + PAGE_SQUARE_SIZE - 0.5f;
+        float minY = WorldUtils.UNDERFLOOR_HEIGHT - 0.5f;
+        float maxY = WorldUtils.TOP_HEIGHT + 1.0f;
+        lightRules.setTerrainPage(pageIndex, minX, maxX, minY, maxY, minZ, maxZ, materials);
     }
 
     private Spatial getWallSpatial(IMapTileInformation tile, WallDirection direction) {

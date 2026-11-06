@@ -164,6 +164,49 @@ public final class LightRules {
     }
 
     /**
+     * @see SceneLights#clearTerrainPages()
+     */
+    public void clearTerrainPages() {
+        sceneLights.clearTerrainPages();
+    }
+
+    /**
+     * @see SceneLights#setTerrainPage(int, float, float, float, float, float, float, List)
+     */
+    public void setTerrainPage(int pageIndex, float minX, float maxX,
+            float minY, float maxY, float minZ, float maxZ, List<Material> materials) {
+        sceneLights.setTerrainPage(pageIndex, minX, maxX, minY, maxY, minZ, maxZ, materials);
+    }
+
+    /**
+     * @see SceneLights#getPageLightIndexAvg()
+     */
+    public double getPageLightIndexAvg() {
+        return sceneLights.getPageLightIndexAvg();
+    }
+
+    /**
+     * @see SceneLights#getPageLightIndexMax()
+     */
+    public int getPageLightIndexMax() {
+        return sceneLights.getPageLightIndexMax();
+    }
+
+    /**
+     * @see SceneLights#getPageFullListFallbacks()
+     */
+    public int getPageFullListFallbacks() {
+        return sceneLights.getPageFullListFallbacks();
+    }
+
+    /**
+     * @see SceneLights#getTerrainPageCount()
+     */
+    public int getTerrainPageCount() {
+        return sceneLights.getTerrainPageCount();
+    }
+
+    /**
      * Switches a whole group of lights on or off, e.g. for debugging. The
      * lights keep being simulated, they just stop contributing.
      */

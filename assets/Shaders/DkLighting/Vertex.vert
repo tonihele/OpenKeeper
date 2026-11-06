@@ -4,6 +4,8 @@
 
 // Must match SceneLights.MAX_LIGHTS.
 #define DK_MAX_LIGHTS 3084
+// Must match SceneLights.MAX_INDICES_PER_PAGE.
+#define DK_MAX_PAGE_LIGHTS 256
 
 uniform vec4 m_Ambient;
 uniform vec4 m_Tint;
@@ -36,6 +38,13 @@ uniform vec2 m_AmbientMapSize;
 //   bit 5 (32): the light is carried by a game object
 #ifdef LIGHT_DATA
 uniform sampler2D m_LightData;
+#endif
+// Per-page index list into LightData (terrain BatchNode pages only).
+// LightIndexCount < 0 means "evaluate the full uploaded list" (overflow).
+#ifdef LIGHT_INDEX_DATA
+uniform sampler2D m_LightIndexData;
+uniform int m_LightIndexRow;
+uniform int m_LightIndexCount;
 #endif
 
 attribute vec3 inPosition;
@@ -90,6 +99,52 @@ void main() {
 #ifdef LIGHT_DATA
     vec3 yieldingSum = vec3(0.0);
     float torchStrength = 0.0;
+#ifdef LIGHT_INDEX_DATA
+    // Terrain pages: evaluate only lights whose reach intersects this page.
+    // Keep the body inlined (no helper) — rooms/entities use the non-index
+    // path below with the same inlined form for GPU friendliness.
+    int tripCount = m_LightIndexCount < 0 ? numLights : clamp(m_LightIndexCount, 0, DK_MAX_PAGE_LIGHTS);
+    for (int j = 0; j < tripCount; j++) {
+        int lightIndex = j;
+        if (m_LightIndexCount >= 0) {
+            int texelIdx = j / 4;
+            int comp = j - texelIdx * 4;
+            vec4 indexTexel = texelFetch(m_LightIndexData, ivec2(texelIdx, m_LightIndexRow), 0);
+            float raw = indexTexel.r;
+            if (comp == 1) {
+                raw = indexTexel.g;
+            } else if (comp == 2) {
+                raw = indexTexel.b;
+            } else if (comp == 3) {
+                raw = indexTexel.a;
+            }
+            lightIndex = clamp(int(raw + 0.5), 0, DK_MAX_LIGHTS - 1);
+        }
+        int base = 1 + 3 * lightIndex;
+        vec4 posRadius = texelFetch(m_LightData, ivec2(base, 0), 0);
+        vec4 colorIntensity = texelFetch(m_LightData, ivec2(base + 1, 0), 0);
+        int flags = int(texelFetch(m_LightData, ivec2(base + 2, 0), 0).x + 0.5);
+#ifdef IGNORE_OBJECT_LIGHTS
+        if ((flags & 32) != 0) {
+            continue;
+        }
+#endif
+        float visibility = (flags & 2) != 0 ? 1.0 : explored;
+        vec3 contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
+                posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
+        if ((flags & 8) != 0) {
+            float peak = max(colorIntensity.r, max(colorIntensity.g, colorIntensity.b));
+            float lit = max(contribution.r, max(contribution.g, contribution.b));
+            torchStrength = max(torchStrength, peak > 0.0 ? lit / peak : 0.0);
+            contribution = dkTorchEdgeTint(contribution, colorIntensity.rgb);
+        }
+        if ((flags & 4) != 0) {
+            yieldingSum += contribution;
+        } else {
+            sum += contribution;
+        }
+    }
+#else
     for (int i = 0; i < numLights; i++) {
         int base = 1 + 3 * i;
         vec4 posRadius = texelFetch(m_LightData, ivec2(base, 0), 0);
@@ -119,6 +174,7 @@ void main() {
             sum += contribution;
         }
     }
+#endif
     // A torch overrules water and lava glow, so its colour stays pure where
     // it is strong and the glow fades back in towards the edge of its reach
     sum += yieldingSum * (1.0 - clamp(torchStrength, 0.0, 1.0));

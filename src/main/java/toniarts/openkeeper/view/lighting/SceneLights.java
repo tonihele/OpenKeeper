@@ -29,6 +29,7 @@ import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -40,14 +41,13 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * {@code DkLighting} material techniques (the two evaluation
  * modes) actually consume:
  * <ul>
- * <li><b>Per-vertex terrain</b> ({@code Vertex.j3md}): one shared list of
- * every light near the camera, written once per frame into a data texture
- * ({@code LightData}) that every terrain material reads. All materials see
- * exactly the same lights, so neighbouring tiles, room meshes and page
- * batches can never disagree about a light that reaches their shared edge
- * (per-material light lists would cut hard at tile borders). The
- * shader evaluates the model exactly, per vertex; there is no cap on
- * the number of lights beyond the texture size ({@link #MAX_LIGHTS}).</li>
+ * <li><b>Per-vertex terrain</b> ({@code Vertex.j3md}): one shared atlas of
+ * every light near the camera ({@code LightData}). All materials sample the
+ * same atlas so neighbouring tiles, room meshes and page batches never
+ * disagree about a light on a shared edge. Terrain {@code BatchNode} pages
+ * additionally receive a per-page <em>index list</em> into that atlas so
+ * each terrain vertex only evaluates lights whose reach intersects the
+ * page — rooms / water / entities keep the full frustum list.</li>
  * <li><b>Flat things</b> ({@code Flat.j3md}): {@link #computeFlatLight}
  * is a pure function callers (entity containers, {@code VisualEffect})
  * invoke themselves each frame with the owner's current position -- this class does not track thing positions.</li>
@@ -65,6 +65,18 @@ public final class SceneLights {
     public static final int MAX_LIGHTS = 3084;
 
     /**
+     * Max light indices stored per terrain page row. Must match
+     * {@code DK_MAX_PAGE_LIGHTS} in {@code Vertex.vert}. Sized for a dense
+     * 8×8 page under the camera (benchmarks peak ~150); overflow falls back
+     * to the full uploaded list for that page only. Kept modest so the
+     * shared index atlas stays a small per-frame upload.
+     */
+    public static final int MAX_INDICES_PER_PAGE = 256;
+
+    /** RGBA texels per page row (4 indices packed per texel). */
+    public static final int INDEX_TEXELS_PER_PAGE = MAX_INDICES_PER_PAGE / 4;
+
+    /**
      * Layout of {@code LightData}: texel 0 is a header (x = light count,
      * yzw = global ambient), then three texels per light: (x, y, z, radius),
      * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
@@ -79,16 +91,43 @@ public final class SceneLights {
      */
     private static final float FRUSTUM_MARGIN_TILES = 5f;
 
+    /**
+     * Extra reach used when testing whether an uploaded light can affect a
+     * terrain page. Matches {@code DK_SOFT_FALLOFF_TAIL_TILES} in the shader
+     * (Java {@link LightConstants#SOFT_FALLOFF_TAIL_TILES} is still 0.01 for
+     * historical flat-light callers — page culling must not under-reach).
+     */
+    static final float PAGE_LIGHT_REACH_TAIL_TILES = 0.1f;
+
+    /** Shader sentinel: page uses the full LightData loop (index overflow). */
+    public static final int PAGE_LIGHT_INDEX_FULL_LIST = -1;
+
     private ColorRGBA globalAmbient = ColorRGBA.Black.clone();
     private IFogOfWarInformation fogOfWar = IFogOfWarInformation.ALWAYS_VISIBLE;
     private final Texture2D lightData;
     private final FloatBuffer lightFloats;
     private final Plane[] frustumPlanes = new Plane[6];
     private boolean warnedAboutLightCount;
+    private boolean warnedAboutPageIndexOverflow;
     private int uploadedLightCount;
     private volatile Texture2D ambientMap;
     private int ambientMapWidth;
     private int ambientMapHeight;
+
+    private final List<TerrainPageLightSlot> terrainPages = new ArrayList<>();
+    private Texture2D lightIndexData;
+    private FloatBuffer lightIndexFloats;
+    private int lightIndexRows;
+    private final float[] uploadedPosX = new float[MAX_LIGHTS];
+    private final float[] uploadedPosY = new float[MAX_LIGHTS];
+    private final float[] uploadedPosZ = new float[MAX_LIGHTS];
+    private final float[] uploadedRadius = new float[MAX_LIGHTS];
+    private int pageIndexSum;
+    private int pageIndexMax;
+    private int pageIndexSamples;
+    private int pageFullListFallbacks;
+    private int[] lightGridHeads = new int[0];
+    private int[] lightGridNext = new int[0];
 
     public SceneLights() {
         int width = 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
@@ -175,6 +214,11 @@ public final class SceneLights {
                 break;
             }
             writeLight(count, light);
+            Vector3f posWritten = light.getPosition();
+            uploadedPosX[count] = posWritten.x;
+            uploadedPosY[count] = posWritten.y;
+            uploadedPosZ[count] = posWritten.z;
+            uploadedRadius[count] = light.getRadius();
             count++;
         }
         uploadedLightCount = count;
@@ -184,6 +228,266 @@ public final class SceneLights {
         lightFloats.put(2, globalAmbient.g);
         lightFloats.put(3, globalAmbient.b);
         lightData.getImage().setUpdateNeeded();
+        rebuildTerrainPageIndices();
+    }
+
+    /**
+     * Drops every registered terrain page (map reload / teardown).
+     */
+    public void clearTerrainPages() {
+        terrainPages.clear();
+        pageIndexSum = 0;
+        pageIndexMax = 0;
+        pageIndexSamples = 0;
+        pageFullListFallbacks = 0;
+    }
+
+    /**
+     * Registers or refreshes one 8×8 terrain page's world AABB and the Vertex
+     * materials that should consume its light-index row.
+     *
+     * @param pageIndex stable index matching the map's page grid order
+     * @param minX world-space AABB min X (tile units)
+     * @param maxX world-space AABB max X
+     * @param minY world-space AABB min Y
+     * @param maxY world-space AABB max Y
+     * @param minZ world-space AABB min Z
+     * @param maxZ world-space AABB max Z
+     * @param materials Vertex materials of that page's batched geometries
+     */
+    public void setTerrainPage(int pageIndex, float minX, float maxX,
+            float minY, float maxY, float minZ, float maxZ, List<Material> materials) {
+        while (terrainPages.size() <= pageIndex) {
+            terrainPages.add(null);
+        }
+        TerrainPageLightSlot slot = terrainPages.get(pageIndex);
+        if (slot == null) {
+            slot = new TerrainPageLightSlot(pageIndex, minX, maxX, minY, maxY, minZ, maxZ);
+            terrainPages.set(pageIndex, slot);
+        }
+        slot.setMaterials(materials);
+        ensureLightIndexTexture(terrainPages.size());
+        for (Material material : slot.materials) {
+            bindAmbientMap(material);
+            if (material.getTextureParam("LightData") == null) {
+                material.setTexture("LightData", lightData);
+            }
+            // Bind index uniforms immediately so LIGHT_INDEX_DATA is compiled in
+            // before the first draw (avoids a mid-frame shader switch). Until
+            // rebuildTerrainPageIndices runs, use the full-list sentinel.
+            if (material.getTextureParam("LightIndexData") == null
+                    || material.getTextureParam("LightIndexData").getTextureValue() != lightIndexData) {
+                material.setTexture("LightIndexData", lightIndexData);
+            }
+            material.setInt("LightIndexRow", pageIndex);
+            if (material.getParam("LightIndexCount") == null) {
+                material.setInt("LightIndexCount", PAGE_LIGHT_INDEX_FULL_LIST);
+            }
+        }
+    }
+
+    /**
+     * Mean light-index count across pages that rebuilt this frame (0 if none).
+     */
+    public double getPageLightIndexAvg() {
+        return pageIndexSamples > 0 ? pageIndexSum / (double) pageIndexSamples : 0.0;
+    }
+
+    /**
+     * Largest per-page light-index count from the last rebuild (excluding
+     * full-list fallbacks).
+     */
+    public int getPageLightIndexMax() {
+        return pageIndexMax;
+    }
+
+    /**
+     * Pages that overflowed {@link #MAX_INDICES_PER_PAGE} and fell back to the
+     * full uploaded light list on the last rebuild.
+     */
+    public int getPageFullListFallbacks() {
+        return pageFullListFallbacks;
+    }
+
+    /**
+     * Registered terrain pages (some slots may be unused / null).
+     */
+    public int getTerrainPageCount() {
+        int n = 0;
+        for (TerrainPageLightSlot slot : terrainPages) {
+            if (slot != null) {
+                n++;
+            }
+        }
+        return n;
+    }
+
+    private void rebuildTerrainPageIndices() {
+        pageIndexSum = 0;
+        pageIndexMax = 0;
+        pageIndexSamples = 0;
+        pageFullListFallbacks = 0;
+        if (terrainPages.isEmpty()) {
+            return;
+        }
+
+        ensureLightIndexTexture(terrainPages.size());
+        // Bin uploaded lights into an 8×8 cell grid aligned with terrain pages so
+        // each page only tests lights from its cell and immediate neighbours.
+        final int cellSize = 8;
+        int gridW = 1;
+        int gridH = 1;
+        for (TerrainPageLightSlot slot : terrainPages) {
+            if (slot == null) {
+                continue;
+            }
+            gridW = Math.max(gridW, (int) Math.floor(slot.maxX / cellSize) + 2);
+            gridH = Math.max(gridH, (int) Math.floor(slot.maxZ / cellSize) + 2);
+        }
+        int cells = gridW * gridH;
+        if (lightGridHeads.length < cells) {
+            lightGridHeads = new int[cells];
+        }
+        if (lightGridNext.length < Math.max(1, uploadedLightCount)) {
+            lightGridNext = new int[Math.max(1, uploadedLightCount)];
+        }
+        java.util.Arrays.fill(lightGridHeads, 0, cells, -1);
+        for (int i = 0; i < uploadedLightCount; i++) {
+            // Centre cell only; pages gather a 3×3 neighbourhood. Max light
+            // reach (~4.6 tiles) never spans more than one neighbouring cell.
+            int cx = Math.max(0, Math.min(gridW - 1, (int) Math.floor(uploadedPosX[i] / cellSize)));
+            int cz = Math.max(0, Math.min(gridH - 1, (int) Math.floor(uploadedPosZ[i] / cellSize)));
+            int cell = cz * gridW + cx;
+            lightGridNext[i] = lightGridHeads[cell];
+            lightGridHeads[cell] = i;
+        }
+
+        for (int row = 0; row < terrainPages.size(); row++) {
+            TerrainPageLightSlot slot = terrainPages.get(row);
+            if (slot == null || slot.materials.isEmpty()) {
+                continue;
+            }
+
+            int count = 0;
+            boolean overflow = false;
+            int rowBase = row * INDEX_TEXELS_PER_PAGE * 4;
+            int pageCX = Math.max(0, Math.min(gridW - 1, (int) Math.floor(((slot.minX + slot.maxX) * 0.5f) / cellSize)));
+            int pageCZ = Math.max(0, Math.min(gridH - 1, (int) Math.floor(((slot.minZ + slot.maxZ) * 0.5f) / cellSize)));
+            outer:
+            for (int dz = -1; dz <= 1; dz++) {
+                int cz = pageCZ + dz;
+                if (cz < 0 || cz >= gridH) {
+                    continue;
+                }
+                for (int dx = -1; dx <= 1; dx++) {
+                    int cx = pageCX + dx;
+                    if (cx < 0 || cx >= gridW) {
+                        continue;
+                    }
+                    for (int i = lightGridHeads[cz * gridW + cx]; i >= 0; i = lightGridNext[i]) {
+                        float reach = uploadedRadius[i] + PAGE_LIGHT_REACH_TAIL_TILES;
+                        if (!sphereIntersectsAabb(
+                                uploadedPosX[i], uploadedPosY[i], uploadedPosZ[i], reach,
+                                slot.minX, slot.maxX, slot.minY, slot.maxY, slot.minZ, slot.maxZ)) {
+                            continue;
+                        }
+                        if (count >= MAX_INDICES_PER_PAGE) {
+                            overflow = true;
+                            break outer;
+                        }
+                        int texel = count / 4;
+                        int comp = count % 4;
+                        lightIndexFloats.put(rowBase + texel * 4 + comp, i);
+                        count++;
+                    }
+                }
+            }
+
+            int materialCount = overflow ? PAGE_LIGHT_INDEX_FULL_LIST : count;
+            if (overflow) {
+                pageFullListFallbacks++;
+                if (!warnedAboutPageIndexOverflow) {
+                    warnedAboutPageIndexOverflow = true;
+                    logger.log(Level.WARNING,
+                            "Terrain page light indices exceeded {0}; falling back to full LightData loop for that page",
+                            MAX_INDICES_PER_PAGE);
+                }
+            } else {
+                pageIndexSum += count;
+                pageIndexSamples++;
+                if (count > pageIndexMax) {
+                    pageIndexMax = count;
+                }
+            }
+
+            if (materialCount != slot.lastUploadedCount) {
+                for (Material material : slot.materials) {
+                    if (material.getTextureParam("LightIndexData") == null
+                            || material.getTextureParam("LightIndexData").getTextureValue() != lightIndexData) {
+                        material.setTexture("LightIndexData", lightIndexData);
+                        material.setInt("LightIndexRow", row);
+                    }
+                    material.setInt("LightIndexCount", materialCount);
+                }
+                slot.lastUploadedCount = materialCount;
+            }
+        }
+        if (lightIndexData != null) {
+            lightIndexData.getImage().setUpdateNeeded();
+        }
+    }
+
+    private void ensureLightIndexTexture(int rows) {
+        int neededRows = Math.max(1, rows);
+        if (lightIndexData != null && lightIndexRows >= neededRows) {
+            return;
+        }
+        lightIndexRows = neededRows;
+        // width = packed texels (4 indices each), height = pages
+        ByteBuffer data = BufferUtils.createByteBuffer(INDEX_TEXELS_PER_PAGE * lightIndexRows * 4 * Float.BYTES);
+        lightIndexFloats = data.asFloatBuffer();
+        Image image = new Image(Image.Format.RGBA32F, INDEX_TEXELS_PER_PAGE, lightIndexRows, data, ColorSpace.Linear);
+        lightIndexData = new Texture2D(image);
+        lightIndexData.setMagFilter(Texture.MagFilter.Nearest);
+        lightIndexData.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
+        lightIndexData.setWrap(Texture.WrapMode.EdgeClamp);
+        for (TerrainPageLightSlot slot : terrainPages) {
+            if (slot == null) {
+                continue;
+            }
+            slot.lastUploadedCount = Integer.MIN_VALUE;
+            for (Material material : slot.materials) {
+                material.clearParam("LightIndexData");
+            }
+        }
+    }
+
+    /**
+     * Sphere vs AABB overlap (closed). Used to decide whether an uploaded
+     * light can reach any vertex of a terrain page.
+     */
+    static boolean sphereIntersectsAabb(
+            float cx, float cy, float cz, float radius,
+            float minX, float maxX, float minY, float maxY, float minZ, float maxZ) {
+        float dx = 0f;
+        if (cx < minX) {
+            dx = minX - cx;
+        } else if (cx > maxX) {
+            dx = cx - maxX;
+        }
+        float dy = 0f;
+        if (cy < minY) {
+            dy = minY - cy;
+        } else if (cy > maxY) {
+            dy = cy - maxY;
+        }
+        float dz = 0f;
+        if (cz < minZ) {
+            dz = minZ - cz;
+        } else if (cz > maxZ) {
+            dz = cz - maxZ;
+        }
+        return dx * dx + dy * dy + dz * dz <= radius * radius;
     }
 
     /**
