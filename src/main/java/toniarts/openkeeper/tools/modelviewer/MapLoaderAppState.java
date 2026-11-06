@@ -101,10 +101,10 @@ public final class MapLoaderAppState extends AbstractAppState {
         mapLoader.setTerrainAmbientEnabled(terrainAmbient);
         mapLoader.setCeilingVisible(ceilingVisible);
         mapNode.attachChild(mapLoader.load(assetManager, kwdFile));
+        mapLoader.getLightRules().publishReady();
 
         // No fog of war here (MapViewController's ALWAYS_VISIBLE), so the whole
-        // map is lit; update() below drives the lights. Published only once the
-        // load is done, like PlayerMapViewState's mapLoaded gate.
+        // map is lit; update() below drives the lights after publishReady().
         mapViewController = mapLoader;
 
         mainMenuEntityViewState = new MapLoaderAppState.MapEntityViewState(kwdFile, assetManager, mapEntityData, Player.KEEPER1_ID, null, mapNode, () -> mapViewController);
@@ -121,18 +121,22 @@ public final class MapLoaderAppState extends AbstractAppState {
         // uploaded every frame (flicker, pulse, ...), as PlayerMapViewState does
         MapViewController controller = mapViewController;
         if (controller != null) {
+            LightRules lightRules = controller.getLightRules();
+            if (!lightRules.isReady()) {
+                return;
+            }
             Settings settings = Main.getUserSettings();
             float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
             ambientScratch.set(ambient, ambient, ambient, 1f);
-            controller.getLightRules().setGlobalAmbient(ambientScratch);
-            controller.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+            lightRules.setGlobalAmbient(ambientScratch);
+            lightRules.setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
             if (lightGroupsDirty) {
                 for (LightSource.Group group : LightSource.Group.values()) {
-                    controller.getLightRules().setGroupEnabled(group, !disabledLightGroups.contains(group));
+                    lightRules.setGroupEnabled(group, !disabledLightGroups.contains(group));
                 }
                 lightGroupsDirty = false;
             }
-            controller.getLightRules().update(tpf, app.getCamera());
+            lightRules.update(tpf, app.getCamera());
         }
     }
 
@@ -151,7 +155,10 @@ public final class MapLoaderAppState extends AbstractAppState {
     }
 
     private void unloadMap() {
-        mapViewController = null;
+        if (mapViewController != null) {
+            mapViewController.getLightRules().dispose();
+            mapViewController = null;
+        }
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
@@ -164,7 +171,6 @@ public final class MapLoaderAppState extends AbstractAppState {
             mapEntityData.close();
             mapEntityData = null;
         }
-        mapViewController = null;
     }
 
     /**
@@ -203,7 +209,11 @@ public final class MapLoaderAppState extends AbstractAppState {
         @Override
         protected LightRules getLightRules() {
             MapViewController controller = mapViewController.get();
-            return controller != null ? controller.getLightRules() : null;
+            if (controller == null) {
+                return null;
+            }
+            LightRules lightRules = controller.getLightRules();
+            return lightRules.isReady() ? lightRules : null;
         }
     }
 

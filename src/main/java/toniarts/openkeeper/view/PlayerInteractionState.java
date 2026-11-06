@@ -529,11 +529,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     private void updateCursorLight() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
-        // The map loader thread mutates the light list until the map is loaded
-        if (mapViewState == null || !mapViewState.isMapLoaded()) {
+        if (mapViewState == null) {
             return;
         }
         LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+        // Loader thread mutates registries until publishReady()
+        if (!lightRules.isReady()) {
+            return;
+        }
 
         boolean visible = isOnMap && !isOnGui && interactionState.getType() != Type.ROOM;
         Point p = selectionHandler.getPointedTileIndex();

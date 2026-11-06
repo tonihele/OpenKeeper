@@ -39,8 +39,30 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
  * <p>
  * Deliberately presentation-only: nothing here is read by the simulation
  * state.
+ * <p>
+ * <b>Lifecycle.</b> Instances start in {@link Phase#LOADING}. The loader
+ * thread (or a synchronous load on the caller thread) may register lights,
+ * bind materials and fill ambient/page data. Consumers on the render thread
+ * must not drive the frame upload until {@link #publishReady()} — a volatile
+ * write that publishes the completed registries. After that, only the render
+ * thread mutates and consumes. {@link #dispose()} ends the lifecycle; all
+ * consumer APIs become no-ops. Readiness is owned here so callers cannot
+ * reintroduce load races by forgetting an external gate.
  */
 public final class LightRules {
+
+    /**
+     * Publication phases for the light registries and {@link SceneLights}
+     * page/material bindings.
+     */
+    public enum Phase {
+        /** Map/mesh load may still be mutating registries. */
+        LOADING,
+        /** Load finished; safe for per-frame update and flat-light sampling. */
+        READY,
+        /** Torn down; consumer APIs no-op. */
+        DISPOSED
+    }
 
     private final LightModulators modulators = new LightModulators();
     private final SceneLights sceneLights;
@@ -48,6 +70,8 @@ public final class LightRules {
     private boolean cheapLighting;
     // Replaced, never mutated: read on the render thread, set from the UI
     private volatile EnumSet<LightSource.Group> disabledGroups = EnumSet.noneOf(LightSource.Group.class);
+    /** Happens-before publication of load-time light/material state. */
+    private volatile Phase phase = Phase.LOADING;
 
     /**
      * Torch and terrain lights, keyed by their owner tile -- a tile
@@ -76,6 +100,46 @@ public final class LightRules {
 
     public IFogOfWarInformation getFogOfWar() {
         return fogOfWar;
+    }
+
+    /**
+     * Current publication phase. Prefer {@link #isReady()} at call sites.
+     *
+     * @return lifecycle phase
+     */
+    public Phase getPhase() {
+        return phase;
+    }
+
+    /**
+     * {@code true} once {@link #publishReady()} has run and before
+     * {@link #dispose()}. Safe to call from any thread.
+     *
+     * @return whether per-frame lighting consumers may use this instance
+     */
+    public boolean isReady() {
+        return phase == Phase.READY;
+    }
+
+    /**
+     * Publishes load-time registries for consumption. Call exactly once after
+     * the last load-time mutation (same critical section as any external
+     * "map loaded" flag). Idempotent while still {@link Phase#LOADING} or
+     * already {@link Phase#READY}; ignored after {@link #dispose()}.
+     */
+    public void publishReady() {
+        Phase current = phase;
+        if (current == Phase.LOADING) {
+            phase = Phase.READY;
+        }
+    }
+
+    /**
+     * Ends the lifecycle. Further {@link #update}, flat-light samples and
+     * settings flips become no-ops. Idempotent.
+     */
+    public void dispose() {
+        phase = Phase.DISPOSED;
     }
 
     /**
@@ -113,6 +177,15 @@ public final class LightRules {
      * from the current setting at creation time.
      */
     public void setCheapLighting(boolean cheapLighting) {
+        if (phase == Phase.DISPOSED) {
+            return;
+        }
+        if (phase == Phase.LOADING) {
+            // Flag only: new sources pick it up at create. Do not iterate
+            // registries — that would race a concurrent loader thread.
+            this.cheapLighting = cheapLighting;
+            return;
+        }
         if (this.cheapLighting == cheapLighting) {
             return;
         }
@@ -142,6 +215,11 @@ public final class LightRules {
      * @param camera the camera whose frustum gates the per-frame upload
      */
     public void update(float tpf, Camera camera) {
+        // No-op until publishReady(): avoids racing the loader's registry and
+        // terrain-page mutations (ConcurrentModificationException / torn GL state).
+        if (phase != Phase.READY) {
+            return;
+        }
         modulators.update(tpf);
         int n = modulators.captureSnapshot();
         LightSource[] snap = modulators.currentSnapshot();
@@ -273,9 +351,13 @@ public final class LightRules {
 
     /**
      * The "flat" sample for a thing/effect's material. Callers own re-deriving {@code worldPos} each frame
-     * from the owner's current position + light offset.
+     * from the owner's current position + light offset. Returns global ambient
+     * only when not yet {@link #isReady()} (safe during load).
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos) {
+        if (phase != Phase.READY) {
+            return sceneLights.getGlobalAmbient().clone();
+        }
         return SceneLights.computeFlatLight(worldPos, activeSources());
     }
 
@@ -284,6 +366,9 @@ public final class LightRules {
      * lights carried by game objects
      */
     public ColorRGBA computeFlatLight(Vector3f worldPos, boolean ignoreObjectLights) {
+        if (phase != Phase.READY) {
+            return sceneLights.getGlobalAmbient().clone();
+        }
         return SceneLights.computeFlatLight(worldPos, activeSources(), ignoreObjectLights);
     }
 

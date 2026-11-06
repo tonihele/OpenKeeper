@@ -224,17 +224,14 @@ Priority order used:
 | **Risk** | Low |
 | **Affected code** | `Settings.java`, pause / main-menu graphics UI |
 
-#### S5 — LightRules load race (guarded but fragile)
+#### S5 — LightRules load race — **fixed** (lifecycle publication)
 
 | | |
 |--|--|
-| **Problem** | Map load vs entity lighting CME risk is gated by `isMapLoaded()`; new callers that skip the gate reintroduce races. |
-| **Evidence** | `PlayerMapViewState` / `PlayerEntityViewState` comments |
-| **Solution** | Single public API with thread assertions; freeze material registration after load |
-| **Benefits** | Stability |
-| **Complexity** | M |
-| **Risk** | Low |
-| **Affected code** | `LightRules.java`, map / entity view states |
+| **Problem** | Map load vs entity lighting CME risk was gated only by external `isMapLoaded()`; new callers that skipped the gate reintroduced races. |
+| **Fix** | `LightRules` owns `Phase` (`LOADING` → `READY` → `DISPOSED`). `publishReady()` is the volatile publication after the last load-time mutation; `update` / flat-light sampling no-op until ready; `dispose()` ends the lifecycle. Call sites use `isReady()`. |
+| **Benefits** | Race eliminated at the ownership boundary; no opt-in external gate required for safety |
+| **Affected code** | `LightRules.java`, `PlayerMapViewState`, entity / effect / menu / model-viewer view states |
 
 #### S6 — Visual fidelity debt (know it; don’t blindly “fix”)
 

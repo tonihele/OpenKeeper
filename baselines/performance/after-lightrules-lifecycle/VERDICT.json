@@ -1,0 +1,20 @@
+{
+  "change": "LightRules lifecycle publication (LOADING → READY → DISPOSED)",
+  "acceptedSession": "session-2026-11-06T12-16-43.098916100Z",
+  "controlSession": "machine-check-page-cull/session-2026-11-06T12-24-09.403685300Z",
+  "preChangeCandidate": "after-page-light-cull",
+  "officialBaseline": "official-baseline-windows-10-amd64.json",
+  "verdict": "accept",
+  "rationale": [
+    "Architectural race eliminated: readiness owned by LightRules.publishReady(), consumer APIs no-op until READY",
+    "Concurrency stress tests pass (loader vs update/setCheap/computeFlat)",
+    "Page light cull diagnostics unchanged (~20 indices/page, 0 fallbacks)",
+    "Accepted session median avg FPS 35.329 vs official 34.985 (stable/+1%); vs same-machine page-cull control 36.992 (~4.5% within contested-machine noise)",
+    "Historical after-page-light-cull 39.631 was under quieter machine conditions earlier the same day",
+    "Visual: cp00/cp02 pass; cp01 historical flake (1/3 full pass in accepted session); lighting behaviour unchanged",
+    "Later re-runs showed machine contention (FPS 22–35); do not treat those as attribute of this change"
+  ],
+  "performanceVsOfficial": "pass",
+  "visualParity": "flake-cp01",
+  "officialUntouched": true
+}

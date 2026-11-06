@@ -46,6 +46,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
 
 import java.util.ArrayList;
@@ -141,8 +142,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                     // critical section: otherwise an update arriving between the
                     // last drain and the flag would be queued and never applied.
                     // Only after the flip is mapLoader done being mutated off the
-                    // render thread: update(tpf) reads its LightRules (registered
-                    // terrain materials) every frame and gates on this flag.
+                    // render thread: LightRules.publishReady() is the happens-before
+                    // for lighting consumers; mapLoaded covers geometry/tile drains.
                     while (true) {
                         List<Point> pending = new ArrayList<>();
                         synchronized (tileUpdateLock) {
@@ -151,6 +152,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                                 pending.add(p);
                             }
                             if (pending.isEmpty()) {
+                                mapLoader.getLightRules().publishReady();
                                 mapLoaded = true;
                                 break;
                             }
@@ -228,6 +230,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         // Lighting
         mapLoader.getLightRules().destroyCursorLight();
+        mapLoader.getLightRules().dispose();
 
         // Detach our map
         if (worldNode != null) {
@@ -261,18 +264,16 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         fogOfWarController.update(tpf);
 
         // Lighting: pick up live settings changes, advance modulators
-        // (pulse/fade/flicker) and re-upload the terrain materials they
-        // touched. Skipped until the map is
-        // done loading - the loader thread is still registering terrain
-        // materials into the same LightRules up to that point, and reading
-        // it here concurrently with that would race (ConcurrentModificationException).
-        if (mapLoaded) {
+        // (pulse/fade/flicker) and re-upload. LightRules.update is a no-op
+        // until publishReady(); isReady() is the authoritative gate.
+        LightRules lightRules = mapLoader.getLightRules();
+        if (lightRules.isReady()) {
             Settings settings = Main.getUserSettings();
             float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
             ambientScratch.set(ambient, ambient, ambient, 1f);
-            mapLoader.getLightRules().setGlobalAmbient(ambientScratch);
-            mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
-            mapLoader.getLightRules().update(tpf, app.getCamera());
+            lightRules.setGlobalAmbient(ambientScratch);
+            lightRules.setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+            lightRules.update(tpf, app.getCamera());
         }
     }
 
@@ -282,11 +283,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     /**
      * {@code false} while the "GameClientMapLoader" background thread is
-     * still populating {@code mapLoader}'s {@code LightRules} (registering
-     * terrain materials, torches, etc.). Anything outside this class that
-     * touches {@code LightRules} on the render thread (entity/effect flat
-     * lighting) must gate on this the same way {@link #update(float)} above
-     * does, or it races those writes with a {@code ConcurrentModificationException}.
+     * still building map geometry and draining early tile updates. For
+     * lighting specifically prefer {@link LightRules#isReady()} on
+     * {@link #getMapLoader()}{@code getLightRules()} — readiness is published
+     * inside {@code LightRules} at the same moment this becomes {@code true}.
      */
     public boolean isMapLoaded() {
         return mapLoaded;

@@ -39,6 +39,7 @@ class LightRulesTest {
         assertTrue(slab.isFlickering());
         assertFalse(steady.isFlickering());
 
+        rules.publishReady();
         rules.setCheapLighting(true);
         assertFalse(torch.isFlickering());
         assertFalse(slab.isFlickering());
@@ -56,8 +57,39 @@ class LightRulesTest {
         LightSource torch = rules.addTorchLight(new Point(1, 1), Vector3f.ZERO, 300, 200, 100, 1.41f, 1.5f);
         assertFalse(torch.isFlickering());
 
+        rules.publishReady();
         rules.setCheapLighting(false);
         assertTrue(torch.isFlickering());
+    }
+
+    @Test
+    void updateIsNoOpUntilPublishReady() {
+        LightRules rules = new LightRules();
+        rules.addTorchLight(new Point(1, 1), Vector3f.ZERO, 300, 200, 100, 1.41f, 1.5f);
+        assertFalse(rules.isReady());
+        rules.update(1f / 60f, null);
+        assertEquals(0, rules.getUploadedLightCount());
+
+        rules.publishReady();
+        assertTrue(rules.isReady());
+        rules.update(1f / 60f, null);
+        assertTrue(rules.getUploadedLightCount() >= 1);
+    }
+
+    @Test
+    void disposeStopsConsumerApis() {
+        LightRules rules = new LightRules();
+        rules.addTorchLight(new Point(1, 1), Vector3f.ZERO, 300, 200, 100, 1.41f, 1.5f);
+        rules.publishReady();
+        rules.update(1f / 60f, null);
+        int uploaded = rules.getUploadedLightCount();
+        assertTrue(uploaded >= 1);
+
+        rules.dispose();
+        assertFalse(rules.isReady());
+        assertEquals(LightRules.Phase.DISPOSED, rules.getPhase());
+        rules.update(1f / 60f, null);
+        assertEquals(uploaded, rules.getUploadedLightCount());
     }
 
     @Test

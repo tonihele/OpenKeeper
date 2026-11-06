@@ -150,12 +150,16 @@ public class EffectManagerState extends AbstractAppState {
      */
     public LightRules getLightRules() {
         if (lightRulesSupplier != null) {
-            return lightRulesSupplier.get();
+            LightRules supplied = lightRulesSupplier.get();
+            return supplied != null && supplied.isReady() ? supplied : null;
         }
         PlayerMapViewState mapViewState = getPlayerMapViewState();
-        // Guard against racing the map loader thread's LightRules writes
-        // (see PlayerMapViewState.isMapLoaded()) with a ConcurrentModificationException.
-        return mapViewState != null && mapViewState.isMapLoaded() ? mapViewState.getMapLoader().getLightRules() : null;
+        // LightRules.isReady() is the publication gate (not an external mapLoaded flag).
+        if (mapViewState == null) {
+            return null;
+        }
+        LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+        return lightRules.isReady() ? lightRules : null;
     }
 
     public PlayerMapViewState getPlayerMapViewState() {
