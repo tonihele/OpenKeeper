@@ -270,6 +270,13 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onGuiButtonPressed(short category, short buttonId, short playerId) {
+            if (gameLoaded) {
+                game.getGameController().onGuiButtonPressed(playerId, category, buttonId);
+            }
+        }
+
+        @Override
         public void onTransitionEnd(short playerId) {
             // We are not really interested in this, the status is also tracked in the local clients
         }

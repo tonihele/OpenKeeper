@@ -107,7 +107,30 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_KILLED(47), // Event, This player's...
         CREATURE_EXPERIENCE_LEVEL(49), // Attribute, This creature's...
         PLAYER_CREATURES_AT_LEVEL(52), // Player
-        GUI_BUTTON_PRESSED(53), // GUI
+        /**
+         * Event: this player clicks a HUD button with exactly the authored
+         * category and ID. Categories are misc (0), room (1), creature (2), door
+         * (3), trap (4), and keeper spell (5). ID zero is an exact ID, not "any".
+         * Misc IDs use {@link TriggerAction.ButtonType}; other IDs identify the
+         * corresponding room, creature, door, trap, or spell definition.
+         * <p>
+         * DK II dispatches matching root branches at event time, checking nested
+         * conditions then. This is neither a persistent selection test nor a
+         * historical counter: ordinary polling stays false, and events nested
+         * beneath another condition are not independently dispatched. The
+         * numeric value field is ignored. OpenKeeper queues client input for
+         * the server's simulation tick and uses its existing repeat counters.
+         * <p>
+         * Example: category 1, ID 7 advances a tutorial when the Training Room
+         * button is clicked, even before the player builds a room. Refreshing
+         * the HUD or restoring its selection does not emit this event.
+         * <p>
+         * Buttons for missing gameplay (Horny's talisman and MPD tools/invasions)
+         * have no input producer yet. DK II additionally invokes a special
+         * callback for misc ID 241 (continuous invasion); that gameplay callback
+         * is not implemented by this event dispatcher.
+         */
+        GUI_BUTTON_PRESSED(53),
         CREATURE_HUNGER_SATED(54), // Event, This creature is
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
         PLAYER_DUNGEON_BREACHED(56), // Event, This player's...

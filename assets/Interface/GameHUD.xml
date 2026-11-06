@@ -74,7 +74,8 @@
                                     </effect>
                                 </image>
                             </panel>
-                            <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px">
+                            <panel childLayout="vertical" valign="center" padding="0px,14px,0px,10px" visibleToMouse="true">
+                                <interact onClick="guiButtonPressed(242)" />
                                 <control name="label" id="mana" color="#27d067" style="text" width="100%" text="0" textHAlign="right" valign="center" />
                                 <panel childLayout="horizontal" valign="center">
                                     <control name="label" id="manaGet" color="#27d067" text="0" style="textManaChange" width="50%" textHAlign="left" />
