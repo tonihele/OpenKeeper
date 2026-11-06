@@ -550,7 +550,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     public void showMessage(int textId) {
-        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", textId));
+        SystemMessageState.addMessageIfAttached(stateManager, SystemMessageState.MessageType.INFO, String.format("${level.%d}", textId));
     }
 
     public void zoomToPoint(Vector3f point) {
@@ -637,6 +637,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     private void populateTab(ResearchableEntity researchableEntity) {
+        if (!isEnabled()) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         switch (researchableEntity.getResearchableType()) {
             case SPELL: {
                 screen.populateSpellTab();
