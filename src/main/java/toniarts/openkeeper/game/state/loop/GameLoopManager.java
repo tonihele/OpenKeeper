@@ -62,11 +62,20 @@ import toniarts.openkeeper.utils.GameLoop;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.LinkedBlockingQueue;
+import java.util.concurrent.ThreadPoolExecutor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -76,7 +85,26 @@ import javax.annotation.Nullable;
  */
 public final class GameLoopManager {
 
+    private static final Logger logger = System.getLogger(GameLoopManager.class.getName());
+
+    /**
+     * How long stopping waits for the saves that were asked for, in seconds
+     */
+    private static final long SAVE_TIMEOUT = 30;
+
     private final List<GameLoop> loops = new ArrayList<>();
+
+    // Saves that are asked for but not yet collected or written. The files are written on a thread
+    // that is not a daemon, so the JVM doesn't exit in the middle of it.
+    private final Set<Runnable> pendingCollects = ConcurrentHashMap.newKeySet();
+    private final Set<CompletableFuture<Void>> pendingWrites = ConcurrentHashMap.newKeySet();
+    private final ThreadPoolExecutor saveWriter = new ThreadPoolExecutor(1, 1, 5, TimeUnit.SECONDS,
+            new LinkedBlockingQueue<>(), runnable -> new Thread(runnable, "Save game"));
+
+    {
+        // An idle writer thread must not keep the JVM alive
+        saveWriter.allowCoreThreadTimeOut(true);
+    }
 
     private final GameSessionServerService gameService;
 
@@ -195,9 +223,28 @@ public final class GameLoopManager {
         loops.stream().forEach(GameLoop::start);
     }
 
+    /**
+     * Stops the game. A save that was asked for but hasn't been collected yet
+     * is collected first, and the saves that are being written are waited for,
+     * so a game saved just before quitting is not lost.
+     */
     public void stop() {
+        finishSaves();
         loops.forEach(GameLoop::stop);
         loops.clear();
+        saveWriter.shutdown();
+    }
+
+    private void finishSaves() {
+        // The loops are only held between frames here, the logic loop may not run its queue any more
+        pendingCollects.forEach(Runnable::run);
+        try {
+            CompletableFuture.allOf(pendingWrites.toArray(CompletableFuture[]::new)).get(SAVE_TIMEOUT, TimeUnit.SECONDS);
+        } catch (InterruptedException ex) {
+            Thread.currentThread().interrupt();
+        } catch (ExecutionException | TimeoutException ex) {
+            logger.log(Level.ERROR, "Failed to finish saving the game!", ex);
+        }
     }
 
     /**
@@ -213,26 +260,36 @@ public final class GameLoopManager {
      * @return completes when the file is written
      */
     public CompletableFuture<Void> save(Path file, @Nullable CampaignLevel campaignLevel) {
+        if (loops.isEmpty()) {
+            return CompletableFuture.failedFuture(new IllegalStateException("The game has stopped!"));
+        }
         CompletableFuture<SaveGame> saveGame = new CompletableFuture<>();
-        Runnable collect = () -> hold(0, () -> {
-            if (!saveGame.isDone()) {
-                try {
-                    saveGame.complete(new SaveGame(
-                            gameController.getLevelInfo().getLevelData().getGameLevel().getName(),
-                            campaignLevel,
-                            gameController.getGameTimer().getGameTime(),
-                            gameController.getLevelInfo(),
-                            gameController.getPlayerControllers().values(),
-                            gameController.getTriggerControls(),
-                            gameController.getGameWorldController().getCreaturesController().getCreatedParties(),
-                            gameController.getGameWorldController().getMapController().getRoomControllers(),
-                            gameService.getServerEntityData()));
-                } catch (RuntimeException ex) {
-                    saveGame.completeExceptionally(ex);
-                }
+        Runnable collect = new Runnable() {
+            @Override
+            public void run() {
+                pendingCollects.remove(this);
+                hold(0, () -> {
+                    if (!saveGame.isDone()) {
+                        try {
+                            saveGame.complete(new SaveGame(
+                                    gameController.getLevelInfo().getLevelData().getGameLevel().getName(),
+                                    campaignLevel,
+                                    gameController.getGameTimer().getGameTime(),
+                                    gameController.getLevelInfo(),
+                                    gameController.getPlayerControllers().values(),
+                                    gameController.getTriggerControls(),
+                                    gameController.getGameWorldController().getCreaturesController().getCreatedParties(),
+                                    gameController.getGameWorldController().getMapController().getRoomControllers(),
+                                    gameService.getServerEntityData()));
+                        } catch (RuntimeException ex) {
+                            saveGame.completeExceptionally(ex);
+                        }
+                    }
+                    return null;
+                });
             }
-            return null;
-        });
+        };
+        pendingCollects.add(collect);
         gameLogicThread.enqueueAction(collect);
 
         // A paused logic loop doesn't run the queue, but then no player action runs either
@@ -240,13 +297,16 @@ public final class GameLoopManager {
             collect.run();
         }
 
-        return saveGame.thenAcceptAsync(save -> {
+        CompletableFuture<Void> write = saveGame.thenAcceptAsync(save -> {
             try {
                 save.write(file);
             } catch (IOException ex) {
                 throw new UncheckedIOException(ex);
             }
-        });
+        }, saveWriter);
+        pendingWrites.add(write);
+        write.whenComplete((result, ex) -> pendingWrites.remove(write));
+        return write;
     }
 
     private <T> T hold(int loop, Supplier<T> action) {
