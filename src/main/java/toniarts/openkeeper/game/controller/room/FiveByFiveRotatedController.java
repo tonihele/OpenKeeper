@@ -147,6 +147,10 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     public void captured(short playerId) {
         super.captured(playerId);
 
-        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, Double.MIN_VALUE));
+        // A destroyed heart has no spawn point, and capturing it does not bring one back
+        ImpGenerator generator = getEntityComponent(ImpGenerator.class);
+        if (generator != null) {
+            entityData.setComponent(entityId, new ImpGenerator(generator.entrance, Double.MIN_VALUE));
+        }
     }
 }
