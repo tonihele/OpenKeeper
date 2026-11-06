@@ -21,6 +21,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
+import toniarts.openkeeper.tools.convert.map.Variable.ResearchOrder;
 
 import java.util.Collection;
 import java.util.List;
@@ -216,6 +217,14 @@ public interface IKwdFile extends IKwdInfo {
     Map<MiscVariable.MiscType, MiscVariable> getVariables();
 
     List<Availability> getAvailabilities();
+
+    /**
+     * Get the research order, the order in which the keepers research things
+     * and how many research points each one takes
+     *
+     * @return the research order
+     */
+    List<ResearchOrder> getResearchOrder();
 
     Set<PlayerAlliance> getPlayerAlliances();
 
