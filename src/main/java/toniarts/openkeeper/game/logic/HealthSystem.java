@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -265,6 +266,10 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
         creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
+        Party party = entityData.getComponent(entityId, Party.class);
+        if (party != null) {
+            creaturesController.getPartyById(party.partyId).onMemberUnconscious(entityId);
+        }
         entityData.removeComponent(entityId, Navigation.class);
     }
 

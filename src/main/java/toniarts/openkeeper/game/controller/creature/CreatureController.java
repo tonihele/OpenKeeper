@@ -1582,6 +1582,14 @@ public final class CreatureController extends EntityController implements ICreat
         // Remove our lair from the last player
         removeLair();
 
+        // Leaving hero ownership permanently removes the original native party identity.
+        Party party = entityData.getComponent(entity, Party.class);
+        Owner previousOwner = entityData.getComponent(entity, Owner.class);
+        if (party != null && previousOwner.ownerId == Player.GOOD_PLAYER_ID
+                && playerId != Player.GOOD_PLAYER_ID) {
+            creaturesController.getPartyById(party.partyId).onMemberConverted(entity);
+        }
+
         // Set new owner
         entityData.setComponent(entity, new Owner(playerId, playerId));
 
