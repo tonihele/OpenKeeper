@@ -431,8 +431,8 @@
                         <text style="menuTextSmall" text=" Vertical sync" />
                     </panel>
                     <panel childLayout="vertical" padding="10px">
-                        <text style="menuTextSmall" text="Anisotropic filtering: " />
-                        <control width="100px" name="dropDown" id="anisotropicFiltering" />
+                        <text style="menuTextSmall" text="Texture filtering: " />
+                        <control width="220px" name="dropDown" id="textureFiltering" />
                     </panel>
                 </panel>
             </panel>
