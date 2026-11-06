@@ -98,6 +98,7 @@ public final class MainMenuState extends AbstractAppState {
     protected Main app;
     protected Node rootNode;
     protected AssetManager assetManager;
+    private final ColorRGBA ambientScratch = new ColorRGBA();
     protected AppStateManager stateManager;
     protected InputManager inputManager;
     private final MainMenuScreenController screen;
@@ -242,7 +243,8 @@ public final class MainMenuState extends AbstractAppState {
         if (controller != null && isEnabled() && app != null) {
             Settings settings = Main.getUserSettings();
             float ambient = settings.getFloat(Setting.AMBIENT_LIGHT);
-            controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            ambientScratch.set(ambient, ambient, ambient, 1f);
+            controller.getLightRules().setGlobalAmbient(ambientScratch);
             controller.getLightRules().setCheapLighting(settings.getBoolean(Setting.CHEAP_LIGHTING));
             controller.getLightRules().update(tpf, app.getCamera());
 

@@ -60,6 +60,9 @@ public final class LightRules {
     private final Map<Object, LightSource> thingLights = new HashMap<>();
 
     private LightSource cursorLight;
+    /** Reused when debug groups filter the upload set. */
+    private LightSource[] filteredSnapshot = new LightSource[0];
+    private final Vector3f thingPosScratch = new Vector3f();
 
     public LightRules() {
         this(IFogOfWarInformation.ALWAYS_VISIBLE);
@@ -91,7 +94,7 @@ public final class LightRules {
      * @return source count
      */
     public int getSourceCount() {
-        return modulators.getSources().size();
+        return modulators.size();
     }
 
     /**
@@ -140,7 +143,24 @@ public final class LightRules {
      */
     public void update(float tpf, Camera camera) {
         modulators.update(tpf);
-        sceneLights.update(activeSources(), camera);
+        int n = modulators.captureSnapshot();
+        LightSource[] snap = modulators.currentSnapshot();
+        Set<LightSource.Group> disabled = disabledGroups;
+        if (disabled.isEmpty()) {
+            sceneLights.update(snap, n, camera);
+            return;
+        }
+        if (filteredSnapshot.length < n) {
+            filteredSnapshot = new LightSource[Math.max(n, filteredSnapshot.length == 0 ? 256 : filteredSnapshot.length * 2)];
+        }
+        int kept = 0;
+        for (int i = 0; i < n; i++) {
+            LightSource light = snap[i];
+            if (light != null && !disabled.contains(LightSource.Group.of(light))) {
+                filteredSnapshot[kept++] = light;
+            }
+        }
+        sceneLights.update(filteredSnapshot, kept, camera);
     }
 
     /**
@@ -159,14 +179,13 @@ public final class LightRules {
     }
 
     private List<LightSource> activeSources() {
-        List<LightSource> sources = modulators.getSources();
+        int n = modulators.captureSnapshot();
+        LightSource[] snap = modulators.currentSnapshot();
         Set<LightSource.Group> disabled = disabledGroups;
-        if (disabled.isEmpty()) {
-            return sources;
-        }
-        List<LightSource> result = new ArrayList<>(sources.size());
-        for (LightSource light : sources) {
-            if (!disabled.contains(LightSource.Group.of(light))) {
+        List<LightSource> result = new ArrayList<>(n);
+        for (int i = 0; i < n; i++) {
+            LightSource light = snap[i];
+            if (light != null && (disabled.isEmpty() || !disabled.contains(LightSource.Group.of(light)))) {
                 result.add(light);
             }
         }
@@ -374,9 +393,10 @@ public final class LightRules {
         if (playerColoured && playerColour != null) {
             radius = Math.min(radius, LightConstants.PLAYER_COLOURED_LIGHT_MAX_RADIUS_TILES);
         }
-        Vector3f position = ownerPosition.add(offset);
+        // Scratch is copied inside LightSource — safe across creates
+        thingPosScratch.set(ownerPosition).addLocal(offset);
 
-        LightSource light = new LightSource(LightSource.Kind.THING, owner, position,
+        LightSource light = new LightSource(LightSource.Kind.THING, owner, thingPosScratch,
                 r, g, b, intensity, radius);
         if (pulse) {
             light.startPulse();
@@ -401,7 +421,8 @@ public final class LightRules {
     public void updateThingLightPosition(Object owner, Vector3f ownerPosition, Vector3f offset) {
         LightSource light = thingLights.get(owner);
         if (light != null) {
-            light.setPosition(ownerPosition.add(offset));
+            // Mutate in place — avoids a Vector3f alloc every frame per moving light
+            light.getPosition().set(ownerPosition).addLocal(offset);
         }
     }
 

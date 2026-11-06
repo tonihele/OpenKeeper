@@ -67,6 +67,8 @@ public final class MapLoaderAppState extends AbstractAppState {
     private volatile MapViewController mapViewController;
     private Application app;
     private final Set<LightSource.Group> disabledLightGroups = EnumSet.noneOf(LightSource.Group.class);
+    private final ColorRGBA ambientScratch = new ColorRGBA();
+    private boolean lightGroupsDirty = true;
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -121,10 +123,14 @@ public final class MapLoaderAppState extends AbstractAppState {
         if (controller != null) {
             Settings settings = Main.getUserSettings();
             float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
-            controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            ambientScratch.set(ambient, ambient, ambient, 1f);
+            controller.getLightRules().setGlobalAmbient(ambientScratch);
             controller.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
-            for (LightSource.Group group : LightSource.Group.values()) {
-                controller.getLightRules().setGroupEnabled(group, !disabledLightGroups.contains(group));
+            if (lightGroupsDirty) {
+                for (LightSource.Group group : LightSource.Group.values()) {
+                    controller.getLightRules().setGroupEnabled(group, !disabledLightGroups.contains(group));
+                }
+                lightGroupsDirty = false;
             }
             controller.getLightRules().update(tpf, app.getCamera());
         }
@@ -138,10 +144,9 @@ public final class MapLoaderAppState extends AbstractAppState {
      * Applies to the current and any later loaded map, no reload needed.
      */
     void setLightGroupEnabled(LightSource.Group group, boolean enabled) {
-        if (enabled) {
-            disabledLightGroups.remove(group);
-        } else {
-            disabledLightGroups.add(group);
+        boolean changed = enabled ? disabledLightGroups.remove(group) : disabledLightGroups.add(group);
+        if (changed) {
+            lightGroupsDirty = true;
         }
     }
 

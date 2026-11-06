@@ -83,6 +83,7 @@ public final class SceneLights {
     private IFogOfWarInformation fogOfWar = IFogOfWarInformation.ALWAYS_VISIBLE;
     private final Texture2D lightData;
     private final FloatBuffer lightFloats;
+    private final Plane[] frustumPlanes = new Plane[6];
     private boolean warnedAboutLightCount;
     private int uploadedLightCount;
     private volatile Texture2D ambientMap;
@@ -116,7 +117,8 @@ public final class SceneLights {
      * #computeFlatLight} for their own {@code Flat} materials.
      */
     public void setGlobalAmbient(ColorRGBA globalAmbient) {
-        this.globalAmbient = globalAmbient;
+        // Copy into the persistent instance so callers can reuse a scratch ColorRGBA
+        this.globalAmbient.set(globalAmbient);
     }
 
     public ColorRGBA getGlobalAmbient() {
@@ -145,12 +147,19 @@ public final class SceneLights {
      * Lights well outside the camera's view are left out (an optimisation
      * only: they cannot reach anything on screen).
      */
-    public void update(List<LightSource> lights, Camera camera) {
+    /**
+     * @param lights live light snapshot (may be longer than {@code lightCount})
+     * @param lightCount number of valid entries at the front of {@code lights}
+     * @param camera frustum used for upload culling; may be {@code null}
+     */
+    public void update(LightSource[] lights, int lightCount, Camera camera) {
         Plane[] frustum = camera != null ? getFrustumPlanes(camera) : null;
 
         int count = 0;
-        for (LightSource light : lights) {
-            if (!light.isEnabled() || hiddenByFog(light)) {
+        int n = Math.max(0, Math.min(lightCount, lights == null ? 0 : lights.length));
+        for (int i = 0; i < n; i++) {
+            LightSource light = lights[i];
+            if (light == null || !light.isEnabled() || hiddenByFog(light)) {
                 continue;
             }
             Vector3f pos = light.getPosition();
@@ -175,6 +184,21 @@ public final class SceneLights {
         lightFloats.put(2, globalAmbient.g);
         lightFloats.put(3, globalAmbient.b);
         lightData.getImage().setUpdateNeeded();
+    }
+
+    /**
+     * Convenience overload for tests and one-off callers.
+     *
+     * @param lights lights to upload
+     * @param camera frustum cull camera
+     */
+    public void update(List<LightSource> lights, Camera camera) {
+        if (lights == null || lights.isEmpty()) {
+            update((LightSource[]) null, 0, camera);
+            return;
+        }
+        LightSource[] array = lights.toArray(new LightSource[0]);
+        update(array, array.length, camera);
     }
 
     /**
@@ -217,16 +241,16 @@ public final class SceneLights {
         return lightIndex >= 0 && lightIndex < MAX_LIGHTS;
     }
 
-    private static Plane[] getFrustumPlanes(Camera camera) {
+    private Plane[] getFrustumPlanes(Camera camera) {
         // jME 3.9 Camera folded the classic Frustum's six world planes
         // into getWorldPlane(int); the plane index constants are private
         // there, but indices 0..5 are fixed as LEFT, RIGHT, BOTTOM, TOP,
         // FAR, NEAR -- a cull test doesn't care about their order.
-        Plane[] planes = new Plane[6];
-        for (int i = 0; i < planes.length; i++) {
-            planes[i] = camera.getWorldPlane(i);
+        // Planes themselves are camera-owned; only refill this scratch array.
+        for (int i = 0; i < frustumPlanes.length; i++) {
+            frustumPlanes[i] = camera.getWorldPlane(i);
         }
-        return planes;
+        return frustumPlanes;
     }
 
     /**

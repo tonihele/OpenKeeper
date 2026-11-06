@@ -21,6 +21,7 @@ import com.jme3.renderer.Statistics;
 import java.lang.management.GarbageCollectorMXBean;
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.ThreadMXBean;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import toniarts.openkeeper.game.state.GameClientState;
@@ -47,6 +48,7 @@ public final class BenchmarkSampler {
     private final RunningStat lightsUploaded = new RunningStat();
     private final RunningStat lightSources = new RunningStat();
     private final RunningStat usedHeapMb = new RunningStat();
+    private final RunningStat allocBytesPerFrame = new RunningStat();
     private final TrendSeries trends = new TrendSeries(1.0);
 
     private final int[] statsScratch = new int[13];
@@ -55,8 +57,12 @@ public final class BenchmarkSampler {
     private long peakHeapBytes;
     private long startGcCount;
     private long startGcTimeMs;
+    private long startAllocatedBytes;
+    private long lastAllocatedBytes;
+    private long measureThreadId;
     private boolean heapBaselineSet;
     private boolean statsEnabled;
+    private boolean allocTrackingEnabled;
     private double measureElapsed;
 
     public void begin(Application app) {
@@ -68,6 +74,10 @@ public final class BenchmarkSampler {
         startGcCount = totalGcCount();
         startGcTimeMs = totalGcTimeMs();
         heapBaselineSet = true;
+        measureThreadId = Thread.currentThread().threadId();
+        startAllocatedBytes = threadAllocatedBytes(measureThreadId);
+        lastAllocatedBytes = startAllocatedBytes;
+        allocTrackingEnabled = startAllocatedBytes >= 0L;
         enableRendererStats(app);
     }
 
@@ -117,6 +127,14 @@ public final class BenchmarkSampler {
         double heapMb = used / (1024.0 * 1024.0);
         usedHeapMb.add(heapMb);
 
+        if (allocTrackingEnabled && frameTimeMs > 0) {
+            long allocated = threadAllocatedBytes(measureThreadId);
+            if (allocated >= lastAllocatedBytes) {
+                allocBytesPerFrame.add(allocated - lastAllocatedBytes);
+            }
+            lastAllocatedBytes = allocated;
+        }
+
         if (frameTimeMs > 0) {
             trends.offer(measureElapsedSec, frameTimeMs, heapMb, draws, tris, lights);
         }
@@ -150,6 +168,15 @@ public final class BenchmarkSampler {
         memory.put("heapUsedSeriesMb", usedHeapMb.summarize());
         memory.put("gcCountDelta", totalGcCount() - startGcCount);
         memory.put("gcTimeMsDelta", totalGcTimeMs() - startGcTimeMs);
+        if (allocTrackingEnabled) {
+            long endAllocated = threadAllocatedBytes(measureThreadId);
+            long totalAllocated = Math.max(0L, endAllocated - startAllocatedBytes);
+            long frames = Math.max(1L, frameTimes.getFrameCount());
+            memory.put("threadAllocatedBytesTotal", totalAllocated);
+            memory.put("threadAllocatedBytesPerFrameAvg", totalAllocated / (double) frames);
+            memory.put("threadAllocatedBytesPerFrame", allocBytesPerFrame.summarize());
+            memory.put("threadAllocatedMbTotal", mb(totalAllocated));
+        }
         metrics.put("memory", memory);
         return metrics;
     }
@@ -167,6 +194,23 @@ public final class BenchmarkSampler {
 
     private static double mb(long bytes) {
         return Math.round((bytes / (1024.0 * 1024.0)) * 1000.0) / 1000.0;
+    }
+
+    /**
+     * HotSpot thread-allocated bytes for the measure thread, or -1 when
+     * unsupported. Enables tracking when available so steady-state lighting
+     * allocation rates show up in the suite report.
+     */
+    private static long threadAllocatedBytes(long threadId) {
+        ThreadMXBean bean = ManagementFactory.getThreadMXBean();
+        if (bean instanceof com.sun.management.ThreadMXBean sun
+                && sun.isThreadAllocatedMemorySupported()) {
+            if (!sun.isThreadAllocatedMemoryEnabled()) {
+                sun.setThreadAllocatedMemoryEnabled(true);
+            }
+            return sun.getThreadAllocatedBytes(threadId);
+        }
+        return -1L;
     }
 
     private static long totalGcCount() {

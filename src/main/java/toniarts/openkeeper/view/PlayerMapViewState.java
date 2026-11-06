@@ -76,6 +76,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private short[][] lastTerrainIds;
     private final FogOfWarController fogOfWarController;
     private final GameEventSoundPlayer gameEventSoundPlayer;
+    private final ColorRGBA ambientScratch = new ColorRGBA();
 
     // Creature vision (and the initial fog seeding) can produce tile updates
     // before MapViewController.load() has built its scene graph - queue those
@@ -258,7 +259,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         if (mapLoaded) {
             Settings settings = Main.getUserSettings();
             float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
-            mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            ambientScratch.set(ambient, ambient, ambient, 1f);
+            mapLoader.getLightRules().setGlobalAmbient(ambientScratch);
             mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
             mapLoader.getLightRules().update(tpf, app.getCamera());
         }
