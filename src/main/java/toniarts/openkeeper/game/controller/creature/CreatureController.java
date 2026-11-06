@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -93,6 +94,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -119,6 +121,11 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    /**
+     * An enemy of the other alignment counts as this much nearer when we look
+     * for one to fight. DK II takes 7/8 of the squared distance (0x45B140).
+     */
+    private static final float OTHER_ALIGNMENT_DISTANCE_FACTOR = (float) Math.sqrt(7 / 8f);
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
 
     private final INavigationService navigationService;
@@ -576,10 +583,11 @@ public final class CreatureController extends EntityController implements ICreat
             // TODO: creatures only now
             EntityId nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
-            for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            for (EntityId entity : getEntitiesInNoticeRange()) {
                 if (creaturesController.isValidEntity(entity)
                         && isEnemy(entity)
                         && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                        && isNoticed(entity)
                         && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                     float distance = getDistanceToCreature(entity);
                     if (distance < nearestDistance) {
@@ -600,12 +608,157 @@ public final class CreatureController extends EntityController implements ICreat
         return attackTargetController;
     }
 
+    /**
+     * Whether we can walk to the creature. DK II picks a creature it notices
+     * only when there is a path to it (0x45CB00 through 0x4D0E60).
+     */
     private boolean hasPathToEntity(EntityId entity) {
         Point ourPos = WorldUtils.vectorToPoint(getPosition());
         Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
 
         return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
     }
+
+    /**
+     * Whether we notice the enemy. DK II sees an enemy nearer than the sight
+     * distance with no solid tile in between, and hears one nearer than the
+     * hearing distance when the walk there is shorter than that too
+     * (0x45B140, 0x45BAD0, 0x45B500). An enemy further away is left alone,
+     * even one we could walk to.
+     */
+    private boolean isNoticed(EntityId entity) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (senses == null) {
+            return true; // Only the position lookup limits what it notices
+        }
+        Vector3f ourPosition = getPosition();
+        Vector3f theirPosition = getPosition(entityData, entity);
+        if (ourPosition == null || theirPosition == null) {
+            return false;
+        }
+        float distance = ourPosition.distance(theirPosition) / WorldUtils.TILE_WIDTH;
+        if (isOfOtherAlignment(entity)) {
+            distance *= OTHER_ALIGNMENT_DISTANCE_FACTOR;
+        }
+        if (distance < senses.distanceCanSee && hasLineOfSight(ourPosition, theirPosition)) {
+            return true;
+        }
+        if (distance >= senses.distanceCanHear) {
+            return false;
+        }
+
+        // The walk is measured like DK II does it, a diagonal step counts one and a half
+        Point ourPos = WorldUtils.vectorToPoint(ourPosition);
+        Point theirPos = WorldUtils.vectorToPoint(theirPosition);
+        GraphPath<IMapTileInformation> path = ourPos.equals(theirPos) ? null : navigationService.findPath(ourPos, theirPos, this);
+        if (path == null) {
+            return ourPos.equals(theirPos);
+        }
+        float walk = 0;
+        Point previous = ourPos;
+        for (IMapTileInformation tile : path) {
+            int dx = Math.abs(tile.getX() - previous.x);
+            int dy = Math.abs(tile.getY() - previous.y);
+            walk += Math.max(dx, dy) + Math.min(dx, dy) / 2f;
+            previous = tile.getLocation();
+        }
+        return walk < senses.distanceCanHear;
+    }
+
+    /**
+     * Everything on the tiles within our sight or hearing distance. DK II goes
+     * through every enemy creature and measures the straight distance
+     * (0x45B140), so this is a square of tiles rather than the sensed area,
+     * which only reaches that far in steps along the map axes and misses the
+     * diagonals.
+     */
+    private Collection<EntityId> getEntitiesInNoticeRange() {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        if (senses == null) {
+            return entityPositionLookup.getSensedEntities(entityId);
+        }
+        IMapTileInformation ourTile = entityPositionLookup.getEntityLocation(entityId);
+        if (ourTile == null) {
+            return Collections.emptyList();
+        }
+        int range = (int) FastMath.ceil(Math.max(senses.distanceCanSee, senses.distanceCanHear) / OTHER_ALIGNMENT_DISTANCE_FACTOR);
+        List<EntityId> entities = new ArrayList<>();
+        for (int x = ourTile.getX() - range; x <= ourTile.getX() + range; x++) {
+            for (int y = ourTile.getY() - range; y <= ourTile.getY() + range; y++) {
+                IMapTileInformation tile = mapController.getMapData().getTile(x, y);
+                if (tile != null) {
+                    entities.addAll(entityPositionLookup.getEntitiesInLocation(tile));
+                }
+            }
+        }
+        entities.remove(entityId);
+
+        return entities;
+    }
+
+    /**
+     * Whether the other creature is of the alignment we fight. DK II checks
+     * the evil flag of the enemy when we are good, otherwise its good flag
+     * (0x45B140).
+     */
+    private boolean isOfOtherAlignment(EntityId entity) {
+        CreatureComponent otherCreature = entityData.getComponent(entity, CreatureComponent.class);
+        if (otherCreature == null) {
+            return false;
+        }
+        Creature.CreatureFlag otherAlignment = creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)
+                ? Creature.CreatureFlag.IS_EVIL : Creature.CreatureFlag.IS_GOOD;
+
+        return levelInfo.getLevelData().getCreature(otherCreature.creatureId).getFlags().contains(otherAlignment);
+    }
+
+    /**
+     * Whether there are no solid tiles between two points on the map. The
+     * tiles the points are on don't count. Like DK II it goes along the line
+     * from tile to tile, so every tile the line passes through counts, and
+     * where it passes through a corner, both tiles beside the corner count
+     * (0x4512F0).
+     */
+    private boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        Point tile = WorldUtils.vectorToPoint(from);
+        Point endTile = WorldUtils.vectorToPoint(to);
+        float dx = (to.x - from.x) / WorldUtils.TILE_WIDTH;
+        float dz = (to.z - from.z) / WorldUtils.TILE_WIDTH;
+        int stepX = endTile.x > tile.x ? 1 : -1;
+        int stepZ = endTile.y > tile.y ? 1 : -1;
+
+        // How far along the line the next tile edge on each axis is, a tile spans half a tile either side of its centre
+        float edgeX = dx == 0 ? Float.MAX_VALUE : (tile.x + stepX * 0.5f - from.x / WorldUtils.TILE_WIDTH) / dx;
+        float edgeZ = dz == 0 ? Float.MAX_VALUE : (tile.y + stepZ * 0.5f - from.z / WorldUtils.TILE_WIDTH) / dz;
+        float stepAlongX = dx == 0 ? Float.MAX_VALUE : Math.abs(1 / dx);
+        float stepAlongZ = dz == 0 ? Float.MAX_VALUE : Math.abs(1 / dz);
+        int tilesLeft = Math.abs(endTile.x - tile.x) + Math.abs(endTile.y - tile.y);
+        while (tilesLeft > 0) {
+            if (edgeX < edgeZ) {
+                tile = new Point(tile.x + stepX, tile.y);
+                edgeX += stepAlongX;
+                tilesLeft--;
+            } else if (edgeZ < edgeX) {
+                tile = new Point(tile.x, tile.y + stepZ);
+                edgeZ += stepAlongZ;
+                tilesLeft--;
+            } else {
+                if (mapController.isSolid(new Point(tile.x + stepX, tile.y)) || mapController.isSolid(new Point(tile.x, tile.y + stepZ))) {
+                    return false;
+                }
+                tile = new Point(tile.x + stepX, tile.y + stepZ);
+                edgeX += stepAlongX;
+                edgeZ += stepAlongZ;
+                tilesLeft -= 2;
+            }
+            if (tilesLeft > 0 && mapController.isSolid(tile)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
 
     private void setAttackTarget(EntityId entity) {
         if (entity == null) {
