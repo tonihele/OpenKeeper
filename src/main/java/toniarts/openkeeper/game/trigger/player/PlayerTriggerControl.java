@@ -203,7 +203,16 @@ public class PlayerTriggerControl extends TriggerControl {
                 break;
 
             case PLAYER_DESTROYS:
-                return false;
+                short destroyedType = trigger.getUserData("targetId", short.class);
+                boolean doorType = destroyedType != 0 && levelInfo.getLevelData().getDoorById(destroyedType) != null;
+                target = getPlayerController(playerId).getStatsControl().getDestroyedCount(destroyedType, doorType);
+                if ((trigger.getUserData("flag", short.class) & 1) != 0) {
+                    value = trigger.getUserData("value", int.class);
+                } else {
+                    short comparedPlayer = trigger.getUserData("playerId", short.class);
+                    value = getPlayerController(comparedPlayer).getStatsControl().getDestroyedCount(destroyedType, doorType);
+                }
+                break;
             case PLAYER_CREATURES_AT_LEVEL:
                 return false;
             case PLAYER_KILLED:

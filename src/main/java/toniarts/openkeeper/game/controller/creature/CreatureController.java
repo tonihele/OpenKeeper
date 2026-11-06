@@ -716,7 +716,7 @@ public final class CreatureController extends EntityController implements ICreat
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
 
                 // Set the damage
-                setDamage(attackTarget, creatureMeleeAttack.damage);
+                setDamage(entityData, attackTarget, creatureMeleeAttack.damage, getOwnerId());
                 gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
             }
         } else {
@@ -738,7 +738,7 @@ public final class CreatureController extends EntityController implements ICreat
 
                 // TODO: Of course not like that, the shot is created and it does what it does
                 // Set the damage
-                setDamage(attackTarget, creatureSpell.getShotData1());
+                setDamage(entityData, attackTarget, creatureSpell.getShotData1(), getOwnerId());
             }
         }
     }

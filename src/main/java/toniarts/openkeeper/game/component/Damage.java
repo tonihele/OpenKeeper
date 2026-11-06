@@ -27,13 +27,20 @@ import com.simsilica.es.EntityComponent;
 public final class Damage implements EntityComponent {
 
     public int damage;
+    /** Credited player for this pending damage batch; zero means unattributed. */
+    public short playerId;
 
     public Damage() {
         // For serialization
     }
 
     public Damage(int damage) {
+        this(damage, (short) 0);
+    }
+
+    public Damage(int damage, short playerId) {
         this.damage = damage;
+        this.playerId = playerId;
     }
 
 }

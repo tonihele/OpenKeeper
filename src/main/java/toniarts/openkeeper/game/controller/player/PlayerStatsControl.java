@@ -27,9 +27,28 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  */
 public final class PlayerStatsControl {
 
+    private final Map<Short, Integer> destroyedDoors = new HashMap<>();
+    private final Map<Short, Integer> destroyedTraps = new HashMap<>();
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
+
+    public void doorDestroyed(short doorId) {
+        destroyedDoors.merge(doorId, 1, Integer::sum);
+    }
+
+    public void trapDestroyed(short trapId) {
+        destroyedTraps.merge(trapId, 1, Integer::sum);
+    }
+
+    /** Cumulative destruction count; zero selects all doors and traps. */
+    public int getDestroyedCount(short typeId, boolean door) {
+        if (typeId == 0) {
+            return destroyedDoors.values().stream().mapToInt(Integer::intValue).sum()
+                    + destroyedTraps.values().stream().mapToInt(Integer::intValue).sum();
+        }
+        return (door ? destroyedDoors : destroyedTraps).getOrDefault(typeId, 0);
+    }
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();

@@ -91,7 +91,25 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_GOLD(30), // Player
         PLAYER_GOLD_MINED(31), // Player
         PLAYER_MANA(32), // Player
-        PLAYER_DESTROYS(33), // Player
+        /**
+         * Compares this player's cumulative number of destroyed built doors and
+         * traps with a fixed value or another player's corresponding count.
+         * Type zero includes all doors and traps. A specific type selects a door
+         * when that ID exists in the door catalogue, otherwise a trap: the
+         * original editor saves overlapping IDs and resolves doors first.
+         * <p>
+         * Credit goes to the player whose damage first makes the pending damage
+         * batch lethal. Selling, blueprints and unattributed destruction do not
+         * count. Credit follows the damage source, regardless of the victim's
+         * owner. For example, greater than or equal to 3 Wooden Doors requires
+         * three credited kills
+         * of built Wooden Doors during this game.
+         * <p>
+         * This implements the intent inferred from the editor's door/trap
+         * selector. DKII itself always returns true for this condition; these
+         * counting and attribution rules are OpenKeeper behavior.
+         */
+        PLAYER_DESTROYS(33),
         LEVEL_TIME(34), // Attribute, This level's...
         LEVEL_CREATURES(35), // Attribute, This level's...
         CREATURE_HEALTH(36), // Attribute, This creature's...

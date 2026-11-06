@@ -30,6 +30,9 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
@@ -168,6 +171,7 @@ public final class HealthSystem extends GameTimeCounter {
                 continue;
             }
 
+            Damage damage = entityData.getComponent(entityId, Damage.class);
             int healthChange = calculateHealthChange(entityId, health, timeElapsed, gameTime);
             if (healthChange == 0) {
                 continue;
@@ -175,10 +179,31 @@ public final class HealthSystem extends GameTimeCounter {
 
             // Set new health or death
             if (health.health + healthChange <= 0) {
+                recordDestruction(entityId, health, damage);
                 processHealthDepleted(entityId, health);
             } else {
                 entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
             }
+        }
+    }
+
+    private void recordDestruction(EntityId entityId, Health health, Damage damage) {
+        if (health.health <= 0 || damage == null || damage.damage < health.health || damage.playerId == 0) {
+            return;
+        }
+        IPlayerController player = playerControllersById.get(damage.playerId);
+        if (player == null) {
+            return;
+        }
+        DoorComponent door = entityData.getComponent(entityId, DoorComponent.class);
+        if (door != null && !door.blueprint) {
+            player.getStatsControl().doorDestroyed(door.doorId);
+            return;
+        }
+        TrapComponent trap = entityData.getComponent(entityId, TrapComponent.class);
+        TrapViewState view = entityData.getComponent(entityId, TrapViewState.class);
+        if (trap != null && (view == null || !view.blueprint)) {
+            player.getStatsControl().trapDestroyed(trap.trapId);
         }
     }
 
