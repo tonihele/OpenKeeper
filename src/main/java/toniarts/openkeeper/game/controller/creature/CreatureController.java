@@ -1405,6 +1405,11 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean isPossessed() {
+        return entityData.getComponent(entityId, Possessed.class) != null;
+    }
+
+    @Override
     public boolean isHungry() {
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
         if (creatureHunger != null) {

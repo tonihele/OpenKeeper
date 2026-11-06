@@ -169,6 +169,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isTortured();
 
+    /**
+     * Is the creature possessed, controlled by the player from the inside
+     *
+     * @return true if possessed
+     */
+    public boolean isPossessed();
+
     public boolean isStunned();
 
     public int getLevel();
