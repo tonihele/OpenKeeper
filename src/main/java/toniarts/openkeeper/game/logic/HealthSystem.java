@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
@@ -154,9 +155,13 @@ public final class HealthSystem extends GameTimeCounter {
         for (EntityId entityId : entityIds.getArray()) {
             Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
 
-            // From unconsciousness we start the countdown to death
+            // From unconsciousness we start the countdown to death. Like DK II, it
+            // stops while the creature is carried (DKII.EXE 0x4599D0 skips the
+            // tick when 0x4B5DE0 says it is being dragged)
             if (unconscious != null) {
-                if (timeElapsed - unconscious.startTime >= timeToDeath) {
+                if (entityData.getComponent(entityId, HauledBy.class) != null) {
+                    entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
+                } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
                 }
                 continue;
