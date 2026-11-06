@@ -119,7 +119,10 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            if (entity.isTimeToReEvaluate()) {
+            // A creature of a keeper or of the heroes thinks again as soon as its idle walk ends. In DK II the walk
+            // (state 87, 0x4808E0) goes on in state 1 (0x4773D0), which takes it straight back to its choice: state 10
+            // (0x463DF0) for a worker, 89 (0x4778E0) for a keeper's other creatures and 90 (0x477850) for a hero
+            if (entity.isClaimed() ? entity.isStopped() : entity.isTimeToReEvaluate()) {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
