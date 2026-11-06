@@ -418,7 +418,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                 };
                 mapInformation = playerMapViewState.getMapInformation();
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
-                textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
+                textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation(), gameClientService.getEntityData(),
+                        kwdFile.getVariables());
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
                 guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
                         trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
