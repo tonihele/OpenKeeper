@@ -41,6 +41,21 @@ public final class CreatureSleepFixtures {
         return creature;
     }
 
+    /**
+     * A worker whose animation for its work, eating for claiming and sleeping
+     * for reinforcing in DK II, has the given frames
+     */
+    public static Creature claimer(Creature.AnimationType animation, int frames, int fps) {
+        ArtResource work = new ArtResource();
+        work.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
+        work.setData(ArtResource.KEY_FRAMES, frames);
+        work.setData(ArtResource.KEY_FPS, fps);
+        Creature creature = new Creature();
+        creature.setName("Imp");
+        creature.setAnimation(animation, work);
+        return creature;
+    }
+
     public static Variable.MiscVariable variable(Variable.MiscVariable.MiscType type, int value) {
         Variable.MiscVariable variable = new Variable.MiscVariable();
         variable.setVariableId(type);
