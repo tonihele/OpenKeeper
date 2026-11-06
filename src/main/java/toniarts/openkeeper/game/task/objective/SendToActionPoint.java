@@ -22,7 +22,9 @@ import java.util.List;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
@@ -39,7 +41,7 @@ public final class SendToActionPoint extends GoToTask {
     private boolean executed = false;
 
     public SendToActionPoint(final INavigationService navigationService, final IMapController mapController, ActionPoint actionPoint, ICreatureController creature) {
-        super(navigationService, mapController, getDestination(navigationService, actionPoint, creature), creature.getOwnerId());
+        super(navigationService, mapController, getDestination(navigationService, mapController, actionPoint, creature), creature.getOwnerId());
 
         this.actionPoint = actionPoint;
     }
@@ -48,15 +50,28 @@ public final class SendToActionPoint extends GoToTask {
      * Like the original, the creature heads for a random tile of the action
      * point that it can get to. The middle of the area can well be a wall
      */
-    private static Point getDestination(INavigationService navigationService, ActionPoint actionPoint, ICreatureController creature) {
+    private static Point getDestination(INavigationService navigationService, IMapController mapController, ActionPoint actionPoint,
+            ICreatureController creature) {
+        Point start = creature.getCreatureCoordinates();
         List<Point> tiles = new ArrayList<>(actionPoint.getPoints());
         Collections.shuffle(tiles, Utils.getRandom());
         for (Point tile : tiles) {
-            if (navigationService.findPath(creature.getCreatureCoordinates(), tile, creature) != null) {
+
+            // No path leads into a solid tile, and a path search that fails goes
+            // through every tile the creature can get to
+            if (!tile.equals(start) && isSolid(mapController, tile)) {
+                continue;
+            }
+            if (navigationService.findPath(start, tile, creature) != null) {
                 return tile;
             }
         }
         return WorldUtils.vectorToPoint(actionPoint.getCenter());
+    }
+
+    private static boolean isSolid(IMapController mapController, Point p) {
+        IMapTileInformation tile = mapController.getMapData().getTile(p);
+        return tile != null && mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
     @Override
