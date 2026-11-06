@@ -543,8 +543,11 @@ public final class CreaturesController implements ICreaturesController {
         creatureComponent.researchPerSecond = scaleByLevel(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
         creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
-        creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
-        creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));
+
+        // The original never reads the level stats of the speeds, a creature walks and runs as fast on every level
+        // (CCreature_init 0x4872A0, level up 0x48B120)
+        creatureComponent.speed = attributes.getSpeed();
+        creatureComponent.runSpeed = attributes.getRunSpeed();
         creatureComponent.tortureTimeToConvert = scaleByLevel(attributes.getTortureTimeToConvert(), getStatPercent(stats, Variable.CreatureStats.StatType.TORTURE_TIME_TO_CONVERT_SECONDS));
         creatureComponent.posessionManaCost = scaleByLevel(attributes.getPossessionManaCost(), getStatPercent(stats, Variable.CreatureStats.StatType.POSSESSION_MANA_COST_PER_SECOND));
         if (sensesComponent != null) {
