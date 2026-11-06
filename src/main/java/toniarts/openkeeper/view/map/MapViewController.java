@@ -117,6 +117,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Spatial waterSurface; // Currently attached merged water mesh, if any
     private Spatial lavaSurface; // Currently attached merged lava mesh, if any
     private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
+    private boolean[] ceilingSolid; // The solid tiles the ceiling was built around
+    private Map<CeilingBatchKey, List<Point>> ceilingBatches; // And the tiles it covers
     private boolean ceilingVisible = true; // Runtime show/hide toggle, independent of ceilingEnabled (which decides whether it's built at all)
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
@@ -366,13 +368,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * the current map, a patch for every open tile the fog-of-war currently
      * reveals, grouped into one merged mesh per resolved material. Like
      * {@link #refreshWaterAndLavaSurfaces}, there's no incremental variant -
-     * every dig, room change or fog reveal just rebuilds the whole thing.
+     * every dig, room change or fog reveal just rebuilds the whole thing. Most
+     * tile updates (a dig or claim hit, gold, mana) change nothing the ceiling
+     * is made of though, then it is kept.
      */
     private void refreshCeilingSurface() {
-        if (ceilingSurface != null) {
-            ceilingSurface.removeFromParent();
-            ceilingSurface = null;
-        }
         if (!ceilingEnabled) {
             return;
         }
@@ -386,9 +386,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             pillarTiles.addAll(PillarPlacement.getPillarTiles(roomInstance));
         }
 
-        ClearanceField clearanceField = new ClearanceField(width, height,
-                createSolidGrid(mapData, pillarTiles));
-
+        boolean[] solid = createSolidGrid(mapData, pillarTiles);
         Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
         Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();
         Map<CeilingBatchKey, ArtResource> batchResource = new HashMap<>();
@@ -409,6 +407,18 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 batchResource.putIfAbsent(key, ceilingResource);
             }
         }
+
+        if (ceilingSurface != null && ceilingSurface.getParent() == map
+                && Arrays.equals(solid, ceilingSolid) && batchTiles.equals(ceilingBatches)) {
+            return;
+        }
+        if (ceilingSurface != null) {
+            ceilingSurface.removeFromParent();
+            ceilingSurface = null;
+        }
+        ceilingSolid = solid;
+        ceilingBatches = batchTiles;
+        ClearanceField clearanceField = new ClearanceField(width, height, solid);
 
         if (batchTiles.isEmpty()) {
             return;
