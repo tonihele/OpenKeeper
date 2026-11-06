@@ -1,0 +1,15 @@
+{
+  "change": "P1/A1b default SMAA High preset instead of Ultra",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T14-00-17.203023700Z",
+  "compareBaseline": "after-a3-gpu-timers",
+  "medianAvgFps": 35.76,
+  "baselineMedianAvgFps": 37.259,
+  "rationale": [
+    "avg FPS −4% (wrong direction)",
+    "visual cp01 failed on run 1",
+    "1% low regression vs A3b",
+    "Source fully reverted"
+  ]
+}

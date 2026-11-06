@@ -1,0 +1,81 @@
+{
+  "baselinePath": "baselines/performance/after-smaa-final-pass/candidate-baseline-windows-10-amd64.json",
+  "candidatePath": "baselines/performance/after-entity-bind-skip/candidate-baseline-windows-10-amd64.json",
+  "findings": [
+    {
+      "metric": "avgFps.median",
+      "baseline": 37.17,
+      "candidate": 36.573,
+      "delta": -0.597,
+      "relative": -0.016,
+      "status": "stable"
+    },
+    {
+      "metric": "onePercentLowFps.median",
+      "baseline": 5.092,
+      "candidate": 4.574,
+      "delta": -0.518,
+      "relative": -0.102,
+      "status": "regression"
+    },
+    {
+      "metric": "pointOnePercentLowFps.median",
+      "baseline": 1.657,
+      "candidate": 1.469,
+      "delta": -0.188,
+      "relative": -0.113,
+      "status": "regression"
+    },
+    {
+      "metric": "frameTimeP50.median",
+      "baseline": 20.299,
+      "candidate": 19.928,
+      "delta": -0.371,
+      "relative": -0.018,
+      "status": "stable"
+    },
+    {
+      "metric": "frameTimeP99.median",
+      "baseline": 67.209,
+      "candidate": 62.06,
+      "delta": -5.149,
+      "relative": -0.077,
+      "status": "stable"
+    },
+    {
+      "metric": "heapPeakMb.median",
+      "baseline": 1057.275,
+      "candidate": 1038.157,
+      "delta": -19.118,
+      "relative": -0.018,
+      "status": "stable"
+    },
+    {
+      "metric": "drawCallsAvg.median",
+      "baseline": 3104.18,
+      "candidate": 3011.856,
+      "delta": -92.324,
+      "relative": -0.03,
+      "status": "stable"
+    },
+    {
+      "metric": "lightsAvg.median",
+      "baseline": 2213.446,
+      "candidate": 2170.213,
+      "delta": -43.233,
+      "relative": -0.02,
+      "status": "stable"
+    },
+    {
+      "status": "fail",
+      "candidate": false,
+      "baseline": true,
+      "metric": "visualAllPassed"
+    }
+  ],
+  "regressionCount": 2,
+  "visualPass": false,
+  "overall": "fail",
+  "baselineCvAvgFps": 0.022,
+  "candidateCvAvgFps": 0.02
+}

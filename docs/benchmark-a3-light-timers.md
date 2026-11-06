@@ -43,8 +43,8 @@ Timers did not introduce a measurable FPS regression vs same-day page-cull contr
 
 1. **B2 (light upload spatial hash)** — rejected as next FPS bet: upload CPU is **&lt;0.5 ms**; even a perfect cut saves little of a ~25 ms frame.
 2. **B1 retry / more page-index CPU work** — page-index rebuild is **~0.14 ms**; not the lever.
-3. **Remaining avg-FPS headroom** is outside this CPU path (GPU Vertex on non-indexed materials, post, sim, etc.). Need GPU timers or A1 (settings) for the next FPS claim.
-4. **C1 / C3 / D\*** remain relevant for **tails / hitches**, not steady avg FPS.
+3. **Remaining avg-FPS headroom** is outside this CPU path. A3b later shipped whole-frame GPU timers (~10.8 ms); technique VS → **F1**. A1 UX shipped (presets → **A1b**).
+4. **C1 / C3** were **REJECTED** on suite; **D\*** remain relevant for **tails / hitches**, not steady avg FPS.
 
 ## Acceptance note
 

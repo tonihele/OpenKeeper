@@ -50,4 +50,4 @@ Suite vs A3: `overall: pass`, `regressionCount: 0`.
 
 ## Follow-ups
 
-Latest FPS-accepted lighting candidate remains **`after-page-light-cull`**. Next suite FPS levers: **A1 settings** or **GPU VS attribution**.
+Latest FPS-accepted lighting candidate remains **`after-page-light-cull`**. Next levers: **F1** (technique VS) / **A1b·P1** (presets / post) — see [acceleration-structures.md](acceleration-structures.md).

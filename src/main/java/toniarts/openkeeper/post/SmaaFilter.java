@@ -19,7 +19,6 @@ package toniarts.openkeeper.post;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector4f;
 import com.jme3.post.Filter;
 import com.jme3.renderer.RenderManager;
@@ -33,8 +32,8 @@ import java.util.ArrayList;
  * for the official <b>ULTRA</b> preset (threshold 0.05, 32/16 search steps,
  * corner rounding 25) with colour-edge detection for chroma-aware edges.
  * <p>
- * Three intermediate passes (edge detect → blend weights → neighborhood blend)
- * followed by an overlay blit. Installed last by {@link PostProcessPipeline}
+ * Two intermediate FBOs (edge detect → blend weights) then neighborhood blend
+ * as the filter's final pass. Installed last by {@link PostProcessPipeline}
  * (after {@link TranslucentBucketStage} and optional ambient occlusion) on the
  * LDR colour buffer. OpenKeeper has no HDR tone-map stage; gamma correction
  * remains an AppSettings / framebuffer concern.
@@ -49,10 +48,8 @@ public final class SmaaFilter extends Filter {
 
     private Material edgeMaterial;
     private Material blendMaterial;
-    private Material neighborhoodMaterial;
     private Pass edgePass;
     private Pass blendPass;
-    private Pass neighborhoodPass;
     private final Vector4f rtMetrics = new Vector4f();
     private int screenWidth;
     private int screenHeight;
@@ -106,27 +103,10 @@ public final class SmaaFilter extends Filter {
         configureColorTarget(blendPass.getRenderedTexture(), Texture.MagFilter.Bilinear, Texture.MinFilter.BilinearNoMipMaps);
         postRenderPasses.add(blendPass);
 
-        neighborhoodMaterial = new Material(manager, "MatDefs/Post/SMAA/SMAA_NeighborhoodBlending.j3md");
-        neighborhoodMaterial.setVector4("RtMetrics", rtMetrics);
-        neighborhoodPass = new Pass() {
-            @Override
-            public boolean requiresSceneAsTexture() {
-                return true;
-            }
-
-            @Override
-            public void beforeRender() {
-                neighborhoodMaterial.setTexture("WeightsTexture", blendPass.getRenderedTexture());
-            }
-        };
-        neighborhoodPass.init(renderManager.getRenderer(), screenWidth, screenHeight,
-                Image.Format.RGBA8, Image.Format.Depth, 1, neighborhoodMaterial);
-        configureColorTarget(neighborhoodPass.getRenderedTexture(), Texture.MagFilter.Bilinear, Texture.MinFilter.BilinearNoMipMaps);
-        postRenderPasses.add(neighborhoodPass);
-
-        material = new Material(manager, "Common/MatDefs/Post/Overlay.j3md");
-        material.setTexture("Texture", neighborhoodPass.getRenderedTexture());
-        material.setColor("Color", ColorRGBA.White);
+        // Neighborhood blend is the filter output — avoids a third intermediate
+        // FBO plus a 1:1 Overlay blit of the same result.
+        material = new Material(manager, "MatDefs/Post/SMAA/SMAA_NeighborhoodBlending.j3md");
+        material.setVector4("RtMetrics", rtMetrics);
     }
 
     private static Texture loadLookup(AssetManager manager, String path,
@@ -152,8 +132,8 @@ public final class SmaaFilter extends Filter {
         if (blendMaterial != null) {
             blendMaterial.setVector4("RtMetrics", rtMetrics);
         }
-        if (neighborhoodMaterial != null) {
-            neighborhoodMaterial.setVector4("RtMetrics", rtMetrics);
+        if (material != null) {
+            material.setVector4("RtMetrics", rtMetrics);
         }
     }
 
@@ -161,6 +141,9 @@ public final class SmaaFilter extends Filter {
     protected void preFrame(float tpf) {
         // Ensure metrics track reshape / resolution changes from AppSettings.
         updateRtMetrics();
+        if (material != null && blendPass != null) {
+            material.setTexture("WeightsTexture", blendPass.getRenderedTexture());
+        }
     }
 
     @Override

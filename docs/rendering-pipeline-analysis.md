@@ -10,12 +10,16 @@
 
 ## Verdict
 
-OpenKeeper’s world look is driven by a solid, DK-faithful custom lighting path (`DkLighting` + shared `LightData`), not stock jME Phong. The biggest risks are:
+OpenKeeper’s world look is driven by a solid, DK-faithful custom lighting path (`DkLighting` + shared `LightData`), not stock jME Phong.
 
-1. **Per-frame CPU work on every entity** (`applyVertexLight`)
-2. **Catastrophic mesh rebuilds on tile changes** (`MapViewController.updateTiles`)
-3. A few **correctness / visual bugs** (soft-falloff mismatch, translucent filter coupling)
-4. **Forced max settings (16× MSAA)** that tax the GPU before the custom pipeline is tuned
+**Historical risks from this audit (status as of 2026-11-06 accel roadmap):**
+
+1. **Per-frame entity `applyVertexLight`** → **IMPLEMENTED** bind-once (avg FPS still GPU-bound)
+2. **Mesh rebuild storms on tile/FoW changes** → **PARTIAL** (FOW/room gating shipped; ceiling/topology remain)
+3. **Soft-falloff mismatch / translucent↔SSAO** → **IMPLEMENTED** (A2 + Q3)
+4. **Forced max / 16× MSAA** → **SUPERSEDED / PARTIAL** (force-max gone; MSAA 16× hidden; presets open)
+
+**Current bottlenecks:** see [acceleration-structures.md](acceleration-structures.md) (GPU ~11 ms + CPU render ~17 ms; lighting CPU ~0.6 ms; F1 VS split next).
 
 ---
 
@@ -26,8 +30,8 @@ OpenKeeper’s world look is driven by a solid, DK-faithful custom lighting path
 | API | OpenGL via LWJGL3 / jME 3.9 | Fine for fidelity goal; no Vulkan / DirectX / Metal path |
 | Terrain / rooms | 8×8 `BatchNode` pages + room constructors | Good draw-call reduction; painful to mutate |
 | Lighting | CPU light list → RGBA32F `LightData` → GLSL per-vertex loop | Authentic DK model; cost scales with lights × vertices |
-| Entities | `applyVertexLight` every frame | Correct for flicker coupling; expensive as written |
-| Post | `PostProcessPipeline`: translucent (always) → optional AO → optional SMAA | Translucent decoupled from SSAO |
+| Entities | Vertex bind-once + shared `LightData` | Flicker lives in atlas upload; DFS bind removed |
+| Post | `PostProcessPipeline`: translucent (always) → optional AO → optional SMAA Ultra default | Translucent decoupled from SSAO |
 | Shadows | Modes tagged; no in-game shadow maps | Intentional / incomplete (ModelViewer only) |
 
 ### Pipeline overview
@@ -254,7 +258,7 @@ TAA vs MSAA, HBAO, optional shadows — shipped as a preset fork; keep **classic
 
 #### L4 — Instrumentation (required before big bets)
 
-GPU timer queries (terrain VS), CPU timers for `updateTiles` / `applyVertexLight` / `SceneLights.update`, light-count HUD, draw-call counters. Use existing F6 `DetailedProfilerState` as a start.
+**PARTIAL:** suite lighting CPU timers (A3) + whole-frame GPU / CPU update-render (A3b) shipped. Technique-level terrain vs full-list VS (**F1**) and `updateTiles` wall-clock splits still open. F6 `DetailedProfilerState` remains for interactive use.
 
 #### L5 — Material pipeline cleanup
 
@@ -266,22 +270,22 @@ Stop assigning Normal/Spec/Parallax into defs that don’t use them; unify tint/
 
 **Superseded for ordering/status** by [acceleration-structures.md](acceleration-structures.md). Snapshot of this audit’s original table with later status annotations:
 
-| Priority | Item | Effort | Impact | Status (2026-11-06) |
-|----------|------|--------|--------|---------------------|
-| 1 | Q1 Remove forced Ultra / default MSAA 4 | S | High GPU | **Partial** — see accel A1 / [benchmark-a1-settings.md](benchmark-a1-settings.md) |
-| 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | Open — see accel A2 |
-| 3 | Q3 Decouple translucent from SSAO | S | — | **Done** |
-| 4 | Q4 Dynamic light loop bound | S | GPU VS | **Done** (`numLights`); page indices for terrain **Done** |
-| 5 | Q5 One-shot entity Vertex bind | M | High CPU | **Done** — [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md) |
-| 6 | Q7 Reuse ColorRGBA / Vector3f in light hot path | S | GC | **Done** — [benchmark-lighting-alloc-opt.md](benchmark-lighting-alloc-opt.md) |
-| 7 | S4 Quality presets | M | UX + perf | Open — with A1 |
-| 8 | S3 Coalesce AmbientMap uploads | M | FoW spikes | Open — mid-frame attempt **reverted**; see accel B3 |
-| 9 | S1 Incremental ceiling/water + milder tile updates | M–L | Hitching | **Partial** — [benchmark-tile-rebuild-opt.md](benchmark-tile-rebuild-opt.md); ceiling/deps remain |
-| 10 | L4 Profiling HUD / timers | M | Enables L2 | Open — accel A3 |
-| 11 | S2 / L2 Clustered or per-page lights | L | Scale | Terrain page indices **Done**; rooms/clustered open — accel B1/E1 |
-| 12 | L1 Chunk mesh architecture | L | Architecture | Open — accel D3 |
-| 13 | L3 Optional “enhanced” post / shadows | L | Quality fork | Open |
-| — | S5 LightRules load race | M | Stability | **Done** — [benchmark-lightrules-lifecycle.md](benchmark-lightrules-lifecycle.md) |
+| Priority | Item | Effort | Impact | Status (accel taxonomy) |
+|----------|------|--------|--------|-------------------------|
+| 1 | Q1 Remove forced Ultra / MSAA hygiene | S | High GPU (player) | **PARTIAL** — [A1](benchmark-a1-settings.md); presets → **A1b** |
+| 2 | Q2 Sync soft-falloff to 0.1 | S | Correctness | **IMPLEMENTED** — [A2](benchmark-a2-soft-falloff.md) |
+| 3 | Q3 Decouple translucent from SSAO | S | — | **IMPLEMENTED** |
+| 4 | Q4 Dynamic light loop bound | S | GPU VS | **IMPLEMENTED** (`numLights` + terrain page indices) |
+| 5 | Q5 One-shot entity Vertex bind | M | High CPU | **IMPLEMENTED** |
+| 6 | Q7 Reuse ColorRGBA / Vector3f in light hot path | S | GC | **IMPLEMENTED** |
+| 7 | S4 Quality presets | M | UX + perf | **NOT STARTED** — **A1b** |
+| 8 | S3 Coalesce AmbientMap uploads | M | FoW spikes | **DEFERRED** (mid-frame + coalesce **REJECTED**) — **B3** |
+| 9 | S1 Incremental ceiling/water + milder tile updates | M–L | Hitching | **PARTIAL** — FOW/room done; ceiling → **D1** |
+| 10 | L4 Profiling / timers | M | Enables ranking | **PARTIAL** — A3/A3b done; technique VS → **F1** |
+| 11 | S2 / L2 Clustered or per-page lights | L | Scale | Terrain pages **IMPLEMENTED**; room index **REJECTED**; cluster → **E1** after F1 |
+| 12 | L1 Chunk mesh architecture | L | Architecture | **NOT STARTED** — **D3** |
+| 13 | L3 Optional “enhanced” post / shadows | L | Quality fork | **NOT STARTED** |
+| — | S5 LightRules load race | M | Stability | **IMPLEMENTED** |
 
 ---
 
@@ -289,10 +293,10 @@ Stop assigning Normal/Spec/Parallax into defs that don’t use them; unify tint/
 
 From [Deep rendering audit](21d6408f-feea-4675-8c34-7668fa3bb04b):
 
-- **Water/lava** rebuild only when batch-*list size* changes (not every tile touch); **ceiling** still rebuilds on every `updateTiles`.
-- **`applyFlatLight` / `computeFlatLight`**: no gameplay call sites under `src/main/java` — entity path is Vertex; don’t optimize Flat first.
+- **Water/lava** rebuild only when batch-*list size* changes; **ceiling** rebuilds when visible (skipped/deferred when hidden).
+- **`applyFlatLight` / `computeFlatLight`**: defined in `AssetUtils` / `LightRules` but **no external callers** — entity path is Vertex; don’t optimize Flat first.
 - **Anisotropy** is applied at `assetRequested` only — changing AF at runtime won’t retouch already-loaded textures without reload.
-- **Force-max graphics** in `Settings` is a **local uncommitted** change from this session — remove before any upstream contribution.
+- **Force-max graphics** (`applyMaximumGraphicsSettings`) is **gone**; A1 fixed remaining frameRate prefs stomp.
 - LightData footprint is small (~9253×1 RGBA32F ≈ 148 KB); the cost is the VS loop, not VRAM.
 
 ---
@@ -309,17 +313,17 @@ From [Deep rendering audit](21d6408f-feea-4675-8c34-7668fa3bb04b):
 
 ## Suggested first profiling session
 
-Tools: RenderDoc / Nsight / jME `DetailedProfilerState` (F6)
+Tools: RenderDoc / Nsight / jME `DetailedProfilerState` (F6) + suite A3/A3b metrics
 
-1. Idle camera, torch-dense corridor  
-2. Same + dig ~10 tiles (catch `updateTiles` hitch)  
-3. CPU time: `applyVertexLight` vs `SceneLights.update`  
-4. VS time before / after Q4  
+1. Idle camera, torch-dense corridor — capture **F1** terrain-index VS vs full-list VS  
+2. Same + dig ~10 tiles with ceiling **on** (catch `updateTiles` / ceiling hitch)  
+3. Compare suite `gpuFrameTimeMs` / `cpuRenderMs` with SMAA Off vs Ultra (**P1**)  
+4. Do **not** re-litigate B1 without F1 evidence  
 
 ---
 
 ## Bottom line
 
-Several original quick wins (translucent decoupling, shader `numLights` bound, entity bind-once, lighting alloc reuse, terrain page light indices, LightRules lifecycle, partial tile-rebuild gating) are **shipped** — see the status table above and [acceleration-structures.md](acceleration-structures.md).
+Quick wins from this audit that are **IMPLEMENTED** (or **PARTIAL** with a clear remainder) are tracked in [acceleration-structures.md](acceleration-structures.md). Room light indices (**B1**) were **REJECTED**; do not treat them as the next step.
 
-**Next:** instrumentation (A3), settings/falloff correctness (A1/A2), then **extend light indices to rooms/water (B1)** before clustered lighting or chunk-mesh rewrites. Defer deferred / PBR / shadow overhauls unless shipped as an explicit enhanced mode.
+**Next:** **F1** (technique VS split) in parallel with **A1b** presets / remaining P1 Off–SSAO matrix. Hitch work (**D1**) with ceiling-on scenarios; **B3** deferred pending FoW-stress. Clustered lighting (**E1**) and chunk meshes (**D3**) stay deferred.

@@ -43,7 +43,7 @@ On `late-campaign-dense`:
 1. **GPU work is real (~11 ms)** but wall frame is not “GPU-only” — CPU render path is large.
 2. **Lighting CPU remains a non-lever** for avg FPS (A3).
 3. **Technique-level VS attribution** (indexed terrain vs full-list) is the remaining GPU question — not answered by whole-frame queries.
-4. Next FPS bets: Nsight VS split, post/SMAA cost, or sim hitch scenarios — not another B1-shaped index bind.
+4. Next FPS bets: roadmap **F1** (Nsight VS split), **A1b/P1** (presets / post cost), or sim hitch scenarios — not another B1-shaped index bind. See [acceleration-structures.md](acceleration-structures.md).
 
 ## Artifacts
 

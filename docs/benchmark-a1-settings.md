@@ -52,5 +52,5 @@ Suite vs A2: `overall: pass`, `regressionCount: 0`. Median FPS +2.8% is within s
 
 ## Follow-ups
 
-1. Quality presets (S4 / remainder of A1).
-2. **GPU VS attribution** for the next real suite FPS lever.
+1. Quality presets → roadmap **A1b** ([acceleration-structures.md](acceleration-structures.md#a1b-presets)).
+2. Off-suite AA / post cost → **P1**; technique VS → **F1** (A3b covers whole-frame GPU only).

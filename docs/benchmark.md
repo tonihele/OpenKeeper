@@ -8,11 +8,11 @@ Framework version: **2**
 
 | Doc | Role |
 |-----|------|
-| [acceleration-structures.md](acceleration-structures.md) | Prioritized acceleration / optimization roadmap (index) |
+| [acceleration-structures.md](acceleration-structures.md) | **Authoritative** accel roadmap (status matrix + ranked backlog) |
 | [acceleration-lighting.md](acceleration-lighting.md) | Lighting grids, indices, AmbientMap |
 | [acceleration-spatial-simulation.md](acceleration-spatial-simulation.md) | FoW, A\*, sensing, picking |
 | [acceleration-mesh-scene.md](acceleration-mesh-scene.md) | Pages, ceiling, chunk meshes |
-| [rendering-pipeline-analysis.md](rendering-pipeline-analysis.md) | Original rendering audit |
+| [rendering-pipeline-analysis.md](rendering-pipeline-analysis.md) | Original rendering audit (status superseded by accel index) |
 | `benchmark-*-opt.md` / `benchmark-lightrules-lifecycle.md` | Measured before/after change reports |
 | [benchmark-room-light-index.md](benchmark-room-light-index.md) | B1 room indices — **REJECTED** |
 | [benchmark-shared-nonpage-light-index.md](benchmark-shared-nonpage-light-index.md) | B1-retry shared non-page index — **REJECTED** |
@@ -20,6 +20,11 @@ Framework version: **2**
 | [benchmark-a3-gpu-timers.md](benchmark-a3-gpu-timers.md) | A3b GPU frame timers — **ACCEPTED tooling** |
 | [benchmark-a2-soft-falloff.md](benchmark-a2-soft-falloff.md) | A2 soft-falloff sync — **ACCEPTED correctness** |
 | [benchmark-a1-settings.md](benchmark-a1-settings.md) | A1 settings prefs / MSAA UI — **ACCEPTED UX** |
+| [benchmark-smaa-high-default.md](benchmark-smaa-high-default.md) | P1 SMAA High default — **REJECTED** |
+| [benchmark-sensing-bfs.md](benchmark-sensing-bfs.md) | C2 sensing BFS — **REJECTED** |
+| [benchmark-smaa-final-pass.md](benchmark-smaa-final-pass.md) | P1 SMAA drop Overlay FBO — **ACCEPTED** |
+| [benchmark-entity-bind-skip.md](benchmark-entity-bind-skip.md) | Q5b entity bind steady-state skip — **REJECTED** |
+| [benchmark-light-index-dirty.md](benchmark-light-index-dirty.md) | LightIndex dirty-skip upload — **REJECTED** |
 | [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) | C3 A\* connection reuse — **REJECTED** |
 | [benchmark-fow-door-index.md](benchmark-fow-door-index.md) | C1 FoW door index — **REJECTED** |
 

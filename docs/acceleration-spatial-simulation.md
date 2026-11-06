@@ -1,7 +1,7 @@
 # Spatial & simulation acceleration
 
-**Parent roadmap:** [acceleration-structures.md](acceleration-structures.md)  
-**Related reports:** [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md) (mentions FoW door rebuild as remaining)
+**Parent roadmap:** [acceleration-structures.md](acceleration-structures.md) (authoritative status)  
+**Related reports:** [benchmark-fow-door-index.md](benchmark-fow-door-index.md) · [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md) · [benchmark-entity-traversal-opt.md](benchmark-entity-traversal-opt.md)
 
 Simulation and interaction in OpenKeeper are **tile-native**. Prefer extending `PositionSystem` grids and FoW tables over continuous-space trees.
 
@@ -9,14 +9,16 @@ Simulation and interaction in OpenKeeper are **tile-native**. Prefer extending `
 
 ## Current structures (verified)
 
-| Structure | Path | Role |
-|-----------|------|------|
-| `entitiesByMapTile[][]` / `obstaclesByMapTile` | `game/logic/PositionSystem.java` | O(1) who’s on a tile |
-| Indexed A\* + `MapIndexedGraph` | `game/navigation/pathfinding/` | Tile graph search |
-| FoW `BitSet` explored/perceived | `game/fogofwar/FogState.java` | Compact visibility |
-| `LineOfSightTable` | `game/fogofwar/LineOfSightTable.java` | Precomputed vision rings (r≤7) |
-| `TilePicker` DDA | tile picking utilities / selection | Analytical tile ray |
-| Entity `collideWith(Ray)` | `view/PlayerInteractionState.java` | Interactive object hover |
+| Structure | Path | Role | Notes |
+|-----------|------|------|-------|
+| `entitiesByMapTile[][]` / `obstaclesByMapTile` | `game/logic/PositionSystem.java` | O(1) occupancy | |
+| Indexed A\* + `MapIndexedGraph` | `game/navigation/pathfinding/` | Tile graph search | Still allocates `Array` + `DefaultConnection` per expansion |
+| FoW `BitSet` explored/perceived | `game/fogofwar/FogState.java` | Compact visibility | |
+| `LineOfSightTable` | `game/fogofwar/LineOfSightTable.java` | Precomputed vision rings (r≤7) | |
+| Door map for FoW | `FogOfWarController.doorsByPosition` | Vision blockers | **clear + rebuild** each FoW tick (C1 rejected) |
+| Sense cache | `PositionSystem.sensedEntitiesByEntity` | Per-tick `computeIfAbsent` | Cleared each process; **flood fill** on miss |
+| `TilePicker` DDA | tile picking utilities | Analytical tile ray | |
+| Entity `collideWith(Ray)` | `view/PlayerInteractionState.java` | Interactive object hover | Still full entity-root collide |
 
 No app-authored BVH/octree for creatures or shots.
 
@@ -24,55 +26,50 @@ No app-authored BVH/octree for creatures or shots.
 
 ## C1 — Incremental door index {#c1-door-index}
 
-**Status: REJECTED (2026-11-06)** — [benchmark-fow-door-index.md](benchmark-fow-door-index.md).
+**Status: REJECTED** — [benchmark-fow-door-index.md](benchmark-fow-door-index.md). Source reverted.
 
 | | |
 |--|--|
-| **Bottleneck** | FoW vision tick clear+rebuilds `doorsByPosition` each 0.15 s. |
-| **Attempt** | Incremental EntitySet add/remove/change index (`EntityId → Point`). |
-| **Result** | Visual OK on clean runs; median avg FPS **37.1** vs A3 **37.7** (no win); high CV. Reverted. |
+| **Bottleneck** | FoW vision tick clear+rebuilds `doorsByPosition` each ~0.15 s (**Verified** still present). |
+| **Result** | Median avg FPS **37.1** vs A3 **37.7**; high CV. |
 | **Lesson** | Not hot on `late-campaign-dense`; retry only with FoW-tick timers + door-dense scenario. |
 
 ---
 
 ## C2 — Sensing cache / offset expansion {#c2-sensing-cache}
 
+**Status: PARTIAL** — per-tick entity→set cache exists; recursive flood remains. Suite BFS attempt **REJECTED** ([benchmark-sensing-bfs.md](benchmark-sensing-bfs.md)).
+
 | | |
 |--|--|
-| **Bottleneck** | `PositionSystem.getSensedEntities` uses recursive flood; TODO references proper hearing/vision (#261). Work is O(range²) with revisits controlled by a set. |
-| **Evidence** | **Verified** algorithm shape in `PositionSystem`; hotness under AI load is **Hypothesis** until logic-thread timers exist. |
-| **Proposed structure** | (1) Per-tick cache `EntityId → sensed set`, or (2) expand via **precomputed offsets** (same idea as `LineOfSightTable`) reading `entitiesByMapTile`. Do **not** introduce a creature octree. |
-| **Expected benefit** | AI/sense queries scale cleanly with movers × ring size. |
-| **Complexity / memory** | S–M; cache maps or static offset tables. |
-| **Risks** | Stale sets if cache key ignores tick/move; behaviour change if flood semantics drift. |
-| **Bench** | Count tiles visited / sense call; creature-dense logic profiling; suite only if AI shows in frame hitch profiles. |
+| **Bottleneck** | `addSensedEntities` recursive flood; TODO #261. Cache cleared each `PositionSystem` process. |
+| **Evidence** | **Verified** in `PositionSystem`; suite avg FPS **not** improved by BFS+visited. |
+| **Remaining work** | Offset table / logic timers on a creature-dense micro-scenario — not Level20 suite alone. |
+| **Detail** | [acceleration-structures.md § C2](acceleration-structures.md#c2-sensing). |
 
 ---
 
 ## C3 — A\* neighbour / connection reuse {#c3-astar-pools}
 
-**Status: REJECTED (2026-11-06)** — [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md).
+**Status: REJECTED** — [benchmark-astar-connection-pool.md](benchmark-astar-connection-pool.md). Source reverted.
 
 | | |
 |--|--|
-| **Bottleneck** | `MapIndexedGraph.getConnections` allocates a new `Array` and `DefaultConnection` per expansion. |
-| **Attempt** | (1) Pooled mutable `Connection`s — **unsafe**: gdx-ai `NodeRecord` retains `Connection` for path rebuild → corrupted paths, false ~88 FPS, visual/draw/heap collapse. (2) Scratch `Array` only + fresh edges — correct but **no suite FPS win**. |
-| **Lesson** | Never pool/mutate `Connection` instances used with stock `IndexedAStarPathFinder`. |
-| **Result** | Fully reverted. |
+| **Current code** | `MapIndexedGraph.getConnections` still allocates a new `Array` and `DefaultConnection`s (**Verified**). |
+| **Lesson** | Never pool/mutate `Connection` instances used with stock `IndexedAStarPathFinder` (`NodeRecord` retains edges). |
+| **Retry** | Only with path-alloc micro-bench; suite avg FPS is the wrong gate. |
 
 ---
 
 ## C4 — Tile-first entity picking {#c4-picking}
 
+**Status: NOT STARTED**.
+
 | | |
 |--|--|
-| **Bottleneck** | Hover/selection for interactive objects uses `root.collideWith(Ray, CollisionResults)` on the entity scene graph (`PlayerInteractionState`), scaling with attached geometry. |
-| **Evidence** | **Verified** call site; cost under hundreds of entities is **Hypothesis**. |
-| **Proposed structure** | Reuse **tile DDA** (`TilePicker`) / cursor tile, then test only entities in `entitiesByMapTile` along the ray (or under the pointed tile). Optional per-tile world AABBs for large props. **Prefer this over a mesh BVH** — world is tile-quantized and occupancy already exists. |
-| **Expected benefit** | Pick cost ~ O(tiles along ray × entities per tile), independent of total dungeon population. |
-| **Complexity / memory** | M; may need multi-tile object registration. |
-| **Risks** | Miss non-grid-aligned meshes; behaviour change vs jME collide precision. |
-| **Bench** | Stress 500+ entities under cursor; pick time µs vs `collideWith`; correctness parity checklist. |
+| **Bottleneck** | `playerEntityViewState.getRoot().collideWith(ray, results)` (**Verified**). |
+| **Proposal** | Tile DDA / cursor tile → occupancy tests. |
+| **Detail** | [acceleration-structures.md § C4](acceleration-structures.md#c4-picking). |
 
 ---
 
@@ -81,7 +78,7 @@ No app-authored BVH/octree for creatures or shots.
 | Idea | Why not first |
 |------|----------------|
 | Navmesh | Tile + door costs define legality; A\* graph matches rules |
-| Continuous steering spatial hash | Steering already runs on discrete movers; measure before adding |
-| Global AI influence maps | Separate design concern; not required for current bottlenecks |
+| Continuous steering spatial hash | Measure before adding |
+| Global AI influence maps | Separate design concern |
 
-Navigation entry points: `game/navigation/NavigationService.java`, `game/logic/CreatureAiSystem.java`, `game/logic/MovementSystem.java`.
+Entry points: `NavigationService`, `CreatureAiSystem`, `MovementSystem`.

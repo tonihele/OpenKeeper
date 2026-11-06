@@ -1,0 +1,15 @@
+{
+  "change": "Skip LightIndexData setUpdateNeeded when packed indices unchanged",
+  "decision": "REJECTED",
+  "reverted": true,
+  "session": "session-2026-11-06T14-20-38.596399200Z",
+  "compareBaseline": "after-smaa-final-pass",
+  "medianAvgFps": 35.406,
+  "baselineMedianAvgFps": 37.17,
+  "rationale": [
+    "Median avg FPS −4.7% vs SMAA final-pass",
+    "visual cp01 fail on runs 2 and 3",
+    "1% low regression; moving lights keep membership dirty most frames",
+    "Source fully reverted"
+  ]
+}
