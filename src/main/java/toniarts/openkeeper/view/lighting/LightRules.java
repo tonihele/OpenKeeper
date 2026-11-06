@@ -130,6 +130,14 @@ public final class LightRules {
         return !disabledGroups.contains(group);
     }
 
+    /**
+     * The lights that currently count, i.e. those of the groups that are not
+     * switched off. Only read it on the render thread once the map is loaded.
+     */
+    public List<LightSource> getActiveSources() {
+        return activeSources();
+    }
+
     private List<LightSource> activeSources() {
         List<LightSource> sources = modulators.getSources();
         Set<LightSource.Group> disabled = disabledGroups;
