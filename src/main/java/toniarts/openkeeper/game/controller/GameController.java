@@ -20,13 +20,11 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.ServerGameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -50,7 +48,6 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
-import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -70,7 +67,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private static final Logger logger = System.getLogger(GameController.class.getName());
 
     private final LevelInfo levelInfo;
-    private final toniarts.openkeeper.game.data.CampaignLevel levelObject;
 
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -103,7 +99,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             PlayerService playerService) {
 
         levelInfo = new LevelInfo(level);
-        levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
@@ -306,19 +301,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         gameResult = new GameResult();
         gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
         gameResult.setData(GameResult.ResultType.TIME_TAKEN, gameTimer.getGameTime());
-
-        // Mark the achievement if campaign level
-        if (levelObject != null) {
-            Main.getUserSettings().increaseLevelAttempts(levelObject);
-            if (win) {
-                Main.getUserSettings().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
-            }
-            try {
-                Main.getUserSettings().save();
-            } catch (IOException ex) {
-                logger.log(Level.ERROR, "Failed to save the level progress!", ex);
-            }
-        }
 
         // Enable the end game state on the player (client)
         playerService.endGame(win, playerId);
