@@ -451,7 +451,7 @@
                     <panel align="left" valign="center" childLayout="overlay" height="64px">
                         <image filename="Textures/GUI/Map/m-h-bg.png" imageMode="resize:0,111,0,0,0,111,0,32,0,111,0,0" />
                         <panel childLayout="center" padding="6px">
-                            <image filename="Textures/GUI/Map/m-hp.png" imageMode="repeat:0,0,16,16" width="100%" height="100%" id="creature-health" />
+                            <image filename="Textures/GUI/Map/m-hp.png" imageMode="repeat:0,0,16,16" align="left" width="100%" height="100%" id="creature-health" />
                         </panel>
                         <image filename="Textures/GUI/Map/M-H-Tone-BG.png" />
                     </panel>
