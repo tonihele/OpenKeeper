@@ -643,12 +643,13 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         /**
          * Starts the camera transition on the render thread. If the camera
-         * state is not initialized yet, tries again on the next frame.
+         * state is not initialized yet, it starts the transition when it is.
          */
         private void startTransition(short pathId, Vector3f start) {
             PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
-            if (cameraState == null || !cameraState.isInitialized()) {
-                app.enqueue(() -> startTransition(pathId, start));
+            if (cameraState == null) {
+                logger.log(Level.WARNING, "No player camera for camera path {0}", pathId);
+                gameClientService.transitionEnd();
                 return;
             }
 
