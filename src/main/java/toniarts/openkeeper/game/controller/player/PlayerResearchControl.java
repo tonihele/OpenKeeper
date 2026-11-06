@@ -19,6 +19,9 @@ package toniarts.openkeeper.game.controller.player;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerMessageType;
+import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.listener.PlayerMessageListener;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -33,11 +36,13 @@ public final class PlayerResearchControl {
 
     private final Keeper keeper;
     private final IKwdFile kwdFile;
+    private final PlayerMessageListener messageListener;
     protected List<PlayerResearchableEntityListener> researchListeners;
 
-    public PlayerResearchControl(Keeper keeper, IKwdFile kwdFile) {
+    public PlayerResearchControl(Keeper keeper, IKwdFile kwdFile, PlayerMessageListener messageListener) {
         this.keeper = keeper;
         this.kwdFile = kwdFile;
+        this.messageListener = messageListener;
     }
 
     /**
@@ -110,7 +115,20 @@ public final class PlayerResearchControl {
 
         // If research complete, return the entity
         if (advanceToNext) {
+            boolean upgrade = researchableEntity.isDiscovered();
             setNextResearchTarget();
+
+            // The spell upgrade has a message of its own that depends on the spell
+            if (researchableEntity.getResearchableType() == ResearchableType.SPELL) {
+                if (upgrade) {
+                    messageListener.onPlayerMessage(PlayerMessageType.SPELL_UPGRADED, researchableEntity.getId(), 0, 0);
+                } else {
+                    messageListener.onPlayerMessage(PlayerMessageType.SPELL_RESEARCHED, 0, researchableEntity.getId(), 0);
+                }
+            }
+            if (!isAnythingToReaseach()) {
+                messageListener.onPlayerMessage(PlayerMessageType.NOTHING_TO_RESEARCH, 0, 0, 0);
+            }
             return researchableEntity;
         }
         return null;

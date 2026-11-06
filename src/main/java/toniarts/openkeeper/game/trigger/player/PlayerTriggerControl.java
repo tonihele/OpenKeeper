@@ -80,6 +80,7 @@ public class PlayerTriggerControl extends TriggerControl {
         handlers.put(TriggerAction.ActionType.PLAY_SPEECH, this::playSpeech);
         handlers.put(TriggerAction.ActionType.DISPLAY_TEXT_STRING, this::displayTextString);
         handlers.put(TriggerAction.ActionType.SET_WIDESCREEN_MODE, this::setWidescreenMode);
+        handlers.put(TriggerAction.ActionType.SET_SYSTEM_MESSAGES, this::setSystemMessages);
         handlers.put(TriggerAction.ActionType.DISPLAY_SLAB_OWNER, this::displaySlabOwner);
         handlers.put(TriggerAction.ActionType.DISPLAY_NEXT_ROOM_TYPE, this::displayNextRoomType);
         return handlers;
@@ -429,6 +430,11 @@ public class PlayerTriggerControl extends TriggerControl {
     private void setWidescreenMode(TriggerActionData trigger) { // Info part
         boolean available = trigger.getUserData("available", short.class) != 0;
         playerService.setWidescreen(available, playerId);
+    }
+
+    private void setSystemMessages(TriggerActionData trigger) { // Info part
+        boolean available = trigger.getUserData("available", short.class) != 0;
+        playerService.setSystemMessages(available, playerId);
     }
 
     private void displaySlabOwner(TriggerActionData trigger) { // Info part

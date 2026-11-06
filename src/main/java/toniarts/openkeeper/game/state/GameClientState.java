@@ -50,6 +50,8 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.game.data.PlayerMessageSubTable;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
@@ -606,6 +608,38 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onPlayerMessage(int typeId, int key, long data1, long data2) {
+            PlayerMessageType type = PlayerMessageType.fromId(typeId);
+
+            // A variant without a text is not said at all
+            PlayerMessageSubTable.Entry entry = type.resolve(key);
+            if (entry == null) {
+                return;
+            }
+
+            // The level's own texts are given by the producer, others are in Speech.str
+            String text = type == PlayerMessageType.LEVEL_CREATURE_INTRO
+                    ? String.format("${level.%d}", data2 - 1)
+                    : String.format("${speech.%d}", entry.speechTextId());
+            SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+            if (systemMessageState != null) {
+                // The new species message can focus on the creature
+                EntityId focusEntity = type == PlayerMessageType.NEW_SPECIES ? new EntityId(data2) : null;
+                systemMessageState.addMessage(type, key, text, entry.timeoutSeconds(), focusEntity);
+            }
+        }
+
+        @Override
+        public void onSetSystemMessages(boolean enable) {
+            app.enqueue(() -> {
+                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                if (systemMessageState != null) {
+                    systemMessageState.setSystemMessagesEnabled(enable);
+                }
+            });
+        }
+
+        @Override
         public void onGameEnded(boolean win) {
             app.enqueue(() -> playerState.endGame(win));
         }
@@ -625,7 +659,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 // The speech is played from the queue, the HUD might not be there (yet / anymore)
                 SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
                 if (systemMessageState != null) {
-                    systemMessageState.addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                    systemMessageState.addMessage(PlayerMessageType.LEVEL_SPEECH, String.format("${level.%d}", speechId - 1));
                 }
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);

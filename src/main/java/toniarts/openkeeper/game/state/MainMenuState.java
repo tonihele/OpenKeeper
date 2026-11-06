@@ -32,6 +32,7 @@ import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.CameraSweepData;
 import toniarts.openkeeper.cinematics.CameraSweepDataEntry;
@@ -842,6 +843,16 @@ public final class MainMenuState extends AbstractAppState {
 
         @Override
         public void setWidescreen(boolean enable, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void setSystemMessages(boolean enable, short playerId) {
+            throw new UnsupportedOperationException("Not supported yet.");
+        }
+
+        @Override
+        public void postMessage(PlayerMessageType type, int key, long data1, long data2, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 
