@@ -55,6 +55,9 @@ public interface IGameController {
     /** Delivers a qualifying fear evaluation to the creature's script immediately. */
     void onCreatureAfraid(EntityId entityId);
 
+    /** Runs synchronously on the server simulation loop, before departure cleanup. */
+    void onCreatureSacked(EntityId entityId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

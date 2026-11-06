@@ -46,6 +46,11 @@ public final class CreatureLeaveSystem implements IGameLogicUpdatable {
 
         for (Entity entity : leavingEntities) {
             if (entityData.getComponent(entity.getId(), CreatureFall.class) == null) {
+                // DKII's manual Portal check emits once here, then its shared
+                // departure routine emits again before removal (459D50 -> 45A0D0).
+                // TODO: Verify this duplicate event through the full native hand/drop
+                // flow and finite-repeat scripts; current evidence is the native call path.
+                creaturesController.onSacked(entity.getId());
                 creaturesController.leaveDungeon(entity.getId());
             }
         }

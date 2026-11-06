@@ -66,6 +66,11 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
         onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
     }
 
+    /** Departure runs on the simulation loop; dispatch before the entity is removed. */
+    public void onSacked(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_SACKED);
+    }
+
     private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
         Trigger binding = entityData.getComponent(entityId, Trigger.class);
         if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {

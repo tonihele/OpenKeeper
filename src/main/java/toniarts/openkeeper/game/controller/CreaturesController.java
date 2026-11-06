@@ -671,10 +671,23 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
     public void leaveDungeon(EntityId entityId) {
+        if (!isValidEntity(entityId)) {
+            return;
+        }
+        // The shared exit routine emits while the script binding and inventory still exist.
+        onSacked(entityId);
+        if (!isValidEntity(entityId)) {
+            return; // A script action may have removed the creature.
+        }
         // Like in DK II, the creature takes the gold it carries with it
         entityData.removeComponent(entityId, Gold.class);
         createController(entityId).removePossession();
         entityData.removeEntity(entityId);
+    }
+
+    @Override
+    public void onSacked(EntityId entityId) {
+        gameController.onCreatureSacked(entityId);
     }
 
     @Override

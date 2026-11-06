@@ -47,10 +47,14 @@ class CreatureLeaveSystemTest {
     private final CreatureFallSystem fallSystem = new CreatureFallSystem(entityData, () -> 0,
             proxy(GameEventService.class, args -> events.add((GameEventType) args[0])));
     private final CreatureLeaveSystem leaveSystem = new CreatureLeaveSystem(entityData,
-            proxy(ICreaturesController.class, args -> {
-                left.add((EntityId) args[0]);
-                entityData.removeEntity((EntityId) args[0]);
-            }));
+            ICreaturesController.class.cast(Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
+                    new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
+                        if (method.getName().equals("leaveDungeon")) {
+                            left.add((EntityId) args[0]);
+                            entityData.removeEntity((EntityId) args[0]);
+                        }
+                        return null;
+                    })));
 
     @Test
     void creatureDroppedOnThePortalLeavesWhenItLands() {

@@ -146,7 +146,30 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_CREATURE_SLAPPED(60), // Event, This player's...
         PLAYER_CREATURE_SACKED(61), // Event, This player's...
         AP_TAG_PART_OF(62), // Action point
-        CREATURE_SACKED(63), // Event, This creature is
+        /**
+         * Event: this creature departs through the shared dungeon-exit routine.
+         * It runs before inventory/lair cleanup and removal, while the creature
+         * and its script binding still exist. It is not death or a persistent
+         * test that a creature has disappeared; ordinary polling stays false.
+         * <p>
+         * A manual dismissal follows landing on the center of an owned Portal
+         * or Hero Portal; Imps and creatures owned by another player stay.
+         * DKII's manual exit check emits once and calls shared departure, which
+         * emits again. OpenKeeper preserves these two notifications for the manual
+         * path, with existing root-branch/repeat handling. A direct shared exit
+         * emits once. Full native hand/drop and finite-repeat fidelity still need
+         * verification; see the TODO at the manual departure hook.
+         * <p>
+         * Dispatch is synchronous on the server simulation loop, after falling
+         * ends and before removal. The animation/client loop does not run scripts.
+         * Angry creatures leaving voluntarily need their separate gameplay path;
+         * merely being angry does not emit this event.
+         * <p>
+         * Example: a creature's departure branch can update an objective before
+         * that creature leaves. A one-shot branch runs once; an unlimited branch
+         * can observe both notifications of a manual dismissal.
+         */
+        CREATURE_SACKED(63),
         PARTY_MEMBERS_INCAPACITATED(64), // Party
         CREATURE_PICKED_UP(65), // Event, This creature is
         LEVEL_PLAYED(67), // Attribute, This level's...

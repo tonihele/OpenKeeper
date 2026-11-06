@@ -137,11 +137,15 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     public void turnCreatureIntoAnother(EntityId entityId, short playerId, short creatureId);
 
     /**
-     * The creature leaves the dungeon through a portal and is gone for good
+     * The creature leaves the dungeon through a portal and is gone for good.
+     * Call only on the server simulation loop: departure executes scripts before cleanup.
      *
      * @param entityId the leaving creature
      */
     void leaveDungeon(EntityId entityId);
+
+    /** Delivers a sack notification immediately; call only on the simulation loop. */
+    void onSacked(EntityId entityId);
 
     /**
      * Gets the creature currently possessed by the given player
