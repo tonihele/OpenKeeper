@@ -19,6 +19,7 @@ package toniarts.openkeeper.gui.nifty.flowlayout;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.ControlDefinitionBuilder;
+import de.lessvoid.nifty.builder.ImageBuilder;
 import de.lessvoid.nifty.builder.LayerBuilder;
 import de.lessvoid.nifty.builder.PanelBuilder;
 import de.lessvoid.nifty.builder.ScreenBuilder;
@@ -53,7 +54,12 @@ public class CustomScrollTest {
                 panel(new PanelBuilder() {
                     {
                         childLayoutHorizontal();
-                        panel(new PanelBuilder("#back"));
+                        image(new ImageBuilder("#back") {
+                            {
+                                filename("back.png");
+                                width("32px");
+                            }
+                        });
                         panel(new PanelBuilder("#content") {
                             {
                                 childLayoutAbsolute();
@@ -61,7 +67,12 @@ public class CustomScrollTest {
                                 height("*");
                             }
                         });
-                        panel(new PanelBuilder("#forward"));
+                        image(new ImageBuilder("#forward") {
+                            {
+                                filename("forward.png");
+                                width("32px");
+                            }
+                        });
                     }
                 });
             }
@@ -143,6 +154,9 @@ public class CustomScrollTest {
             }
             if (returnType == int.class) {
                 return method.getName().equals("getHeight") ? 600 : method.getName().equals("getWidth") ? 800 : 0;
+            }
+            if (returnType.isInterface()) {
+                return stub(returnType);
             }
             return null;
         });
