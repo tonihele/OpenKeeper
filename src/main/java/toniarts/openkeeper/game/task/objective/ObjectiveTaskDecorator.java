@@ -116,6 +116,11 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
     }
 
     @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+        return task.getWorkPosition(creature);
+    }
+
+    @Override
     public boolean isReachable(ICreatureController creature) {
         return task.isReachable(creature);
     }

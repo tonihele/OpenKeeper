@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
@@ -86,6 +87,11 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
 
                 // TODO: Dunno if this the best way, we always iterate through a lot of unnecessary objects
                 // Maybe storage should remove the placeable temporarily...
+                continue;
+            }
+            if (entityData.getComponent(entityId, HauledBy.class) != null) {
+
+                // Carried somewhere, not loose. E.g. a trap crate just taken out of the workshop
                 continue;
             }
 
