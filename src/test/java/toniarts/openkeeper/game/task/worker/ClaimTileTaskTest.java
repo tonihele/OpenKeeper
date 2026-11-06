@@ -23,7 +23,9 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -31,6 +33,7 @@ import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
@@ -114,8 +117,24 @@ class ClaimTileTaskTest {
         List<Integer> blows = new ArrayList<>();
         int[] room = {90000};
         int[] tick = {0};
+        IMapTileController tile = (IMapTileController) Proxy.newProxyInstance(IMapTileController.class.getClassLoader(),
+                new Class<?>[]{IMapTileController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getOwnerId" ->
+                room[0] > 0 ? (short) 0 : PLAYER;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getTile" ->
+                tile;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
                 new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" ->
+                mapData;
             case "isClaimableTile" ->
                 false;
             case "isClaimableRoom" ->
@@ -129,7 +148,8 @@ class ClaimTileTaskTest {
                 throw new UnsupportedOperationException(method.getName());
         });
         ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER, TICKS_PER_SECOND);
-        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20));
+        List<GameEventType> events = new ArrayList<>();
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
         task.assign(imp, false);
 
         for (; tick[0] < 100 && task.isValid(imp); tick[0]++) {
@@ -139,15 +159,69 @@ class ClaimTileTaskTest {
         assertEquals(23, blows.size());
         assertEquals(List.of(1, 4, 5), blows.subList(0, 3));
         assertEquals(25, blows.get(22));
+
+        // The room is claimed once, it is not heard with every blow
+        assertEquals(List.of(GameEventType.CREATURE_CLAIM_TILE), events);
+    }
+
+    @Test
+    void mendingOwnRoomIsNotHeard() {
+
+        // An enemy Imp chips at the keeper's room and the keeper's Imp mends it. The room never changes hands
+        int[] blows = {0};
+        IMapTileController tile = (IMapTileController) Proxy.newProxyInstance(IMapTileController.class.getClassLoader(),
+                new Class<?>[]{IMapTileController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getOwnerId" ->
+                PLAYER;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getTile" ->
+                tile;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getMapData" ->
+                mapData;
+            case "isClaimableTile" ->
+                false;
+            case "applyClaimTile" -> {
+                blows[0]++;
+                yield null;
+            }
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        ClaimRoomTask task = new ClaimRoomTask(null, mapController, new Point(1, 1), PLAYER, TICKS_PER_SECOND);
+        List<GameEventType> events = new ArrayList<>();
+        ICreatureController imp = creature(CreatureSleepFixtures.claimer(Creature.AnimationType.EATING, 11, 20), events);
+        task.assign(imp, false);
+
+        for (int tick = 0; tick < 40; tick++) {
+            task.executeTask(imp, (float) tick / TICKS_PER_SECOND);
+        }
+
+        assertTrue(blows[0] > 5);
+        assertEquals(List.of(), events);
     }
 
     private static ICreatureController creature(Creature creature) {
+        return creature(creature, new ArrayList<>());
+    }
+
+    private static ICreatureController creature(Creature creature, List<GameEventType> events) {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getCreature" ->
                 creature;
-            case "fireEvent" ->
-                null;
+            case "fireEvent" -> {
+                events.add((GameEventType) args[0]);
+                yield null;
+            }
             case "hashCode" ->
                 System.identityHashCode(proxy);
             case "equals" ->
