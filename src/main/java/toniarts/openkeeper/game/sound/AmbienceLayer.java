@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.sound;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.function.IntSupplier;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.game.sound.SoundVoice.Behaviour;
 import toniarts.openkeeper.utils.Point;
@@ -51,7 +52,7 @@ final class AmbienceLayer {
     private final SoundEngine engine;
     private final SoundCategory category;
     private final int eventId;
-    private final int property;
+    private final IntSupplier property;
     private final ArrayDeque<Integer> live = new ArrayDeque<>();
 
     @Nullable
@@ -64,6 +65,15 @@ final class AmbienceLayer {
     private boolean stopped;
 
     AmbienceLayer(SoundEngine engine, SoundCategory category, int eventId, @Nullable Point position, int property) {
+        this(engine, category, eventId, position, () -> property);
+    }
+
+    /**
+     * @param property supplies the property to play the event with, e.g. the
+     * music intensity
+     */
+    AmbienceLayer(SoundEngine engine, SoundCategory category, int eventId, @Nullable Point position,
+            IntSupplier property) {
         this.engine = engine;
         this.category = category;
         this.eventId = eventId;
@@ -149,7 +159,15 @@ final class AmbienceLayer {
             return;
         }
 
-        int handle = engine.play(category, eventId, position, property);
+        // A property linked event has nothing to play while no link matches,
+        // as the ambience under louder music
+        int currentProperty = property.getAsInt();
+        if (event.hasPropertyLinks() && !hasMatchingLink(event, currentProperty)) {
+            retryLater(now);
+            return;
+        }
+
+        int handle = engine.play(category, eventId, position, currentProperty);
         SoundVoice voice = handle == SoundEngine.NO_HANDLE ? null : engine.getVoice(handle);
         if (voice == null) {
             retryLater(now);
@@ -200,6 +218,17 @@ final class AmbienceLayer {
                 nextAt = now + Math.max(duration + delay - lead, REPEATER_GAP_MS);
             }
         }
+    }
+
+    private static boolean hasMatchingLink(SoundEvent event, int property) {
+        for (SoundEventGroup group : event.getGroups()) {
+            for (SoundLink link : group.getLinks()) {
+                if (link.matchesProperty(property)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private void retryLater(long now) {
