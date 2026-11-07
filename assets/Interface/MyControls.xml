@@ -168,13 +168,13 @@
     <!--The tab contents scroll-->
     <controlDefinition style="nifty-panel-style" name="tabScroll" controller="toniarts.openkeeper.gui.nifty.CreaturePortraitScrollControl">
         <panel marginLeft="3px" childLayout="vertical" valign="center" id="tab-scroll">
-            <image filename="Textures/GUI/Pages/page_forward.png" >
+            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" >
                 <interact onClick="forward()" />
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true" neverStopRendering="true" />
                 </effect>
             </image>
-            <image filename="Textures/GUI/Pages/page_back.png">
+            <image id="#back" filename="Textures/GUI/Pages/page_back.png">
                 <interact onClick="back()" />
                 <effect>
                     <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true" neverStopRendering="true" />
@@ -552,23 +552,25 @@
 
     <controlDefinition name="customScroll" controller="toniarts.openkeeper.gui.nifty.flowlayout.CustomScroll">
         <panel childLayout="horizontal" padding="4px,2px,4px,0px">
-            <image id="#back" filename="Textures/GUI/Pages/page_back.png" valign="center" height="100%">
-                <effect>
-                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true"/>
-                    <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Selected.png" post="true" neverStopRendering="true" />
-                </effect>
-                <interact onClick="back()" />
-            </image>
+            <panel childLayout="vertical" width="32px" height="100%" valign="center">
+                <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" width="100%" height="50%">
+                    <effect>
+                        <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true"/>
+                        <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Selected.png" post="true" neverStopRendering="true" />
+                    </effect>
+                    <interact onClick="forward()" />
+                </image>
+                <image id="#back" filename="Textures/GUI/Pages/page_back.png" width="100%" height="50%">
+                    <effect>
+                        <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Hilight.png" post="true"/>
+                        <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Back-Selected.png" post="true" neverStopRendering="true" />
+                    </effect>
+                    <interact onClick="back()" />
+                </image>
+            </panel>
             <panel id="#content" childLayout="absolute" childClip="true" width="*" height="*" padding="0px,4px,0px,4px">
                 <panel x="0" y="50%" id="#row-1" childLayout="horizontal" valign="center" height="100%" width="100%" />
             </panel>
-            <image id="#forward" filename="Textures/GUI/Pages/page_forward.png" valign="center" height="100%">
-                <effect>
-                    <onHover name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Hilight.png" post="true"/>
-                    <onClick name="imageOverlay" filename="Textures/GUI/Pages/Page_Forward-Selected.png" post="true" neverStopRendering="true" />
-                </effect>
-                <interact onClick="forward()" />
-            </image>
         </panel>
     </controlDefinition>
 
