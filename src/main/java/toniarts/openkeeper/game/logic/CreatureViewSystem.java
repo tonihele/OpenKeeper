@@ -48,7 +48,12 @@ import toniarts.openkeeper.utils.GameTimeCounter;
  */
 public final class CreatureViewSystem extends GameTimeCounter {
 
-    private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
+    static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
+    /**
+     * DK II electrocutes the victim on the chair for 3 seconds, then lets it
+     * sit for 3 seconds
+     */
+    private static final double ELECTROCUTION_TIME = 3;
 
     private final EntityData entityData;
     private final EntitySet creatureViewEntities;
@@ -94,7 +99,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 } else {
                     CreatureAi aiState = entityData.getComponent(entityId, CreatureAi.class);
                     if (aiState != null && aiState.getCreatureState() == CreatureState.TORTURED) {
-                        targetState = getTortureAnimation(entityId);
+                        targetState = getTortureAnimation(entityId, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
                     }
@@ -134,18 +139,42 @@ public final class CreatureViewSystem extends GameTimeCounter {
     }
 
     /**
-     * Get the animation of a torture victim. A victim on the Electric Chair
-     * sits in the chair, the others are on the Torture Wheel
+     * Get the animation of a torture victim. A victim on the Electric Chair is
+     * shown as its skeleton while it is electrocuted, and sits in the chair in
+     * between. Like in DK II, the first shock comes when it sits down. The
+     * others are on the Torture Wheel.
      */
-    private Creature.AnimationType getTortureAnimation(EntityId entityId) {
+    private Creature.AnimationType getTortureAnimation(EntityId entityId, CreatureViewState state) {
         CreatureTortured tortured = entityData.getComponent(entityId, CreatureTortured.class);
         if (tortured != null && tortured.device != null) {
             ObjectComponent device = entityData.getComponent(tortured.device, ObjectComponent.class);
             if (device != null && device.objectId == ELECTRIC_CHAIR_OBJECT_ID) {
-                return Creature.AnimationType.TORTURED_CHAIR;
+                if (isShockDue(state, timeElapsed)) {
+                    return Creature.AnimationType.TORTURED_CHAIR_SKELETON;
+                }
+                if (state.state == Creature.AnimationType.TORTURED_CHAIR_SKELETON
+                        && timeElapsed - state.stateStartTime >= ELECTROCUTION_TIME) {
+                    return Creature.AnimationType.TORTURED_CHAIR;
+                }
+                return state.state;
             }
         }
         return Creature.AnimationType.TORTURED_WHEEL;
+    }
+
+    /**
+     * Tells if a victim on the Electric Chair gets a shock now: when it sits
+     * down, and after it has sat in the chair for the time of a shock
+     *
+     * @param state the animation state of the victim
+     * @param time the game time now
+     * @return true if the victim is electrocuted from now on
+     */
+    static boolean isShockDue(CreatureViewState state, double time) {
+        if (state.state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
+            return false;
+        }
+        return state.state != Creature.AnimationType.TORTURED_CHAIR || time - state.stateStartTime >= ELECTROCUTION_TIME;
     }
 
     private static Creature.AnimationType getAnimation(CreatureState creatureState) {
@@ -187,7 +216,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             case CLAIM_WALL:
                 return Creature.AnimationType.SLEEPING;
             case DIG_TILE:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return Creature.AnimationType.DIG;
             case TRAIN:
                 return Creature.AnimationType.MELEE_ATTACK;
             case RESEARCH:

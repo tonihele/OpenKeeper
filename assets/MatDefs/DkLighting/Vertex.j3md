@@ -1,0 +1,89 @@
+MaterialDef DK Terrain Lighting {
+
+    MaterialParameters {
+        Texture2D DiffuseMap
+
+        // KmfModelLoader.setMaterialFlags sets this on every material it
+        // creates (terrain included, e.g. RANDOM_TEXTURE/alpha pieces) --
+        // must be declared here or that call throws.
+        Float AlphaDiscardThreshold
+
+        // Vertex ambient: a per-terrain-type constant, 0..1,
+        // already converted from the file's 0..511 channel + over-bright
+        // bits by the Java side. Only used until the AmbientMap below is
+        // bound. Defaulted to black -- an unset Color MaterialParameter is an
+        // uninitialized GPU uniform, not zero.
+        Color Ambient : 0.0 0.0 0.0 0.0
+
+        // Tile highlight, as in the original:
+        // Tint is ADDED to the tile's lighting at every vertex (tag = (128,
+        // 128, 200)/255, flash = (1, 0, 0)), and TintOverlay is the colour of
+        // a second, additive pass over the same triangles, scaled by that
+        // same lit vertex colour (tag = (63, 64, 255)/255 "BlueTexture",
+        // flash = (255, 64, 65)/255 "RedTexture"). Per tile, not blended
+        // across tile borders: a selection must read as exactly that tile.
+        Color Tint : 0.0 0.0 0.0 0.0
+        Color TintOverlay : 0.0 0.0 0.0 0.0
+
+        // Map-sized per-tile data (rgb = ambient / 2, a = explored flag),
+        // sampled bilinearly at the vertex's world position so ambient and
+        // fog fade between tiles instead of stepping at tile borders. When
+        // bound (by SceneLights) it replaces the constant Ambient above.
+        Texture2D AmbientMap
+        Vector2 AmbientMapSize
+
+        // Every light near the camera plus the global ambient, shared by ALL
+        // terrain materials and rewritten each frame by SceneLights, so no two materials can ever disagree about a light.
+        // Layout: texel 0 = (light count, global ambient rgb); then three
+        // texels per light: (position xyz, radius), (colour rgb, intensity),
+        // (flags, 0, 0, 0). Flags: 1 = smooth monotonic falloff (the cursor
+        // light), 2 = may shine on unexplored ground (claim scan, cursor),
+        // 4 = override light (player-coloured creatures).
+        Texture2D LightData
+
+        // Scale of the minimum light every explored vertex gets: 1 for
+        // walkable terrain, 0 for solid terrain (black where no light reaches)
+        Float MinLight : 1.0
+
+        // Absolute minimum light of explored vertices, independent of the
+        // global DK_MIN_AMBIENT_FLOOR (which is 0): the model viewer's "lit
+        // solid rock" sets it so rock is visible where no light reaches.
+        Float RockFloor : 0.0
+
+        // Scale of the per-tile ambient sampled from AmbientMap. 0 for solid
+        // terrain: the map is sampled bilinearly, so without this a wall's
+        // vertices on the border to a floor tile take half of the floor's
+        // ambient.
+        Float AmbientScale : 1.0
+
+        // Leave out the lights carried by game objects (flag 32 of the light
+        // data): for the parts of the dungeon heart, which take no light from
+        // the heart's own glow. Models only, terrain never sets it.
+        Boolean IgnoreObjectLights
+
+        // Animated texture (water): DiffuseMap is a strip of NumberOfTiles
+        // equally wide frames, stepped Speed times a second. Unset = static.
+        Int NumberOfTiles
+        Int Speed
+    }
+
+    Technique {
+        VertexShader GLSL150: Shaders/DkLighting/Vertex.vert
+        FragmentShader GLSL150: Shaders/DkLighting/Vertex.frag
+
+        WorldParameters {
+            WorldViewProjectionMatrix
+            WorldMatrix
+            WorldNormalMatrix
+            Time
+        }
+
+        Defines {
+            ANIMATED_TILES : NumberOfTiles
+            DISCARD_ALPHA : AlphaDiscardThreshold
+            AMBIENT_MAP : AmbientMap
+            LIGHT_DATA : LightData
+            IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
+        }
+    }
+}
