@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumMap;
@@ -389,6 +390,7 @@ class CreatureControllerTest {
     }
 
     private static final class Fixture implements AutoCloseable {
+        final ServerEventDispatcher serverEvents = new ServerEventDispatcher();
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
         final EntityId bed = data.createEntity();
@@ -482,10 +484,11 @@ class CreatureControllerTest {
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, null, taskManager, () -> time,
-                    settings, null, lookup, map, levelInfo, null, null, eventService, id -> {});
+                    settings, null, lookup, map, levelInfo, null, null, eventService, serverEvents);
+            serverEvents.start();
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
-            moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings, id -> {});
+            moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings, serverEvents);
             healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);
         }
 
@@ -527,6 +530,7 @@ class CreatureControllerTest {
         CreatureState state() { return controller.getStateMachine().getCurrentState(); }
 
         @Override public void close() {
+            serverEvents.close();
             sleepSystem.stop();
             moodSystem.stop();
             healthSystem.stop();

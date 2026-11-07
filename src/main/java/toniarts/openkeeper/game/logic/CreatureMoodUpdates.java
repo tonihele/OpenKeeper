@@ -18,7 +18,9 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import java.util.function.Consumer;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
@@ -29,14 +31,14 @@ final class CreatureMoodUpdates {
     }
 
     static void set(EntityData data, EntityId entityId, Creature creature,
-            CreatureMood previous, CreatureMood updated, int change, Consumer<EntityId> onAngry) {
+            CreatureMood previous, CreatureMood updated, int change, ServerEventDispatcher serverEvents) {
         if (creature.getFlags2().contains(Creature.CreatureFlag2.IS_EMOTIONLESS)) {
             return;
         }
         data.setComponent(entityId, updated);
         int threshold = CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold());
         if (change > 0 && previous.getState(threshold) != 2 && updated.getState(threshold) == 2) {
-            onAngry.accept(entityId);
+            serverEvents.publishNow(ServerEvents.CREATURE_ANGRY, new CreatureEvent(entityId));
         }
     }
 }

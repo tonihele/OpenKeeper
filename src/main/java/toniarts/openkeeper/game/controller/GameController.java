@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
 import toniarts.openkeeper.game.event.ServerGameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
@@ -78,7 +79,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
-    private CreatureTriggerLogicController creatureTriggers;
+    private final ServerEventDispatcher serverEvents = new ServerEventDispatcher();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -117,18 +118,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     @Override
-    public void onCreatureAngry(EntityId entityId) {
-        creatureTriggers.onAngry(entityId);
-    }
-
-    @Override
-    public void onCreatureSlapped(EntityId entityId) {
-        creatureTriggers.enqueueSlapped(entityId);
-    }
-
-    @Override
-    public void onCreatureAfraid(EntityId entityId) {
-        creatureTriggers.onAfraid(entityId);
+    public ServerEventDispatcher getServerEvents() {
+        return serverEvents;
     }
 
     public void createNewGame() {
@@ -157,10 +148,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        // Keep queued delivery at the former creature-event phase.
+        controllers.add(serverEvents);
+        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData);
-        controllers.add(creatureTriggers);
+                playerService, entityData, serverEvents));
         controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData, gameWorldController.getObjectsController()));
@@ -425,6 +417,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     @Override
     public void stop() {
+        serverEvents.close();
         controllers.stream().forEach(IGameLogicUpdatable::stop);
         controllers.clear();
     }

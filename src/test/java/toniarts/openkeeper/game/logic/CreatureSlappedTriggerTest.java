@@ -27,6 +27,9 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
@@ -55,7 +58,7 @@ class CreatureSlappedTriggerTest {
     @Test
     void acceptedSlapIsQueuedUntilTheSimulationTickAndNeverLatched() {
         try (Fixture f=new Fixture(255)) {
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             assertEquals(0,f.flags[0]);
             f.tick();
             assertEquals(1,f.flags[0]);
@@ -78,7 +81,7 @@ class CreatureSlappedTriggerTest {
         try (Fixture f=new Fixture(255)) {
             for (int i=0;i<2;i++) {
                 f.data.setComponent(f.entity,new Slapped(1));
-                f.scripts.enqueueSlapped(f.entity);
+                f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             }
             f.tick();
             assertEquals(2,f.flags[0]);
@@ -89,7 +92,7 @@ class CreatureSlappedTriggerTest {
     void removingTheTemporaryEffectDoesNotEraseAnAcceptedEvent() {
         try (Fixture f=new Fixture(255)) {
             f.data.setComponent(f.entity,new Slapped(1));
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.data.removeComponent(f.entity,Slapped.class);
             f.tick();
             assertEquals(1,f.flags[0]);
@@ -107,10 +110,10 @@ class CreatureSlappedTriggerTest {
             });
             var settings=Map.of(MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,
                     CreatureSleepFixtures.variable(MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,5));
-            SlapSystem slaps=new SlapSystem(f.data,f.kwd,List.of(player),settings,f.scripts::onAngry);
+            SlapSystem slaps=new SlapSystem(f.data,f.kwd,List.of(player),settings,f.events);
             try {
                 f.data.setComponent(f.entity,new Slapped(0));
-                f.scripts.enqueueSlapped(f.entity);
+                f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
                 slaps.processTick(.25f);
                 f.tick();
                 assertEquals(1,f.flags[0]);
@@ -126,7 +129,7 @@ class CreatureSlappedTriggerTest {
     @CsvSource({"1,1", "2,2", "255,3"})
     void queuedSlapsUseExistingRepeatLimits(int repeats,int events) {
         try (Fixture f=new Fixture(repeats)) {
-            for (int i=0;i<3;i++) f.scripts.enqueueSlapped(f.entity);
+            for (int i=0;i<3;i++) f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.tick();
             assertEquals(events,f.flags[0]);
         }
@@ -139,7 +142,7 @@ class CreatureSlappedTriggerTest {
             f.records.put(2,CreatureAngryFixtures.condition(2,CREATURE_SLAPPED,-2,0,255));
             f.records.put(-2,CreatureAngryFixtures.action(-2,2));
             f.bindScripts();
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.tick();
             assertEquals(1,f.flags[0]);assertEquals(1,f.flags[2]);
         }
@@ -151,12 +154,12 @@ class CreatureSlappedTriggerTest {
             f.records.put(1,CreatureAngryFixtures.condition(1,CREATURE_SLAPPED,2,0,255));
             f.records.put(2,CreatureAngryFixtures.condition(2,FLAG,-1,0,255));
             f.bindScripts();
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.tick();
             f.flags[1]=1;
             for (int i=0;i<5;i++) f.tick();
             assertEquals(0,f.flags[0]);
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.tick();
             assertEquals(1,f.flags[0]);
         }
@@ -168,7 +171,7 @@ class CreatureSlappedTriggerTest {
             f.records.put(1,CreatureAngryFixtures.condition(1,CREATURE_SLAPPED,2,0,255));
             f.records.put(2,CreatureAngryFixtures.condition(2,FLAG,-1,0,255));
             f.bindScripts();
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.flags[1]=1;
             f.tick();
             assertEquals(1,f.flags[0]);
@@ -183,7 +186,7 @@ class CreatureSlappedTriggerTest {
             f.records.put(3,CreatureAngryFixtures.condition(3,CREATURE_ANGRY,-2,0,255));
             f.records.put(-2,CreatureAngryFixtures.action(-2,2));
             f.bindScripts();f.flags[1]=1;
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             for (int i=0;i<6;i++) f.tick();
             assertEquals(0,f.flags[0]);assertEquals(0,f.flags[2]);
         }
@@ -197,7 +200,7 @@ class CreatureSlappedTriggerTest {
             f.records.put(-2,CreatureAngryFixtures.action(-2,2));
             f.bindScripts();f.flags[1]=1;
             f.tick();
-            f.scripts.enqueueSlapped(f.entity);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
             f.tick();
             assertEquals(1,f.flags[0]);assertEquals(1,f.flags[2]);
         }
@@ -208,7 +211,7 @@ class CreatureSlappedTriggerTest {
         try (Fixture f=new Fixture(255)) {
             AtomicReference<Throwable> failure=new AtomicReference<>();
             Thread session=new Thread(()->{
-                try {for (int i=0;i<20;i++) f.scripts.enqueueSlapped(f.entity);}
+                try {for (int i=0;i<20;i++) f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));}
                 catch(Throwable t) {failure.set(t);}
             },"synthetic-hand-session");
             session.start();session.join();
@@ -224,7 +227,7 @@ class CreatureSlappedTriggerTest {
             f.data.setComponents(object,new ObjectComponent((short)1,null),new Trigger(1));
             EntityId unbound=f.data.createEntity();
             f.data.setComponent(unbound,new CreatureComponent());
-            f.scripts.enqueueSlapped(object);f.scripts.enqueueSlapped(unbound);
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(object));f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(unbound));
             f.tick();assertEquals(0,f.flags[0]);
         }
     }
@@ -232,8 +235,29 @@ class CreatureSlappedTriggerTest {
     @Test
     void stopDiscardsPendingSlaps() {
         try (Fixture f=new Fixture(255)) {
-            f.scripts.enqueueSlapped(f.entity);f.scripts.stop();
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));f.events.close();f.scripts.stop();
             f.tick();assertEquals(0,f.flags[0]);
+        }
+    }
+
+    @Test
+    void stoppedScriptConsumerReceivesNoFurtherEvents() {
+        try (Fixture f = new Fixture(255)) {
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
+            f.scripts.stop();
+            f.events.processTick(.25f);
+            assertEquals(0, f.flags[0]);
+        }
+    }
+
+    @Test
+    void bufferedInputSurvivesUntilScriptConsumersAreRegistered() {
+        try (Fixture f = new Fixture(255)) {
+            f.scripts.stop();
+            f.events.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(f.entity));
+            f.bindScripts();
+            f.tick();
+            assertEquals(1, f.flags[0]);
         }
     }
 
@@ -247,6 +271,7 @@ class CreatureSlappedTriggerTest {
         final IKwdFile kwd;
         final ILevelInfo level;
         final ICreaturesController creatures;
+        final ServerEventDispatcher events = new ServerEventDispatcher();
         CreatureTriggerLogicController scripts;
 
         Fixture(int repeats) {
@@ -283,10 +308,11 @@ class CreatureSlappedTriggerTest {
         }
         void bindScripts() {
             if(scripts!=null) scripts.stop();
-            scripts=new CreatureTriggerLogicController(null,level,null,null,creatures,null,data);
+            scripts=new CreatureTriggerLogicController(null,level,null,null,creatures,null,data,events);
+            events.start();
         }
-        void tick() {scripts.processTick(.25f);}
-        @Override public void close() {scripts.stop();data.close();}
+        void tick() {events.processTick(.25f);scripts.processTick(.25f);}
+        @Override public void close() {events.close();scripts.stop();data.close();}
     }
 
     @FunctionalInterface private interface Call {Object invoke(String name,Object[] args);}

@@ -24,6 +24,9 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -96,7 +99,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -129,7 +131,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
-    private final Consumer<EntityId> onCreatureSlapped;
+    private final ServerEventDispatcher serverEvents;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -146,7 +148,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
-        this.onCreatureSlapped = gameController::onCreatureSlapped;
+        this.serverEvents = gameController.getServerEvents();
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1148,7 +1150,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
-                onCreatureSlapped.accept(entity);
+                serverEvents.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(entity));
                 notifySlap(entity, playerId);
             }
             return;

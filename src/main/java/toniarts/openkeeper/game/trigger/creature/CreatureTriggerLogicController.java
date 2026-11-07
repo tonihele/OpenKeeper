@@ -20,7 +20,9 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.List;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -45,46 +47,30 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
     private final EntityData entityData;
-    private final ConcurrentLinkedQueue<EntityId> slapEvents = new ConcurrentLinkedQueue<>();
+    private final List<ServerEventDispatcher.Subscription> subscriptions;
     private final ICreaturesController creaturesController;
 
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
+            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
+            final ServerEventDispatcher events) {
         super(initTriggers(levelInfo.getLevelData(), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(CreatureComponent.class, Trigger.class),
                 creaturesController);
         this.entityData = entityData;
         this.creaturesController = creaturesController;
-    }
-
-    /** Runs the event now, independently of the ordinary trigger traversal. */
-    public void onAngry(EntityId entityId) {
-        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_ANGRY);
-    }
-
-    /** Runs a qualifying fear event now, even if no escape follows. */
-    public void onAfraid(EntityId entityId) {
-        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
-    }
-
-    /** Called by hand/session threads; keep every accepted request, even at the same time. */
-    public void enqueueSlapped(EntityId entityId) {
-        slapEvents.add(entityId);
-    }
-
-    @Override
-    public void processTick(float tpf) {
-        EntityId entityId;
-        while ((entityId = slapEvents.poll()) != null) {
-            onEvent(entityId, TriggerGeneric.TargetType.CREATURE_SLAPPED);
-        }
-        super.processTick(tpf);
+        subscriptions = List.of(
+                events.subscribe(ServerEvents.CREATURE_SLAPPED,
+                        (type, event) -> onEvent(event.creature(), TriggerGeneric.TargetType.CREATURE_SLAPPED)),
+                events.subscribe(ServerEvents.CREATURE_ANGRY,
+                        (type, event) -> onEvent(event.creature(), TriggerGeneric.TargetType.CREATURE_ANGRY)),
+                events.subscribe(ServerEvents.CREATURE_AFRAID,
+                        (type, event) -> onEvent(event.creature(), TriggerGeneric.TargetType.CREATURE_AFRAID)));
     }
 
     @Override
     public void stop() {
-        slapEvents.clear();
+        subscriptions.forEach(ServerEventDispatcher.Subscription::close);
         super.stop();
     }
 

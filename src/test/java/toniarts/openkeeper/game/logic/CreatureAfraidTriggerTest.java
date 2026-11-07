@@ -29,6 +29,9 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Fearless;
@@ -156,12 +159,12 @@ class CreatureAfraidTriggerTest {
             f.records.put(1, CreatureAngryFixtures.condition(1, CREATURE_AFRAID, 2, 0, 255));
             f.records.put(2, CreatureAngryFixtures.condition(2, FLAG, -1, 0, 255));
             f.bindScripts();
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(0, f.flags[0]);
             f.flags[1] = 1;
             for (int i = 0; i < 8; i++) f.scripts.processTick(.25f);
             assertEquals(0, f.flags[0]);
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(1, f.flags[0]);
         }
     }
@@ -173,7 +176,7 @@ class CreatureAfraidTriggerTest {
             f.records.put(2, CreatureAngryFixtures.condition(2, CREATURE_AFRAID, -2, 0, 255));
             f.records.put(-2, CreatureAngryFixtures.action(-2, 2));
             f.bindScripts();
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(1, f.flags[0]);
             assertEquals(1, f.flags[2]);
         }
@@ -188,7 +191,7 @@ class CreatureAfraidTriggerTest {
             f.records.put(-2, CreatureAngryFixtures.action(-2, 2));
             f.bindScripts();
             f.flags[1] = 1;
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             for (int i = 0; i < 8; i++) f.scripts.processTick(.25f);
             assertEquals(0, f.flags[0]);
             assertEquals(0, f.flags[2]);
@@ -204,7 +207,7 @@ class CreatureAfraidTriggerTest {
             f.bindScripts();
             f.flags[1] = 1;
             f.scripts.processTick(.25f);
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(1, f.flags[0]);
             assertEquals(0, f.flags[2]);
             f.scripts.processTick(.25f);
@@ -216,16 +219,16 @@ class CreatureAfraidTriggerTest {
     void currentBindingIsResolvedBeforeTheNextBindingTick() {
         try (Fixture f = new Fixture(255, false)) {
             f.data.removeComponent(f.entity, Trigger.class);
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(0, f.flags[0]);
             f.data.setComponent(f.entity, new Trigger(99));
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(0, f.flags[0]);
             f.data.setComponent(f.entity, new Trigger(1));
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(1, f.flags[0]);
             f.data.removeComponent(f.entity, CreatureComponent.class);
-            f.scripts.onAfraid(f.entity);
+            f.events.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(f.entity));
             assertEquals(1, f.flags[0]);
         }
     }
@@ -242,6 +245,7 @@ class CreatureAfraidTriggerTest {
         final ILevelInfo level;
         final ICreaturesController creatures;
         CreatureController controller;
+        final ServerEventDispatcher events = new ServerEventDispatcher();
         CreatureTriggerLogicController scripts;
         CreatureState stateAtEvent;
         boolean inHeart;
@@ -296,7 +300,7 @@ class CreatureAfraidTriggerTest {
             var settings = Map.of(MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX,
                     CreatureSleepFixtures.variable(MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX, 10));
             controller = new CreatureController(entity, data, creature, null, null, () -> 0,
-                    settings, creatures, lookup, map, level, null, null, null, id -> scripts.onAfraid(id));
+                    settings, creatures, lookup, map, level, null, null, null, events);
             bindScripts();
         }
 
@@ -317,11 +321,13 @@ class CreatureAfraidTriggerTest {
 
         void bindScripts() {
             if (scripts != null) scripts.stop();
-            scripts = new CreatureTriggerLogicController(null, level, null, null, creatures, null, data);
+            scripts = new CreatureTriggerLogicController(null, level, null, null, creatures, null, data, events);
+            events.start();
         }
 
         @Override
         public void close() {
+            events.close();
             scripts.stop();
             data.close();
         }

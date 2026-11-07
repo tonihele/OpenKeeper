@@ -25,7 +25,7 @@ import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Consumer;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
@@ -52,7 +52,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     private static final int LOG_COUNTER_INTERVAL = 1000;
 
     private final EntityData entityData;
-    private final Consumer<EntityId> onAngry;
+    private final ServerEventDispatcher serverEvents;
     private final IKwdFile kwdFile;
     private final Room lair;
     private final IGameTimer gameTimer;
@@ -62,9 +62,9 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
     public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
             Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Consumer<EntityId> onAngry) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ServerEventDispatcher serverEvents) {
         this.entityData = entityData;
-        this.onAngry = onAngry;
+        this.serverEvents = serverEvents;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         angerRecoveryInLairPerSecond = (int) gameSettings.get(
@@ -120,7 +120,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             int anger = CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoLair());
             if (anger != 0) {
                 CreatureMood updatedMood = mood.add(CreatureMood.REASON_NO_LAIR, anger);
-                CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood, updatedMood, anger, onAngry);
+                CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood, updatedMood, anger, serverEvents);
                 int oldState = mood.getState(unhappyThreshold);
                 int newState = updatedMood.getState(unhappyThreshold);
                 if (mood.noLair == 0
@@ -151,7 +151,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                 recuperating.moodCheckTime + 1));
         if (angerRecoveryInLairPerSecond != 0) {
             CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood,
-                    recoverInLair(mood, angerRecoveryInLairPerSecond), angerRecoveryInLairPerSecond, onAngry);
+                    recoverInLair(mood, angerRecoveryInLairPerSecond), angerRecoveryInLairPerSecond, serverEvents);
         }
     }
 

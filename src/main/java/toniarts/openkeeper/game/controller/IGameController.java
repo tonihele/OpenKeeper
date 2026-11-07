@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -49,14 +50,8 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
-    /** Delivers a transition into full anger to the creature's script immediately. */
-    void onCreatureAngry(EntityId entityId);
-
-    /** Delivers a qualifying fear evaluation to the creature's script immediately. */
-    void onCreatureAfraid(EntityId entityId);
-
-    /** Enqueue an accepted creature hand slap for simulation-thread dispatch. */
-    void onCreatureSlapped(EntityId entityId);
+    /** Shared server gameplay bus; owned by this game session. */
+    ServerEventDispatcher getServerEvents();
 
     GameResult getGameResult();
 

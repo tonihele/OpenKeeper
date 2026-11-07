@@ -27,6 +27,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -66,10 +69,11 @@ class CreatureAngryTriggerTest {
         try (Fixture f = new Fixture(255, false)) {
             CreatureMood previous = new CreatureMood(before, 0, 0, 0, 0, 0);
             CreatureMood updated = new CreatureMood(after, 0, 0, 0, 0, 0);
-            CreatureMoodUpdates.set(f.data, f.entity, f.creature, previous, updated, change, id -> {
-                assertEquals(after, f.data.getComponent(id, CreatureMood.class).general);
-                f.scripts.onAngry(id);
-            });
+            var observed = new java.util.concurrent.atomic.AtomicReference<Integer>();
+            f.events.subscribe(ServerEvents.CREATURE_ANGRY, (type, event) ->
+                    observed.set(f.data.getComponent(event.creature(), CreatureMood.class).general));
+            CreatureMoodUpdates.set(f.data, f.entity, f.creature, previous, updated, change, f.events);
+            assertEquals(events == 0 ? null : Integer.valueOf(after), observed.get());
             assertEquals(events, f.flags[0]);
         }
     }
@@ -176,7 +180,7 @@ class CreatureAngryTriggerTest {
             assertEquals(0, f.flags[0]);
             EntityId spawned = f.data.createEntity();
             f.data.setComponents(spawned, new CreatureComponent(), new Trigger(1), new Health(50, 100));
-            f.scripts.onAngry(spawned);
+            f.events.publishNow(ServerEvents.CREATURE_ANGRY, new CreatureEvent(spawned));
             assertEquals(1, f.flags[0]);
         }
     }
@@ -185,11 +189,11 @@ class CreatureAngryTriggerTest {
     void entitiesWithoutRegisteredScriptsAreIgnored() {
         try (Fixture f = new Fixture(255, false)) {
             EntityId other = f.data.createEntity();
-            f.scripts.onAngry(other);
+            f.events.publishNow(ServerEvents.CREATURE_ANGRY, new CreatureEvent(other));
             f.data.setComponent(other, new Trigger(999));
-            f.scripts.onAngry(other);
+            f.events.publishNow(ServerEvents.CREATURE_ANGRY, new CreatureEvent(other));
             f.data.setComponent(other, new CreatureComponent());
-            f.scripts.onAngry(other);
+            f.events.publishNow(ServerEvents.CREATURE_ANGRY, new CreatureEvent(other));
             assertEquals(0, f.flags[0]);
         }
     }
@@ -209,7 +213,7 @@ class CreatureAngryTriggerTest {
         try (Fixture f = new Fixture(255, emotionless)) {
             f.data.setComponent(f.entity, new CreatureMood(0, 0, 32767, 0, 0, 0));
             CreatureMoodSystem moods = new CreatureMoodSystem(f.data, f.kwd, List.of(f.player),
-                    () -> 0, f.settings, f.scripts::onAngry);
+                    () -> 0, f.settings, f.events);
             moods.processTick(.25f);
             assertEquals(emotionless ? 0 : 1, f.flags[0]);
             moods.processTick(.25f);
@@ -225,7 +229,7 @@ class CreatureAngryTriggerTest {
             f.data.setComponent(f.entity, new CreatureMood(0, 0, 0, 0, 0, 32767));
             f.data.setComponent(f.entity, new Slapped(0));
             SlapSystem slaps = new SlapSystem(f.data, f.kwd, List.of(f.player), f.settings,
-                    f.scripts::onAngry);
+                    f.events);
             assertEquals(emotionless ? 0 : 1, f.flags[0]);
             slaps.stop();
         }
@@ -250,6 +254,7 @@ class CreatureAngryTriggerTest {
         final ILevelInfo level;
         final IPlayerController player;
         final ICreaturesController creatures;
+        final ServerEventDispatcher events = new ServerEventDispatcher();
         CreatureTriggerLogicController scripts;
 
         Fixture(int repeats, boolean emotionless) {
@@ -306,17 +311,19 @@ class CreatureAngryTriggerTest {
             if (scripts != null) {
                 scripts.stop();
             }
-            scripts = new CreatureTriggerLogicController(null, level, null, null, creatures, null, data);
+            scripts = new CreatureTriggerLogicController(null, level, null, null, creatures, null, data, events);
+            events.start();
         }
 
         void change(int delta) {
             CreatureMood previous = data.getComponent(entity, CreatureMood.class);
             CreatureMoodUpdates.set(data, entity, creature, previous, previous.add(0, delta), delta,
-                    scripts::onAngry);
+                    events);
         }
 
         @Override
         public void close() {
+            events.close();
             scripts.stop();
             data.close();
         }
