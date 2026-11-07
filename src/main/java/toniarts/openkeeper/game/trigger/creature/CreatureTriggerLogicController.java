@@ -17,8 +17,12 @@
 package toniarts.openkeeper.game.trigger.creature;
 
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.List;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -33,6 +37,7 @@ import toniarts.openkeeper.game.trigger.AbstractThingTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
  * A state for handling creature triggers
@@ -41,12 +46,43 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public final class CreatureTriggerLogicController extends AbstractThingTriggerLogicController<ICreatureController> {
 
+    private final EntityData entityData;
+    private final List<ServerEventDispatcher.Subscription> subscriptions;
+    private final ICreaturesController creaturesController;
+
     public CreatureTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
+            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
+            final ServerEventDispatcher events) {
         super(initTriggers(levelInfo.getLevelData(), gameController, levelInfo, gameTimer, mapController,
                 creaturesController, playerService),
                 entityData.getEntities(CreatureComponent.class, Trigger.class),
                 creaturesController);
+        this.entityData = entityData;
+        this.creaturesController = creaturesController;
+        subscriptions = List.of(
+                events.subscribe(ServerEvents.CREATURE_SLAPPED,
+                        (type, event) -> onEvent(event.creature(), TriggerGeneric.TargetType.CREATURE_SLAPPED)),
+                events.subscribe(ServerEvents.CREATURE_ANGRY,
+                        (type, event) -> onEvent(event.creature(), TriggerGeneric.TargetType.CREATURE_ANGRY)),
+                events.subscribe(ServerEvents.CREATURE_AFRAID,
+                        (type, event) -> onEvent(event.creature(), TriggerGeneric.TargetType.CREATURE_AFRAID)));
+    }
+
+    @Override
+    public void stop() {
+        subscriptions.forEach(ServerEventDispatcher.Subscription::close);
+        super.stop();
+    }
+
+    private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
+        Trigger binding = entityData.getComponent(entityId, Trigger.class);
+        if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {
+            return;
+        }
+        CreatureTriggerControl control = (CreatureTriggerControl) getTriggerControl(binding.triggerId);
+        if (control != null) {
+            control.onEvent(eventType, creaturesController.createController(entityId));
+        }
     }
 
     private static Map<Integer, AbstractThingTriggerControl<ICreatureController>> initTriggers(IKwdFile kwdFile, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,

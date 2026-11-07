@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -55,14 +56,16 @@ public final class SlapSystem extends GameTimeCounter {
     private final EntitySet creatureEntities;
     private final EntitySet objectEntities;
     private final EntityData entityData;
+    private final ServerEventDispatcher serverEvents;
     private final int maxSlapDuration;
     private final Map<Short, PlayerStatsControl> statControls;
     private final Map<EntityId, Double> slapStartTimesByEntityId = new HashMap<>();
 
     public SlapSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ServerEventDispatcher serverEvents) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
+        this.serverEvents = serverEvents;
         statControls = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             statControls.put(playerController.getKeeper().getId(), playerController.getStatsControl());
@@ -155,7 +158,8 @@ public final class SlapSystem extends GameTimeCounter {
         if (moodChange != 0) {
             CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
             if (mood != null) {
-                entityData.setComponent(entity.getId(), applySlapAnger(mood, moodChange));
+                CreatureMoodUpdates.set(entityData, entity.getId(), creature, mood,
+                        applySlapAnger(mood, moodChange), moodChange, serverEvents);
             }
         }
 

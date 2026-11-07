@@ -660,7 +660,8 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService(),
+                gameController.getServerEvents());
     }
 
     @Override
