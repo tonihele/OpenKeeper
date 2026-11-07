@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -141,7 +142,9 @@ public class EntityController implements IEntityController {
         }
 
         // Drop Portal Gem
-        // TODO:
+        if (entityData.getComponent(entityId, PortalGem.class) != null) {
+            objectsController.dropPortalGem(entityId);
+        }
     }
 
     private void handleAssociatedEntities() {

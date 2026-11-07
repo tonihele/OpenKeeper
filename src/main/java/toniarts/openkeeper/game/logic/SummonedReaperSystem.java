@@ -26,7 +26,6 @@ import java.util.Map;
 import java.util.Random;
 import java.util.function.Function;
 import toniarts.openkeeper.game.component.CreatureAi;
-import toniarts.openkeeper.game.component.FetchPortalGem;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
@@ -136,12 +135,11 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
             SummonedReaper summonedReaper = entity.get(SummonedReaper.class);
             short ownerId = entity.get(Owner.class).ownerId;
 
-            FetchPortalGem fetchPortalGem = entityData.getComponent(entityId, FetchPortalGem.class);
-            if (fetchPortalGem != null) {
+            if (summonedReaper.gem != null) {
 
                 // Nothing can stop him now, he does it once he is on his feet
                 if (entityData.getComponent(entityId, CreatureAi.class) != null) {
-                    decisions.fetchPortalGem(entityId, fetchPortalGem.gem);
+                    decisions.fetchPortalGem(entityId, summonedReaper.gem);
                 }
             } else if (summonedReaper.isLeaving()) {
                 if (gameTime >= summonedReaper.leaveTime + LEAVE_DURATION_SECONDS) {

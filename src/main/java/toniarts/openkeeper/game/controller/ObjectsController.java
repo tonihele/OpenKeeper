@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
+import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Spellbook;
@@ -171,6 +172,23 @@ public final class ObjectsController implements IObjectsController {
     @Override
     public EntityId loadObject(short objectId, short ownerId, Vector3f pos, float rotation) {
         return loadObject(objectId, ownerId, pos, rotation, null, null, null, null, null);
+    }
+
+    @Override
+    public EntityId dropPortalGem(EntityId carrier) {
+        Owner owner = entityData.getComponent(carrier, Owner.class);
+        Position position = entityData.getComponent(carrier, Position.class);
+        if (position == null) {
+            return null;
+        }
+        entityData.removeComponent(carrier, PortalGem.class);
+
+        for (GameObject object : kwdFile.getObjectList()) {
+            if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_LEVEL_GEM)) {
+                return loadObject(object.getObjectId(), owner != null ? owner.ownerId : 0, position.position.clone(), 0);
+            }
+        }
+        return null;
     }
 
     @Override

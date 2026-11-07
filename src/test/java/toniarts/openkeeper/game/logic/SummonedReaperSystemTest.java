@@ -24,7 +24,6 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
-import toniarts.openkeeper.game.component.FetchPortalGem;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Slapped;
@@ -212,7 +211,9 @@ class SummonedReaperSystemTest {
         keeper.setMana(0);
         EntityId reaper = addReaper(0, MANA_DRAIN);
         EntityId gem = entityData.createEntity();
-        entityData.setComponent(reaper, new FetchPortalGem(gem));
+        SummonedReaper summonedReaper = entityData.getComponent(reaper, SummonedReaper.class);
+        summonedReaper.gem = gem;
+        entityData.setComponent(reaper, summonedReaper);
         entityData.setComponent(reaper, new Slapped(0));
         SummonedReaperSystem system = system();
 

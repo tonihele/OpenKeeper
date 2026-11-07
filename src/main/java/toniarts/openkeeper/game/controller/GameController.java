@@ -59,6 +59,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * The game controller, runs the game simulation itself
@@ -296,29 +297,18 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         controllers.stream().forEach(controller -> controller.processTick(tpf));
 
-        // The Horned Reaper comes for the Portal Gem of a won campaign level, on the logic loop. The Reaper
-        // stays marked with FetchPortalGem, so he is only sent once
-        if (isReaperDue(campaign, gameResult)) {
-            new PortalGemReaper(levelInfo.getLevelData(), entityData, gameTimer, gameWorldController.getCreaturesController(),
-                    gameWorldController.getObjectsController(), navigationService,
-                    gameWorldController.getMapController()).callForGem(gameResult.<Short>getData(GameResult.ResultType.WINNER));
+        // The Horned Reaper comes for the Portal Gem of a won campaign level, on the logic loop. He is only sent once
+        GameResult result = gameResult;
+        if (campaign && result != null && Boolean.TRUE.equals(result.getData(GameResult.ResultType.LEVEL_WON))) {
+            new ReaperSummoner(levelInfo.getLevelData(), entityData, gameTimer, gameWorldController.getCreaturesController())
+                    .sendForPortalGem(result.<Short>getData(GameResult.ResultType.WINNER), gameWorldController.getObjectsController(),
+                            navigationService, gameWorldController.getMapController(), ThreadLocalRandom.current());
         }
 
         if (levelInfo.timeLimit != null && levelInfo.timeLimit <= 0) {
             //TODO:
             throw new RuntimeException("Level time limit exceeded!");
         }
-    }
-
-    /**
-     * Tells if the Horned Reaper should be sent for the Portal Gem
-     *
-     * @param campaign whether this is a campaign level
-     * @param result the game result, {@code null} while the game goes on
-     * @return true if a campaign level has been won
-     */
-    static boolean isReaperDue(boolean campaign, GameResult result) {
-        return campaign && result != null && Boolean.TRUE.equals(result.getData(GameResult.ResultType.LEVEL_WON));
     }
 
     @Override

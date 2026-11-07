@@ -43,6 +43,15 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
 
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney);
 
+    /**
+     * Drops the Portal Gem a creature carries where the creature is
+     *
+     * @param carrier the creature carrying the gem
+     * @return the gem object, {@code null} if the level has no Portal Gem or
+     * the carrier has no position
+     */
+    public EntityId dropPortalGem(EntityId carrier);
+
     public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney);
 
     public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity);
