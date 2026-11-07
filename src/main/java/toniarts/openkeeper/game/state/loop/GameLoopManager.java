@@ -82,13 +82,14 @@ public final class GameLoopManager {
      * @param level the level to load
      * @param gameService
      * @param players player participating in this game, can be {@code null}
+     * @param campaign whether this is a campaign level
      */
-    public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
+    public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players, boolean campaign) {
         this.gameService = gameService;
         final EntityData entityData = gameService.getServerEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
 
-        gameController = new GameController(level, players, gameService.getServerEntityData(), gameSettings, gameService);
+        gameController = new GameController(level, players, campaign, gameService.getServerEntityData(), gameSettings, gameService);
         final ILevelInfo levelInfo = gameController.getLevelInfo();
         final IGameWorldController gameWorldController = gameController.getGameWorldController();
         final IEntityPositionLookup positionSystem = gameController.getEntityLookupService();

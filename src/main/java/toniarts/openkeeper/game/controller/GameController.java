@@ -71,6 +71,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     private final LevelInfo levelInfo;
     private final toniarts.openkeeper.game.data.CampaignLevel levelObject;
+    private final boolean campaign;
 
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -94,16 +95,18 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
      *
      * @param level the level to load
      * @param players player participating in this game, can be {@code null}
+     * @param campaign whether this is a campaign level
      * @param entityData
      * @param gameSettings
      * @param playerService
      */
-    public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
+    public GameController(IKwdFile level, List<Keeper> players, boolean campaign, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
 
         levelInfo = new LevelInfo(level);
         levelObject = null;
+        this.campaign = campaign;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
@@ -295,7 +298,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         // The Horned Reaper comes for the Portal Gem of a won campaign level, on the logic loop. The Reaper
         // stays marked with FetchPortalGem, so he is only sent once
-        if (levelObject != null && gameResult != null && Boolean.TRUE.equals(gameResult.getData(GameResult.ResultType.LEVEL_WON))) {
+        if (isReaperDue(campaign, gameResult)) {
             new PortalGemReaper(levelInfo.getLevelData(), entityData, gameTimer, gameWorldController.getCreaturesController(),
                     gameWorldController.getObjectsController(), navigationService,
                     gameWorldController.getMapController()).callForGem(gameResult.<Short>getData(GameResult.ResultType.WINNER));
@@ -305,6 +308,17 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             //TODO:
             throw new RuntimeException("Level time limit exceeded!");
         }
+    }
+
+    /**
+     * Tells if the Horned Reaper should be sent for the Portal Gem
+     *
+     * @param campaign whether this is a campaign level
+     * @param result the game result, {@code null} while the game goes on
+     * @return true if a campaign level has been won
+     */
+    static boolean isReaperDue(boolean campaign, GameResult result) {
+        return campaign && result != null && Boolean.TRUE.equals(result.getData(GameResult.ResultType.LEVEL_WON));
     }
 
     @Override
