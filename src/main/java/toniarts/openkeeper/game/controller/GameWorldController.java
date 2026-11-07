@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -554,6 +555,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
+        // A trap is sold on its own, one at a time and never together with rooms
+        Point startTile = new Point((int) start.x, (int) start.y);
+        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+            return;
+        }
+
         Sale sale = sellTiles(start, end, playerId);
         if (sale.soldTiles.isEmpty()) {
             return;
@@ -565,6 +572,30 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         restoreGoldCapacity(sale.roomCoordinates);
         returnSaleRevenue(playerId, sale.moneyToReturnByPoint);
         notifyOnSold(playerId, sale.soldTiles);
+    }
+
+    private boolean sellTrap(Point tile, short playerId) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every trap on the map
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, Owner.class);
+            TrapComponent trapComponent = entity.get(TrapComponent.class);
+            Owner owner = entity.get(Owner.class);
+            if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
+                continue;
+            }
+
+            Trap trap = kwdFile.getTrapById(trapComponent.trapId);
+            int saleValue = TrapSellRules.getSellValue(trap.getGoldCost(),
+                    gameSettings.get(Variable.MiscVariable.MiscType.TRAP_SELL_VALUE_PERCENTAGE_OF_COST).getValue());
+            trapsController.createController(entityId).remove();
+            returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue)));
+            return true;
+        }
+        return false;
     }
 
     private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
@@ -658,7 +689,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 if (goldLeft > 0) {
 
                     // Add loose gold to this tile
-                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                    objectsController.addLooseGold(moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
                 }
             }
         }
@@ -792,7 +823,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (EntityId creature : entityData.findEntities(new FieldFilter(CreatureSleep.class, "lairObjectId", lair), CreatureSleep.class)) {
             CreatureSleep sleep = entityData.getComponent(creature, CreatureSleep.class);
             if (lair.equals(sleep.lairObjectId)) {
-                entityData.setComponent(creature, new CreatureSleep(null, sleep.lastSleepTime, sleep.sleepStartTime));
+                CreatureSleep updated = new CreatureSleep(sleep);
+                updated.lairObjectId = null;
+                entityData.setComponent(creature, updated);
                 break;
             }
         }
@@ -1080,8 +1113,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (owner == null || owner.controlId != playerId) {
+        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
             return false;
         }
 
@@ -1096,7 +1130,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         return EntityPickupValidator.isValidLocation(
-                entityData.getComponent(entityId, ObjectComponent.class),
+                objectComponent,
+                owner,
                 entityData.getComponent(entityId, Position.class),
                 playerId,
                 mapController.getMapData());
@@ -1110,6 +1145,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                notifySlap(entity, playerId);
             }
             return;
         }
@@ -1181,7 +1217,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean torture = false;
         boolean imprison = false;
         CreatureState creatureState = null;
-
+        CreatureState targetState = null;
         // TODO: Evict & sacrifice
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
@@ -1210,6 +1246,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+            targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
         // Show the fall animation right away, before the position brings the model back to the map
@@ -1223,11 +1260,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
         entityData.setComponent(entity, new Position(0, pos));
 
-        // If we got state, add it
-        if (creatureState != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
-            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(), creatureState, creatureComponent.creatureId));
-        }
+        restoreDroppedCreatureAi(entity, creatureState, targetState);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
@@ -1255,6 +1288,27 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
+    /** Restores captive AI or a pending rest target; falling creatures wait for landing. */
+    private void restoreDroppedCreatureAi(EntityId entity, CreatureState creatureState, CreatureState targetState) {
+        if (creatureState != null || targetState != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+            entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
+                    creatureState != null ? creatureState : CreatureState.FALLEN,
+                    creatureComponent.creatureId, targetState));
+        }
+    }
+
+    /**
+     * Requests rest for a non-captive drop into an owned Lair. The creature
+     * controller validates its current room and assigned bed after getting up.
+     */
+    private CreatureState getLairRestTarget(IRoomController roomController, EntityId entity, short ownerId, boolean captive) {
+        return !captive && roomController.getOwnerId() == ownerId
+                && roomController.hasObjectControl(ObjectType.LAIR)
+                && entityData.getComponent(entity, CreatureSleep.class) != null
+                        ? CreatureState.GO_TO_SLEEP : null;
+    }
+
     private void dropGold(EntityId entity, IRoomController roomController, short playerId, Point tile, Vector2f coordinates) {
         Gold gold = entityData.getComponent(entity, Gold.class);
         if (roomController != null && roomController.canStoreGold()) {
@@ -1262,10 +1316,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
             // The treasury is filled first, the rest forms a loose pile in the treasury
             if (leftOverGold > 0) {
-                dropLooseGold(playerId, tile, null, leftOverGold);
+                dropLooseGold(tile, null, leftOverGold);
             }
         } else {
-            dropLooseGold(playerId, tile, coordinates, gold.gold);
+            dropLooseGold(tile, coordinates, gold.gold);
         }
         entityData.removeEntity(entity);
     }
@@ -1273,27 +1327,26 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     /**
      * Drops loose gold from the hand. Like in DK II, the gold is added to a
      * loose gold pile already lying on the tile, there is no limit to the pile
-     * size. Gold can only be dropped on own land, and in DK II loose gold
-     * belongs to the owner of the land, so the pile becomes ours
+     * size. Like in DK II, the gold dropped from the hand has no owner, the
+     * land it lies on decides who can take it
      *
-     * @param playerId the player dropping the gold
      * @param tile the tile to drop the gold to
      * @param coordinates exact coordinates for a new pile, {@code null} for
      * anywhere on the tile
      * @param amount the amount of gold
      */
-    private void dropLooseGold(short playerId, Point tile, Vector2f coordinates, int amount) {
+    private void dropLooseGold(Point tile, Vector2f coordinates, int amount) {
         synchronized (GOLD_LOCK) {
             EntityId goldPile = findLooseGoldPile(entityData, entityPositionLookup, tile);
             if (goldPile != null) {
                 Gold gold = entityData.getComponent(goldPile, Gold.class);
                 entityData.setComponent(goldPile, new Gold(gold.gold + amount, gold.maxGold));
-                entityData.setComponent(goldPile, new Owner(playerId, playerId));
+                entityData.setComponent(goldPile, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
                 return;
             }
         }
 
-        EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        EntityId newGold = objectsController.addLooseGold(tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         if (coordinates != null) {
             Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
             entityData.setComponent(newGold, new Position(0, pos));
@@ -1345,7 +1398,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 int leftOverRequest = substractGold(realAmount, playerId);
                 realAmount -= leftOverRequest;
                 if (realAmount > 0) {
-                    EntityId goldEntity = objectsController.addLooseGold(playerId, 0, 0, realAmount, maxGold);
+                    EntityId goldEntity = objectsController.addLooseGold(0, 0, realAmount, maxGold);
                     putToKeeperHand(playerHandControl, goldEntity, playerId);
                 }
             }
@@ -1418,20 +1471,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // Validate
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target)) {
+        // Validate. The workers get more expensive the more of them there are
+        int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
+                (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target, manaCost)) {
             return;
-        }
-
-        // The workers get more expensive the more of them there are
-        int manaCost = keeperSpell.getManaCost();
-        if (keeperSpell.getFlags().contains(KeeperSpell.KeeperSpellFlag.CREATE_WORKER)) {
-            int minimumImpCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue();
-            int impCount = playerControllers.get(playerId).getCreatureControl().getImpCount();
-            manaCost *= Math.max(1, impCount + 1 - minimumImpCount);
-            if (manaCost > player.getMana() - player.getManaLoose()) {
-                return;
-            }
         }
 
         // Deduct the mana
@@ -1474,7 +1518,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void placeTrap(short trapId, Point tile, short playerId) {
         Trap trap = kwdFile.getTrapById(trapId);
         if (trap == null) {
-            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trap);
+            logger.log(Level.WARNING, "Invalid trap ID for trap placement received, was: {0}", trapId);
             return;
         }
 
@@ -1490,7 +1534,54 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
+        ResearchableEntity researchableEntity = playerControllers.get(playerId).getTrapControl().getTypes().get(trap);
+        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+            logger.log(Level.WARNING, "Player trap is not available", playerId);
+            return;
+        }
+
         // Validate
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
+                != TrapPlacementValidator.Failure.NONE) {
+            return;
+        }
+
+        if (!payForTrap(trap, playerId)) {
+            return;
+        }
+
+        // The blueprint, the workshop manufactures the trap for it
+        trapsController.addTrapBlueprint(trapId, tile, playerId);
+    }
+
+    private boolean payForTrap(Trap trap, short playerId) {
+        // Keep shared gold operations atomic until player actions are processed by the game loop.
+        // skipcq: JAVA-E1061
+        synchronized (GOLD_LOCK) {
+            int cost = trap.getGoldCost();
+            if (cost > players.get(playerId).getGold()) {
+                return false;
+            }
+            substractGold(cost, playerId);
+            return true;
+        }
+    }
+
+    /**
+     * The tile if a trap or a door already stands on it. Only the entities on
+     * the tile are looked at, not every trap and door on the map
+     *
+     * @param tile the tile to place a trap on
+     * @return the tile if it is taken, otherwise nothing
+     */
+    private Set<Point> getTrapBlockingTiles(Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, TrapComponent.class, DoorComponent.class);
+            if (entity.get(TrapComponent.class) != null || entity.get(DoorComponent.class) != null) {
+                return Set.of(tile);
+            }
+        }
+        return Set.of();
     }
 
     @Override
