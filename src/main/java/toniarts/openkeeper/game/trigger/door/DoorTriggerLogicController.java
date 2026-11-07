@@ -45,18 +45,18 @@ public final class DoorTriggerLogicController extends AbstractThingTriggerLogicC
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
             final IDoorsController doorsController) {
         super(initTriggers(levelInfo.getLevelData().getThings(Thing.Door.class), gameController, levelInfo, gameTimer, mapController,
-                creaturesController, playerService),
+                creaturesController, playerService, entityData),
                 entityData.getEntities(DoorComponent.class, Trigger.class),
                 doorsController);
     }
 
     private static Map<Integer, AbstractThingTriggerControl<IDoorController>> initTriggers(List<Thing.Door> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final PlayerService playerService) {
+            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
         Map<Integer, AbstractThingTriggerControl<IDoorController>> doorTriggers = new HashMap<>();
         for (Thing.Door door : things) {
             if (door.getTriggerId() != 0) {
                 doorTriggers.put(door.getTriggerId(), new DoorTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                        creaturesController, door.getTriggerId(), door.getPlayerId(), playerService));
+                        creaturesController, door.getTriggerId(), door.getPlayerId(), playerService, entityData));
             }
         }
         return doorTriggers;

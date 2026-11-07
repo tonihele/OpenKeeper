@@ -45,18 +45,18 @@ public final class ObjectTriggerLogicController extends AbstractThingTriggerLogi
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
             final IObjectsController objectsController) {
         super(initTriggers(levelInfo.getLevelData().getThings(Thing.Object.class), gameController, levelInfo, gameTimer, mapController,
-                creaturesController, playerService),
+                creaturesController, playerService, entityData),
                 entityData.getEntities(ObjectComponent.class, Trigger.class),
                 objectsController);
     }
 
     private static Map<Integer, AbstractThingTriggerControl<IObjectController>> initTriggers(List<Thing.Object> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
-            final ICreaturesController creaturesController, final PlayerService playerService) {
+            final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData) {
         Map<Integer, AbstractThingTriggerControl<IObjectController>> objectTriggers = new HashMap<>();
         for (Thing.Object object : things) {
             if (object.getTriggerId() != 0) {
                 objectTriggers.put(object.getTriggerId(), new ObjectTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                        creaturesController, object.getTriggerId(), object.getPlayerId(), playerService));
+                        creaturesController, object.getTriggerId(), object.getPlayerId(), playerService, entityData));
             }
         }
         return objectTriggers;

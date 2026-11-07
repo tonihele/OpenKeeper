@@ -453,9 +453,6 @@ public class TriggerControl extends Control {
             // highlight in the game's view
             case DISPLAY_SLAB_OWNER ->
                 "the view has no tile owner highlight";
-            // STUB: GUI hint for the next room to build, the HUD has no such hint
-            case DISPLAY_NEXT_ROOM_TYPE ->
-                "the HUD has no next room hint";
             // STUB: switch a placed effect generator on/off by its ID. The effect generators are
             // not addressable by their map ID after the level has been loaded
             case TOGGLE_EFFECT_GENERATOR ->

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger.creature;
 
+import com.simsilica.es.EntityData;
 import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.Set;
@@ -80,8 +81,8 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
      */
     public CreatureTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
-            final PlayerService playerService, final boolean heroPartyMember) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+            final PlayerService playerService, final EntityData entityData, final boolean heroPartyMember) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService, entityData);
 
         eventStates.put(TriggerGeneric.TargetType.CREATURE_SLAPPED, ICreatureController::isSlapped);
         eventStates.put(TriggerGeneric.TargetType.CREATURE_ATTACKED, ICreatureController::isAttacked);

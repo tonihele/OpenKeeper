@@ -148,7 +148,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 playerService, positionSystem));
         controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+                playerService, entityData));
         controllers.add(gameTimer);
         controllers.add(positionSystem);
 

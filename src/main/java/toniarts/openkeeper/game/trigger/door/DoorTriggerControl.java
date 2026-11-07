@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger.door;
 
+import com.simsilica.es.EntityData;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -36,8 +37,8 @@ public final class DoorTriggerControl extends AbstractThingTriggerControl<IDoorC
 
     public DoorTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
-            final PlayerService playerService) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+            final PlayerService playerService, final EntityData entityData) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService, entityData);
     }
 
     private boolean wasDestroyed = false;
