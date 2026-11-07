@@ -31,6 +31,8 @@ public final class CreatureAi implements EntityComponent {
     public short creatureId;
     // Store the ordinal, as for creatureState, so FieldSerializer can serialize it.
     private Integer targetState;
+    /** How long the state lasts, for the states that are timed by the cause that put the creature in them. */
+    public double stateDuration;
 
     public CreatureAi() {
     }
@@ -42,6 +44,13 @@ public final class CreatureAi implements EntityComponent {
     /** Creates a state with a request retained until the target is entered. */
     public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId,
             CreatureState targetState) {
+        this(stateStartTime, creatureState, creatureId, targetState, 0);
+    }
+
+    /** Creates a state that lasts for the given time, such as the Chicken spell. */
+    public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId,
+            CreatureState targetState, double stateDuration) {
+        this.stateDuration = stateDuration;
         this.stateStartTime = stateStartTime;
         this.creatureState = creatureState.ordinal();
         this.creatureId = creatureId;

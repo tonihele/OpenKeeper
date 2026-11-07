@@ -21,20 +21,21 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.EnumSet;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.component.Morphed;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.SpellTargetFixtures;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -46,6 +47,8 @@ class CreatureChickenTest {
 
     private static final double NOW = 100;
 
+    private double now = NOW;
+
     private EntityData entityData;
     private EntityId entity;
     private CreatureController controller;
@@ -55,7 +58,7 @@ class CreatureChickenTest {
         entityData = new DefaultEntityData();
         entity = entityData.createEntity();
         entityData.setComponent(entity, new Owner((short) 3, (short) 3));
-        controller = controller(SpellTargetFixtures.creature((short) 1));
+        controller = controller(creature());
     }
 
     @Test
@@ -64,21 +67,20 @@ class CreatureChickenTest {
 
         controller.turnIntoChicken(60);
 
-        Morphed morphed = entityData.getComponent(entity, Morphed.class);
-        assertNotNull(morphed);
-        assertEquals(NOW + 60, morphed.endTime, 0.0001);
-        assertTrue(controller.isChicken());
+        CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
+        assertEquals(CreatureState.CHICKEN, creatureAi.getCreatureState());
+        assertEquals(NOW, creatureAi.stateStartTime, 0.0001);
+        assertEquals(60, creatureAi.stateDuration, 0.0001);
         assertEquals(CreatureState.CHICKEN, controller.getStateMachine().getCurrentState());
     }
 
     @Test
     void immuneCreatureStaysAsItIs() {
-        CreatureController immuneController = controller(SpellTargetFixtures.creature((short) 2, Creature.CreatureFlag.IS_IMMUNE_TO_CHICKEN));
+        CreatureController immuneController = controller(creature(Creature.CreatureFlag.IS_IMMUNE_TO_CHICKEN));
         immuneController.getStateMachine().setInitialState(CreatureState.WORK);
 
         immuneController.turnIntoChicken(60);
 
-        assertFalse(immuneController.isChicken());
         assertEquals(CreatureState.WORK, immuneController.getStateMachine().getCurrentState());
     }
 
@@ -88,7 +90,6 @@ class CreatureChickenTest {
 
         controller.turnIntoChicken(60);
 
-        assertTrue(controller.isChicken());
         assertEquals(CreatureState.IMPRISONED, controller.getStateMachine().getCurrentState());
     }
 
@@ -104,42 +105,45 @@ class CreatureChickenTest {
 
     @Test
     void chickenWandersUntilTheSpellWearsOff() {
-        AtomicBoolean chicken = new AtomicBoolean(true);
+        AtomicBoolean timeUp = new AtomicBoolean();
         AtomicBoolean wandered = new AtomicBoolean();
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.CHICKEN);
-        ICreatureController creature = creature(chicken, wandered, state);
+        ICreatureController creature = creature(timeUp, wandered, state);
 
         CreatureState.CHICKEN.update(creature);
         assertTrue(wandered.get());
         assertEquals(CreatureState.CHICKEN, state.get());
 
-        chicken.set(false);
+        timeUp.set(true);
         CreatureState.CHICKEN.update(creature);
         assertEquals(CreatureState.IDLE, state.get());
     }
 
     @Test
-    void idleChickenGoesBackToBeingAChicken() {
-        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.IDLE);
-        ICreatureController creature = creature(new AtomicBoolean(true), new AtomicBoolean(), state);
+    void chickenLastsForTheDuration() {
+        controller.getStateMachine().setInitialState(CreatureState.WORK);
+        controller.turnIntoChicken(60);
 
-        CreatureState.IDLE.enter(creature);
+        now = NOW + 59.9;
+        assertFalse(controller.isStateTimeExceeded());
 
-        assertEquals(CreatureState.CHICKEN, state.get());
+        now = NOW + 60.1;
+        assertTrue(controller.isStateTimeExceeded());
     }
 
-    @Test
-    void notAChickenWithoutTheSpell() {
-        assertFalse(controller.isChicken());
+    private static Creature creature(Creature.CreatureFlag... flags) {
+        EnumSet<Creature.CreatureFlag> set = EnumSet.noneOf(Creature.CreatureFlag.class);
+        set.addAll(List.of(flags));
+        return ShotFixtures.creature((short) 1, set, EnumSet.noneOf(Creature.CreatureFlag3.class));
     }
 
     private CreatureController controller(Creature creature) {
         ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                 new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> null);
-        return new CreatureController(entity, entityData, creature, null, null, () -> NOW, null, null, null, null, levelInfo, null, null, null);
+        return new CreatureController(entity, entityData, creature, null, null, () -> now, null, null, null, null, levelInfo, null, null, null);
     }
 
-    private static ICreatureController creature(AtomicBoolean chicken, AtomicBoolean wandered, AtomicReference<CreatureState> state) {
+    private static ICreatureController creature(AtomicBoolean timeUp, AtomicBoolean wandered, AtomicReference<CreatureState> state) {
         StateMachine<ICreatureController, CreatureState> stateMachine = (StateMachine<ICreatureController, CreatureState>) Proxy.newProxyInstance(
                 StateMachine.class.getClassLoader(), new Class<?>[]{StateMachine.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "changeState" -> {
@@ -151,7 +155,7 @@ class CreatureChickenTest {
                 });
         return (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "isChicken" -> chicken.get();
+                    case "isStateTimeExceeded" -> timeUp.get();
                     case "isStopped" -> true;
                     case "navigateToRandomPoint" -> {
                         wandered.set(true);

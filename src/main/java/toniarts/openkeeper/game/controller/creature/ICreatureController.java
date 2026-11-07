@@ -285,13 +285,6 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void turnIntoChicken(double duration);
 
     /**
-     * Is the creature a chicken, by the Chicken spell
-     *
-     * @return true if the creature is a chicken
-     */
-    public boolean isChicken();
-
-    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven

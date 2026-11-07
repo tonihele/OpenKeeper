@@ -21,19 +21,21 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.EnumSet;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Morphed;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
-import toniarts.openkeeper.tools.convert.map.SpellTargetFixtures;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -58,7 +60,7 @@ class ChickenSpellTest {
     void setUp() {
         entityData = new DefaultEntityData();
         chickenCalls = new ArrayList<>();
-        Shot shot = SpellTargetFixtures.shot(CHICKEN_SHOT_ID, Shot.ProcessType.CHICKEN);
+        Shot shot = ShotFixtures.shot(CHICKEN_SHOT_ID, Shot.ProcessType.CHICKEN, 0, EnumSet.noneOf(Shot.ShotProcessFlag.class));
         IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> switch (method) {
             case "getShotById" -> shot;
             default -> null;
@@ -101,7 +103,7 @@ class ChickenSpellTest {
 
     @Test
     void spellTargetsAnyCreatureButNeutralOnes() {
-        KeeperSpell chicken = SpellTargetFixtures.keeperSpell(CHICKEN_SHOT_ID, KeeperSpell.TargetRule.ALL_CREATURES, KeeperSpell.CastRule.OWN_LAND);
+        KeeperSpell chicken = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ALL_CREATURES, 0);
 
         assertTrue(KeeperSpellCastValidator.checkChickenRule(creature(CREATURE_ID, ENEMY), entityData, chicken));
         assertTrue(KeeperSpellCastValidator.checkChickenRule(creature(CREATURE_ID, CASTER), entityData, chicken));
@@ -110,11 +112,11 @@ class ChickenSpellTest {
 
     @Test
     void chickenCantBePossessed() {
-        KeeperSpell possession = SpellTargetFixtures.keeperSpell((short) 26, KeeperSpell.TargetRule.POSESSION, KeeperSpell.CastRule.OWN_LAND);
+        KeeperSpell possession = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.POSESSION, 0);
         EntityId ownCreature = creature(CREATURE_ID, CASTER);
         assertTrue(KeeperSpellCastValidator.checkChickenRule(ownCreature, entityData, possession));
 
-        entityData.setComponent(ownCreature, new Morphed(160));
+        entityData.setComponent(ownCreature, new CreatureAi(100, CreatureState.CHICKEN, CREATURE_ID, null, 60));
 
         assertFalse(KeeperSpellCastValidator.checkChickenRule(ownCreature, entityData, possession));
     }

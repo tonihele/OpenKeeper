@@ -18,9 +18,10 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Morphed;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -139,8 +140,10 @@ public final class KeeperSpellCastValidator {
         return switch (keeperSpell.getTargetRule()) {
             case ALL_CREATURES ->
                 owner != null && owner.ownerId != Player.NEUTRAL_PLAYER_ID;
-            case POSESSION ->
-                entityData.getComponent(target, Morphed.class) == null;
+            case POSESSION -> {
+                CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
+                yield creatureAi == null || creatureAi.getCreatureState() != CreatureState.CHICKEN;
+            }
             default ->
                 true;
         };
