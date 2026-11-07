@@ -20,7 +20,7 @@ import java.util.Arrays;
 
 /**
  * A time-varying multiplier/override on a {@link LightSource}'s current
- * colour, advanced once per simulation tick.
+ * colour. Timed pulses use presentation time; other modes use simulation ticks.
  */
 public final class Modulator {
 
@@ -42,6 +42,10 @@ public final class Modulator {
     private int counter;
     private int phase = PULSE_MIN_PHASE;
     private boolean rising = true;
+    private int pulsePeriodTicks;
+    private float pulseElapsedSeconds;
+    private int pulseDipTicks;
+    private int pulseMinimumScale;
 
     public Type getType() {
         return type;
@@ -49,8 +53,18 @@ public final class Modulator {
 
     public void pulse() {
         type = Type.PULSE;
+        pulsePeriodTicks = 0;
         phase = PULSE_MIN_PHASE;
         rising = true;
+    }
+
+    /** Hold the base colour, then briefly dip and recover at the end of each period. */
+    public void pulse(int periodTicks, int dipTicks, float minimumBrightness) {
+        type = Type.PULSE;
+        pulsePeriodTicks = Math.max(2, periodTicks);
+        pulseElapsedSeconds = 0;
+        pulseDipTicks = Math.clamp(dipTicks, 2, pulsePeriodTicks);
+        pulseMinimumScale = Math.round(Math.clamp(minimumBrightness, 0f, 1f) * PULSE_PHASE_RANGE);
     }
 
     public void fadeIn(int ticks) {
@@ -92,7 +106,26 @@ public final class Modulator {
         }
     }
 
+    /** Advance a timed pulse on the presentation clock, independently of simulation ticks. */
+    void updatePresentation(float tpf, int[] base, int[] outColour) {
+        if (type != Type.PULSE || pulsePeriodTicks <= 0) {
+            return;
+        }
+        float period = (float) pulsePeriodTicks / LightConstants.SIMULATION_TICKS_PER_SECOND;
+        float dip = (float) pulseDipTicks / LightConstants.SIMULATION_TICKS_PER_SECOND;
+        pulseElapsedSeconds = (pulseElapsedSeconds + tpf) % period;
+        float progress = Math.max(0, pulseElapsedSeconds - (period - dip)) / dip;
+        float amount = (1f - (float) Math.cos(2 * Math.PI * progress)) * .5f;
+        float scale = 1f - (1f - (float) pulseMinimumScale / PULSE_PHASE_RANGE) * amount;
+        for (int i = 0; i < 3; i++) {
+            outColour[i] = Math.round(base[i] * scale);
+        }
+    }
+
     private void applyPulse(int[] base, int[] outColour) {
+        if (pulsePeriodTicks > 0) {
+            return;
+        }
         // The original fades the colour towards black and swaps green and blue;
         // that reads as the colour disappearing, so here the pulse only
         // brightens the base colour (up to about twice as vibrant)

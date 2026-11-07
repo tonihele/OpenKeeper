@@ -23,8 +23,9 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Drives every live {@link LightSource}'s modulators on the two clocks
- * the lighting needs: simulation ticks (pulse/fade/lifetime)
- * and a fixed 30&nbsp;Hz presentation clock (flicker). Owns its own
+ * the lighting needs: simulation ticks (legacy pulse/fade/lifetime)
+ * and a fixed 30&nbsp;Hz presentation clock (flicker). Timed pulses advance
+ * every frame for smooth fades. Owns its own
  * {@link Random} stream -- this must never share the simulation's RNG
  * state.
  */
@@ -69,6 +70,9 @@ public final class LightModulators {
         while (flickerAccumulator >= flickerInterval) {
             flickerAccumulator -= flickerInterval;
             flickerStep();
+        }
+        for (LightSource source : sources) {
+            source.updatePresentation(tpf);
         }
     }
 
