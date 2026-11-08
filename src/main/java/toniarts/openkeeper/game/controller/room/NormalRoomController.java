@@ -51,7 +51,7 @@ public class NormalRoomController extends AbstractRoomController {
     @Override
     protected List<EntityId> constructPillars() {
 
-        // NOTE: I don't understand how the pillars are referenced, they are neither in Terrain nor Room, but they are listed in the Objects. Even Lair has pillars, but I've never seem the in-game
+        // Pillar objects are listed in Objects rather than Terrain or Room.
         // Pillars go into all at least 3x3 corners, there can be more than 4 pillars per room
         // Go through all the points and see if they are fit for pillar placement
         List<EntityId> pillars = null;

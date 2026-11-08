@@ -23,6 +23,7 @@ import java.util.List;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.TaskType;
@@ -85,8 +86,24 @@ public final class KillPlayer extends AbstractObjectiveTask {
 
     }
 
+    /**
+     * Tells whether the target keeper takes part in the level and has a
+     * Dungeon Heart to go for. Maps can give heroes a keeper to kill whose slot
+     * is left empty, or a side, such as the heroes' own, that has no heart. A
+     * defeated keeper has lost his heart, so there is nothing left to go for
+     *
+     * @param levelInfo the level
+     * @param targetPlayerId the keeper to kill
+     * @return true if there is such a keeper to go after
+     */
+    public static boolean isTargetPresent(ILevelInfo levelInfo, short targetPlayerId) {
+        Keeper keeper = levelInfo.getPlayer(targetPlayerId);
+        return keeper != null && !keeper.isDestroyed() && keeper.getDungeonHeartLocation() != null;
+    }
+
     private boolean isPlayerDestroyed() {
-        return levelInfo.getPlayer(targetPlayerId).isDestroyed();
+        Keeper keeper = levelInfo.getPlayer(targetPlayerId);
+        return keeper == null || keeper.isDestroyed();
     }
 
     private void createSubTasks() {
