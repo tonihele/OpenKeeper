@@ -23,12 +23,12 @@ import java.lang.reflect.Proxy;
 import java.util.EnumMap;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
-import toniarts.openkeeper.tools.convert.map.ResearchFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
@@ -43,36 +43,38 @@ class SlapResearchBonusTest {
 
     @Test
     void unslappedResearcherMakesItsPointsPerTick() {
-        assertEquals(1, researchPerTick(5, false, 1.0));
+        assertEquals(1, researchPerTick(1, false, 1.0));
     }
 
     @Test
     void slappedResearcherMakesTheBonusOnTheFirstTickOfASecond() {
 
         // A Warlock makes 1 a tick at 4 ticks a second, plus 4 × 4 × 50 % of it
-        assertEquals(9, researchPerTick(5, true, 1.0));
+        assertEquals(9, researchPerTick(1, true, 1.0));
 
         // And a Wizard 2 a tick
-        assertEquals(18, researchPerTick(10, true, 1.0));
+        assertEquals(18, researchPerTick(2, true, 1.0));
     }
 
     @Test
     void slappedResearcherMakesNoBonusOnTheOtherTicks() {
-        assertEquals(1, researchPerTick(5, true, 0.25));
-        assertEquals(1, researchPerTick(5, true, 0.5));
-        assertEquals(1, researchPerTick(5, true, 0.75));
+        assertEquals(1, researchPerTick(1, true, 0.25));
+        assertEquals(1, researchPerTick(1, true, 0.5));
+        assertEquals(1, researchPerTick(1, true, 0.75));
     }
 
-    private static int researchPerTick(int researchPerSecond, boolean slapped, double time) {
+    private static int researchPerTick(int pointsPerTick, boolean slapped, double time) {
         EntityData entityData = new DefaultEntityData();
         EntityId entity = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.researchPerTick = pointsPerTick;
+        entityData.setComponent(entity, creatureComponent);
         entityData.setComponent(entity, new CreatureExperience(1, 0, 0, 0, 0));
         if (slapped) {
             entityData.setComponent(entity, new Slapped(0));
         }
 
         IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> switch (method) {
-            case "getCreatureStats" -> null;
             case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method);
         });
@@ -84,7 +86,7 @@ class SlapResearchBonusTest {
         settings.put(MiscType.INCREASED_WORK_RATE_PECENTAGE_FROM_SLAPPING,
                 CreatureSleepFixtures.variable(MiscType.INCREASED_WORK_RATE_PECENTAGE_FROM_SLAPPING, 50));
 
-        CreatureController controller = new CreatureController(entity, entityData, ResearchFixtures.researcher(researchPerSecond),
+        CreatureController controller = new CreatureController(entity, entityData, null,
                 null, null, () -> time, settings, null, null, null, levelInfo, null, null, null);
         return controller.getResearchPerTick();
     }

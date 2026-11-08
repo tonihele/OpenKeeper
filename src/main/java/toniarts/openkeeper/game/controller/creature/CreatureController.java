@@ -1466,45 +1466,17 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public int getResearchPerTick() {
-        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = levelInfo.getLevelData().getCreatureStats(getLevel());
-        Variable.CreatureStats levelPercent = (stats != null ? stats.get(Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND) : null);
-        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
-        int pointsPerTick = getPointsPerTick(creature.getAttributes().getResearchPerSecond(), ticksPerSecond,
-                levelPercent != null ? levelPercent.getValue() : 100);
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        int pointsPerTick = creatureComponent.researchPerTick;
 
         // A slapped creature researches faster, DK II adds the bonus on the
         // first tick of every second (DKII.EXE 0x4C2DC0)
+        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
         if (isSlapped() && Math.round(gameTimer.getGameTime() * ticksPerSecond) % ticksPerSecond == 0) {
             int bonusPercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_PECENTAGE_FROM_SLAPPING).getValue();
             pointsPerTick += ticksPerSecond * ticksPerSecond * bonusPercentage * pointsPerTick / 100;
         }
         return pointsPerTick;
-    }
-
-    /**
-     * Turn a creature's points per second into the points it makes on each
-     * game tick, like DK II. When the level loads, DK II divides the per
-     * second value of the creature data by the ticks per second, keeping at
-     * least 1 if there is anything to divide. The creature's level percentage
-     * is applied to that per tick value.
-     *
-     * @param pointsPerSecond the points per second in the creature data
-     * @param ticksPerSecond the level's ticks per second
-     * @param levelPercent the percentage of the creature's level
-     * @return the points per tick
-     */
-    static int getPointsPerTick(int pointsPerSecond, int ticksPerSecond, int levelPercent) {
-        if (pointsPerSecond <= 0) {
-            return 0;
-        }
-        int pointsPerTick = Math.max(1, pointsPerSecond / Math.max(1, ticksPerSecond));
-        return pointsPerTick * levelPercent / 100;
-    }
-
-    @Override
-    public int getResearchPerSecond() {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.researchPerSecond;
     }
 
     @Override

@@ -16,6 +16,10 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * Builds researchable fixtures for the research tests. Lives in the data
  * classes' own package because their setters are {@code protected}
@@ -34,11 +38,23 @@ public final class ResearchFixtures {
         return door;
     }
 
-    public static Creature researcher(int researchPerSecond) {
+    public static Creature researcher(short id, int researchPerSecond) {
         Creature creature = new Creature();
-        creature.setName("Researcher");
+        creature.setCreatureId(id);
+        creature.setSpells(List.of());
         creature.getAttributes().setResearchPerSecond(researchPerSecond);
         return creature;
+    }
+
+    public static Map<Variable.CreatureStats.StatType, Variable.CreatureStats> levelStats(int researchPercent) {
+        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = new EnumMap<>(Variable.CreatureStats.StatType.class);
+        for (Variable.CreatureStats.StatType type : Variable.CreatureStats.StatType.values()) {
+            Variable.CreatureStats stat = new Variable.CreatureStats();
+            stat.setStatId(type);
+            stat.setValue(type == Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND ? researchPercent : 100);
+            stats.put(type, stat);
+        }
+        return stats;
     }
 
 }
