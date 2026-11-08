@@ -88,7 +88,8 @@ public final class KeeperSpellCastValidator {
             }
         }
 
-        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost);
+        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost)
+                && checkChickenRule(target, entityData, keeperSpell);
     }
 
     /**
@@ -160,7 +161,7 @@ public final class KeeperSpellCastValidator {
             }
         }
 
-        return checkChickenRule(target, entityData, keeperSpell);
+        return true;
     }
 
     /**
