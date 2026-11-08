@@ -57,7 +57,7 @@ class HeroPartySpeedTest {
         CreaturesController creatures = new CreaturesController(level, entities, Map.of(),
                 stub(IGameTimer.class, (method, args) -> null), stub(IGameController.class, (method, args) ->
                         method.equals("getGameWorldController") ? stub(IGameWorldController.class, (m, a) -> null) : null),
-                stub(IMapController.class, (method, args) -> null), stub(ILevelInfo.class, (method, args) -> null));
+                stub(IMapController.class, (method, args) -> null), stub(ILevelInfo.class, (method, args) -> null), null);
 
         creatures.spawnHeroParty((short) 3, PartyType.NONE, new Vector2f(4, 20));
 
