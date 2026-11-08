@@ -314,6 +314,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void setSystemMessagesEnabled(boolean enabled) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onSetSystemMessages(enabled);
+        }
+    }
+
+    @Override
     public void flashTiles(List<Point> points, boolean enabled, short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -743,6 +750,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onSetWidescreen(boolean enable) {
             getCallback().onSetWidescreen(enable);
+        }
+
+        @Override
+        public void onSetSystemMessages(boolean enabled) {
+            getCallback().onSetSystemMessages(enabled);
         }
 
         @Override

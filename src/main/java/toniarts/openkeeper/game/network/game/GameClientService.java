@@ -375,6 +375,13 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onSetSystemMessages(boolean enabled) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onSetSystemMessages(enabled);
+            }
+        }
+
+        @Override
         public void onGameEnded(boolean win) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onGameEnded(win);

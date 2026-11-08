@@ -891,6 +891,11 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         @Override
+        public void setSystemMessagesEnabled(boolean enabled) {
+            // The menu level has no system messages
+        }
+
+        @Override
         public void showUnitFlower(EntityId entityId, int interval, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }

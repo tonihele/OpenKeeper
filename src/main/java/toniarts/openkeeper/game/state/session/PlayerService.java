@@ -123,6 +123,14 @@ public interface PlayerService {
     public void setGamePaused(boolean paused);
 
     /**
+     * Turn the automatic system messages on or off for all the players. The
+     * scripted speeches and texts are still shown when they are off.
+     *
+     * @param enabled true if the system messages are shown
+     */
+    public void setSystemMessagesEnabled(boolean enabled);
+
+    /**
      * Show unit flower of an entity
      *
      * @param entityId the entity of which flower to show
