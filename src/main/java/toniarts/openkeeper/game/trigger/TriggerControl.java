@@ -168,6 +168,22 @@ public class TriggerControl extends Control {
         return null;
     }
 
+    /**
+     * Looks up an action point of the level. A level can refer to an action
+     * point that doesn't exist (user made levels), that is logged as an error
+     * and the caller is expected to skip whatever it was going to do.
+     *
+     * @param id the action point ID
+     * @return the action point, or {@code null} if the level doesn't have it
+     */
+    protected ActionPoint getActionPoint(int id) {
+        ActionPoint ap = levelInfo.getActionPoint(id);
+        if (ap == null) {
+            logger.log(Level.ERROR, "Trigger {0} refers to action point {1}, but the level doesn't have it!", trigger.getId(), id);
+        }
+        return ap;
+    }
+
     @Override
     protected void updateControl(float tpf) {
         TriggerGenericData next = null;
@@ -353,10 +369,12 @@ public class TriggerControl extends Control {
                 break;
 
             case CREATE_HERO_PARTY:
-                ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
-                short partyId = trigger.getUserData("partyId", short.class);
-                PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
-                creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
+                ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+                if (ap != null) {
+                    short partyId = trigger.getUserData("partyId", short.class);
+                    PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
+                    creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
+                }
                 break;
 
             case SET_ALLIANCE:
