@@ -41,20 +41,21 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.filter.FieldFilter;
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundManager;
 import static toniarts.openkeeper.tools.convert.AssetsConverter.TEXTURES_FOLDER;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.ArtResource.ArtResourceType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
@@ -67,12 +68,6 @@ import toniarts.openkeeper.view.control.ObjectViewControl;
  */
 public abstract class KeeperHandState extends AbstractAppState {
 
-    private static final List<String> SLAP_SOUNDS = Arrays.asList(new String[]{
-        "/Global/GuiHD/Slap_1.mp2",
-        "/Global/GuiHD/slap_2.mp2",
-        "/Global/GuiHD/Slap_3.mp2",
-        "/Global/GuiHD/Slap_4.mp2"
-    });
     private static final String MORE_CREATURES = "GUI/Creatures/more_creatures";
 
     //FIXME: 8 in original but two lines by 4
@@ -160,6 +155,9 @@ public abstract class KeeperHandState extends AbstractAppState {
         }
 
         updateHandCamera();
+
+        // Held things are outside the world's lighting: always fully lit
+        AssetUtils.applyFullLight(handRootNode);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
     }
@@ -179,8 +177,8 @@ public abstract class KeeperHandState extends AbstractAppState {
         super.cleanup();
     }
 
-    public static String getSlapSound() {
-        return Utils.getRandomItem(KeeperHandState.SLAP_SOUNDS);
+    public static int getSlapSound() {
+        return SoundManager.playSound(GlobalCategory.HAND, GlobalType.HAND_SLAP);
     }
 
     public IEntityViewControl getItem() {
@@ -379,7 +377,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         @Override
         protected KeeperHandItem addObject(Entity e) {
             IEntityViewControl viewControl;
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             switch (inHand.type) {
                 case CREATURE: {
                     viewControl = new CreatureViewControl(e.getId(), entityData, kwdFile.getCreature(inHand.id), Creature.AnimationType.IN_HAND, assetManager, null);
@@ -400,7 +398,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         protected void updateObject(KeeperHandItem object, Entity e) {
 
             // Only support index changes (these should not happen)
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             object.index = inHand.index;
         }
 

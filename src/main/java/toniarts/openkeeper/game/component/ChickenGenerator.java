@@ -30,12 +30,22 @@ public final class ChickenGenerator implements EntityComponent {
      */
     public double lastSpawnTime;
 
+    /**
+     * Has the generator spawned a chicken yet, the first one takes longer
+     */
+    public boolean spawned;
+
     public ChickenGenerator() {
         // For serialization
     }
 
     public ChickenGenerator(double lastSpawnTime) {
         this.lastSpawnTime = lastSpawnTime;
+    }
+
+    public ChickenGenerator(double lastSpawnTime, boolean spawned) {
+        this.lastSpawnTime = lastSpawnTime;
+        this.spawned = spawned;
     }
 
 }

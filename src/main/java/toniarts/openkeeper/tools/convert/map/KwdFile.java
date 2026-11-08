@@ -29,7 +29,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.JobAlternative;
 import toniarts.openkeeper.tools.convert.map.Creature.OffsetType;
 import toniarts.openkeeper.tools.convert.map.Creature.Resistance;
 import toniarts.openkeeper.tools.convert.map.Creature.Spell;
-import toniarts.openkeeper.tools.convert.map.Creature.X1323;
+import toniarts.openkeeper.tools.convert.map.Creature.Footstep;
 import toniarts.openkeeper.tools.convert.map.Door.DoorFlag;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevFlag;
 import toniarts.openkeeper.tools.convert.map.GameLevel.LevelReward;
@@ -130,7 +130,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     private List<Availability> availabilities;
     private Map<Integer, Map<Integer, CreaturePool>> creaturePools;
     private Map<Integer, Map<StatType, CreatureStats>> creatureStatistics;
-    private Map<Integer, Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
+    private Map<StatType, CreatureFirstPerson> creatureFirstPersonStatistics;
     private Map<MiscVariable.MiscType, MiscVariable> variables;
     private Set<Sacrifice> sacrifices;
     private Set<PlayerAlliance> playerAlliances;
@@ -683,7 +683,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             terrain.setSideResource(readArtResource(reader));
             terrain.setTopResource(readArtResource(reader));
             terrain.setTaggedTopResource(readArtResource(reader));
-            terrain.setStringIds(readStringId(reader));
+            terrain.setSlabLight(readLight(reader));
             terrain.setDepth(reader.readIntegerAsFloat());
             terrain.setLightHeight(reader.readIntegerAsFloat());
             terrain.setFlags(reader.readIntegerAsFlag(Terrain.TerrainFlag.class));
@@ -1068,7 +1068,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             room.setTerrainId(reader.readUnsignedByte());
             room.setTileConstruction(reader.readByteAsEnum(Room.TileConstruction.class));
             room.setCreatedCreatureId(reader.readUnsignedByte());
-            room.setTorchColor(readColor(reader)); // This is the editor is rather weird
+            room.setTorchColor(readColor(reader)); // The editor stores it without the flag, see Room.RoomFlag.TORCH_COLOR_*
             List<Short> roomObjects = new ArrayList<>(8);
             for (int x = 0; x < 8; x++) {
                 short objectId = reader.readUnsignedByte();
@@ -1526,14 +1526,14 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                 );
             }
             creature.setAnimation(AnimationType.BACK_OFF, readArtResource(reader));
-            X1323[] x1323s = new X1323[48];
-            for (int x = 0; x < x1323s.length; x++) {
-                var x1323 = new X1323();
-                x1323.setX00(reader.readUnsignedShort());
-                x1323.setX02(reader.readUnsignedShort());
-                x1323s[x] = x1323;
+            Footstep[] footstepFrames = new Footstep[48];
+            for (int x = 0; x < footstepFrames.length; x++) {
+                var footstep = new Footstep();
+                footstep.setLeft(reader.readUnsignedShort());
+                footstep.setRight(reader.readUnsignedShort());
+                footstepFrames[x] = footstep;
             }
-            creature.setX1323(x1323s);
+            creature.setFootstepFrames(footstepFrames);
             creature.setAnimation(AnimationType.STAND_STILL, readArtResource(reader));
             creature.setAnimation(AnimationType.STEALTH_WALK, readArtResource(reader));
             creature.setAnimation(AnimationType.DEATH_POSE, readArtResource(reader));
@@ -2251,7 +2251,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     ((Thing.Camera) thing).setAngleYaw(reader.readUnsignedShort());
                     ((Thing.Camera) thing).setAngleRoll(reader.readUnsignedShort());
                     ((Thing.Camera) thing).setAnglePitch(reader.readUnsignedShort());
-                    ((Thing.Camera) thing).setId((short) reader.readUnsignedShort());
+                    ((Thing.Camera) thing).setId(ConversionUtils.parseEnum(reader.readUnsignedShort(), Thing.Camera.CameraMode.class));
 
                     addThing(thing);
                     break;
@@ -2440,11 +2440,17 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                         case PLAYER_CREATURES:
                         case PLAYER_HAPPY_CREATURES:
-                        case PLAYER_ANGRY_CREATURES:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("creatureId", reader.readUnsignedByte());
                             trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case PLAYER_ANGRY_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                            reader.skipBytes(2); // Native anger count uses a fixed threshold, not another player.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
@@ -2862,7 +2868,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             availabilities = new ArrayList<>();
             creaturePools = HashMap.newHashMap(4);
             creatureStatistics = HashMap.newHashMap(10);
-            creatureFirstPersonStatistics = HashMap.newHashMap(10);
+            creatureFirstPersonStatistics = HashMap.newHashMap(CreatureStats.StatType.values().length);
             variables = new HashMap<>();
             sacrifices = new HashSet<>();
             playerAlliances = new HashSet<>();
@@ -2944,13 +2950,8 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     creatureFirstPerson.setValue(reader.readInteger());
                     creatureFirstPerson.setLevel(reader.readInteger());
 
-                    // Add
-                    Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
-                    if (firstPersonStats == null) {
-                        firstPersonStats = HashMap.newHashMap(CreatureStats.StatType.values().length);
-                        creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonStats);
-                    }
-                    firstPersonStats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
+                    // Add, all the levels of DK II have just the one table (level 10)
+                    creatureFirstPersonStatistics.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
                 case Variable.PLAYER_ALLIANCE:
@@ -3223,6 +3224,11 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     @Override
     public Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
         return creatureStatistics.get(level);
+    }
+
+    @Override
+    public Map<CreatureStats.StatType, CreatureFirstPerson> getCreatureFirstPersonStats() {
+        return creatureFirstPersonStatistics;
     }
 
     /**
