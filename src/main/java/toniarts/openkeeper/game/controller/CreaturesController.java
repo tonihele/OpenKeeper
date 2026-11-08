@@ -691,6 +691,11 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
 
+    public void onCreatureDropped(short playerId) {
+        gameController.onCreatureDropped(playerId);
+    }
+
+    @Override
     public EntityId getPossessedCreature(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
         try {

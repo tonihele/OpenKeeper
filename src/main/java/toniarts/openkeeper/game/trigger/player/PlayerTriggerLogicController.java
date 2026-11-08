@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
  * Handles player triggers
@@ -48,6 +49,20 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         }
 
         // TODO: get notified on new parties (a.k.a. parties re-spawned)
+    }
+
+    /** Delivers only to the player who released the creature. */
+    public void onCreatureDropped(short playerId) {
+        onCreatureEvent(playerId, TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED);
+    }
+
+    /** Dispatch only on the simulation thread; producers must use the input queue. */
+    public void onCreatureEvent(short playerId, TriggerGeneric.TargetType type) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onCreatureEvent(type);
+            }
+        }
     }
 
     @Override

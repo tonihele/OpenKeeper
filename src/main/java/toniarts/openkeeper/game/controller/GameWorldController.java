@@ -96,6 +96,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -128,6 +129,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final Consumer<Short> onCreaturePickedUp;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -144,6 +146,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
+        this.onCreaturePickedUp = gameController::onCreaturePickedUp;
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -880,10 +883,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
-        if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
-            putToKeeperHand(playerHandControl, entity, playerId);
+        pickUpToHand(entityData, mapController, playerControllers, gameEventService,
+                onCreaturePickedUp, entity, playerId);
+    }
+
+    // The authoritative non-special pickup transition, isolated from world construction.
+    static boolean pickUpToHand(EntityData entityData, IMapController mapController,
+            Map<Short, IPlayerController> playerControllers, GameEventService gameEventService,
+            Consumer<Short> onCreaturePickedUp, EntityId entity, short playerId) {
+        PlayerHandControl hand = playerControllers.get(playerId).getHandControl();
+        if (hand.isFull() || !canPickUpEntity(entity, playerId, entityData, mapController)) {
+            return false;
         }
+        putToKeeperHand(entityData, mapController, playerControllers, gameEventService,
+                onCreaturePickedUp, hand, entity, playerId);
+        return true;
     }
 
     /**
@@ -1065,6 +1079,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
+        putToKeeperHand(entityData, mapController, playerControllers, gameEventService,
+                onCreaturePickedUp, playerHandControl, entity, playerId);
+    }
+
+    private static void putToKeeperHand(EntityData entityData, IMapController mapController,
+            Map<Short, IPlayerController> playerControllers, GameEventService gameEventService,
+            Consumer<Short> onCreaturePickedUp, PlayerHandControl playerHandControl, EntityId entity, short playerId) {
         playerHandControl.push(entity);
 
         /**
@@ -1102,9 +1123,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
         }
+        if (entityData.getComponent(entity, CreatureComponent.class) != null) {
+            onCreaturePickedUp.accept(playerId);
+        }
     }
 
-    private boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData) {
+    private static boolean canPickUpEntity(EntityId entityId, short playerId, EntityData entityData, IMapController mapController) {
         // TODO: Somewhere common shared static, can share the rules with the UI client
 
         // Check if picked up already
@@ -1197,6 +1221,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             IRoomController roomController = mapController.getRoomControllerByCoordinates(tile);
             if (entityData.getComponent(entity, CreatureComponent.class) != null) {
                 dropCreature(roomController, entity, tile, coordinates, playerId);
+                creaturesController.onCreatureDropped(playerId);
             } else {
 
                 // TODO: handle giving item to creature
