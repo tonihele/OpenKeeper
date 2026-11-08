@@ -47,6 +47,7 @@ import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -359,25 +360,32 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 return;
             }
         }
-        for (Point point : points) {
-            IMapTileInformation tile = mapInformation.getMapData().getTile(point);
-            short newTerrainId = tile.getTerrainId();
-            short oldTerrainId = lastTerrainIds[point.x][point.y];
-            if (newTerrainId != oldTerrainId) {
-                Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
-                if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
-                    effectManager.load(worldNode,
-                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
-                } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
-                    effectManager.load(worldNode,
-                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getDestroyedEffectId(), false);
+
+        app.enqueue(() -> {
+            for (Point point : points) {
+                IMapTileInformation tile = mapInformation.getMapData().getTile(point);
+                short newTerrainId = tile.getTerrainId();
+                short oldTerrainId = lastTerrainIds[point.x][point.y];
+                if (newTerrainId != oldTerrainId) {
+                    Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
+                    if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
+                        effectManager.load(worldNode,
+                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                                oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
+                    } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
+                        effectManager.load(worldNode,
+                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                                oldTerrain.getDestroyedEffectId(), false);
+                    }
+                    lastTerrainIds[point.x][point.y] = newTerrainId;
                 }
-                lastTerrainIds[point.x][point.y] = newTerrainId;
             }
-        }
-        mapLoader.updateTiles(points);
+            mapLoader.updateTiles(points);
+        });
+    }
+
+    public TerrainDeformer getTerrainDeformer() {
+        return mapLoader.getDeformer();
     }
 
     public IRoomsInformation getRoomsInformation() {
