@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Owner;
@@ -41,7 +42,7 @@ class CreatureLairTest {
         entityData.setComponent(entityId, new CreatureSleep(null, 0, 0, 0));
 
         // A new Creature has lair object 0, as the princes do in the data
-        CreatureController prince = new CreatureController(entityId, entityData, new Creature(), null, null, null, null,
+        CreatureController prince = new CreatureController(entityId, entityData, new Creature(), null, null, null, Map.of(),
                 null, null, null, null, null, null, null);
 
         assertFalse(prince.needsLair());
