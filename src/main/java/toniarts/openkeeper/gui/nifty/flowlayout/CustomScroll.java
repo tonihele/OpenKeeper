@@ -136,6 +136,13 @@ public final class CustomScroll extends AbstractController {
         Element el = controlBuilder.build(currentRow);
         elements.add(el);
 
+        // Nifty applies queued moves at the end of the frame. An element built
+        // straight into its row would end up before the earlier ones still being
+        // moved by rearrangeElements, so queue it behind them
+        if (rows.size() > 1) {
+            el.markForMove(currentRow);
+        }
+
         resizeRowElement(el);
         el.setMarginRight(SizeValue.px(ICON_MARGIN));
 
