@@ -91,6 +91,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void dropGold();
 
+    /**
+     * Takes the creature off the map for good, as the level script action
+     * Remove From Map does (DKII.EXE 0x49AC80, type 0x23). The creature is
+     * neither killed nor does it drop its gold, it just ceases to exist.
+     */
+    public void removeFromMap();
+
     public boolean isWorkNavigationRequired();
 
     public boolean isAssignedTaskValid();
