@@ -62,6 +62,10 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     protected final EntityTextParser<T> textParser;
     protected boolean isAnimationPlaying = false;
 
+    /**
+     * The owner of an entity that has lost its owner, never a player's id
+     */
+    private static final short NO_OWNER = -1;
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Interaction.class, Owner.class);
 
     private boolean active = false;
@@ -150,6 +154,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     @Override
+    public CursorFactory.CursorType getDropCursor() {
+        return null;
+    }
+
+    @Override
     public ArtResource getInHandMesh() {
         return null;
     }
@@ -194,7 +203,10 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public short getOwnerId() {
-        return entity.get(Owner.class).ownerId;
+
+        // An entity being removed (e.g. a sold door under the cursor) may already have lost its owner
+        Owner owner = entity.get(Owner.class);
+        return owner != null ? owner.ownerId : NO_OWNER;
     }
 
     @Override
@@ -218,7 +230,9 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         if (interaction == null) {
             return false;
         }
-        return interaction.slappable;
+
+        // Only our own, the server ignores slaps on anything else
+        return interaction.slappable && getOwnerId() == playerId;
     }
 
     @Override

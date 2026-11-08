@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.List;
+
 /**
  * Builds level variable, level and creature fixtures for the training tests. Lives in
  * {@code Variable}'s own package because its setters are {@code protected}
@@ -51,6 +53,7 @@ public final class TrainingVariableFixtures {
         Creature creature = new Creature();
         creature.setCreatureId(creatureId);
         creature.setName("Creature " + creatureId);
+        creature.setSpells(List.of());
         creature.getAttributes().setExpPerSecondTraining(experiencePerSecondTraining);
         return creature;
     }

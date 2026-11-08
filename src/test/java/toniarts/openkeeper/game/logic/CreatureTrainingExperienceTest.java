@@ -34,7 +34,6 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.TrainingVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -45,17 +44,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * Training in the Training Room gives experience on every logic tick, as the
  * original does, and never more than the creature needs for its next level.
- * Like in DK II, the training experience per second of the creature data is
- * turned into experience per tick, and the creature's level scales that
+ * The experience per tick comes from the creature component
  */
 class CreatureTrainingExperienceTest {
 
     private static final float TPF = 0.25f;
     private static final int MAX_TRAINING_LEVEL = 4;
     private static final short GOBLIN = 7;
-    private static final short PRINCE = 2;
-    private static final short SLOW_LEARNER = 50;
-    private static final int SCALED_LEVEL = 3;
+    private static final int GOBLIN_EXPERIENCE_PER_TICK = 10;
 
     private final EntityData entityData = new DefaultEntityData();
     private final List<int[]> levelUps = new ArrayList<>();
@@ -69,18 +65,8 @@ class CreatureTrainingExperienceTest {
         gameSettings.put(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL,
                 TrainingVariableFixtures.miscVariable(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, MAX_TRAINING_LEVEL));
 
-        // Goblins learn 40 a second, Prince Tristran 15, and the training is 150 % at the level 3
-        Map<Short, Creature> creatures = Map.of(GOBLIN, TrainingVariableFixtures.trainee(GOBLIN, 40),
-                PRINCE, TrainingVariableFixtures.trainee(PRINCE, 15),
-                SLOW_LEARNER, TrainingVariableFixtures.trainee(SLOW_LEARNER, 2));
-        Map<Variable.CreatureStats.StatType, Variable.CreatureStats> scaledStats = Map.of(
-                Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND,
-                TrainingVariableFixtures.creatureStats(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND, SCALED_LEVEL, 150));
-        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
-            case "getCreature" -> creatures.get((Short) args[0]);
-            case "getCreatureStats" -> ((int) args[0]) == SCALED_LEVEL ? scaledStats : null;
-            case "getGameLevel" -> TrainingVariableFixtures.gameLevel(4);
-            default -> throw new UnsupportedOperationException(method.getName());
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> {
+            throw new UnsupportedOperationException(method.getName());
         });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
             if ("levelUpCreature".equals(method.getName())) {
@@ -99,7 +85,7 @@ class CreatureTrainingExperienceTest {
 
     @Test
     void trainingGivesTheTrainingExperiencePerTickOnEveryTick() {
-        EntityId goblin = trainee(GOBLIN, 1, 0, 3000);
+        EntityId goblin = trainee(1, 0, 3000);
 
         system.processTick(TPF);
         assertEquals(10, experience(goblin));
@@ -113,7 +99,7 @@ class CreatureTrainingExperienceTest {
 
     @Test
     void levelOneGoblinTrainsToTheLevelTwoInSeventyFiveSeconds() {
-        EntityId goblin = trainee(GOBLIN, 1, 0, 3000);
+        EntityId goblin = trainee(1, 0, 3000);
 
         for (int i = 0; i < 299; i++) {
             system.processTick(TPF);
@@ -126,28 +112,8 @@ class CreatureTrainingExperienceTest {
     }
 
     @Test
-    void perTickExperienceIsRoundedDownButAtLeastOne() {
-        EntityId prince = trainee(PRINCE, 1, 0, 3000);
-        EntityId slowLearner = trainee(SLOW_LEARNER, 1, 0, 3000);
-
-        system.processTick(TPF);
-
-        assertEquals(3, experience(prince));
-        assertEquals(1, experience(slowLearner));
-    }
-
-    @Test
-    void trainingUsesTheLevelScaledTrainingExperience() {
-        EntityId goblin = trainee(GOBLIN, SCALED_LEVEL, 100, 5000);
-
-        system.processTick(TPF);
-
-        assertEquals(115, experience(goblin));
-    }
-
-    @Test
     void trainingGivesNoMoreThanTheNextLevelNeeds() {
-        EntityId warlock = trainee(GOBLIN, 2, 995, 1000);
+        EntityId warlock = trainee(2, 995, 1000);
 
         system.processTick(TPF);
 
@@ -159,7 +125,7 @@ class CreatureTrainingExperienceTest {
 
     @Test
     void trainingGivesNothingAtTheTrainingRoomMaximumLevel() {
-        EntityId warlock = trainee(GOBLIN, MAX_TRAINING_LEVEL, 100, 2000);
+        EntityId warlock = trainee(MAX_TRAINING_LEVEL, 100, 2000);
 
         for (int i = 0; i < 8; i++) {
             system.processTick(TPF);
@@ -171,7 +137,7 @@ class CreatureTrainingExperienceTest {
 
     @Test
     void creatureThatHasNotStartedTrainingGetsNothing() {
-        EntityId warlock = trainee(GOBLIN, 1, 0, 1000);
+        EntityId warlock = trainee(1, 0, 1000);
         TaskComponent task = entityData.getComponent(warlock, TaskComponent.class);
         entityData.setComponent(warlock, new TaskComponent(task.taskId, task.targetEntity, task.targetLocation, task.taskType, task.taskDuration, false));
 
@@ -181,13 +147,13 @@ class CreatureTrainingExperienceTest {
         assertEquals(0, experience(warlock));
     }
 
-    private EntityId trainee(short creatureId, int level, int experience, int experienceToNextLevel) {
+    private EntityId trainee(int level, int experience, int experienceToNextLevel) {
         EntityId entityId = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
-        creatureComponent.creatureId = creatureId;
+        creatureComponent.creatureId = GOBLIN;
         entityData.setComponents(entityId,
                 creatureComponent,
-                new CreatureExperience(level, experience, experienceToNextLevel, 5, 160),
+                new CreatureExperience(level, experience, experienceToNextLevel, 5, GOBLIN_EXPERIENCE_PER_TICK),
                 new CreatureAi(0, CreatureState.WORK, (short) 1),
                 new TaskComponent(1, null, null, TaskType.TRAIN, 0, true));
         return entityId;
