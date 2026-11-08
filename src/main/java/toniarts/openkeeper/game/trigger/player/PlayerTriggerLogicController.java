@@ -50,6 +50,15 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         // TODO: get notified on new parties (a.k.a. parties re-spawned)
     }
 
+    /** Delivers only to the player who released the creature. */
+    public void onCreatureDropped(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onCreatureDropped();
+            }
+        }
+    }
+
     @Override
     public void start() {
 

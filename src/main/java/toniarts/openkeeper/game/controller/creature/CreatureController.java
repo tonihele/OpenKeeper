@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
@@ -1535,6 +1536,16 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void setHaulable(ICreatureController carrier) {
+        HauledBy previous = entityData.getComponent(entityId, HauledBy.class);
+        Owner carrierOwner = previous != null ? entityData.getComponent(previous.entityId, Owner.class) : null;
+        super.setHaulable(carrier);
+        if (carrier == null && previous != null && carrierOwner != null) {
+            creaturesController.onCreatureDropped(carrierOwner.ownerId);
+        }
     }
 
     @Override

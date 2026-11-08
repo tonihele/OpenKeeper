@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -87,6 +88,33 @@ public class PlayerTriggerControl extends TriggerControl {
 
     public short getPlayerId() {
         return playerId;
+    }
+
+    /** Native drop events select matching root branches; their authored filters are ignored. */
+    void onCreatureDropped() {
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == TriggerGeneric.TargetType.PLAYER_CREATURE_DROPPED) {
+                runDropBranch(event);
+            }
+        }
+    }
+
+    private void runDropBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runDropBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
     }
 
     @Override
@@ -229,16 +257,7 @@ public class PlayerTriggerControl extends TriggerControl {
                 }
 
             case PLAYER_CREATURE_DROPPED:
-                psc = getPlayerController(playerId).getStatsControl();
-                creatureId = trigger.getUserData("creatureId", short.class);
-
-                if (creatureId == 0) {
-                    // Any creature
-                    return psc.hasDropped();
-                } else {
-                    // Certain creature
-                    return psc.hasDropped(levelInfo.getLevelData().getCreature(creatureId));
-                }
+                return false; // Event-only; delivery runs its root branches separately.
 
             case PLAYER_CREATURE_SLAPPED:
                 psc = getPlayerController(playerId).getStatsControl();
