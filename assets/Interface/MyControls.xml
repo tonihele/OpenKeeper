@@ -399,7 +399,7 @@
                        name="iconText"
                        controller="toniarts.openkeeper.gui.nifty.icontext.IconTextControl">
         <panel align="left" valign="center" childLayout="horizontal" margin="6px" visibleToMouse="true">
-            <image id="#image" marginRight="6px" align="right" valign="center" filename="$icon">
+            <image id="#image" marginRight="29px" align="right" valign="center" filename="$icon">
                 <effect>
                     <onCustom customKey="hover" name="imageOverlay" filename="Textures/GUI/Icons/hilight.png" post="true" neverStopRendering="true" />
                 </effect>
