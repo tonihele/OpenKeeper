@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import toniarts.openkeeper.tools.convert.map.Variable.Availability;
+import toniarts.openkeeper.tools.convert.map.Variable.CreatureFirstPerson;
 import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
 import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -245,5 +246,14 @@ public interface IKwdFile extends IKwdInfo {
      * @return the creature stats on given level
      */
     Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level);
+
+    /**
+     * Get the stat increase percentages of a creature that is possessed (seen
+     * in first person). There might not be a record for every stat. Then
+     * should just default to no increase.
+     *
+     * @return the first person creature stats
+     */
+    Map<CreatureStats.StatType, CreatureFirstPerson> getCreatureFirstPersonStats();
 
 }
