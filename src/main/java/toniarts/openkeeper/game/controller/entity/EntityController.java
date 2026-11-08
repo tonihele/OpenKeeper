@@ -135,11 +135,10 @@ public class EntityController implements IEntityController {
         Gold gold = entityData.getComponent(entityId, Gold.class);
         if (gold != null && gold.gold > 0) {
             Position position = entityData.getComponent(entityId, Position.class);
-            Owner owner = entityData.getComponent(entityId, Owner.class);
             Point point = WorldUtils.vectorToPoint(position.position);
             int piles = gold.gold < 1000 ? 1 : gold.gold < 3000 ? 2 : 3;
             for (int i = 0; i < piles; i++) {
-                objectsController.addLooseGold(owner.ownerId, point.x, point.y, gold.gold / piles, gold.maxGold);
+                objectsController.addLooseGold(point.x, point.y, gold.gold / piles, gold.maxGold);
             }
             entityData.setComponent(entityId, new Gold(0, gold.maxGold));
         }
