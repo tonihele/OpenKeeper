@@ -338,11 +338,8 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
-        if (isPossessing(playerId)) {
-            return;
-        }
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
 //        if (playerId == playerState.getPlayerId()) {
@@ -401,12 +398,9 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
-        if (isPossessing(playerId)) {
-            return;
-        }
 //        if (playerId == playerState.getPlayerId()) {
         ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
-        if (ap == null) {
+        if (ap == null || isPossessing(playerId)) {
             return;
         }
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
