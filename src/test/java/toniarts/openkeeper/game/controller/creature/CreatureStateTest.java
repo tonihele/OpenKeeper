@@ -83,7 +83,7 @@ class CreatureStateTest {
         IObjectsController objects = (IObjectsController) Proxy.newProxyInstance(
                 IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> {
                     if (method.getName().equals("addLooseGold")) {
-                        piles.add((Integer) args[3]);
+                        piles.add((Integer) args[2]);
                     }
                     return null;
                 });
