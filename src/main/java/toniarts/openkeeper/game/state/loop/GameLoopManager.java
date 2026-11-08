@@ -126,7 +126,7 @@ public final class GameLoopManager {
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
                 new CallToArmsSystem(entityData, level, playerControllers.values(),
-                        gameWorldController.getCreaturesController(), gameController.getGameTimer()),
+                        gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),

@@ -60,6 +60,15 @@ public enum GameEventType {
      */
     SHOT_HIT,
     IMPS_CREATED,
+    /**
+     * A Call to Arms banner calls its creatures, the entity is the banner
+     */
+    CALL_TO_ARMS,
+    /**
+     * Some creatures can't get to the Call to Arms banner, only its keeper
+     * gets this
+     */
+    CALL_TO_ARMS_UNREACHABLE,
 
     // Rooms and terrain, the subject is the room or the terrain
     ROOM_TILES_LAID,

@@ -224,7 +224,7 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Gathers at the Call to Arms banner we answered and fights what comes
      * close to it
      *
-     * @return false when the banner is gone
+     * @return false when the banner is gone or we can't get to it
      */
     public boolean heedCallToArms();
 

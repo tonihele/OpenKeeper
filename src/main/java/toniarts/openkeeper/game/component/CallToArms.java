@@ -19,9 +19,16 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * A raised Call to Arms banner
+ * A Call to Arms banner
  */
 public final class CallToArms implements EntityComponent {
+
+    public static final double UP = -1;
+
+    /**
+     * Game time when the banner has risen from the ground and starts waving
+     */
+    public double waveTime;
 
     /**
      * Game time when the mana upkeep starts, the casting cost pays for the
@@ -34,13 +41,34 @@ public final class CallToArms implements EntityComponent {
      */
     public double callTime;
 
+    /**
+     * How many times the banner has called the creatures
+     */
+    public int calls;
+
+    /**
+     * Game time when the banner that is going down is gone, {@link #UP} while
+     * it is up
+     */
+    public double removeTime = UP;
+
     public CallToArms() {
         // For serialization
     }
 
-    public CallToArms(double upkeepTime, double callTime) {
+    public CallToArms(double waveTime, double upkeepTime, double callTime, int calls, double removeTime) {
+        this.waveTime = waveTime;
         this.upkeepTime = upkeepTime;
         this.callTime = callTime;
+        this.calls = calls;
+        this.removeTime = removeTime;
+    }
+
+    /**
+     * @return true when the banner is up, not sinking or slapped away
+     */
+    public boolean isUp() {
+        return removeTime == UP;
     }
 
 }

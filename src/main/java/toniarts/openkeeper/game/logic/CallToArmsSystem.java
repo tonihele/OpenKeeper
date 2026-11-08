@@ -29,9 +29,12 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
@@ -41,6 +44,10 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -48,10 +55,11 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * Keeps the Call to Arms banners up. A keeper has one banner, casting again
- * moves it. Every second the banner calls the keeper's free creatures to it.
- * The casting cost pays for the first manaCost / manaDrain seconds, after that
- * the banner drains its mana every second. Slapping the banner or running out
- * of mana takes it down.
+ * moves it. The banner rises from the ground and calls the keeper's free
+ * creatures to it every second, with its effect every third call. The casting
+ * cost pays for the first manaCost / manaDrain seconds, after that the banner
+ * drains its mana every second. A moved banner sinks back into the ground,
+ * slapping the banner or running out of mana knocks it away.
  */
 public final class CallToArmsSystem implements IGameLogicUpdatable {
 
@@ -67,7 +75,9 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IGameTimer gameTimer;
+    private final GameEventService gameEventService;
     private final KeeperSpell keeperSpell;
+    private final GameObject bannerObject;
     private final int upgradedUpkeepPercentage;
     private final Map<Short, Keeper> keepers;
     private final EntitySet banners;
@@ -77,21 +87,25 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
      * Keeps the Call to Arms banners up
      *
      * @param entityData the entity data
-     * @param kwdFile the level, for the Call to Arms spell and its variables
+     * @param kwdFile the level, for the Call to Arms spell, the banner and the
+     * variables
      * @param playerControllers the players, for their mana and upgrades
      * @param creaturesController the creatures that answer the call
      * @param gameTimer the game time
+     * @param gameEventService tells the clients when the banner calls
      */
     public CallToArmsSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
-            ICreaturesController creaturesController, IGameTimer gameTimer) {
+            ICreaturesController creaturesController, IGameTimer gameTimer, GameEventService gameEventService) {
         this.entityData = entityData;
         this.creaturesController = creaturesController;
         this.gameTimer = gameTimer;
+        this.gameEventService = gameEventService;
         keeperSpell = kwdFile.getKeeperSpells().stream()
                 .filter(spell -> spell.getShotData1() == ObjectsController.OBJECT_CALL_TO_ARMS_ID
                 && kwdFile.getShotById(spell.getShotTypeId()) != null
                 && kwdFile.getShotById(spell.getShotTypeId()).getProcessType() == Shot.ProcessType.CREATE_OBJECT)
                 .findFirst().orElse(null);
+        bannerObject = kwdFile.getObject(ObjectsController.OBJECT_CALL_TO_ARMS_ID);
         upgradedUpkeepPercentage = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE).getValue();
         keepers = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
@@ -125,8 +139,9 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
         short ownerId = banner.get(Owner.class).ownerId;
         EntityId raised = null;
         for (Entity other : banners) {
+            CallToArms callToArms = entityData.getComponent(other.getId(), CallToArms.class);
             if (!other.getId().equals(banner.getId()) && other.get(Owner.class).ownerId == ownerId
-                    && entityData.getComponent(other.getId(), CallToArms.class) != null) {
+                    && callToArms != null && callToArms.isUp()) {
                 raised = other.getId();
             }
         }
@@ -137,23 +152,37 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
             return;
         }
 
-        // Moving the banner doesn't buy more time before the upkeep
+        // Moving the banner doesn't buy more time before the upkeep. The old
+        // banner sinks and its creatures go to the new one
         double upkeepTime;
         if (raised != null) {
             upkeepTime = entityData.getComponent(raised, CallToArms.class).upkeepTime;
-            entityData.removeEntity(raised);
+            takeDown(raised, GameObjectAnimState.ADDITIONAL_RESOURCE_2, now);
+            for (Entity creature : creatures) {
+                FollowTarget followTarget = entityData.getComponent(creature.getId(), FollowTarget.class);
+                if (followTarget != null && followTarget.entityId.equals(raised)) {
+                    entityData.setComponent(creature.getId(), new FollowTarget(banner.getId()));
+                }
+            }
         } else {
             upkeepTime = now + (keeperSpell != null && keeperSpell.getManaDrain() > 0
                     ? keeperSpell.getManaCost() / keeperSpell.getManaDrain() : 0);
         }
-        entityData.setComponent(banner.getId(), new CallToArms(upkeepTime, now));
+        double waveTime = now + getDuration(bannerObject != null ? bannerObject.getMeshResource() : null);
+        entityData.setComponent(banner.getId(), new CallToArms(waveTime, upkeepTime, now, 0, CallToArms.UP));
     }
 
     private void update(Entity banner, CallToArms callToArms, double now) {
         EntityId bannerId = banner.getId();
         short ownerId = banner.get(Owner.class).ownerId;
+        if (!callToArms.isUp()) {
+            if (now >= callToArms.removeTime) {
+                entityData.removeEntity(bannerId);
+            }
+            return;
+        }
         if (entityData.getComponent(bannerId, Slapped.class) != null) {
-            entityData.removeEntity(bannerId);
+            takeDown(bannerId, GameObjectAnimState.ADDITIONAL_RESOURCE_3, now);
             return;
         }
 
@@ -163,11 +192,15 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
             return;
         }
 
+        if (now >= callToArms.waveTime) {
+            setAnimation(bannerId, GameObjectAnimState.ADDITIONAL_RESOURCE_1);
+        }
+
         if (now >= callToArms.upkeepTime) {
             Keeper keeper = keepers.get(ownerId);
             int upkeep = getUpkeep(keeper);
             if (keeper == null || keeper.getMana() < upkeep) {
-                entityData.removeEntity(bannerId);
+                takeDown(bannerId, GameObjectAnimState.ADDITIONAL_RESOURCE_3, now);
                 return;
             }
             Mana mana = entityData.getComponent(bannerId, Mana.class);
@@ -177,7 +210,11 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
         }
 
         if (now >= callToArms.callTime) {
-            entityData.setComponent(bannerId, new CallToArms(callToArms.upkeepTime, now + 1));
+            int calls = callToArms.calls + 1;
+            entityData.setComponent(bannerId, new CallToArms(callToArms.waveTime, callToArms.upkeepTime, now + 1, calls, CallToArms.UP));
+            if (calls % 3 == 0) {
+                gameEventService.emit(GameEventType.CALL_TO_ARMS, bannerId);
+            }
             for (Entity creature : creatures) {
                 if (creature.get(Owner.class).ownerId == ownerId && !creature.get(CreatureComponent.class).worker
                         && !BUSY_STATES.contains(creature.get(CreatureAi.class).getCreatureState())) {
@@ -185,6 +222,36 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
                 }
             }
         }
+    }
+
+    /**
+     * The banner goes down with the given animation and is gone when it ends
+     */
+    private void takeDown(EntityId bannerId, GameObjectAnimState animation, double now) {
+        CallToArms callToArms = entityData.getComponent(bannerId, CallToArms.class);
+        int index = animation.ordinal() - GameObjectAnimState.ADDITIONAL_RESOURCE_1.ordinal();
+        double removeTime = now + (bannerObject != null && bannerObject.getAdditionalResources().size() > index
+                ? getDuration(bannerObject.getAdditionalResources().get(index)) : 0);
+        entityData.setComponent(bannerId, new CallToArms(callToArms.waveTime, callToArms.upkeepTime, callToArms.callTime,
+                callToArms.calls, removeTime));
+        entityData.removeComponent(bannerId, Mana.class);
+        setAnimation(bannerId, animation);
+    }
+
+    private void setAnimation(EntityId bannerId, GameObjectAnimState animation) {
+        ObjectViewState viewState = entityData.getComponent(bannerId, ObjectViewState.class);
+        if (viewState != null && viewState.animState != animation) {
+            entityData.setComponent(bannerId, new ObjectViewState(viewState.objectId, viewState.state, animation, viewState.visible));
+        }
+    }
+
+    private static double getDuration(ArtResource animation) {
+        if (animation == null) {
+            return 0;
+        }
+        Number frames = animation.getData(ArtResource.KEY_FRAMES);
+        Number fps = animation.getData(ArtResource.KEY_FPS);
+        return frames != null && fps != null && fps.intValue() > 0 ? frames.doubleValue() / fps.doubleValue() : 0;
     }
 
     private int getUpkeep(Keeper keeper) {

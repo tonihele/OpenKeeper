@@ -31,9 +31,12 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
@@ -44,7 +47,11 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.PlayerSpell;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.ChickenSpawnFixtures;
+import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpellFixtures;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -69,6 +76,7 @@ class CallToArmsSystemTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
     private final List<EntityId> answered = new ArrayList<>();
+    private final List<Object[]> events = new ArrayList<>();
     private double gameTime;
     private CallToArmsSystem system;
 
@@ -81,6 +89,7 @@ class CallToArmsSystemTest {
         IKwdFile kwdFile = stub(IKwdFile.class, name -> switch (name) {
             case "getKeeperSpells" -> List.of(KeeperSpellFixtures.keeperSpell(SPELL_ID, 10000, 90, SHOT_ID, ObjectsController.OBJECT_CALL_TO_ARMS_ID));
             case "getShotById" -> ShotFixtures.shot(SHOT_ID, Shot.ProcessType.CREATE_OBJECT, 1, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+            case "getObject" -> bannerObject();
             case "getVariables" -> Map.of(MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE,
                     ChickenSpawnFixtures.miscVariable(MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE, 70));
             default -> throw new UnsupportedOperationException(name);
@@ -91,7 +100,10 @@ class CallToArmsSystemTest {
                     EntityId creature = (EntityId) args[0];
                     return stub(ICreatureController.class, name -> answered.add(creature));
                 });
-        system = new CallToArmsSystem(entityData, kwdFile, List.of(playerController), creaturesController, () -> gameTime);
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                new Class<?>[]{GameEventService.class}, (proxy, method, args) -> events.add(args));
+        system = new CallToArmsSystem(entityData, kwdFile, List.of(playerController), creaturesController, () -> gameTime,
+                gameEventService);
     }
 
     @Test
@@ -172,6 +184,11 @@ class CallToArmsSystemTest {
         keeper.setMana(89);
         gameTime = 111;
         system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_3, entityData.getComponent(banner, ObjectViewState.class).animState);
+        assertNull(entityData.getComponent(banner, Mana.class));
+
+        gameTime = 112;
+        system.processTick(0.25f);
         assertNull(entityData.getComponent(banner, ObjectComponent.class));
     }
 
@@ -182,20 +199,59 @@ class CallToArmsSystemTest {
 
         entityData.setComponent(banner, new Slapped(gameTime));
         system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_3, entityData.getComponent(banner, ObjectViewState.class).animState);
+
+        // Knocked away in a second, the creatures heed it until then
+        gameTime = 0.75;
+        system.processTick(0.25f);
+        assertNotNull(entityData.getComponent(banner, CallToArms.class));
+        gameTime = 1;
+        system.processTick(0.25f);
         assertNull(entityData.getComponent(banner, ObjectComponent.class));
     }
 
     @Test
     void castingAgainMovesTheBannerWithoutResettingTheUpkeep() {
         EntityId first = banner();
+        EntityId heeding = creature(PLAYER_ID, false, CreatureState.CALL_TO_ARMS);
+        entityData.setComponent(heeding, new FollowTarget(first));
         system.processTick(0.25f);
 
         gameTime = 50;
         EntityId second = banner();
         system.processTick(0.25f);
 
-        assertNull(entityData.getComponent(first, ObjectComponent.class));
+        // The old banner sinks back into the ground in 2 seconds
         assertEquals(111, entityData.getComponent(second, CallToArms.class).upkeepTime);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_2, entityData.getComponent(first, ObjectViewState.class).animState);
+        assertEquals(second, entityData.getComponent(heeding, FollowTarget.class).entityId);
+        gameTime = 52;
+        system.processTick(0.25f);
+        assertNull(entityData.getComponent(first, ObjectComponent.class));
+    }
+
+    @Test
+    void theBannerRisesThenWaves() {
+        EntityId banner = banner();
+        system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.MESH_RESOURCE, entityData.getComponent(banner, ObjectViewState.class).animState);
+
+        gameTime = 2;
+        system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_1, entityData.getComponent(banner, ObjectViewState.class).animState);
+    }
+
+    @Test
+    void theBannerShowsItsEffectEveryThirdCall() {
+        EntityId banner = banner();
+        for (int second = 0; second < 6; second++) {
+            gameTime = second;
+            system.processTick(0.25f);
+        }
+
+        assertEquals(2, events.size());
+        assertEquals(GameEventType.CALL_TO_ARMS, events.get(0)[0]);
+        assertEquals(banner, events.get(0)[1]);
     }
 
     @Test
@@ -215,8 +271,18 @@ class CallToArmsSystemTest {
     private EntityId banner() {
         EntityId banner = entityData.createEntity();
         entityData.setComponents(banner, new ObjectComponent(ObjectsController.OBJECT_CALL_TO_ARMS_ID, null),
-                new Owner(PLAYER_ID, PLAYER_ID), new Position(0, new Vector3f(5, 0, 5)));
+                new Owner(PLAYER_ID, PLAYER_ID), new Position(0, new Vector3f(5, 0, 5)),
+                new ObjectViewState(ObjectsController.OBJECT_CALL_TO_ARMS_ID, GameObject.State.CREATE_CALL_TO_ARMS,
+                        GameObjectAnimState.MESH_RESOURCE, true));
         return banner;
+    }
+
+    /**
+     * The banner rises in 2 seconds, sinks in 2 and is knocked away in 1
+     */
+    private static GameObject bannerObject() {
+        return GameObjectFixtures.gameObject(ObjectsController.OBJECT_CALL_TO_ARMS_ID, GameObjectFixtures.animation(30, 15),
+                GameObjectFixtures.animation(30, 30), GameObjectFixtures.animation(20, 10), GameObjectFixtures.animation(10, 10));
     }
 
     private EntityId creature(short ownerId, boolean worker, CreatureState state) {
