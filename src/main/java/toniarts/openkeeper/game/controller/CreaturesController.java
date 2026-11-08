@@ -606,9 +606,17 @@ public final class CreaturesController implements ICreaturesController {
         }
         partyController.setType(partyType);
         partyController.create();
+
+        // The whole party walks at the speed of its slowest member
+        float partySpeed = Float.MAX_VALUE;
+        for (Thing.GoodCreature creature : partyController.getMembers()) {
+            partySpeed = Math.min(partySpeed, kwdFile.getCreature(creature.getCreatureId()).getAttributes().getSpeed());
+        }
         for (Thing.GoodCreature creature : partyController.getMembers()) {
             EntityId entityId = spawnCreature(creature, position);
             entityData.setComponent(entityId, new Party(partyController.getId()));
+            Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+            entityData.setComponent(entityId, new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, partySpeed));
 
             partyController.addMemberInstance(creature, createController(entityId));
         }
