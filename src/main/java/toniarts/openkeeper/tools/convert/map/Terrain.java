@@ -123,7 +123,7 @@ public final class Terrain implements Comparable<Terrain>, ISoundable, IFpsSound
     private ArtResource sideResource; // 74
     private ArtResource topResource; // c8
     private ArtResource taggedTopResource; // 11c
-    private StringId stringIds; // 170
+    private Light slabLight; // 170 (a Light block, not StringIds)
     private float depth; // 188
     private float lightHeight; // 18c, fixed point
     private EnumSet<TerrainFlag> flags; // 190
@@ -455,12 +455,17 @@ public final class Terrain implements Comparable<Terrain>, ISoundable, IFpsSound
         this.taggedTopResource = taggedTopResource;
     }
 
-    public StringId getStringIds() {
-        return stringIds;
+    /**
+     * The per-terrain light block. The community
+     * template mislabels it as {@code StringIds}; it has the same 24-byte
+     * size as {@link Light}. All zero in stock data.
+     */
+    public Light getSlabLight() {
+        return slabLight;
     }
 
-    protected void setStringIds(StringId stringIds) {
-        this.stringIds = stringIds;
+    protected void setSlabLight(Light slabLight) {
+        this.slabLight = slabLight;
     }
 
     @Override

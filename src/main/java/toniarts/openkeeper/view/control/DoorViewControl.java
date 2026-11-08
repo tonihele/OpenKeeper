@@ -24,6 +24,7 @@ import com.simsilica.es.EntityId;
 import java.util.Objects;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
@@ -111,8 +112,14 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         if (!getDataObject().getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
             if (current == null || current.open != target.open) {
                 playAnimation(target);
+                if (current != null) {
+                    playSound(target.open ? ThingSounds.DOOR_OPEN : ThingSounds.DOOR_CLOSE);
+                }
             }
             if (current == null || current.locked != target.locked) {
+                if (current != null) {
+                    playSound(target.locked ? ThingSounds.DOOR_LOCK : ThingSounds.DOOR_UNLOCK);
+                }
                 if (target.locked) {
                     lockDoor();
                 } else {
@@ -125,9 +132,18 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
                 AssetUtils.setBlueprint(assetManager, spatial);
             } else {
                 // TODO: Unblueprint?
+                if (current != null) {
+                    playSound(ThingSounds.MANUFACTURED);
+                }
             }
         }
         currentState = target;
+    }
+
+    private void playSound(int eventId) {
+        if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
+            ThingSounds.play(getDataObject().getSoundCategory(), eventId, spatial.getWorldTranslation());
+        }
     }
 
     @Override
