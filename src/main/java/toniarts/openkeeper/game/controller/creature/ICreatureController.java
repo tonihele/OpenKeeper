@@ -254,11 +254,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void makeHungry();
 
     /**
-     * Get research per second attribute
+     * Get the research points the creature makes on each game tick in the
+     * library
      *
-     * @return research per second
+     * @return research points per tick
      */
-    public int getResearchPerSecond();
+    public int getResearchPerTick();
 
     /**
      * Gives object to creature

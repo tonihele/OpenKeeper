@@ -1513,9 +1513,9 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public int getResearchPerSecond() {
+    public int getResearchPerTick() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.researchPerSecond;
+        return creatureComponent.researchPerTick;
     }
 
     @Override
