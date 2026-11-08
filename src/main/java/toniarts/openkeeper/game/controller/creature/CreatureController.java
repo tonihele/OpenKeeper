@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
@@ -837,6 +838,49 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean shouldNavigateToFollowTarget() {
         return (isStopped() && getDistanceToCreature(getFollowTarget().getEntityId()) > 1.5f) || (getDistanceToCreature(getFollowTarget().getEntityId()) > 2.5f);
+    }
+
+    @Override
+    public boolean answerCallToArms(EntityId banner) {
+        Position bannerPosition = entityData.getComponent(banner, Position.class);
+        if (bannerPosition == null) {
+            return false;
+        }
+        Point destination = WorldUtils.vectorToPoint(bannerPosition.position);
+        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
+        if (path == null) {
+            return false;
+        }
+
+        stateMachine.changeState(CreatureState.CALL_TO_ARMS);
+        setFollowTarget(banner);
+        entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+        return true;
+    }
+
+    @Override
+    public boolean heedCallToArms() {
+        FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
+        if (followTarget == null || entityData.getComponent(followTarget.entityId, ObjectComponent.class) == null) {
+            return false;
+        }
+
+        // Wait while the keeper carries the banner
+        if (entityData.getComponent(followTarget.entityId, Position.class) == null) {
+            return true;
+        }
+
+        // The creatures don't stop to fight on their way, only near the banner
+        float fightDistance = gameSettings.get(Variable.MiscVariable.MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES).getValue() * WorldUtils.TILE_WIDTH;
+        if (getDistanceToCreature(followTarget.entityId) <= fightDistance && shouldFleeOrAttack()) {
+            return true;
+        }
+
+        // Mill about the banner
+        if (isStopped()) {
+            navigateToRandomPointAroundTarget(followTarget.entityId, 2);
+        }
+        return true;
     }
 
     @Override

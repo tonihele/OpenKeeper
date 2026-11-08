@@ -212,6 +212,22 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean shouldNavigateToFollowTarget();
 
+    /**
+     * Sends us to a Call to Arms banner, if we can get there
+     *
+     * @param banner the banner
+     * @return true if we answered the call
+     */
+    public boolean answerCallToArms(EntityId banner);
+
+    /**
+     * Gathers at the Call to Arms banner we answered and fights what comes
+     * close to it
+     *
+     * @return false when the banner is gone
+     */
+    public boolean heedCallToArms();
+
     public boolean isSlapped();
 
     public boolean isPortalGemInPosession();
