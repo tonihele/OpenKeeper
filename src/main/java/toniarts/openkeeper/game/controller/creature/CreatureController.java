@@ -901,12 +901,11 @@ public final class CreatureController extends EntityController implements ICreat
         if (ourPosition == null) {
             return true;
         }
-        float fightDistance = gameSettings.get(Variable.MiscVariable.MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES).getValue() * WorldUtils.TILE_WIDTH;
         for (EntityId banner : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", getOwnerId()), CallToArms.class, Owner.class)) {
             CallToArms callToArms = entityData.getComponent(banner, CallToArms.class);
             Position bannerPosition = entityData.getComponent(banner, Position.class);
             if (callToArms != null && callToArms.isUp() && bannerPosition != null
-                    && bannerPosition.position.distance(ourPosition) > fightDistance) {
+                    && bannerPosition.position.distance(ourPosition) > gameSettings.get(Variable.MiscVariable.MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES).getValue() * WorldUtils.TILE_WIDTH) {
                 return false;
             }
         }
