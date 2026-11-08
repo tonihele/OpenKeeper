@@ -255,19 +255,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     /**
      * Get the research points the creature makes on each game tick in the
-     * library, its research per second turned into points per tick the way
-     * DK II does it
+     * library
      *
      * @return research points per tick
      */
     public int getResearchPerTick();
-
-    /**
-     * Get research per second attribute
-     *
-     * @return research per second
-     */
-    public int getResearchPerSecond();
 
     /**
      * Gives object to creature
