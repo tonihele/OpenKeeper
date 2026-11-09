@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -85,6 +86,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
@@ -99,6 +101,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -107,6 +110,8 @@ import java.util.function.Consumer;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
+// Controllers inherit entity-ID equality and hashing; mutable sleep state is not identity.
+// skipcq: JAVA-W0100
 public final class CreatureController extends EntityController implements ICreatureController {
 
     private static final Logger logger = System.getLogger(CreatureController.class.getName());
@@ -117,6 +122,14 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+
+    /**
+     * The possessed melee attack hits what is at most 341/2048 of a full
+     * circle (about 60 degrees) off the creature's facing, as the cosine of
+     * that angle
+     */
+    private static final float POSSESSED_ATTACK_MIN_FACING = FastMath.cos(341 / 2048f * FastMath.TWO_PI);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -147,7 +160,22 @@ public final class CreatureController extends EntityController implements ICreat
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
         this.gameEventService = gameEventService;
-        this.stateMachine = new DefaultStateMachine<>(this);
+        this.stateMachine = new DefaultStateMachine<>(this) {
+            @Override
+            public void changeState(CreatureState newState) {
+                CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+                CreatureState target = ai == null ? null : ai.getTargetState();
+                if (newState == CreatureState.IDLE && target != null) {
+                    newState = target;
+                }
+                if (newState != null && newState == target) {
+                    // Consume before enter(): a failed target may immediately fall back to IDLE.
+                    entityData.setComponent(entityId, new CreatureAi(ai.stateStartTime,
+                            ai.getCreatureState(), ai.creatureId));
+                }
+                super.changeState(newState);
+            }
+        };
     }
 
     @Override
@@ -334,7 +362,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean needsLair() {
-        return getOwnerId() >= Player.KEEPER1_ID && entityData.getComponent(entityId, CreatureSleep.class) != null;
+        // Creatures without a lair object (the princes, King Reginald...) never make a home
+        return getOwnerId() >= Player.KEEPER1_ID && creature.getLairObjectId() != 0
+                && entityData.getComponent(entityId, CreatureSleep.class) != null;
     }
 
     @Override
@@ -351,16 +381,50 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isNeedForSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        return creatureSleep != null && needsLair() && (gameTimer.getGameTime() - creatureSleep.lastSleepTime >= creature.getAttributes().getTimeAwake()
-                || isNeedForRecuperating());
+        // CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH triggers the native attempt path,
+        // but its assigned-bed gate (0x46f47b) still requires positive debt. The
+        // 250/1000 HP, zero-debt probe stayed awake; manual Lair placement bypasses it.
+        return needsLair() && isNeedForSleep(creatureSleep,
+                creature.getAttributes().getTimeSleep());
     }
 
-    private boolean isNeedForRecuperating() {
-        return gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_SLEEPS_WHEN_BELOW_PERCENT_HEALTH).getValue() >= getHealthPercentage();
+    static boolean isNeedForSleep(CreatureSleep sleep, int timeSleep) {
+        return sleep != null && timeSleep > 0 && sleep.sleepNeed > 0;
+    }
+
+    @Override
+    public boolean goToSleepAfterLairDrop() {
+        if (shouldFleeOrAttack()) {
+            return false;
+        }
+        if (!needsLair() || creature.getAttributes().getTimeSleep() <= 0 || !hasLair()) {
+            return false;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
+        CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+        Stored bed = entityData.getComponent(sleep.lairObjectId, Stored.class);
+        if (room == null || room.isDestroyed() || room.isRemoved()
+                || room.getOwnerId() != getOwnerId()
+                || !room.hasObjectControl(AbstractRoomController.ObjectType.LAIR)
+                || bed == null || bed.objectType != AbstractRoomController.ObjectType.LAIR
+                || !room.getEntityId().equals(bed.room)) {
+            return false;
+        }
+        // Native manual placement bypasses the autonomous debt/retry gates.
+        return taskManager.assignSleepTask(this);
     }
 
     @Override
     public boolean goToSleep() {
+        double gameTime = gameTimer.getGameTime();
+        CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+        if (sleep == null || gameTime - sleep.lastSleepAttemptTime < 1) {
+            return false;
+        }
+        // Native autonomous attempts are throttled to one per four native ticks.
+        CreatureSleep updated = new CreatureSleep(sleep);
+        updated.lastSleepAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignSleepTask(this);
     }
 
@@ -660,12 +724,8 @@ public final class CreatureController extends EntityController implements ICreat
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
-                entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
-
-                // Set the damage
-                setDamage(attackTarget, creatureMeleeAttack.damage);
-                gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
+                hitWithMelee(attackTarget, creatureMeleeAttack, creatureMeleeAttack.damage);
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -689,6 +749,35 @@ public final class CreatureController extends EntityController implements ICreat
                 setDamage(attackTarget, creatureSpell.getShotData1());
             }
         }
+    }
+
+    /**
+     * Hits the target with our melee attack, which then needs to recharge
+     *
+     * @param attackTarget the target we hit
+     * @param creatureMeleeAttack our melee attack
+     * @param damage the damage to deal
+     */
+    private void hitWithMelee(EntityId attackTarget, CreatureMeleeAttack creatureMeleeAttack, int damage) {
+        entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+        setDamage(attackTarget, damage);
+        gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
+    }
+
+    private float getFirstPersonRechargeModifyPercentage() {
+        Variable.MiscVariable modify = gameSettings.get(Variable.MiscVariable.MiscType.FIRST_PERSON_RECHARGE_MODIFY_PERCENTAGE);
+        return modify != null ? modify.getValue() : 100;
+    }
+
+    /**
+     * Gets what a stat is in first person, as a percentage of the normal
+     *
+     * @param statType the stat
+     * @return 100 plus the stat increase, 100 if there is none
+     */
+    private int getFirstPersonPercentage(Variable.CreatureStats.StatType statType) {
+        Variable.CreatureFirstPerson stat = levelInfo.getLevelData().getCreatureFirstPersonStats().get(statType);
+        return 100 + (stat != null ? stat.getValue() : 0);
     }
 
     /**
@@ -837,15 +926,8 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean isEnoughSleep() {
-        double timeSpent = gameTimer.getGameTime() - entityData.getComponent(entityId, CreatureAi.class).stateStartTime;
-        if (timeSpent >= creature.getAttributes().getTimeSleep()) {
-
-            // Hmm, I don't know if this is the right place to do this, but works for now
-            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, gameTimer.getGameTime(), creatureSleep.sleepStartTime));
-            return true;
-        }
-        return false;
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        return creatureSleep.sleepNeed == 0 && isFullHealth();
     }
 
     @Override
@@ -931,6 +1013,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void processTick(float tpf) {
+        // A manual drop can already carry its target in AI, but no state may
+        // enter or advance until the fall system has finished landing.
+        if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+            return;
+        }
 
         /**
          * Hmm, I'm not sure how to do this, this is not ideal either, how to
@@ -968,7 +1055,8 @@ public final class CreatureController extends EntityController implements ICreat
         // Also change our state component
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
-            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId()));
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId(),
+                    creatureAi == null ? null : creatureAi.getTargetState()));
         }
     }
 
@@ -1000,7 +1088,7 @@ public final class CreatureController extends EntityController implements ICreat
 
         if (looseGold > 0) {
             Point coordinates = getCreatureCoordinates();
-            objectsController.addLooseGold(getOwnerId(), coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+            objectsController.addLooseGold(coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         }
     }
 
@@ -1182,21 +1270,23 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void setCreatureLair(EntityId lairId) {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-        entityData.setComponent(entityId, new CreatureSleep(lairId, creatureSleep.lastSleepTime, creatureSleep.sleepStartTime));
+        CreatureSleep updated = new CreatureSleep(creatureSleep);
+        updated.lairObjectId = lairId;
+        entityData.setComponent(entityId, updated);
     }
 
     @Override
     public void sleep() {
-        entityData.setComponent(entityId, new CreatureRecuperating(gameTimer.getGameTime(), gameTimer.getGameTime()));
-        if (isNeedForRecuperating()) {
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.RECUPERATING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.RECUPERATING);
-        } else {
-            CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
-            entityData.setComponent(entityId, new CreatureSleep(creatureSleep.lairObjectId, creatureSleep.lastSleepTime, gameTimer.getGameTime()));
-            // entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.SLEEPING, creature.getCreatureId()));
-            stateMachine.changeState(CreatureState.SLEEPING);
-        }
+        double gameTime = gameTimer.getGameTime();
+        // Native lair recovery uses global second boundaries, not a full second after entry.
+        double recoveryTime = Math.floor(gameTime);
+        entityData.setComponent(entityId, new CreatureRecuperating(gameTime, recoveryTime, recoveryTime));
+        CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
+        CreatureSleep updated = new CreatureSleep(creatureSleep);
+        updated.lastSleepTime = gameTime;
+        updated.sleepStartTime = gameTime;
+        entityData.setComponent(entityId, updated);
+        stateMachine.changeState(CreatureState.SLEEPING);
     }
 
     @Override
@@ -1213,7 +1303,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Written here and not at the end of the tick, so that the state time restarts also when the creature
         // was down already. That keeps a creature that is struck over and over down
-        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId()));
+        entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId(),
+                entityData.getComponent(entityId, CreatureAi.class).getTargetState()));
     }
 
     private boolean isAlly(EntityId entity) {
@@ -1370,6 +1461,16 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean goToEat() {
+        double gameTime = gameTimer.getGameTime();
+        CreatureHunger hunger = entityData.getComponent(entityId, CreatureHunger.class);
+        if (hunger == null || gameTime - hunger.lastEatAttemptTime
+                < EAT_ATTEMPT_INTERVAL_TICKS / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()) {
+            return false;
+        }
+        // Native attempts are throttled to one per four ticks
+        CreatureHunger updated = new CreatureHunger(hunger.lastEatTime, hunger.amountNeeded);
+        updated.lastEatAttemptTime = gameTime;
+        entityData.setComponent(entityId, updated);
         return taskManager.assignEatTask(this);
     }
 
@@ -1412,9 +1513,9 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public int getResearchPerSecond() {
+    public int getResearchPerTick() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.researchPerSecond;
+        return creatureComponent.researchPerTick;
     }
 
     @Override
@@ -1470,6 +1571,137 @@ public final class CreatureController extends EntityController implements ICreat
                     sideways * POSSESSED_STRAFE_SPEED_FACTOR).length();
         }
         entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
+    }
+
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        Possessed possessed = entityData.getComponent(entityId, Possessed.class);
+        if (possessed == null) {
+            return;
+        }
+        if (attacking) {
+            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, true, gameTimer.getGameTime()));
+        } else if (possessed.isAttackPending()) {
+
+            // A click shorter than a logic tick still gets its one swing
+            double pressTime = hasSwungSince(possessed.attackPressTime) ? Double.NaN : possessed.attackPressTime;
+            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, false, pressTime));
+        }
+    }
+
+    private boolean hasSwungSince(double time) {
+        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        return meleeAttack == null || (meleeAttack.attactStartTime != null && meleeAttack.attactStartTime >= time);
+    }
+
+    @Override
+    public void executePossessedAttack() {
+        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (meleeAttack == null || position == null) {
+            return;
+        }
+
+        // The creature fights differently in first person, see the first person stats
+        CreatureMeleeAttack firstPersonAttack = new CreatureMeleeAttack(meleeAttack);
+        firstPersonAttack.damage = firstPersonAttack.damage * getFirstPersonPercentage(Variable.CreatureStats.StatType.MELEE_DAMAGE) / 100;
+        firstPersonAttack.rechargeTime = firstPersonAttack.rechargeTime * getFirstPersonPercentage(Variable.CreatureStats.StatType.MELEE_RECHARGE_TIME_SECONDS) / 100
+                * getFirstPersonRechargeModifyPercentage() / 100;
+        if (!isAttackRecharged(firstPersonAttack)) {
+            return;
+        }
+
+        // Nothing to hit, a worker digs but others don't swing at all
+        EntityId target = getPossessedAttackTarget(position);
+        if (target != null) {
+            hitWithMelee(target, meleeAttack, firstPersonAttack.damage);
+        } else if (isWorker() && digTileInFront(position)) {
+            entityData.setComponent(entityId, new CreatureMeleeAttack(meleeAttack, gameTimer.getGameTime()));
+        } else {
+            return;
+        }
+        entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK));
+    }
+
+    /**
+     * Finds what the possessed creature hits: the nearest target on the tiles
+     * around it that is within the cone in front of it. The melee range of the
+     * creature doesn't matter here.
+     *
+     * @param position the position of the possessed creature
+     * @return the target to hit, or {@code null} if there is nothing to hit
+     */
+    private EntityId getPossessedAttackTarget(Position position) {
+        EntityId nearestTarget = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (Point tile : WorldUtils.getSurroundingTiles(mapController.getMapData(), WorldUtils.vectorToPoint(position.position), true)) {
+            for (EntityId entity : entityPositionLookup.getEntitiesInLocation(tile)) {
+                float distance = getDistanceToCreature(entity);
+                if (distance < nearestDistance && isPossessedAttackTarget(entity) && isInFront(position, entity)) {
+                    nearestDistance = distance;
+                    nearestTarget = entity;
+                }
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    /**
+     * Can the possessed creature hit the entity with its melee attack. Any
+     * creature but our own, also neutral and allied ones. Doors, traps and the
+     * Dungeon Heart can be added here.
+     *
+     * @param entity the entity in reach
+     * @return true if the entity is something to hit
+     */
+    private boolean isPossessedAttackTarget(EntityId entity) {
+        Owner owner = entityData.getComponent(entity, Owner.class);
+        return !entityId.equals(entity) && creaturesController.isValidEntity(entity)
+                && owner != null && owner.ownerId != getOwnerId() && !isIncapacitated(entity);
+    }
+
+    private boolean isInFront(Position position, EntityId entity) {
+        Vector3f targetPosition = getPosition(entityData, entity);
+        float dx = targetPosition.x - position.position.x;
+        float dz = targetPosition.z - position.position.z;
+        float length = FastMath.sqrt(dx * dx + dz * dz);
+        if (length == 0) {
+            return true;
+        }
+
+        float facing = (FastMath.sin(position.rotation) * dx + FastMath.cos(position.rotation) * dz) / length;
+        return facing >= POSSESSED_ATTACK_MIN_FACING;
+    }
+
+    /**
+     * A possessed worker digs the tile next to it in the direction it is
+     * facing. Dirt, gold, gems and walls can be dug, also our own walls.
+     *
+     * @param position the position of the possessed worker
+     * @return true if there was something to dig
+     */
+    private boolean digTileInFront(Position position) {
+        float x = FastMath.sin(position.rotation);
+        float z = FastMath.cos(position.rotation);
+        Point tile = WorldUtils.vectorToPoint(position.position);
+        if (Math.abs(x) >= Math.abs(z)) {
+            tile = new Point(tile.x + (x > 0 ? 1 : -1), tile.y);
+        } else {
+            tile = new Point(tile.x, tile.y + (z > 0 ? 1 : -1));
+        }
+
+        IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+        if (mapTile == null) {
+            return false;
+        }
+        Set<Terrain.TerrainFlag> flags = mapController.getTerrain(mapTile).getFlags();
+        if (!flags.contains(Terrain.TerrainFlag.SOLID) || (flags.contains(Terrain.TerrainFlag.IMPENETRABLE) && mapTile.getGold() <= 0)) {
+            return false;
+        }
+
+        addGold(mapController.damageTile(tile, getOwnerId(), this));
+        return true;
     }
 
     private void startPossession() {

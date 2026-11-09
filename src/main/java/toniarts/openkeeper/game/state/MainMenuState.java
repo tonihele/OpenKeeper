@@ -24,9 +24,11 @@ import com.jme3.asset.TextureKey;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.input.InputManager;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Node;
+import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -70,6 +72,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.video.MovieState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 import toniarts.openkeeper.view.text.TextParser;
@@ -112,7 +115,8 @@ public final class MainMenuState extends AbstractAppState {
      * multiplayer.
      */
     private IKwdFile debriefingLevel;
-    private boolean debriefingIsCampaign;
+    private CampaignLevel debriefingCampaignLevel;
+    private boolean debriefingLevelWon;
 
     /**
      * The campaign level that was just won and for which the level cutscene (mentor speech + movie)
@@ -128,6 +132,7 @@ public final class MainMenuState extends AbstractAppState {
     private MainMenuEntityViewState mainMenuEntityViewState;
     private EffectManagerState effectManagerState;
     private GameController gameController;
+    private volatile MapViewController mapViewController;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     /**
@@ -183,12 +188,10 @@ public final class MainMenuState extends AbstractAppState {
         gameController.createNewGame();
 
         // Create the actual map
-        // DKII applies different decoration rules to the front end than to playable level maps.
-        // Front-end effects are handled separately, so do not generate automatic wall torches
-        // here, and the cave ceiling stays off - this scene is a fixed camera looking at a
-        // hand-placed diorama, not a dungeon being explored under fog of war.
+        // DKII generates room torch lights and optional meshes in the front end too.
+        // Keep the cave ceiling off for this fixed-camera scene.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
-                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, false, false) {
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true, false) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -199,6 +202,10 @@ public final class MainMenuState extends AbstractAppState {
 
         };
         menuNode.attachChild(mapLoader.load(assetManager, frontEndKwd));
+
+        // No fog of war here, so the whole scene is lit; update() drives the lights.
+        // Published only once the load is done (the load may run on a loader thread).
+        mapViewController = mapLoader;
 
         // Reflect current campaign progress (playable levels / arrow wiring) as soon
         // as the menu scene exists, not only on first visit to selectCampaignLevel.
@@ -215,10 +222,37 @@ public final class MainMenuState extends AbstractAppState {
         // by PlayerEntityViewState/MainMenuEntityViewState's RoomEffectContainer
         // once HeroGateFrontEndController's RoomEffect component appears)
         effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        // No PlayerMapViewState in the menu, the effects are lit by the menu map's own light rules
+        effectManagerState.setLightRulesSupplier(() -> {
+            MapViewController controller = mapViewController;
+            return controller != null ? controller.getLightRules() : null;
+        });
         app.getStateManager().attach(effectManagerState);
 
         // Init the skirmish and multiplayer maps selector
         mapSelector = new MapSelector();
+    }
+
+    @Override
+    public void update(float tpf) {
+        super.update(tpf);
+
+        // The terrain materials are only lit once the light data is uploaded every
+        // frame (flicker, pulse, ...), as PlayerMapViewState does
+        MapViewController controller = mapViewController;
+        if (controller != null && isEnabled() && app != null) {
+            Settings settings = Main.getUserSettings();
+            float ambient = settings.getFloat(Setting.AMBIENT_LIGHT);
+            controller.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+            controller.getLightRules().setCheapLighting(settings.getBoolean(Setting.CHEAP_LIGHTING));
+            controller.getLightRules().update(tpf, app.getCamera());
+
+            // Every animation change loads a new creature model, light them like creatures in the game
+            Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
+            if (mpdCreature != null) {
+                AssetUtils.applyVertexLight(assetManager, mpdCreature, controller.getLightRules(), false, false);
+            }
+        }
     }
 
     @Override
@@ -268,6 +302,7 @@ public final class MainMenuState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        mapViewController = null;
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);
             mainMenuEntityViewState = null;
@@ -688,19 +723,19 @@ public final class MainMenuState extends AbstractAppState {
      * @param result the game result
      * @param level the level that was just played; may be {@code null} to fall back to
      * {@link #selectedLevel}
-     * @param campaign whether the played level was a campaign level
+     * @param campaignLevel the played campaign level, {@code null} if it was not a campaign level
      */
-    public void doDebriefing(GameResult result, IKwdFile level, boolean campaign) {
+    public void doDebriefing(GameResult result, IKwdFile level, CampaignLevel campaignLevel) {
         debriefingLevel = level != null ? level : (selectedLevel != null ? selectedLevel.getKwdMap().load() : null);
-        debriefingIsCampaign = campaign || selectedLevel instanceof CampaignLevel;
+        debriefingCampaignLevel = campaignLevel != null ? campaignLevel
+                : (selectedLevel instanceof CampaignLevel lvl ? lvl : null);
         pendingDebriefing = result != null;
 
-        // FIXME: GameResult has no win/lose data yet (see showDebriefing()), so for now every
-        // completed campaign level is treated as won, same as the debriefing screen does
-        boolean levelWon = true;
-        pendingCutsceneLevel = (pendingDebriefing && debriefingIsCampaign && levelWon
-                && selectedLevel instanceof CampaignLevel lvl && lvl.getType() == CampaignLevel.LevelType.Level)
-                ? lvl : null;
+        // Only a won level gets the level-won cutscene and the winning debriefing
+        debriefingLevelWon = result != null && result.isLevelWon();
+        pendingCutsceneLevel = (pendingDebriefing && debriefingLevelWon && debriefingCampaignLevel != null
+                && debriefingCampaignLevel.getType() == CampaignLevel.LevelType.Level)
+                ? debriefingCampaignLevel : null;
 
         setEnabled(true);
 
@@ -737,7 +772,26 @@ public final class MainMenuState extends AbstractAppState {
      * @return {@code true} if it is a campaign level debriefing
      */
     public boolean isDebriefingCampaign() {
-        return debriefingIsCampaign;
+        return debriefingCampaignLevel != null;
+    }
+
+    /**
+     * Get the campaign level for which the debriefing is shown. It is the level that was played, not
+     * the one selected on the campaign map ({@link #selectedLevel}), which can be cleared by then.
+     *
+     * @return the played campaign level, or {@code null} if it was not a campaign level
+     */
+    public CampaignLevel getDebriefingCampaignLevel() {
+        return debriefingCampaignLevel;
+    }
+
+    /**
+     * See if the level of the debriefing being shown was won
+     *
+     * @return {@code true} if the level was won
+     */
+    public boolean isDebriefingLevelWon() {
+        return debriefingLevelWon;
     }
 
     /**
@@ -745,7 +799,8 @@ public final class MainMenuState extends AbstractAppState {
      */
     void clearDebriefing() {
         debriefingLevel = null;
-        debriefingIsCampaign = false;
+        debriefingCampaignLevel = null;
+        debriefingLevelWon = false;
     }
 
     /**
@@ -785,12 +840,21 @@ public final class MainMenuState extends AbstractAppState {
     /**
      * Main menu version of the player entity view state
      */
-    private static final class MainMenuEntityViewState extends PlayerEntityViewState {
+    private final class MainMenuEntityViewState extends PlayerEntityViewState {
 
         public MainMenuEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
             super(kwdFile, assetManager, entityData, playerId, textParser, rootNode);
 
             setId("MainMenu: " + playerId);
+        }
+
+        /**
+         * The menu has no PlayerMapViewState, the light rules are the menu map's own
+         */
+        @Override
+        protected LightRules getLightRules() {
+            MapViewController controller = mapViewController;
+            return controller != null ? controller.getLightRules() : null;
         }
 
     }
