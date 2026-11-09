@@ -297,7 +297,7 @@ public final class GameConsole {
         }
         gameClientState.getGameClientService().triggerTerrainCheat(
                 new Vector2f(Math.min(start.x, end.x), Math.min(start.y, end.y)),
-                new Vector2f(Math.max(start.x, end.x), Math.max(start.y, end.y)), terrainId);
+                new Vector2f(Math.max(start.x, end.x), Math.max(start.y, end.y)), terrainId, gameClientState.getPlayer().getId());
     }
 
     private Creature findCreature(final String name) {

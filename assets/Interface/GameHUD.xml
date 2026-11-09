@@ -388,6 +388,18 @@
                 </panel>
             </panel>
         </layer>
+        <!-- terrain change overlay, shown only while the terrain change cheat mode is on -->
+        <layer childLayout="horizontal">
+            <panel width="*" height="100%" />
+            <panel id="terrain-overlay" width="300px" height="190px" valign="center" childLayout="vertical"
+                   visible="false" visibleToMouse="true" backgroundColor="#000b" padding="10px">
+                <text style="textSmall" text="Terrain" />
+                <control name="dropDown" id="cheatTerrain" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Owner" />
+                <control name="dropDown" id="cheatOwner" width="100%" />
+            </panel>
+        </layer>
         <!-- console layer-->
         <layer childLayout="vertical">
             <control id="console" name="nifty-console" style="custom-console" lines="25" visible="false">

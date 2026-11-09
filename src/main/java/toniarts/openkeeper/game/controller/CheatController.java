@@ -75,7 +75,8 @@ public final class CheatController implements ICheatController {
             case RESURRECT_CREATURES:
             case DESTROY_DOORS:
             case INSTANT_DIG:
-            case CLAIM_LAND: {
+            case CLAIM_LAND:
+            case TERRAIN_CHANGE: {
                 toggle(cheat, playerId);
                 break;
             }
@@ -190,7 +191,7 @@ public final class CheatController implements ICheatController {
     }
 
     @Override
-    public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short playerId) {
+    public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId) {
         if (!gameWorldController.isCheat(playerId, CheatState.CheatType.GOD_MODE)) {
             return;
         }
@@ -220,7 +221,7 @@ public final class CheatController implements ICheatController {
             } else {
                 Terrain terrain = kwdFile.getTerrain(terrainId);
                 mapController.alterTerrain(p, terrainId,
-                        terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) ? playerId : Player.NEUTRAL_PLAYER_ID);
+                        terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) ? ownerId : Player.NEUTRAL_PLAYER_ID);
             }
         }
     }

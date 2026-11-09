@@ -82,9 +82,10 @@ public interface ICheatController {
      * @param start start coordinates
      * @param end end coordinates
      * @param terrainId the new terrain, or {@link #CLAIM_TERRAIN} to claim the area, rooms included
+     * @param ownerId the owner of the new terrain, if it can be owned, the neutral player for nobody
      * @param playerId the player in god mode
      */
-    void changeTerrain(Vector2f start, Vector2f end, short terrainId, short playerId);
+    void changeTerrain(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId);
 
     /**
      * Pseudo terrain id for {@link #changeTerrain}: claim instead of changing the terrain

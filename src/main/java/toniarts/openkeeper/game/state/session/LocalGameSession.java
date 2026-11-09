@@ -422,9 +422,9 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId) {
+    public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId, short ownerId) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onTerrainCheatTriggered(start, end, terrainId, PLAYER_ID);
+            listener.onTerrainCheatTriggered(start, end, terrainId, ownerId, PLAYER_ID);
         }
     }
 

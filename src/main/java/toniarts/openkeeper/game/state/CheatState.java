@@ -62,7 +62,8 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         RESURRECT_CREATURES(null),
         DESTROY_DOORS(null),
         INSTANT_DIG(null),
-        CLAIM_LAND(null);
+        CLAIM_LAND(null),
+        TERRAIN_CHANGE(null);
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {

@@ -511,6 +511,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      */
     private boolean isGodSelectable(Point p) {
         IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
+        if (gameClientState.isGodMode() && interactionState.getType() == Type.NONE && tile != null
+                && (gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND) || gameClientState.isCheat(CheatState.CheatType.TERRAIN_CHANGE))) {
+            // Area modes work on any tile
+            return true;
+        }
         return gameClientState.isGodMode() && interactionState.getType() == Type.NONE && tile != null
                 && gameClientState.getFogOfWarInformation().isExplored(p)
                 && gameClientState.getMapClientService().getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
@@ -740,8 +745,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private void onLeftMouseButtonReleased() {
             SelectionArea selectionArea = selectionHandler.getSelectionArea();
-            if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND)) {
-                gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), ICheatController.CLAIM_TERRAIN);
+            if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.TERRAIN_CHANGE)) {
+                PlayerScreenController screen = stateManager.getState(PlayerState.class).getScreen();
+                Short terrainId = screen.getSelectedCheatTerrain();
+                if (terrainId != null) {
+                    gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), terrainId, screen.getSelectedCheatOwner());
+                }
+            } else if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND)) {
+                gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), ICheatController.CLAIM_TERRAIN, player.getPlayerId());
             } else if (interactionState.getType() == Type.NONE
                     || (interactionState.getType() == Type.ROOM
                     && gameClientState.getFogOfWarInformation().isHighlightable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {

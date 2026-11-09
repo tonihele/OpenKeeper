@@ -182,10 +182,11 @@ public interface GameSessionServiceListener {
      * @param start start coordinates
      * @param end end coordinates
      * @param terrainId the new terrain, or {@code -1} to claim the area instead
+     * @param ownerId the new owner of the terrain, if it can be owned
      * @param playerId the player who wants to cheat
      */
     @Asynchronous
-    public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short playerId);
+    public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId);
 
     /**
      * Player wants to steer the possessed creature

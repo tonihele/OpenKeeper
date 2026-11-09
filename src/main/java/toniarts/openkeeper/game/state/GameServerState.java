@@ -331,8 +331,8 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
-        public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short playerId) {
-            cheatController.changeTerrain(start, end, terrainId, playerId);
+        public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId) {
+            cheatController.changeTerrain(start, end, terrainId, ownerId, playerId);
         }
 
         @Override

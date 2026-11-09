@@ -65,6 +65,7 @@ import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -93,6 +94,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private final Short playerId;
     private final Set<CheatState.CheatType> cheats = ConcurrentHashMap.newKeySet();
+    private final Set<CheatState.CheatType> suspendedCheats = new HashSet<>();
     private final boolean multiplayer;
     private final List<ClientInfo> clientInfos;
     private final Map<Short, String> networkPlayerNames;
@@ -397,8 +399,25 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
         getGameClientService().triggerCheat(cheat);
 
+        // The terrain change mode stands alone, the other modes wait until it is over
+        if (cheat == CheatState.CheatType.TERRAIN_CHANGE) {
+            if (enabled) {
+                for (CheatState.CheatType other : List.copyOf(cheats)) {
+                    if (other != CheatState.CheatType.GOD_MODE && other != cheat) {
+                        suspendedCheats.add(other);
+                        toggleCheatMode(other);
+                    }
+                }
+            } else {
+                Set<CheatState.CheatType> resumed = Set.copyOf(suspendedCheats);
+                suspendedCheats.clear();
+                resumed.forEach(this::toggleCheatMode);
+            }
+        }
+
         // The cheat tab is for gods only, no god, no leftover cheats
         if (cheat == CheatState.CheatType.GOD_MODE && !enabled) {
+            suspendedCheats.clear();
             for (CheatState.CheatType other : List.copyOf(cheats)) {
                 toggleCheatMode(other);
             }

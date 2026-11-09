@@ -33,10 +33,8 @@ import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.ControlDefinitionBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
-import de.lessvoid.nifty.controls.Console;
+import de.lessvoid.nifty.controls.*;
 import de.lessvoid.nifty.controls.Label;
-import de.lessvoid.nifty.controls.Tab;
-import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.controls.listbox.builder.ListBoxBuilder;
 import de.lessvoid.nifty.controls.textfield.builder.TextFieldBuilder;
@@ -1177,6 +1175,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (state.stateManager.getState(GameClientState.class).isMultiplayer()) {
             return;
         }
+        populateTerrainOverlay();
         FlowLayoutControl contentPanel = nifty.getScreen(SCREEN_HUD_ID).findElementById("tab-god-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.KILL_CREATURES, "Specials/SP-Kill", "Kill creatures: right click a creature"));
@@ -1184,7 +1183,58 @@ public final class PlayerScreenController implements IPlayerScreenController {
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.DESTROY_DOORS, "Doors/wood_door", "Destroy doors: right click a door"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.TERRAIN_CHANGE, "C-Spells/c-Armour", "Terrain change: choose the terrain and its owner on the right, drag over an area to change it. Switches the other cheats off while on."));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.INSTANT_DIG, "Specials/SP-Destroy_Walls", "Instant digging: tag tiles to dig them out at once"));
+    }
+
+    private record Choice(short id, String name) {
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void populateTerrainOverlay() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+
+        DropDown<Choice> terrains = hud.findNiftyControl("cheatTerrain", DropDown.class);
+        terrains.clear();
+        state.getKwdFile().getTerrainList().stream()
+                .map(terrain -> new Choice(terrain.getTerrainId(), terrain.getName() + " (" + terrain.getTerrainId() + ")"))
+                .sorted(Comparator.comparing(Choice::name, String.CASE_INSENSITIVE_ORDER))
+                .forEach(terrains::addItem);
+        terrains.selectItemByIndex(0);
+
+        DropDown<Choice> owners = hud.findNiftyControl("cheatOwner", DropDown.class);
+        owners.clear();
+        owners.addItem(new Choice(Player.NEUTRAL_PLAYER_ID, "Nobody"));
+        client.getPlayers().stream()
+                .filter(keeper -> keeper.getId() >= Player.KEEPER1_ID)
+                .forEach(keeper -> owners.addItem(new Choice(keeper.getId(), client.getPlayerName(keeper))));
+        owners.selectItemByIndex(0);
+    }
+
+    /**
+     * @return the terrain chosen in the terrain change overlay, {@code null} if none
+     */
+    @SuppressWarnings("unchecked")
+    public Short getSelectedCheatTerrain() {
+        DropDown<Choice> terrains = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatTerrain", DropDown.class);
+        Choice choice = terrains != null ? terrains.getSelection() : null;
+        return choice != null ? choice.id() : null;
+    }
+
+    /**
+     * @return the owner chosen in the terrain change overlay, the neutral player for nobody
+     */
+    @SuppressWarnings("unchecked")
+    public short getSelectedCheatOwner() {
+        DropDown<Choice> owners = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatOwner", DropDown.class);
+        Choice choice = owners != null ? owners.getSelection() : null;
+        return choice != null ? choice.id() : Player.NEUTRAL_PLAYER_ID;
     }
 
     private ControlBuilder createCheatIcon(CheatState.CheatType cheat, String icon, String tooltip) {
@@ -1203,6 +1253,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     @Override
     public void toggleCheat(String cheatName) {
         CheatState.CheatType cheat = CheatState.CheatType.valueOf(cheatName);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+        if (client.isCheat(CheatState.CheatType.TERRAIN_CHANGE) && cheat != CheatState.CheatType.TERRAIN_CHANGE) {
+            // Terrain change mode stands alone
+            return;
+        }
         if (cheat == CheatState.CheatType.REMOVE_FOW) {
             // The fog of war is removed on the first click and reset on the next
             fogOfWarRemoved = !fogOfWarRemoved;
@@ -1229,6 +1284,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         CustomTabGroupControl tabGroup = hud.findElementById("tabs-hud").getControl(CustomTabGroupControl.class);
         if (tab != null && tabGroup != null) {
             tabGroup.setTabButtonVisible(tab.getNiftyControl(Tab.class), client.isGodMode() && !client.isMultiplayer());
+        }
+        Element overlay = hud.findElementById("terrain-overlay");
+        if (overlay != null) {
+            overlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.TERRAIN_CHANGE));
         }
         for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
             Element button = cheat.isMode() ? hud.findElementById("cheat_" + cheat.name()) : null;

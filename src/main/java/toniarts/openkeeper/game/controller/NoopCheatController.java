@@ -55,7 +55,7 @@ public final class NoopCheatController implements ICheatController {
     }
 
     @Override
-    public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short playerId) {
+    public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId) {
         // No cheating in multiplayer
     }
 
