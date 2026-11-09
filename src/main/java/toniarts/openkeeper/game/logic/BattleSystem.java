@@ -30,6 +30,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.Battle;
 import toniarts.openkeeper.game.component.BattleMember;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -104,7 +105,10 @@ public final class BattleSystem implements IGameLogicUpdatable {
     }
 
     private boolean isFighting(EntityId creature, CreatureAi creatureAi) {
-        if (creatureAi.getCreatureState() != CreatureState.FIGHT) {
+
+        // Fights in the Combat Pit are no battle
+        if (creatureAi.getCreatureState() != CreatureState.FIGHT
+                || entityData.getComponent(creature, CombatPitFighter.class) != null) {
             return false;
         }
         AttackTarget attackTarget = entityData.getComponent(creature, AttackTarget.class);
