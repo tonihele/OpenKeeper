@@ -25,8 +25,10 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -211,7 +213,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Should we attack, try to avoid i.e. imps engaging in a fight
         if ((creature.getFightStyle()
-                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null) {
+                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null
+                && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
             }
@@ -862,6 +865,76 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean shouldNavigateToFollowTarget() {
         return (isStopped() && getDistanceToCreature(getFollowTarget().getEntityId()) > 1.5f) || (getDistanceToCreature(getFollowTarget().getEntityId()) > 2.5f);
+    }
+
+    @Override
+    public boolean answerCallToArms(EntityId banner) {
+        Position bannerPosition = entityData.getComponent(banner, Position.class);
+        if (bannerPosition == null) {
+            return false;
+        }
+        Point destination = WorldUtils.vectorToPoint(bannerPosition.position);
+        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
+        if (path == null) {
+            return false;
+        }
+
+        stateMachine.changeState(CreatureState.CALL_TO_ARMS);
+        setFollowTarget(banner);
+        entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+        return true;
+    }
+
+    @Override
+    public boolean heedCallToArms() {
+        FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
+        if (followTarget == null || entityData.getComponent(followTarget.entityId, CallToArms.class) == null) {
+            return false;
+        }
+
+        // Wait while the keeper carries the banner
+        Position bannerPosition = entityData.getComponent(followTarget.entityId, Position.class);
+        if (bannerPosition == null || shouldFleeOrAttack()) {
+            return true;
+        }
+        if (!isStopped()) {
+            return true;
+        }
+
+        // Go to the banner, or mill about it when there
+        Point banner = WorldUtils.vectorToPoint(bannerPosition.position);
+        Point ourPosition = getCreatureCoordinates();
+        if (Math.max(Math.abs(ourPosition.x - banner.x), Math.abs(ourPosition.y - banner.y)) > 2) {
+            if (createNavigation(ourPosition, banner, null)) {
+                gameEventService.emitToPlayer(GameEventType.CALL_TO_ARMS_UNREACHABLE, getOwnerId());
+                return false;
+            }
+        } else {
+            navigateToRandomPointAroundTarget(followTarget.entityId, 2);
+        }
+        return true;
+    }
+
+    /**
+     * While its keeper has a Call to Arms banner up, a creature only starts a
+     * fight near the banner
+     *
+     * @return true if we may start a fight here
+     */
+    private boolean isNearCallToArms() {
+        Vector3f ourPosition = getPosition();
+        if (ourPosition == null) {
+            return true;
+        }
+        for (EntityId banner : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", getOwnerId()), CallToArms.class, Owner.class)) {
+            CallToArms callToArms = entityData.getComponent(banner, CallToArms.class);
+            Position bannerPosition = entityData.getComponent(banner, Position.class);
+            if (callToArms != null && callToArms.isUp() && bannerPosition != null
+                    && bannerPosition.position.distance(ourPosition) > gameSettings.get(Variable.MiscVariable.MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES).getValue() * WorldUtils.TILE_WIDTH) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
