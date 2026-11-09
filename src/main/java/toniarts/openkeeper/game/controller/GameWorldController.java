@@ -24,6 +24,9 @@ import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -129,6 +132,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final ServerEventDispatcher serverEvents;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -146,6 +150,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
+        this.serverEvents = gameController.getServerEvents();
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1165,6 +1170,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                serverEvents.enqueue(ServerEvents.CREATURE_SLAPPED, new CreatureEvent(entity));
                 notifySlap(entity, playerId);
             }
             return;

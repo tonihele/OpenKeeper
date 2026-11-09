@@ -24,6 +24,9 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
+import toniarts.openkeeper.game.event.ServerEvents;
+import toniarts.openkeeper.game.event.ServerEvents.CreatureEvent;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -140,6 +143,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final ILevelInfo levelInfo;
     private final IShotsController shotsController;
     private final GameEventService gameEventService;
+    private final ServerEventDispatcher serverEvents;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -148,7 +152,8 @@ public final class CreatureController extends EntityController implements ICreat
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController, GameEventService gameEventService) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController,
+            GameEventService gameEventService, ServerEventDispatcher serverEvents) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -160,6 +165,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
         this.gameEventService = gameEventService;
+        this.serverEvents = serverEvents;
         this.stateMachine = new DefaultStateMachine<>(this) {
             @Override
             public void changeState(CreatureState newState) {
@@ -193,6 +199,11 @@ public final class CreatureController extends EntityController implements ICreat
                     || isHealthAtCriticalLevel() ? threat : getOurThreat();
             if (threatToUs - threatCaused > fear && (getFellowFighters() == 0
                     || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
+
+                // DKII delivers fear before escape, but skips an already active escape.
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
+                    serverEvents.publishNow(ServerEvents.CREATURE_AFRAID, new CreatureEvent(entityId));
+                }
 
                 // No longer flee from DHeart
                 IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());

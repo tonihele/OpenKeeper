@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.ServerEventDispatcher;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -48,6 +49,9 @@ public interface IGameController {
      * @param playerTwoId player ID 2
      */
     void createAlliance(short playerOneId, short playerTwoId);
+
+    /** Shared server gameplay bus; owned by this game session. */
+    ServerEventDispatcher getServerEvents();
 
     GameResult getGameResult();
 
