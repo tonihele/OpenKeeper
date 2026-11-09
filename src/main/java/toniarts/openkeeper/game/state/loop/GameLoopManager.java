@@ -25,12 +25,14 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.BattleSystem;
+import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
 import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
+import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureTorturingSystem;
 import toniarts.openkeeper.game.logic.CreatureViewSystem;
@@ -83,10 +85,10 @@ public final class GameLoopManager {
      */
     public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
         this.gameService = gameService;
-        final EntityData entityData = gameService.getEntityData();
+        final EntityData entityData = gameService.getServerEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
 
-        gameController = new GameController(level, players, gameService.getEntityData(), gameSettings, gameService);
+        gameController = new GameController(level, players, gameService.getServerEntityData(), gameSettings, gameService);
         final ILevelInfo levelInfo = gameController.getLevelInfo();
         final IGameWorldController gameWorldController = gameController.getGameWorldController();
         final IEntityPositionLookup positionSystem = gameController.getEntityLookupService();
@@ -103,10 +105,14 @@ public final class GameLoopManager {
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS)),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
-                new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
+                new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
+                        gameController.getGameTimer()),
+                new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
+                        gameController.getGameTimer(), gameSettings),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
-                        levelInfo, playerControllers.values(), gameWorldController.getMapController(), gameEventService),
+                        levelInfo, playerControllers.values(), gameWorldController.getMapController(),
+                        gameController.getGameTimer(), gameEventService),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
@@ -116,10 +122,12 @@ public final class GameLoopManager {
                 new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
                         gameSettings, levelInfo, gameWorldController.getMapController(), gameEventService),
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
-                        playerControllers.values(), gameSettings, levelInfo, gameWorldController.getMapController()),
+                        playerControllers.values(), gameSettings, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
+                new CallToArmsSystem(entityData, level, playerControllers.values(),
+                        gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),

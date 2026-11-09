@@ -370,6 +370,19 @@
                         <panel height="64px" childLayout="horizontal">
                             <!-- place for fight or call to arm -->
                             <control name="fight" id="battleButton" visible="false" />
+                            <!-- Call to Arms banner raised, as in the original: click to take it down, right-click to zoom -->
+                            <image id="callToArms" filename="Textures/GUI/Spells/call_to_arms-kill.png" valign="center"
+                                   visible="false" visibleToMouse="true">
+                                <interact onPrimaryClick="cancelCallToArms()" onSecondaryClick="zoomToCallToArms()" />
+                                <effect>
+                                    <onHover name="imageOverlay" filename="Textures/GUI/Icons/frame.png" post="true" neverStopRendering="true" />
+                                    <onActive name="imageOverlayPulsate" filename="Textures/GUI/Spells/call_to_arms-kill-2.png"
+                                              post="true" neverStopRendering="true" />
+                                    <onHover name="hint" hintText="${menu.2589}" hintDelay="200" />
+                                    <onHover name="simpleHintEx" hintText="${menu.2590}" targetElement="tooltip" />
+                                    <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
+                                </effect>
+                            </image>
                         </panel>
                         <!-- Reaper -->
                         <panel childLayout="center" align="center" valign="center" height="*" width="100%">

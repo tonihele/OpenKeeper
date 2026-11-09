@@ -41,6 +41,7 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_TWO_ID = 134;
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
+    private static final int EFFECT_3DFE_LIGHTBEAMS = 349;
     private static final int EFFECT_3DFE_GEMS = 350;
 
     public HeroGateFrontEndController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
@@ -67,6 +68,10 @@ public final class HeroGateFrontEndController extends NormalRoomController {
                     addCandles(p);
 
                     entityData.setComponent(entityId, new RoomEffect(EFFECT_3DFE_GEMS, p));
+
+                    // RoomEffect holds a single effect, so the light beams get an entity of their own
+                    EntityId beamsEntityId = entityData.createEntity();
+                    entityData.setComponent(beamsEntityId, new RoomEffect(EFFECT_3DFE_LIGHTBEAMS, p, FastMath.PI, -0.5f));
                     break;
                 case 5:
 

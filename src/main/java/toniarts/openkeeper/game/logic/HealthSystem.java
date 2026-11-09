@@ -26,8 +26,11 @@ import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
+import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
@@ -41,6 +44,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -67,6 +71,7 @@ import java.util.Set;
 public final class HealthSystem extends GameTimeCounter {
 
     private final EntityData entityData;
+    private final IGameTimer gameTimer;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
@@ -89,9 +94,10 @@ public final class HealthSystem extends GameTimeCounter {
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, ILevelInfo levelInfo,
             Collection<IPlayerController> playerControllers, IMapController mapController,
-            GameEventService gameEventService) {
+            IGameTimer gameTimer, GameEventService gameEventService) {
 
         this.entityData = entityData;
+        this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
         this.levelInfo = levelInfo;
@@ -145,6 +151,8 @@ public final class HealthSystem extends GameTimeCounter {
             entityData.removeComponent(entity.getId(), Unconscious.class);
         }
 
+        double gameTime = gameTimer.getGameTime();
+
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
             Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
@@ -162,8 +170,9 @@ public final class HealthSystem extends GameTimeCounter {
             if (health == null) {
                 continue;
             }
+            delayAttacksWhenBadlyHurt(entityId, health, tpf);
 
-            int healthChange = calculateHealthChange(entityId, health, timeElapsed);
+            int healthChange = calculateHealthChange(entityId, health, timeElapsed, gameTime);
             if (healthChange == 0) {
                 continue;
             }
@@ -173,6 +182,36 @@ public final class HealthSystem extends GameTimeCounter {
                 processHealthDepleted(entityId, health);
             } else {
                 entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
+            }
+        }
+    }
+
+    /**
+     * A creature other than a worker attacks and casts slower below a fifth of
+     * its health. DK II pushes its last melee and spell times on by a tick
+     * every other tick, so here they are pushed on by half the tick
+     *
+     * @param entityId the entity
+     * @param health its health
+     * @param tpf the length of the tick
+     */
+    private void delayAttacksWhenBadlyHurt(EntityId entityId, Health health, float tpf) {
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        if (creature == null || creature.worker || health.health >= health.maxHealth * 20 / 100) {
+            return;
+        }
+        double delay = tpf / 2.0;
+        CreatureMeleeAttack melee = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        if (melee != null && melee.attactStartTime != null) {
+            entityData.setComponent(entityId, new CreatureMeleeAttack(melee, melee.attactStartTime + delay));
+        }
+        CreatureSpells spells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (spells != null) {
+            for (EntityId spellId : spells.creatureSpells) {
+                CreatureSpell spell = entityData.getComponent(spellId, CreatureSpell.class);
+                if (spell != null && spell.attactStartTime != null) {
+                    entityData.setComponent(spellId, new CreatureSpell(spell, spell.attactStartTime + delay));
+                }
             }
         }
     }
@@ -270,7 +309,7 @@ public final class HealthSystem extends GameTimeCounter {
                 .getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY);
     }
 
-    private int calculateHealthChange(EntityId entityId, Health health, double gameTime) {
+    private int calculateHealthChange(EntityId entityId, Health health, double elapsedTime, double gameTime) {
         int delta = 0;
 
         // Damage (or healing)
@@ -290,7 +329,7 @@ public final class HealthSystem extends GameTimeCounter {
         entity = imprisonedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
-            if (gameTime - imprisoned.healthCheckTime >= 1) {
+            if (elapsedTime - imprisoned.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
                 delta += healthRegeneratePerSecondImprisoned;
 
@@ -302,7 +341,7 @@ public final class HealthSystem extends GameTimeCounter {
         entity = torturedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
-            if (gameTime - tortured.healthCheckTime >= 1) {
+            if (elapsedTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
                 entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1));
                 delta += tortureHealthRegeneratePerSecond;
@@ -323,8 +362,8 @@ public final class HealthSystem extends GameTimeCounter {
                     // In own land
                     Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
                     if (lastTimeOnOwnLand == null) {
-                        setTimeOwnOwnLand(regeneration, entityId, gameTime);
-                    } else if (gameTime - lastTimeOnOwnLand >= 1) {
+                        setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
+                    } else if (elapsedTime - lastTimeOnOwnLand >= 1) {
                         delta += regeneration.ownLandHealthIncrease;
                     }
                 } else {
@@ -339,8 +378,13 @@ public final class HealthSystem extends GameTimeCounter {
         entity = recuperatingEntities.getEntity(entityId);
         if (entity != null) {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
+            // Recovery uses the shared gameTime, matching lair mood recovery.
+            // The local elapsedTime used above is one update ahead in the loop.
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
-                entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureRecuperating(
+                        creatureRecuperating.startTime,
+                        creatureRecuperating.healthCheckTime + 1,
+                        creatureRecuperating.moodCheckTime));
                 delta += healthRegeneratePerSecond;
             }
         }
