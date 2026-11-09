@@ -94,9 +94,9 @@ public interface ObjectiveTask extends Task {
             if (nextTask != null) {
                 if (nextTask instanceof ObjectiveTask && ((ObjectiveTask) nextTask).isWorkerPartyTask() && creature.getParty() != null) {
 
-                    // Assign to all workers
+                    // Assign to all workers, a dead or knocked out member is still in the party
                     for (ICreatureController c : creature.getParty().getActualMembers()) {
-                        if (!c.equals(creature) && c.isWorker() && nextTask.canAssign(c)) {
+                        if (!c.equals(creature) && !c.isIncapacitated() && c.isWorker() && nextTask.canAssign(c)) {
                             nextTask.assign(c, true);
                         }
                     }
