@@ -57,6 +57,7 @@ import java.nio.FloatBuffer;
 import java.util.*;
 
 import static toniarts.openkeeper.view.lighting.LightConstants.CLAIM_SCAN_LIGHT_INTENSITY;
+import static toniarts.openkeeper.view.lighting.LightConstants.DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK;
 
 /**
  * Loads whole maps, and handles the maps
@@ -1060,8 +1061,6 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             } else {
                 name = null;
             }
-            position.y = room.getTorchHeight();
-            lightHeight = room.getTorchHeight();
 
             Color torchColor = room.getTorchColor();
             if (torchColor == null) {
@@ -1071,8 +1070,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             int torchRed = LightConstants.withBonus(torchColor.getRed(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_RED), LightConstants.TORCH_OVER_BRIGHT_BONUS);
             int torchGreen = LightConstants.withBonus(torchColor.getGreen(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_GREEN), LightConstants.TORCH_OVER_BRIGHT_BONUS);
             int torchBlue = LightConstants.withBonus(torchColor.getBlue(), room.getFlags().contains(Room.RoomFlag.TORCH_COLOR_BLUE), LightConstants.TORCH_OVER_BRIGHT_BONUS);
+            boolean defaultLight = false;
             if (torchRed == 0 && torchGreen == 0 && torchBlue == 0) {
-                return; // A room with torchColor == 0 has no torches
+                defaultLight = true;
+                torchRed = LightConstants.getDefaultTorchLightRed(kwdFile);
+                torchGreen = LightConstants.getDefaultTorchLightGreen(kwdFile);
+                torchBlue = LightConstants.getDefaultTorchLightBlue(kwdFile);
             }
             torchRed = Math.min(torchRed, LightConstants.TORCH_MAX_CHANNEL);
             torchGreen = Math.min(torchGreen, LightConstants.TORCH_MAX_CHANNEL);
@@ -1081,8 +1084,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             red = torchRed;
             green = torchGreen;
             blue = torchBlue;
-            intensity = room.getTorchIntensity() / 128f;
-            radius = room.getTorchRadius();
+            intensity = defaultLight ? LightConstants.getDefaultTorchLightIntensity(kwdFile) : room.getTorchIntensity() / 128f;
+            radius = defaultLight ? LightConstants.getDefaultTorchLightRadiusTiles(kwdFile) : room.getTorchRadius();
+            position.y = lightHeight = defaultLight ? DEFAULT_TORCH_LIGHT_HEIGHT_TILES_FALLBACK : room.getTorchHeight();
             maxRadius = LightConstants.TORCH_LIGHT_MAX_RADIUS_TILES;
         } else {
             red = LightConstants.getDefaultTorchLightRed(kwdFile);
