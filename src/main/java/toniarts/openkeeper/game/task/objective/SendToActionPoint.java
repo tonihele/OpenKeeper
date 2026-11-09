@@ -52,7 +52,10 @@ public final class SendToActionPoint extends GoToTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // TODO: Wait delay
+        // The creature waits at the point for its wait delay (seconds) before moving on
+        if (executionDuration < actionPoint.getWaitDelay()) {
+            return;
+        }
         executed = true;
         if (actionPoint.getNextWaypointId() != 0) {
 
