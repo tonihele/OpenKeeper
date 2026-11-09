@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.sound.GameEventSoundPlayer;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.modelviewer.Debug;
@@ -184,7 +185,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         flashTileControl = new FlashTileViewState(mapLoader);
 
-        gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile);
+        gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile,
+                speech -> stateManager.getState(SoundState.class)
+                        .attachMentorSpeech(speech, null));
 
         // Start collecting the map entities. In a local game the whole map is
         // there already and start() loads it, over the network see initialize()
