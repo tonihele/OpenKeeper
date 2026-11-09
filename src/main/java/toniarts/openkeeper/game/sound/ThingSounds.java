@@ -55,6 +55,7 @@ public final class ThingSounds {
     public static final int CREATURE_SULK = 0xDE;
     public static final int CREATURE_ENTRANCE = 0xE0;
     public static final int CREATURE_DRINK = 0xE1;
+    public static final int CREATURE_SACRIFICE = 0xE2;
     public static final int CREATURE_FALL = 0xE6;
     public static final int CREATURE_DIG = 0x334;
     public static final int CREATURE_CLAIM = 0x10A; // claiming a tile, 0x109 sounds like digging

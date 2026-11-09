@@ -68,6 +68,18 @@ public final class TempleFixtures {
     }
 
     /**
+     * Gives a recipe the mentor's speech
+     *
+     * @param sacrifice the recipe
+     * @param speechId the speech id
+     * @return the recipe
+     */
+    public static Variable.Sacrifice withSpeech(Variable.Sacrifice sacrifice, int speechId) {
+        sacrifice.setSpeechId((short) speechId);
+        return sacrifice;
+    }
+
+    /**
      * The Temple room, without any floor or wall objects
      *
      * @return the room

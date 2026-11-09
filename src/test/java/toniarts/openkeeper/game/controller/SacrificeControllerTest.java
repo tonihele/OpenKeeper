@@ -34,6 +34,9 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.TempleFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -62,6 +65,7 @@ class SacrificeControllerTest {
     private Keeper keeper;
     private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<List<Object>> events = new ArrayList<>();
     private SacrificeController sacrificeController;
 
     @BeforeEach
@@ -101,9 +105,55 @@ class SacrificeControllerTest {
         List<Variable.Sacrifice> recipes = List.of(
                 TempleFixtures.creatureSacrifice(SacrificeRewardType.OBJECT, CRATE_ALARM, IMP, DARK_ELF),
                 TempleFixtures.creatureSacrifice(SacrificeRewardType.CREATURE, SKELETON, MISTRESS, MISTRESS),
-                TempleFixtures.creatureSacrifice(SacrificeRewardType.MANA, 5000, TROLL, TROLL));
+                TempleFixtures.withSpeech(TempleFixtures.creatureSacrifice(SacrificeRewardType.MANA, 5000, TROLL, TROLL), 24));
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(
+                GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class},
+                (proxy, method, args) -> {
+                    events.add(List.of(args));
+                    return null;
+                });
         sacrificeController = new SacrificeController(entityData, recipes, creaturesController(), objectsController,
-                null, Map.of(OWNER, playerController));
+                null, Map.of(OWNER, playerController), gameEventService);
+    }
+
+    @Test
+    void theSacrificedCreatureCriesOut() {
+        EntityId creature = creature(TROLL, 1);
+
+        sacrificeController.sacrificeCreature(temple, creature);
+
+        assertEquals(List.of(GameEventType.CREATURE_SACRIFICED, creature), events.get(0));
+    }
+
+    @Test
+    void theMentorRepliesToASacrificeThatCompletesNothing() {
+        sacrificeController.sacrificeCreature(temple, creature(TROLL, 1));
+
+        assertEquals(List.of(GameEventType.SACRIFICE_SPEECH, 1, OWNER), events.get(1));
+    }
+
+    @Test
+    void aRewardAppearsInTheTempleEffectAndTheMentorSaysTheRecipesSpeech() {
+        sacrificeController.sacrificeCreature(temple, creature(TROLL, 1));
+        events.clear();
+
+        sacrificeController.sacrificeCreature(temple, creature(TROLL, 1));
+
+        assertEquals(3, events.size());
+        List<Object> reward = events.get(1);
+        assertEquals(List.of(GameEventType.SACRIFICE_REWARD, ThingFlag.ROOM, 13), reward.subList(0, 3));
+        assertOnTempleFloor((Point) reward.get(3));
+        assertEquals(List.of(GameEventType.SACRIFICE_SPEECH, 24, OWNER), events.get(2));
+    }
+
+    @Test
+    void aRecipeWithoutSpeechSaysNothing() {
+        sacrificeController.sacrificeCreature(temple, creature(MISTRESS, 1));
+        events.clear();
+
+        sacrificeController.sacrificeCreature(temple, creature(MISTRESS, 1));
+
+        assertTrue(events.stream().noneMatch(event -> event.get(0) == GameEventType.SACRIFICE_SPEECH));
     }
 
     @Test

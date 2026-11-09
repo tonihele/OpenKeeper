@@ -123,6 +123,15 @@ class GameEventTest {
     }
 
     @Test
+    void sacrificeSpeechIsTheMentorsTempleSpeech() {
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 1, null, 0, null, null), null));
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.TEMPL019.getId(), null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 20, null, 0, null, null), null));
+        assertTrue(GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 47, null, 0, null, null), null).isEmpty());
+    }
+
+    @Test
     void thingWithoutSoundCategoryMakesNoSound() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getRoomById") ? SoundFixtures.room(null) : null);

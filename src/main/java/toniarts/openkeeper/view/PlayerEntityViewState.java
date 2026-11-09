@@ -27,6 +27,9 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventListener;
+import com.simsilica.event.EventType;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -43,6 +46,9 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -51,6 +57,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -156,6 +163,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+    private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -233,6 +241,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
     }
 
     @Override
@@ -291,6 +300,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
@@ -548,6 +558,26 @@ public class PlayerEntityViewState extends AbstractAppState {
         // A shot processed at its start hits there, a lightning strike for example
         if (shot.getShotProcessFlags().contains(Shot.ShotProcessFlag.AT_START)) {
             effectManagerState.load(nodeShots, position.clone(), shot.getHitThingEffectId(), false);
+        }
+    }
+
+    /**
+     * A temple's reward appears in the room's first effect. Not shown in the
+     * fog of war.
+     */
+    private void onGameEvent(EventType<GameEvent> type, GameEvent event) {
+        if (event.type == GameEventType.SACRIFICE_REWARD && event.position != null) {
+
+            // The events come from the game loop's thread
+            stateManager.getApplication().enqueue(() -> showSacrificeRewardEffect(event));
+        }
+    }
+
+    private void showSacrificeRewardEffect(GameEvent event) {
+        Room room = kwdFile.getRoomById(event.subjectId);
+        if (room != null && !room.getEffects().isEmpty() && fogOfWarInformation.isVisible(event.position)) {
+            Vector3f location = WorldUtils.pointToVector3f(event.position).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
+            stateManager.getState(EffectManagerState.class).load(nodeObjects, location, room.getEffects().get(0), false);
         }
     }
 

@@ -28,6 +28,9 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.controller.room.SacrificeHistory;
 import toniarts.openkeeper.game.controller.room.TempleController;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.SacrificeType;
 import toniarts.openkeeper.utils.Point;
@@ -42,7 +45,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * <li>an object, such as a trap crate or a special</li>
  * <li>gold or mana</li>
  * </ul>
- * Rewards appear on a random floor tile of the temple.
+ * Rewards appear on a random floor tile of the temple, in the room's first
+ * effect. The creature cries out as it goes, and the mentor tells the owner
+ * the recipe's speech, or that the sacrifice completed nothing.
  */
 public final class SacrificeController {
 
@@ -54,16 +59,19 @@ public final class SacrificeController {
     private final IObjectsController objectsController;
     private final IGameWorldController gameWorldController;
     private final Map<Short, IPlayerController> playerControllers;
+    private final GameEventService gameEventService;
 
     public SacrificeController(EntityData entityData, List<Variable.Sacrifice> recipes,
             ICreaturesController creaturesController, IObjectsController objectsController,
-            IGameWorldController gameWorldController, Map<Short, IPlayerController> playerControllers) {
+            IGameWorldController gameWorldController, Map<Short, IPlayerController> playerControllers,
+            GameEventService gameEventService) {
         this.entityData = entityData;
         this.recipes = recipes;
         this.creaturesController = creaturesController;
         this.objectsController = objectsController;
         this.gameWorldController = gameWorldController;
         this.playerControllers = playerControllers;
+        this.gameEventService = gameEventService;
     }
 
     /**
@@ -79,11 +87,17 @@ public final class SacrificeController {
         CreatureExperience experience = entityData.getComponent(creature, CreatureExperience.class);
         int level = experience != null ? experience.level : 1;
 
+        gameEventService.emit(GameEventType.CREATURE_SACRIFICED, creature);
         creaturesController.createController(creature).remove();
 
         SacrificeHistory.Match match = temple.getSacrificeHistory().offer(SacrificeType.CREATURE, creatureComponent.creatureId, level, recipes);
+        int speechId = 1; // The mentor's reply to a sacrifice that completed nothing
         if (match != null) {
             reward(temple, match);
+            speechId = match.recipe().getSpeechId();
+        }
+        if (speechId != 0) {
+            gameEventService.emitToPlayer(GameEventType.SACRIFICE_SPEECH, speechId, temple.getOwnerId());
         }
 
         return match;
@@ -92,13 +106,13 @@ public final class SacrificeController {
     private void reward(TempleController temple, SacrificeHistory.Match match) {
         short ownerId = temple.getOwnerId();
         int value = match.recipe().getRewardValue();
+        Point p = getRewardLocation(temple);
         switch (match.recipe().getRewardType()) {
             case CREATURE -> {
                 creaturesController.spawnCreature((short) value, ownerId, match.level(),
-                        WorldUtils.pointToVector2f(getRewardLocation(temple)), ICreaturesController.SpawnType.PLACE);
+                        WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
             }
             case OBJECT -> {
-                Point p = getRewardLocation(temple);
                 objectsController.loadObject((short) value, ownerId, p.x, p.y);
             }
             case GOLD -> {
@@ -116,6 +130,7 @@ public final class SacrificeController {
                 logger.log(Level.DEBUG, "No sacrifice reward for {0}", match.recipe());
             }
         }
+        gameEventService.emit(GameEventType.SACRIFICE_REWARD, ThingFlag.ROOM, temple.getRoomInstance().getRoom().getRoomId(), p);
     }
 
     private static Point getRewardLocation(TempleController temple) {

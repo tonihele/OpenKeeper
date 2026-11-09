@@ -168,7 +168,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Init handlers
         shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
-        sacrificeController = new SacrificeController(entityData, kwdFile.getSacrifices(), creaturesController, objectsController, this, playerControllers);
+        sacrificeController = new SacrificeController(entityData, kwdFile.getSacrifices(), creaturesController, objectsController, this, playerControllers, gameEventService);
 
         // Setup player stuff
         initPlayerMoney();

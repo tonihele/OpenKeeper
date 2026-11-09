@@ -112,6 +112,10 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.ROOM_SELL, event.position);
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
+            case CREATURE_SACRIFICED ->
+                add(sounds, subject, ThingSounds.CREATURE_SACRIFICE, event.position);
+            case SACRIFICE_SPEECH ->
+                addSacrificeSpeech(sounds, event.subjectId);
         }
         return sounds;
     }
@@ -145,6 +149,18 @@ public final class GameEventSounds {
         }
         add(sounds, category, CombatSounds.getShotImpactEvent(getMaterial(kwdFile, event.targetKind, event.targetId)),
                 event.position);
+    }
+
+    /**
+     * DK II's message 0x47: speech 1 is the mentor's reply to a sacrifice that completed no recipe, speeches 2 to 46
+     * are the temple speeches the recipes name
+     */
+    private static void addSacrificeSpeech(List<Sound> sounds, int speechId) {
+        if (speechId == 1) {
+            add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null);
+        } else if (speechId >= 2 && speechId <= 46) {
+            add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TEMPL001.getId() + speechId - 2, null);
+        }
     }
 
     private static void add(List<Sound> sounds, @Nullable String category, int eventId, @Nullable Point position) {

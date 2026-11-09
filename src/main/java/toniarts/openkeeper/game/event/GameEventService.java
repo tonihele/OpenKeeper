@@ -57,4 +57,9 @@ public interface GameEventService {
      * An event only one player gets, with no place
      */
     void emitToPlayer(GameEventType type, short playerId);
+
+    /**
+     * An event only one player gets, with no place, and with a subject id but no subject kind
+     */
+    void emitToPlayer(GameEventType type, int subjectId, short playerId);
 }
