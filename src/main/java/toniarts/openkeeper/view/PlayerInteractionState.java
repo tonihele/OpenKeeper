@@ -310,6 +310,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isCursorOnGUI() {
         int height = app.getContext().getSettings().getHeight();
 
+        if (stateManager.getState(PlayerState.class).getScreen().isMouseOverCheatOverlay(mousePosition.x, mousePosition.y)) {
+            return true;
+        }
+
         if (view.isVisible() && view.isMouseInsideElement((int) mousePosition.x, height - (int) mousePosition.y)) {
             for (Element e : view.getChildren()) {
                 if (e.isVisible() && e.isMouseInsideElement((int) mousePosition.x, height - (int) mousePosition.y)) {

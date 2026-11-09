@@ -765,6 +765,23 @@ public final class PlayerScreenController implements IPlayerScreenController {
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
     }
 
+    /**
+     * Is the mouse over the terrain change overlay. The overlay is on a layer of its own, so the
+     * game has to be told separately that the mouse is on the GUI.
+     *
+     * @param x mouse x, from the left of the window
+     * @param y mouse y, from the bottom of the window (as in the input manager)
+     * @return {@code true} if the overlay is shown and the mouse is on it
+     */
+    public boolean isMouseOverCheatOverlay(float x, float y) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element overlay = hud != null ? hud.findElementById("terrain-overlay") : null;
+        if (overlay == null || !overlay.isVisible()) {
+            return false;
+        }
+        return overlay.isMouseInsideElement((int) x, hud.getRootElement().getHeight() - (int) y);
+    }
+
     public Element getGuiConstraint() {
         Element middle = nifty.getScreen(SCREEN_HUD_ID).findElementById("middle");
         return middle;
