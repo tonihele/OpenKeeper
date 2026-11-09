@@ -23,4 +23,18 @@ package toniarts.openkeeper.game.controller.room;
  */
 public interface ICreatureEntrance extends IEntityGenerator {
 
+    /** Successful Portal arrivals since capture; Dungeon Hearts do not use this counter. */
+    default int getGeneratedCount() {
+        return 0;
+    }
+
+    /** Returns true once per eligible Portal build-up, three seconds before its generation check. */
+    default boolean onPrepareSpawn(double preparationTime) {
+        return false;
+    }
+
+    /** Advance a Portal's generation clock, even when attraction cannot produce a creature. */
+    default void onGenerationCycle(double time) {
+        // Dungeon Hearts have their own free-Imp clock.
+    }
 }

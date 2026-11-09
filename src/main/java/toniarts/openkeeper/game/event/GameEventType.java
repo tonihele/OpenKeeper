@@ -65,5 +65,7 @@ public enum GameEventType {
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
+    /** An eligible Portal has started its creature attraction build-up. */
+    PORTAL_PREPARING,
     TERRAIN_DESTROYED
 }

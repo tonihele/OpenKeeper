@@ -33,6 +33,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
     private final IGameTimer gameTimer;
+    private double lastPreparationTime = -1;
 
     public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
@@ -62,12 +63,34 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public void onSpawn(double time, EntityId spawnedEntityId) {
-        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time));
+        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                getGeneratedCount() + 1));
+    }
+
+    @Override
+    public int getGeneratedCount() {
+        return getEntityComponent(CreatureGenerator.class).generatedCount;
+    }
+
+    @Override
+    public boolean onPrepareSpawn(double preparationTime) {
+        if (lastPreparationTime == preparationTime) {
+            return false;
+        }
+        lastPreparationTime = preparationTime;
+        return true;
+    }
+
+    @Override
+    public void onGenerationCycle(double time) {
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                getGeneratedCount()));
     }
 
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
         entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        lastPreparationTime = -1;
     }
 }
