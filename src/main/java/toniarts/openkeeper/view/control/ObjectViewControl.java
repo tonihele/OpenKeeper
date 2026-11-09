@@ -220,6 +220,17 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         }
     }
 
+    /**
+     * An object without a model of its own, like the Casino's pay out adjuster,
+     * shows an indicator that moves once to where it points and stays there
+     *
+     * @return true to hold the last frame
+     */
+    @Override
+    public boolean isHoldLastFrame() {
+        return getDataObject().getMeshResource() == null;
+    }
+
     private void playAnimation(ObjectViewState viewState) {
         AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
         if (uniqueCreatureBed) {

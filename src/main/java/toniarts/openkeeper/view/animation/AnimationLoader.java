@@ -273,6 +273,12 @@ public final class AnimationLoader {
             // Signal that the main animation cycle is done
             animationControl.onAnimationCycleDone();
 
+            // An indicator stays where its animation took it
+            if (animationControl.isHoldLastFrame()) {
+                composer.setGlobalSpeed(0);
+                return;
+            }
+
             // See if we need to stop
             if (animationControl.isStopAnimation() || loopMode == LoopMode.DontLoop) {
 
