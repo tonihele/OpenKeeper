@@ -52,9 +52,7 @@ class PortalSpawnCooldownTest {
         Keeper keeper = new Keeper(false, (short) 3);
         Creature goblin = new Creature();
         goblin.setCreatureId((short) 7);
-        Creature.Attraction lairRequirement = new Creature.Attraction();
-        lairRequirement.setRoomId(2);
-        lairRequirement.setPresent(1);
+        Creature.Attraction lairRequirement = CreatureAttractionFixtures.roomAttraction((short) 2, 0);
         goblin.setAttractions(new Creature.Attraction[]{lairRequirement});
         Creature imp = new Creature();
         imp.setCreatureId((short) 1);
