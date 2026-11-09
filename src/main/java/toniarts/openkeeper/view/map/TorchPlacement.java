@@ -27,7 +27,8 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
 /**
  * Where wall torches, and the lights that go with them, are placed. Pure

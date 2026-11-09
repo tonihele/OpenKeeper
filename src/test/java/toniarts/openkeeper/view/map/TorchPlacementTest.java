@@ -22,7 +22,8 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
 import java.util.ArrayList;
 import java.util.List;

@@ -14,9 +14,8 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.game.map;
 
-import com.jme3.math.FastMath;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -26,8 +25,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.map.IMapDataInformation;
-import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -38,11 +35,11 @@ import toniarts.openkeeper.utils.Point;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public record WallSection(toniarts.openkeeper.view.map.WallSection.WallDirection direction, List<Point> coordinates) {
+public record WallSection(toniarts.openkeeper.game.map.WallSection.WallDirection direction, List<Point> coordinates) {
 
     public enum WallDirection {
 
-        EAST(-FastMath.HALF_PI), NORTH(0), WEST(FastMath.HALF_PI), SOUTH(FastMath.PI);
+        EAST(-(float) (Math.PI / 2)), NORTH(0), WEST((float) (Math.PI / 2)), SOUTH((float) Math.PI);
 
         WallDirection(float angle) {
             this.angle = angle;

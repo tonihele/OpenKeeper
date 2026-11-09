@@ -27,7 +27,7 @@ import java.util.Set;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection;
 
 /**
  * The workshop
