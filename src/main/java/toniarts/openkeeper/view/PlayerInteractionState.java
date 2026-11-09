@@ -62,6 +62,9 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
@@ -707,17 +710,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 interactiveControl.interact(player.getPlayerId());
             } else {
 
-                // Selection stuff
                 if (selectionHandler.isVisible()) {
+                    boolean startingSelection = !selectionHandler.isActive();
                     selectionHandler.setActive(true);
-                }
-
-                // I suppose we are tagging
-                if (isTaggable) {
-                    updateCursor();
-                    // The tagging sound is positional and played against the cursor change, not the action itself
-                    Point pos = selectionHandler.getPointedTileIndex();
-//                    getWorldHandler().playSoundAtTile(pos, GlobalCategory.HAND, GlobalType.HAND_TAG);
+                    if (isTaggable) {
+                        updateCursor();
+                        if (startingSelection) {
+                            // Immediate local feedback; committing the tiles on release is silent.
+                            SoundManager.playSound(GlobalCategory.HAND, ThingSounds.TAG);
+                        }
+                    }
                 }
             }
         }
