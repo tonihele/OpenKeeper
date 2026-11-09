@@ -33,7 +33,7 @@ public final class CombatPitFixtures {
         creature.setCreatureId(creatureId);
         creature.setName("Pit creature " + creatureId);
         creature.setFightStyle(Creature.FightStyle.BLOCKER);
-        creature.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
+        creature.setFlags(EnumSet.of(Creature.CreatureFlag.GENERATE_DEAD_BODY));
         return creature;
     }
 

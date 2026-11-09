@@ -1270,10 +1270,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             tortureOrImprisonment = imprison || torture;
 
-            // Our own creatures dropped into the pit itself fight there
+            // Our own creatures dropped into the pit itself fight there, workers just go back to work
             if (roomController instanceof CombatPitController combatPit
                     && roomController.getRoomInstance().getOwnerId() == owner.ownerId
-                    && combatPit.isFightingTile(tile)) {
+                    && combatPit.isFightingTile(tile)
+                    && !entityData.getComponent(entity, CreatureComponent.class).worker) {
                 entityData.setComponent(entity, new CombatPitFighter(roomController.getEntityId()));
             }
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
