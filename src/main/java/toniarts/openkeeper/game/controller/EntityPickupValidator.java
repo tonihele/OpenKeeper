@@ -17,10 +17,12 @@
 package toniarts.openkeeper.game.controller;
 
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -35,21 +37,39 @@ public final class EntityPickupValidator {
     }
 
     /**
-     * Checks object-specific restrictions for the entity's current location.
-     * Loose gold and specials follow the Dungeon Keeper II own-land rule: they
-     * can only be picked up from a tile the picking player owns. Other entity
-     * types do not currently have a location restriction.
+     * Tells whether the player may pick up an entity with the given owner. Like
+     * in DK II, the player may pick up its own entities and the objects that
+     * have no owner (the neutral player owns them), such as loose gold. For
+     * those, the land decides, see {@link #isValidLocation}.
      *
      * @param object object metadata, or {@code null} for a non-object entity
+     * @param owner entity owner
+     * @param playerId player attempting the pickup
+     * @return {@code true} when the owner permits pickup
+     */
+    public static boolean isValidOwner(ObjectComponent object, Owner owner, short playerId) {
+        return owner != null && (owner.controlId == playerId
+                || (object != null && owner.ownerId == Player.NEUTRAL_PLAYER_ID));
+    }
+
+    /**
+     * Checks object-specific restrictions for the entity's current location.
+     * Gold, specials and objects without an owner follow the Dungeon Keeper II
+     * own-land rule: they can only be picked up from a tile the picking player
+     * owns. Other entity types do not currently have a location restriction.
+     *
+     * @param object object metadata, or {@code null} for a non-object entity
+     * @param owner entity owner
      * @param position entity position
      * @param playerId player attempting the pickup
      * @param mapData current map data
      * @return {@code true} when the location permits pickup
      */
-    public static boolean isValidLocation(ObjectComponent object, Position position, short playerId,
+    public static boolean isValidLocation(ObjectComponent object, Owner owner, Position position, short playerId,
             IMapDataInformation<? extends IMapTileInformation> mapData) {
         if (object == null || (object.objectId != ObjectsController.OBJECT_GOLD_ID
-                && object.objectType != AbstractRoomController.ObjectType.SPECIAL)) {
+                && object.objectType != AbstractRoomController.ObjectType.SPECIAL
+                && (owner == null || owner.ownerId != Player.NEUTRAL_PLAYER_ID))) {
             return true;
         }
         if (position == null || mapData == null) {
