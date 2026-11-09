@@ -385,6 +385,11 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onCancelCallToArms(short playerId) {
+            gameWorldController.getObjectsController().cancelCallToArms(playerId);
+        }
+
+        @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
             game.runPlayerAction(() -> cheatController.onCheat(cheat, playerId));
         }

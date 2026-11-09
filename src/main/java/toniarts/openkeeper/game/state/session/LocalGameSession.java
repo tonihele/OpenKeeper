@@ -395,6 +395,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void cancelCallToArms() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCancelCallToArms(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void transitionEnd() {
         playerInTransition = false;
         for (GameSessionServiceListener listener : serverListeners.getArray()) {

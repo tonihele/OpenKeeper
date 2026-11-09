@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
 import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
@@ -179,6 +180,8 @@ public final class GameLoopManager {
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
+                new CallToArmsSystem(entityData, level, playerControllers.values(),
+                        gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData),
