@@ -223,8 +223,23 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void triggerAddGoldCheat(int amount) {
+        getDelegate().triggerAddGoldCheat(amount);
+    }
+
+    @Override
+    public void triggerAddManaCheat(int amount) {
+        getDelegate().triggerAddManaCheat(amount);
+    }
+
+    @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         getDelegate().setPossessedMovement(direction, rotation, speedMode);
+    }
+
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        getDelegate().setPossessedAttack(attacking);
     }
 
     @Override
