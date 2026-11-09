@@ -49,6 +49,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void navigateToRandomPoint();
 
+    /**
+     * Walks to a random tile in the Combat Pit we fight in, off its edge
+     */
+    public void navigateToRandomPointInCombatPit();
+
     public IPartyController getParty();
 
     public StateMachine<ICreatureController, CreatureState> getStateMachine();

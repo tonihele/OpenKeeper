@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.HashSet;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -26,6 +28,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.CombatPitFixtures.pitRoom;
 
 /**
@@ -47,6 +50,20 @@ class CombatPitControllerTest {
         assertEquals(1, doors);
         assertFalse(pit.isTileAccessible(1, 3, 2, 3));
         assertFalse(pit.isTileAccessible(3, 4, 3, 5));
+    }
+
+    @Test
+    void fighterWaitsOnlyInsideThePit() {
+        CombatPitController pit = buildPit(5);
+
+        Set<Point> tiles = new HashSet<>();
+        for (int i = 0; i < 500; i++) {
+            tiles.add(pit.getRandomFightingTile());
+        }
+
+        // Every tile of the inside 2..4 and none of the edge
+        assertEquals(9, tiles.size());
+        assertTrue(tiles.stream().allMatch(pit::isFightingTile));
     }
 
     private static CombatPitController buildPit(int size) {

@@ -720,11 +720,14 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
-            // Wait in the pit for someone to fight
+            // Wait in the pit for someone to fight, now and then walking to another spot in it
             if (!entity.isCombatPitFighter()) {
                 entity.getStateMachine().changeState(IDLE);
             } else if (entity.getAttackTarget() != null) {
                 entity.getStateMachine().changeState(FIGHT);
+            } else if (entity.isTimeToReEvaluate()) {
+                entity.resetReEvaluationTimer();
+                entity.navigateToRandomPointInCombatPit();
             }
         }
 

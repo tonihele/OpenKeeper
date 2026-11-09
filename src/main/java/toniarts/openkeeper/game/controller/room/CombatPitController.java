@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
@@ -74,6 +75,16 @@ public final class CombatPitController extends DoubleQuadController {
      */
     public boolean isFightingTile(Point tile) {
         return insideCoordinates.contains(tile);
+    }
+
+    /**
+     * Picks a tile in the pit itself, where a fighter without an opponent
+     * walks to wait for one
+     *
+     * @return a random tile the creatures fight on
+     */
+    public Point getRandomFightingTile() {
+        return insideCoordinates.stream().skip(FastMath.nextRandomInt(0, insideCoordinates.size() - 1)).findFirst().orElseThrow();
     }
 
 }

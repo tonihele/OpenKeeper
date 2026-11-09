@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 
@@ -44,6 +46,39 @@ class CombatPitStateTest {
     @Test
     void creatureTakenOutOfThePitStopsWaiting() {
         assertEquals(CreatureState.IDLE, update(CreatureState.COMBAT_PIT, false, false));
+    }
+
+    @Test
+    void pitFighterWithoutOpponentWalksToAnotherSpotAfterWaiting() {
+        assertEquals(List.of("resetReEvaluationTimer", "navigateToRandomPointInCombatPit"), lookAround(true));
+    }
+
+    @Test
+    void pitFighterWithoutOpponentWaitsOnItsSpot() {
+        assertEquals(List.of(), lookAround(false));
+    }
+
+    /**
+     * Updates a waiting pit fighter without an opponent
+     *
+     * @return what the state asked the creature to do about waiting and walking
+     */
+    private static List<String> lookAround(boolean waitedLongEnough) {
+        List<String> calls = new ArrayList<>();
+        ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "isCombatPitFighter" -> true;
+                    case "isTimeToReEvaluate" -> waitedLongEnough;
+                    case "resetReEvaluationTimer", "navigateToRandomPointInCombatPit" -> {
+                        calls.add(method.getName());
+                        yield null;
+                    }
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        CreatureState.COMBAT_PIT.update(creature);
+
+        return calls;
     }
 
     private static CreatureState update(CreatureState state, boolean pitFighter, boolean hasOpponent) {
