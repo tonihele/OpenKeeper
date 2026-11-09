@@ -76,7 +76,8 @@ public final class CheatController implements ICheatController {
             case DESTROY_DOORS:
             case INSTANT_DIG:
             case CLAIM_LAND:
-            case TERRAIN_CHANGE: {
+            case TERRAIN_CHANGE:
+            case SPAWN_CREATURES: {
                 toggle(cheat, playerId);
                 break;
             }
@@ -239,6 +240,21 @@ public final class CheatController implements ICheatController {
     @Override
     public void spawnCreature(short creatureId, int level, int amount, short playerId) {
         gameWorldController.getCreaturesController().spawnCreatures(creatureId, playerId, level, amount);
+    }
+
+    @Override
+    public void spawnCreature(short creatureId, int amount, short ownerId, Vector2f position, short playerId) {
+        if (!gameWorldController.isCheat(playerId, CheatState.CheatType.GOD_MODE)) {
+            return;
+        }
+        Point tile = new Point((int) position.x, (int) position.y);
+        if (tile.x < 0 || tile.y < 0 || tile.x >= kwdFile.getMap().getWidth() || tile.y >= kwdFile.getMap().getHeight()
+                || kwdFile.getTerrain(mapController.getMapData().getTile(tile).getTerrainId()).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            return; // Nothing can stand in the rock
+        }
+        for (int i = 0; i < amount; i++) {
+            gameWorldController.getCreaturesController().spawnCreature(creatureId, ownerId, 1, position, ICreaturesController.SpawnType.PLACE);
+        }
     }
 
     @Override

@@ -63,7 +63,8 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         DESTROY_DOORS(null),
         INSTANT_DIG(null),
         CLAIM_LAND(null),
-        TERRAIN_CHANGE(null);
+        TERRAIN_CHANGE(null),
+        SPAWN_CREATURES(null);
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {
@@ -75,6 +76,10 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
          *
          * @return {@code true} if this cheat is a mode
          */
+        public boolean isOverlayMode() {
+            return this == TERRAIN_CHANGE || this == SPAWN_CREATURES;
+        }
+
         public boolean isMode() {
             return this == GOD_MODE || cheatMessage == null;
         }

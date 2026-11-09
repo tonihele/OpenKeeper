@@ -516,7 +516,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isGodSelectable(Point p) {
         IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
         if (gameClientState.isGodMode() && interactionState.getType() == Type.NONE && tile != null
-                && (gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND) || gameClientState.isCheat(CheatState.CheatType.TERRAIN_CHANGE))) {
+                && (gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND) || gameClientState.isCheat(CheatState.CheatType.TERRAIN_CHANGE)
+                || gameClientState.isCheat(CheatState.CheatType.SPAWN_CREATURES))) {
             // Area modes work on any tile
             return true;
         }
@@ -754,6 +755,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 Short terrainId = screen.getSelectedCheatTerrain();
                 if (terrainId != null) {
                     gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), terrainId, screen.getSelectedCheatOwner());
+                }
+            } else if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.SPAWN_CREATURES)) {
+                PlayerScreenController screen = stateManager.getState(PlayerState.class).getScreen();
+                Short creatureId = screen.getSelectedCheatCreature();
+                if (creatureId != null) {
+                    gameClientState.getGameClientService().triggerSpawnCreatureCheat(creatureId, screen.getSelectedCheatAmount(),
+                            screen.getSelectedCheatCreatureOwner(), selectionArea.getRealStart());
                 }
             } else if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND)) {
                 gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), ICheatController.CLAIM_TERRAIN, player.getPlayerId());

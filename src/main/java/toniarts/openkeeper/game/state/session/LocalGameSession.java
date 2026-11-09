@@ -415,6 +415,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void triggerSpawnCreatureCheat(short creatureId, int amount, short ownerId, Vector2f position) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSpawnCreatureCheatTriggered(creatureId, amount, ownerId, position, PLAYER_ID);
+        }
+    }
+
+    @Override
     public void triggerAddGoldCheat(int amount) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onAddGoldCheatTriggered(amount, PLAYER_ID);

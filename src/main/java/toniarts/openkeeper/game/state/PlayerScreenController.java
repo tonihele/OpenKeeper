@@ -775,11 +775,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     public boolean isMouseOverCheatOverlay(float x, float y) {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
-        Element overlay = hud != null ? hud.findElementById("terrain-overlay") : null;
-        if (overlay == null || !overlay.isVisible()) {
-            return false;
+        for (String id : new String[]{"terrain-overlay", "creature-overlay"}) {
+            Element overlay = hud != null ? hud.findElementById(id) : null;
+            if (overlay != null && overlay.isVisible()
+                    && overlay.isMouseInsideElement((int) x, hud.getRootElement().getHeight() - (int) y)) {
+                return true;
+            }
         }
-        return overlay.isMouseInsideElement((int) x, hud.getRootElement().getHeight() - (int) y);
+        return false;
     }
 
     public Element getGuiConstraint() {
@@ -1193,6 +1196,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             return;
         }
         populateTerrainOverlay();
+        populateCreatureOverlay();
         FlowLayoutControl contentPanel = nifty.getScreen(SCREEN_HUD_ID).findElementById("tab-god-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.KILL_CREATURES, "Specials/SP-Kill", "Kill creatures: right click a creature"));
@@ -1201,6 +1205,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it"));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.TERRAIN_CHANGE, "C-Spells/c-Armour", "Terrain change: choose the terrain and its owner on the right, drag over an area to change it. Switches the other cheats off while on."));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.SPAWN_CREATURES, "Specials/SP-Get_Imps", "Spawn creatures: choose the creature, the amount and the keeper on the right, click a tile to spawn them there. Switches the other cheats off while on."));
         contentPanel.addElement(createCheatIcon(CheatState.CheatType.INSTANT_DIG, "Specials/SP-Destroy_Walls", "Instant digging: tag tiles to dig them out at once"));
     }
 
@@ -1233,6 +1238,67 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 .filter(keeper -> keeper.getId() >= Player.KEEPER1_ID)
                 .forEach(keeper -> owners.addItem(new Choice(keeper.getId(), client.getPlayerName(keeper))));
         owners.selectItemByIndex(0);
+    }
+
+    private static final int[] SPAWN_AMOUNTS = {1, 2, 3, 4, 5, 10, 15, 20, 25, 50};
+
+    @SuppressWarnings("unchecked")
+    private void populateCreatureOverlay() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+
+        DropDown<Choice> creatures = hud.findNiftyControl("cheatCreature", DropDown.class);
+        creatures.clear();
+        state.getKwdFile().getCreatureList().stream()
+                .map(creature -> new Choice(creature.getCreatureId(), creature.getName()))
+                .sorted(Comparator.comparing(Choice::name, String.CASE_INSENSITIVE_ORDER))
+                .forEach(creatures::addItem);
+        creatures.selectItemByIndex(0);
+
+        DropDown<Choice> amounts = hud.findNiftyControl("cheatAmount", DropDown.class);
+        amounts.clear();
+        for (int amount : SPAWN_AMOUNTS) {
+            amounts.addItem(new Choice((short) amount, Integer.toString(amount)));
+        }
+        amounts.selectItemByIndex(0);
+
+        DropDown<Choice> owners = hud.findNiftyControl("cheatCreatureOwner", DropDown.class);
+        owners.clear();
+        client.getPlayers().stream()
+                .filter(keeper -> keeper.getId() >= Player.KEEPER1_ID)
+                .forEach(keeper -> owners.addItem(new Choice(keeper.getId(), client.getPlayerName(keeper))));
+        owners.addItem(new Choice(Player.GOOD_PLAYER_ID, "Heroes"));
+        owners.selectItemByIndex(0);
+    }
+
+    /**
+     * @return the creature chosen in the spawn overlay, {@code null} if none
+     */
+    @SuppressWarnings("unchecked")
+    public Short getSelectedCheatCreature() {
+        DropDown<Choice> creatures = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatCreature", DropDown.class);
+        Choice choice = creatures != null ? creatures.getSelection() : null;
+        return choice != null ? choice.id() : null;
+    }
+
+    /**
+     * @return how many creatures to spawn
+     */
+    @SuppressWarnings("unchecked")
+    public int getSelectedCheatAmount() {
+        DropDown<Choice> amounts = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatAmount", DropDown.class);
+        Choice choice = amounts != null ? amounts.getSelection() : null;
+        return choice != null ? choice.id() : 1;
+    }
+
+    /**
+     * @return the owner chosen in the spawn overlay
+     */
+    @SuppressWarnings("unchecked")
+    public short getSelectedCheatCreatureOwner() {
+        DropDown<Choice> owners = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatCreatureOwner", DropDown.class);
+        Choice choice = owners != null ? owners.getSelection() : null;
+        return choice != null ? choice.id() : Player.KEEPER1_ID;
     }
 
     /**
@@ -1272,9 +1338,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     public void toggleCheat(String cheatName) {
         CheatState.CheatType cheat = CheatState.CheatType.valueOf(cheatName);
         GameClientState client = state.stateManager.getState(GameClientState.class);
-        if (client.isCheat(CheatState.CheatType.TERRAIN_CHANGE) && cheat != CheatState.CheatType.TERRAIN_CHANGE) {
-            // Terrain change mode stands alone
-            return;
+        for (CheatState.CheatType active : CheatState.CheatType.values()) {
+            if (active.isOverlayMode() && active != cheat && client.isCheat(active)) {
+                // Overlay modes stand alone
+                return;
+            }
         }
         if (cheat == CheatState.CheatType.REMOVE_FOW) {
             // The fog of war is removed on the first click and reset on the next
@@ -1306,6 +1374,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Element overlay = hud.findElementById("terrain-overlay");
         if (overlay != null) {
             overlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.TERRAIN_CHANGE));
+        }
+        Element creatureOverlay = hud.findElementById("creature-overlay");
+        if (creatureOverlay != null) {
+            creatureOverlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.SPAWN_CREATURES));
         }
         for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
             Element button = cheat.isMode() ? hud.findElementById("cheat_" + cheat.name()) : null;

@@ -400,6 +400,21 @@
                 <control name="dropDown" id="cheatOwner" width="100%" />
             </panel>
         </layer>
+        <!-- creature spawn overlay, shown only while the spawn creatures cheat mode is on -->
+        <layer childLayout="horizontal">
+            <panel width="*" height="100%" />
+            <panel id="creature-overlay" width="300px" height="260px" valign="center" childLayout="vertical"
+                   visible="false" visibleToMouse="true" backgroundColor="#000b" padding="10px">
+                <text style="textSmall" text="Creature" />
+                <control name="dropDown" id="cheatCreature" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Amount" />
+                <control name="dropDown" id="cheatAmount" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Keeper" />
+                <control name="dropDown" id="cheatCreatureOwner" width="100%" />
+            </panel>
+        </layer>
         <!-- console layer-->
         <layer childLayout="vertical">
             <control id="console" name="nifty-console" style="custom-console" lines="25" visible="false">

@@ -43,6 +43,17 @@ public interface ICheatController {
     void spawnCreature(short creatureId, int level, int amount, short playerId);
 
     /**
+     * Spawns creatures of any owner on a tile, god mode only
+     *
+     * @param creatureId the creature to spawn
+     * @param amount how many creatures to spawn
+     * @param ownerId the owner of the creatures
+     * @param position the tile to spawn on
+     * @param playerId the player who cheats
+     */
+    void spawnCreature(short creatureId, int amount, short ownerId, Vector2f position, short playerId);
+
+    /**
      * Adds gold to the given player
      *
      * @param amount how much gold to add

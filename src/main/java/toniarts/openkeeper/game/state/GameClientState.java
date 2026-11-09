@@ -399,8 +399,8 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
         getGameClientService().triggerCheat(cheat);
 
-        // The terrain change mode stands alone, the other modes wait until it is over
-        if (cheat == CheatState.CheatType.TERRAIN_CHANGE) {
+        // The overlay modes (terrain change, creature spawning) stand alone, the other modes wait until it is over
+        if (cheat.isOverlayMode()) {
             if (enabled) {
                 for (CheatState.CheatType other : List.copyOf(cheats)) {
                     if (other != CheatState.CheatType.GOD_MODE && other != cheat) {
