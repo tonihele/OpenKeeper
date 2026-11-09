@@ -334,7 +334,20 @@ public class PlayerEntityViewState extends AbstractAppState {
                 && deviceControl.getCurrentState().objectId != ELECTRIC_CHAIR_OBJECT_ID)) {
             return null;
         }
-        Point tile = WorldUtils.vectorToPoint(device.getLocalTranslation());
+        return getTortureVictimOn(WorldUtils.vectorToPoint(device.getLocalTranslation()));
+    }
+
+    /**
+     * Gets the victim on a torture device on a tile
+     *
+     * @param tile the tile
+     * @return the control of the creature tortured on a device on the tile,
+     * {@code null} if there is nobody
+     */
+    public IEntityViewControl getTortureVictimOn(Point tile) {
+        if (tile == null) {
+            return null;
+        }
         for (Spatial creature : creatureModelContainer.getModels()) {
             CreatureViewControl control = creature.getControl(CreatureViewControl.class);
             // A victim on a wheel turns with it, whatever animation its kind plays there
