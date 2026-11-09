@@ -1220,8 +1220,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         DropDown<Choice> terrains = hud.findNiftyControl("cheatTerrain", DropDown.class);
         terrains.clear();
         state.getKwdFile().getTerrainList().stream()
+                .filter(terrain -> !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM))
                 .map(terrain -> new Choice(terrain.getTerrainId(), terrain.getName() + " (" + terrain.getTerrainId() + ")"))
-                .sorted(Comparator.comparing(Choice::name, String.CASE_INSENSITIVE_ORDER))
+                .sorted(Comparator.comparingInt(Choice::id))
                 .forEach(terrains::addItem);
         terrains.selectItemByIndex(0);
 

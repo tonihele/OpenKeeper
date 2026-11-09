@@ -22,6 +22,7 @@ import java.util.function.ToIntFunction;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.TextUtils;
 
@@ -62,20 +63,23 @@ public class RoomTextParser {
     }
 
     protected String getReplacement(TextParameter parameter, IRoomInformation room, Keeper roomOwner) {
+        // The client may not know the room (yet), e.g. right after it was built or changed hands
+        short ownerId = room != null ? room.getOwnerId() : (roomOwner != null ? roomOwner.getId() : Player.NEUTRAL_PLAYER_ID);
+
         Integer roomId = ROOM_IDS.get(parameter);
         if (roomId != null) {
-            return getRoomAmount(room, roomId);
+            return Integer.toString(roomsInformation.getRoomCount(ownerId, (short) roomId.intValue()));
         }
 
         switch (parameter) {
             case HEALTH_PERCENTAGE:
-                return Integer.toString(room.getHealthPercent()); // Health
+                return room != null ? Integer.toString(room.getHealthPercent()) : "0"; // Health
             case ROOM_USED_CAPACITY:
-                return Integer.toString(room.getUsedCapacity()); // Used capacity
+                return room != null ? Integer.toString(room.getUsedCapacity()) : "0"; // Used capacity
             case ROOM_MAX_CAPACITY:
-                return Integer.toString(room.getMaxCapacity()); // Max capacity
+                return room != null ? Integer.toString(room.getMaxCapacity()) : "0"; // Max capacity
             case PATROL_ROUTE_COUNT:
-                return Integer.toString(patrolRouteCounter.applyAsInt(room.getOwnerId()));
+                return Integer.toString(patrolRouteCounter.applyAsInt(ownerId));
             case DUNGEON_HEART_MANA:
                 return Integer.toString(roomOwner.getMana());
             case DUNGEON_HEART_MAX_MANA:
@@ -83,10 +87,6 @@ public class RoomTextParser {
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-    }
-
-    private String getRoomAmount(IRoomInformation room, int roomId) {
-        return Integer.toString(roomsInformation.getRoomCount(room.getOwnerId(), (short) roomId));
     }
 
     /**
