@@ -49,8 +49,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static toniarts.openkeeper.tools.convert.map.CreatureAttractionFixtures.attraction;
 import static toniarts.openkeeper.tools.convert.map.CreatureAttractionFixtures.room;
+import static toniarts.openkeeper.tools.convert.map.CreatureAttractionFixtures.roomAttraction;
 import static toniarts.openkeeper.tools.convert.map.PortalChoiceFixtures.creature;
 
 /**
@@ -63,7 +63,6 @@ import static toniarts.openkeeper.tools.convert.map.PortalChoiceFixtures.creatur
 class PortalCreatureChoiceTest {
 
     private static final short PLAYER_ID = 3;
-    private static final int ROOM = 1;
     private static final Predicate<Creature> ALL = creature -> true;
 
     private final Room lair = room((short) 2);
@@ -76,19 +75,19 @@ class PortalCreatureChoiceTest {
     private final Room heroPortal = room((short) 25);
 
     private final Creature warlock = creature((short) 5, (short) 27, flags(CreatureFlag.AVAILABLE_VIA_PORTAL),
-            EnumSet.noneOf(CreatureFlag2.class), attraction(ROOM, 6, 0));
+            EnumSet.noneOf(CreatureFlag2.class), roomAttraction((short) 6, 0));
     private final Creature goblin = creature((short) 7, (short) 22, flags(CreatureFlag.AVAILABLE_VIA_PORTAL),
-            EnumSet.noneOf(CreatureFlag2.class), attraction(ROOM, 2, 0));
+            EnumSet.noneOf(CreatureFlag2.class), roomAttraction((short) 2, 0));
     private final Creature salamander = creature((short) 11, (short) 24, flags(CreatureFlag.AVAILABLE_VIA_PORTAL),
-            EnumSet.noneOf(CreatureFlag2.class), attraction(ROOM, 7, 0));
+            EnumSet.noneOf(CreatureFlag2.class), roomAttraction((short) 7, 0));
     private final Creature firefly = creature((short) 12, (short) 21, flags(CreatureFlag.AVAILABLE_VIA_PORTAL),
-            EnumSet.noneOf(CreatureFlag2.class), attraction(ROOM, 2, 0));
+            EnumSet.noneOf(CreatureFlag2.class), roomAttraction((short) 2, 0));
     private final Creature knight = creature((short) 13, (short) 6, EnumSet.noneOf(CreatureFlag.class),
-            EnumSet.of(CreatureFlag2.AVAILABLE_VIA_HERO_PORTAL), attraction(ROOM, 2, 0));
+            EnumSet.of(CreatureFlag2.AVAILABLE_VIA_HERO_PORTAL), roomAttraction((short) 2, 0));
     private final Creature uniqueGoblin = creature((short) 33, (short) 22, flags(CreatureFlag.AVAILABLE_VIA_PORTAL, CreatureFlag.IS_UNIQUE),
-            EnumSet.noneOf(CreatureFlag2.class), attraction(ROOM, 2, 0));
+            EnumSet.noneOf(CreatureFlag2.class), roomAttraction((short) 2, 0));
     private final Creature skeleton = creature((short) 9, (short) 0, flags(CreatureFlag.AVAILABLE_VIA_PORTAL),
-            EnumSet.noneOf(CreatureFlag2.class), attraction(ROOM, 2, 0));
+            EnumSet.noneOf(CreatureFlag2.class), roomAttraction((short) 2, 0));
 
     private final Set<EntityId> creaturesWithoutLair = new HashSet<>();
     private final EntityData entityData = new DefaultEntityData();

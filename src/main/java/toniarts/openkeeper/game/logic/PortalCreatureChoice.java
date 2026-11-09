@@ -479,7 +479,8 @@ public final class PortalCreatureChoice {
         }
 
         // The original takes the room of the first attraction whatever its type
-        return attractions[0].getRoomId() & 0xFF;
+        Creature.Attraction first = attractions[0];
+        return first.getType() == Creature.AttractionType.ROOM ? first.getRoomId() : first.getAmount() & 0xFF;
     }
 
     /**

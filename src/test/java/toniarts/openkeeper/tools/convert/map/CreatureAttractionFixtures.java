@@ -27,14 +27,27 @@ public final class CreatureAttractionFixtures {
     }
 
     /**
-     * An attraction requirement, with its two values as stored in the level
-     * file
+     * A room attraction requirement
      */
-    public static Creature.Attraction attraction(int type, int value1, int value2) {
+    public static Creature.Attraction roomAttraction(short roomId, int size) {
+        Creature.Attraction attraction = attraction(Creature.AttractionType.ROOM);
+        attraction.setRoomId(roomId);
+        attraction.setRoomSize(size);
+        return attraction;
+    }
+
+    /**
+     * A gold or mana attraction requirement
+     */
+    public static Creature.Attraction amountAttraction(Creature.AttractionType type, int amount) {
+        Creature.Attraction attraction = attraction(type);
+        attraction.setAmount(amount);
+        return attraction;
+    }
+
+    public static Creature.Attraction attraction(Creature.AttractionType type) {
         Creature.Attraction attraction = new Creature.Attraction();
-        attraction.setPresent(type);
-        attraction.setRoomId(value1);
-        attraction.setRoomSize(value2);
+        attraction.setType(type);
         return attraction;
     }
 

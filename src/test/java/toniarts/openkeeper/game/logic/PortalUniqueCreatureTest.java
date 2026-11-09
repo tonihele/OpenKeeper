@@ -217,7 +217,7 @@ class PortalUniqueCreatureTest {
     @Test
     void withoutALayoutTheOrdinaryCreatureComes() {
         Creature goblin = creature((short) 7, (short) 22, EnumSet.of(CreatureFlag.AVAILABLE_VIA_PORTAL), EnumSet.noneOf(CreatureFlag2.class),
-                CreatureAttractionFixtures.attraction(0, 2, 0));
+                CreatureAttractionFixtures.roomAttraction((short) 2, 0));
         creatures.setTypeAvailable(goblin, true);
         build(rooms, lair, 10, 10);
         IRoomController portalRoom = stub(IRoomController.class, (method, args) -> switch (method) {

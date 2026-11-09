@@ -22,14 +22,12 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
-import toniarts.openkeeper.tools.convert.map.Creature.AttractionType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 
 /**
  * The attraction requirements a creature sets for coming in through a Portal,
- * checked as the original checks them. The original packs both values of a
- * requirement into one byte each, so only their low bytes count.
+ * checked as the original checks them.
  */
 public final class CreatureAttraction {
 
@@ -55,23 +53,19 @@ public final class CreatureAttraction {
      */
     public static boolean isSatisfied(Creature creature, IPlayerController player, IKwdFile kwdFile) {
         for (Attraction attraction : creature.getAttractions()) {
-            AttractionType type = attraction.getType();
-            if (type == null) {
-                continue;
-            }
-            switch (type) {
+            switch (attraction.getType()) {
                 case ROOM -> {
                     if (!isRoomRequirementMet(attraction, player, kwdFile)) {
                         return false;
                     }
                 }
                 case GOLD -> {
-                    if (player.getKeeper().getGold() < getAmount(attraction)) {
+                    if (player.getKeeper().getGold() < attraction.getAmount()) {
                         return false;
                     }
                 }
                 case MANA -> {
-                    if (player.getKeeper().getMana() < getAmount(attraction)) {
+                    if (player.getKeeper().getMana() < attraction.getAmount()) {
                         return false;
                     }
                 }
@@ -84,8 +78,8 @@ public final class CreatureAttraction {
     }
 
     private static boolean isRoomRequirementMet(Attraction attraction, IPlayerController player, IKwdFile kwdFile) {
-        Room room = kwdFile.getRoomById(attraction.getRoomId() & 0xFF);
-        int size = attraction.getRoomSize() & 0xFF;
+        Room room = kwdFile.getRoomById(attraction.getRoomId());
+        int size = attraction.getRoomSize();
         int tiles = getTileCount(room, player);
 
         // Without a size the original asks for room capacity left for the creature type when it picks the
@@ -106,10 +100,6 @@ public final class CreatureAttraction {
             tiles += roomController.getRoomInstance().getCoordinates().size();
         }
         return tiles;
-    }
-
-    private static int getAmount(Attraction attraction) {
-        return ((attraction.getRoomSize() & 0xFF) << 8) | (attraction.getRoomId() & 0xFF);
     }
 
 }
