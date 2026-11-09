@@ -1278,7 +1278,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Add position
         // Maybe in the future the physics deal with this and we just need to detect that we are airborne
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
-        entityData.setComponent(entity, new Position(0, pos));
+        if (torture) {
+            // Admission already placed and indexed the creature at its selected device.
+            pos = entityData.getComponent(entity, Position.class).position;
+        } else {
+            entityData.setComponent(entity, new Position(0, pos));
+        }
 
         restoreDroppedCreatureAi(entityData, gameTimer, entity, creatureState, targetState);
 

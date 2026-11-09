@@ -71,8 +71,24 @@ class TortureDeviceAdmissionTest {
     }
 
     @Test
-    void emptyFloorDropReleasesStaleTortureAndFallsWithoutAnEvent() {
+    void emptyFloorDropUsesTheNearestDeviceAndKeepsItsPublishedPosition() {
         try(Fixture f=new Fixture((short)61)) {
+            f.data.setComponent(f.device,new Position(1.25f,new Vector3f(0,0,0)));
+            f.drop(f.creature,new Vector2f(1,0));
+            assertEquals(1,f.events.get());
+            assertEquals(new Vector3f(0,WorldUtils.FLOOR_HEIGHT,0),f.position(f.creature));
+            assertEquals(1.25f,f.data.getComponent(f.creature,Position.class).rotation);
+            assertNull(f.data.getComponent(f.creature,CreatureFall.class));
+            f.systemTick();
+            assertNotNull(f.data.getComponent(f.creature,CreatureTortured.class));
+            assertEquals(1,f.events.get());
+        }
+    }
+
+    @Test
+    void noDeviceDropReleasesStaleTortureAndFallsWithoutAnEvent() {
+        try(Fixture f=new Fixture((short)61)) {
+            f.floor.clear();
             f.data.setComponents(f.creature,new CreatureTortured(4,0,0),
                     new Stored(f.roomId,ObjectType.TORTUREE),new Owner((short)1,(short)3));
             f.drop(f.creature,new Vector2f(1,0));
@@ -94,11 +110,12 @@ class TortureDeviceAdmissionTest {
     }
 
     @Test
-    void adjacentDeviceNeverCapturesACreatureOnEmptyFloor() {
+    void adjacentDeviceCapturesACreatureOnEmptyRoomFloor() {
         try(Fixture f=new Fixture((short)61)) {
-            assertFalse(f.storage.tryAdmit(f.creature,new Vector2f(1,0)));
-            assertNull(f.data.getComponent(f.creature,Stored.class));
-            assertEquals(0,f.storage.getCurrentCapacity());
+            assertTrue(f.storage.tryAdmit(f.creature,new Vector2f(1,0)));
+            assertNotNull(f.data.getComponent(f.creature,Stored.class));
+            assertEquals(new Vector3f(0,WorldUtils.FLOOR_HEIGHT,0),f.position(f.creature));
+            assertEquals(1,f.storage.getCurrentCapacity());
         }
     }
 
@@ -147,12 +164,54 @@ class TortureDeviceAdmissionTest {
     }
 
     @Test
-    void proximityUsesNativeFixedPointDistanceTruncation() {
+    void dropDistanceDoesNotRejectAnAvailableDevice() {
         try(Fixture f=new Fixture((short)61)) {
             f.devicePosition(-.3f,-.4f);
-            assertFalse(f.storage.tryAdmit(f.creature,new Vector2f(.3005f,.4005f)));
-            assertTrue(f.storage.tryAdmit(f.creature,new Vector2f(.3f,.4f)));
-            assertTrue(f.storage.tryAdmit(f.creature,new Vector2f(.29f,.39f)));
+            assertTrue(f.storage.tryAdmit(f.creature,new Vector2f(.3005f,.4005f)));
+            assertEquals(new Vector3f(-.3f,WorldUtils.FLOOR_HEIGHT,-.4f),f.position(f.creature));
+        }
+    }
+
+    @Test
+    void occupiedDropTileFallsBackToAnotherFreeDevice() {
+        try(Fixture f=new Fixture((short)61)) {
+            f.addDevice(1,0);
+            f.drop(f.creature,new Vector2f());
+            EntityId other=f.creature((short)6,(short)1);
+            f.drop(other,new Vector2f());
+            assertEquals(2,f.events.get());
+            assertEquals(new Vector3f(1,WorldUtils.FLOOR_HEIGHT,0),f.position(other));
+            assertEquals(2,f.storage.getCurrentCapacity());
+        }
+    }
+
+    @Test
+    void emptyDropTileSelectsTheNearestFreeDevice() {
+        try(Fixture f=new Fixture((short)61)) {
+            f.instance.addCoordinate(new Point(3,0));
+            f.addDevice(3,0);
+            f.drop(f.creature,new Vector2f(1,0));
+            assertEquals(new Vector3f(0,WorldUtils.FLOOR_HEIGHT,0),f.position(f.creature));
+        }
+    }
+
+    @Test
+    void freeDeviceOnTheDropTileWinsEvenIfAnotherIsCloser() {
+        try(Fixture f=new Fixture((short)61)) {
+            f.devicePosition(-.49f,0);
+            f.addDevice(.51f,0);
+            f.drop(f.creature,new Vector2f(.49f,0));
+            assertEquals(-.49f,f.position(f.creature).x);
+        }
+    }
+
+    @Test
+    void invalidOrOutsideRoomDropCannotReserveADevice() {
+        try(Fixture f=new Fixture((short)61)) {
+            assertFalse(f.storage.tryAdmit(f.creature,new Vector2f(Float.NaN,0)));
+            assertFalse(f.storage.tryAdmit(f.creature,new Vector2f(Float.POSITIVE_INFINITY,0)));
+            assertFalse(f.storage.tryAdmit(f.creature,new Vector2f(2,0)));
+            assertEquals(0,f.storage.getCurrentCapacity());
         }
     }
 
@@ -205,11 +264,11 @@ class TortureDeviceAdmissionTest {
     }
 
     @Test
-    void movingFurnitureToAnotherTileInvalidatesTheOldDropPoint() {
+    void movedFurnitureIsSelectedAtItsCurrentTile() {
         try(Fixture f=new Fixture((short)61)) {
             f.devicePosition(1,0);
-            assertFalse(f.storage.tryAdmit(f.creature,new Vector2f()));
-            assertTrue(f.storage.tryAdmit(f.creature,new Vector2f(1,0)));
+            assertTrue(f.storage.tryAdmit(f.creature,new Vector2f()));
+            assertEquals(new Vector3f(1,WorldUtils.FLOOR_HEIGHT,0),f.position(f.creature));
         }
     }
 
@@ -274,6 +333,19 @@ class TortureDeviceAdmissionTest {
             f.drop(f.creature,new Vector2f());f.storage().destroy();
             assertNotNull(f.data.getComponent(f.creature,CreatureTortured.class));
             assertEquals(1,f.storage.getCurrentCapacity());
+        }
+    }
+
+    @Test
+    void replacementFurnitureOnAnOccupiedTileKeepsAdmissionWithoutAnotherEvent() {
+        try(Fixture f=new Fixture((short)61)) {
+            f.drop(f.creature,new Vector2f(1,0));
+            f.floor.remove(f.device);f.data.removeEntity(f.device);
+            f.addDevice(0,0);
+            f.systemTick();
+            assertNotNull(f.data.getComponent(f.creature,CreatureTortured.class));
+            assertEquals(1,f.storage.getCurrentCapacity());
+            assertEquals(1,f.events.get());
         }
     }
 
@@ -411,6 +483,12 @@ class TortureDeviceAdmissionTest {
             HealthSystem system=new HealthSystem(data,proxy(IEntityPositionLookup.class,(name,args)->{throw new UnsupportedOperationException(name);}),
                     settings,null,level,List.of(),map,()->21,proxy(GameEventService.class,(name,args)->null));
             try {system.processTick(21);} finally {system.stop();}
+        }
+        void addDevice(float x,float y) {
+            EntityId id=data.createEntity();
+            data.setComponents(id,new ObjectComponent((short)8,ObjectType.TORTUREE),
+                    new Position(0,new Vector3f(x,0,y)));
+            floor.add(id);storage.updateMaxCapacity();
         }
         void devicePosition(float x,float y) {data.setComponent(device,new Position(0,new Vector3f(x,0,y)));}
         CreatureState ai(EntityId id) {return data.getComponent(id,CreatureAi.class).getCreatureState();}

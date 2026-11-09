@@ -63,7 +63,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return 1;
     }
 
-    /** Returns the rejected creature, or null when it was admitted at the tile center. */
+    /** Returns the rejected creature, or null when it was admitted to a free device. */
     @Override
     public EntityId addItem(EntityId torturee, Point p) {
         return tryAdmit(torturee, new Vector2f(p.x * WorldUtils.TILE_WIDTH,
@@ -71,11 +71,9 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     }
 
     /**
-     * Admit at the actual drop/spawn position, never at a neighbouring device.
-     * Native DK II requires the same tile and distance below one tile in its
-     * fixed-point measure (each squared axis contribution is truncated first);
-     * another creature already undergoing torture on that tile blocks admission.
-     * An idle bystander and the admitting creature itself do not block it.
+     * Prefer a free device on the drop/spawn tile, otherwise use the nearest
+     * free device in this room. Occupied tiles are excluded; idle bystanders and
+     * the admitting creature itself do not reserve a device.
      *
      * The room lock covers validation and publication of the occupied position/AI,
      * so two session/loading producers cannot claim the same device together.
@@ -88,15 +86,19 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         if (health == null || health.health <= 0 || creature == null || owner == null
                 || entityData.getComponent(torturee, Death.class) != null
                 || (owner.ownerId == parent.getOwnerId()
-                    && creature.creatureId == kwdFile.getImp().getCreatureId())
-                || !hasAvailableDevice(torturee, position)) {
+                    && creature.creatureId == kwdFile.getImp().getCreatureId())) {
             return false;
         }
 
+        Position device = findAvailableDevice(torturee, position);
+        if (device == null) {
+            return false;
+        }
+        Point tile = WorldUtils.vectorToPoint(device.position);
         discardStaleItems();
         boolean alreadyStored = objectsByCoordinate.values().stream().anyMatch(ids -> ids.contains(torturee));
         objectsByCoordinate.values().forEach(ids -> ids.remove(torturee));
-        objectsByCoordinate.computeIfAbsent(WorldUtils.vectorToPoint(position), p -> new HashSet<>()).add(torturee);
+        objectsByCoordinate.computeIfAbsent(tile, p -> new HashSet<>()).add(torturee);
         if (!alreadyStored) {
             addCurrentCapacity(1);
         }
@@ -104,7 +106,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         CreatureTortured previous = entityData.getComponent(torturee, CreatureTortured.class);
         double now = gameTimer.getGameTime();
         entityData.setComponents(torturee,
-                new Position(0, new Vector3f(position.x, WorldUtils.FLOOR_HEIGHT, position.y)),
+                new Position(device.rotation, new Vector3f(device.position.x, WorldUtils.FLOOR_HEIGHT, device.position.z)),
                 new CreatureAi(now, CreatureState.TORTURED, creature.creatureId),
                 new CreatureTortured(previous == null ? 0 : previous.timeTortured, now, now));
         entityData.removeComponent(torturee, CreatureImprisoned.class);
@@ -112,25 +114,52 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return true;
     }
 
-    /** Checks current furniture and AI; removed devices and held creatures cannot reserve tiles. */
-    private boolean hasAvailableDevice(EntityId torturee, Vector2f position) {
-        if (!hasDeviceAt(position)) {
-            return false;
+    /** Select and reserve under the admission lock, using current furniture and AI. */
+    private Position findAvailableDevice(EntityId torturee, Vector2f position) {
+        if (!Float.isFinite(position.x) || !Float.isFinite(position.y)) {
+            return null;
         }
-        Point tile = WorldUtils.vectorToPoint(position);
+        Point dropTile = WorldUtils.vectorToPoint(position);
+        if (!parent.getRoomInstance().getCoordinates().contains(dropTile)) {
+            return null;
+        }
+        Set<Point> occupied = new HashSet<>();
         var creatures = entityData.getEntities(CreatureComponent.class, CreatureAi.class, Position.class);
         try {
             for (var other : creatures) {
                 if (!other.getId().equals(torturee)
-                        && other.get(CreatureAi.class).getCreatureState() == CreatureState.TORTURED
-                        && tile.equals(WorldUtils.vectorToPoint(other.get(Position.class).position))) {
-                    return false;
+                        && other.get(CreatureAi.class).getCreatureState() == CreatureState.TORTURED) {
+                    occupied.add(WorldUtils.vectorToPoint(other.get(Position.class).position));
                 }
             }
         } finally {
             creatures.release();
         }
-        return true;
+        Position nearest = null;
+        boolean nearestOnDropTile = false;
+        double nearestDistance = Double.POSITIVE_INFINITY;
+        // Stable tie order also makes equidistant devices reproducible.
+        for (EntityId id : furniture().stream().sorted().toList()) {
+            Position device = devicePosition(id);
+            if (device == null) {
+                continue;
+            }
+            Point tile = WorldUtils.vectorToPoint(device.position);
+            if (occupied.contains(tile)) {
+                continue;
+            }
+            boolean onDropTile = dropTile.equals(tile);
+            double dx = (double) position.x - device.position.x;
+            double dy = (double) position.y - device.position.z;
+            double distance = dx * dx + dy * dy;
+            if (nearest == null || (onDropTile && !nearestOnDropTile)
+                    || (onDropTile == nearestOnDropTile && distance < nearestDistance)) {
+                nearest = device;
+                nearestOnDropTile = onDropTile;
+                nearestDistance = distance;
+            }
+        }
+        return nearest;
     }
 
     /** Geometry-only check for an existing admission; it does not reserve another tile. */

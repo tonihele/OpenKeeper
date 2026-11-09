@@ -119,7 +119,7 @@ public final class TriggerGeneric extends Trigger {
          * does not emit an admission either. A later accepted admission may emit
          * again, subject to the existing branch repeat limit.
          * <p>
-         * DK II validates a usable torture device on the creature's tile, switches
+         * DK II selects a free torture device, switches
          * to its torture command, then emits before later captive bookkeeping.
          * OpenKeeper queues its completed hand-drop and living spawn/load
          * admissions. The buffer exists before world loading, and only simulation
@@ -127,9 +127,9 @@ public final class TriggerGeneric extends Trigger {
          * delivery-time state; ordinary polling stays false. This differs from
          * native synchronous timing and does not independently dispatch nested events.
          * <p>
-         * Both producers require a living creature at an available chair or wheel
-         * on the same tile, within DK II's fixed-point proximity check. Another
-         * creature undergoing torture blocks the tile; idle bystanders do not. Own-room creatures
+         * Both producers require a living creature and a free chair or wheel. A
+         * free device on the drop tile takes priority, otherwise the nearest free
+         * device is selected. Tortured occupants reserve tiles; idle bystanders do not. Own-room creatures
          * can enter torture, except Imps. Rejected drops release the creature and
          * emit no admission. This does not establish full native command-eligibility,
          * synchronous timing or repeat-counter parity.

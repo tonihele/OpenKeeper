@@ -128,13 +128,18 @@ class CreatureTorturedTriggerTest {
     }
 
     @Test
-    void runtimeSpawnOnEmptyFloorStaysIdleWithoutAnEvent() {
+    void runtimeSpawnOnEmptyRoomFloorUsesAFreeDeviceAndEmitsOnce() {
         try(Fixture f=new Fixture(255,false)) {
             f.data.removeComponent(f.entity,Trigger.class);
             CreaturesController factory=f.factory(false);f.bindScripts();
+            f.instance.addCoordinate(new Point(0,1));
             factory.spawnCreature(CreatureImprisonedFixtures.hero(),new Vector2f(0,1));
-            f.assertLoaded(CreatureState.IDLE,true);f.tick();assertEquals(0,f.flags[0]);
-            assertNull(f.lastAdmission);
+            f.assertLoaded(CreatureState.TORTURED,true);
+            assertNotNull(f.lastAdmission);
+            assertEquals(new Vector3f(1,toniarts.openkeeper.utils.WorldUtils.FLOOR_HEIGHT,1),
+                    f.data.getComponent(f.lastAdmission,Position.class).position);
+            f.tick();assertEquals(1,f.flags[0]);
+            f.tick();assertEquals(1,f.flags[0]);
         }
     }
 
