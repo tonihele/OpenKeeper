@@ -43,7 +43,17 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
 
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney);
 
-    public EntityId addLooseGold(short ownerId, int x, int y, int money, int maxMoney);
+    /**
+     * Adds a loose gold pile. Like in DK II, loose gold has no owner (the
+     * neutral player owns it), the land it lies on decides who can take it
+     *
+     * @param x tile x
+     * @param y tile y
+     * @param money the amount of gold
+     * @param maxMoney the maximum amount of gold in the pile
+     * @return the gold pile
+     */
+    public EntityId addLooseGold(int x, int y, int money, int maxMoney);
 
     public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity);
 
@@ -56,6 +66,14 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
      * @return return the entity ID for the generated chicken
      */
     public EntityId spawnChicken(short ownerId, Vector3f pos);
+
+    /**
+     * Knocks away the player's Call to Arms banner, like a slap. Only a banner
+     * that is up on the map, not one in the hand or still rising
+     *
+     * @param playerId the player
+     */
+    public void cancelCallToArms(short playerId);
 
     /**
      * Spawns an freerange chicken in specified position.
