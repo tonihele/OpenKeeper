@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -871,18 +872,21 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     /**
      * The tile a trainee shoots at a wall target from, like DK II
      * (Training_cpp_4F3310, 0x4F3310): the room tile closest to the trainee
-     * that has no training furniture on it
+     * that has no training furniture on it and sees the target
      *
      * @param room the Training Room
      * @param creature the trainee
+     * @param wallTarget the wall target
      * @return the tile, {@code null} if there is none
      */
-    private Point getShootingTile(IRoomController room, ICreatureController creature) {
+    private Point getShootingTile(IRoomController room, ICreatureController creature, EntityId wallTarget) {
+        Vector3f target = entityData.getComponent(wallTarget, Position.class).position;
         Set<Point> furniture = new HashSet<>(getFurnitureTiles(room.getWallFurniture()).keySet());
         furniture.addAll(getFurnitureTiles(room.getFloorFurniture()).keySet());
         Point from = creature.getCreatureCoordinates();
         return room.getRoomInstance().getCoordinates().stream()
-                .filter(p -> !furniture.contains(p) && room.isTileAccessible(null, p))
+                .filter(p -> !furniture.contains(p) && room.isTileAccessible(null, p)
+                && WorldUtils.hasLineOfSight(mapController, WorldUtils.pointToVector3f(p), target))
                 .min(Comparator.comparingInt(p -> WorldUtils.calculateDistance(from, p)))
                 .orElse(null);
     }
@@ -936,7 +940,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAINEE -> {
                 EntityId wallTarget = getFurnitureTiles(room.getWallFurniture()).get(target);
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()),
-                        wallTarget, wallTarget != null ? getShootingTile(room, creature) : null);
+                        wallTarget, wallTarget != null ? getShootingTile(room, creature, wallTarget) : null);
             }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,

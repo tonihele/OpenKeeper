@@ -114,6 +114,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean hasRangedAttackReady();
 
+    /**
+     * Casts the first attacking spell that is ready at the target, without
+     * hurting it, like a trainee at a wall target
+     *
+     * @param target what to cast at
+     */
+    public void castTrainingShot(EntityId target);
+
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);

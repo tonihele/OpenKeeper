@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -68,6 +69,10 @@ class TrainingSpotTest {
     private final EntityData entityData = new DefaultEntityData();
     private final EntityId wallTarget = furniture(WALL_TARGET_TILE);
     private final EntityId dummy = furniture(DUMMY_TILE);
+    private final List<Point> roomTiles = new ArrayList<>(List.of(new Point(1, 1), new Point(2, 1), WALL_TARGET_TILE,
+            new Point(4, 1), DUMMY_TILE));
+    private final List<EntityId> casts = new ArrayList<>();
+    private ICreatureController creature;
 
     @Test
     void aTraineeWithoutARangedAttackGoesToTheDummyEvenWithAWallTargetCloser() {
@@ -93,12 +98,34 @@ class TrainingSpotTest {
         assertEquals(new Vector2f(4, 1), task.getTarget(null));
     }
 
+    @Test
+    void theShootingTileMustSeeTheWallTarget() {
+
+        // The room turns south at its east end, the tiles there can't see the target past the rock at (4, 2)
+        roomTiles.addAll(List.of(new Point(5, 2), new Point(5, 3)));
+        Task task = assignTraining(new Point(6, 3), true, List.of(WALL_TARGET_TILE));
+
+        assertEquals(new Vector2f(4, 1), task.getTarget(null));
+    }
+
+    @Test
+    void aTraineeCastsAtTheWallTargetButNotAtTheDummy() {
+        assignTraining(new Point(6, 1), true, List.of(WALL_TARGET_TILE)).executeTask(creature, 0.25f);
+        assignTraining(new Point(2, 1), false, List.of(DUMMY_TILE)).executeTask(creature, 0.25f);
+
+        assertEquals(List.of(wallTarget), casts);
+    }
+
     private Task assignTraining(Point creatureTile, boolean ranged, List<Point> freeSpots) {
         AtomicReference<Task> assigned = new AtomicReference<>();
-        ICreatureController creature = stub(ICreatureController.class, (name, args) -> switch (name) {
+        creature = stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> creatureTile;
             case "getOwnerId" -> PLAYER_ID;
             case "hasRangedAttackReady" -> ranged;
+            case "castTrainingShot" -> {
+                casts.add((EntityId) args[0]);
+                yield null;
+            }
             case "setAssignedTask" -> {
                 assigned.set((Task) args[0]);
                 yield null;
@@ -114,9 +141,7 @@ class TrainingSpotTest {
 
     private IRoomController trainingRoom(List<Point> freeSpots) {
         RoomInstance roomInstance = new RoomInstance(RoomFixtures.room((short) 7, 0));
-        for (int x = 1; x <= 5; x++) {
-            roomInstance.addCoordinate(new Point(x, 1));
-        }
+        roomInstance.addCoordinates(roomTiles);
         IRoomObjectControl<?> trainees = stub(IRoomObjectControl.class, (name, args) -> switch (name) {
             case "getAvailableCoordinates" -> freeSpots;
             default -> null;
@@ -140,6 +165,7 @@ class TrainingSpotTest {
         IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
             case "getMapData" -> emptyMap;
             case "getRoomsByFunction" -> List.of(room);
+            case "isSolid" -> !roomTiles.contains((Point) args[0]);
             default -> null;
         });
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
