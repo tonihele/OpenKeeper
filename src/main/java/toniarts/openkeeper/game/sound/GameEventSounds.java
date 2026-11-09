@@ -104,6 +104,8 @@ public final class GameEventSounds {
                 addShotHit(sounds, event, kwdFile, subject);
             case IMPS_CREATED ->
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
+            case CALL_TO_ARMS_UNREACHABLE ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
             case ROOM_TILES_LAID ->
                 add(sounds, subject, ThingSounds.ROOM_LAY_TILE, event.position);
             case ROOM_TILE_BUILT ->
