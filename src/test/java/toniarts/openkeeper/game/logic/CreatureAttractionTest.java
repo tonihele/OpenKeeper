@@ -16,12 +16,18 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -54,6 +60,8 @@ class CreatureAttractionTest {
     private final Room hatchery = room((short) 4);
     private final Room lair = room((short) 2);
     private Keeper keeper;
+    private final EntityData entityData = new DefaultEntityData();
+    private final EntityId keeperEntity = entityData.createEntity();
     private PlayerRoomControl rooms;
     private IPlayerController player;
     private IKwdFile level;
@@ -61,12 +69,16 @@ class CreatureAttractionTest {
     @BeforeEach
     void setUp() {
         keeper = new Keeper(false, PLAYER_ID);
+        entityData.setComponents(keeperEntity, new KeeperComponent(PLAYER_ID), new Gold(0, Integer.MAX_VALUE));
+        PlayerGoldControl gold = new PlayerGoldControl(keeper, entityData);
         rooms = new PlayerRoomControl(keeper, List.of(hatchery, lair));
         player = stub(IPlayerController.class, (method, args) -> switch (method) {
             case "getKeeper" ->
                 keeper;
             case "getRoomControl" ->
                 rooms;
+            case "getGoldControl" ->
+                gold;
             default ->
                 throw new AssertionError(method);
         });
@@ -108,10 +120,10 @@ class CreatureAttractionTest {
     @Test
     void goldAttraction() {
         Creature creature = creature((short) 5, amountAttraction(GOLD, 0x1388));
-        keeper.setGold(0x1387);
+        entityData.setComponent(keeperEntity, new Gold(0x1387, Integer.MAX_VALUE));
         assertFalse(CreatureAttraction.isSatisfied(creature, player, level));
 
-        keeper.setGold(0x1388);
+        entityData.setComponent(keeperEntity, new Gold(0x1388, Integer.MAX_VALUE));
         assertTrue(CreatureAttraction.isSatisfied(creature, player, level));
     }
 
