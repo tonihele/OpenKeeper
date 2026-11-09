@@ -127,7 +127,9 @@ public final class CasinoController extends NormalRoomController {
             return false;
         }
 
-        // The pay out adjuster switches how the casino pays out, like in DK II
+        // The pay out adjuster switches how the casino pays out, like in DK II. A controller built again on the
+        // room's entities took the furniture over without placing it, so this is the adjuster to show it on
+        payOutAdjuster = furniture;
         setPayOut(getPayOut() == PayOut.SMILES ? PayOut.MONEY : PayOut.SMILES);
         return true;
     }

@@ -83,6 +83,17 @@ class CasinoPayOutTest {
     }
 
     @Test
+    void adjusterOfAControllerBuiltAgainShowsTheIndicatorOfThePayOut() {
+        CasinoController casino = buildCasino(5);
+        EntityId adjuster = findObject(PAY_OUT_ADJUSTER);
+
+        // A controller built again on the room's entities doesn't place the furniture
+        CasinoController rebuilt = new CasinoController(casino.getEntityId(), entityData, null, casino.getRoomInstance(), null, null);
+        rebuilt.switchFurniture(adjuster);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_2, entityData.getComponent(adjuster, ObjectViewState.class).animState);
+    }
+
+    @Test
     void tableIsNoSwitch() {
         CasinoController casino = buildCasino(5);
 
