@@ -17,11 +17,6 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import com.simsilica.es.base.DefaultEntityData;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.GameTimeController;
@@ -39,6 +34,12 @@ import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
 
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /** Tests live spawn decisions; this package also permits parser-only fixture setters. */
@@ -53,7 +54,7 @@ class PortalSpawnCooldownTest {
         goblin.setCreatureId((short) 7);
         Creature.Attraction lairRequirement = new Creature.Attraction();
         lairRequirement.setRoomId(2);
-        lairRequirement.setPresent(1);
+        lairRequirement.setType(Creature.AttractionType.ROOM);
         goblin.setAttractions(new Creature.Attraction[]{lairRequirement});
         Creature imp = new Creature();
         imp.setCreatureId((short) 1);
