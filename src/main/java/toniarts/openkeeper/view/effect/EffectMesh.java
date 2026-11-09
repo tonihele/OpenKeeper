@@ -117,6 +117,15 @@ public class EffectMesh extends Mesh {
         updateBound();
     }
 
+    public void setColor(com.jme3.math.ColorRGBA color) {
+        setBuffer(VertexBuffer.Type.Color, 4, new float[]{
+            color.r, color.g, color.b, color.a,
+            color.r, color.g, color.b, color.a,
+            color.r, color.g, color.b, color.a,
+            color.r, color.g, color.b, color.a
+        });
+    }
+
     public final void setFrames(int frames) {
         this.frames = frames;
         if (this.frames != 1){

@@ -520,12 +520,13 @@ public final class AssetUtils {
                 logger.log(Level.ERROR, "Can't create a texture out of " + resource + "!", e);
             }
 
-            // Particle.j3md hardcodes "Blend AlphaAdditive" in its technique,
-            // which is right for glow/spark-style ADDITIVE_ALPHA art but
-            // washes out plain ALPHA/SPRITE textures (e.g. feathers) to
-            // near-invisibility over lit terrain - use standard alpha
-            // compositing for those instead.
-            if (resource.getType() != ArtResource.ArtResourceType.ADDITIVE_ALPHA) {
+            // Native additive sprites use ONE/ONE: their RGB already encodes
+            // intensity. Weighting it by texture alpha again dims sparkles.
+            // Plain ALPHA/SPRITE art still uses standard alpha compositing.
+            if (resource.getType() == ArtResource.ArtResourceType.ADDITIVE_ALPHA) {
+                mat.setTransparent(true);
+                mat.getAdditionalRenderState().setBlendMode(BlendMode.Additive);
+            } else {
                 mat.setTransparent(false);
                 mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
             }
