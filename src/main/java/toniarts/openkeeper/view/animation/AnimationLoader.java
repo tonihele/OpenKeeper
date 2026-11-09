@@ -275,7 +275,10 @@ public final class AnimationLoader {
 
             // An indicator stays where its animation took it
             if (animationControl.isHoldLastFrame()) {
-                composer.setGlobalSpeed(0);
+
+                // The pose stays where the animation left it while the composer is off, and the next animation
+                // turns its composer on again
+                composer.setEnabled(false);
                 return;
             }
 
