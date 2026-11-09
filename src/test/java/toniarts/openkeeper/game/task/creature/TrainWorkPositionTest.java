@@ -58,7 +58,7 @@ class TrainWorkPositionTest {
         Map<MiscType, MiscVariable> settings = Map.of(
                 MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, TrainingDummyFixtures.trainingVariable(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, 4),
                 MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, TrainingDummyFixtures.trainingVariable(MiscType.MODIFY_PLAYER_GOLD_WHILE_TRAINING_PER_SECOND, -10));
-        return new Train(navigation(), map(), DUMMY, (short) 3, null, null, null, settings, null);
+        return new Train(navigation(), map(), DUMMY, (short) 3, null, null, null, settings, null, null, null);
     }
 
     private static ICreatureController creatureAt(Vector3f position) {

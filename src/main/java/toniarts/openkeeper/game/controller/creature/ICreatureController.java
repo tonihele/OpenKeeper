@@ -107,6 +107,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isWithinAttackDistance(EntityId attackTarget);
 
+    /**
+     * Does the creature have an attacking spell it can cast now
+     *
+     * @return has a ranged attack ready
+     */
+    public boolean hasRangedAttackReady();
+
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
