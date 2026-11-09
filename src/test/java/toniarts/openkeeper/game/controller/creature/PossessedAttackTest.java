@@ -349,7 +349,7 @@ class PossessedAttackTest {
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> name.equals("getLevelData")
                 ? stub(IKwdFile.class, (kwdName, kwdArgs) -> kwdName.equals("getCreatureFirstPersonStats") ? firstPersonStats : null) : null);
         return new CreatureController(us, entityData, new Creature(), null, null, gameTimer, gameSettings, creaturesController,
-                positionLookup, mapController, levelInfo, null, null, stub(GameEventService.class, (name, args) -> null));
+                positionLookup, mapController, levelInfo, null, null, stub(GameEventService.class, (name, args) -> null), id -> { });
     }
 
     @FunctionalInterface
