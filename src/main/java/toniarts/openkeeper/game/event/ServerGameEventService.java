@@ -98,11 +98,6 @@ public final class ServerGameEventService implements GameEventService {
         create(type, null, 0, null, 0, null, null, playerId);
     }
 
-    @Override
-    public void emitToPlayer(GameEventType type, ThingFlag subjectKind, int subjectId, short playerId) {
-        create(type, subjectKind, subjectId, null, 0, null, null, playerId);
-    }
-
     private void create(GameEventType type, @Nullable ThingFlag subjectKind,
                                int subjectId, @Nullable ThingFlag targetKind, int targetId, @Nullable EntityId entity,
                                @Nullable Point position, short playerId) {

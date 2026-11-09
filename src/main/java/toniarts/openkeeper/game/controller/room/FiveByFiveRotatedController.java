@@ -147,8 +147,6 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     public void captured(short playerId) {
         super.captured(playerId);
 
-        if (!isDestroyed()) {
-            entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, Double.MIN_VALUE));
-        }
+        entityData.setComponent(entityId, new ImpGenerator(getEntityComponent(ImpGenerator.class).entrance, Double.MIN_VALUE));
     }
 }

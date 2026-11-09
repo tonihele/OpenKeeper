@@ -112,12 +112,6 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.OBJECT_CREATE, event.position);
             case ROOM_SOLD ->
                 add(sounds, subject, ThingSounds.ROOM_SELL, event.position);
-            case ROOM_CAPTURED -> {
-                if (event.subjectKind == ThingFlag.ROOM) {
-                    add(sounds, SoundCategory.SPEECH_MENTOR,
-                            RoomCaptureSpeech.forRoom(kwdFile.getRoomById(event.subjectId)).getId(), null);
-                }
-            }
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
         }

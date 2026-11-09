@@ -79,18 +79,6 @@ class GameEventTest {
     }
 
     @Test
-    void capturedRoomEventCarriesItsTypeOnlyToTheCapturingPlayer() {
-        service.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM, 42, (short) 3);
-        assertEquals(1, sent.size());
-        Object[] args = sent.getFirst();
-        assertEquals(GameEventType.ROOM_CAPTURED, args[0]);
-        assertEquals(ThingFlag.ROOM, args[1]);
-        assertEquals(42, args[2]);
-        assertNull(args[6], "Narrator speech is not positional");
-        assertEquals((short) 3, args[7]);
-    }
-
-    @Test
     void entityEventKnowsTheThingTypeOfTheEntity() {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new ObjectComponent((short) 5, AbstractRoomController.ObjectType.GOLD),
