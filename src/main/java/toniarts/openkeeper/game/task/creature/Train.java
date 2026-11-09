@@ -90,7 +90,12 @@ public final class Train extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return playerController.getKeeper().getGold() >= trainingCost && creature.getLevel() < trainingRoomMaxExperienceLevel && super.isValid(creature);
+
+        // DK II picks the training spot again after a cast at a wall target (0x4855B0, 0x485310), here once the
+        // cast has had a work step
+        return playerController.getKeeper().getGold() >= trainingCost && creature.getLevel() < trainingRoomMaxExperienceLevel
+                && (wallTarget == null || creature.hasRangedAttackReady() || getExecutionDuration(creature) < 1)
+                && super.isValid(creature);
     }
 
     @Override

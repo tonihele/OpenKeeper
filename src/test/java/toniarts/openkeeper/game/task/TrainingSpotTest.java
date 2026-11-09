@@ -49,7 +49,9 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Where a trainee trains: at a Training Dummy, or shooting at a wall target,
@@ -73,6 +75,7 @@ class TrainingSpotTest {
             new Point(4, 1), DUMMY_TILE));
     private final List<EntityId> casts = new ArrayList<>();
     private ICreatureController creature;
+    private boolean rangedAttackReady;
 
     @Test
     void aTraineeWithoutARangedAttackGoesToTheDummyEvenWithAWallTargetCloser() {
@@ -116,12 +119,26 @@ class TrainingSpotTest {
         assertEquals(List.of(wallTarget), casts);
     }
 
+    @Test
+    void aTraineePicksItsSpotAgainOnceItHasCastAtTheWallTarget() {
+        Task task = assignTraining(new Point(6, 1), true, List.of(WALL_TARGET_TILE));
+        task.executeTask(creature, 0.25f);
+        rangedAttackReady = false;
+        assertTrue(task.isValid(creature));
+
+        // A work step later the spell is still recharging, so the trainee looks for a spot again
+        task.executeTask(creature, 1.25f);
+        assertFalse(task.isValid(creature));
+    }
+
     private Task assignTraining(Point creatureTile, boolean ranged, List<Point> freeSpots) {
         AtomicReference<Task> assigned = new AtomicReference<>();
+        rangedAttackReady = ranged;
         creature = stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> creatureTile;
             case "getOwnerId" -> PLAYER_ID;
-            case "hasRangedAttackReady" -> ranged;
+            case "hasRangedAttackReady" -> rangedAttackReady;
+            case "getLevel" -> 1;
             case "castTrainingShot" -> {
                 casts.add((EntityId) args[0]);
                 yield null;
@@ -147,8 +164,8 @@ class TrainingSpotTest {
             default -> null;
         });
         return stub(IRoomController.class, (name, args) -> switch (name) {
-            case "isFullCapacity" -> false;
             case "isTileAccessible" -> true;
+            case "getOwnerId" -> PLAYER_ID;
             case "getRoomInstance" -> roomInstance;
             case "getObjectControl" -> trainees;
             case "getWallFurniture" -> Set.of(wallTarget);
@@ -173,6 +190,7 @@ class TrainingSpotTest {
             default -> null;
         });
         Keeper keeper = new Keeper(false, PLAYER_ID);
+        keeper.setGold(100);
         IPlayerController player = stub(IPlayerController.class, (name, args) -> switch (name) {
             case "getKeeper" -> keeper;
             default -> null;
@@ -204,7 +222,10 @@ class TrainingSpotTest {
                     case "toString" -> type.getSimpleName() + " stub";
                     default -> {
                         Object result = answer.answer(method.getName(), args);
-                        yield result == null && method.getReturnType() == boolean.class ? false : result;
+                        if (result == null && method.getReturnType() == boolean.class) {
+                            yield false;
+                        }
+                        yield result == null && method.getReturnType() == int.class ? 0 : result;
                     }
                 });
     }
