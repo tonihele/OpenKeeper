@@ -51,6 +51,20 @@ public final class CombatPitController extends DoubleQuadController {
         }
     }
 
+    @Override
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
+
+        // The pit's door is the way in and out, for the imps that carry the knocked out fighters off too
+        if (door != null && fromX != null && fromY != null) {
+            Point from = new Point(fromX, fromY);
+            Point to = new Point(toX, toY);
+            if ((insideCoordinates.contains(from) && to.equals(door)) || (insideCoordinates.contains(to) && from.equals(door))) {
+                return true;
+            }
+        }
+        return super.isTileAccessible(fromX, fromY, toX, toY);
+    }
+
     /**
      * Is the tile in the pit itself, where the creatures fight, rather than on
      * its edge
