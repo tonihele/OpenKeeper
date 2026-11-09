@@ -14,10 +14,9 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.task.objective;
+package toniarts.openkeeper.game.controller.creature;
 
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
@@ -28,11 +27,11 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
  * way by ordinary means, it can dig through the rock in between, at the
  * same cost as a party with workers.
  */
-final class Tunneller implements INavigable {
+public final class Tunneller implements INavigable {
 
     private final ICreatureController creature;
 
-    Tunneller(ICreatureController creature) {
+    public Tunneller(ICreatureController creature) {
         this.creature = creature;
     }
 
@@ -40,17 +39,30 @@ final class Tunneller implements INavigable {
     public Float getCost(IMapTileInformation from, IMapTileInformation to, IMapController mapController, IEntityPositionLookup entityPositionLookup) {
         Float cost = INavigable.super.getCost(from, to, mapController, entityPositionLookup);
         if (cost == null) {
-            Terrain terrain = mapController.getTerrain(to);
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
-                    return 5f;
-                }
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
-                    return 6f;
-                }
+            Float tunnelCost = getTunnelCost(mapController.getTerrain(to));
+            if (tunnelCost != null) {
+                return tunnelCost;
             }
         }
         return cost;
+    }
+
+    /**
+     * The cost of digging or smashing through a tile of the given terrain
+     *
+     * @param terrain the terrain to go through
+     * @return the cost, or {@code null} if the terrain can't be dug or smashed
+     */
+    public static Float getTunnelCost(Terrain terrain) {
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
+                return 5f; // Dig our selves in
+            }
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
+                return 6f; // It seems that everybody can attack reinforced walls i.e. ?
+            }
+        }
+        return null;
     }
 
     @Override
