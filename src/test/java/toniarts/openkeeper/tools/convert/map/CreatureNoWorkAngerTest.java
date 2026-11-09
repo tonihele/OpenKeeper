@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -24,11 +26,20 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -62,6 +73,38 @@ class CreatureNoWorkAngerTest {
 
         assertTrue(foundWork.get());
         assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noWork);
+    }
+
+    @Test
+    void pitFighterWaitingForAnOpponentGetsAngry() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId entityId = createCreature(entityData);
+        entityData.setComponent(entityId, new Position(0, new Vector3f(3, 0, 3)));
+
+        // A 5 x 5 pit, the creature in the middle of it
+        RoomInstance roomInstance = new RoomInstance(RoomFixtures.roomWithObjects((short) 16, (short) 0, (short) 0, (short) 0, (short) 0, (short) 0, (short) 0));
+        for (int x = 1; x <= 5; x++) {
+            for (int y = 1; y <= 5; y++) {
+                roomInstance.addCoordinate(new Point(x, y));
+            }
+        }
+        IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(),
+                new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> entityData.createEntity());
+        CombatPitController pit = new CombatPitController(entityData.createEntity(), entityData, null, roomInstance, objectsController);
+        pit.construct();
+        entityData.setComponent(entityId, new CombatPitFighter(pit.getEntityId()));
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> pit);
+        INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(INavigationService.class.getClassLoader(),
+                new Class<?>[]{INavigationService.class}, (proxy, method, args) -> new DefaultGraphPath<>());
+        Creature fighter = new Creature();
+        fighter.getAttributes().setAngerNoWork((short) 50);
+
+        new CreatureController(entityId, entityData, fighter, navigationService, null, null, null,
+                null, null, mapController, null, null, null, null).navigateToRandomPointInCombatPit();
+
+        assertEquals(50 / 4, entityData.getComponent(entityId, CreatureMood.class).noWork);
+        assertTrue(pit.isFightingTile(entityData.getComponent(entityId, Navigation.class).target));
     }
 
     private static EntityId createCreature(EntityData entityData) {

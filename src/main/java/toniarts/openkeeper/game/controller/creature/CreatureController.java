@@ -429,6 +429,9 @@ public final class CreatureController extends EntityController implements ICreat
     public void navigateToRandomPointInCombatPit() {
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null && mapController.getRoomController(pitFighter.pit) instanceof CombatPitController pit) {
+
+            // Waiting in the pit is no work, DK II adds the no work anger each time too (0x478B80)
+            addNoWorkAnger();
             createNavigation(getCreatureCoordinates(), pit.getRandomFightingTile(), null);
         }
     }
@@ -569,12 +572,16 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         // DKII angers a creature each time it looks for a job and finds none
+        addNoWorkAnger();
+        workResult.accept(false);
+    }
+
+    private void addNoWorkAnger() {
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
         if (mood != null) {
             entityData.setComponent(entityId, mood.add(CreatureMood.REASON_NO_WORK,
                     CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoWork())));
         }
-        workResult.accept(false);
     }
 
     private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
