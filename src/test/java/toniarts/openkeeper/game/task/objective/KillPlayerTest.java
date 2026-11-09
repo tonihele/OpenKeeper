@@ -45,6 +45,7 @@ import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -118,7 +119,8 @@ class KillPlayerTest {
     void loneFighterCanNotTunnel() {
         KillPlayer task = createTask(ROCK_ALL_ROUND, false);
 
-        assertEquals(TaskType.KILL_PLAYER, task.getCurrentTask().getTaskType());
+        // No way to the heart for him, so no task to take yet
+        assertNull(task.getCurrentTask());
     }
 
     @Test

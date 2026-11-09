@@ -61,6 +61,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
     private final ILevelInfo levelInfo;
     private final Point target;
     private final Point tunnelTarget;
+    private final boolean wayFound;
 
     public KillPlayer(final INavigationService navigationService, final IMapController mapController, final ILevelInfo levelInfo, short targetPlayerId, ICreatureController creature) {
         super(navigationService, mapController, levelInfo.getPlayer(targetPlayerId).getDungeonHeartLocation(), creature.getOwnerId());
@@ -70,7 +71,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
         this.levelInfo = levelInfo;
         this.tunnelTarget = pickTunnelTarget();
         this.target = getStandingTile(tunnelTarget);
-        createSubTasks();
+        this.wayFound = createSubTasks();
     }
 
     @Override
@@ -103,6 +104,9 @@ public final class KillPlayer extends AbstractObjectiveTask {
      */
     @Override
     public Task getCurrentTask() {
+        if (!wayFound) {
+            return null;
+        }
         boolean stepDone = false;
         while (!getTaskQueue().isEmpty() && !getTaskQueue().peekFirst().isValid(creature)) {
             getTaskQueue().removeFirst();
@@ -172,14 +176,17 @@ public final class KillPlayer extends AbstractObjectiveTask {
      * digging into the wall where it can. After every tile it digs it walks
      * if it now can.
      */
-    private void createSubTasks() {
+    private boolean createSubTasks() {
         Set<Point> walkable = getWalkableToTarget();
-        if (walkable.contains(creature.getCreatureCoordinates())
-                || !(creature.isWorker() || (creature.getParty() != null && creature.getParty().isWorkersAvailable()))) {
-            return;
+        if (walkable.contains(creature.getCreatureCoordinates())) {
+            return true;
+        }
+        if (!(creature.isWorker() || (creature.getParty() != null && creature.getParty().isWorkersAvailable()))) {
+            return false;
         }
 
-        for (Point tile : planTunnel(walkable)) {
+        List<Point> tiles = planTunnel(walkable);
+        for (Point tile : tiles) {
             addSubTask(new ObjectiveTaskDecorator(getId(), new ObjectiveDigTileTask(navigationService, mapController, tile, playerId)) {
 
                 @Override
@@ -190,6 +197,7 @@ public final class KillPlayer extends AbstractObjectiveTask {
             });
             addSubTask(new ObjectiveTaskDecorator(getId(), new GoToTask(navigationService, mapController, tile, playerId)));
         }
+        return !tiles.isEmpty();
     }
 
     /**
