@@ -23,6 +23,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
@@ -76,6 +77,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(ObjectComponent.class);
         components.add(Position.class);
+        components.add(LevelIndicator.class);
         return components;
     }
 
@@ -124,6 +126,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
             // Don't play for prison door nor the bar....?
             if (getDataObject().getObjectId() != 109 && getDataObject().getObjectId() != 116) {
                 playAnimation(currentState);
+                showLevel();
             }
             startSounds();
             initialized = true;
@@ -222,13 +225,37 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     /**
      * An object without a model of its own, like the Casino's pay out adjuster,
-     * shows an indicator that moves once to where it points and stays there
+     * shows an indicator that moves once to where it points and stays there.
+     * So does the My Pet Dungeon level indicator after a pull of its lever.
      *
      * @return true to hold the last frame
      */
     @Override
     public boolean isHoldLastFrame() {
-        return getDataObject().getMeshResource() == null;
+        return getDataObject().getMeshResource() == null || isLevelIndicator();
+    }
+
+    private boolean isLevelIndicator() {
+        return getDataObject().getStartState() == GameObject.State.MY_PET_DUNGEON_LEVEL_INDICATOR;
+    }
+
+    /**
+     * The numbers of the My Pet Dungeon level indicator spin while its lever
+     * is pulled, then stop on the level (DKII.EXE 0x4A3910 and 0x4A3A00)
+     */
+    @Override
+    public void onAnimationCycleDone() {
+        showLevel();
+    }
+
+    private void showLevel() {
+        if (!isLevelIndicator()) {
+            return;
+        }
+        LevelIndicator levelIndicator = getEntity().get(LevelIndicator.class);
+        if (levelIndicator != null) {
+            LevelIndicatorTextures.apply(getSpatial(), levelIndicator.level, assetManager);
+        }
     }
 
     private void playAnimation(ObjectViewState viewState) {
