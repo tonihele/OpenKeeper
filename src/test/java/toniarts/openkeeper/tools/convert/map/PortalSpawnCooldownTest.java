@@ -17,11 +17,6 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import com.simsilica.es.base.DefaultEntityData;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.GameTimeController;
@@ -31,7 +26,6 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
-import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -39,6 +33,12 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
+
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -53,7 +53,9 @@ class PortalSpawnCooldownTest {
         Creature goblin = new Creature();
         goblin.setCreatureId((short) 7);
         goblin.setFlags(java.util.EnumSet.of(Creature.CreatureFlag.AVAILABLE_VIA_PORTAL));
-        Creature.Attraction lairRequirement = CreatureAttractionFixtures.roomAttraction((short) 2, 0);
+        Creature.Attraction lairRequirement = new Creature.Attraction();
+        lairRequirement.setRoomId(2);
+        lairRequirement.setType(Creature.AttractionType.ROOM);
         goblin.setAttractions(new Creature.Attraction[]{lairRequirement});
         Creature imp = new Creature();
         imp.setCreatureId((short) 1);
