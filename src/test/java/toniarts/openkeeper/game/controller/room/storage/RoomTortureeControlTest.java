@@ -124,6 +124,37 @@ class RoomTortureeControlTest {
     }
 
     @Test
+    void victimWhoseDeviceMovedGoesOnTheClosestFreeDevice() {
+        EntityId victim = entityData.createEntity();
+        entityData.setComponent(victim, new CreatureTortured(5, 0, 0, control.addItem(victim, new Point(3, 3))));
+
+        // The room grew and its wheel now stands elsewhere
+        devices.remove(wheel);
+        EntityId newWheel = device(new Point(3, 4));
+        control.refreshDevices();
+
+        assertEquals(newWheel, entityData.getComponent(victim, CreatureTortured.class).device);
+        assertEquals(new Point(3, 4), WorldUtils.vectorToPoint(entityData.getComponent(victim, Position.class).position));
+        assertEquals(1, control.getCurrentCapacity());
+    }
+
+    @Test
+    void victimWithNoDeviceLeftIsSetFree() {
+        EntityId first = entityData.createEntity();
+        entityData.setComponent(first, new CreatureTortured(5, 0, 0, control.addItem(first, new Point(6, 3))));
+        EntityId second = entityData.createEntity();
+        entityData.setComponent(second, new CreatureTortured(5, 0, 0, control.addItem(second, new Point(3, 3))));
+
+        devices.remove(wheel);
+        control.refreshDevices();
+
+        assertNull(entityData.getComponent(second, CreatureTortured.class));
+        assertNull(entityData.getComponent(second, Stored.class));
+        assertEquals(chair, entityData.getComponent(first, CreatureTortured.class).device);
+        assertEquals(1, control.getCurrentCapacity());
+    }
+
+    @Test
     void creatureThatCantBeElectrocutedSkipsTheChair() {
         entityData.setComponent(chair, new ObjectComponent((short) 61, ObjectType.TORTUREE));
         CreatureComponent creature = new CreatureComponent();

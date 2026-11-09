@@ -16,13 +16,18 @@
  */
 package toniarts.openkeeper.game.controller.room.storage;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -82,21 +87,51 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     /**
      * Puts the victims on the devices again after the room has been constructed
      * again (e.g. extended), as the old devices are gone. A victim stays on the
-     * tile it was on.
+     * tile it was on if there is a device there still. Otherwise it goes on the
+     * closest free device, or is set free if there is none.
      */
     public void refreshDevices() {
+        Map<Point, EntityId> devicesByPoint = new HashMap<>();
         for (EntityId device : getDevices()) {
-            Collection<EntityId> victims = objectsByCoordinate.get(getDevicePoint(device));
-            if (victims == null) {
-                continue;
-            }
-            for (EntityId victim : victims) {
-                CreatureTortured tortured = entityData.getComponent(victim, CreatureTortured.class);
-                if (tortured != null) {
-                    entityData.setComponent(victim, new CreatureTortured(tortured.timeTortured,
-                            tortured.tortureCheckTime, tortured.healthCheckTime, device));
+            devicesByPoint.put(getDevicePoint(device), device);
+        }
+        Map<EntityId, Point> moved = new LinkedHashMap<>();
+        for (Iterator<Map.Entry<Point, Collection<EntityId>>> it = objectsByCoordinate.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Point, Collection<EntityId>> entry = it.next();
+            EntityId device = devicesByPoint.get(entry.getKey());
+            for (EntityId victim : entry.getValue()) {
+                if (device != null) {
+                    setDevice(victim, device);
+                } else {
+                    moved.put(victim, entry.getKey());
                 }
             }
+            if (device == null) {
+                it.remove();
+            }
+        }
+        for (Map.Entry<EntityId, Point> entry : moved.entrySet()) {
+            EntityId victim = entry.getKey();
+            EntityId device = getFreeDevice(victim, entry.getValue());
+            if (device == null) {
+                entityData.removeComponent(victim, Stored.class);
+                entityData.removeComponent(victim, CreatureTortured.class);
+                addCurrentCapacity(-1);
+                continue;
+            }
+            objectsByCoordinate.computeIfAbsent(getDevicePoint(device), point -> new ArrayList<>()).add(victim);
+            Position devicePosition = entityData.getComponent(device, Position.class);
+            entityData.setComponent(victim, new Position(devicePosition.rotation,
+                    new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
+            setDevice(victim, device);
+        }
+    }
+
+    private void setDevice(EntityId victim, EntityId device) {
+        CreatureTortured tortured = entityData.getComponent(victim, CreatureTortured.class);
+        if (tortured != null) {
+            entityData.setComponent(victim, new CreatureTortured(tortured.timeTortured,
+                    tortured.tortureCheckTime, tortured.healthCheckTime, device));
         }
     }
 
