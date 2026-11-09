@@ -301,31 +301,31 @@
                                 <text text="${menu.1636}" id="label_attemptsAtLevel" align="left" style="menuTextSmall" />
                             </panel>
                             <panel childLayout="vertical" width="*" paddingRight="30px">
-                                <control name="label" id="levelWon" text="?" style="menuHeaderText"
+                                <control name="label" id="levelWon" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="timeTaken" text="?" style="menuHeaderText"
+                                <control name="label" id="timeTaken" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuHeaderText"
+                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="heroesDestroyed" text="?" style="menuHeaderText"
+                                <control name="label" id="heroesDestroyed" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="roomsCaptured" text="?" style="menuHeaderText"
+                                <control name="label" id="roomsCaptured" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="landOwned" text="?" style="menuHeaderText"
+                                <control name="label" id="landOwned" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="goldMined" text="?" style="menuHeaderText"
+                                <control name="label" id="goldMined" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="manaStored" text="?" style="menuHeaderText"
+                                <control name="label" id="manaStored" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="itemsManufactured" text="?" style="menuHeaderText"
+                                <control name="label" id="itemsManufactured" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creaturesCommanded" text="?" style="menuHeaderText"
+                                <control name="label" id="creaturesCommanded" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creaturesConverted" text="?" style="menuHeaderText"
+                                <control name="label" id="creaturesConverted" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creatureTraining" text="?" style="menuHeaderText"
+                                <control name="label" id="creatureTraining" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="attemptsAtLevel" text="?" style="menuHeaderText"
+                                <control name="label" id="attemptsAtLevel" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
                             </panel>
                         </panel>
