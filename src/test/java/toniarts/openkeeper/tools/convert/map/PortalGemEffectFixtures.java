@@ -12,7 +12,7 @@ import java.util.EnumSet;
 import java.util.List;
 import toniarts.openkeeper.utils.Color;
 
-/** Parsed definitions for native carrier-effect regression tests. */
+/** Synthetic definitions and texture for carrier-effect regression tests. */
 public final class PortalGemEffectFixtures {
     private PortalGemEffectFixtures() {
     }

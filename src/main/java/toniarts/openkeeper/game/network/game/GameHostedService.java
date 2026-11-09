@@ -174,7 +174,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public EntityData getEntityData() {
+    public EntityData getServerEntityData() {
         return getServiceManager().getService(EntityDataHostedService.class).getEntityData();
     }
 
@@ -650,9 +650,30 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void triggerAddGoldCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddGoldCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerAddManaCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddManaCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void setPossessedAttack(boolean attacking) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSetPossessedAttack(attacking, clientInfo.getKeeper().getId());
             }
         }
 

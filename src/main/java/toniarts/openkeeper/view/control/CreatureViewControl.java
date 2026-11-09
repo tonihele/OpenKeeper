@@ -45,8 +45,9 @@ import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.KmfModelMarkers;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
-import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
@@ -126,11 +127,17 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public String getTooltip(short playerId) {
+
+        // Like DK II, only own creatures, heroes and neutral creatures have a tooltip, other keepers' creatures have none
         String tooltip;
         if (getOwnerId() == playerId) {
             tooltip = Utils.getMainTextResourceBundle().getString("2841");
+        } else if (getOwnerId() == Player.GOOD_PLAYER_ID) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2412");
+        } else if (getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2415");
         } else {
-            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
+            return "";
         }
 
         return textParser.parseText(tooltip, getEntity(), getDataObject());
@@ -180,7 +187,6 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     public void setEffectManager(EffectManagerState effectManager) {
         clearPortalGemEffect();
         this.effectManager = effectManager;
-
     }
 
     private void updatePortalGemEffect(float tpf) {

@@ -130,9 +130,9 @@ public final class PortalGemEffect extends EffectParticleEmitter {
         }
     }
 
-    /** Native 0x43B28B: generation quality rises with the measured frame rate. */
+    /** Generation quality rises with the measured frame rate. */
     static int generationScale(float tpf) {
-        // 0x57573B measures frame duration in integer milliseconds.
+        // Measure frame duration in integer milliseconds.
         int millis = (int) (tpf * 1000);
         int fps = 1000 / Math.max(1, millis);
         return Math.clamp(50 + fps * 205 / 14, 50, 255);
@@ -148,7 +148,7 @@ public final class PortalGemEffect extends EffectParticleEmitter {
         Appearance appearance = appearances.get(particle);
         int step = (int) ((particle.startlife - particle.life) * STEPS_PER_SECOND + 0.0001f);
         if (step > appearance.step) {
-            // Native 0x4364DD: one integer recurrence per update, even when
+            // Apply one integer recurrence per update, even when
             // multiple effect steps were skipped. Fade affects RGB, not alpha.
             int life = Math.max(1, Math.round(particle.life * STEPS_PER_SECOND));
             if (element.getFlags().contains(EffectElement.EffectElementFlag.FADE)

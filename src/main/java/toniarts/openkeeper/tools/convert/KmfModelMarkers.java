@@ -5,30 +5,19 @@ import com.jme3.anim.AnimTrack;
 import com.jme3.anim.TransformTrack;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
-import java.io.IOException;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
-import toniarts.openkeeper.tools.convert.kmf.KmfFile;
-import toniarts.openkeeper.tools.convert.wad.WadFile;
-import toniarts.openkeeper.utils.PathUtils;
 
 /** Preserves the native gem-emission marker, including its animated position. */
 public final class KmfModelMarkers {
     public static final int PORTAL_GEM = 10001;
     public static final String MARKER_ID = "KmfMarkerId";
-    private static final String VERSION = "KmfMarkerVersion";
-    private static final Map<String, KmfFile> legacySources = new HashMap<>();
-    private static WadFile meshes;
 
     private KmfModelMarkers() {
     }
 
     public static void addStatic(Node model, toniarts.openkeeper.tools.convert.kmf.Mesh mesh) {
-        model.setUserData(VERSION, 1);
         for (var control : mesh.getControls()) {
             if (control.getUnknown2() == PORTAL_GEM) {
                 addMarker(model, convert(mesh.getGeometries().get(control.getUnknown1())));
@@ -37,7 +26,6 @@ public final class KmfModelMarkers {
     }
 
     public static void addAnimated(Node model, Anim anim) {
-        model.setUserData(VERSION, 1);
         var composer = model.getControl(AnimComposer.class);
         var clip = composer.getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
         var tracks = new ArrayList<AnimTrack>(Arrays.asList(clip.getTracks()));
@@ -78,42 +66,5 @@ public final class KmfModelMarkers {
         marker.setLocalTranslation(position);
         model.attachChild(marker);
         return marker;
-    }
-
-    /** Adds markers to installations converted before marker export existed. */
-    public static synchronized void ensureLegacyMarkers(Node model, String resourceName) {
-        if (model.getUserData(VERSION) != null) {
-            return;
-        }
-        String root = PathUtils.getDKIIFolder();
-        if (root == null) {
-            return;
-        }
-        try {
-            if (meshes == null) {
-                meshes = new WadFile(Path.of(PathUtils.getRealFileName(root, "Data/Meshes.WAD")));
-            }
-            KmfFile source = legacySources.get(resourceName);
-            if (source == null) {
-                String name = meshes.getWadFileEntries().stream()
-                        .filter(entry -> entry.equalsIgnoreCase(resourceName + ".kmf"))
-                        .findFirst().orElse(null);
-                if (name == null) {
-                    model.setUserData(VERSION, 1);
-                    return;
-                }
-                source = new KmfFile(meshes.getFileData(name));
-                legacySources.put(resourceName, source);
-            }
-            if (source.getMesh() != null) {
-                addStatic(model, source.getMesh());
-            } else if (source.getAnim() != null && model.getControl(AnimComposer.class) != null) {
-                addAnimated(model, source.getAnim());
-            }
-        } catch (IOException | RuntimeException exception) {
-            model.setUserData(VERSION, 1);
-            System.getLogger(KmfModelMarkers.class.getName()).log(System.Logger.Level.WARNING,
-                    "Cannot load model markers for " + resourceName, exception);
-        }
     }
 }

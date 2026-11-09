@@ -9,17 +9,19 @@ import com.jme3.export.binary.BinaryImporter;
 import com.jme3.math.Transform;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
+import com.jme3.system.AppSettings;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.KmfModelMarkers;
 import static org.junit.jupiter.api.Assertions.*;
 
 class KmfModelMarkersTest {
     @Test
-    void preservesStaticMarkerAndCoordinateConversion() {
+    void preservesStaticMarkerAndCoordinateConversion() throws Exception {
         Mesh mesh = new Mesh();
         mesh.setGeometries(List.of(new javax.vecmath.Vector3f(1, 2, -3)));
         MeshControl control = new MeshControl();
@@ -28,7 +30,10 @@ class KmfModelMarkersTest {
         mesh.setControls(List.of(control));
         Node model = new Node();
         KmfModelMarkers.addStatic(model, mesh);
-        var marker = model.getChild("KMF marker 10001");
+        var bytes = new ByteArrayOutputStream();
+        BinaryExporter.getInstance().save(model, bytes);
+        Node loaded = (Node) BinaryImporter.getInstance().load(new ByteArrayInputStream(bytes.toByteArray()));
+        var marker = loaded.getChild("KMF marker 10001");
         assertEquals(new Vector3f(1, 3, 2), marker.getLocalTranslation());
         assertEquals(Integer.valueOf(10001), marker.getUserData(KmfModelMarkers.MARKER_ID));
     }
@@ -68,6 +73,18 @@ class KmfModelMarkersTest {
         var clonedTrack = (TransformTrack) cloned.getControl(AnimComposer.class)
                 .getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME).getTracks()[0];
         assertSame(cloned.getChild("KMF marker 10001"), clonedTrack.getTarget());
+    }
+
+    @Test
+    void olderModelsRequireReconversionButCurrentModelsDoNot() {
+        var settings = new AppSettings(false);
+        var models = AssetsConverter.ConvertProcess.MODELS;
+        settings.putInteger(models.getSettingName(), 12);
+        assertTrue(AssetsConverter.isConversionNeeded(models, settings));
+        assertTrue(AssetsConverter.getConversionNeeded(settings).contains(models));
+        settings.putInteger(models.getSettingName(), models.getVersion());
+        assertFalse(AssetsConverter.isConversionNeeded(models, settings));
+        assertFalse(AssetsConverter.getConversionNeeded(settings).contains(models));
     }
 
     private static AnimGeom geom(int frame, float x, float y, float z) {
