@@ -123,6 +123,12 @@ public interface GameSession {
     public void getGold(int amount);
 
     /**
+     * Take down the player's Call to Arms banner
+     */
+    @Asynchronous
+    public void cancelCallToArms();
+
+    /**
      * Signals that any UI transition has ended
      */
     @Asynchronous
