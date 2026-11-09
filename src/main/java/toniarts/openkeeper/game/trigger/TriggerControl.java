@@ -185,7 +185,9 @@ public class TriggerControl extends Control {
             case LEVEL_PAY_DAY:
                 return false;
             case LEVEL_PLAYED:
-                return false;
+                target = levelInfo.getLevelPlayed();
+                value = (Integer) trigger.getUserData("value");
+                break;
             default:
                 logger.log(Level.WARNING, "Target Type not supported {0}!", targetType);
                 return false;
