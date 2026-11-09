@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room.storage;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -27,9 +28,11 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -144,7 +147,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
             }
             Point devicePoint = getDevicePoint(device);
             Collection<EntityId> victims = objectsByCoordinate.get(devicePoint);
-            if (victims != null && !victims.isEmpty()) {
+            if (victims != null && !victims.isEmpty() || isTorturedVoluntarily(device)) {
                 continue;
             }
             int distance = (p == null ? 0 : Math.abs(devicePoint.x - p.x) + Math.abs(devicePoint.y - p.y));
@@ -154,6 +157,21 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
             }
         }
         return closest;
+    }
+
+    /**
+     * DK II puts no victim on a device a creature tortures itself on
+     * (0x4F2180 skips devices with a creature in state 0x83 or 0x88), so the
+     * creature stays on it
+     */
+    private boolean isTorturedVoluntarily(EntityId device) {
+        for (EntityId creature : entityData.findEntities(new FieldFilter<>(TaskComponent.class, "targetEntity", device), TaskComponent.class)) {
+            TaskComponent task = entityData.getComponent(creature, TaskComponent.class);
+            if (task.taskType == TaskType.TORTURE && task.taskStarted) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean canBeElectrocuted(EntityId creature) {

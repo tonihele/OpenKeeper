@@ -67,7 +67,8 @@ public final class Torture extends AbstractCapacityCriticalRoomTask {
     @Override
     public boolean isValid(ICreatureController creature) {
 
-        // The whip goes on while the victim is there, a creature on a device gets off when a victim is put on it.
+        // The whip goes on while the victim is there. A creature on a device stays there (no victim is put on it), one
+        // still on its way gives up when a victim gets the device first.
         // A room full of victims still has some to whip
         return !room.isRemoved() && room.getOwnerId() == playerId && !room.isDestroyed()
                 && whip == (getVictim() != null) && (whip || getDevice() != null);
