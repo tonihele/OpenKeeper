@@ -654,14 +654,7 @@ public final class MapController extends Container implements IMapController {
                     roomTile.setOwnerId(playerId); // Claimed!
                     applyHealing(roomTile, tile.getMaxHealth());
 
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            tile.getTerrain().getMaxHealthEffectId(), false);
-//
-//                    // FIXME ROOM_CLAIM_ID is realy claim effect?
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(p2).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
+                    // The client plays claim effects from these ownership transitions.
                     // TODO: Claimed room wall tiles lose the claiming I think?
                 }
 
