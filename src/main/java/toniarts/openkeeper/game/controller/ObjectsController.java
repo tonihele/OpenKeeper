@@ -20,11 +20,13 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
+import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
@@ -39,6 +41,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.chicken.ChickenController;
@@ -291,6 +294,17 @@ public final class ObjectsController implements IObjectsController {
     @Override
     public boolean isValidEntity(EntityId entityId) {
         return entityData.getComponent(entityId, ObjectComponent.class) != null;
+    }
+
+    @Override
+    public void cancelCallToArms(short playerId) {
+        double now = gameTimer.getGameTime();
+        for (EntityId banner : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), CallToArms.class, Owner.class, Position.class)) {
+            CallToArms callToArms = entityData.getComponent(banner, CallToArms.class);
+            if (callToArms != null && callToArms.isUp() && now >= callToArms.waveTime) {
+                entityData.setComponent(banner, new Slapped(now));
+            }
+        }
     }
 
     @Override

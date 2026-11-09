@@ -78,6 +78,7 @@ class CallToArmsSystemTest {
     private final List<EntityId> answered = new ArrayList<>();
     private final List<Object[]> events = new ArrayList<>();
     private double gameTime;
+    private IKwdFile kwdFile;
     private CallToArmsSystem system;
 
     @BeforeEach
@@ -86,10 +87,11 @@ class CallToArmsSystemTest {
         PlayerSpell spell = new PlayerSpell(SPELL_ID, true);
         keeper.getAvailableSpells().add(spell);
 
-        IKwdFile kwdFile = stub(IKwdFile.class, name -> switch (name) {
+        kwdFile = stub(IKwdFile.class, name -> switch (name) {
             case "getKeeperSpells" -> List.of(KeeperSpellFixtures.keeperSpell(SPELL_ID, 10000, 90, SHOT_ID, ObjectsController.OBJECT_CALL_TO_ARMS_ID));
             case "getShotById" -> ShotFixtures.shot(SHOT_ID, Shot.ProcessType.CREATE_OBJECT, 1, EnumSet.noneOf(Shot.ShotProcessFlag.class));
             case "getObject" -> bannerObject();
+            case "getThings" -> List.of();
             case "getVariables" -> Map.of(MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE,
                     ChickenSpawnFixtures.miscVariable(MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE, 70));
             default -> throw new UnsupportedOperationException(name);
@@ -266,6 +268,47 @@ class CallToArmsSystemTest {
 
         assertNotNull(entityData.getComponent(first, CallToArms.class));
         assertNull(entityData.getComponent(second, ObjectComponent.class));
+    }
+
+    @Test
+    void clickingTheIndicatorKnocksAwayTheWavingBanner() {
+        ObjectsController objectsController = new ObjectsController(kwdFile, entityData, Map.of(), () -> gameTime, null, null);
+        EntityId banner = banner();
+        system.processTick(0.25f);
+
+        // Not while it rises, and not someone else's
+        objectsController.cancelCallToArms(PLAYER_ID);
+        objectsController.cancelCallToArms(ENEMY_ID);
+        system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.MESH_RESOURCE, entityData.getComponent(banner, ObjectViewState.class).animState);
+
+        gameTime = 2;
+        system.processTick(0.25f);
+        objectsController.cancelCallToArms(ENEMY_ID);
+        system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_1, entityData.getComponent(banner, ObjectViewState.class).animState);
+
+        objectsController.cancelCallToArms(PLAYER_ID);
+        system.processTick(0.25f);
+        assertEquals(GameObjectAnimState.ADDITIONAL_RESOURCE_3, entityData.getComponent(banner, ObjectViewState.class).animState);
+        gameTime = 3;
+        system.processTick(0.25f);
+        assertNull(entityData.getComponent(banner, ObjectComponent.class));
+    }
+
+    @Test
+    void theBannerInTheHandCantBeTakenDownFromTheIndicator() {
+        ObjectsController objectsController = new ObjectsController(kwdFile, entityData, Map.of(), () -> gameTime, null, null);
+        EntityId banner = banner();
+        system.processTick(0.25f);
+        gameTime = 2;
+        system.processTick(0.25f);
+        entityData.removeComponent(banner, Position.class);
+
+        objectsController.cancelCallToArms(PLAYER_ID);
+        system.processTick(0.25f);
+        assertNull(entityData.getComponent(banner, Slapped.class));
+        assertNotNull(entityData.getComponent(banner, CallToArms.class));
     }
 
     private EntityId banner() {
