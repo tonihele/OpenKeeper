@@ -49,6 +49,9 @@ public interface IGameController {
      */
     void createAlliance(short playerOneId, short playerTwoId);
 
+    /** Enqueue a session's HUD click for simulation-thread script dispatch. */
+    void onGuiButtonPressed(short playerId, short category, short buttonId);
+
     GameResult getGameResult();
 
     IPlayerController getPlayerController(short playerId);

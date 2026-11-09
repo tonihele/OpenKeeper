@@ -394,6 +394,12 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         screen.setCinematicText(textId);
     }
 
+    /** Send input to the authoritative session; never evaluate scripts on the client. */
+    public void guiButtonPressed(TriggerAction.MakeType category, int buttonId) {
+        stateManager.getState(GameClientState.class).getGameClientService()
+                .guiButtonPressed((short) category.getValue(), (short) buttonId);
+    }
+
     public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
         // TODO make flash button
     }

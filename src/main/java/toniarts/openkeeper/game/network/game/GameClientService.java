@@ -189,6 +189,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void guiButtonPressed(short category, short buttonId) {
+        getDelegate().guiButtonPressed(category, buttonId);
+    }
+
+    @Override
     public void transitionEnd() {
         getDelegate().transitionEnd();
     }

@@ -123,6 +123,16 @@ public interface GameSession {
     public void getGold(int amount);
 
     /**
+     * Report an actual HUD click. The server obtains the player from this
+     * session; clients never supply a script or player identity.
+     *
+     * @param category button category, as in TriggerAction.MakeType
+     * @param buttonId button ID within that category
+     */
+    @Asynchronous
+    public void guiButtonPressed(short category, short buttonId);
+
+    /**
      * Signals that any UI transition has ended
      */
     @Asynchronous

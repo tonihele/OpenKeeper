@@ -107,6 +107,17 @@ public interface GameSessionServiceListener {
     public void onGetGold(int amount, short playerId);
 
     /**
+     * A session reports a HUD click. Only enqueue it here; script trees belong
+     * to the simulation thread.
+     *
+     * @param category button category
+     * @param buttonId button ID within that category
+     * @param playerId player obtained from the server-side session
+     */
+    @Asynchronous
+    public void onGuiButtonPressed(short category, short buttonId, short playerId);
+
+    /**
      * Player UI transition has ended
      *
      * @param playerId the player whose transition ended

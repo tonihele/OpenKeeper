@@ -2561,7 +2561,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                             trigger.setUserData("targetType", reader.readUnsignedByte());
                             trigger.setUserData("targetId", reader.readUnsignedByte()); // buttonId, roomId, creatureId ...
                             reader.readAndCheckNull(2); // reader.skipBytes(2);
-                            trigger.setUserData("value", reader.readUnsignedInteger()); // FIXME unknown value
+                            trigger.setUserData("value", reader.readUnsignedInteger()); // Retained for conversion; ignored by the native event matcher
                             break;
 
                         case FLAG:

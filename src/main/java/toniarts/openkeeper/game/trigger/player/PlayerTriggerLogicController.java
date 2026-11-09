@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.trigger.player;
 
 import com.jme3.util.SafeArrayList;
 import java.util.Map;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -37,6 +38,10 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
 
     private final SafeArrayList<PlayerTriggerControl> playerTriggerControls = new SafeArrayList<>(PlayerTriggerControl.class);
 
+    private record ButtonPress(short playerId, short category, short buttonId) { }
+
+    private final ConcurrentLinkedQueue<ButtonPress> buttonPresses = new ConcurrentLinkedQueue<>();
+
     public PlayerTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService) {
         Map<Short, Player> players = levelInfo.getLevelData().getPlayers();
@@ -50,6 +55,13 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         // TODO: get notified on new parties (a.k.a. parties re-spawned)
     }
 
+    /** Called by session threads; never reads or mutates script trees here. */
+    public void onGuiButtonPressed(short playerId, short category, short buttonId) {
+        if (category >= 0 && category <= 5 && buttonId >= 0 && buttonId <= 255) {
+            buttonPresses.add(new ButtonPress(playerId, category, buttonId));
+        }
+    }
+
     @Override
     public void start() {
 
@@ -57,11 +69,19 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
 
     @Override
     public void stop() {
-
+        buttonPresses.clear();
     }
 
     @Override
     public void processTick(float tpf) {
+        ButtonPress press;
+        while ((press = buttonPresses.poll()) != null) {
+            for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+                if (control.getPlayerId() == press.playerId()) {
+                    control.onGuiButtonPressed(press.category(), press.buttonId());
+                }
+            }
+        }
         for (PlayerTriggerControl playerTriggerControl : playerTriggerControls.getArray()) {
             playerTriggerControl.update(tpf);
         }
