@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.LeavingDungeon;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -80,7 +81,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
-                targetState = Creature.AnimationType.FALLBACK;
+
+                // Falling into the portal, the creature struggles like in the hand instead of falling over
+                targetState = entityData.getComponent(entityId, LeavingDungeon.class) != null
+                        ? Creature.AnimationType.IN_HAND : Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
