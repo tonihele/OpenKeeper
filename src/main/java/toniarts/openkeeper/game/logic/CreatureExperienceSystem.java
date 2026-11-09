@@ -24,6 +24,7 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.AndFilter;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -35,7 +36,6 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Utils;
@@ -52,15 +52,21 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
 
     private enum ExperienceGainReason {
         NONE,
-        WORKING_OR_FIGHTING,
-        TRAINING
+        WORKING_OR_FIGHTING
     }
+
+    /**
+     * Tasks that only take the creature somewhere. A worker learns nothing on
+     * the way, like a hero Dwarf heading to an action point
+     */
+    private static final Set<TaskType> GOING_SOMEWHERE = EnumSet.of(TaskType.GO_TO_LOCATION, TaskType.KILL_PLAYER);
 
     private final IKwdFile kwdFile;
     private final EntitySet experienceEntities;
     private final EntitySet trainingEntities;
     private final EntityData entityData;
     private final int impExperienceGainPerSecond;
+    private final int trainingRoomMaxExperienceLevel;
     private final SafeArrayList<EntityId> experienceEntityIds;
     private final SafeArrayList<EntityId> trainingEntityIds;
     private final ICreaturesController creaturesController;
@@ -76,6 +82,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         trainingEntityIds = new SafeArrayList<>(EntityId.class);
 
         impExperienceGainPerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.IMP_EXPERIENCE_GAIN_PER_SECOND).getValue();
+        Variable.MiscVariable trainingRoomMaxLevelVariable = gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL);
+        trainingRoomMaxExperienceLevel = trainingRoomMaxLevelVariable != null ? (int) trainingRoomMaxLevelVariable.getValue() : Utils.MAX_CREATURE_LEVEL;
 
         experienceEntities = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureAi.class);
         trainingEntities = entityData.getEntities(new AndFilter(TaskComponent.class, new FieldFilter(TaskComponent.class, "taskStarted", true), new FieldFilter(TaskComponent.class, "taskType", TaskType.TRAIN)), CreatureComponent.class, CreatureExperience.class, CreatureAi.class, TaskComponent.class);
@@ -103,15 +111,39 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         for (EntityId entityId : experienceEntityIds.getArray()) {
             Entity entity = experienceEntities.getEntity(entityId);
             handleEntity(entity, entityId, tpf, () -> {
-                return isEntityWorkingOrFighting(entity) ? ExperienceGainReason.WORKING_OR_FIGHTING : ExperienceGainReason.NONE;
+                return isEntityWorkingOrFighting(entity) && !isWorkerFightingWithoutGain(entity) ? ExperienceGainReason.WORKING_OR_FIGHTING : ExperienceGainReason.NONE;
             });
         }
         for (EntityId entityId : trainingEntityIds.getArray()) {
-            Entity entity = trainingEntities.getEntity(entityId);
-            handleEntity(entity, entityId, tpf, () -> {
-                return ExperienceGainReason.TRAINING;
-            });
+            handleTraining(trainingEntities.getEntity(entityId), entityId);
         }
+    }
+
+    /**
+     * Training gives the training experience on every tick, not once a
+     * second. Creatures at the Training Room's maximum level learn nothing
+     * there.
+     */
+    private void handleTraining(Entity entity, EntityId entityId) {
+        CreatureExperience creatureExperience = entity.get(CreatureExperience.class);
+        if (creatureExperience.level >= Utils.MAX_CREATURE_LEVEL || creatureExperience.level >= trainingRoomMaxExperienceLevel) {
+            return;
+        }
+
+        addExperience(entityId, creatureExperience, getTrainingExperienceGain(creatureExperience));
+    }
+
+    /**
+     * Get the experience one tick of training gives. It is never more than
+     * the creature still needs for its next level, so training levels the
+     * creature up with no experience left over.
+     *
+     * @param creatureExperience the creature's experience
+     * @return the experience to add
+     */
+    private static int getTrainingExperienceGain(CreatureExperience creatureExperience) {
+        int stillNeeded = creatureExperience.experienceToNextLevel - creatureExperience.experience;
+        return Math.max(0, Math.min(creatureExperience.experiencePerTickTraining, stillNeeded));
     }
 
     private void handleEntity(Entity entity, EntityId entityId, float tpf, Supplier<ExperienceGainReason> reasonSupplier) {
@@ -139,14 +171,18 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         }
 
         timeWorkingByEntityId.merge(entityId, -1.0, Double::sum);
-        int experience = creatureExperience.experience + getCreatureExperienceGain(entity, reason);
+        addExperience(entityId, creatureExperience, getCreatureExperienceGain(entity, reason));
+    }
+
+    private void addExperience(EntityId entityId, CreatureExperience creatureExperience, int gain) {
+        int experience = creatureExperience.experience + gain;
 
         // See if we gained a level
         if (experience >= creatureExperience.experienceToNextLevel) {
             experience -= creatureExperience.experienceToNextLevel;
             creaturesController.levelUpCreature(entityId, creatureExperience.level + 1, experience);
         } else {
-            entityData.setComponent(entityId, new CreatureExperience(creatureExperience.level, experience, creatureExperience.experienceToNextLevel, creatureExperience.experiencePerSecond, creatureExperience.experiencePerSecondTraining));
+            entityData.setComponent(entityId, new CreatureExperience(creatureExperience.level, experience, creatureExperience.experienceToNextLevel, creatureExperience.experiencePerSecond, creatureExperience.experiencePerTickTraining));
         }
     }
 
@@ -170,7 +206,17 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private boolean isEntityWorkingOrFighting(Entity entity) {
         CreatureAi creatureAi = entity.get(CreatureAi.class);
         CreatureState creatureState = creatureAi.getCreatureState();
-        return creatureState == CreatureState.MELEE_ATTACK || creatureState == CreatureState.CAST_SPELL || (creatureState == CreatureState.WORK && isWorker(entity));
+        return creatureState == CreatureState.MELEE_ATTACK || creatureState == CreatureState.CAST_SPELL || (creatureState == CreatureState.WORK && isWorker(entity) && isDoingWorkerJob(entity));
+    }
+
+    /**
+     * A worker learns from its jobs, digging, claiming, carrying and the like.
+     * Its objectives also keep it in the work state, but they only take it
+     * somewhere
+     */
+    private boolean isDoingWorkerJob(Entity entity) {
+        TaskComponent taskComponent = entityData.getComponent(entity.getId(), TaskComponent.class);
+        return taskComponent != null && !GOING_SOMEWHERE.contains(taskComponent.taskType);
     }
 
     private boolean isWorker(Entity entity) {
@@ -178,28 +224,29 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         return creatureComponent.worker;
     }
 
-    private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
-        switch (reason) {
-            case WORKING_OR_FIGHTING -> {
-                CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                if (kwdFile.getImp().getId() == creatureComponent.creatureId) {
-                    return impExperienceGainPerSecond;
-                } else {
-                    return entity.get(CreatureExperience.class).experiencePerSecond;
-                }
-            }
-            case TRAINING -> {
-                Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-                Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = kwdFile.getCreatureStats(entity.get(CreatureExperience.class).level);
-
-                return stats != null
-                        ? stats.get(Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND).getValue()
-                        : creature.getAttributes().getExpPerSecondTraining();
-            }
-            default -> {
-                return 0;
-            }
+    /**
+     * Workers learn nothing from fighting, unless they are heroes. An Imp
+     * gains nothing in battle, a Dwarf does
+     */
+    private boolean isWorkerFightingWithoutGain(Entity entity) {
+        if (entity.get(CreatureAi.class).getCreatureState() == CreatureState.WORK || !isWorker(entity)) {
+            return false;
         }
+        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+        return !creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD);
+    }
+
+    private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
+        if (reason != ExperienceGainReason.WORKING_OR_FIGHTING) {
+            return 0;
+        }
+
+        // Any worker, a hero Dwarf too, learns the Imp's experience from its jobs
+        CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+        if (kwdFile.getImp().getId() == creatureComponent.creatureId || entity.get(CreatureAi.class).getCreatureState() == CreatureState.WORK) {
+            return impExperienceGainPerSecond;
+        }
+        return entity.get(CreatureExperience.class).experiencePerSecond;
     }
 
     @Override

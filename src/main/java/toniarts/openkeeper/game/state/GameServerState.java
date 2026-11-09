@@ -24,6 +24,7 @@ import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
+import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import javax.annotation.Nullable;
@@ -34,9 +35,13 @@ import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.NoopCheatController;
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.SecretLevels;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
@@ -69,6 +74,7 @@ public final class GameServerState extends AbstractAppState {
     private final MapListener mapListener = new MapListenerImpl();
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
+    private final SpecialListener specialListener = new SpecialListenerImpl();
     private GameLoopManager game;
     private IGameWorldController gameWorldController;
     private ICheatController cheatController;
@@ -175,6 +181,7 @@ public final class GameServerState extends AbstractAppState {
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();
             gameWorldController.addListener(playerActionListener);
+            gameWorldController.addSpecialListener(specialListener);
             cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController());
 
             // Send the the initial game data
@@ -309,10 +316,28 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
+        public void onAddGoldCheatTriggered(int amount, short playerId) {
+            cheatController.addGold(amount, playerId);
+        }
+
+        @Override
+        public void onAddManaCheatTriggered(int amount, short playerId) {
+            cheatController.addMana(amount, playerId);
+        }
+
+        @Override
         public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {
                 gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
+            }
+        }
+
+        @Override
+        public void onSetPossessedAttack(boolean attacking, short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
             }
         }
 
@@ -354,6 +379,30 @@ public final class GameServerState extends AbstractAppState {
         public void onFogOfWarReset(short keeperId) {
             gameService.resetFogOfWar(keeperId);
         }
+    }
+
+    /**
+     * Locate Hidden Land discovers the secret level of a campaign level. This
+     * is stored right away in the user's campaign progress, as in the original.
+     */
+    private final class SpecialListenerImpl implements SpecialListener {
+
+        @Override
+        public void onSpecialActivated(short playerId, short objectId) {
+            if (levelObject == null || objectId != ObjectsController.OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID) {
+                return;
+            }
+
+            Settings settings = Main.getUserSettings();
+            if (SecretLevels.discover(levelObject, settings::getSecredLevelStatus, settings::setSecredLevelStatus).isPresent()) {
+                try {
+                    settings.save();
+                } catch (IOException ex) {
+                    logger.log(Level.ERROR, "Failed to save the discovered secret level!", ex);
+                }
+            }
+        }
+
     }
 
     /**

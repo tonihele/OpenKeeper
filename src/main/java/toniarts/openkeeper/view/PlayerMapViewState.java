@@ -18,6 +18,7 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppState;
 import com.jme3.math.ColorRGBA;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
@@ -47,12 +48,13 @@ import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -77,17 +79,31 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final FogOfWarController fogOfWarController;
     private final GameEventSoundPlayer gameEventSoundPlayer;
 
-    // Creature vision (and the initial fog seeding) can produce tile updates
-    // before MapViewController.load() has built its scene graph - queue those
-    // and flush them once the map actually exists, instead of crashing
-    private volatile boolean mapLoaded = false;
-    private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
-    private final Object tileUpdateLock = new Object();
+    // Tile updates (the fog seeding, fog changes from the server) that came
+    // while the map was still loading. Render thread only
+    private final Set<Point> pendingTileUpdates = new HashSet<>();
+
+    // Takes in the map entities until the map is complete, see initialize()
+    private final AppState mapEntityLoader = new AbstractAppState() {
+
+        @Override
+        public void update(float tpf) {
+            mapRoomContainer.update();
+            mapTileContainer.update();
+            if (lastTerrainIds != null) {
+                stateManager.detach(this);
+            }
+        }
+
+    };
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+
+        // We don't update anything until the map has loaded, we enable ourselves then
+        setEnabled(false);
 
         // World node
         worldNode = new Node("World");
@@ -117,38 +133,24 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                     }
                 }
 
-                // Don't block the caller, might be called from the render thread...
+                // Build the map on its own thread, we might be on the render
+                // thread, and the client carries on setting up its other states
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
 
-                    // Apply any tile updates (fog reveals from the seeding above,
-                    // or from creatures already ticking) that arrived too early to
-                    // be applied directly, while the map wasn't attached yet
-                    // Loop until the queue is empty *while holding the lock that
-                    // updateTiles() also takes*, and flip the flag in that same
-                    // critical section: otherwise an update arriving between the
-                    // last drain and the flag would be queued and never applied.
-                    // Only after the flip is mapLoader done being mutated off the
-                    // render thread: update(tpf) reads its LightRules (registered
-                    // terrain materials) every frame and gates on this flag.
-                    while (true) {
-                        List<Point> pending = new ArrayList<>();
-                        synchronized (tileUpdateLock) {
-                            Point p;
-                            while ((p = pendingTileUpdates.poll()) != null) {
-                                pending.add(p);
-                            }
-                            if (pending.isEmpty()) {
-                                mapLoaded = true;
-                                break;
-                            }
-                        }
-                        mapLoader.updateTiles(pending.toArray(new Point[0]));
-                    }
-
+                    // The loader is done with the map (and its light rules), from
+                    // here on they are only touched on the render thread
                     app.enqueue(() -> {
                         worldNode.attachChild(map);
+
+                        // Start updating, and refresh the tiles that changed while
+                        // we were loading
+                        setEnabled(true);
+                        if (!pendingTileUpdates.isEmpty()) {
+                            updateTiles(pendingTileUpdates.toArray(new Point[0]));
+                            pendingTileUpdates.clear();
+                        }
 
                         loadCompleteNotifier.onLoadComplete();
                     });
@@ -184,7 +186,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile);
 
-        // Start collecting the map entities
+        // Start collecting the map entities. In a local game the whole map is
+        // there already and start() loads it, over the network see initialize()
         mapRoomContainer.start();
         mapTileContainer.start();
         fogOfWarController.start();
@@ -195,6 +198,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         super.initialize(stateManager, app);
         this.app = (Main) app;
         this.stateManager = stateManager;
+
+        // Over the network the map entities come in batches. We don't update
+        // before the map has loaded, so the loader takes them in until then
+        if (lastTerrainIds == null) {
+            this.stateManager.attach(mapEntityLoader);
+        }
 
         // Effects
         this.stateManager.attach(effectManager);
@@ -227,6 +236,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Tile flash state
         stateManager.detach(flashTileControl);
 
+        // In case we are still loading
+        stateManager.detach(mapEntityLoader);
+
         // Effects
         stateManager.detach(effectManager);
 
@@ -244,24 +256,20 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     @Override
     public void update(float tpf) {
 
-        // Always process rooms before the map tiles
+        // Always process rooms before the map tiles, and the fog of war after
+        // the map is up to date
         mapRoomContainer.update();
         mapTileContainer.update();
         fogOfWarController.update(tpf);
 
         // Lighting: pick up live settings changes, advance modulators
         // (pulse/fade/flicker) and re-upload the terrain materials they
-        // touched. Skipped until the map is
-        // done loading - the loader thread is still registering terrain
-        // materials into the same LightRules up to that point, and reading
-        // it here concurrently with that would race (ConcurrentModificationException).
-        if (mapLoaded) {
-            Settings settings = Main.getUserSettings();
-            float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
-            mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
-            mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
-            mapLoader.getLightRules().update(tpf, app.getCamera());
-        }
+        // touched
+        Settings settings = Main.getUserSettings();
+        float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
+        mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+        mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+        mapLoader.getLightRules().update(tpf, app.getCamera());
     }
 
     public MapViewController getMapLoader() {
@@ -271,13 +279,16 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     /**
      * {@code false} while the "GameClientMapLoader" background thread is
      * still populating {@code mapLoader}'s {@code LightRules} (registering
-     * terrain materials, torches, etc.). Anything outside this class that
-     * touches {@code LightRules} on the render thread (entity/effect flat
-     * lighting) must gate on this the same way {@link #update(float)} above
-     * does, or it races those writes with a {@code ConcurrentModificationException}.
+     * terrain materials, torches, etc.). We are disabled until then. Anything
+     * outside this class that touches {@code LightRules} on the render thread
+     * (entity/effect flat lighting) must gate on this, or it races those
+     * writes with a {@code ConcurrentModificationException}. Render thread
+     * only.
+     *
+     * @return whether the map has been loaded
      */
     public boolean isMapLoaded() {
-        return mapLoaded;
+        return isEnabled();
     }
 
     public AssetManager getAssetManager() {
@@ -353,31 +364,37 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     private void updateTiles(Point[] points) {
-        synchronized (tileUpdateLock) {
-            if (!mapLoaded) {
+        app.enqueue(() -> {
+            if (!isEnabled()) {
+
+                // Still loading, there is no map to update yet
                 pendingTileUpdates.addAll(Arrays.asList(points));
                 return;
             }
-        }
-        for (Point point : points) {
-            IMapTileInformation tile = mapInformation.getMapData().getTile(point);
-            short newTerrainId = tile.getTerrainId();
-            short oldTerrainId = lastTerrainIds[point.x][point.y];
-            if (newTerrainId != oldTerrainId) {
-                Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
-                if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
-                    effectManager.load(worldNode,
-                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
-                } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
-                    effectManager.load(worldNode,
-                            WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
-                            oldTerrain.getDestroyedEffectId(), false);
+            for (Point point : points) {
+                IMapTileInformation tile = mapInformation.getMapData().getTile(point);
+                short newTerrainId = tile.getTerrainId();
+                short oldTerrainId = lastTerrainIds[point.x][point.y];
+                if (newTerrainId != oldTerrainId) {
+                    Terrain oldTerrain = kwdFile.getTerrain(oldTerrainId);
+                    if (newTerrainId == oldTerrain.getMaxHealthTypeTerrainId()) {
+                        effectManager.load(worldNode,
+                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                                oldTerrain.getMaxHealthEffectId(), false, tile.getOwnerId());
+                    } else if (newTerrainId == oldTerrain.getDestroyedTypeTerrainId()) {
+                        effectManager.load(worldNode,
+                                WorldUtils.pointToVector3f(point).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0),
+                                oldTerrain.getDestroyedEffectId(), false);
+                    }
+                    lastTerrainIds[point.x][point.y] = newTerrainId;
                 }
-                lastTerrainIds[point.x][point.y] = newTerrainId;
             }
-        }
-        mapLoader.updateTiles(points);
+            mapLoader.updateTiles(points);
+        });
+    }
+
+    public TerrainDeformer getTerrainDeformer() {
+        return mapLoader.getDeformer();
     }
 
     public IRoomsInformation getRoomsInformation() {
