@@ -130,7 +130,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     private List<Availability> availabilities;
     private Map<Integer, Map<Integer, CreaturePool>> creaturePools;
     private Map<Integer, Map<StatType, CreatureStats>> creatureStatistics;
-    private Map<Integer, Map<StatType, CreatureFirstPerson>> creatureFirstPersonStatistics;
+    private Map<StatType, CreatureFirstPerson> creatureFirstPersonStatistics;
     private Map<MiscVariable.MiscType, MiscVariable> variables;
     private Set<Sacrifice> sacrifices;
     private Set<PlayerAlliance> playerAlliances;
@@ -2440,11 +2440,17 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                         case PLAYER_CREATURES:
                         case PLAYER_HAPPY_CREATURES:
-                        case PLAYER_ANGRY_CREATURES:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("creatureId", reader.readUnsignedByte());
                             trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
                             trigger.setUserData("playerId", reader.readUnsignedByte());
+                            trigger.setUserData("value", reader.readUnsignedInteger());
+                            break;
+
+                        case PLAYER_ANGRY_CREATURES:
+                            ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
+                            trigger.setUserData("creatureId", reader.readUnsignedByte()); // 0 = Any
+                            reader.skipBytes(2); // Native anger count uses a fixed threshold, not another player.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 
@@ -2862,7 +2868,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             availabilities = new ArrayList<>();
             creaturePools = HashMap.newHashMap(4);
             creatureStatistics = HashMap.newHashMap(10);
-            creatureFirstPersonStatistics = HashMap.newHashMap(10);
+            creatureFirstPersonStatistics = HashMap.newHashMap(CreatureStats.StatType.values().length);
             variables = new HashMap<>();
             sacrifices = new HashSet<>();
             playerAlliances = new HashSet<>();
@@ -2944,13 +2950,8 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     creatureFirstPerson.setValue(reader.readInteger());
                     creatureFirstPerson.setLevel(reader.readInteger());
 
-                    // Add
-                    Map<StatType, CreatureFirstPerson> firstPersonStats = creatureFirstPersonStatistics.get(creatureFirstPerson.getLevel());
-                    if (firstPersonStats == null) {
-                        firstPersonStats = HashMap.newHashMap(CreatureStats.StatType.values().length);
-                        creatureFirstPersonStatistics.put(creatureFirstPerson.getLevel(), firstPersonStats);
-                    }
-                    firstPersonStats.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
+                    // Add, all the levels of DK II have just the one table (level 10)
+                    creatureFirstPersonStatistics.put(creatureFirstPerson.getStatId(), creatureFirstPerson);
                     break;
 
                 case Variable.PLAYER_ALLIANCE:
@@ -3223,6 +3224,11 @@ public final class KwdFile implements IKwdFile, IKwdMap {
     @Override
     public Map<CreatureStats.StatType, CreatureStats> getCreatureStats(int level) {
         return creatureStatistics.get(level);
+    }
+
+    @Override
+    public Map<CreatureStats.StatType, CreatureFirstPerson> getCreatureFirstPersonStats() {
+        return creatureFirstPersonStatistics;
     }
 
     /**

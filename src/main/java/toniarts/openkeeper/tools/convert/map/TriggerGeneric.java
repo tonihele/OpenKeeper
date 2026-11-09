@@ -206,7 +206,19 @@ public final class TriggerGeneric extends Trigger {
         OBJECT_CLAIMED(18), // Event, This object is
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
-        PLAYER_ANGRY_CREATURES(21), // Player
+        /**
+         * Compares the number of this player's fully angry non-worker creatures
+         * with a fixed threshold. A creature type of zero includes all types;
+         * otherwise only that type counts. An empty matching roster counts as zero.
+         * <p>
+         * Angry means mood state 2, beyond the unhappy state: merely unhappy
+         * creatures do not count. Workers are excluded even with a type filter.
+         * Ownership determines the player, rather than who controls a prisoner.
+         * This is a current count, so recovery, conversion and death can reduce it.
+         * For example, greater than or equal to 3 Warlocks requires three owned
+         * Warlocks that are fully angry at the time of the check.
+         */
+        PLAYER_ANGRY_CREATURES(21),
         PLAYER_CREATURES_KILLED(22), // Player
         PLAYER_KILLS_CREATURES(23), // Player
         PLAYER_ROOM_SLABS(24), // Player
