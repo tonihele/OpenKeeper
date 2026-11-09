@@ -20,6 +20,7 @@ class RoomCaptureSpeechTest {
         assertEquals(155, RoomCaptureSpeech.forRoom(SoundFixtures.room("ROOM_BRIDGE")).getId());
         assertEquals(156, RoomCaptureSpeech.forRoom(SoundFixtures.room("synthetic custom room")).getId());
         assertEquals(156, RoomCaptureSpeech.forRoom(null).getId());
+        assertEquals(156, RoomCaptureSpeech.forRoom(SoundFixtures.room("ROOM_DUNGEON_HEART")).getId());
     }
 
     @Test
