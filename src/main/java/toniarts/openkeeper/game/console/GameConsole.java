@@ -21,11 +21,16 @@ import de.lessvoid.nifty.controls.Console;
 import de.lessvoid.nifty.controls.ConsoleCommands;
 import de.lessvoid.nifty.controls.ConsoleCommands.ConsoleCommand;
 import de.lessvoid.nifty.tools.Color;
+import com.jme3.math.Vector2f;
+import toniarts.openkeeper.game.controller.ICheatController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.PlayerInteractionState;
 
 import java.util.Collection;
 
@@ -50,7 +55,8 @@ public final class GameConsole {
         ADD_GOLD("<amount>"),
         ADD_MANA("<amount>"),
         SPAWN_CREATURE("<name> [level] [amount]"),
-        SPAWN_IMPS("<amount>");
+        SPAWN_IMPS("<amount>"),
+        TERRAIN("<name|id> [x y [x2 y2]] (god mode, default: the tile under the cursor)");
 
         final String param;
 
@@ -67,8 +73,10 @@ public final class GameConsole {
      * These commands don't have parameter
      */
     private enum SimpleCommands {
+        CLAIM,
         CLEAR,
         EXIT,
+        GOD_MODE,
         HELP,
         LOOSE_LEVEL,
         LEVEL_MAX,
@@ -95,7 +103,12 @@ public final class GameConsole {
         ConsoleCommand parameterCommand = new ParameterCommand();
 
         for (ParameterCommands parameterCmd : ParameterCommands.values()) {
-            if (parameterCmd.equals(ParameterCommands.SPAWN_CREATURE)) {
+            if (parameterCmd.equals(ParameterCommands.TERRAIN)) {
+                stateManager.getState(GameClientState.class).getLevelData().getTerrainList().forEach(terrain -> {
+                    consoleCommands.registerCommand(parameterCmd.toString().toLowerCase() + " "
+                            + terrain.getName().toLowerCase().replace(" ", "_"), parameterCommand);
+                });
+            } else if (parameterCmd.equals(ParameterCommands.SPAWN_CREATURE)) {
                 // make it easier to spawn them by creating an autocompletion
                 creatures.forEach(creature -> {
                     consoleCommands.registerCommand(parameterCmd.toString().toLowerCase() + " " + creature.getName().toLowerCase().replace(" ", "_"), parameterCommand);
@@ -148,6 +161,10 @@ public final class GameConsole {
                 case EXIT:
                     stateManager.getState(ConsoleState.class).setEnabled(false);
                     break;
+                case CLAIM:
+                    changeTerrain(ICheatController.CLAIM_TERRAIN, args, 1);
+                    break;
+                case GOD_MODE:
                 case LOOSE_LEVEL:
                 case LEVEL_MAX:
                 case UNLOCK_ROOMS:
@@ -200,6 +217,15 @@ public final class GameConsole {
                         console.outputError("First parameter must be the amount of imps!");
                     }
                     break;
+                case TERRAIN: {
+                    Terrain terrain = findTerrain(args[1]);
+                    if (terrain == null) {
+                        console.outputError("Terrain " + args[1] + " doesn't exist");
+                    } else {
+                        changeTerrain(terrain.getTerrainId(), args, 2);
+                    }
+                    break;
+                }
                 case SPAWN_CREATURE:
                     final String name = args[1].replace("_", " ");
                     int level = 1;
@@ -226,6 +252,52 @@ public final class GameConsole {
                     console.outputError("Not supported");
             }
         }
+    }
+
+    private Terrain findTerrain(String nameOrId) {
+        String name = nameOrId.replace("_", " ");
+        for (Terrain terrain : stateManager.getState(GameClientState.class).getLevelData().getTerrainList()) {
+            if (terrain.getName().equalsIgnoreCase(name) || String.valueOf(terrain.getTerrainId()).equals(nameOrId)) {
+                return terrain;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * God mode area command, the area is given as {@code x y [x2 y2]} starting from the given argument index,
+     * or it is the tile under the cursor
+     */
+    private void changeTerrain(short terrainId, String[] args, int coordinatesIndex) {
+        GameClientState gameClientState = stateManager.getState(GameClientState.class);
+        if (!gameClientState.isGodMode()) {
+            console.outputError("Only a god can do that, try calling yourself something fitting");
+            return;
+        }
+        Vector2f start;
+        Vector2f end;
+        try {
+            if (args.length > coordinatesIndex + 1) {
+                start = new Vector2f(Integer.parseInt(args[coordinatesIndex]), Integer.parseInt(args[coordinatesIndex + 1]));
+                end = args.length > coordinatesIndex + 3
+                        ? new Vector2f(Integer.parseInt(args[coordinatesIndex + 2]), Integer.parseInt(args[coordinatesIndex + 3]))
+                        : start;
+            } else {
+                Point pointed = stateManager.getState(PlayerInteractionState.class).getPointedTile();
+                if (pointed == null) {
+                    console.outputError("No tile under the cursor, give the coordinates");
+                    return;
+                }
+                start = new Vector2f(pointed.x, pointed.y);
+                end = start;
+            }
+        } catch (NumberFormatException e) {
+            console.outputError("Coordinates must be numbers!");
+            return;
+        }
+        gameClientState.getGameClientService().triggerTerrainCheat(
+                new Vector2f(Math.min(start.x, end.x), Math.min(start.y, end.y)),
+                new Vector2f(Math.max(start.x, end.x), Math.max(start.y, end.y)), terrainId);
     }
 
     private Creature findCreature(final String name) {

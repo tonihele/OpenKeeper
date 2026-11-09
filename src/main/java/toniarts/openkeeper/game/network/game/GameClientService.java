@@ -228,6 +228,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId) {
+        getDelegate().triggerTerrainCheat(start, end, terrainId);
+    }
+
+    @Override
     public void triggerAddManaCheat(int amount) {
         getDelegate().triggerAddManaCheat(amount);
     }

@@ -212,4 +212,15 @@ public interface IGameWorldController {
      * @param playerId the player placing the trap
      */
     public void placeTrap(short trapId, Point tile, short playerId);
+
+    /**
+     * God mode on/off for a player. A god skips the usual rules: build, sell, pick up, place traps
+     * and doors without limits or cost, and a slap kills a creature.
+     *
+     * @param playerId the player
+     * @param godMode on or off
+     */
+    public void setGodMode(short playerId, boolean godMode);
+
+    public boolean isGodMode(short playerId);
 }

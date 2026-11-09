@@ -177,6 +177,17 @@ public interface GameSessionServiceListener {
     public void onAddManaCheatTriggered(int amount, short playerId);
 
     /**
+     * Player has triggered a god mode cheat that changes the terrain
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param terrainId the new terrain, or {@code -1} to claim the area instead
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short playerId);
+
+    /**
      * Player wants to steer the possessed creature
      *
      * @param direction normalized movement direction on the map plane

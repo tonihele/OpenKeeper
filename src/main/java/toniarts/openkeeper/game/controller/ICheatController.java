@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.state.CheatState;
 
 /**
@@ -56,5 +57,37 @@ public interface ICheatController {
      * @param playerId the player who gets the mana
      */
     void addMana(int amount, short playerId);
+
+    /**
+     * Tells whether the player is in god mode, see {@link CheatState.CheatType#GOD_MODE}
+     *
+     * @param playerId the player
+     * @return {@code true} if the player is in god mode
+     */
+    boolean isGodMode(short playerId);
+
+    /**
+     * God mode: dig out the solid tiles of an area right away
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param playerId the player in god mode
+     */
+    void dig(Vector2f start, Vector2f end, short playerId);
+
+    /**
+     * God mode: change the terrain of an area, or claim it
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param terrainId the new terrain, or {@link #CLAIM_TERRAIN} to claim the area, rooms included
+     * @param playerId the player in god mode
+     */
+    void changeTerrain(Vector2f start, Vector2f end, short terrainId, short playerId);
+
+    /**
+     * Pseudo terrain id for {@link #changeTerrain}: claim instead of changing the terrain
+     */
+    short CLAIM_TERRAIN = -1;
 
 }

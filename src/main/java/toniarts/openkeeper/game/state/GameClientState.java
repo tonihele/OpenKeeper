@@ -90,6 +90,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private volatile boolean gameStarted = false;
 
     private final Short playerId;
+    private volatile boolean godMode = false;
     private final boolean multiplayer;
     private final List<ClientInfo> clientInfos;
     private final Map<Short, String> networkPlayerNames;
@@ -364,6 +365,20 @@ public final class GameClientState extends AbstractPauseAwareState {
      */
     public TextParser getTextParser() {
         return textParser;
+    }
+
+    /**
+     * Is the player in god mode, see {@link CheatState.CheatType#GOD_MODE}. The server decides what
+     * is actually allowed, this just lets the UI skip the rules it would otherwise enforce.
+     *
+     * @return {@code true} if in god mode
+     */
+    public boolean isGodMode() {
+        return godMode;
+    }
+
+    public void toggleGodMode() {
+        godMode = !godMode;
     }
 
     private final class GameSessionListenerImpl implements GameSessionListener {

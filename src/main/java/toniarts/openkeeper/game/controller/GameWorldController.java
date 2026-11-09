@@ -97,6 +97,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -128,6 +129,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
+    private final Set<Short> godModePlayers = ConcurrentHashMap.newKeySet();
     private final GameEventService gameEventService;
 
     private IMapController mapController;
@@ -346,13 +348,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, getConstructionBlockingTiles(), start, end,
-                playerId, roomId, player.getGold());
+                playerId, roomId, isGodMode(playerId) ? Integer.MAX_VALUE : player.getGold());
         if (!placement.isValid()) {
             return;
         }
 
         Room room = kwdFile.getRoomById(roomId);
-        if (!payForRoom(placement.plots().size(), room, playerId)) {
+        if (!isGodMode(playerId) && !payForRoom(placement.plots().size(), room, playerId)) {
             return;
         }
 
@@ -586,7 +588,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             Entity entity = entityData.getEntity(entityId, TrapComponent.class, Owner.class);
             TrapComponent trapComponent = entity.get(TrapComponent.class);
             Owner owner = entity.get(Owner.class);
-            if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
+            if (trapComponent == null || owner == null
+                    || !TrapSellRules.isSellable(owner.ownerId, isGodMode(playerId) ? owner.ownerId : playerId)) {
                 continue;
             }
 
@@ -605,7 +608,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
             for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
                 Point p = new Point(x, y);
-                if (!mapController.isSellable(p, playerId)) {
+                IMapTileController owned = mapController.getMapData().getTile(p);
+                if (owned == null || !mapController.isSellable(p, isGodMode(playerId) ? owned.getOwnerId() : playerId)) {
                     continue;
                 }
                 sellTile(p, sale);
@@ -1135,7 +1139,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
+        if (!isGodMode(playerId) && !EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
             return false;
         }
 
@@ -1163,7 +1167,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Creatures can only be slapped, also enemies held in our prison
         // TODO: Slap limit
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-            if (canSlapCreature(entity, playerId)) {
+            if (isGodMode(playerId)) {
+                // A slap is a death sentence for a god, the health system lets an unconscious creature die
+                entityData.setComponent(entity, new Unconscious(-1.0e9));
+            } else if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 notifySlap(entity, playerId);
             }
@@ -1532,6 +1539,25 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
+        if (isGodMode(playerId) && !getConstructionBlockingTiles().contains(tile)
+                && mapTile.getOwnerId() == playerId
+                && !mapController.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            doorsController.addDoor(doorId, tile, playerId);
+        }
+    }
+
+    @Override
+    public void setGodMode(short playerId, boolean godMode) {
+        if (godMode) {
+            godModePlayers.add(playerId);
+        } else {
+            godModePlayers.remove(playerId);
+        }
+    }
+
+    @Override
+    public boolean isGodMode(short playerId) {
+        return godModePlayers.contains(playerId);
     }
 
     @Override
@@ -1555,17 +1581,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         ResearchableEntity researchableEntity = playerControllers.get(playerId).getTrapControl().getTypes().get(trap);
-        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+        if (!isGodMode(playerId) && (researchableEntity == null || !researchableEntity.isDiscovered())) {
             logger.log(Level.WARNING, "Player trap is not available", playerId);
             return;
         }
 
         // Validate
-        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, isGodMode(playerId) ? Integer.MAX_VALUE : player.getGold())
                 != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 
+        if (isGodMode(playerId)) {
+            trapsController.addTrap(trapId, tile, playerId);
+            return;
+        }
         if (!payForTrap(trap, playerId)) {
             return;
         }

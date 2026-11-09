@@ -20,6 +20,7 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
@@ -153,6 +154,11 @@ public final class DoorsController implements IDoorsController {
         return (tile != null && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
                 && ((!terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))
                 || (tile.getOwnerId() == ownerId && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE))));
+    }
+
+    @Override
+    public EntityId addDoor(short doorId, Point tile, short ownerId) {
+        return loadDoor(tile.x, tile.y, doorId, ownerId, null, false, false);
     }
 
     @Override

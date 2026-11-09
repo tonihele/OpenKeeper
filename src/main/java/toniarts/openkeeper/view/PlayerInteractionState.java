@@ -692,11 +692,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
             } else if (interactionState.getType() == Type.TRAP) {
                 Point p = selectionHandler.getPointedTileIndex();
-                if (isTrapPlacementValid(p)) {
+                if (gameClientState.isGodMode() || isTrapPlacementValid(p)) {
                     gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
                 }
             } else if (interactionState.getType() == Type.DOOR) {
-                //TODO put door
+                if (gameClientState.isGodMode()) {
+                    gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(),
+                            selectionHandler.getPointedTileIndex());
+                }
+                //TODO put door for the normal game
             } else if (interactionState.getType() == Type.NONE
                     && interactiveControl != null && !keeperHandState.isFull()
                     && interactiveControl.isPickable(player.getPlayerId())) {
@@ -741,12 +745,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // actually taggable - fog can't reach it to know any better. Locally,
                 // still-unexplored tiles in this drag should look tagged regardless,
                 // until exploration reveals whether that's really true.
-                gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
+                if (!gameClientState.isGodMode()) {
+                    gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
+                }
             } else if (interactionState.getType() == Type.ROOM
-                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    && (gameClientState.isGodMode() || RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
-                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
+                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid())) {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
 
@@ -789,6 +795,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                        keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
 //                        updateCursor();
 //                    }
+                } else if (gameClientState.isGodMode() && interactiveControl != null
+                        && interactiveControl.getDataObject() instanceof Creature) {
+                    // God mode: kill any creature, the server does the deed
+                    gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                 } else if (interactiveControl != null && interactiveControl.isSlappable(player.getPlayerId())) {
 //                    getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
@@ -1063,6 +1073,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
                 return getDropColor(point);
             }
+            if (gameClientState.isGodMode()
+                    && (interactionState.getType() == Type.SELL || interactionState.getType() == Type.TRAP
+                    || interactionState.getType() == Type.DOOR || interactionState.getType() == Type.ROOM)) {
+                return ColorIndicator.BLUE;
+            }
             if (interactionState.getType() == Type.SELL) {
                 return gameClientState.getMapClientService().isSellable(point, player.getPlayerId()) || hasSellableTrap(point)
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
@@ -1160,6 +1175,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
     }
 
+    /**
+     * @return the tile under the cursor, e.g. for the god mode console commands
+     */
+    public Point getPointedTile() {
+        return selectionHandler.getPointedTileIndex();
+    }
+
     private final class InteractionCheatState extends CheatState {
 
         private InteractionCheatState() {
@@ -1168,6 +1190,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         @Override
         public void onSuccess(CheatType cheat) {
+            if (cheat == CheatType.GOD_MODE) {
+                gameClientState.toggleGodMode();
+            }
             gameClientState.getGameClientService().triggerCheat(cheat);
         }
     }

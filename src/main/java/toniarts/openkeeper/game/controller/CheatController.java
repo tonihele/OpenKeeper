@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
@@ -26,8 +29,11 @@ import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 
 /**
@@ -55,6 +61,10 @@ public final class CheatController implements ICheatController {
     @Override
     public void onCheat(CheatState.CheatType cheat, short playerId) {
         switch (cheat) {
+            case GOD_MODE: {
+                toggleGodMode(playerId);
+                break;
+            }
             case LEVEL_MAX: {
                 gameWorldController.getCreaturesController().levelUpCreatures(playerId, Utils.MAX_CREATURE_LEVEL);
                 break;
@@ -109,6 +119,67 @@ public final class CheatController implements ICheatController {
             default:
                 logger.log(Level.INFO, "Cheat {0} not implemented!", cheat);
         }
+    }
+
+    private void toggleGodMode(short playerId) {
+        boolean godMode = !gameWorldController.isGodMode(playerId);
+        gameWorldController.setGodMode(playerId, godMode);
+        logger.log(Level.INFO, "God mode {0}", godMode ? "on" : "off");
+        if (!godMode) {
+            return;
+        }
+
+        // Everything is available
+        onCheat(CheatState.CheatType.UNLOCK_ROOMS, playerId);
+        onCheat(CheatState.CheatType.UNLOCK_SPELLS, playerId);
+        onCheat(CheatState.CheatType.UNLOCK_DOORS_TRAPS, playerId);
+    }
+
+    @Override
+    public boolean isGodMode(short playerId) {
+        return gameWorldController.isGodMode(playerId);
+    }
+
+    @Override
+    public void dig(Vector2f start, Vector2f end, short playerId) {
+        for (Point p : getArea(start, end)) {
+            Terrain terrain = kwdFile.getTerrain(mapController.getMapData().getTile(p).getTerrainId());
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                mapController.alterTerrain(p, terrain.getDestroyedTypeTerrainId(), Player.NEUTRAL_PLAYER_ID);
+            }
+        }
+    }
+
+    @Override
+    public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short playerId) {
+        for (Point p : getArea(start, end)) {
+            Terrain current = kwdFile.getTerrain(mapController.getMapData().getTile(p).getTerrainId());
+            if (current.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+                continue; // Rooms have their own bookkeeping, sell them first
+            }
+            if (terrainId == CLAIM_TERRAIN) {
+                // Claimable ground turns into its claimed form, owned ground changes hands
+                if (current.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+                    mapController.alterTerrain(p, current.getTerrainId(), playerId);
+                } else if (TileWork.convertsAtFullHealth(current)) {
+                    mapController.alterTerrain(p, current.getMaxHealthTypeTerrainId(), playerId);
+                }
+            } else {
+                Terrain terrain = kwdFile.getTerrain(terrainId);
+                mapController.alterTerrain(p, terrainId,
+                        terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) ? playerId : Player.NEUTRAL_PLAYER_ID);
+            }
+        }
+    }
+
+    private List<Point> getArea(Vector2f start, Vector2f end) {
+        List<Point> tiles = new ArrayList<>();
+        for (int x = Math.max(0, (int) start.x); x <= Math.min(kwdFile.getMap().getWidth() - 1, (int) end.x); x++) {
+            for (int y = Math.max(0, (int) start.y); y <= Math.min(kwdFile.getMap().getHeight() - 1, (int) end.y); y++) {
+                tiles.add(new Point(x, y));
+            }
+        }
+        return tiles;
     }
 
     @Override

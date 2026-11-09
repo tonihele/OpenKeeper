@@ -206,6 +206,10 @@ public final class GameServerState extends AbstractAppState {
         }
     }
 
+    private boolean isGodMode(short playerId) {
+        return cheatController != null && cheatController.isGodMode(playerId);
+    }
+
     /**
      * Listen for basically clients' requests
      */
@@ -233,6 +237,10 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+            if (select && isGodMode(playerId)) {
+                cheatController.dig(start, end, playerId);
+                return;
+            }
             mapController.selectTiles(start, end, select, playerId);
         }
 
@@ -318,6 +326,11 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void onAddGoldCheatTriggered(int amount, short playerId) {
             cheatController.addGold(amount, playerId);
+        }
+
+        @Override
+        public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short playerId) {
+            cheatController.changeTerrain(start, end, terrainId, playerId);
         }
 
         @Override

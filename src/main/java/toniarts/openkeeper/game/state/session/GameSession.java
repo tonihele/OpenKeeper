@@ -180,6 +180,16 @@ public interface GameSession {
     public void triggerAddManaCheat(int amount);
 
     /**
+     * Trigger a god mode cheat that changes the terrain
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param terrainId the new terrain, or {@code -1} to claim the area instead
+     */
+    @Asynchronous
+    public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId);
+
+    /**
      * Steer the currently possessed creature
      *
      * @param direction normalized movement direction on the map plane, zero
