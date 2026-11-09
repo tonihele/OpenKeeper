@@ -502,6 +502,29 @@ public final class CustomTabGroupControl extends AbstractController implements T
         }
     }
 
+    /**
+     * Shows or hides the button of a tab. A hidden tab can't be selected, if it was the selected one, the
+     * first tab gets selected.
+     *
+     * @param tab the tab
+     * @param visible whether the tab button is visible
+     */
+    public void setTabButtonVisible(final Tab tab, final boolean visible) {
+        final int index = indexOf(tab);
+        final Element button = index == -1 ? null : getButton(index);
+        if (button == null) {
+            return;
+        }
+        if (visible) {
+            button.show();
+        } else {
+            button.hide();
+            if (selectedIndex == index) {
+                setSelectedTabIndex(0);
+            }
+        }
+    }
+
     @Override
     public void removeTab(final int index) {
     }

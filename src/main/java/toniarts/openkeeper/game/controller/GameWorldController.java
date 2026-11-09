@@ -27,6 +27,7 @@ import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
@@ -52,6 +53,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -129,7 +131,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
-    private final Set<Short> godModePlayers = ConcurrentHashMap.newKeySet();
+    private final Map<Short, Set<CheatState.CheatType>> cheats = new ConcurrentHashMap<>();
     private final GameEventService gameEventService;
 
     private IMapController mapController;
@@ -1167,13 +1169,20 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Creatures can only be slapped, also enemies held in our prison
         // TODO: Slap limit
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-            if (isGodMode(playerId)) {
-                // A slap is a death sentence for a god, the health system lets an unconscious creature die
-                entityData.setComponent(entity, new Unconscious(-1.0e9));
+            if (entityData.getComponent(entity, Unconscious.class) != null && isCheat(playerId, CheatState.CheatType.RESURRECT_CREATURES)) {
+                resurrect(entity);
+            } else if (isCheat(playerId, CheatState.CheatType.KILL_CREATURES)) {
+                // Normal damage, so the usual dying rules apply, i.e. it falls unconscious first, and can still be resurrected
+                entityData.setComponent(entity, new Damage(Integer.MAX_VALUE / 2));
             } else if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 notifySlap(entity, playerId);
             }
+            return;
+        }
+
+        if (entityData.getComponent(entity, DoorComponent.class) != null && isCheat(playerId, CheatState.CheatType.DESTROY_DOORS)) {
+            doorsController.createController(entity).remove();
             return;
         }
 
@@ -1204,6 +1213,18 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
+    /**
+     * Wakes up a creature that is unconscious, healed to full, like the Heal All special does
+     */
+    private void resurrect(EntityId entity) {
+        Health health = entityData.getComponent(entity, Health.class);
+        if (health != null) {
+            entityData.setComponent(entity, new Health(health.maxHealth, health.maxHealth));
+        }
+        entityData.removeComponent(entity, Unconscious.class);
+        creaturesController.createController(entity).getStateMachine().changeState(CreatureState.IDLE);
+    }
+
     private void notifySlap(EntityId entity, short playerId) {
         // The slap comes from the player's hand, so it has no place and only the player gets it
         gameEventService.emitToPlayer(GameEventType.HAND_SLAP, playerId);
@@ -1215,7 +1236,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
         Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain, isGodMode(playerId))) {
             playerHandControl.pop();
             Vector3f dropPosition = new Vector3f(coordinates.x, 0, coordinates.y);
             gameEventService.emit(GameEventType.DROPPED, entity, dropPosition);
@@ -1402,7 +1423,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return null;
     }
 
-    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain, boolean godMode) {
 
         // Check if picked up in the first place
         InHand inHand = entityData.getComponent(entityId, InHand.class);
@@ -1412,7 +1433,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        return DropValidator.canDrop(interaction, tile, terrain, playerId);
+        return DropValidator.canDrop(interaction, tile, terrain, playerId, godMode);
     }
 
     @Override
@@ -1547,17 +1568,22 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     @Override
-    public void setGodMode(short playerId, boolean godMode) {
-        if (godMode) {
-            godModePlayers.add(playerId);
+    public void setCheat(short playerId, CheatState.CheatType cheat, boolean enabled) {
+        Set<CheatState.CheatType> playerCheats = cheats.computeIfAbsent(playerId, id -> ConcurrentHashMap.newKeySet());
+        if (enabled) {
+            playerCheats.add(cheat);
         } else {
-            godModePlayers.remove(playerId);
+            playerCheats.remove(cheat);
         }
     }
 
     @Override
-    public boolean isGodMode(short playerId) {
-        return godModePlayers.contains(playerId);
+    public boolean isCheat(short playerId, CheatState.CheatType cheat) {
+        return cheats.getOrDefault(playerId, Set.of()).contains(cheat);
+    }
+
+    private boolean isGodMode(short playerId) {
+        return isCheat(playerId, CheatState.CheatType.GOD_MODE);
     }
 
     @Override

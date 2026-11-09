@@ -42,6 +42,13 @@ public interface IPlayerScreenController extends ScreenController {
      */
     public void select(String iState, String id);
 
+    /**
+     * Switches a cheat mode on or off, from the cheat tab
+     *
+     * @param cheatName the name of the cheat type
+     */
+    public void toggleCheat(String cheatName);
+
     public void playSound(String category, String id);
 
     public void playButtonSound(String category);

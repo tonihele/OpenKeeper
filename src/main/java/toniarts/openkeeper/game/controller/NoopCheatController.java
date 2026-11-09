@@ -45,7 +45,7 @@ public final class NoopCheatController implements ICheatController {
     }
 
     @Override
-    public boolean isGodMode(short playerId) {
+    public boolean isCheat(CheatState.CheatType cheat, short playerId) {
         return false;
     }
 

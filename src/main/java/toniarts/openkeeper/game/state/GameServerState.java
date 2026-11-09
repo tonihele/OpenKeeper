@@ -206,8 +206,8 @@ public final class GameServerState extends AbstractAppState {
         }
     }
 
-    private boolean isGodMode(short playerId) {
-        return cheatController != null && cheatController.isGodMode(playerId);
+    private boolean isInstantDig(short playerId) {
+        return cheatController != null && cheatController.isCheat(CheatState.CheatType.INSTANT_DIG, playerId);
     }
 
     /**
@@ -237,7 +237,7 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            if (select && isGodMode(playerId)) {
+            if (select && isInstantDig(playerId)) {
                 cheatController.dig(start, end, playerId);
                 return;
             }

@@ -42,6 +42,19 @@ public final class DropValidator {
      * @return whether the thing can be dropped there
      */
     public static boolean canDrop(Interaction interaction, IMapTileInformation tile, Terrain terrain, short playerId) {
+        return canDrop(interaction, tile, terrain, playerId, false);
+    }
+
+    /**
+     * Same as {@link #canDrop(Interaction, IMapTileInformation, Terrain, short)}, but in god mode anything can
+     * be dropped on any tile that is not solid.
+     *
+     * @param godMode whether the dropping keeper is in god mode
+     */
+    public static boolean canDrop(Interaction interaction, IMapTileInformation tile, Terrain terrain, short playerId, boolean godMode) {
+        if (godMode && interaction != null && tile != null && terrain != null) {
+            return !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
+        }
         if (interaction == null || tile == null || terrain == null) {
             return false;
         }

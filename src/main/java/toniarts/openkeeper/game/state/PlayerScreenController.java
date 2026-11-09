@@ -116,6 +116,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Screen screen;
 
     private Element selectedButton;
+    private boolean fogOfWarRemoved = false;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
     private Label tooltip;
@@ -953,6 +954,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 //            }
 //        });
         populateRoomTab();
+        populateCheatTab();
+        refreshCheatTab();
         // Spells
 //        state.getSpellControl().addPlayerSpellListener(new PlayerSpellListener() {
 //            @Override
@@ -1165,6 +1168,79 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         unaffordableSpells.clear();
         updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+    }
+
+    /**
+     * Populates the cheat tab, a button for each cheat mode. Cheats are not for multiplayer games.
+     */
+    private void populateCheatTab() {
+        if (state.stateManager.getState(GameClientState.class).isMultiplayer()) {
+            return;
+        }
+        FlowLayoutControl contentPanel = nifty.getScreen(SCREEN_HUD_ID).findElementById("tab-god-content").getControl(FlowLayoutControl.class);
+        contentPanel.removeAll();
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.KILL_CREATURES, "Specials/SP-Kill", "Kill creatures: right click a creature"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.RESURRECT_CREATURES, "Specials/SP-Resurrect", "Resurrect creatures: right click a dying creature"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.DESTROY_DOORS, "Doors/wood_door", "Destroy doors: right click a door"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.INSTANT_DIG, "Specials/SP-Destroy_Walls", "Instant digging: tag tiles to dig them out at once"));
+    }
+
+    private ControlBuilder createCheatIcon(CheatState.CheatType cheat, String icon, String tooltip) {
+        return new GuiIconBuilder("cheat_" + cheat.name(),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/" + icon + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/hilight.png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-workshop.png"),
+                tooltip, tooltip, "toggleCheat(" + cheat.name() + ")");
+    }
+
+    /**
+     * Switches a cheat mode on or off, the button shows the selected effect while the cheat is on
+     *
+     * @param cheatName the name of the {@link CheatState.CheatType}
+     */
+    @Override
+    public void toggleCheat(String cheatName) {
+        CheatState.CheatType cheat = CheatState.CheatType.valueOf(cheatName);
+        if (cheat == CheatState.CheatType.REMOVE_FOW) {
+            // The fog of war is removed on the first click and reset on the next
+            fogOfWarRemoved = !fogOfWarRemoved;
+            state.stateManager.getState(GameClientState.class).getGameClientService()
+                    .triggerCheat(fogOfWarRemoved ? CheatState.CheatType.REMOVE_FOW : CheatState.CheatType.RESET_FOW);
+            Element fogButton = nifty.getScreen(SCREEN_HUD_ID).findElementById("cheat_" + cheat.name());
+            if (fogOfWarRemoved) {
+                fogButton.startEffect(EffectEventId.onCustom, null, "select");
+            } else {
+                fogButton.stopEffect(EffectEventId.onCustom);
+            }
+            return;
+        }
+        state.stateManager.getState(GameClientState.class).toggleCheatMode(cheat);
+    }
+
+    /**
+     * Shows the cheat tab only while in god mode, and has the buttons of the cheats that are on selected
+     */
+    public void refreshCheatTab() {
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element tab = hud.findElementById("tab-god");
+        CustomTabGroupControl tabGroup = hud.findElementById("tabs-hud").getControl(CustomTabGroupControl.class);
+        if (tab != null && tabGroup != null) {
+            tabGroup.setTabButtonVisible(tab.getNiftyControl(Tab.class), client.isGodMode() && !client.isMultiplayer());
+        }
+        for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
+            Element button = cheat.isMode() ? hud.findElementById("cheat_" + cheat.name()) : null;
+            if (button == null) {
+                continue;
+            }
+            if (client.isCheat(cheat)) {
+                button.startEffect(EffectEventId.onCustom, null, "select");
+            } else {
+                button.stopEffect(EffectEventId.onCustom);
+            }
+        }
     }
 
     /**

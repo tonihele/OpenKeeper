@@ -59,12 +59,13 @@ public interface ICheatController {
     void addMana(int amount, short playerId);
 
     /**
-     * Tells whether the player is in god mode, see {@link CheatState.CheatType#GOD_MODE}
+     * Tells whether a cheat mode, such as {@link CheatState.CheatType#INSTANT_DIG}, is on for the player
      *
+     * @param cheat the cheat
      * @param playerId the player
-     * @return {@code true} if the player is in god mode
+     * @return {@code true} if the cheat is on
      */
-    boolean isGodMode(short playerId);
+    boolean isCheat(CheatState.CheatType cheat, short playerId);
 
     /**
      * God mode: dig out the solid tiles of an area right away

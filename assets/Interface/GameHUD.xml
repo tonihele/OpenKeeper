@@ -362,6 +362,15 @@
                                      hintText="${menu.2159}" tooltip="${menu.2160}">
                                 <control name="flowLayout" id="tab-workshop-content" maxRows="2" padding="6px" />
                             </control>
+
+                            <!-- Cheats, filled in only for single player games -->
+                            <control name="customTab" id="tab-god"
+                                     image="Textures/GUI/Specials/SP-Level_Up.png"
+                                     active="Textures/GUI/Icons/selected-workshop.png"
+                                     sound="GUI_BUTTON_TAB_WORKSHOP"
+                                     hintText="Cheats" tooltip="Switch cheats on and off">
+                                <control name="flowLayout" id="tab-god-content" maxRows="2" padding="6px" />
+                            </control>
                         </control>
 
                     </panel>

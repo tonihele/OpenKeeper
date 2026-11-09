@@ -17,14 +17,19 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -33,6 +38,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 
@@ -63,6 +69,14 @@ public final class CheatController implements ICheatController {
         switch (cheat) {
             case GOD_MODE: {
                 toggleGodMode(playerId);
+                break;
+            }
+            case KILL_CREATURES:
+            case RESURRECT_CREATURES:
+            case DESTROY_DOORS:
+            case INSTANT_DIG:
+            case CLAIM_LAND: {
+                toggle(cheat, playerId);
                 break;
             }
             case LEVEL_MAX: {
@@ -121,11 +135,15 @@ public final class CheatController implements ICheatController {
         }
     }
 
+    private boolean toggle(CheatState.CheatType cheat, short playerId) {
+        boolean enabled = !gameWorldController.isCheat(playerId, cheat);
+        gameWorldController.setCheat(playerId, cheat, enabled);
+        logger.log(Level.INFO, "{0} {1}", cheat, enabled ? "on" : "off");
+        return enabled;
+    }
+
     private void toggleGodMode(short playerId) {
-        boolean godMode = !gameWorldController.isGodMode(playerId);
-        gameWorldController.setGodMode(playerId, godMode);
-        logger.log(Level.INFO, "God mode {0}", godMode ? "on" : "off");
-        if (!godMode) {
+        if (!toggle(CheatState.CheatType.GOD_MODE, playerId)) {
             return;
         }
 
@@ -136,26 +154,61 @@ public final class CheatController implements ICheatController {
     }
 
     @Override
-    public boolean isGodMode(short playerId) {
-        return gameWorldController.isGodMode(playerId);
+    public boolean isCheat(CheatState.CheatType cheat, short playerId) {
+        return gameWorldController.isCheat(playerId, cheat);
     }
 
     @Override
     public void dig(Vector2f start, Vector2f end, short playerId) {
         for (Point p : getArea(start, end)) {
-            Terrain terrain = kwdFile.getTerrain(mapController.getMapData().getTile(p).getTerrainId());
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
-                mapController.alterTerrain(p, terrain.getDestroyedTypeTerrainId(), Player.NEUTRAL_PLAYER_ID);
+            IMapTileController tile = mapController.getMapData().getTile(p);
+            Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) || !terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                continue;
             }
+
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                // Gems never run out, they only give their yield, same as when mined
+                if (tile.getGold() > 0) {
+                    dropGold(p, (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS));
+                }
+                continue;
+            }
+
+            // The gold in the seam comes out as loose gold
+            int gold = tile.getGold();
+            mapController.alterTerrain(p, terrain.getDestroyedTypeTerrainId(), Player.NEUTRAL_PLAYER_ID);
+            dropGold(p, gold);
+        }
+    }
+
+    private void dropGold(Point tile, int amount) {
+        int maxPile = Math.max(1, (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY));
+        for (int left = amount; left > 0; left -= maxPile) {
+            gameWorldController.getObjectsController().addLooseGold(tile.x, tile.y, Math.min(left, maxPile), maxPile);
         }
     }
 
     @Override
     public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short playerId) {
+        if (!gameWorldController.isCheat(playerId, CheatState.CheatType.GOD_MODE)) {
+            return;
+        }
+        Set<EntityId> claimedRooms = new HashSet<>();
         for (Point p : getArea(start, end)) {
             Terrain current = kwdFile.getTerrain(mapController.getMapData().getTile(p).getTerrainId());
             if (current.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-                continue; // Rooms have their own bookkeeping, sell them first
+                // Rooms can be claimed, a terrain change would leave them with stale bookkeeping, sell them first
+                IRoomController room = mapController.getRoomControllerByCoordinates(p);
+                if (terrainId == CLAIM_TERRAIN && room != null && claimedRooms.add(room.getEntityId())
+                        && room.getRoomInstance().getOwnerId() != playerId) {
+                    for (Point roomPoint : List.copyOf(room.getRoomInstance().getCoordinates())) {
+                        mapController.alterTerrain(roomPoint, mapController.getMapData().getTile(roomPoint).getTerrainId(), playerId);
+                    }
+                    room.captured(playerId);
+                    room.setHealth(room.getMaxHealth());
+                }
+                continue;
             }
             if (terrainId == CLAIM_TERRAIN) {
                 // Claimable ground turns into its claimed form, owned ground changes hands
