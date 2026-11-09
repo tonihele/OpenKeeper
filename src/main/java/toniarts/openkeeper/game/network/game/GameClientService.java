@@ -189,6 +189,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void cancelCallToArms() {
+        getDelegate().cancelCallToArms();
+    }
+
+    @Override
     public void transitionEnd() {
         getDelegate().transitionEnd();
     }
