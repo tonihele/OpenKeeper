@@ -236,7 +236,7 @@ class GambleTest {
         });
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> {
             if ("addLooseGold".equals(method.getName())) {
-                goldPiles.add(new int[]{(int) args[1], (int) args[2], (int) args[3], (int) args[4]});
+                goldPiles.add(new int[]{(int) args[0], (int) args[1], (int) args[2], (int) args[3]});
                 return null;
             }
             throw new UnsupportedOperationException(method.getName());
