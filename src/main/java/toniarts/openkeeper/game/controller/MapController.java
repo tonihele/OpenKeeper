@@ -664,6 +664,10 @@ public final class MapController extends Container implements IMapController {
                 room.setHealth(room.getMaxHealth());
                 notifyOnCapturedByEnemy(owner, room);
                 notifyOnCaptured(playerId, room);
+                if (playerId != owner && playerId != 0 && playerId != Player.NEUTRAL_PLAYER_ID) {
+                    gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM,
+                            room.getRoom().getRoomId(), playerId);
+                }
                 return;
             }
             currentHealth += roomTile.getHealth();
