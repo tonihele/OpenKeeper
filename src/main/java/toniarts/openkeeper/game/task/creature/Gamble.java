@@ -177,7 +177,7 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
                 gameWorldController.substractGold(CASINO_SHARE_INTERVAL_SECONDS * smilesGoldPerSecond, playerId);
             } else {
                 Point centre = getRoom().getRoomInstance().getCenter();
-                objectsController.addLooseGold(playerId, centre.x, centre.y,
+                objectsController.addLooseGold(centre.x, centre.y,
                         CASINO_SHARE_INTERVAL_SECONDS * Math.abs(moneyGoldPerSecond), maxGoldPile);
             }
         }
