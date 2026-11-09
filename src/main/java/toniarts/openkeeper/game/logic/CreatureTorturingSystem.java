@@ -24,7 +24,8 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
-import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -37,10 +38,10 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
-    private final IMapInformation mapInformation;
+    private final IMapController mapInformation;
     private final EntitySet torturedEntities;
 
-    public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapInformation mapInformation) {
+    public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapInformation) {
         this.entityData = entityData;
         this.creaturesController = creaturesController;
         this.mapInformation = mapInformation;
@@ -57,6 +58,9 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
         // Process ticks
         for (Entity entity : torturedEntities) {
+            if (!RoomTortureeControl.validate(entityData, mapInformation, entity.getId(), timeElapsed)) {
+                continue;
+            }
             CreatureTortured creatureTortured = entity.get(CreatureTortured.class);
             if (creatureTortured.tortureCheckTime >= timeElapsed) {
                 continue;

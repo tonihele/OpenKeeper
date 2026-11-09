@@ -48,7 +48,7 @@ public final class TortureChamberController extends NormalRoomController {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getFurnitureCount();
+                return getCoordinates().size();
             }
         });
     }

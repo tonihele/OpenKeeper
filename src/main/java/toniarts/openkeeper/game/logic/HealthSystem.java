@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -232,7 +233,7 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         // Tortured entities just die outright
-        if (torturedEntities.containsId(entityId)) {
+        if (entityData.getComponent(entityId, CreatureTortured.class) != null) {
             processDeath(entityId);
             return;
         }
@@ -339,7 +340,7 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Torture
         entity = torturedEntities.getEntity(entityId);
-        if (entity != null) {
+        if (entity != null && RoomTortureeControl.validate(entityData, mapController, entityId, gameTime)) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (elapsedTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();

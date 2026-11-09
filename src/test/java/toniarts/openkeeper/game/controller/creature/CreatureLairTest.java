@@ -42,7 +42,7 @@ class CreatureLairTest {
 
         // A new Creature has lair object 0, as the princes do in the data
         CreatureController prince = new CreatureController(entityId, entityData, new Creature(), null, null, null, null,
-                null, null, null, null, null, null, null);
+                null, null, null, null, null, null, null, id -> { });
 
         assertFalse(prince.needsLair());
         assertFalse(prince.isNeedForSleep());

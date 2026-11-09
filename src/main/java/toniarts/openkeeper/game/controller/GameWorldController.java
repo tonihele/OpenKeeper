@@ -57,6 +57,7 @@ import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
@@ -97,6 +98,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Consumer;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -129,6 +131,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
     private final GameEventService gameEventService;
+    private final Consumer<EntityId> onCreatureSlapped;
+    private final Consumer<EntityId> onCreatureImprisoned;
+    private final Consumer<EntityId> onCreatureTortured;
 
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -146,6 +151,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.playerControllers = playerControllers;
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
+        this.onCreatureSlapped = gameController::onCreatureSlapped;
+        this.onCreatureImprisoned = gameController::onCreatureImprisoned;
+        this.onCreatureTortured = gameController::onCreatureTortured;
 
         this.createNewGame(gameController, levelInfo);
     }
@@ -1165,6 +1173,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
             if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
+                onCreatureSlapped.accept(entity);
                 notifySlap(entity, playerId);
             }
             return;
@@ -1233,6 +1242,18 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private void dropCreature(IRoomController roomController, EntityId entity, Point tile, Vector2f coordinates, short playerId) {
+        dropCreature(entityData, gameTimer, gameEventService, onCreatureImprisoned, onCreatureTortured,
+                roomController, entity, tile, coordinates, playerId,
+                captive -> getLairRestTarget(roomController, entity,
+                        entityData.getComponent(entity, Owner.class).ownerId, captive));
+    }
+
+    // Server drop transition isolated from world construction so admission and
+    // rejection can be exercised without a graphical world or client session.
+    static void dropCreature(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService,
+            Consumer<EntityId> onCreatureImprisoned, Consumer<EntityId> onCreatureTortured,
+            IRoomController roomController, EntityId entity, Point tile, Vector2f coordinates, short playerId,
+            java.util.function.Function<Boolean, CreatureState> restTarget) {
         boolean tortureOrImprisonment = false;
         boolean torture = false;
         boolean imprison = false;
@@ -1253,24 +1274,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                     CreatureImprisoned imprisoned = entityData.getComponent(entity, CreatureImprisoned.class);
                     entityData.setComponent(entity, new CreatureImprisoned(imprisoned != null ? imprisoned.startTime : gameTimer.getGameTime(), gameTimer.getGameTime()));
                 }
-                if (roomController.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
-
-                    // TODO: you need to exactly drop the creature to a torture device, otherwise you just set him free in your base
-                    roomController.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entity, tile);
+            }
+            if (roomController.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
+                RoomTortureeControl control = roomController.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
+                if (control.tryAdmit(entity, coordinates)) {
                     creatureState = CreatureState.TORTURED;
                     torture = true;
-
-                    // Set the component, continue the torturing time if such is possible
-                    CreatureTortured tortured = entityData.getComponent(entity, CreatureTortured.class);
-                    entityData.setComponent(entity, new CreatureTortured(tortured != null ? tortured.timeTortured : 0.0d, gameTimer.getGameTime(), gameTimer.getGameTime()));
                 }
             }
             tortureOrImprisonment = imprison || torture;
-            targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
+            targetState = restTarget.apply(tortureOrImprisonment);
         }
 
         // Show the fall animation right away, before the position brings the model back to the map
         if (!tortureOrImprisonment) {
+            // A rejected device drop is a release, including stale captive tags.
+            RoomTortureeControl.release(entityData, entity, gameTimer.getGameTime());
+            entityData.removeComponent(entity, CreatureImprisoned.class);
             CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
             entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
         }
@@ -1278,9 +1298,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Add position
         // Maybe in the future the physics deal with this and we just need to detect that we are airborne
         Vector3f pos = new Vector3f(coordinates.x, (tortureOrImprisonment ? WorldUtils.FLOOR_HEIGHT : WorldUtils.DROP_HEIGHT), coordinates.y);
-        entityData.setComponent(entity, new Position(0, pos));
+        if (torture) {
+            // Admission already placed and indexed the creature at its selected device.
+            pos = entityData.getComponent(entity, Position.class).position;
+        } else {
+            entityData.setComponent(entity, new Position(0, pos));
+        }
 
-        restoreDroppedCreatureAi(entity, creatureState, targetState);
+        restoreDroppedCreatureAi(entityData, gameTimer, entity, creatureState, targetState);
 
         // Add the dropping component to the creature
         if (!tortureOrImprisonment) {
@@ -1306,10 +1331,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         } else {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
+        if (imprison) {
+            onCreatureImprisoned.accept(entity);
+        }
+        if (torture) {
+            onCreatureTortured.accept(entity);
+        }
     }
 
     /** Restores captive AI or a pending rest target; falling creatures wait for landing. */
-    private void restoreDroppedCreatureAi(EntityId entity, CreatureState creatureState, CreatureState targetState) {
+    private static void restoreDroppedCreatureAi(EntityData entityData, IGameTimer gameTimer, EntityId entity, CreatureState creatureState, CreatureState targetState) {
         if (creatureState != null || targetState != null) {
             CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
             entityData.setComponent(entity, new CreatureAi(gameTimer.getGameTime(),
