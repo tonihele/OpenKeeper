@@ -42,6 +42,7 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
@@ -100,6 +101,11 @@ public class PlayerEntityViewState extends AbstractAppState {
      * "Level up Effect", the sparkles around a creature that gained a level
      */
     private static final int LEVEL_UP_EFFECT_ID = 339;
+
+    /**
+     * "Call to arms active effect", the banner gives it every third call
+     */
+    private static final int CALL_TO_ARMS_EFFECT_ID = 330;
 
     /**
      * Used where no fog of war applies: everything is simply always visible.
@@ -624,6 +630,23 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             // The events come from the game loop's thread
             stateManager.getApplication().enqueue(() -> showLevelUpEffect(event.entity));
+        } else if (event.type == GameEventType.CALL_TO_ARMS && event.entity != null) {
+            stateManager.getApplication().enqueue(() -> showCallToArmsEffect(event.entity));
+        }
+    }
+
+    /**
+     * The banner's effect, in its keeper's colour. Not shown in the fog of war.
+     */
+    private void showCallToArmsEffect(EntityId entityId) {
+        Spatial banner = isInitialized() ? getEntitySpatial(entityId) : null;
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (banner == null || owner == null) {
+            return;
+        }
+        Vector3f location = banner.getLocalTranslation();
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(location))) {
+            stateManager.getState(EffectManagerState.class).load(nodeObjects, location.clone(), CALL_TO_ARMS_EFFECT_ID, false, owner.ownerId);
         }
     }
 
