@@ -432,6 +432,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
         Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();
         Map<CeilingBatchKey, ArtResource> batchResource = new HashMap<>();
+        int ceilingTileCount = 0;
         for (IMapTileInformation tile : mapData) {
             Terrain terrain = getTerrain(tile);
             Point p = tile.getLocation();
@@ -444,6 +445,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             CeilingBatchKey key = new CeilingBatchKey(terrain.getTerrainId(),
                     ceilingResource != null ? ceilingResource.getName() : null);
             batchTiles.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+            ceilingTileCount++;
             batchTerrain.putIfAbsent(key, terrain);
             if (ceilingResource != null) {
                 batchResource.putIfAbsent(key, ceilingResource);
@@ -456,10 +458,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         Node surface = new Node("Ceiling");
         List<Material> ceilingMaterials = new ArrayList<>();
+        ClearanceFieldSamples clearanceSamples = new ClearanceFieldSamples(clearanceField,
+                ceilingTileCount >= ClearanceFieldSamples.MINIMUM_TILES_FOR_CACHE);
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
-            Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer, pillarTiles);
+            Geometry ceilingGeometry = Ceiling.construct(assetManager,
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer,
+                    pillarTiles, clearanceSamples);
             surface.attachChild(ceilingGeometry);
             ceilingMaterials.add(ceilingGeometry.getMaterial());
         }

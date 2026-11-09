@@ -92,7 +92,15 @@ public final class Ceiling {
     public static Geometry construct(AssetManager assetManager, ClearanceField clearanceField,
             Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
             Set<Point> straightTiles) {
-        Mesh mesh = createMesh(clearanceField, tiles, deformer, straightTiles);
+        return construct(assetManager, terrain, ceilingResource, tiles, deformer,
+                straightTiles, new ClearanceFieldSamples(clearanceField,
+                        tiles.size() >= ClearanceFieldSamples.MINIMUM_TILES_FOR_CACHE));
+    }
+
+    static Geometry construct(AssetManager assetManager,
+            Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
+            Set<Point> straightTiles, ClearanceFieldSamples clearanceSamples) {
+        Mesh mesh = createMesh(tiles, deformer, straightTiles, clearanceSamples);
 
         Geometry geo = new Geometry("Ceiling", mesh);
 
@@ -120,8 +128,8 @@ public final class Ceiling {
         return geo;
     }
 
-    private static Mesh createMesh(ClearanceField clearanceField, List<Point> tiles, TerrainDeformer deformer,
-            Set<Point> straightTiles) {
+    static Mesh createMesh(List<Point> tiles, TerrainDeformer deformer, Set<Point> straightTiles,
+            ClearanceFieldSamples clearanceSamples) {
         Mesh mesh = new Mesh();
 
         List<Vector3f> vertices = new ArrayList<>(tiles.size() * 9);
@@ -137,9 +145,10 @@ public final class Ceiling {
             // midpoints and the centre
             for (int j = 0; j < 3; j++) {
                 for (int i = 0; i < 3; i++) {
-                    float height = heightAt(clearanceField, tile.x - 0.5f + i * STEP, tile.y - 0.5f + j * STEP);
+                    float height = heightAt(clearanceSamples,
+                            tile.x - 0.5f + i * STEP, tile.y - 0.5f + j * STEP);
                     heights[patchVertexIndex(i, j)] = height;
-                    addVertex(vertices, textureCoordinates, normals, clearanceField, deformer, straightTiles, tile,
+                    addVertex(vertices, textureCoordinates, normals, clearanceSamples, deformer, straightTiles, tile,
                             i * STEP, j * STEP, height);
                 }
             }
@@ -156,13 +165,15 @@ public final class Ceiling {
 
                     float u = (ci + 0.5f) * STEP;
                     float v = (cj + 0.5f) * STEP;
-                    float centerHeight = heightAt(clearanceField, tile.x - 0.5f + u, tile.y - 0.5f + v);
+                    float centerHeight = heightAt(clearanceSamples,
+                            tile.x - 0.5f + u, tile.y - 0.5f + v);
                     float flatHeight = (heights[patchVertexIndex(ci, cj)] + heights[patchVertexIndex(ci + 1, cj)]
                             + heights[patchVertexIndex(ci, cj + 1)] + heights[patchVertexIndex(ci + 1, cj + 1)]) / 4f;
 
                     if (Math.abs(centerHeight - flatHeight) > SPLIT_THRESHOLD) {
                         int center = vertices.size();
-                        addVertex(vertices, textureCoordinates, normals, clearanceField, deformer, straightTiles, tile, u, v, centerHeight);
+                        addVertex(vertices, textureCoordinates, normals, clearanceSamples,
+                                deformer, straightTiles, tile, u, v, centerHeight);
 
                         indexes.add(topLeft);
                         indexes.add(topRight);
@@ -205,7 +216,7 @@ public final class Ceiling {
      * Adds one vertex at the tile-local offset (u, v), both 0..1 across the tile.
      */
     private static void addVertex(List<Vector3f> vertices, List<Vector2f> textureCoordinates,
-            List<Vector3f> normals, ClearanceField clearanceField, TerrainDeformer deformer,
+            List<Vector3f> normals, ClearanceFieldSamples clearanceSamples, TerrainDeformer deformer,
             Set<Point> straightTiles, Point tile,
             float u, float v, float height) {
 
@@ -220,7 +231,7 @@ public final class Ceiling {
         Vector3f vertex = new Vector3f(px * WorldUtils.TILE_WIDTH,
                 WorldUtils.UNDERFLOOR_HEIGHT + height,
                 py * WorldUtils.TILE_WIDTH);
-        Vector3f normal = normalAt(clearanceField, px, py);
+        Vector3f normal = normalAt(clearanceSamples, px, py);
 
         // At a wall face the ceiling is at the top of the wall, which is bent. Go through the same
         // field so they stay together, higher up the field fades out.
@@ -256,8 +267,8 @@ public final class Ceiling {
      * The ceiling height directly above a continuous tile-space point, from
      * {@link ClearanceField#clearanceAt} mapped through the height curve.
      */
-    private static float heightAt(ClearanceField clearanceField, float px, float py) {
-        float clearance = clearanceField.clearanceAt(px, py);
+    private static float heightAt(ClearanceFieldSamples clearanceSamples, float px, float py) {
+        float clearance = clearanceSamples.clearanceAt(px, py);
 
         // A parabola whose apex sits one step past MAX_CLEARANCE, so it is
         // monotonic and concave across the whole input range: the ceiling
@@ -273,11 +284,11 @@ public final class Ceiling {
      * surface, so the patch is lit rather than reading as flat-black under
      * the terrain lighting model every other surface uses.
      */
-    private static Vector3f normalAt(ClearanceField clearanceField, float px, float py) {
-        float hu0 = heightAt(clearanceField, px - STEP, py);
-        float hu1 = heightAt(clearanceField, px + STEP, py);
-        float hv0 = heightAt(clearanceField, px, py - STEP);
-        float hv1 = heightAt(clearanceField, px, py + STEP);
+    private static Vector3f normalAt(ClearanceFieldSamples clearanceSamples, float px, float py) {
+        float hu0 = heightAt(clearanceSamples, px - STEP, py);
+        float hu1 = heightAt(clearanceSamples, px + STEP, py);
+        float hv0 = heightAt(clearanceSamples, px, py - STEP);
+        float hv1 = heightAt(clearanceSamples, px, py + STEP);
 
         float slopeU = (hu1 - hu0) / (2 * STEP);
         float slopeV = (hv1 - hv0) / (2 * STEP);
