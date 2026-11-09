@@ -9,6 +9,13 @@ public final class SoundFixtures {
     private SoundFixtures() {
     }
 
+    public static Creature creature(short id, String soundCategory) {
+        Creature creature = new Creature();
+        creature.setCreatureId(id);
+        creature.setSoundCategory(soundCategory);
+        return creature;
+    }
+
     public static GameObject object(String soundCategory) {
         GameObject object = new GameObject();
         object.setSoundCategory(soundCategory);
