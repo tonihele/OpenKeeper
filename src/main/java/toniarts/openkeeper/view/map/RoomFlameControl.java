@@ -8,7 +8,6 @@ import com.jme3.scene.control.AbstractControl;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.effect.VisualEffect;
@@ -20,7 +19,7 @@ public final class RoomFlameControl extends AbstractControl {
     // Room traversal uses the 4 Hz game clock; particle lifetimes use a separate 20 Hz clock.
     private static final double TICK_SECONDS = 1.0 / 4;
     private static final double DISTANCE_PER_TICK = 25.0 / 128;
-    private final RoomInstance room;
+    private RoomInstance room;
     private final RoomPerimeter perimeter;
     private final EffectManagerState effects;
     private final IFogOfWarInformation fog;
@@ -35,8 +34,13 @@ public final class RoomFlameControl extends AbstractControl {
         perimeter = new RoomPerimeter(room.getCoordinates());
     }
 
+    /** Refresh ownership without restarting traversal or recolouring already emitted particles. */
+    public void updateRoom(RoomInstance room) {
+        this.room = room;
+    }
+
     public static boolean isEligible(RoomInstance room) {
-        return room.getOwnerId() != 0 && room.getOwnerId() != Player.NEUTRAL_PLAYER_ID && !room.isDestroyed()
+        return room.getOwnerId() != 0 && !room.isDestroyed()
                 && room.getRoom().getFlags().contains(Room.RoomFlag.HAS_FLAME);
     }
 

@@ -15,9 +15,9 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 /** Keeps a room's running trail separate from its disposable geometry. */
 public final class RoomFlameManager {
-    private record RoomKey(short type, short owner, List<Point> tiles) {
+    private record RoomKey(short type, List<Point> tiles) {
         RoomKey(RoomInstance room) {
-            this(room.getRoom().getRoomId(), room.getOwnerId(), List.copyOf(room.getCoordinates()));
+            this(room.getRoom().getRoomId(), List.copyOf(room.getCoordinates()));
         }
     }
 
@@ -36,12 +36,13 @@ public final class RoomFlameManager {
         if (!RoomFlameControl.isEligible(room)) {
             return;
         }
-        trails.computeIfAbsent(new RoomKey(room), key -> {
+        Node trailNode = trails.computeIfAbsent(new RoomKey(room), key -> {
             Node trail = new Node("Room perimeter flame");
             trail.addControl(new RoomFlameControl(room, effects, fog));
             parent.attachChild(trail);
             return trail;
         });
+        trailNode.getControl(RoomFlameControl.class).updateRoom(room);
     }
 
     /** Called after a complete geometry update, once replacement room instances are registered. */

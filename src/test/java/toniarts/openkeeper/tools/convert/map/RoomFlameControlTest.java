@@ -37,14 +37,39 @@ class RoomFlameControlTest {
     }
 
     @Test
-    void neutralAndUnflaggedRoomsDoNotEmit() {
+    void ownerlessAndUnflaggedRoomsDoNotEmit() {
         var f = new Fixture(IFogOfWarInformation.ALWAYS_VISIBLE);
-        f.room.setOwnerId(Player.NEUTRAL_PLAYER_ID);
+        f.room.setOwnerId((short) 0);
         f.node.updateLogicalState(0.2f);
         f.room.setOwnerId((short) 3);
         f.room.getRoom().setFlags(EnumSet.noneOf(Room.RoomFlag.class));
         f.node.updateLogicalState(0.2f);
         assertTrue(f.effects.positions.isEmpty());
+    }
+
+    @Test
+    void neutralRoomEmitsBeforeClaimAndKeepsItsPhaseWhenClaimed() {
+        var f = new Fixture(IFogOfWarInformation.ALWAYS_VISIBLE);
+        f.room.setOwnerId(Player.NEUTRAL_PLAYER_ID);
+        Node root = new Node();
+        var manager = new toniarts.openkeeper.view.map.RoomFlameManager(root, f.effects,
+                IFogOfWarInformation.ALWAYS_VISIBLE);
+        manager.add(f.room);
+        root.updateLogicalState(0.5f);
+        Node originalTrail = (Node) root.getChild(0);
+        assertEquals(List.of(Player.NEUTRAL_PLAYER_ID), f.effects.owners);
+        Vector3f firstPosition = f.effects.positions.getFirst();
+
+        var claimed = new RoomInstance(f.room.getRoom());
+        claimed.setOwnerId(Player.KEEPER1_ID);
+        claimed.addCoordinates(f.room.getCoordinates());
+        manager.add(claimed);
+        manager.retainRooms(List.of(claimed));
+        assertSame(originalTrail, root.getChild(0));
+        assertFalse(originalTrail.getChildren().isEmpty());
+        root.updateLogicalState(0.5f);
+        assertEquals(List.of(Player.NEUTRAL_PLAYER_ID, Player.KEEPER1_ID), f.effects.owners);
+        assertNotEquals(firstPosition, f.effects.positions.getLast());
     }
 
     @Test
