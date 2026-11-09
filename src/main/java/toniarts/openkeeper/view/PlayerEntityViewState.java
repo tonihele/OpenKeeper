@@ -169,7 +169,6 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
-    private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -306,7 +305,6 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
-        EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
@@ -572,14 +570,6 @@ public class PlayerEntityViewState extends AbstractAppState {
      * A temple's reward appears in the room's first effect. Not shown in the
      * fog of war.
      */
-    private void onGameEvent(EventType<GameEvent> type, GameEvent event) {
-        if (event.type == GameEventType.SACRIFICE_REWARD && event.position != null) {
-
-            // The events come from the game loop's thread
-            stateManager.getApplication().enqueue(() -> showSacrificeRewardEffect(event));
-        }
-    }
-
     private void showSacrificeRewardEffect(GameEvent event) {
         Room room = kwdFile.getRoomById(event.subjectId);
         if (room != null && !room.getEffects().isEmpty() && fogOfWarInformation.isVisible(event.position)) {
@@ -647,6 +637,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             // The events come from the game loop's thread
             stateManager.getApplication().enqueue(() -> showLevelUpEffect(event.entity));
+        } else if (event.type == GameEventType.SACRIFICE_REWARD && event.position != null) {
+            stateManager.getApplication().enqueue(() -> showSacrificeRewardEffect(event));
         }
     }
 
