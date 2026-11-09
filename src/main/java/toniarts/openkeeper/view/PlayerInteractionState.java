@@ -503,7 +503,17 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                  && isOnMap && gameClientState.getFogOfWarInformation().isHighlightable(p);
+                  && isOnMap && (gameClientState.getFogOfWarInformation().isHighlightable(p) || isGodSelectable(p));
+    }
+
+    /**
+     * A god can select any solid tile, also the impenetrable rock
+     */
+    private boolean isGodSelectable(Point p) {
+        IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
+        return gameClientState.isGodMode() && interactionState.getType() == Type.NONE && tile != null
+                && gameClientState.getFogOfWarInformation().isExplored(p)
+                && gameClientState.getMapClientService().getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
     /**

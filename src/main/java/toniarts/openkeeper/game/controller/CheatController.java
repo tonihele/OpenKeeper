@@ -163,15 +163,15 @@ public final class CheatController implements ICheatController {
         for (Point p : getArea(start, end)) {
             IMapTileController tile = mapController.getMapData().getTile(p);
             Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) || !terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+            boolean god = gameWorldController.isCheat(playerId, CheatState.CheatType.GOD_MODE);
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                    || !(god || terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE))) {
                 continue;
             }
 
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE) && tile.getGold() > 0) {
                 // Gems never run out, they only give their yield, same as when mined
-                if (tile.getGold() > 0) {
-                    dropGold(p, (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS));
-                }
+                dropGold(p, (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS));
                 continue;
             }
 

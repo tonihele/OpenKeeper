@@ -241,7 +241,9 @@ public final class GameServerState extends AbstractAppState {
                 cheatController.dig(start, end, playerId);
                 return;
             }
-            mapController.selectTiles(start, end, select, playerId);
+            // A god can select any solid tile
+            mapController.selectTiles(start, end, select, playerId,
+                    cheatController != null && cheatController.isCheat(CheatState.CheatType.GOD_MODE, playerId));
         }
 
         @Override
