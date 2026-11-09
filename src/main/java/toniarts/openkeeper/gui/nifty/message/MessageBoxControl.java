@@ -27,6 +27,7 @@ import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
+import toniarts.openkeeper.game.state.IPlayerScreenController;
 import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
 /**
@@ -64,8 +65,14 @@ public final class MessageBoxControl extends AbstractController {
         return false;
     }
 
+    /**
+     * Focus the view on the entity of the open message
+     */
     public void focusElement() {
-        // TODO
+        if (this.systemMessage != null && this.systemMessage.getFocusEntity() != null
+                && hud.getScreenController() instanceof IPlayerScreenController screenController) {
+            screenController.zoomToEntity(this.systemMessage.getFocusEntity());
+        }
     }
 
     public void dismissMessage() {
@@ -123,7 +130,8 @@ public final class MessageBoxControl extends AbstractController {
     }
 
     /**
-     * TODO
+     * Shows a removeable system message that can focus the view on its entity
+     *
      * @param systemMessage
      * @param text
      */

@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameResult;
+import toniarts.openkeeper.game.data.PlayerMessageType;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.Settings;
@@ -550,7 +551,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     public void showMessage(int textId) {
-        stateManager.getState(SystemMessageState.class).addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", textId));
+        stateManager.getState(SystemMessageState.class).addMessage(PlayerMessageType.LEVEL_SPEECH, String.format("${level.%d}", textId));
     }
 
     public void zoomToPoint(Vector3f point) {

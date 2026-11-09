@@ -27,6 +27,8 @@ import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerMessageType;
+import toniarts.openkeeper.game.listener.PlayerMessageListener;
 import toniarts.openkeeper.game.listener.PlayerListener;
 
 /**
@@ -61,5 +63,22 @@ public interface IPlayerController {
     PlayerResearchControl getResearchControl();
 
     void removeListener(PlayerListener listener);
+
+    /**
+     * Post a message (advisor notification) to this player
+     *
+     * @param type the message type
+     * @param key variant of the type, 0 if the type has none
+     * @param data1 type specific data
+     * @param data2 type specific data
+     */
+    void postMessage(PlayerMessageType type, int key, long data1, long data2);
+
+    /**
+     * Set the receiver of the messages posted to this player
+     *
+     * @param listener the receiver, may be {@code null}
+     */
+    void setMessageListener(PlayerMessageListener listener);
 
 }

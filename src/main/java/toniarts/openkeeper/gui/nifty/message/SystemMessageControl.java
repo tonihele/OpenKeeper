@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.gui.nifty.message;
 
+import com.simsilica.es.EntityId;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.AbstractController;
 import de.lessvoid.nifty.controls.Parameters;
@@ -40,6 +41,8 @@ public final class SystemMessageControl extends AbstractController {
     private String text = "";
     private final Long createdAt = System.currentTimeMillis();
     private Screen hud;
+    private long lifetime = 50000;
+    private EntityId focusEntity;
 
     @Override
     public void bind(Nifty nifty, Screen screen, Element element, Parameters parameter) {
@@ -79,7 +82,12 @@ public final class SystemMessageControl extends AbstractController {
     public void showMessage() {
         NiftyUtils.playSound(nifty, GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK.getId());
         this.setRead(true);
-        hud.findControl("messageBox", MessageBoxControl.class).showSystemMessage(this, text);
+        MessageBoxControl messageBox = hud.findControl("messageBox", MessageBoxControl.class);
+        if (focusEntity != null) {
+            messageBox.showFocusMessage(this, text);
+        } else {
+            messageBox.showSystemMessage(this, text);
+        }
     }
 
     /**
@@ -101,6 +109,28 @@ public final class SystemMessageControl extends AbstractController {
                 child.startEffect(EffectEventId.onActive);
             }
         }
+    }
+
+    /**
+     * @return how long the tab is shown, in milliseconds
+     */
+    public long getLifetime() {
+        return this.lifetime;
+    }
+
+    public void setLifetime(long lifetime) {
+        this.lifetime = lifetime;
+    }
+
+    /**
+     * @return the entity the message can focus the view on, may be {@code null}
+     */
+    public EntityId getFocusEntity() {
+        return this.focusEntity;
+    }
+
+    public void setFocusEntity(EntityId focusEntity) {
+        this.focusEntity = focusEntity;
     }
 
     /**
