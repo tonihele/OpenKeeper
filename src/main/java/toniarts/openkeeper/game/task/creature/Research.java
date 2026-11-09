@@ -30,7 +30,6 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Research researchable entities for the keeper
@@ -57,7 +56,21 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public Vector2f getTarget(ICreatureController creature) {
-        return WorldUtils.pointToVector2f(getTaskLocation()); // FIXME 0.5f not needed?
+
+        // Next to the bookcase, it takes up the middle of its tile
+        return getTargetNextToFurniture(creature);
+    }
+
+    @Override
+    public boolean isFaceTarget() {
+        return true;
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+
+        // DK II puts the researcher right in front of the bookcase
+        return getWorkPositionAtFurniture(creature);
     }
 
     @Override
