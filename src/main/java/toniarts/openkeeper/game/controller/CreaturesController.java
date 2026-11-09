@@ -131,7 +131,7 @@ public final class CreaturesController implements ICreaturesController {
     /**
      * The Hero Lair terrain, the Hero Toolbox creatures stand on it
      */
-    private final static short HERO_LAIR_TERRAIN_ID = 35;
+    final static short HERO_LAIR_TERRAIN_ID = 35;
 
     /**
      * Load creatures from a KWD file straight (new game)

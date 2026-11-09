@@ -1166,7 +1166,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
+        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId, isTool(entityId, entityData))) {
             return false;
         }
 
@@ -1437,7 +1437,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        return DropValidator.canDrop(interaction, tile, terrain, playerId);
+        return DropValidator.canDrop(interaction, isTool(entityId, entityData), tile, terrain, playerId);
+    }
+
+    /**
+     * A Hero Toolbox creature of My Pet Dungeon ("I am a tool") goes to the
+     * hand of any keeper, like DKII.EXE 0x48E6A0 lets anyone pick up a creature
+     * with the tool flag
+     *
+     * @param entityId the entity
+     * @param entityData the entity data
+     * @return {@code true} if the entity is a Hero Toolbox creature
+     */
+    private static boolean isTool(EntityId entityId, EntityData entityData) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null && creatureComponent.tool;
     }
 
     @Override
