@@ -34,6 +34,7 @@
     <!-- custom effects -->
     <registerEffect name="simpleHintEx" class="toniarts.openkeeper.gui.nifty.effect.SimpleHintEx" />
     <registerEffect name="horizontalAutoScroll" class="toniarts.openkeeper.gui.nifty.effect.HorizontalAutoScroll" />
+    <registerEffect name="engineSound" class="toniarts.openkeeper.gui.nifty.effect.EngineSoundEffect" />
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <!-- HUD -->
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
@@ -173,7 +174,7 @@
                             happiness="100"
                             mapPercent="0" />-->
                         </panel>
-                        <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="">
+                        <control name="iconText" icon="Textures/GUI/Options/i-accept.png" text="${menu.142}" click="" soundCategory="OPTIONS" soundEvent="781">
                             <effect>
                                 <onClick name="hide" targetElement="statistics" />
                             </effect>

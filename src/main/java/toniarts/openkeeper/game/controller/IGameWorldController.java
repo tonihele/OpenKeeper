@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -70,6 +71,20 @@ public interface IGameWorldController {
      * @param listener the listener
      */
     void removeListener(PlayerActionListener listener);
+
+    /**
+     * If you want to get notified when a player activates a special
+     *
+     * @param listener the listener
+     */
+    void addSpecialListener(SpecialListener listener);
+
+    /**
+     * Stop listening to special activations
+     *
+     * @param listener the listener
+     */
+    void removeSpecialListener(SpecialListener listener);
 
     /**
      * Substract gold from player
