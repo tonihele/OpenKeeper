@@ -337,7 +337,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         Point tile = WorldUtils.vectorToPoint(device.getLocalTranslation());
         for (Spatial creature : creatureModelContainer.getModels()) {
             CreatureViewControl control = creature.getControl(CreatureViewControl.class);
-            if (control != null && (control.getCurrentState() == Creature.AnimationType.TORTURED_WHEEL
+            // A victim on a wheel turns with it, whatever animation its kind plays there
+            if (control != null && (creature.getControl(TortureWheelSpinControl.class) != null
+                    || control.getCurrentState() == Creature.AnimationType.TORTURED_WHEEL
                     || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR
                     || control.getCurrentState() == Creature.AnimationType.TORTURED_CHAIR_SKELETON)
                     && WorldUtils.vectorToPoint(creature.getLocalTranslation()).equals(tile)) {
