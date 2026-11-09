@@ -625,9 +625,17 @@ public final class CreaturesController implements ICreaturesController {
         }
         partyController.setType(partyType);
         partyController.create();
+
+        // The whole party walks at the speed of its slowest member
+        float partySpeed = Float.MAX_VALUE;
+        for (Thing.GoodCreature creature : partyController.getMembers()) {
+            partySpeed = Math.min(partySpeed, kwdFile.getCreature(creature.getCreatureId()).getAttributes().getSpeed());
+        }
         for (Thing.GoodCreature creature : partyController.getMembers()) {
             EntityId entityId = spawnCreature(creature, position);
             entityData.setComponent(entityId, new Party(partyController.getId()));
+            Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+            entityData.setComponent(entityId, new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, partySpeed));
 
             partyController.addMemberInstance(creature, createController(entityId));
         }
@@ -710,6 +718,33 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
 
+    public int getAngryCreatureCount(short playerId, short creatureId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, CreatureComponent.class, Health.class, CreatureMood.class);
+        try {
+            int count = 0;
+            for (Entity entity : entities) {
+                short type = entity.get(CreatureComponent.class).creatureId;
+                if (creatureId != 0 && type != creatureId) {
+                    continue;
+                }
+                Creature creature = kwdFile.getCreature(type);
+                if (creature == null || creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
+                    continue;
+                }
+                int unhappyThreshold = CreatureMood.toRuntimeThreshold(
+                        creature.getAttributes().getUnhappyThreshold());
+                if (entity.get(CreatureMood.class).getState(unhappyThreshold) == 2) {
+                    count++;
+                }
+            }
+            return count;
+        } finally {
+            entities.release();
+        }
+    }
+
+    @Override
     public EntityId getPossessedCreature(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
         try {
