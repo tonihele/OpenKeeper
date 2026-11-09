@@ -192,7 +192,7 @@ public class VisualEffect {
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 g.setMaterial(material);
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.PLAYER_COLOURED)) {
-                    java.awt.Color color = MapThumbnailGenerator.getPlayerColor(ownerId);
+                    java.awt.Color color = getPlayerColor(ownerId, System.nanoTime() / 1_000_000);
                     ((EffectMesh) g.getMesh()).setColor(new ColorRGBA(color.getRed() / 255f,
                             color.getGreen() / 255f, color.getBlue() / 255f, 1f));
                 }
@@ -459,6 +459,27 @@ public class VisualEffect {
     }
 
     /**
+     * Neutral player-coloured sprites sample the shared seven-colour cycle at
+     * creation. Keep the resulting tint on that sprite for its whole lifetime.
+     * The colours themselves come from the converted game palette.
+     */
+    static java.awt.Color getPlayerColor(short ownerId, long milliseconds) {
+        short colour = colorOwnerId(ownerId, milliseconds);
+        // Neutral's cycle includes white, rather than its blue-grey map tint.
+        if (ownerId == Player.NEUTRAL_PLAYER_ID && colour == Player.NEUTRAL_PLAYER_ID) {
+            return java.awt.Color.WHITE;
+        }
+        return MapThumbnailGenerator.getPlayerColor(colour);
+    }
+
+    static short colorOwnerId(short ownerId, long milliseconds) {
+        if (ownerId != Player.NEUTRAL_PLAYER_ID) {
+            return ownerId;
+        }
+        return (short) (1 + Math.floorMod(Math.floorDiv(milliseconds, 100), 7));
+    }
+
+    /**
      * An element whose art resource is flagged PLAYER_COLOURED is authored
      * with its own color zeroed out (0,0,0) and takes its actual color from
      * the owning player instead - this is how e.g. the claim/tag burst ends
@@ -466,7 +487,7 @@ public class VisualEffect {
      */
     private ColorRGBA getElementColor(EffectElement element) {
         if (element.getArtResource().getFlags().contains(ArtResource.ArtResourceFlag.PLAYER_COLOURED)) {
-            java.awt.Color playerColor = MapThumbnailGenerator.getPlayerColor(ownerId);
+            java.awt.Color playerColor = getPlayerColor(ownerId, System.nanoTime() / 1_000_000);
             return new ColorRGBA(playerColor.getRed() / 255f, playerColor.getGreen() / 255f,
                     playerColor.getBlue() / 255f, playerColor.getAlpha() / 255f);
         }
