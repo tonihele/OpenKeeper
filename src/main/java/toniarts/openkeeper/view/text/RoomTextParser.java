@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.view.text;
 
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import java.util.Map;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.utils.TextParameter;
@@ -50,26 +53,19 @@ public class RoomTextParser {
             Map.entry(TextParameter.CASINO_COUNT, 15));
 
     private final IRoomsInformation roomsInformation;
-    private final EntityData entityData;
-    private final int creaturesSupportedByFirstPortal;
-    private final int creaturesSupportedPerAdditionalPortal;
+    private final EntitySet portalLimits;
 
     public RoomTextParser(IRoomsInformation roomsInformation) {
-        this(roomsInformation, null, 0, 0);
+        this(roomsInformation, null);
     }
 
     /**
      * @param roomsInformation the rooms
-     * @param entityData the entities, for the creatures the portals attracted
-     * @param creaturesSupportedByFirstPortal CREATURES_SUPPORTED_BY_FIRST_PORTAL
-     * @param creaturesSupportedPerAdditionalPortal CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL
+     * @param entityData the entities, for the portal numbers the server keeps for each keeper
      */
-    public RoomTextParser(IRoomsInformation roomsInformation, EntityData entityData, int creaturesSupportedByFirstPortal,
-            int creaturesSupportedPerAdditionalPortal) {
+    public RoomTextParser(IRoomsInformation roomsInformation, EntityData entityData) {
         this.roomsInformation = roomsInformation;
-        this.entityData = entityData;
-        this.creaturesSupportedByFirstPortal = creaturesSupportedByFirstPortal;
-        this.creaturesSupportedPerAdditionalPortal = creaturesSupportedPerAdditionalPortal;
+        this.portalLimits = entityData != null ? entityData.getEntities(Owner.class, PortalCreatureLimit.class) : null;
     }
 
     public String parseText(String text, EntityId room, Keeper roomOwner) {
@@ -96,24 +92,28 @@ public class RoomTextParser {
             case DUNGEON_HEART_MAX_MANA:
                 return Integer.toString(roomOwner.getMaxMana());
             case ATTRACTED_CREATURE_COUNT:
-                if (entityData == null) {
+                if (portalLimits == null) {
                     return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
                 }
-                return Integer.toString(CreatureSpawnSystem.getAttractedCreatureCount(entityData, room.getOwnerId()));
+                return Integer.toString(getPortalLimit(room.getOwnerId()).attracted);
             case PORTAL_CREATURE_CAPACITY:
-                if (entityData == null) {
+                if (portalLimits == null) {
                     return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
                 }
-                return Integer.toString(getPortalCapacity(room.getOwnerId()));
+                return Integer.toString(getPortalLimit(room.getOwnerId()).capacity);
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
     }
 
-    private int getPortalCapacity(short ownerId) {
-        int portals = roomsInformation.getRoomCount(ownerId, (short) (int) ROOM_IDS.get(TextParameter.PORTAL_COUNT))
-                + roomsInformation.getRoomCount(ownerId, CreatureSpawnSystem.HERO_PORTAL_ROOM_ID);
-        return CreatureSpawnSystem.getPortalCapacity(portals, creaturesSupportedByFirstPortal, creaturesSupportedPerAdditionalPortal);
+    private PortalCreatureLimit getPortalLimit(short ownerId) {
+        portalLimits.applyChanges();
+        for (Entity keeper : portalLimits) {
+            if (keeper.get(Owner.class).ownerId == ownerId) {
+                return keeper.get(PortalCreatureLimit.class);
+            }
+        }
+        return new PortalCreatureLimit();
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {

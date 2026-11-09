@@ -17,10 +17,8 @@
 package toniarts.openkeeper.view.text;
 
 import com.simsilica.es.EntityData;
-import java.util.Map;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
-import toniarts.openkeeper.tools.convert.map.Variable;
 
 /**
  * A kind of facade to the different kind of parsers. Many of them share the
@@ -52,18 +50,14 @@ public final class TextParserService implements TextParser {
      * @param mapInformation the map
      * @param roomsInformation the rooms
      * @param entityData the entities
-     * @param variables the level variables
      */
-    public TextParserService(IMapInformation mapInformation, IRoomsInformation roomsInformation, EntityData entityData,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> variables) {
+    public TextParserService(IMapInformation mapInformation, IRoomsInformation roomsInformation, EntityData entityData) {
         this.creatureTextParser = new CreatureTextParser(mapInformation);
         this.trapTextParser = new TrapTextParser();
         this.doorTextParser = new DoorTextParser();
         this.objectTextParser = new ObjectTextParser();
         this.mapTileTextParser = new MapTileTextParser();
-        this.roomTextParser = new RoomTextParser(roomsInformation, entityData,
-                (int) variables.get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL).getValue(),
-                (int) variables.get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL).getValue());
+        this.roomTextParser = new RoomTextParser(roomsInformation, entityData);
     }
 
     @Override

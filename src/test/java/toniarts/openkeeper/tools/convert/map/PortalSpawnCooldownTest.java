@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -24,6 +26,9 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.controller.GameTimeController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -96,7 +101,9 @@ class PortalSpawnCooldownTest {
                 throw new AssertionError(method);
             }
             spawned.add((Short) args[0]);
-            return entities.createEntity();
+            EntityId creature = entities.createEntity();
+            entities.setComponents(creature, new CreatureComponent(), new Owner((short) 3, (short) 3));
+            return creature;
         });
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
                 new EnumMap<>(Variable.MiscVariable.MiscType.class);
@@ -128,6 +135,14 @@ class PortalSpawnCooldownTest {
         timer.processTick(0.25f);
         system.processTick(0.25f);
         assertEquals(List.of((short) 7), spawned);
+
+        // The server keeps the portal numbers of the keeper for the tooltip: the stubbed level answers the hero portal lookup with the Lair, so the Lair counts as the second portal
+        EntitySet limits = entities.getEntities(Owner.class, PortalCreatureLimit.class);
+        limits.applyChanges();
+        assertEquals(1, limits.size());
+        PortalCreatureLimit limit = limits.iterator().next().get(PortalCreatureLimit.class);
+        assertEquals(15, limit.capacity);
+        assertEquals(1, limit.attracted);
     }
 
     private static void setting(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings,

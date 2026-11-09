@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.PortalAttracted;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -81,6 +82,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     private final Map<Short, IPlayerController> playerControllersById;
     private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final IKwdFile kwdFile;
+    private final Map<Short, EntityId> portalLimitEntities = new HashMap<>();
 
     public CreatureSpawnSystem(EntityData entityData, ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
@@ -101,6 +103,12 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController player : playerControllers) {
             playerControllersById.put(player.getKeeper().getId(), player);
+
+            // The keeper's own entity for the portal numbers the tooltip shows
+            short keeperId = player.getKeeper().getId();
+            EntityId limitEntity = entityData.createEntity();
+            entityData.setComponents(limitEntity, new Owner(keeperId, keeperId), new PortalCreatureLimit());
+            portalLimitEntities.put(keeperId, limitEntity);
 
             // Add initial rooms
             for (Entry<Room, Set<IRoomController>> keeperRooms : player.getRoomControl().getRoomControllers().entrySet()) {
@@ -128,6 +136,9 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
 
         for (ICreatureEntrance entrance : entrances.getArray()) {
             evaluateAndSpawnCreature(entrance);
+        }
+        for (IPlayerController player : playerControllersById.values()) {
+            updatePortalLimit(player);
         }
     }
 
@@ -194,13 +205,30 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     }
 
     private boolean isCreatureLimitReached(IPlayerController player) {
+        return getAttractedCreatureCount(entityData, player.getKeeper().getId()) >= getPortalCapacity(player);
+    }
+
+    private int getPortalCapacity(IPlayerController player) {
         int portals = player.getRoomControl().getTypeCount(kwdFile.getPortal());
         Room heroPortal = kwdFile.getRoomById(HERO_PORTAL_ROOM_ID);
         if (heroPortal != null) {
             portals += player.getRoomControl().getTypeCount(heroPortal);
         }
-        return getAttractedCreatureCount(entityData, player.getKeeper().getId())
-                >= getPortalCapacity(portals, initialPortalCapacity, additionalPortalCapacity);
+        return getPortalCapacity(portals, initialPortalCapacity, additionalPortalCapacity);
+    }
+
+    /**
+     * Keep the keeper's portal numbers up to date for the clients, only touching the entity when they change
+     */
+    private void updatePortalLimit(IPlayerController player) {
+        short keeperId = player.getKeeper().getId();
+        EntityId limitEntity = portalLimitEntities.get(keeperId);
+        PortalCreatureLimit current = entityData.getComponent(limitEntity, PortalCreatureLimit.class);
+        int attracted = getAttractedCreatureCount(entityData, keeperId);
+        int capacity = getPortalCapacity(player);
+        if (current == null || current.attracted != attracted || current.capacity != capacity) {
+            entityData.setComponent(limitEntity, new PortalCreatureLimit(attracted, capacity));
+        }
     }
 
     /**
