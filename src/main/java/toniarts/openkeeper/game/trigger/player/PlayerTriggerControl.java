@@ -115,7 +115,10 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_HAPPY_CREATURES:
                 return false;
             case PLAYER_ANGRY_CREATURES:
-                return false;
+                creatureId = trigger.getUserData("creatureId", short.class);
+                target = creaturesController.getAngryCreatureCount(playerId, creatureId);
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_CREATURES_KILLED:
                 return false;
             case PLAYER_KILLS_CREATURES:
@@ -335,11 +338,14 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
+        ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
 //        if (playerId == playerState.getPlayerId()) {
 //            // TODO disable control
 //            //GameState.setEnabled(false);
 //            PlayerCameraState pcs = stateManager.getState(PlayerCameraState.class);
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
 //            pcs.doTransition(trigger.getUserData("pathId", short.class), ap);
 //        }
         playerService.doTransition(trigger.getUserData("pathId", short.class), WorldUtils.ActionPointToVector3f(ap), playerId);
@@ -356,7 +362,10 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void flashActionPoint(TriggerActionData trigger) { // AP part
 //        if (playerId == playerState.getPlayerId()) {
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
         int time = trigger.getUserData("value", int.class);
         boolean available = trigger.getUserData("available", short.class) != 0;
         if (available) {
@@ -369,7 +378,10 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void revealActionPoint(TriggerActionData trigger) { // AP part
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
         boolean available = trigger.getUserData("available", short.class) != 0;
         if (!available) {
             mapController.revealTiles(ap.getPoints(), playerId);
@@ -387,7 +399,10 @@ public class PlayerTriggerControl extends TriggerControl {
 
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
 //        if (playerId == playerState.getPlayerId()) {
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
         int angle = trigger.getUserData("angle", int.class);
         int time = trigger.getUserData("time", int.class);
@@ -478,7 +493,10 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void zoomToAP(short actionPointId) {
-        ActionPoint ap = levelInfo.getActionPoint(actionPointId);
+        if (actionPointId == 0) { // No action point
+            return;
+        }
+        ActionPoint ap = getActionPoint(actionPointId);
         if (ap != null) {
             playerService.zoomViewToPoint(WorldUtils.ActionPointToVector3f(ap), playerId);
         }
