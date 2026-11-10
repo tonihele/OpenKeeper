@@ -16,12 +16,18 @@
  */
 package toniarts.openkeeper.view.lighting;
 
+import com.jme3.asset.DesktopAssetManager;
+import com.jme3.material.Material;
 import com.jme3.math.Vector3f;
+import com.jme3.scene.Geometry;
+import com.jme3.scene.shape.Quad;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -76,5 +82,23 @@ class LightRulesTest {
         rules.clearTileLights(tile);
         // A second clear must be a harmless no-op
         rules.clearTileLights(tile);
+    }
+
+    @Test
+    void ambientMapReadinessAllowsOneTimeMaterialSetup() {
+        var assetManager = new DesktopAssetManager(true);
+        var rules = new LightRules();
+        assertFalse(rules.isAmbientMapInitialized());
+
+        var geometry = new Geometry("lit model", new Quad(1, 1));
+        geometry.setMaterial(new Material(assetManager, "MatDefs/DkLighting/Flat.j3md"));
+
+        rules.initAmbientMap(2, 3);
+        assertTrue(rules.isAmbientMapInitialized());
+        AssetUtils.applyVertexLight(assetManager, geometry, rules, false);
+
+        assertTrue(AssetUtils.isVertexMaterial(geometry.getMaterial()));
+        assertNotNull(geometry.getMaterial().getTextureParam("LightData"));
+        assertNotNull(geometry.getMaterial().getTextureParam("AmbientMap"));
     }
 }

@@ -153,6 +153,13 @@ public final class LightRules {
     }
 
     /**
+     * @see SceneLights#isAmbientMapInitialized()
+     */
+    public boolean isAmbientMapInitialized() {
+        return sceneLights.isAmbientMapInitialized();
+    }
+
+    /**
      * @see SceneLights#setTileAmbient(int, int, ColorRGBA, boolean)
      */
     public void setTileAmbient(int x, int y, ColorRGBA ambient, boolean explored) {

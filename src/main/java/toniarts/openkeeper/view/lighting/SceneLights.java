@@ -285,9 +285,17 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         texture.setMagFilter(Texture.MagFilter.Bilinear);
         texture.setMinFilter(Texture.MinFilter.BilinearNoMipMaps);
         texture.setWrap(Texture.WrapMode.EdgeClamp);
-        ambientMap = texture;
         ambientMapWidth = width;
         ambientMapHeight = height;
+        ambientMap = texture;
+    }
+
+    /**
+     * Whether the map-sized ambient texture is available for material setup.
+     * The volatile texture write publishes its dimensions to other threads.
+     */
+    public boolean isAmbientMapInitialized() {
+        return ambientMap != null;
     }
 
     /**
