@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -134,7 +135,8 @@ class CreaturePicksUpGoldTest {
     }
 
     private static IMapController treasuryWithSpace() {
-        IRoomController treasury = stub(IRoomController.class, Map.of("isFullCapacity", false));
+        IRoomObjectControl gold = stub(IRoomObjectControl.class, Map.of("isFullCapacity", false));
+        IRoomController treasury = stub(IRoomController.class, Map.of("getObjectControl", gold));
         return stub(IMapController.class, Map.of("getRoomsByFunction", List.of(treasury)));
     }
 
