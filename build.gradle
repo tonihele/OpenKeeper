@@ -96,6 +96,13 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register("clearanceFieldDistanceBenchmark", JavaExec) {
+    group = "verification"
+    description = "Measures the ceiling clearance distance calculation against its previous implementation."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "toniarts.openkeeper.view.map.ClearanceFieldDistanceBenchmark"
+}
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
