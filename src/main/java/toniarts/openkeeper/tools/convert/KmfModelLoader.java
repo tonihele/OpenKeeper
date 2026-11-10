@@ -757,7 +757,7 @@ public final class KmfModelLoader implements AssetLoader {
         // Load the texture
         TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER.concat("/").concat(texture).concat(".png")), false);
         Texture tex = assetInfo.getManager().loadTexture(textureKey);
-        return tex;
+        return AssetUtils.enableWorldTextureMipmaps(tex);
     }
 
     private static final class TextureSorter implements Comparator<String> {

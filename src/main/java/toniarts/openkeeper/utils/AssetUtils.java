@@ -79,6 +79,7 @@ public final class AssetUtils {
     private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
     private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
+    private static final int WORLD_TEXTURE_MIPMAP_MIN_DIMENSION = 128;
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
@@ -423,10 +424,32 @@ public final class AssetUtils {
 
         // Set it
         if (found) {
-            material.setTexture(paramName, assetManager.loadTexture(new TextureKey(textureName, false)));
+            material.setTexture(paramName, enableWorldTextureMipmaps(
+                    assetManager.loadTexture(new TextureKey(textureName, false))));
         } else {
             material.clearParam(paramName);
         }
+    }
+
+    /**
+     * Enables trilinear minification for world textures large enough to benefit from mipmaps.
+     * jMonkeyEngine generates the missing mip levels on the GPU when the texture is uploaded.
+     * Small map textures keep the default filter to avoid unnecessary mip storage.
+     *
+     * @param texture a texture used by a world model or map surface
+     * @return the same texture, configured for mipmapped minification when its dimensions qualify
+     */
+    public static Texture enableWorldTextureMipmaps(Texture texture) {
+        if (texture == null || texture.getImage() == null) {
+            return texture;
+        }
+
+        if (texture.getImage().getWidth() >= WORLD_TEXTURE_MIPMAP_MIN_DIMENSION
+                && texture.getImage().getHeight() >= WORLD_TEXTURE_MIPMAP_MIN_DIMENSION) {
+            texture.setMinFilter(Texture.MinFilter.Trilinear);
+        }
+
+        return texture;
     }
 
     private static String getNormalMapName(String texture) {

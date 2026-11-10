@@ -714,7 +714,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             return;
         }
         try {
-            Texture texture = assetManager.loadTexture(new TextureKey(diffuseTextureKey, false));
+            Texture texture = AssetUtils.enableWorldTextureMipmaps(
+                    assetManager.loadTexture(new TextureKey(diffuseTextureKey, false)));
             material.setTexture("DiffuseMap", texture);
 
             AssetUtils.assignMapsToMaterial(assetManager, material);

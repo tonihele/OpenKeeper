@@ -40,6 +40,19 @@ tasks.register("modelViewer", JavaExec) {
     mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
+tasks.register("mipSamplingBenchmark", JavaExec) {
+    group = "verification"
+    description = "Measures synthetic GPU texture sampling with and without mipmaps."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    systemProperty "mipmap.mode", project.findProperty("mipmapMode") ?: "false"
+    systemProperty "mipmap.textureSize", project.findProperty("mipmapTextureSize") ?: "2048"
+    mainClass = 'toniarts.openkeeper.performance.MipSamplingBenchmark'
+}
+
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
