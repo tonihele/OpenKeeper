@@ -1354,9 +1354,22 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             Attraction[] attractions = new Attraction[2];
             for (int x = 0; x < attractions.length; x++) {
                 var attraction = new Attraction();
-                attraction.setPresent(reader.readUnsignedInteger());
-                attraction.setRoomId(reader.readUnsignedShort());
-                attraction.setRoomSize(reader.readUnsignedShort());
+                attraction.setType(reader.readIntegerAsEnum(Creature.AttractionType.class));
+
+                // The original uses only the low byte of each of the two values
+                int first = reader.readUnsignedShort() & 0xFF;
+                int second = reader.readUnsignedShort() & 0xFF;
+                switch (attraction.getType()) {
+                    case ROOM -> {
+                        attraction.setRoomId(first);
+                        attraction.setRoomSize(second);
+                    }
+                    case GOLD, MANA ->
+                        attraction.setAmount((second << 8) | first);
+                    default -> {
+                        // No values in use
+                    }
+                }
                 attractions[x] = attraction;
             }
             creature.setAttractions(attractions);
