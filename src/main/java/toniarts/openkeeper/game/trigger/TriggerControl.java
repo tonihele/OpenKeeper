@@ -321,10 +321,10 @@ public class TriggerControl extends Control {
                 break;
 
             case CHANGE_ROOM_OWNER:
-                // TODO this
                 playerId = trigger.getUserData("playerId", short.class);
                 p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
+                mapController.changeRoomOwner(p, playerId);
                 break;
 
             case SET_SLAPS_LIMIT:

@@ -653,31 +653,46 @@ public final class MapController extends Container implements IMapController {
             if (applyDamage(roomTile, damagePerTile)) {
 
                 // If one of the tiles runs out (everyone should run out of the same time, unless a new tile has recently being added..)
-                for (Point p2 : roomTiles) {
-                    roomTile = getMapData().getTile(p2);
-                    roomTile.setOwnerId(playerId); // Claimed!
-                    applyHealing(roomTile, tile.getMaxHealth());
-
-                    // The client plays claim effects from these ownership transitions.
-                    // TODO: Claimed room wall tiles lose the claiming I think?
-                }
-
-                // Notify
-                notifyTileChange(roomTiles);
-                room.captured(playerId);
-                room.setHealth(room.getMaxHealth());
-                notifyOnCapturedByEnemy(owner, room);
-                notifyOnCaptured(playerId, room);
-                if (playerId != owner && playerId != 0 && playerId != Player.NEUTRAL_PLAYER_ID) {
-                    gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM,
-                            room.getRoom().getRoomId(), playerId);
-                }
+                captureRoom(room, playerId);
                 return;
             }
             currentHealth += roomTile.getHealth();
         }
 
         room.setHealth(currentHealth);
+    }
+
+    @Override
+    public void changeRoomOwner(Point point, short playerId) {
+        IRoomController room = getRoomControllerByCoordinates(point);
+        if (room == null || getMapData().getTile(point).getOwnerId() == playerId) {
+            return;
+        }
+        captureRoom(room, playerId);
+    }
+
+    private void captureRoom(IRoomController room, short playerId) {
+        List<Point> roomTiles = room.getRoomInstance().getCoordinates();
+        short owner = getMapData().getTile(roomTiles.getFirst()).getOwnerId();
+        for (Point p2 : roomTiles) {
+            IMapTileController roomTile = getMapData().getTile(p2);
+            roomTile.setOwnerId(playerId); // Claimed!
+            applyHealing(roomTile, roomTile.getMaxHealth());
+
+            // The client plays claim effects from these ownership transitions.
+            // TODO: Claimed room wall tiles lose the claiming I think?
+        }
+
+        // Notify
+        notifyTileChange(roomTiles);
+        room.captured(playerId);
+        room.setHealth(room.getMaxHealth());
+        notifyOnCapturedByEnemy(owner, room);
+        notifyOnCaptured(playerId, room);
+        if (playerId != owner && playerId != 0 && playerId != Player.NEUTRAL_PLAYER_ID) {
+            gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM,
+                    room.getRoom().getRoomId(), playerId);
+        }
     }
 
     /**

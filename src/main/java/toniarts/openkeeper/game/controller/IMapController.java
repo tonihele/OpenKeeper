@@ -86,6 +86,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     public IRoomController getRoomControllerByCoordinates(Point p);
 
     /**
+     * Transfers the entire room at the given tile to another player. Missing
+     * rooms and rooms already owned by that player are left unchanged.
+     *
+     * @param point a tile in the room
+     * @param playerId the new owner
+     */
+    void changeRoomOwner(Point point, short playerId);
+
+    /**
      * Get room controller by entity ID
      *
      * @param entityId the room entity ID
