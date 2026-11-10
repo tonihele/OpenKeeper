@@ -66,6 +66,7 @@ import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -132,6 +133,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
+    private final SafeArrayList<SpecialListener> specialListeners = new SafeArrayList<>(SpecialListener.class);
 
     public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -862,6 +864,22 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         listeners.remove(listener);
     }
 
+    @Override
+    public void addSpecialListener(SpecialListener listener) {
+        specialListeners.add(listener);
+    }
+
+    @Override
+    public void removeSpecialListener(SpecialListener listener) {
+        specialListeners.remove(listener);
+    }
+
+    private void notifyOnSpecialActivated(short playerId, short objectId) {
+        for (SpecialListener listener : specialListeners.getArray()) {
+            listener.onSpecialActivated(playerId, objectId);
+        }
+    }
+
     private void notifyOnBuild(short playerId, List<Point> buildTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onBuild(playerId, buildTiles);
@@ -949,6 +967,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 creaturesController.angerEnemyCreatures(playerId);
             case ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID ->
                 creaturesController.healCreatures(playerId);
+            case ObjectsController.OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID ->
+                notifyOnSpecialActivated(playerId, objectId);
             default -> {
                 logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
                 return false;

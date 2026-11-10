@@ -20,7 +20,6 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.game.controller.ITrapsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -41,16 +40,14 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerManufactureControl manufactureControl;
-    private final ITrapsController trapsController;
     private final IObjectsController objectsController;
     private Vector2f workPlace;
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerManufactureControl manufactureControl, ITrapsController trapsController, IObjectsController objectsController) {
+            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.manufactureControl = manufactureControl;
-        this.trapsController = trapsController;
         this.objectsController = objectsController;
     }
 
@@ -60,7 +57,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         // The workshop is there and has room for another crate, without a creature only that is asked
         return super.isValid(creature)
                 && (creature == null || creature.getManufacturePerSecond() > 0)
-                && trapsController.getTrapToManufacture(playerId) != null;
+                && manufactureControl.getTrapToManufacture() != null;
     }
 
     @Override
@@ -106,7 +103,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         }
         setExecutionDuration(creature, getExecutionDuration(creature) + 1.0f);
 
-        Trap trap = trapsController.getTrapToManufacture(playerId);
+        Trap trap = manufactureControl.getTrapToManufacture();
         if (trap == null || !manufactureControl.manufacture(creature.getManufacturePerSecond(), trap.getManufToBuild())) {
             return;
         }

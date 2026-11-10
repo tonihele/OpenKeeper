@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
+import toniarts.openkeeper.tools.convert.map.Trap;
+
 /**
  * The keeper's manufacturing progress. All the creatures working in the
  * keeper's workshops add their manufacture points to the item currently in
@@ -24,6 +26,7 @@ package toniarts.openkeeper.game.controller.player;
 public final class PlayerManufactureControl {
 
     private int progress = 0;
+    private Trap trapToManufacture;
 
     /**
      * Adds manufacture points to the item in production
@@ -46,6 +49,27 @@ public final class PlayerManufactureControl {
      */
     public int getProgress() {
         return progress;
+    }
+
+    /**
+     * The trap to manufacture next: the oldest blueprint that doesn't have its
+     * crate yet
+     *
+     * @return the trap, {@code null} if every blueprint has its crate
+     */
+    public Trap getTrapToManufacture() {
+        return trapToManufacture;
+    }
+
+    /**
+     * Sets the trap to manufacture next, the {@code PlayerManufactureSystem}
+     * keeps it up to date
+     *
+     * @param trapToManufacture the trap, {@code null} if every blueprint has
+     * its crate
+     */
+    public void setTrapToManufacture(Trap trapToManufacture) {
+        this.trapToManufacture = trapToManufacture;
     }
 
 }
