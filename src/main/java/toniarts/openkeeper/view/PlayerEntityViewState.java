@@ -27,6 +27,9 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.event.EventBus;
+import com.simsilica.event.EventListener;
+import com.simsilica.event.EventType;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -40,10 +43,14 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -91,6 +98,16 @@ import toniarts.openkeeper.view.text.TextParser;
 public class PlayerEntityViewState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(PlayerEntityViewState.class.getName());
+
+    /**
+     * "Level up Effect", the sparkles around a creature that gained a level
+     */
+    private static final int LEVEL_UP_EFFECT_ID = 339;
+
+    /**
+     * "Call to arms active effect", the banner gives it every third call
+     */
+    private static final int CALL_TO_ARMS_EFFECT_ID = 330;
 
     /**
      * Used where no fog of war applies: everything is simply always visible.
@@ -145,6 +162,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
     private final EffectTriggerContainer effectTriggerContainer;
+    private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -239,6 +257,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.start();
         shotModelContainer.start();
         effectTriggerContainer.start();
+        EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
     }
 
     @Override
@@ -305,6 +324,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.stop();
         shotModelContainer.stop();
         effectTriggerContainer.stop();
+        EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
 
         // Detach entities
         rootNode.detachChild(root);
@@ -637,6 +657,46 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
     }
 
+    private void onGameEvent(EventType<GameEvent> type, GameEvent event) {
+        if (event.type == GameEventType.CREATURE_LEVEL_UP && event.entity != null) {
+
+            // The events come from the game loop's thread
+            stateManager.getApplication().enqueue(() -> showLevelUpEffect(event.entity));
+        } else if (event.type == GameEventType.CALL_TO_ARMS && event.entity != null) {
+            stateManager.getApplication().enqueue(() -> showCallToArmsEffect(event.entity));
+        }
+    }
+
+    /**
+     * The banner's effect, in its keeper's colour. Not shown in the fog of war.
+     */
+    private void showCallToArmsEffect(EntityId entityId) {
+        Spatial banner = isInitialized() ? getEntitySpatial(entityId) : null;
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (banner == null || owner == null) {
+            return;
+        }
+        Vector3f location = banner.getLocalTranslation();
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(location))) {
+            stateManager.getState(EffectManagerState.class).load(nodeObjects, location.clone(), CALL_TO_ARMS_EFFECT_ID, false, owner.ownerId);
+        }
+    }
+
+    /**
+     * Like the original, the level up effect starts once at the creature's position and doesn't follow it. Not
+     * shown for creatures in the fog of war or without a model (e.g. in the hand).
+     */
+    private void showLevelUpEffect(EntityId entityId) {
+        Spatial creature = isInitialized() ? getEntitySpatial(entityId) : null;
+        if (creature == null) {
+            return;
+        }
+        Vector3f location = creature.getLocalTranslation();
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(location))) {
+            stateManager.getState(EffectManagerState.class).load(nodeCreatures, location.clone(), LEVEL_UP_EFFECT_ID, false);
+        }
+    }
+
     /**
      * The thing-light formula, for objects/creatures. Shots
      * and slab lights aren't wired here: there is no shot rendering and no slab-light data in this
@@ -867,6 +927,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             logger.log(Level.TRACE, "DoorModelContainer.addObject({0})", e);
             Spatial result = createDoorModel(e);
             updateObject(result, e);
+            notifyTerrainOfDoor(e, true);
             return result;
         }
 
@@ -880,10 +941,24 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
+            notifyTerrainOfDoor(e, false);
         }
 
         Spatial[] getModels() {
             return getArray();
+        }
+
+        /**
+         * The terrain next to a door is not bent, tell it about the door
+         */
+        private void notifyTerrainOfDoor(Entity e, boolean present) {
+            PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+            Position position = e.get(Position.class);
+            if (mapViewState == null || !mapViewState.isMapLoaded() || position == null) {
+                return; // The doors of the map file are known by the map loader itself
+            }
+            toniarts.openkeeper.utils.Point p = WorldUtils.vectorToPoint(position.position);
+            mapViewState.getMapLoader().setDoor(p.x, p.y, present);
         }
     }
 
