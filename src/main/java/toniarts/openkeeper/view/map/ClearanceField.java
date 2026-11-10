@@ -93,6 +93,9 @@ public final class ClearanceField {
                 float dx = Math.max(0f, Math.abs(worldX - tx) - 0.5f);
                 float dy = Math.max(0f, Math.abs(worldY - ty) - 0.5f);
                 float distance = FastMath.sqrt(dx * dx + dy * dy);
+                if (distance == 0f) {
+                    return 0f;
+                }
                 if (distance < bestDistance) {
                     bestDistance = distance;
                 }
