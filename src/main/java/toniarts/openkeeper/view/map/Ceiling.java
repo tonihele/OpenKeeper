@@ -77,7 +77,7 @@ public final class Ceiling {
      * resolve to the same material.
      *
      * @param assetManager asset manager instance
-     * @param clearanceField the clearance field for the whole map
+     * @param clearanceSamples cached clearance samples for the whole map
      * @param terrain the terrain to draw the material's static lighting tint
      * from - see {@link MapViewController#setTerrainMaterialLighting}
      * @param ceilingResource the room's ceiling texture override, or
@@ -89,14 +89,6 @@ public final class Ceiling {
      * these tiles, the pillars, as the pillar models themselves are straight
      * @return the visual representation of this batch
      */
-    public static Geometry construct(AssetManager assetManager, ClearanceField clearanceField,
-            Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
-            Set<Point> straightTiles) {
-        return construct(assetManager, terrain, ceilingResource, tiles, deformer,
-                straightTiles, new ClearanceFieldSamples(clearanceField,
-                        tiles.size() >= ClearanceFieldSamples.MINIMUM_TILES_FOR_CACHE));
-    }
-
     static Geometry construct(AssetManager assetManager,
             Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
             Set<Point> straightTiles, ClearanceFieldSamples clearanceSamples) {
