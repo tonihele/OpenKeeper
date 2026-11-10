@@ -260,7 +260,10 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_ROOM_FURNITURE:
                 return false;
             case PLAYER_SLAPS:
-                return false;
+                target = getPlayerController(playerId).getStatsControl().getSlapCount();
+                // DKII uses the numeric operand even when the editor selects another player.
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_CREATURES_GROUPED:
                 return false;
             case PLAYER_CREATURES_DYING:
