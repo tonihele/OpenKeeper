@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -25,10 +26,13 @@ import java.util.Collections;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -83,6 +87,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
                 targetState = Creature.AnimationType.DIE;
+            } else if (entityData.getComponent(entityId, Possessed.class) != null) {
+                targetState = getPossessedAnimation(entityId, state);
             } else {
                 TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
                 if (taskComponent != null) {
@@ -100,6 +106,25 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetState));
             }
         }
+    }
+
+    /**
+     * A possessed creature has no AI to tell its animation. It walks or stands
+     * as its keeper steers it. A melee swing shows for half of the attack's
+     * recharge time, so that the next swing starts the animation again.
+     */
+    private Creature.AnimationType getPossessedAnimation(EntityId entityId, CreatureViewState state) {
+        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        if (state.state == Creature.AnimationType.MELEE_ATTACK && meleeAttack != null
+                && timeElapsed < state.stateStartTime + meleeAttack.rechargeTime / 2) {
+            return Creature.AnimationType.MELEE_ATTACK;
+        }
+
+        PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);
+        if (movement != null && !Vector2f.ZERO.equals(movement.direction)) {
+            return Creature.AnimationType.WALK;
+        }
+        return Creature.AnimationType.STAND_STILL;
     }
 
     private void processAddedEntities(Set<Entity> entities) {
