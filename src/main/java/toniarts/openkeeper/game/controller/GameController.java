@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.actionpoint.ActionPointTriggerLogicController;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerEventQueue;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
 import toniarts.openkeeper.game.trigger.door.DoorTriggerLogicController;
 import toniarts.openkeeper.game.trigger.object.ObjectTriggerLogicController;
@@ -75,6 +76,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private CreatureTriggerLogicController creatureTriggers;
+    // World loading can admit prisoners before the script controls exist.
+    private final CreatureTriggerEventQueue creatureTriggerEvents = new CreatureTriggerEventQueue();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -111,6 +115,31 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         createNewGame();
     }
 
+    @Override
+    public void onCreatureAngry(EntityId entityId) {
+        creatureTriggers.onAngry(entityId);
+    }
+
+    @Override
+    public void onCreatureStunned(EntityId entityId) {
+        creatureTriggerEvents.enqueueStunned(entityId);
+    }
+
+    @Override
+    public void onCreatureImprisoned(EntityId entityId) {
+        creatureTriggerEvents.enqueueImprisoned(entityId);
+    }
+
+    @Override
+    public void onCreatureSlapped(EntityId entityId) {
+        creatureTriggerEvents.enqueueSlapped(entityId);
+    }
+
+    @Override
+    public void onCreatureAfraid(EntityId entityId) {
+        creatureTriggers.onAfraid(entityId);
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
@@ -137,9 +166,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData));
+                playerService, entityData, creatureTriggerEvents);
+        controllers.add(creatureTriggers);
         controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData, gameWorldController.getObjectsController()));
