@@ -167,6 +167,19 @@ public interface GameSessionServiceListener {
     public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId);
 
     /**
+     * Player has triggered a creature spawning cheat on a tile
+     *
+     * @param creatureId the creature to spawn
+     * @param level the level of the creatures
+     * @param amount how many creatures to spawn
+     * @param ownerId the owner of the creatures
+     * @param position the tile to spawn on
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId);
+
+    /**
      * Player has triggered a cheat that adds gold
      *
      * @param amount how much gold to add
@@ -183,6 +196,18 @@ public interface GameSessionServiceListener {
      */
     @Asynchronous
     public void onAddManaCheatTriggered(int amount, short playerId);
+
+    /**
+     * Player has triggered a god mode cheat that changes the terrain
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param terrainId the new terrain, or {@code -1} to claim the area instead
+     * @param ownerId the new owner of the terrain, if it can be owned
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onTerrainCheatTriggered(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId);
 
     /**
      * Player wants to steer the possessed creature

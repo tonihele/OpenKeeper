@@ -65,8 +65,11 @@ import java.lang.System.Logger.Level;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.TreeMap;
 
 /**
@@ -90,6 +93,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     private volatile boolean gameStarted = false;
 
     private final Short playerId;
+    private final Set<CheatState.CheatType> cheats = ConcurrentHashMap.newKeySet();
+    private final Set<CheatState.CheatType> suspendedCheats = new HashSet<>();
     private final boolean multiplayer;
     private final List<ClientInfo> clientInfos;
     private final Map<Short, String> networkPlayerNames;
@@ -364,6 +369,64 @@ public final class GameClientState extends AbstractPauseAwareState {
      */
     public TextParser getTextParser() {
         return textParser;
+    }
+
+    /**
+     * Is the player in god mode, see {@link CheatState.CheatType#GOD_MODE}. The server decides what
+     * is actually allowed, this just lets the UI skip the rules it would otherwise enforce.
+     *
+     * @return {@code true} if in god mode
+     */
+    public boolean isGodMode() {
+        return isCheat(CheatState.CheatType.GOD_MODE);
+    }
+
+    public boolean isCheat(CheatState.CheatType cheat) {
+        return cheats.contains(cheat);
+    }
+
+    /**
+     * Switches a cheat mode on or off. The server does the real toggling, this keeps track of it so that
+     * the UI knows which rules it can skip.
+     *
+     * @param cheat the cheat mode
+     * @return {@code true} if it is on now
+     */
+    public boolean toggleCheatMode(CheatState.CheatType cheat) {
+        boolean enabled = !cheats.remove(cheat);
+        if (enabled) {
+            cheats.add(cheat);
+        }
+        getGameClientService().triggerCheat(cheat);
+
+        // The overlay modes (terrain change, creature spawning) stand alone, the other modes wait until it is over
+        if (cheat.isOverlayMode()) {
+            if (enabled) {
+                for (CheatState.CheatType other : List.copyOf(cheats)) {
+                    if (other != CheatState.CheatType.GOD_MODE && other != cheat) {
+                        suspendedCheats.add(other);
+                        toggleCheatMode(other);
+                    }
+                }
+            } else {
+                Set<CheatState.CheatType> resumed = Set.copyOf(suspendedCheats);
+                suspendedCheats.clear();
+                resumed.forEach(this::toggleCheatMode);
+            }
+        }
+
+        // The cheat tab is for gods only, no god, no leftover cheats
+        if (cheat == CheatState.CheatType.GOD_MODE && !enabled) {
+            suspendedCheats.clear();
+            for (CheatState.CheatType other : List.copyOf(cheats)) {
+                toggleCheatMode(other);
+            }
+        }
+        PlayerState playerState = stateManager.getState(PlayerState.class);
+        if (playerState != null && playerState.getScreen() != null) {
+            playerState.getScreen().refreshCheatTab();
+        }
+        return enabled;
     }
 
     private final class GameSessionListenerImpl implements GameSessionListener {

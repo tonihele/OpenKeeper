@@ -657,9 +657,23 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void triggerSpawnCreatureCheat(short creatureId, int level, int amount, short ownerId, Vector2f position) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSpawnCreatureCheatTriggered(creatureId, level, amount, ownerId, position, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void triggerAddGoldCheat(int amount) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onAddGoldCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId, short ownerId) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onTerrainCheatTriggered(start, end, terrainId, ownerId, clientInfo.getKeeper().getId());
             }
         }
 

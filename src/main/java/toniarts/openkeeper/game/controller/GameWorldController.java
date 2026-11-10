@@ -27,6 +27,7 @@ import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
@@ -52,6 +53,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -97,6 +99,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
@@ -128,6 +131,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
     private final IGameTimer gameTimer;
+    private final Map<Short, Set<CheatState.CheatType>> cheats = new ConcurrentHashMap<>();
     private final GameEventService gameEventService;
 
     private IMapController mapController;
@@ -346,13 +350,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
                 kwdFile, mapController, getConstructionBlockingTiles(), start, end,
-                playerId, roomId, player.getGold());
+                playerId, roomId, isGodMode(playerId) ? Integer.MAX_VALUE : player.getGold());
         if (!placement.isValid()) {
             return;
         }
 
         Room room = kwdFile.getRoomById(roomId);
-        if (!payForRoom(placement.plots().size(), room, playerId)) {
+        if (!isGodMode(playerId) && !payForRoom(placement.plots().size(), room, playerId)) {
             return;
         }
 
@@ -586,7 +590,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             Entity entity = entityData.getEntity(entityId, TrapComponent.class, Owner.class);
             TrapComponent trapComponent = entity.get(TrapComponent.class);
             Owner owner = entity.get(Owner.class);
-            if (trapComponent == null || owner == null || !TrapSellRules.isSellable(owner.ownerId, playerId)) {
+            if (trapComponent == null || owner == null
+                    || !TrapSellRules.isSellable(owner.ownerId, isGodMode(playerId) ? owner.ownerId : playerId)) {
                 continue;
             }
 
@@ -605,7 +610,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
             for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
                 Point p = new Point(x, y);
-                if (!mapController.isSellable(p, playerId)) {
+                IMapTileController owned = mapController.getMapData().getTile(p);
+                if (owned == null || !mapController.isSellable(p, isGodMode(playerId) ? owned.getOwnerId() : playerId)) {
                     continue;
                 }
                 sellTile(p, sale);
@@ -1135,7 +1141,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
+        if (!isGodMode(playerId) && !EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
             return false;
         }
 
@@ -1163,10 +1169,20 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Creatures can only be slapped, also enemies held in our prison
         // TODO: Slap limit
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-            if (canSlapCreature(entity, playerId)) {
+            if (entityData.getComponent(entity, Unconscious.class) != null && isCheat(playerId, CheatState.CheatType.RESURRECT_CREATURES)) {
+                resurrect(entity);
+            } else if (isCheat(playerId, CheatState.CheatType.KILL_CREATURES)) {
+                // Normal damage, so the usual dying rules apply, i.e. it falls unconscious first, and can still be resurrected
+                entityData.setComponent(entity, new Damage(Integer.MAX_VALUE / 2));
+            } else if (canSlapCreature(entity, playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 notifySlap(entity, playerId);
             }
+            return;
+        }
+
+        if (entityData.getComponent(entity, DoorComponent.class) != null && isCheat(playerId, CheatState.CheatType.DESTROY_DOORS)) {
+            doorsController.createController(entity).remove();
             return;
         }
 
@@ -1197,6 +1213,18 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
+    /**
+     * Wakes up a creature that is unconscious, healed to full, like the Heal All special does
+     */
+    private void resurrect(EntityId entity) {
+        Health health = entityData.getComponent(entity, Health.class);
+        if (health != null) {
+            entityData.setComponent(entity, new Health(health.maxHealth, health.maxHealth));
+        }
+        entityData.removeComponent(entity, Unconscious.class);
+        creaturesController.createController(entity).getStateMachine().changeState(CreatureState.IDLE);
+    }
+
     private void notifySlap(EntityId entity, short playerId) {
         // The slap comes from the player's hand, so it has no place and only the player gets it
         gameEventService.emitToPlayer(GameEventType.HAND_SLAP, playerId);
@@ -1208,7 +1236,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
         Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain, isGodMode(playerId))) {
             playerHandControl.pop();
             Vector3f dropPosition = new Vector3f(coordinates.x, 0, coordinates.y);
             gameEventService.emit(GameEventType.DROPPED, entity, dropPosition);
@@ -1395,7 +1423,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return null;
     }
 
-    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
+    private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain, boolean godMode) {
 
         // Check if picked up in the first place
         InHand inHand = entityData.getComponent(entityId, InHand.class);
@@ -1405,7 +1433,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        return DropValidator.canDrop(interaction, tile, terrain, playerId);
+        return DropValidator.canDrop(interaction, tile, terrain, playerId, godMode);
     }
 
     @Override
@@ -1532,6 +1560,30 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
+        if (isGodMode(playerId) && !getConstructionBlockingTiles().contains(tile)
+                && mapTile.getOwnerId() == playerId
+                && !mapController.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            doorsController.addDoor(doorId, tile, playerId);
+        }
+    }
+
+    @Override
+    public void setCheat(short playerId, CheatState.CheatType cheat, boolean enabled) {
+        Set<CheatState.CheatType> playerCheats = cheats.computeIfAbsent(playerId, id -> ConcurrentHashMap.newKeySet());
+        if (enabled) {
+            playerCheats.add(cheat);
+        } else {
+            playerCheats.remove(cheat);
+        }
+    }
+
+    @Override
+    public boolean isCheat(short playerId, CheatState.CheatType cheat) {
+        return cheats.getOrDefault(playerId, Set.of()).contains(cheat);
+    }
+
+    private boolean isGodMode(short playerId) {
+        return isCheat(playerId, CheatState.CheatType.GOD_MODE);
     }
 
     @Override
@@ -1555,17 +1607,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         ResearchableEntity researchableEntity = playerControllers.get(playerId).getTrapControl().getTypes().get(trap);
-        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+        if (!isGodMode(playerId) && (researchableEntity == null || !researchableEntity.isDiscovered())) {
             logger.log(Level.WARNING, "Player trap is not available", playerId);
             return;
         }
 
         // Validate
-        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, isGodMode(playerId) ? Integer.MAX_VALUE : player.getGold())
                 != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 
+        if (isGodMode(playerId)) {
+            trapsController.addTrap(trapId, tile, playerId);
+            return;
+        }
         if (!payForTrap(trap, playerId)) {
             return;
         }

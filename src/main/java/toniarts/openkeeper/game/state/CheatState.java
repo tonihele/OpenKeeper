@@ -55,11 +55,33 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         REMOVE_FOW("now the rain has gone"),
         RESET_FOW("now the rain has come back"),
         LOOSE_LEVEL("fear the reaper"),
-        WIN_LEVEL("do not fear the reaper");
+        WIN_LEVEL("do not fear the reaper"),
+        GOD_MODE("call me molyneux"),
+        // Toggled from the cheat tab of the HUD, no code to type
+        KILL_CREATURES(null),
+        RESURRECT_CREATURES(null),
+        DESTROY_DOORS(null),
+        INSTANT_DIG(null),
+        CLAIM_LAND(null),
+        TERRAIN_CHANGE(null),
+        SPAWN_CREATURES(null);
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {
             this.cheatMessage = cheatMessage;
+        }
+
+        /**
+         * Modes are switched on and off, the other cheats are executed once
+         *
+         * @return {@code true} if this cheat is a mode
+         */
+        public boolean isOverlayMode() {
+            return this == TERRAIN_CHANGE || this == SPAWN_CREATURES;
+        }
+
+        public boolean isMode() {
+            return this == GOD_MODE || cheatMessage == null;
         }
 
         public String getMessage() {
@@ -68,7 +90,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
         public static CheatType getCheatType(final String cheatMessage) {
             for (CheatType type : CheatType.values()) {
-                if (type.getMessage().equals(cheatMessage)) {
+                if (cheatMessage.equals(type.getMessage())) {
                     return type;
                 }
             }
@@ -77,7 +99,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
         public static boolean hasCheat(final String cheatMessage) {
             for (CheatType type : CheatType.values()) {
-                if (type.getMessage().startsWith(cheatMessage)) {
+                if (type.getMessage() != null && type.getMessage().startsWith(cheatMessage)) {
                     return true;
                 }
             }

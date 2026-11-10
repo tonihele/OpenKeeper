@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import toniarts.openkeeper.game.state.CheatState;
 
 /**
@@ -34,12 +35,32 @@ public final class NoopCheatController implements ICheatController {
     }
 
     @Override
+    public void spawnCreature(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId) {
+        // No cheating in multiplayer
+    }
+
+    @Override
     public void addGold(int amount, short playerId) {
         // No cheating in multiplayer
     }
 
     @Override
     public void addMana(int amount, short playerId) {
+        // No cheating in multiplayer
+    }
+
+    @Override
+    public boolean isCheat(CheatState.CheatType cheat, short playerId) {
+        return false;
+    }
+
+    @Override
+    public void dig(Vector2f start, Vector2f end, short playerId) {
+        // No cheating in multiplayer
+    }
+
+    @Override
+    public void changeTerrain(Vector2f start, Vector2f end, short terrainId, short ownerId, short playerId) {
         // No cheating in multiplayer
     }
 

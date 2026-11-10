@@ -170,6 +170,18 @@ public interface GameSession {
     public void triggerSpawnCreatureCheat(short creatureId, int level, int amount);
 
     /**
+     * Trigger a cheat that spawns creatures of a keeper on a tile
+     *
+     * @param creatureId the creature to spawn
+     * @param level the level of the creatures
+     * @param amount how many creatures to spawn
+     * @param ownerId the owner of the creatures
+     * @param position the tile to spawn on
+     */
+    @Asynchronous
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount, short ownerId, Vector2f position);
+
+    /**
      * Trigger a cheat that adds gold to the player
      *
      * @param amount how much gold to add
@@ -184,6 +196,17 @@ public interface GameSession {
      */
     @Asynchronous
     public void triggerAddManaCheat(int amount);
+
+    /**
+     * Trigger a god mode cheat that changes the terrain
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param terrainId the new terrain, or {@code -1} to claim the area instead
+     * @param ownerId the new owner of the terrain, if it can be owned
+     */
+    @Asynchronous
+    public void triggerTerrainCheat(Vector2f start, Vector2f end, short terrainId, short ownerId);
 
     /**
      * Steer the currently possessed creature

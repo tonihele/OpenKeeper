@@ -33,10 +33,8 @@ import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.builder.ControlDefinitionBuilder;
 import de.lessvoid.nifty.builder.EffectBuilder;
 import de.lessvoid.nifty.builder.ImageBuilder;
-import de.lessvoid.nifty.controls.Console;
+import de.lessvoid.nifty.controls.*;
 import de.lessvoid.nifty.controls.Label;
-import de.lessvoid.nifty.controls.Tab;
-import de.lessvoid.nifty.controls.TabSelectedEvent;
 import de.lessvoid.nifty.controls.label.builder.LabelBuilder;
 import de.lessvoid.nifty.controls.listbox.builder.ListBoxBuilder;
 import de.lessvoid.nifty.controls.textfield.builder.TextFieldBuilder;
@@ -117,6 +115,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Screen screen;
 
     private Element selectedButton;
+    private boolean fogOfWarRemoved = false;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
     private Label tooltip;
@@ -819,6 +818,26 @@ public final class PlayerScreenController implements IPlayerScreenController {
         nifty.getScreen(SCREEN_HUD_ID).findElementById("optionsMenu").setVisible(paused);
     }
 
+    /**
+     * Is the mouse over the terrain change overlay. The overlay is on a layer of its own, so the
+     * game has to be told separately that the mouse is on the GUI.
+     *
+     * @param x mouse x, from the left of the window
+     * @param y mouse y, from the bottom of the window (as in the input manager)
+     * @return {@code true} if the overlay is shown and the mouse is on it
+     */
+    public boolean isMouseOverCheatOverlay(float x, float y) {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (String id : new String[]{"terrain-overlay", "creature-overlay"}) {
+            Element overlay = hud != null ? hud.findElementById(id) : null;
+            if (overlay != null && overlay.isVisible()
+                    && overlay.isMouseInsideElement((int) x, hud.getRootElement().getHeight() - (int) y)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     public Element getGuiConstraint() {
         Element middle = nifty.getScreen(SCREEN_HUD_ID).findElementById("middle");
         return middle;
@@ -1008,6 +1027,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 //            }
 //        });
         populateRoomTab();
+        populateCheatTab();
+        refreshCheatTab();
         // Spells
 //        state.getSpellControl().addPlayerSpellListener(new PlayerSpellListener() {
 //            @Override
@@ -1220,6 +1241,227 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         unaffordableSpells.clear();
         updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+    }
+
+    /**
+     * Populates the cheat tab, a button for each cheat mode. Cheats are not for multiplayer games.
+     */
+    private void populateCheatTab() {
+        if (state.stateManager.getState(GameClientState.class).isMultiplayer()) {
+            return;
+        }
+        populateTerrainOverlay();
+        populateCreatureOverlay();
+        FlowLayoutControl contentPanel = nifty.getScreen(SCREEN_HUD_ID).findElementById("tab-god-content").getControl(FlowLayoutControl.class);
+        contentPanel.removeAll();
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.KILL_CREATURES, "Specials/SP-Kill", "Kill creatures: right click a creature"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.RESURRECT_CREATURES, "Specials/SP-Resurrect", "Resurrect creatures: right click a dying creature"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.DESTROY_DOORS, "Doors/wood_door", "Destroy doors: right click a door"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.REMOVE_FOW, "Specials/SP-Reveal_Map", "Reveal map: removes the fog of war, click again to bring it back"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.CLAIM_LAND, "Specials/SP-Safe", "Claim land and rooms: drag over an area to claim it"));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.TERRAIN_CHANGE, "C-Spells/c-Armour", "Terrain change: choose the terrain and its owner on the right, drag over an area to change it. Switches the other cheats off while on."));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.SPAWN_CREATURES, "Specials/SP-Get_Imps", "Spawn creatures: choose the creature, the amount and the keeper on the right, click a tile to spawn them there. Switches the other cheats off while on."));
+        contentPanel.addElement(createCheatIcon(CheatState.CheatType.INSTANT_DIG, "Specials/SP-Destroy_Walls", "Instant digging: tag tiles to dig them out at once"));
+    }
+
+    private record Choice(short id, String name) {
+
+        @Override
+        public String toString() {
+            return name;
+        }
+    }
+
+    @SuppressWarnings("unchecked")
+    private void populateTerrainOverlay() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+
+        DropDown<Choice> terrains = hud.findNiftyControl("cheatTerrain", DropDown.class);
+        terrains.clear();
+        state.getKwdFile().getTerrainList().stream()
+                .filter(terrain -> !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM))
+                .map(terrain -> new Choice(terrain.getTerrainId(), terrain.getName() + " (" + terrain.getTerrainId() + ")"))
+                .sorted(Comparator.comparingInt(Choice::id))
+                .forEach(terrains::addItem);
+        terrains.selectItemByIndex(0);
+
+        DropDown<Choice> owners = hud.findNiftyControl("cheatOwner", DropDown.class);
+        owners.clear();
+        owners.addItem(new Choice(Player.NEUTRAL_PLAYER_ID, "Nobody"));
+        client.getPlayers().stream()
+                .filter(keeper -> keeper.getId() >= Player.KEEPER1_ID)
+                .forEach(keeper -> owners.addItem(new Choice(keeper.getId(), client.getPlayerName(keeper))));
+        owners.selectItemByIndex(0);
+    }
+
+    private static final int[] SPAWN_AMOUNTS = {1, 2, 3, 4, 5, 10, 15, 20, 25, 50};
+
+    @SuppressWarnings("unchecked")
+    private void populateCreatureOverlay() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+
+        DropDown<Choice> creatures = hud.findNiftyControl("cheatCreature", DropDown.class);
+        creatures.clear();
+        state.getKwdFile().getCreatureList().stream()
+                .map(creature -> new Choice(creature.getCreatureId(), creature.getName()))
+                .sorted(Comparator.comparing(Choice::name, String.CASE_INSENSITIVE_ORDER))
+                .forEach(creatures::addItem);
+        creatures.selectItemByIndex(0);
+
+        DropDown<Choice> amounts = hud.findNiftyControl("cheatAmount", DropDown.class);
+        amounts.clear();
+        for (int amount : SPAWN_AMOUNTS) {
+            amounts.addItem(new Choice((short) amount, Integer.toString(amount)));
+        }
+        amounts.selectItemByIndex(0);
+
+        DropDown<Choice> levels = hud.findNiftyControl("cheatLevel", DropDown.class);
+        levels.clear();
+        for (int level = 1; level <= Utils.MAX_CREATURE_LEVEL; level++) {
+            levels.addItem(new Choice((short) level, Integer.toString(level)));
+        }
+        levels.selectItemByIndex(0);
+
+        DropDown<Choice> owners = hud.findNiftyControl("cheatCreatureOwner", DropDown.class);
+        owners.clear();
+        client.getPlayers().stream()
+                .filter(keeper -> keeper.getId() >= Player.KEEPER1_ID)
+                .forEach(keeper -> owners.addItem(new Choice(keeper.getId(), client.getPlayerName(keeper))));
+        owners.addItem(new Choice(Player.GOOD_PLAYER_ID, "Heroes"));
+        owners.selectItemByIndex(0);
+    }
+
+    /**
+     * @return the creature chosen in the spawn overlay, {@code null} if none
+     */
+    @SuppressWarnings("unchecked")
+    public Short getSelectedCheatCreature() {
+        DropDown<Choice> creatures = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatCreature", DropDown.class);
+        Choice choice = creatures != null ? creatures.getSelection() : null;
+        return choice != null ? choice.id() : null;
+    }
+
+    /**
+     * @return the level of the creatures to spawn
+     */
+    @SuppressWarnings("unchecked")
+    public int getSelectedCheatLevel() {
+        DropDown<Choice> levels = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatLevel", DropDown.class);
+        Choice choice = levels != null ? levels.getSelection() : null;
+        return choice != null ? choice.id() : 1;
+    }
+
+    /**
+     * @return how many creatures to spawn
+     */
+    @SuppressWarnings("unchecked")
+    public int getSelectedCheatAmount() {
+        DropDown<Choice> amounts = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatAmount", DropDown.class);
+        Choice choice = amounts != null ? amounts.getSelection() : null;
+        return choice != null ? choice.id() : 1;
+    }
+
+    /**
+     * @return the owner chosen in the spawn overlay
+     */
+    @SuppressWarnings("unchecked")
+    public short getSelectedCheatCreatureOwner() {
+        DropDown<Choice> owners = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatCreatureOwner", DropDown.class);
+        Choice choice = owners != null ? owners.getSelection() : null;
+        return choice != null ? choice.id() : Player.KEEPER1_ID;
+    }
+
+    /**
+     * @return the terrain chosen in the terrain change overlay, {@code null} if none
+     */
+    @SuppressWarnings("unchecked")
+    public Short getSelectedCheatTerrain() {
+        DropDown<Choice> terrains = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatTerrain", DropDown.class);
+        Choice choice = terrains != null ? terrains.getSelection() : null;
+        return choice != null ? choice.id() : null;
+    }
+
+    /**
+     * @return the owner chosen in the terrain change overlay, the neutral player for nobody
+     */
+    @SuppressWarnings("unchecked")
+    public short getSelectedCheatOwner() {
+        DropDown<Choice> owners = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatOwner", DropDown.class);
+        Choice choice = owners != null ? owners.getSelection() : null;
+        return choice != null ? choice.id() : Player.NEUTRAL_PLAYER_ID;
+    }
+
+    private ControlBuilder createCheatIcon(CheatState.CheatType cheat, String icon, String tooltip) {
+        return new GuiIconBuilder("cheat_" + cheat.name(),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/" + icon + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/hilight.png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/selected-workshop.png"),
+                tooltip, tooltip, "toggleCheat(" + cheat.name() + ")");
+    }
+
+    /**
+     * Switches a cheat mode on or off, the button shows the selected effect while the cheat is on
+     *
+     * @param cheatName the name of the {@link CheatState.CheatType}
+     */
+    @Override
+    public void toggleCheat(String cheatName) {
+        CheatState.CheatType cheat = CheatState.CheatType.valueOf(cheatName);
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+        for (CheatState.CheatType active : CheatState.CheatType.values()) {
+            if (active.isOverlayMode() && active != cheat && client.isCheat(active)) {
+                // Overlay modes stand alone
+                return;
+            }
+        }
+        if (cheat == CheatState.CheatType.REMOVE_FOW) {
+            // The fog of war is removed on the first click and reset on the next
+            fogOfWarRemoved = !fogOfWarRemoved;
+            state.stateManager.getState(GameClientState.class).getGameClientService()
+                    .triggerCheat(fogOfWarRemoved ? CheatState.CheatType.REMOVE_FOW : CheatState.CheatType.RESET_FOW);
+            Element fogButton = nifty.getScreen(SCREEN_HUD_ID).findElementById("cheat_" + cheat.name());
+            if (fogOfWarRemoved) {
+                fogButton.startEffect(EffectEventId.onCustom, null, "select");
+            } else {
+                fogButton.stopEffect(EffectEventId.onCustom);
+            }
+            return;
+        }
+        state.stateManager.getState(GameClientState.class).toggleCheatMode(cheat);
+    }
+
+    /**
+     * Shows the cheat tab only while in god mode, and has the buttons of the cheats that are on selected
+     */
+    public void refreshCheatTab() {
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element tab = hud.findElementById("tab-god");
+        CustomTabGroupControl tabGroup = hud.findElementById("tabs-hud").getControl(CustomTabGroupControl.class);
+        if (tab != null && tabGroup != null) {
+            tabGroup.setTabButtonVisible(tab.getNiftyControl(Tab.class), client.isGodMode() && !client.isMultiplayer());
+        }
+        Element overlay = hud.findElementById("terrain-overlay");
+        if (overlay != null) {
+            overlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.TERRAIN_CHANGE));
+        }
+        Element creatureOverlay = hud.findElementById("creature-overlay");
+        if (creatureOverlay != null) {
+            creatureOverlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.SPAWN_CREATURES));
+        }
+        for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
+            Element button = cheat.isMode() ? hud.findElementById("cheat_" + cheat.name()) : null;
+            if (button == null) {
+                continue;
+            }
+            if (client.isCheat(cheat)) {
+                button.startEffect(EffectEventId.onCustom, null, "select");
+            } else {
+                button.stopEffect(EffectEventId.onCustom);
+            }
+        }
     }
 
     /**

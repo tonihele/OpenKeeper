@@ -269,7 +269,7 @@ public final class MapController extends Container implements IMapController {
     }
 
     @Override
-    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+    public void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId, boolean anySolid) {
         List<Point> updatableTiles = new ArrayList<>();
         for (int x = (int) Math.max(0, start.x); x < Math.min(kwdFile.getMap().getWidth(), end.x + 1); x++) {
             for (int y = (int) Math.max(0, start.y); y < Math.min(kwdFile.getMap().getHeight(), end.y + 1); y++) {
@@ -278,7 +278,8 @@ public final class MapController extends Container implements IMapController {
                     continue;
                 }
                 Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                        && !(anySolid && terrain.getFlags().contains(Terrain.TerrainFlag.SOLID))) {
                     continue;
                 }
                 tile.setSelected(select, playerId);

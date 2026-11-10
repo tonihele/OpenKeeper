@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import java.util.Collection;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.SpecialListener;
+import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -219,4 +220,18 @@ public interface IGameWorldController {
      * @param playerId the player placing the trap
      */
     public void placeTrap(short trapId, Point tile, short playerId);
+
+    /**
+     * Turns a cheat on or off for a player. Only the cheats that are modes count, see
+     * {@link CheatState.CheatType#GOD_MODE} (no limits or costs when building, selling, picking up and
+     * placing traps and doors) and the ones toggled from the cheat tab (kill creatures, resurrect
+     * creatures, destroy doors, instant digging).
+     *
+     * @param playerId the player
+     * @param cheat the cheat
+     * @param enabled on or off
+     */
+    public void setCheat(short playerId, CheatState.CheatType cheat, boolean enabled);
+
+    public boolean isCheat(short playerId, CheatState.CheatType cheat);
 }

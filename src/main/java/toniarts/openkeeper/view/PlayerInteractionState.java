@@ -62,12 +62,14 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.controller.ICheatController;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -308,6 +310,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private boolean isCursorOnGUI() {
         int height = app.getContext().getSettings().getHeight();
 
+        if (stateManager.getState(PlayerState.class).getScreen().isMouseOverCheatOverlay(mousePosition.x, mousePosition.y)) {
+            return true;
+        }
+
         if (view.isVisible() && view.isMouseInsideElement((int) mousePosition.x, height - (int) mousePosition.y)) {
             for (Element e : view.getChildren()) {
                 if (e.isVisible() && e.isMouseInsideElement((int) mousePosition.x, height - (int) mousePosition.y)) {
@@ -501,7 +507,23 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Point p = selectionHandler.getPointedTileIndex();
         return (interactionState.getType() == Type.ROOM
                 || interactionState.getType() == Type.NONE)
-                  && isOnMap && gameClientState.getFogOfWarInformation().isHighlightable(p);
+                  && isOnMap && (gameClientState.getFogOfWarInformation().isHighlightable(p) || isGodSelectable(p));
+    }
+
+    /**
+     * A god can select any solid tile, also the impenetrable rock
+     */
+    private boolean isGodSelectable(Point p) {
+        IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(p);
+        if (gameClientState.isGodMode() && interactionState.getType() == Type.NONE && tile != null
+                && (gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND) || gameClientState.isCheat(CheatState.CheatType.TERRAIN_CHANGE)
+                || gameClientState.isCheat(CheatState.CheatType.SPAWN_CREATURES))) {
+            // Area modes work on any tile
+            return true;
+        }
+        return gameClientState.isGodMode() && interactionState.getType() == Type.NONE && tile != null
+                && gameClientState.getFogOfWarInformation().isExplored(p)
+                && gameClientState.getMapClientService().getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
     /**
@@ -692,11 +714,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
             } else if (interactionState.getType() == Type.TRAP) {
                 Point p = selectionHandler.getPointedTileIndex();
-                if (isTrapPlacementValid(p)) {
+                if (gameClientState.isGodMode() || isTrapPlacementValid(p)) {
                     gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
                 }
             } else if (interactionState.getType() == Type.DOOR) {
-                //TODO put door
+                if (gameClientState.isGodMode()) {
+                    gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(),
+                            selectionHandler.getPointedTileIndex());
+                }
+                //TODO put door for the normal game
             } else if (interactionState.getType() == Type.NONE
                     && interactiveControl != null && !keeperHandState.isFull()
                     && interactiveControl.isPickable(player.getPlayerId())) {
@@ -724,7 +750,22 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private void onLeftMouseButtonReleased() {
             SelectionArea selectionArea = selectionHandler.getSelectionArea();
-            if (interactionState.getType() == Type.NONE
+            if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.TERRAIN_CHANGE)) {
+                PlayerScreenController screen = stateManager.getState(PlayerState.class).getScreen();
+                Short terrainId = screen.getSelectedCheatTerrain();
+                if (terrainId != null) {
+                    gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), terrainId, screen.getSelectedCheatOwner());
+                }
+            } else if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.SPAWN_CREATURES)) {
+                PlayerScreenController screen = stateManager.getState(PlayerState.class).getScreen();
+                Short creatureId = screen.getSelectedCheatCreature();
+                if (creatureId != null) {
+                    gameClientState.getGameClientService().triggerSpawnCreatureCheat(creatureId, screen.getSelectedCheatLevel(), screen.getSelectedCheatAmount(),
+                            screen.getSelectedCheatCreatureOwner(), selectionArea.getRealStart());
+                }
+            } else if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND)) {
+                gameClientState.getGameClientService().triggerTerrainCheat(selectionArea.getStart(), selectionArea.getEnd(), ICheatController.CLAIM_TERRAIN, player.getPlayerId());
+            } else if (interactionState.getType() == Type.NONE
                     || (interactionState.getType() == Type.ROOM
                     && gameClientState.getFogOfWarInformation().isHighlightable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
 
@@ -741,12 +782,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // actually taggable - fog can't reach it to know any better. Locally,
                 // still-unexplored tiles in this drag should look tagged regardless,
                 // until exploration reveals whether that's really true.
-                gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
+                if (!gameClientState.isCheat(CheatState.CheatType.INSTANT_DIG)) {
+                    gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
+                }
             } else if (interactionState.getType() == Type.ROOM
-                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    && (gameClientState.isGodMode() || RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
-                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
+                            gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid())) {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
 
@@ -772,7 +815,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                    if (getDroppableStatus(entityViewControl, mapTile) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
                         // Show the hand letting go of it, the updateCursor() call below picks it up
@@ -789,6 +832,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 //                        keeperHand.pop().drop(tile, selectionHandler.getActualPointedPosition(), interactiveControl);
 //                        updateCursor();
 //                    }
+                } else if (isCheatInteraction()) {
+                    // The cheat tab modes: kill or resurrect creatures, destroy doors, the server does the deed
+                    gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
                 } else if (interactiveControl != null && interactiveControl.isSlappable(player.getPlayerId())) {
 //                    getWorldHandler().playSoundAtTile(p, GlobalCategory.HAND, GlobalType.HAND_SLAP);
                     gameClientState.getGameClientService().interact(interactiveControl.getEntityId());
@@ -1063,6 +1109,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.NONE && keeperHandState.getItem() != null) {
                 return getDropColor(point);
             }
+            if (gameClientState.isGodMode()
+                    && (interactionState.getType() == Type.SELL || interactionState.getType() == Type.TRAP
+                    || interactionState.getType() == Type.DOOR || interactionState.getType() == Type.ROOM)) {
+                return ColorIndicator.BLUE;
+            }
             if (interactionState.getType() == Type.SELL) {
                 return gameClientState.getMapClientService().isSellable(point, player.getPlayerId()) || hasSellableTrap(point)
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
@@ -1081,8 +1132,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (tile == null) {
                 return ColorIndicator.RED;
             }
-            IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(
-                    tile, gameClientState.getMapClientService().getTerrain(tile), player.getPlayerId());
+            IEntityViewControl.DroppableStatus status = getDroppableStatus(keeperHandState.getItem(), tile);
             return status == IEntityViewControl.DroppableStatus.NOT_DROPPABLE
                     ? ColorIndicator.RED : ColorIndicator.BLUE;
         }
@@ -1160,6 +1210,35 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
     }
 
+    private IEntityViewControl.DroppableStatus getDroppableStatus(IEntityViewControl item, IMapTileInformation tile) {
+        Terrain terrain = gameClientState.getMapClientService().getTerrain(tile);
+
+        // A god can drop anything on any tile that is not solid
+        if (gameClientState.isGodMode() && tile != null && terrain != null) {
+            return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                    ? IEntityViewControl.DroppableStatus.NOT_DROPPABLE : IEntityViewControl.DroppableStatus.DROPPABLE;
+        }
+        return item.getDroppableStatus(tile, terrain, player.getPlayerId());
+    }
+
+    private boolean isCheatInteraction() {
+        if (interactiveControl == null) {
+            return false;
+        }
+        Object target = interactiveControl.getDataObject();
+        return (target instanceof Creature
+                && (gameClientState.isCheat(CheatState.CheatType.KILL_CREATURES)
+                || gameClientState.isCheat(CheatState.CheatType.RESURRECT_CREATURES)))
+                || (target instanceof Door && gameClientState.isCheat(CheatState.CheatType.DESTROY_DOORS));
+    }
+
+    /**
+     * @return the tile under the cursor, e.g. for the god mode console commands
+     */
+    public Point getPointedTile() {
+        return selectionHandler.getPointedTileIndex();
+    }
+
     private final class InteractionCheatState extends CheatState {
 
         private InteractionCheatState() {
@@ -1168,7 +1247,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         @Override
         public void onSuccess(CheatType cheat) {
-            gameClientState.getGameClientService().triggerCheat(cheat);
+            if (cheat.isMode()) {
+                gameClientState.toggleCheatMode(cheat);
+            } else {
+                gameClientState.getGameClientService().triggerCheat(cheat);
+            }
         }
     }
 
