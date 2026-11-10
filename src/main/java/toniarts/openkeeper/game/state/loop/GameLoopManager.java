@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
+import toniarts.openkeeper.game.logic.GridMovementCollision;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.InfernoSystem;
@@ -50,6 +51,7 @@ import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PayDaySystem;
+import toniarts.openkeeper.game.logic.MovementSettings;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
 import toniarts.openkeeper.game.logic.PlayerManufactureSystem;
 import toniarts.openkeeper.game.logic.PlayerSpellbookSystem;
@@ -66,6 +68,7 @@ import toniarts.openkeeper.utils.GameLoop;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 /**
  *
@@ -79,6 +82,8 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final GameLogicManager gameLogicManager;
+
     /**
      * Single use game states
      *
@@ -87,6 +92,21 @@ public final class GameLoopManager {
      * @param players player participating in this game, can be {@code null}
      */
     public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players) {
+        this(level, gameService, players, MovementSettings.DEFAULT);
+    }
+
+    /**
+     * Creates the single authoritative simulation loop with explicit
+     * movement and client presentation tuning.
+     *
+     * @param level the level to load
+     * @param gameService the session service
+     * @param players players participating in this game, or {@code null}
+     * @param movementSettings movement tuning to use for the session
+     */
+    public GameLoopManager(IKwdFile level, GameSessionServerService gameService, List<Keeper> players,
+            MovementSettings movementSettings) {
+        movementSettings = Objects.requireNonNull(movementSettings, "movementSettings");
         this.gameService = gameService;
         final EntityData entityData = gameService.getServerEntityData();
         final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = level.getVariables();
@@ -98,9 +118,11 @@ public final class GameLoopManager {
         final Map<Short, IPlayerController> playerControllers = gameController.getPlayerControllers();
         final ITaskManager taskManager = gameController.getTaskManager();
         final GameEventService gameEventService = gameController.getGameEventService();
+        final GridMovementCollision movementCollision = new GridMovementCollision(
+                gameWorldController.getMapController(), positionSystem, movementSettings);
 
-        // Game logic
-        final GameLogicManager gameLogicThread = new GameLogicManager(
+        // All authoritative game state and movement changes run in one fixed-step loop.
+        gameLogicManager = new GameLogicManager(
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -139,26 +161,20 @@ public final class GameLoopManager {
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
-                new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
-                (IGameLogicUpdatable) taskManager);
-
-        loops.add(new GameLoop(gameLogicThread, 1_000_000_000 / levelInfo.getLevelData().getGameLevel().getTicksPerSec(), "Logic"));
-
-        // Animation systems
-        final GameLogicManager gameAnimationThread = new GameLogicManager(
-                new DungeonHeartConstruction(
-                        entityData,
+                (IGameLogicUpdatable) taskManager,
+                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService),
+                new DungeonHeartConstruction(entityData,
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)),
-                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
-        loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
+                new MovementSystem(entityData, movementSettings, movementCollision,
+                        gameWorldController.getCreaturesController(), gameWorldController.getObjectsController()),
+                new PossessedMovementSystem(entityData, gameWorldController.getCreaturesController(), movementCollision),
+                new CreatureViewSystem(entityData, levelInfo.getLevelData()));
 
-        // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData),
-                new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
-                        positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
+        loops.add(new GameLoop(gameLogicManager,
+                1_000_000_000 / levelInfo.getLevelData().getGameLevel().getTicksPerSec(), "Logic"));
     }
 
     public void pause() {
@@ -182,6 +198,27 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    /**
+     * Adds a player action to the start of the next simulation tick.
+     *
+     * @param action state change requested by a player
+     * @return whether the action was accepted
+     */
+    public boolean runPlayerAction(Runnable action) {
+        return gameLogicManager.enqueueAction(action);
+    }
+
+    /**
+     * Replaces an older high-rate input from the same stream before the next
+     * simulation tick, which is used for possessed movement intent.
+     *
+     * @param playerId input stream player ID
+     * @param input action that applies the latest input
+     */
+    public void runPlayerInput(short playerId, Runnable input) {
+        gameLogicManager.enqueueLatestInput(playerId, input);
     }
 
 }

@@ -211,6 +211,14 @@ public final class GameServerState extends AbstractAppState {
      */
     private final class GameSessionServiceListenerImpl implements GameSessionServiceListener {
 
+        private static Vector2f copy(Vector2f vector) {
+            return vector != null ? vector.clone() : null;
+        }
+
+        private static Point copy(Point point) {
+            return point != null ? new Point(point.x, point.y) : null;
+        }
+
         @Override
         public void onStartGame() {
 
@@ -233,47 +241,59 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            mapController.selectTiles(start, end, select, playerId);
+            Vector2f from = copy(start);
+            Vector2f to = copy(end);
+            game.runPlayerAction(() -> mapController.selectTiles(from, to, select, playerId));
         }
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameWorldController.build(start, end, playerId, roomId);
+            Vector2f from = copy(start);
+            Vector2f to = copy(end);
+            game.runPlayerAction(() -> gameWorldController.build(from, to, playerId, roomId));
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameWorldController.sell(start, end, playerId);
+            Vector2f from = copy(start);
+            Vector2f to = copy(end);
+            game.runPlayerAction(() -> gameWorldController.sell(from, to, playerId));
         }
 
         @Override
         public void onInteract(EntityId entity, short playerId) {
-            gameWorldController.interact(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.interact(entity, playerId));
         }
 
         @Override
         public void onPickUp(EntityId entity, short playerId) {
-            gameWorldController.pickUp(entity, playerId);
+            game.runPlayerAction(() -> gameWorldController.pickUp(entity, playerId));
         }
 
         @Override
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-            gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
+            Point dropTile = copy(tile);
+            Vector2f dropCoordinates = copy(coordinates);
+            game.runPlayerAction(() -> gameWorldController.drop(entity, dropTile, dropCoordinates, dropOnEntity, playerId));
         }
 
         @Override
         public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
-            gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId);
+            Point castTile = copy(tile);
+            Vector2f castPosition = copy(position);
+            game.runPlayerAction(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, castTile, castPosition, playerId));
         }
 
         @Override
         public void onPlaceDoor(short doorId, Point tile, short playerId) {
-            gameWorldController.placeDoor(doorId, tile, playerId);
+            Point doorTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeDoor(doorId, doorTile, playerId));
         }
 
         @Override
         public void onPlaceTrap(short trapId, Point tile, short playerId) {
-            gameWorldController.placeTrap(trapId, tile, playerId);
+            Point trapTile = copy(tile);
+            game.runPlayerAction(() -> gameWorldController.placeTrap(trapId, trapTile, playerId));
         }
 
         @Override
@@ -302,56 +322,64 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onGetGold(int amount, short playerId) {
-            gameWorldController.getGold(amount, playerId);
+            game.runPlayerAction(() -> gameWorldController.getGold(amount, playerId));
         }
 
         @Override
         public void onCancelCallToArms(short playerId) {
-            gameWorldController.getObjectsController().cancelCallToArms(playerId);
+            game.runPlayerAction(() -> gameWorldController.getObjectsController().cancelCallToArms(playerId));
         }
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
-            cheatController.onCheat(cheat, playerId);
+            game.runPlayerAction(() -> cheatController.onCheat(cheat, playerId));
         }
 
         @Override
         public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
-            cheatController.spawnCreature(creatureId, level, amount, playerId);
+            game.runPlayerAction(() -> cheatController.spawnCreature(creatureId, level, amount, playerId));
         }
 
         @Override
         public void onAddGoldCheatTriggered(int amount, short playerId) {
-            cheatController.addGold(amount, playerId);
+            game.runPlayerAction(() -> cheatController.addGold(amount, playerId));
         }
 
         @Override
         public void onAddManaCheatTriggered(int amount, short playerId) {
-            cheatController.addMana(amount, playerId);
+            game.runPlayerAction(() -> cheatController.addMana(amount, playerId));
         }
 
         @Override
         public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
-            }
+            Vector2f movementDirection = copy(direction);
+            game.runPlayerInput(playerId, () -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed)
+                            .setPossessedMovement(movementDirection, rotation, speedMode);
+                }
+            });
         }
 
         @Override
         public void onSetPossessedAttack(boolean attacking, short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
-            }
+            game.runPlayerAction(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
+                }
+            });
         }
 
         @Override
         public void onEndPossession(short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
-            }
+            game.runPlayerAction(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+                }
+            });
         }
     }
 

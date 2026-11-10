@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2018 OpenKeeper
+ * Copyright (C) 2014-2026 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -16,237 +16,301 @@
  */
 package toniarts.openkeeper.game.logic;
 
-import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.math.Vector2;
-import com.jme3.util.SafeArrayList;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import toniarts.openkeeper.utils.Point;
-import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
-import java.util.Set;
+import java.util.Objects;
+import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
-import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
-import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
-import toniarts.openkeeper.game.navigation.steering.SteerableEntity;
-import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.chicken.IChickenController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Handles moving of the entities
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * Advances AI-controlled mobile entities along their already-authoritative path.
+ * Every displacement is bounded by speed and the current fixed game step, so
+ * a creature cannot coast past a waypoint.
  */
 public final class MovementSystem implements IGameLogicUpdatable {
-    
-    private final static boolean INDEPENDENT_FACING = false;
-    
-    private final SafeArrayList<EntitySteeringBehavior> steeringBehaviors = new SafeArrayList<>(EntitySteeringBehavior.class);
-    private final Map<EntityId, ISteerableEntity> steerableEntitiesByEntityId = new HashMap<>();
-    private final Map<ISteerableEntity, EntitySteeringBehavior> steeringBehaviorsBySteerableEntity = new HashMap<>();
-    private final Map<EntitySteeringBehavior, ISteerableEntity> steerableEntitiesBySteeringBehavior = new HashMap<>();
-    private final Map<EntitySteeringBehavior, EntityId> entityIdsBySteeringBehavior = new HashMap<>();
 
-    // For tracking the changes in navigation itself, for now it might be enough to just see that if the target has been changed
-    private final Map<EntityId, Point> targetPointsByEntityId = new HashMap<>();
+    private static final float TWO_PI = (float) (Math.PI * 2d);
+    private static final float PI = (float) Math.PI;
+    private static final float POSITION_EPSILON = 0.00001f;
 
-    /**
-     * This is for saving in object creation
-     */
-    private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
-    private final EntitySet movableEntities;
     private final EntityData entityData;
+    private final EntitySet movableEntities;
+    private final MovementSettings settings;
+    private final float waypointToleranceSquared;
+    private final GridMovementCollision collision;
+    private final ICreaturesController creaturesController;
+    private final IObjectsController objectsController;
+    private final Map<EntityId, MovementCursor> movementCursors = new HashMap<>();
 
     public MovementSystem(EntityData entityData) {
-        this.entityData = entityData;
-        movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
+        this(entityData, MovementSettings.DEFAULT);
+    }
 
-        processAddedEntities(movableEntities);
+    public MovementSystem(EntityData entityData, MovementSettings settings) {
+        this(entityData, settings, null, null);
+    }
+
+    public MovementSystem(EntityData entityData, MovementSettings settings, GridMovementCollision collision,
+            ICreaturesController creaturesController) {
+        this(entityData, settings, collision, creaturesController, null);
+    }
+
+    public MovementSystem(EntityData entityData, MovementSettings settings, GridMovementCollision collision,
+            ICreaturesController creaturesController, IObjectsController objectsController) {
+        this.entityData = Objects.requireNonNull(entityData, "entityData");
+        this.settings = Objects.requireNonNull(settings, "settings");
+        float waypointTolerance = settings.waypointTolerance();
+        waypointToleranceSquared = waypointTolerance * waypointTolerance;
+        this.collision = collision;
+        this.creaturesController = creaturesController;
+        this.objectsController = objectsController;
+        movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
     }
 
     @Override
     public void processTick(float tpf) {
+        if (!Float.isFinite(tpf) || tpf <= 0f) {
+            return;
+        }
         if (movableEntities.applyChanges()) {
-            processDeletedEntities(movableEntities.getRemovedEntities());
-
-            processAddedEntities(movableEntities.getAddedEntities());
-
-            processChangedEntities(movableEntities.getChangedEntities());
+            for (Entity removedEntity : movableEntities.getRemovedEntities()) {
+                movementCursors.remove(removedEntity.getId());
+            }
         }
-
-        // Process ticks
-        for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
-
-            // Calculate steering acceleration
-            SteeringAcceleration<Vector2> steeringOutput = steeringOutputsBySteeringBehaviors.get(steeringBehavior);
-            steeringBehavior.calculateSteering(steeringOutput);
-
-            /*
-             * Here you might want to add a motor control layer filtering steering accelerations.
-             *
-             * For instance, a car in a driving game has physical constraints on its movement: it cannot turn while stationary; the
-             * faster it moves, the slower it can turn (without going into a skid); it can brake much more quickly than it can
-             * accelerate; and it only moves in the direction it is facing (ignoring power slides).
-             */
-            // Apply steering acceleration
-            applySteering(entityIdsBySteeringBehavior.get(steeringBehavior), steerableEntitiesBySteeringBehavior.get(steeringBehavior), steeringOutput, tpf);
+        for (Entity entity : movableEntities) {
+            moveEntity(entity, tpf);
         }
     }
 
-    private void processAddedEntities(Set<Entity> addedEntities) {
-        for (Entity entity : addedEntities) {
-            addEntity(entity);
-        }
-    }
-
-    private void addEntity(Entity entity) {
-        Mobile mobile = entity.get(Mobile.class);
+    private void moveEntity(Entity entity, float tpf) {
+        EntityId entityId = entity.getId();
         Navigation navigation = entity.get(Navigation.class);
         Position position = entity.get(Position.class);
-
-        // Steering orientation is the rotation negated, as applySteering writes it back
-        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, 0.25f, position.position.x, position.position.z, -position.rotation);
-        EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target);
-        if (steeringBehavior == null) {
-
-            // The fug, can't navigate, are we there already??
-            entityData.removeComponent(entity.getId(), Navigation.class);
+        Mobile mobile = entity.get(Mobile.class);
+        if (navigation == null || position == null || mobile == null) {
             return;
         }
-        steerableEntitiesByEntityId.put(entity.getId(), steerableEntity);
-        steeringBehaviorsBySteerableEntity.put(steerableEntity, steeringBehavior);
-        steerableEntitiesBySteeringBehavior.put(steeringBehavior, steerableEntity);
-        int index = Collections.binarySearch(steeringBehaviors, steeringBehavior);
-        steeringBehaviors.add(~index, steeringBehavior);
-        steeringOutputsBySteeringBehaviors.put(steeringBehavior, new SteeringAcceleration<>(new Vector2()));
-        entityIdsBySteeringBehavior.put(steeringBehavior, entity.getId());
-        targetPointsByEntityId.put(entity.getId(), navigation.target);
-    }
-
-    private void processDeletedEntities(Set<Entity> removedEntities) {
-        for (Entity entity : removedEntities) {
-            deleteEntity(entity);
+        if (entityData.getComponent(entityId, Possessed.class) != null) {
+            return;
         }
-    }
 
-    private void deleteEntity(Entity entity) {
-        ISteerableEntity steerableEntity = steerableEntitiesByEntityId.remove(entity.getId());
-        EntitySteeringBehavior steeringBehavior = steeringBehaviorsBySteerableEntity.remove(steerableEntity);
-        steerableEntitiesBySteeringBehavior.remove(steeringBehavior);
-        if (steeringBehavior != null) {
-            int index = Collections.binarySearch(steeringBehaviors, steeringBehavior);
-            steeringBehaviors.remove(index);
-        }
-        steeringOutputsBySteeringBehaviors.remove(steeringBehavior);
-        entityIdsBySteeringBehavior.remove(steeringBehavior);
-        targetPointsByEntityId.remove(entity.getId());
-    }
-
-    private void processChangedEntities(Set<Entity> changedEntities) {
-        for (Entity entity : changedEntities) {
-
-            // Dirty trick to try to see if the navigation has changed
-            Navigation navigation = entity.get(Navigation.class);
-            if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))) {
-                deleteEntity(entity);
-                addEntity(entity);
-                continue;
+        List<Vector2> path = navigation.navigationPath;
+        int pathSize = path == null ? 0 : path.size();
+        MovementCursor cursor = pathSize > 2 ? movementCursor(entityId, navigation, path, pathSize) : null;
+        Vector3f moved = position.position.clone();
+        Vector2 waypoint = cursor == null ? findNextWaypoint(path, pathSize, moved) : findNextWaypoint(cursor, moved);
+        float rotation = position.rotation;
+        boolean movedOnGround = false;
+        if (waypoint != null && mobile.maxSpeed > 0f) {
+            float dx = waypoint.x - moved.x;
+            float dz = waypoint.y - moved.z;
+            float distance = (float) Math.sqrt(dx * dx + dz * dz);
+            float travel = Math.min(distance, mobile.maxSpeed * tpf);
+            if (travel > 0f && distance > 0f) {
+                float deltaX = dx / distance * travel;
+                float deltaZ = dz / distance * travel;
+                float pathHeading;
+                if (cursor != null) {
+                    if (!cursor.headingValid) {
+                        cursor.heading = (float) Math.atan2(dx, dz);
+                        cursor.headingValid = true;
+                    }
+                    pathHeading = cursor.heading;
+                } else {
+                    pathHeading = (float) Math.atan2(dx, dz);
+                }
+                float oldX = moved.x;
+                float oldZ = moved.z;
+                if (collision != null) {
+                    INavigable navigable = navigableFor(entity);
+                    if (navigable != null) {
+                        collision.move(navigable, oldX, oldZ, deltaX, deltaZ, moved);
+                    } else {
+                        moved.x += deltaX;
+                        moved.z += deltaZ;
+                    }
+                } else {
+                    moved.x += deltaX;
+                    moved.z += deltaZ;
+                }
+                movedOnGround = Math.abs(moved.x - oldX) > POSITION_EPSILON
+                        || Math.abs(moved.z - oldZ) > POSITION_EPSILON;
+                if (movedOnGround) {
+                    boolean followedPath = Math.abs((moved.x - oldX) - deltaX) <= POSITION_EPSILON
+                            && Math.abs((moved.z - oldZ) - deltaZ) <= POSITION_EPSILON;
+                    if (followedPath) {
+                        rotation = pathHeading;
+                    } else {
+                        rotation = (float) Math.atan2(moved.x - oldX, moved.z - oldZ);
+                        if (cursor != null) {
+                            cursor.headingValid = false;
+                        }
+                    }
+                }
             }
-
-            // We are only prepared for the changes in Mobile
-            // Not the position, the position is managed by us only
-            Mobile mobile = entity.get(Mobile.class);
-
-            ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
-            steerableEntity.setMaxLinearSpeed(mobile.maxSpeed);
         }
-    }
 
-    private void applySteering(EntityId entityId, ISteerableEntity steerableEntity, SteeringAcceleration<Vector2> steering, float tpf) {
+        boolean pathComplete = (cursor == null ? findNextWaypoint(path, pathSize, moved)
+                : findNextWaypoint(cursor, moved)) == null;
 
-        // We are done
-        if (steering.isZero()
-                && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
-                && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
+        boolean facingComplete = true;
+        if (pathComplete && navigation.faceTarget != null) {
+            Point target = navigation.faceTarget;
+            float targetX = target.x * WorldUtils.TILE_WIDTH;
+            float targetZ = target.y * WorldUtils.TILE_WIDTH;
+            float desiredRotation = (float) Math.atan2(targetX - moved.x, targetZ - moved.z);
+            rotation = rotateToward(rotation, desiredRotation, settings.turnRate() * tpf);
+            facingComplete = Math.abs(angleDifference(desiredRotation, rotation)) <= settings.facingTolerance();
+            if (facingComplete) {
+                rotation = desiredRotation;
+            }
+        }
+
+        if (!moved.equals(position.position) || Math.abs(rotation - position.rotation) > POSITION_EPSILON) {
+            entityData.setComponent(entityId, new Position(rotation, moved));
+        }
+        if (pathComplete && facingComplete) {
             entityData.removeComponent(entityId, Navigation.class);
-            return;
-        }
-
-        // trim speed if have no forces
-        if (steering.linear.isZero() && !steerableEntity.getLinearVelocity().isZero()) {
-            steerableEntity.getLinearVelocity().scl(0.8f);
-        }
-        // apply linear
-        steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
-        steerableEntity.getPosition().add(steerableEntity.getLinearVelocity().x * tpf, steerableEntity.getLinearVelocity().y * tpf);
-
-        // Update orientation and angular velocity
-        if (INDEPENDENT_FACING
-                || steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())) {
-            // trim speed if have no forces
-            if (steering.angular == 0 && steerableEntity.getAngularVelocity() != 0) {
-                steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity() * 0.7f);
-            }
-            // Update angular velocity. Velocity is trimmed to maximum speed
-            steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity()
-                    + limitAngular(steering.angular, steerableEntity.getMaxAngularAcceleration()) * tpf);
-            steerableEntity.setAngularVelocity(limitAngular(steerableEntity.getAngularVelocity(), steerableEntity.getMaxAngularSpeed()));
-            // apply
-            if (!isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
-                steerableEntity.setOrientation(steerableEntity.getOrientation() + steerableEntity.getAngularVelocity() * tpf);
-            }
-        } else {
-            float newOrientation = SteeringUtils.calculateVectorToAngle(steerableEntity.getLinearVelocity());
-            steerableEntity.setAngularVelocity(newOrientation - steerableEntity.getOrientation());
-            steerableEntity.setOrientation(newOrientation);
-        }
-
-        // Also update the real components
-        Position oldPosition = entityData.getComponent(entityId, Position.class);
-        if (oldPosition != null) {
-
-            // Re-use the vector, the position might be already removed from another thread
-            oldPosition.position.x = steerableEntity.getPosition().x;
-            oldPosition.position.z = steerableEntity.getPosition().y;
-            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
         }
     }
 
     /**
-     * Limit angular speed or acceleration
-     *
-     * @param angular
-     * @param limit
-     * @return
+     * Resolve the passability rules for the mobile entity being moved. The
+     * movement query also includes wandering chickens, whose controller is
+     * owned by the objects controller rather than the creatures controller.
      */
-    public float limitAngular(float angular, float limit) {
-        return (Math.abs(angular) > limit) ? Math.copySign(limit, angular) : angular;
+    private INavigable navigableFor(Entity entity) {
+        EntityId entityId = entity.getId();
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null && creaturesController != null) {
+            ICreatureController creatureController = creaturesController.createController(entityId);
+            return creatureController;
+        }
+        if (entityData.getComponent(entityId, ChickenAi.class) != null && objectsController != null) {
+            IChickenController chickenController = objectsController.createChickenController(entityId);
+            return chickenController;
+        }
+        return null;
     }
 
-    public boolean isZeroAngular(float angular, float threshold) {
-        return Math.abs(angular) < threshold;
+    /**
+     * Path element zero is the tile where pathfinding began. Movement starts at
+     * the next element when there is a route; this also works when pathfinding
+     * rounded a creature's in-tile position to the tile centre.
+     */
+    private MovementCursor movementCursor(EntityId entityId, Navigation navigation, List<Vector2> path, int pathSize) {
+        MovementCursor cursor = movementCursors.get(entityId);
+        if (cursor == null || cursor.navigation != navigation || cursor.path != path || cursor.pathSize != pathSize) {
+            cursor = new MovementCursor(navigation, path, pathSize);
+            movementCursors.put(entityId, cursor);
+        }
+        return cursor;
+    }
+
+    /**
+     * Advances only through waypoints already reached. Keeping this progress
+     * avoids rescanning the route on every tick and prevents a creature from
+     * turning back toward a waypoint it has passed.
+     */
+    private Vector2 findNextWaypoint(MovementCursor cursor, Vector3f position) {
+        List<Vector2> path = cursor.path;
+        if (path == null || cursor.index >= cursor.pathSize) {
+            return null;
+        }
+        while (cursor.index < cursor.pathSize) {
+            Vector2 waypoint = path.get(cursor.index);
+            if (cursor.waypoint != waypoint || cursor.waypointX != waypoint.x || cursor.waypointY != waypoint.y) {
+                cursor.waypoint = waypoint;
+                cursor.waypointX = waypoint.x;
+                cursor.waypointY = waypoint.y;
+                cursor.headingValid = false;
+            }
+            float dx = waypoint.x - position.x;
+            float dz = waypoint.y - position.z;
+            if (dx * dx + dz * dz > waypointToleranceSquared) {
+                return waypoint;
+            }
+            cursor.index++;
+        }
+        return null;
+    }
+
+    /**
+     * Short paths have no repeated prefix worth caching. Avoid a cursor-map
+     * lookup for the common single-segment route.
+     */
+    private Vector2 findNextWaypoint(List<Vector2> path, int pathSize, Vector3f position) {
+        if (pathSize == 0) {
+            return null;
+        }
+        Vector2 waypoint = path.get(pathSize > 1 ? 1 : 0);
+        float dx = waypoint.x - position.x;
+        float dz = waypoint.y - position.z;
+        return dx * dx + dz * dz > waypointToleranceSquared ? waypoint : null;
+    }
+
+    private static float rotateToward(float current, float target, float maxChange) {
+        float difference = angleDifference(target, current);
+        if (Math.abs(difference) <= maxChange) {
+            return target;
+        }
+        return current + Math.copySign(maxChange, difference);
+    }
+
+    private static float angleDifference(float target, float current) {
+        float difference = (target - current) % TWO_PI;
+        if (difference > PI) {
+            difference -= TWO_PI;
+        } else if (difference < -PI) {
+            difference += TWO_PI;
+        }
+        return difference;
     }
 
     @Override
     public void start() {
-
     }
 
     @Override
     public void stop() {
         movableEntities.release();
-        steeringBehaviors.clear();
-        steerableEntitiesByEntityId.clear();
-        steerableEntitiesBySteeringBehavior.clear();
-        steeringBehaviorsBySteerableEntity.clear();
-        steeringOutputsBySteeringBehaviors.clear();
-        entityIdsBySteeringBehavior.clear();
-        targetPointsByEntityId.clear();
+        movementCursors.clear();
     }
 
+    private static final class MovementCursor {
+
+        private final Navigation navigation;
+        private final List<Vector2> path;
+        private final int pathSize;
+        private int index;
+        private Vector2 waypoint;
+        private float waypointX;
+        private float waypointY;
+        private float heading;
+        private boolean headingValid;
+
+        private MovementCursor(Navigation navigation, List<Vector2> path, int pathSize) {
+            this.navigation = navigation;
+            this.path = path;
+            this.pathSize = pathSize;
+            index = pathSize > 1 ? 1 : 0;
+        }
+    }
 }

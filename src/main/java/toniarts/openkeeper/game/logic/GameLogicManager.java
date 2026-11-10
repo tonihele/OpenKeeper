@@ -18,6 +18,13 @@ package toniarts.openkeeper.game.logic;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.LinkedBlockingQueue;
 
 /**
  * Runs the game logic tasks, well, doesn't literally run them but wraps them up
@@ -27,8 +34,11 @@ import java.lang.System.Logger.Level;
 public final class GameLogicManager implements IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(GameLogicManager.class.getName());
+    private static final int MAX_QUEUED_ACTIONS = 1024;
 
     protected final IGameLogicUpdatable[] updatables;
+    private final BlockingQueue<Runnable> actions = new LinkedBlockingQueue<>(MAX_QUEUED_ACTIONS);
+    private final ConcurrentHashMap<Short, Runnable> latestInputs = new ConcurrentHashMap<>();
 
     public GameLogicManager(IGameLogicUpdatable... updatables) {
         this.updatables = updatables;
@@ -43,12 +53,65 @@ public final class GameLogicManager implements IGameLogicUpdatable {
 
     @Override
     public void processTick(float tpf) {
+        runQueuedActions();
+
         // Update updatables
         for (IGameLogicUpdatable updatable : updatables) {
             try {
                 updatable.processTick(tpf);
             } catch (Exception e) {
                 logger.log(Level.ERROR, "Error in game logic tick on " + updatable.getClass() + "!", e);
+            }
+        }
+    }
+
+    /**
+     * Queues a state-changing player action for the start of the next logic
+     * tick. Adding never waits for the simulation thread. The bounded queue
+     * rejects excess requests instead of letting a stalled server grow memory
+     * without limit.
+     *
+     * @param action action to run
+     * @return whether the action was accepted
+     */
+    public boolean enqueueAction(Runnable action) {
+        Objects.requireNonNull(action, "action");
+        boolean accepted = actions.offer(action);
+        if (!accepted) {
+            logger.log(Level.WARNING, "Rejecting game action because the logic queue is full ({0})", MAX_QUEUED_ACTIONS);
+        }
+        return accepted;
+    }
+
+    /**
+     * Stores the latest high-rate input for a player, replacing an older value
+     * until the next simulation tick. Players are applied in ID order so
+     * simultaneous inputs have a stable simulation order.
+     *
+     * @param playerId input stream player ID
+     * @param input action that applies the latest value
+     */
+    public void enqueueLatestInput(short playerId, Runnable input) {
+        latestInputs.put(playerId, Objects.requireNonNull(input, "input"));
+    }
+
+    private void runQueuedActions() {
+        List<Runnable> queued = new ArrayList<>();
+        actions.drainTo(queued);
+        List<Short> playerIds = new ArrayList<>(latestInputs.keySet());
+        Collections.sort(playerIds);
+        for (short playerId : playerIds) {
+            Runnable input = latestInputs.get(playerId);
+            if (input != null && latestInputs.remove(playerId, input)) {
+                queued.add(input);
+            }
+        }
+
+        for (Runnable action : queued) {
+            try {
+                action.run();
+            } catch (Exception e) {
+                logger.log(Level.ERROR, "Error in queued game action!", e);
             }
         }
     }

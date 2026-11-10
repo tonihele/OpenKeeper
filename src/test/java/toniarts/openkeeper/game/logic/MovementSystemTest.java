@@ -16,19 +16,38 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.chicken.ChickenState;
+import toniarts.openkeeper.game.controller.chicken.IChickenController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.Point;
 
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MovementSystemTest {
@@ -54,5 +73,331 @@ class MovementSystemTest {
         float facing = entityData.getComponent(creature, Position.class).rotation;
         double cos = (Math.sin(facing) * 1 + Math.cos(facing) * 2) / Math.sqrt(5);
         assertTrue(cos > Math.cos(0.2), "facing " + Math.toDegrees(Math.acos(cos)) + " degrees away");
+    }
+
+    @Test
+    void movementDoesNotOvershootTheEndOfAShortPath() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 5f),
+                new Navigation(new Point(1, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0)))));
+
+        new MovementSystem(entityData).processTick(0.5f);
+
+        Position moved = entityData.getComponent(creature, Position.class);
+        assertTrue(moved.position.x <= 1f, "overshot to " + moved.position.x);
+        assertEquals(0f, moved.position.z, 0.001f);
+    }
+
+    @Test
+    void movementContinuesPastIntermediateWaypoints() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1.2f),
+                new Navigation(new Point(2, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0), new Vector2(2, 0)))));
+        MovementSystem movementSystem = new MovementSystem(entityData);
+
+        for (int tick = 0; tick < 80; tick++) {
+            movementSystem.processTick(1f / 20f);
+        }
+
+        Position moved = entityData.getComponent(creature, Position.class);
+        assertEquals(2f, moved.position.x, MovementSettings.DEFAULT.waypointTolerance());
+        assertNull(entityData.getComponent(creature, Navigation.class));
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void movementRecomputesHeadingAfterTurningToNextWaypoint() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 5f),
+                new Navigation(new Point(1, 1), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0), new Vector2(1, 1)))));
+        MovementSystem movementSystem = new MovementSystem(entityData);
+
+        for (int tick = 0; tick < 3; tick++) {
+            movementSystem.processTick(0.1f);
+        }
+
+        Position moved = entityData.getComponent(creature, Position.class);
+        assertEquals(1f, moved.position.x, 0.001f);
+        assertEquals(0.5f, moved.position.z, 0.001f);
+        assertEquals(0f, moved.rotation, 0.001f);
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void replacingNavigationResetsTheRouteCursor() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 5f),
+                new Navigation(new Point(4, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0), new Vector2(2, 0),
+                                new Vector2(3, 0), new Vector2(4, 0)))));
+        MovementSystem movementSystem = new MovementSystem(entityData);
+        movementSystem.processTick(0.2f);
+        movementSystem.processTick(0.2f);
+
+        entityData.setComponent(creature, new Navigation(new Point(1, 0), null,
+                new ArrayList<>(List.of(new Vector2(2, 0), new Vector2(3, 0), new Vector2(0, 0),
+                        new Vector2(1, 0)))));
+        movementSystem.processTick(0.2f);
+
+        Position moved = entityData.getComponent(creature, Position.class);
+        assertEquals(3f, moved.position.x, 0.001f);
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void movementKeepsProgressOnLongTurningRoute() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        List<Vector2> path = new ArrayList<>(49);
+        float pathX = 0f;
+        float pathZ = 0f;
+        path.add(new Vector2(pathX, pathZ));
+        for (int waypoint = 1; waypoint < 49; waypoint++) {
+            switch ((waypoint - 1) % 4) {
+                case 0 -> pathX += 1f;
+                case 1 -> pathZ += 1f;
+                case 2 -> pathX += 1f;
+                default -> pathZ -= 1f;
+            }
+            path.add(new Vector2(pathX, pathZ));
+        }
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1.2f),
+                new Navigation(new Point(Math.round(pathX), Math.round(pathZ)), null, path));
+        MovementSystem movementSystem = new MovementSystem(entityData);
+
+        for (int tick = 0; tick < 600; tick++) {
+            movementSystem.processTick(1f / 20f);
+        }
+
+        Position moved = entityData.getComponent(creature, Position.class);
+        assertTrue(moved.position.x > 10f, "stalled or reversed at x=" + moved.position.x);
+        assertNotNull(entityData.getComponent(creature, Navigation.class));
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void animationUsesTheMovementResultFromTheSameSimulationTick() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 5f),
+                new Navigation(new Point(1, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0)))),
+                new CreatureAi(0, CreatureState.IDLE, (short) 1),
+                new CreatureViewState((short) 1, 0, Creature.AnimationType.WALK));
+        MovementSystem movement = new MovementSystem(entityData);
+        CreatureViewSystem animation = new CreatureViewSystem(entityData, null);
+        GameLogicManager simulation = new GameLogicManager(movement, animation);
+
+        simulation.processTick(0.5f);
+
+        assertNull(entityData.getComponent(creature, Navigation.class));
+        assertEquals(Creature.AnimationType.IDLE_1,
+                entityData.getComponent(creature, CreatureViewState.class).state);
+        simulation.stop();
+        entityData.close();
+    }
+
+    @Test
+    void animationUsesViewStateChangesMadeBeforeTheTick() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new CreatureAi(0, CreatureState.IDLE, (short) 1),
+                new CreatureViewState((short) 1, 0, Creature.AnimationType.IDLE_1));
+        CreatureViewSystem animation = new CreatureViewSystem(entityData, null);
+
+        entityData.setComponent(creature,
+                new CreatureViewState((short) 1, 0, Creature.AnimationType.WALK));
+        animation.processTick(0.05f);
+
+        assertEquals(Creature.AnimationType.IDLE_1,
+                entityData.getComponent(creature, CreatureViewState.class).state);
+        animation.stop();
+        entityData.close();
+    }
+
+    @Test
+    void aiMovementStopsBeforeAnImpassableTile() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 5f),
+                new CreatureComponent(),
+                new Navigation(new Point(2, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0), new Vector2(2, 0)))));
+        MovementSettings settings = MovementSettings.DEFAULT;
+        GridMovementCollision collision = new GridMovementCollision(
+                PossessedMovementSystemTest.mapWithWallAtXOne(), null, settings);
+        MovementSystem movementSystem = new MovementSystem(entityData, settings, collision,
+                PossessedMovementSystemTest.creaturesWithWallAtXOne());
+
+        movementSystem.processTick(0.5f);
+
+        float x = entityData.getComponent(creature, Position.class).position.x;
+        assertTrue(x > 0f && x <= 1f / 3f + 0.001f, "creature crossed wall to x=" + x);
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void chickenMovementUsesItsControllerWithoutAbortingLaterEntities() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId chicken = entityData.createEntity();
+        entityData.setComponents(chicken,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1f),
+                new Navigation(new Point(1, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0)))),
+                new ChickenAi(0, ChickenState.WANDERING));
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1f),
+                new CreatureComponent(),
+                new Navigation(new Point(1, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0)))));
+
+        AtomicInteger chickenControllerRequests = new AtomicInteger();
+        AtomicInteger creatureControllerRequests = new AtomicInteger();
+        AtomicInteger chickenCostChecks = new AtomicInteger();
+        AtomicInteger creatureCostChecks = new AtomicInteger();
+        IChickenController chickenController = createProxy(IChickenController.class,
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getCost")) {
+                        chickenCostChecks.incrementAndGet();
+                        return 1f;
+                    }
+                    return defaultValue(method.getReturnType());
+                });
+        ICreatureController creatureController = createProxy(ICreatureController.class,
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getCost")) {
+                        creatureCostChecks.incrementAndGet();
+                        return 1f;
+                    }
+                    return defaultValue(method.getReturnType());
+                });
+        IObjectsController objectsController = createProxy(IObjectsController.class, (proxy, method, args) -> {
+            if (method.getName().equals("createChickenController")) {
+                chickenControllerRequests.incrementAndGet();
+                return chickenController;
+            }
+            return defaultValue(method.getReturnType());
+        });
+        ICreaturesController creaturesController = createProxy(ICreaturesController.class,
+                (proxy, method, args) -> {
+                    if (method.getName().equals("createController") && creature.equals(args[0])) {
+                        creatureControllerRequests.incrementAndGet();
+                        return creatureController;
+                    }
+                    throw new AssertionError("non-creature was passed to the creature controller");
+                });
+
+        MovementSystem movementSystem = new MovementSystem(entityData, MovementSettings.DEFAULT,
+                new GridMovementCollision(PossessedMovementSystemTest.mapWithWallAtXOne(), null,
+                        MovementSettings.DEFAULT),
+                creaturesController, objectsController);
+
+        movementSystem.processTick(0.5f);
+
+        assertEquals(1, chickenControllerRequests.get());
+        assertEquals(1, creatureControllerRequests.get());
+        assertEquals(1, chickenCostChecks.get());
+        assertEquals(1, creatureCostChecks.get());
+        assertEquals(0.5f, entityData.getComponent(chicken, Position.class).position.x, 0.001f);
+        assertEquals(0.5f, entityData.getComponent(creature, Position.class).position.x, 0.001f);
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void identicalTickSequencesProduceIdenticalMovement() {
+        Position first = simulatePath();
+        Position second = simulatePath();
+
+        assertEquals(first.position.x, second.position.x, 0f);
+        assertEquals(first.position.z, second.position.z, 0f);
+        assertEquals(first.rotation, second.rotation, 0f);
+    }
+
+    private Position simulatePath() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1f),
+                new Navigation(new Point(2, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0), new Vector2(2, 0)))));
+        MovementSystem movementSystem = new MovementSystem(entityData);
+
+        for (int i = 0; i < 120; i++) {
+            movementSystem.processTick(1f / 60f);
+        }
+
+        Position position = entityData.getComponent(creature, Position.class);
+        Position copy = new Position(position.rotation, position.position.clone());
+        movementSystem.stop();
+        entityData.close();
+        return copy;
+    }
+
+    private static <T> T createProxy(Class<T> type, InvocationHandler handler) {
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler));
+    }
+
+    private static Object defaultValue(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return null;
+        }
+        if (type == boolean.class) {
+            return false;
+        }
+        if (type == char.class) {
+            return '\0';
+        }
+        if (type == byte.class) {
+            return (byte) 0;
+        }
+        if (type == short.class) {
+            return (short) 0;
+        }
+        if (type == int.class) {
+            return 0;
+        }
+        if (type == long.class) {
+            return 0L;
+        }
+        if (type == float.class) {
+            return 0f;
+        }
+        if (type == double.class) {
+            return 0d;
+        }
+        return null;
     }
 }
