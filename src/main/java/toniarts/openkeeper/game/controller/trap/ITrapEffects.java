@@ -38,4 +38,12 @@ public interface ITrapEffects {
      */
     void fire(Trap trap, short ownerId, Vector3f origin, EntityId target);
 
+    /**
+     * Called by the trap system on every tick, whether a trap fires or not.
+     * Effects that keep entity sets apply their changes here, so the changes
+     * don't pile up between the shots
+     */
+    default void update() {
+    }
+
 }

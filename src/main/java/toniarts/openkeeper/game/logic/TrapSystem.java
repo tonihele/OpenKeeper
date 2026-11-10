@@ -21,12 +21,12 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -108,22 +109,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private final float triggerSpeed;
     private final EntitySet trapEntities;
     private final EntitySet creatureEntities;
-    private final List<TriggerWave> triggerWaves = new ArrayList<>();
-
-    /**
-     * The spreading set off of a Trigger Trap
-     *
-     * @param triggerTrapId the Trigger Trap
-     * @param ownerId the owner, whose traps the wave sets off
-     * @param origin where the Trigger Trap is
-     * @param target the creature that set off the Trigger Trap
-     * @param startTime game time the Trigger Trap fired
-     * @param reachedTraps the traps the wave has already reached
-     */
-    private record TriggerWave(EntityId triggerTrapId, short ownerId, Vector3f origin, EntityId target, double startTime,
-            Set<EntityId> reachedTraps) {
-
-    }
+    private final EntitySet triggerWaves;
 
     /**
      * The trap system
@@ -154,12 +140,14 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
         trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class, Health.class);
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
+        triggerWaves = entityData.getEntities(TriggerWave.class);
     }
 
     @Override
     public void processTick(float tpf) {
         trapEntities.applyChanges();
         creatureEntities.applyChanges();
+        trapEffects.update();
 
         revealTrapsAroundCreatures();
 
@@ -171,9 +159,15 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         // A wave can start new waves, those spread from the next tick on
-        for (TriggerWave triggerWave : new ArrayList<>(triggerWaves)) {
-            if (spreadTriggerWave(triggerWave, gameTime)) {
-                triggerWaves.remove(triggerWave);
+        triggerWaves.applyChanges();
+        for (Entity waveEntity : triggerWaves) {
+            TriggerWave triggerWave = waveEntity.get(TriggerWave.class);
+            Set<EntityId> reachedTraps = new HashSet<>(triggerWave.reachedTraps);
+            if (spreadTriggerWave(triggerWave, reachedTraps, gameTime)) {
+                entityData.removeEntity(waveEntity.getId());
+            } else if (reachedTraps.size() != triggerWave.reachedTraps.size()) {
+                waveEntity.set(new TriggerWave(triggerWave.triggerTrap, triggerWave.ownerId, triggerWave.origin,
+                        triggerWave.target, triggerWave.startTime, reachedTraps));
             }
         }
     }
@@ -256,8 +250,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
                 threatEndTime));
 
         if (trap.getTriggerType() == Trap.TriggerType.TRIGGER && target != null) {
-            triggerWaves.add(new TriggerWave(trapEntity.getId(), ownerId, trapEntity.get(Position.class).position.clone(), target,
-                    gameTime, new HashSet<>()));
+            entityData.setComponent(entityData.createEntity(), new TriggerWave(trapEntity.getId(), ownerId,
+                    trapEntity.get(Position.class).position.clone(), target, gameTime, Set.of()));
         }
 
         return true;
@@ -340,18 +334,20 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * Fires the recharged traps the Trigger Trap's wave reaches
      *
      * @param triggerWave the wave
+     * @param reachedTraps the traps the wave has reached, the traps it reaches
+     * now are added
      * @param gameTime the current game time
      * @return whether the wave has reached as far as it goes
      */
-    private boolean spreadTriggerWave(TriggerWave triggerWave, double gameTime) {
-        float radius = (float) Math.min(TRIGGER_TRAP_RANGE, (gameTime - triggerWave.startTime()) * triggerSpeed);
-        Entity victim = creatureEntities.getEntity(triggerWave.target());
+    private boolean spreadTriggerWave(TriggerWave triggerWave, Set<EntityId> reachedTraps, double gameTime) {
+        float radius = (float) Math.min(TRIGGER_TRAP_RANGE, (gameTime - triggerWave.startTime) * triggerSpeed);
+        Entity victim = creatureEntities.getEntity(triggerWave.target);
         for (Entity trapEntity : trapEntities) {
             Vector3f trapPosition = trapEntity.get(Position.class).position;
-            if (trapEntity.get(TrapViewState.class).blueprint || trapEntity.get(Owner.class).ownerId != triggerWave.ownerId()
-                    || trapEntity.getId().equals(triggerWave.triggerTrapId())
-                    || distanceSquared(triggerWave.origin(), trapPosition) > radius * radius
-                    || !triggerWave.reachedTraps().add(trapEntity.getId())) {
+            if (trapEntity.get(TrapViewState.class).blueprint || trapEntity.get(Owner.class).ownerId != triggerWave.ownerId
+                    || trapEntity.getId().equals(triggerWave.triggerTrap)
+                    || distanceSquared(triggerWave.origin, trapPosition) > radius * radius
+                    || !reachedTraps.add(trapEntity.getId())) {
                 continue;
             }
 
@@ -521,8 +517,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
     /**
      * Whether the creature can set off a trap. Creatures out of the world
-     * (dead, knocked out or in a keeper's hand) don't, and neither does a
-     * creature type with the data flag OpenKeeper calls {@code IS_HORNY}, the
+     * (dead, knocked out or in a keeper's hand) don't, nor do prisoners and
+     * creatures being tortured, as in DK II (0x45A8B0, 0x4A9400). Neither does
+     * a creature type with the data flag OpenKeeper calls {@code IS_HORNY}, the
      * Horned Reaper
      *
      * @param creatureEntity the creature
@@ -534,7 +531,9 @@ public final class TrapSystem implements IGameLogicUpdatable {
         if (creatureEntity.get(Health.class).health <= 0
                 || entityData.getComponent(entityId, Unconscious.class) != null
                 || entityData.getComponent(entityId, InHand.class) != null
-                || entityData.getComponent(entityId, Death.class) != null) {
+                || entityData.getComponent(entityId, Death.class) != null
+                || entityData.getComponent(entityId, CreatureImprisoned.class) != null
+                || entityData.getComponent(entityId, CreatureTortured.class) != null) {
             return false;
         }
         if (checkCreatureType) {
@@ -586,7 +585,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     public void stop() {
         trapEntities.release();
         creatureEntities.release();
-        triggerWaves.clear();
+        triggerWaves.release();
     }
 
 }

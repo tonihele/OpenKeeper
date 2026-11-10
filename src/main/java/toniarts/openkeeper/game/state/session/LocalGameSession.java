@@ -367,6 +367,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void cancelCallToArms() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCancelCallToArms(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void transitionEnd() {
         playerInTransition = false;
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
@@ -432,6 +439,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
             listener.onSetPossessedMovement(direction, rotation, speedMode, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onSetPossessedAttack(attacking, PLAYER_ID);
         }
     }
 

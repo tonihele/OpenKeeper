@@ -267,11 +267,9 @@ public enum CreatureState implements State<ICreatureController> {
                 // Do the task we were supposed to do
                 entity.executeAssignedTask();
 
-                // If we have too much gold, drop it to the treasury
+                // If we have too much gold, take it to the treasury. With nowhere to take it, we keep it
                 if (entity.isTooMuchGold()) {
-                    if (!entity.dropGoldToTreasury()) {
-                        entity.dropGold();
-                    }
+                    entity.dropGoldToTreasury();
                 }
             } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
@@ -741,6 +739,29 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void exit(ICreatureController entity) {
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CALL_TO_ARMS {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+            if (!entity.heedCallToArms()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+            entity.resetFollowTarget();
         }
 
         @Override

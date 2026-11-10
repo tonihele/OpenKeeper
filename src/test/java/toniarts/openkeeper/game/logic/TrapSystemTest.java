@@ -30,6 +30,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
@@ -38,6 +40,7 @@ import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
@@ -85,6 +88,7 @@ class TrapSystemTest {
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
+    private int effectUpdates;
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
     private double gameTime = 0;
@@ -298,6 +302,19 @@ class TrapSystemTest {
     }
 
     @Test
+    void sentryIgnoresPrisonersAndTortureVictims() {
+        addTrap(SENTRY, TRAP_TILE);
+        EntityId prisoner = addCreature(IMP, ENEMY, 12, 10);
+        entityData.setComponent(prisoner, new CreatureImprisoned(0, 0));
+        EntityId tortured = addCreature(IMP, ENEMY, 11, 10);
+        entityData.setComponent(tortured, new CreatureTortured(0, 0, 0));
+
+        tick();
+
+        assertTrue(shots.isEmpty());
+    }
+
+    @Test
     void fearTrapThreatensOnlyAfterItFires() {
         EntityId trap = addTrap(FEAR, TRAP_TILE);
 
@@ -393,6 +410,23 @@ class TrapSystemTest {
     }
 
     @Test
+    void triggerWaveIsKeptInTheEntityData() {
+        addTrap(TRIGGER, TRAP_TILE);
+        addTrap(SPIKE, new Point(12, 10));
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+
+        tick();
+        assertEquals(1, entityData.getEntities(TriggerWave.class).size());
+
+        // A loaded game starts with a new system on the same entities
+        trapSystem = null;
+        gameTime = 2;
+        tick();
+
+        assertEquals(List.of(new Fired(TRIGGER, enemy), new Fired(SPIKE, enemy)), shots);
+    }
+
+    @Test
     void triggerTrapLeavesOtherKeepersAndRechargingTrapsAlone() {
         addTrap(TRIGGER, TRAP_TILE);
         EntityId enemyTrap = addTrap(SPIKE, new Point(12, 10));
@@ -419,6 +453,17 @@ class TrapSystemTest {
 
         assertTrue(shots.isEmpty());
         assertNull(entityData.getComponent(guardPost, TrapFiring.class));
+    }
+
+    @Test
+    void effectsAreKeptUpToDateWhenNoTrapFires() {
+        addTrap(SENTRY, TRAP_TILE);
+
+        tick();
+        tick();
+
+        assertTrue(shots.isEmpty());
+        assertEquals(2, effectUpdates);
     }
 
     @Test
@@ -529,7 +574,18 @@ class TrapSystemTest {
     }
 
     private ITrapEffects effects() {
-        return (trap, ownerId, origin, target) -> shots.add(new Fired(trap.getTrapId(), target));
+        return new ITrapEffects() {
+
+            @Override
+            public void fire(Trap trap, short ownerId, Vector3f origin, EntityId target) {
+                shots.add(new Fired(trap.getTrapId(), target));
+            }
+
+            @Override
+            public void update() {
+                effectUpdates++;
+            }
+        };
     }
 
     private IEntityPositionLookup positionLookup() {
