@@ -33,7 +33,9 @@ import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
 /**
- * Maintains possessed state, sees when we need to stop possessing
+ * Maintains possessed state, sees when we need to stop possessing. Also swings
+ * the attacks the keepers give to their possessed creatures, so that they hit
+ * on the game logic thread.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -86,7 +88,31 @@ public final class PossessedSystem extends GameTimeCounter {
             if (manaControl == null || !manaControl.hasEnoughMana(possessed.manaDrain)) {
                 creaturesController.createController(entity.getId()).setPossession(false);
             } else {
-                entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed));
+
+                // Keep the attack that the session thread may have written meanwhile
+                Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
+                if (live != null) {
+                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime));
+                }
+            }
+        }
+
+        processAttacks();
+    }
+
+    private void processAttacks() {
+        for (Entity entity : possessedEntities) {
+            Possessed attack = entityData.getComponent(entity.getId(), Possessed.class);
+            if (attack == null || !attack.isAttackPending()) {
+                continue;
+            }
+            creaturesController.createController(entity.getId()).executePossessedAttack();
+
+            // A released attack only had this one swing
+            // The session thread may have written a new press meanwhile, so only remove the very same released press
+            Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
+            if (!attack.attackHeld && live == attack) {
+                entityData.setComponent(entity.getId(), new Possessed(attack.manaDrain, attack.manaCheckTime, false, Double.NaN));
             }
         }
     }

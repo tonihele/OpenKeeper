@@ -37,6 +37,8 @@ import java.net.UnknownHostException;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.Crate;
@@ -91,6 +93,7 @@ import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.Senses;
+import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Spellbook;
@@ -102,6 +105,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
@@ -184,6 +188,8 @@ public final class NetworkServer {
             Serializer.registerClass(Alarm.class, new FieldSerializer());
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
+            Serializer.registerClass(CallToArms.class, new FieldSerializer());
+            Serializer.registerClass(CastShot.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
@@ -240,6 +246,7 @@ public final class NetworkServer {
             Serializer.registerClass(Storage.class, new FieldSerializer());
             Serializer.registerClass(Stored.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
+            Serializer.registerClass(ShotFlight.class, new FieldSerializer());
             Serializer.registerClass(ShotViewState.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
@@ -250,6 +257,7 @@ public final class NetworkServer {
             Serializer.registerClass(TrapFiring.class, new FieldSerializer());
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
+            Serializer.registerClass(TriggerWave.class, new FieldSerializer());
             Serializer.registerClass(Unconscious.class, new FieldSerializer());
         }
     }

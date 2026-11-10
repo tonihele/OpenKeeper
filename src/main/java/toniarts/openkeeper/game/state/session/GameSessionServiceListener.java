@@ -107,6 +107,14 @@ public interface GameSessionServiceListener {
     public void onGetGold(int amount, short playerId);
 
     /**
+     * Player wants to take down the Call to Arms banner
+     *
+     * @param playerId who wants it
+     */
+    @Asynchronous
+    public void onCancelCallToArms(short playerId);
+
+    /**
      * Player UI transition has ended
      *
      * @param playerId the player whose transition ended
@@ -186,6 +194,15 @@ public interface GameSessionServiceListener {
      */
     @Asynchronous
     public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId);
+
+    /**
+     * Player starts or stops attacking with the possessed creature
+     *
+     * @param attacking whether the attack button is held down
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onSetPossessedAttack(boolean attacking, short playerId);
 
     /**
      * Player wants to stop possessing
