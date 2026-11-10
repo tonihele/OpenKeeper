@@ -20,13 +20,11 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.ServerGameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -47,10 +45,10 @@ import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
-import java.io.IOException;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
@@ -70,7 +68,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private static final Logger logger = System.getLogger(GameController.class.getName());
 
     private final LevelInfo levelInfo;
-    private final toniarts.openkeeper.game.data.CampaignLevel levelObject;
 
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -103,7 +100,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
             PlayerService playerService) {
 
         levelInfo = new LevelInfo(level);
-        levelObject = null;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
@@ -238,7 +234,12 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
                 break;
             }
             case ROOM: {
-                playerController.getRoomControl().setTypeAvailable(levelInfo.kwdFile.getRoomById((short) availability.getTypeId()), available, discovered);
+                Room room = levelInfo.kwdFile.getRoomById((short) availability.getTypeId());
+                if (availability.getValue() == Variable.Availability.AvailabilityValue.UNAVAILABLE_ROOM) {
+                    playerController.getRoomControl().setTypeAvailableWhenOwned(room);
+                } else {
+                    playerController.getRoomControl().setTypeAvailable(room, available, discovered);
+                }
                 break;
             }
             case SPELL: {
@@ -273,14 +274,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         GdxAI.getTimepiece().update(tpf);
 
         // Time limit is a special timer, it just ticks towards 0 if it is set
-        if (levelInfo.timeLimit != null) {
-            levelInfo.timeLimit -= tpf;
-
-            // We rest on zero
-            if (levelInfo.timeLimit < 0) {
-                levelInfo.timeLimit = 0f;
-            }
-        }
+        updateTimeLimit(tpf);
 
         // Advance game timers
         for (GameTimer timer : levelInfo.timers.getArray()) {
@@ -292,11 +286,43 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
 
         controllers.stream().forEach(controller -> controller.processTick(tpf));
+    }
 
-        if (levelInfo.timeLimit != null && levelInfo.timeLimit <= 0) {
-            //TODO:
-            throw new RuntimeException("Level time limit exceeded!");
+    private void updateTimeLimit(float tpf) {
+        Float previous = levelInfo.timeLimit;
+        if (previous == null) {
+            return;
         }
+
+        levelInfo.timeLimit = advanceTimeLimit(previous, tpf);
+
+        // The game itself does nothing more than note that the time is up,
+        // the level script is what loses or wins the level
+        if (isTimeLimitReached(previous, levelInfo.timeLimit)) {
+            logger.log(Level.INFO, "Level time limit reached");
+        }
+    }
+
+    /**
+     * Counts the level time limit down. It rests on zero
+     *
+     * @param timeLimit the time left
+     * @param tpf the time passed
+     * @return the time left now
+     */
+    static float advanceTimeLimit(float timeLimit, float tpf) {
+        return Math.max(timeLimit - tpf, 0f);
+    }
+
+    /**
+     * Tells if the level time limit ran out just now
+     *
+     * @param previous the time left before
+     * @param current the time left now
+     * @return true on the tick the time ran out, false before and after
+     */
+    static boolean isTimeLimitReached(float previous, float current) {
+        return previous > 0f && current <= 0f;
     }
 
     @Override
@@ -306,19 +332,6 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         gameResult = new GameResult();
         gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
         gameResult.setData(GameResult.ResultType.TIME_TAKEN, gameTimer.getGameTime());
-
-        // Mark the achievement if campaign level
-        if (levelObject != null) {
-            Main.getUserSettings().increaseLevelAttempts(levelObject);
-            if (win) {
-                Main.getUserSettings().setLevelStatus(levelObject, Settings.LevelStatus.COMPLETED);
-            }
-            try {
-                Main.getUserSettings().save();
-            } catch (IOException ex) {
-                logger.log(Level.ERROR, "Failed to save the level progress!", ex);
-            }
-        }
 
         // Enable the end game state on the player (client)
         playerService.endGame(win, playerId);
