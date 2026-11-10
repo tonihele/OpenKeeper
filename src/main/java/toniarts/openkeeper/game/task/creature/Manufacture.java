@@ -20,7 +20,7 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
-import toniarts.openkeeper.game.controller.WorkshopOrders;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -39,16 +39,14 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerManufactureControl manufactureControl;
-    private final WorkshopOrders workshopOrders;
     private final IObjectsController objectsController;
     private Vector2f workPlace;
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerManufactureControl manufactureControl, WorkshopOrders workshopOrders, IObjectsController objectsController) {
+            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.manufactureControl = manufactureControl;
-        this.workshopOrders = workshopOrders;
         this.objectsController = objectsController;
     }
 
@@ -58,7 +56,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         // The workshop is there and has room for another crate, without a creature only that is asked
         return super.isValid(creature)
                 && (creature == null || creature.getManufacturePerSecond() > 0)
-                && workshopOrders.getNext(playerId) != null;
+                && manufactureControl.getOrder() != null;
     }
 
     @Override
@@ -104,7 +102,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         }
         setExecutionDuration(creature, getExecutionDuration(creature) + 1.0f);
 
-        WorkshopOrders.Order order = workshopOrders.getNext(playerId);
+        ManufactureOrders.Order order = manufactureControl.getOrder();
         if (order == null || !manufactureControl.manufacture(creature.getManufacturePerSecond(), order.manufToBuild())) {
             return;
         }
