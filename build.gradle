@@ -96,14 +96,6 @@ test {
     useJUnitPlatform()
 }
 
-tasks.register("terrainDeformerBenchmark", JavaExec) {
-    group = "verification"
-    description = "Measures deterministic terrain deformation time and allocation."
-    dependsOn testClasses
-    classpath = sourceSets.test.runtimeClasspath
-    mainClass = "toniarts.openkeeper.view.map.TerrainDeformerBenchmark"
-}
-
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
