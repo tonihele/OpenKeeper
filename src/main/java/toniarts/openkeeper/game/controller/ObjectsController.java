@@ -283,6 +283,21 @@ public final class ObjectsController implements IObjectsController {
     }
 
     @Override
+    public void setOwner(EntityId entityId, short playerId) {
+        Owner previous = entityData.getComponent(entityId, Owner.class);
+        if (previous == null || entityData.getComponent(entityId, ObjectComponent.class) == null) {
+            return;
+        }
+        if (previous.ownerId != playerId && previous.ownerId == Player.NEUTRAL_PLAYER_ID) {
+            gameController.onObjectClaimed(entityId);
+        }
+        // An event action may remove its object; do not recreate components afterward.
+        if (entityData.getComponent(entityId, ObjectComponent.class) != null) {
+            entityData.setComponent(entityId, new Owner(playerId, playerId));
+        }
+    }
+
+    @Override
     public IObjectController createController(EntityId entityId) {
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         if (objectComponent == null) {

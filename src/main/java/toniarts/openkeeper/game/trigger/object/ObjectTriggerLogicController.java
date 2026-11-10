@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.object;
 
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,9 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public final class ObjectTriggerLogicController extends AbstractThingTriggerLogicController<IObjectController> {
 
+    private final EntityData entityData;
+    private final IObjectsController objectsController;
+
     public ObjectTriggerLogicController(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final PlayerService playerService, final EntityData entityData,
             final IObjectsController objectsController) {
@@ -48,6 +52,19 @@ public final class ObjectTriggerLogicController extends AbstractThingTriggerLogi
                 creaturesController, playerService),
                 entityData.getEntities(ObjectComponent.class, Trigger.class),
                 objectsController);
+        this.entityData = entityData;
+        this.objectsController = objectsController;
+    }
+
+    public void onClaimed(EntityId entityId) {
+        Trigger binding = entityData.getComponent(entityId, Trigger.class);
+        if (binding == null || entityData.getComponent(entityId, ObjectComponent.class) == null) {
+            return;
+        }
+        ObjectTriggerControl control = (ObjectTriggerControl) getTriggerControl(binding.triggerId);
+        if (control != null) {
+            control.onClaimed(objectsController.createController(entityId));
+        }
     }
 
     private static Map<Integer, AbstractThingTriggerControl<IObjectController>> initTriggers(List<Thing.Object> things, final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,

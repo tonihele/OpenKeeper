@@ -75,6 +75,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private ObjectTriggerLogicController objectTriggers;
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -111,6 +112,14 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         createNewGame();
     }
 
+    @Override
+    public void onObjectClaimed(EntityId entityId) {
+        // Initial world construction can assign owners before scripts are attached.
+        if (objectTriggers != null) {
+            objectTriggers.onClaimed(entityId);
+        }
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
@@ -140,9 +149,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData));
-        controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
+        objectTriggers = new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData, gameWorldController.getObjectsController()));
+                playerService, entityData, gameWorldController.getObjectsController());
+        controllers.add(objectTriggers);
         controllers.add(new DoorTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData, gameWorldController.getDoorsController()));

@@ -76,7 +76,22 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_STUNNED(15), // Event, This creature is
         CREATURE_DYING(16), // Event, This creature is
         DOOR_DESTROYED(17), // Event, This door is
-        OBJECT_CLAIMED(18), // Event, This object is
+        /**
+         * Fires when this Neutral object is claimed by another player, before
+         * its ownership changes. Transfers between non-Neutral owners, changes
+         * of control alone and assigning the same owner do not fire it.
+         * Returning to Neutral and being claimed again can fire another event,
+         * subject to the script's repeat limits.
+         * <p>
+         * This is an object-bound event, not a persistent ownership test. For
+         * example, claiming a Neutral spell book into a Library can set a flag
+         * that advances a map objective. Its child conditions run at claim time.
+         * <p>
+         * This follows the apparent intent of DKII's Neutral-owner check. The
+         * original method performs that check after clearing the owner, which
+         * appears to prevent the event in normal ownership changes.
+         */
+        OBJECT_CLAIMED(18),
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
         /**
