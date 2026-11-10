@@ -83,7 +83,6 @@ import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
-import toniarts.openkeeper.game.task.objective.EscapeWithGold;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
@@ -137,8 +136,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
-    private final Map<EntityId, Point> thiefEntrances = new HashMap<>();
-    private final Set<EntityId> thievesWithLoot = new HashSet<>();
     private final Set<ICreatureController> escapedThieves = new HashSet<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
@@ -746,18 +743,18 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 break;
             }
-            default: {
-
-                // The other objectives don't give the creature a task of its own
-                break;
-            }
             case KILL_CREATURES: {
                 task = KillCreatures.create(navigationService, mapController, levelInfo, creature,
                         getCreatures(creature.getObjectiveTargetPlayerId()));
                 break;
             }
             case STEAL_GOLD: {
-                task = getStealGoldTask(creature);
+                task = new StealGold(navigationService, mapController, gameWorldController, entityData, creature, escapedThieves::add);
+                break;
+            }
+            default: {
+
+                // The other objectives don't give the creature a task of its own
                 break;
             }
         }
@@ -792,39 +789,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
-     * A thief goes for the keeper's gold, and once he has it, back to where he
-     * came into the level
-     *
-     * @param thief the thief
-     * @return the task, {@code null} if the thief has nothing to steal
-     */
-    private AbstractObjectiveTask getStealGoldTask(ICreatureController thief) {
-        Point entrance = thiefEntrances.computeIfAbsent(thief.getEntityId(), entityId -> thief.getCreatureCoordinates());
-        if (thievesWithLoot.contains(thief.getEntityId())) {
-            return new EscapeWithGold(navigationService, mapController, entrance, thief.getOwnerId(), escapedThieves::add);
-        }
-
-        short targetPlayerId = thief.getObjectiveTargetPlayerId();
-        if (targetPlayerId == thief.getOwnerId()) {
-            return null;
-        }
-        Point goldTile = StealGold.findGoldTile(thief, mapController.getRoomsByFunction(ObjectType.GOLD, targetPlayerId), navigationService);
-        if (goldTile == null) {
-            return null;
-        }
-
-        return new StealGold(navigationService, mapController, gameWorldController, goldTile, targetPlayerId, thief.getOwnerId(),
-                looter -> thievesWithLoot.add(looter.getEntityId()));
-    }
-
-    /**
      * Thieves that got away with their loot leave the level. Not done while
      * the thief is busy with his own task
      */
     private void removeEscapedThieves() {
         for (ICreatureController thief : escapedThieves) {
-            thiefEntrances.remove(thief.getEntityId());
-            thievesWithLoot.remove(thief.getEntityId());
 
             // Done with the task here, the thief won't be around to be told later
             thief.unassingCurrentTask();

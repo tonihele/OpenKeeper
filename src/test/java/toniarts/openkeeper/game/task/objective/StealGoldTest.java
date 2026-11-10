@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.task.objective;
 
 import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -26,11 +28,14 @@ import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.StolenGold;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -38,6 +43,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -52,19 +58,25 @@ class StealGoldTest {
     private static final short OTHER_KEEPER = Player.KEEPER2_ID;
     private static final short HERO = Player.GOOD_PLAYER_ID;
     private static final Point THIEF_TILE = new Point(2, 2);
+    private static final Point GOLD_TILE = new Point(6, 2);
 
     /**
      * A Thief carries 7500 gold at most
      */
     private static final int THIEF_MAX_GOLD = 7500;
-    private static final Consumer<ICreatureController> NO_LOOT_LISTENER = thief -> {
+    private static final Consumer<ICreatureController> NO_ESCAPE_LISTENER = thief -> {
     };
+
+    private final EntityData entityData = new DefaultEntityData();
+    private final EntityId thiefId = entityData.createEntity();
+    private final List<Integer> goldGiven = new ArrayList<>();
+    private final List<Integer> goldLost = new ArrayList<>();
 
     @Test
     void thiefGoesForTheNearestGoldHeCanReach() {
         IRoomController treasury = treasury(false, new Point(4, 2), new Point(6, 2), new Point(9, 2));
 
-        Point tile = StealGold.findGoldTile(thief(KEEPER, 0, null), List.of(treasury), navigation(Set.of(new Point(4, 2))));
+        Point tile = StealGold.findGoldTile(thief(KEEPER), List.of(treasury), navigation(Set.of(new Point(4, 2))));
 
         assertEquals(new Point(6, 2), tile);
     }
@@ -73,92 +85,120 @@ class StealGoldTest {
     void goldInTheDungeonHeartIsLeftAlone() {
         IRoomController heart = treasury(true, new Point(3, 2));
 
-        assertNull(StealGold.findGoldTile(thief(KEEPER, 0, null), List.of(heart), navigation(Set.of())));
+        assertNull(StealGold.findGoldTile(thief(KEEPER), List.of(heart), navigation(Set.of())));
     }
 
     @Test
     void thiefWithNoGoldInReachHasNothingToSteal() {
         IRoomController treasury = treasury(false, new Point(4, 2));
 
-        assertNull(StealGold.findGoldTile(thief(KEEPER, 0, null), List.of(treasury), navigation(Set.of(new Point(4, 2)))));
+        StealGold task = stealGold(List.of(treasury), navigation(Set.of(new Point(4, 2))), treasuryGold(100_000, new ArrayList<>()), NO_ESCAPE_LISTENER);
+
+        assertNull(task.getCurrentTask());
+    }
+
+    @Test
+    void thiefFirstGoesForTheGold() {
+        Task current = stealGold(100_000, new ArrayList<>()).getCurrentTask();
+
+        assertNotNull(current);
+        assertEquals(GOLD_TILE, current.getTaskLocation());
     }
 
     @Test
     void thiefTakesAllHeCanCarryAndKeepsHalf() {
         List<Integer> asked = new ArrayList<>();
-        List<Integer> kept = new ArrayList<>();
-        StealGold task = new StealGold(null, null, treasuryGold(100_000, asked), new Point(6, 2), KEEPER, HERO, NO_LOOT_LISTENER);
 
-        task.executeTask(thief(KEEPER, 0, kept), 0);
+        stealGold(100_000, asked).getCurrentTask().executeTask(thief(KEEPER), 0);
 
         assertEquals(List.of(THIEF_MAX_GOLD), asked);
-        assertEquals(List.of(THIEF_MAX_GOLD / 2), kept);
+        assertEquals(List.of(THIEF_MAX_GOLD / 2), goldGiven);
     }
 
     @Test
     void thiefTakesOnlyWhatTheTreasuryHolds() {
         List<Integer> asked = new ArrayList<>();
-        List<Integer> kept = new ArrayList<>();
-        StealGold task = new StealGold(null, null, treasuryGold(2500, asked), new Point(6, 2), KEEPER, HERO, NO_LOOT_LISTENER);
 
-        task.executeTask(thief(KEEPER, 0, kept), 0);
+        stealGold(2500, asked).getCurrentTask().executeTask(thief(KEEPER), 0);
 
         assertEquals(List.of(THIEF_MAX_GOLD), asked);
-        assertEquals(List.of(1250), kept);
+        assertEquals(List.of(1250), goldGiven);
     }
 
     @Test
     void thiefStealsOnce() {
-        StealGold task = new StealGold(null, null, treasuryGold(100_000, new ArrayList<>()), new Point(6, 2), KEEPER, HERO, NO_LOOT_LISTENER);
-        ICreatureController thief = thief(KEEPER, 0, new ArrayList<>());
+        Task steal = stealGold(100_000, new ArrayList<>()).getCurrentTask();
+        ICreatureController thief = thief(KEEPER);
 
-        assertTrue(task.isValid(thief));
-        task.executeTask(thief, 0);
+        assertTrue(steal.isValid(thief));
+        steal.executeTask(thief, 0);
 
-        assertFalse(task.isValid(thief));
+        assertFalse(steal.isValid(thief));
     }
 
     @Test
-    void thiefWithTheLootIsReported() {
-        List<ICreatureController> looted = new ArrayList<>();
-        StealGold task = new StealGold(null, null, treasuryGold(100_000, new ArrayList<>()), new Point(6, 2), KEEPER, HERO, looted::add);
-        ICreatureController thief = thief(KEEPER, 0, new ArrayList<>());
+    void thiefWithTheGoldIsTaggedWithTheWayOut() {
+        stealGold(100_000, new ArrayList<>()).getCurrentTask().executeTask(thief(KEEPER), 0);
 
-        task.executeTask(thief, 0);
+        StolenGold stolenGold = entityData.getComponent(thiefId, StolenGold.class);
+        assertNotNull(stolenGold);
+        assertEquals(THIEF_TILE, stolenGold.exit);
+    }
 
-        assertEquals(1, looted.size());
-        assertSame(thief, looted.get(0));
+    @Test
+    void thiefWithTheGoldRunsBackToTheExit() {
+
+        // Like a loaded game, all there is to go on is the tag
+        Point exit = new Point(30, 41);
+        entityData.setComponent(thiefId, new StolenGold(exit));
+        List<Integer> asked = new ArrayList<>();
+
+        StealGold task = stealGold(List.of(), navigation(Set.of()), treasuryGold(100_000, asked), NO_ESCAPE_LISTENER);
+
+        assertSame(task, task.getCurrentTask());
+        assertEquals(exit, task.getTaskLocation());
+        assertTrue(asked.isEmpty());
     }
 
     @Test
     void thiefSentToAnotherKeeperDropsTheTask() {
-        StealGold task = new StealGold(null, null, treasuryGold(100_000, new ArrayList<>()), new Point(6, 2), KEEPER, HERO, NO_LOOT_LISTENER);
+        StealGold task = stealGold(100_000, new ArrayList<>());
 
-        assertFalse(task.isValid(thief(OTHER_KEEPER, 0, new ArrayList<>())));
+        assertFalse(task.isValid(thief(OTHER_KEEPER)));
+        assertFalse(task.getCurrentTask().isValid(thief(OTHER_KEEPER)));
+    }
+
+    @Test
+    void thiefWithTheGoldRunsWhoeverHeIsSentAfter() {
+        entityData.setComponent(thiefId, new StolenGold(THIEF_TILE));
+
+        assertTrue(stealGold(100_000, new ArrayList<>()).isValid(thief(OTHER_KEEPER)));
     }
 
     @Test
     void thiefBackWhereHeCameInIsGoneWithTheGold() {
-        List<Integer> lost = new ArrayList<>();
+        entityData.setComponent(thiefId, new StolenGold(THIEF_TILE));
         List<ICreatureController> escaped = new ArrayList<>();
-        ICreatureController thief = stub(ICreatureController.class, (name, args) -> switch (name) {
-            case "getObjective" -> Thing.HeroParty.Objective.STEAL_GOLD;
-            case "getGold" -> 3750;
-            case "substractGold" -> {
-                lost.add((Integer) args[0]);
-                yield null;
-            }
-            default -> null;
-        });
-        EscapeWithGold task = new EscapeWithGold(null, null, THIEF_TILE, HERO, escaped::add);
+        ICreatureController thief = thief(KEEPER);
+        StealGold task = stealGold(List.of(), navigation(Set.of()), treasuryGold(0, new ArrayList<>()), escaped::add);
 
         assertTrue(task.isValid(thief));
-        task.executeTask(thief, 0);
+        task.getCurrentTask().executeTask(thief, 0);
 
-        assertEquals(List.of(3750), lost);
+        assertEquals(List.of(3750), goldLost);
         assertEquals(1, escaped.size());
         assertSame(thief, escaped.get(0));
         assertFalse(task.isValid(thief));
+    }
+
+    private StealGold stealGold(int held, List<Integer> requests) {
+        return stealGold(List.of(treasury(false, GOLD_TILE)), navigation(Set.of()), treasuryGold(held, requests), NO_ESCAPE_LISTENER);
+    }
+
+    private StealGold stealGold(List<IRoomController> treasuries, INavigationService navigation, IGameWorldController gameWorldController,
+            Consumer<ICreatureController> escapeListener) {
+        IMapController map = stub(IMapController.class, (name, args) -> "getRoomsByFunction".equals(name) ? treasuries : null);
+        return new StealGold(navigation, map, gameWorldController, entityData, thief(KEEPER), escapeListener);
     }
 
     /**
@@ -210,16 +250,24 @@ class StealGoldTest {
         });
     }
 
-    private static ICreatureController thief(short objectiveTarget, int gold, List<Integer> goldGiven) {
+    /**
+     * A thief with no gold of his own, and 3750 once he has stolen some
+     */
+    private ICreatureController thief(short objectiveTarget) {
         return stub(ICreatureController.class, (name, args) -> switch (name) {
+            case "getEntityId" -> thiefId;
             case "getCreatureCoordinates" -> THIEF_TILE;
             case "getOwnerId" -> HERO;
             case "getObjective" -> Thing.HeroParty.Objective.STEAL_GOLD;
             case "getObjectiveTargetPlayerId" -> objectiveTarget;
-            case "getGold" -> gold;
+            case "getGold" -> entityData.getComponent(thiefId, StolenGold.class) == null ? 0 : 3750;
             case "getMaxGold" -> THIEF_MAX_GOLD;
             case "addGold" -> {
                 goldGiven.add((Integer) args[0]);
+                yield null;
+            }
+            case "substractGold" -> {
+                goldLost.add((Integer) args[0]);
                 yield null;
             }
             default -> null;
