@@ -22,7 +22,10 @@ import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalAttracted;
 import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.controller.GameTimeController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -103,7 +106,7 @@ class PortalSpawnCooldownTest {
             }
             spawned.add((Short) args[0]);
             EntityId creature = entities.createEntity();
-            entities.setComponents(creature, new CreatureComponent(), new Owner((short) 3, (short) 3));
+            entities.setComponents(creature, new CreatureComponent(), new Owner((short) 3, (short) 3), new Health(100, 100));
             return creature;
         });
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
@@ -144,6 +147,14 @@ class PortalSpawnCooldownTest {
         PortalCreatureLimit limit = limits.iterator().next().get(PortalCreatureLimit.class);
         assertEquals(15, limit.capacity);
         assertEquals(1, limit.attracted);
+
+        // A death changes the numbers too, without a spawn or a room change
+        EntityId goblinEntity = entities.findEntity(null, PortalAttracted.class);
+        entities.removeComponent(goblinEntity, Health.class);
+        entities.setComponent(goblinEntity, new Death(0));
+        system.processTick(0.25f);
+        limits.applyChanges();
+        assertEquals(0, limits.iterator().next().get(PortalCreatureLimit.class).attracted);
     }
 
     private static void setting(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings,
