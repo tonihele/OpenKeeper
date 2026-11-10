@@ -1317,6 +1317,13 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         amounts.selectItemByIndex(0);
 
+        DropDown<Choice> levels = hud.findNiftyControl("cheatLevel", DropDown.class);
+        levels.clear();
+        for (int level = 1; level <= Utils.MAX_CREATURE_LEVEL; level++) {
+            levels.addItem(new Choice((short) level, Integer.toString(level)));
+        }
+        levels.selectItemByIndex(0);
+
         DropDown<Choice> owners = hud.findNiftyControl("cheatCreatureOwner", DropDown.class);
         owners.clear();
         client.getPlayers().stream()
@@ -1334,6 +1341,16 @@ public final class PlayerScreenController implements IPlayerScreenController {
         DropDown<Choice> creatures = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatCreature", DropDown.class);
         Choice choice = creatures != null ? creatures.getSelection() : null;
         return choice != null ? choice.id() : null;
+    }
+
+    /**
+     * @return the level of the creatures to spawn
+     */
+    @SuppressWarnings("unchecked")
+    public int getSelectedCheatLevel() {
+        DropDown<Choice> levels = nifty.getScreen(SCREEN_HUD_ID).findNiftyControl("cheatLevel", DropDown.class);
+        Choice choice = levels != null ? levels.getSelection() : null;
+        return choice != null ? choice.id() : 1;
     }
 
     /**

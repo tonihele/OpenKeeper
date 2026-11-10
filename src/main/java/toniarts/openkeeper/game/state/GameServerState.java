@@ -331,8 +331,8 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
-        public void onSpawnCreatureCheatTriggered(short creatureId, int amount, short ownerId, Vector2f position, short playerId) {
-            cheatController.spawnCreature(creatureId, amount, ownerId, position, playerId);
+        public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId) {
+            cheatController.spawnCreature(creatureId, level, amount, ownerId, position, playerId);
         }
 
         @Override

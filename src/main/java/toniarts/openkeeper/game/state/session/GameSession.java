@@ -173,12 +173,13 @@ public interface GameSession {
      * Trigger a cheat that spawns creatures of a keeper on a tile
      *
      * @param creatureId the creature to spawn
+     * @param level the level of the creatures
      * @param amount how many creatures to spawn
      * @param ownerId the owner of the creatures
      * @param position the tile to spawn on
      */
     @Asynchronous
-    public void triggerSpawnCreatureCheat(short creatureId, int amount, short ownerId, Vector2f position);
+    public void triggerSpawnCreatureCheat(short creatureId, int level, int amount, short ownerId, Vector2f position);
 
     /**
      * Trigger a cheat that adds gold to the player

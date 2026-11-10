@@ -243,7 +243,7 @@ public final class CheatController implements ICheatController {
     }
 
     @Override
-    public void spawnCreature(short creatureId, int amount, short ownerId, Vector2f position, short playerId) {
+    public void spawnCreature(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId) {
         if (!gameWorldController.isCheat(playerId, CheatState.CheatType.GOD_MODE)) {
             return;
         }
@@ -253,7 +253,7 @@ public final class CheatController implements ICheatController {
             return; // Nothing can stand in the rock
         }
         for (int i = 0; i < amount; i++) {
-            gameWorldController.getCreaturesController().spawnCreature(creatureId, ownerId, 1, position, ICreaturesController.SpawnType.PLACE);
+            gameWorldController.getCreaturesController().spawnCreature(creatureId, ownerId, Math.clamp(level, 1, Utils.MAX_CREATURE_LEVEL), position, ICreaturesController.SpawnType.PLACE);
         }
     }
 

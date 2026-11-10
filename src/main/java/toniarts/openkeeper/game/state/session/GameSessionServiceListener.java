@@ -170,13 +170,14 @@ public interface GameSessionServiceListener {
      * Player has triggered a creature spawning cheat on a tile
      *
      * @param creatureId the creature to spawn
+     * @param level the level of the creatures
      * @param amount how many creatures to spawn
      * @param ownerId the owner of the creatures
      * @param position the tile to spawn on
      * @param playerId the player who wants to cheat
      */
     @Asynchronous
-    public void onSpawnCreatureCheatTriggered(short creatureId, int amount, short ownerId, Vector2f position, short playerId);
+    public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId);
 
     /**
      * Player has triggered a cheat that adds gold

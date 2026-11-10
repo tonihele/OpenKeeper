@@ -760,7 +760,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 PlayerScreenController screen = stateManager.getState(PlayerState.class).getScreen();
                 Short creatureId = screen.getSelectedCheatCreature();
                 if (creatureId != null) {
-                    gameClientState.getGameClientService().triggerSpawnCreatureCheat(creatureId, screen.getSelectedCheatAmount(),
+                    gameClientState.getGameClientService().triggerSpawnCreatureCheat(creatureId, screen.getSelectedCheatLevel(), screen.getSelectedCheatAmount(),
                             screen.getSelectedCheatCreatureOwner(), selectionArea.getRealStart());
                 }
             } else if (interactionState.getType() == Type.NONE && gameClientState.isCheat(CheatState.CheatType.CLAIM_LAND)) {

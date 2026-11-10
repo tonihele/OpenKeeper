@@ -35,7 +35,7 @@ public final class NoopCheatController implements ICheatController {
     }
 
     @Override
-    public void spawnCreature(short creatureId, int amount, short ownerId, Vector2f position, short playerId) {
+    public void spawnCreature(short creatureId, int level, int amount, short ownerId, Vector2f position, short playerId) {
         // No cheating in multiplayer
     }
 
