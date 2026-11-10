@@ -45,7 +45,7 @@ public final class MapColourClassifier {
             return MapColourClass.UNEXPLORED_OR_IMPENETRABLE;
         }
 
-        Point p = new Point(x, y);
+        Point p = tile.getLocation();
         Terrain terrain = mapInformation.getTerrain(tile);
         if (!isVisible(p, terrain)) {
             return MapColourClass.UNEXPLORED_OR_IMPENETRABLE;
@@ -58,7 +58,7 @@ public final class MapColourClassifier {
 
         short owner = tile.getOwnerId();
         if (owner != Player.NEUTRAL_PLAYER_ID) {
-            boolean solid = mapInformation.isSolid(p);
+            boolean solid = mapInformation.isSolid(tile, terrain);
             short base = solid ? MapColourClass.OWNED_SOLID_BASE : MapColourClass.OWNED_FLOOR_BASE;
             return (short) (base + PlayerNumbers.playerNumber(owner));
         }

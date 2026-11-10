@@ -96,6 +96,14 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register("mapColourClassifierBenchmark", JavaExec) {
+    group = ApplicationPlugin.APPLICATION_GROUP
+    description = "Benchmarks deterministic full-map colour classification."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.game.map.MapColourClassifierBenchmark'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
