@@ -22,15 +22,17 @@ import java.lang.reflect.Proxy;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Crate;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,6 +44,7 @@ class PlayerManufactureSystemTest {
     private static final short ENEMY = 4;
     private static final short SENTRY = 1;
     private static final short BOULDER = 2;
+    private static final short WOODEN_DOOR = 1;
 
     private final DefaultEntityData entityData = new DefaultEntityData();
     private final PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
@@ -60,7 +63,7 @@ class PlayerManufactureSystemTest {
 
         addCrate(ResearchableType.TRAP, BOULDER, PLAYER);
         system.processTick(0);
-        assertNull(manufactureControl.getTrapToManufacture());
+        assertNull(manufactureControl.getOrder());
     }
 
     @Test
@@ -71,7 +74,7 @@ class PlayerManufactureSystemTest {
         entityData.setComponent(blueprint, new TrapViewState(SENTRY, false));
         system.processTick(0);
 
-        assertNull(manufactureControl.getTrapToManufacture());
+        assertNull(manufactureControl.getOrder());
     }
 
     @Test
@@ -79,7 +82,7 @@ class PlayerManufactureSystemTest {
         addBlueprint(SENTRY, PLAYER);
         EntityId crate = addCrate(ResearchableType.TRAP, SENTRY, PLAYER);
         PlayerManufactureSystem system = createSystem();
-        assertNull(manufactureControl.getTrapToManufacture());
+        assertNull(manufactureControl.getOrder());
 
         entityData.removeEntity(crate);
         system.processTick(0);
@@ -98,10 +101,67 @@ class PlayerManufactureSystemTest {
         assertEquals(SENTRY, getTrapToManufacture());
     }
 
+    @Test
+    void doorBlueprintIsAnOrder() {
+        addDoorBlueprint(PLAYER);
+        createSystem();
+
+        ManufactureOrders.Order order = manufactureControl.getOrder();
+
+        assertEquals(ResearchableType.DOOR, order.type());
+        assertEquals(WOODEN_DOOR, order.typeId());
+        assertEquals(1000, order.manufToBuild());
+        assertEquals(136, order.crateObjectId());
+    }
+
+    @Test
+    void trapsAndDoorsAreManufacturedInTheOrderTheyWerePlaced() {
+        addDoorBlueprint(PLAYER);
+        addBlueprint(SENTRY, PLAYER);
+        PlayerManufactureSystem system = createSystem();
+
+        assertEquals(ResearchableType.DOOR, manufactureControl.getOrder().type());
+
+        // The door has its crate, next is the trap
+        addCrate(ResearchableType.DOOR, WOODEN_DOOR, PLAYER);
+        system.processTick(0);
+
+        assertEquals(SENTRY, getTrapToManufacture());
+    }
+
+    @Test
+    void trapCrateDoesntFulfillADoorOrder() {
+        addDoorBlueprint(PLAYER);
+        addCrate(ResearchableType.TRAP, WOODEN_DOOR, PLAYER);
+        createSystem();
+
+        assertEquals(ResearchableType.DOOR, manufactureControl.getOrder().type());
+    }
+
+    @Test
+    void builtDoorIsNoOrder() {
+        EntityId door = addDoorBlueprint(PLAYER);
+        PlayerManufactureSystem system = createSystem();
+
+        entityData.setComponent(door, new DoorComponent(WOODEN_DOOR, false, false));
+        system.processTick(0);
+
+        assertNull(manufactureControl.getOrder());
+    }
+
+    @Test
+    void doorBlueprintsOfOtherKeepersAreNoOrders() {
+        addDoorBlueprint(ENEMY);
+        createSystem();
+
+        assertNull(manufactureControl.getOrder());
+    }
+
     private PlayerManufactureSystem createSystem() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getTrapById" -> TrapFixtures.trap(((Integer) args[0]).shortValue(), 0);
+                    case "getDoorById" -> DoorFixtures.doorToManufacture(((Integer) args[0]).shortValue(), 1000, (short) 136);
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         Keeper keeper = new Keeper(false, PLAYER);
@@ -114,14 +174,24 @@ class PlayerManufactureSystemTest {
         return new PlayerManufactureSystem(entityData, kwdFile, List.of(player));
     }
 
+    /**
+     * @return the trap to manufacture next, -1 if the next order is none or a
+     * door
+     */
     private short getTrapToManufacture() {
-        Trap trap = manufactureControl.getTrapToManufacture();
-        return trap != null ? trap.getTrapId() : -1;
+        ManufactureOrders.Order order = manufactureControl.getOrder();
+        return order != null && order.type() == ResearchableType.TRAP ? order.typeId() : -1;
     }
 
     private EntityId addBlueprint(short trapId, short ownerId) {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new TrapComponent(trapId), new TrapViewState(trapId, true), new Owner(ownerId, ownerId));
+        return entity;
+    }
+
+    private EntityId addDoorBlueprint(short ownerId) {
+        EntityId entity = entityData.createEntity();
+        entityData.setComponents(entity, new DoorComponent(WOODEN_DOOR, false, true), new Owner(ownerId, ownerId));
         return entity;
     }
 

@@ -17,17 +17,12 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
-import com.simsilica.es.EntityData;
-import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.component.TrapComponent;
-import toniarts.openkeeper.game.component.TrapViewState;
-import toniarts.openkeeper.game.controller.WorkshopOrders;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -43,15 +38,8 @@ class ManufactureTest {
     void creatureWorksOnceASecond() {
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
         Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
-        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(
-                IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "getTrapById" -> trap;
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        EntityData entityData = new DefaultEntityData();
-        entityData.setComponents(entityData.createEntity(), new TrapComponent(trap.getTrapId()), new TrapViewState(trap.getTrapId(), true),
-                new Owner((short) 1, (short) 1));
-        WorkshopOrders workshopOrders = new WorkshopOrders(entityData, kwdFile);
+        manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
+                trap.getManufCrateObjectId()));
         ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getManufacturePerSecond" -> TROLL;
@@ -59,7 +47,7 @@ class ManufactureTest {
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, workshopOrders, null);
+        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, null);
         task.assign(creature, false);
 
         // A minute of logic ticks
