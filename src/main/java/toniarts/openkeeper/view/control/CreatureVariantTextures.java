@@ -22,6 +22,7 @@ import com.jme3.material.Material;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
+import toniarts.openkeeper.utils.AssetUtils;
 
 /** Applies DKII's optional {@code Unique_} textures to a reused model. */
 final class CreatureVariantTextures {
@@ -49,7 +50,7 @@ final class CreatureVariantTextures {
             if (name.regionMatches(slash + 1, UNIQUE_PREFIX, 0, UNIQUE_PREFIX.length())) {
                 return;
             }
-            String uniqueName = name.substring(0, slash + 1) + UNIQUE_PREFIX + name.substring(slash + 1);
+            String uniqueName = AssetUtils.getCanonicalAssetKey(name.substring(0, slash + 1) + UNIQUE_PREFIX + name.substring(slash + 1));
             TextureKey key = new TextureKey(uniqueName, false);
             if (assetManager.locateAsset(key) != null) {
                 Material uniqueMaterial = material.clone();

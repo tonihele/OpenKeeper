@@ -16,17 +16,11 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
-import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.EntityId;
-import toniarts.openkeeper.game.component.PortalViewState;
-import toniarts.openkeeper.game.event.GameEventService;
-import java.lang.reflect.Proxy;
-import java.util.ArrayList;
-import java.util.EnumMap;
-import java.util.List;
-import java.util.Map;
+import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.PortalViewState;
 import toniarts.openkeeper.game.controller.GameTimeController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
@@ -40,9 +34,16 @@ import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.room.LairController;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
+
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.EnumMap;
+import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -52,10 +53,77 @@ class PortalSpawnCooldownTest {
 
     @Test
     void latePortalWaitsFullCooldownBeforeAttractingCreature() {
-        Fixture fixture = new Fixture(109.5f);
-        var timer = fixture.timer;
-        var system = fixture.system;
-        var spawned = fixture.spawned;
+        DefaultEntityData entities = new DefaultEntityData();
+        GameTimeController timer = new GameTimeController();
+        Keeper keeper = new Keeper(false, (short) 3);
+        Creature goblin = new Creature();
+        goblin.setCreatureId((short) 7);
+        Creature.Attraction lairRequirement = new Creature.Attraction();
+        lairRequirement.setRoomId(2);
+        lairRequirement.setType(Creature.AttractionType.ROOM);
+        goblin.setAttractions(new Creature.Attraction[]{lairRequirement});
+        Creature imp = new Creature();
+        imp.setCreatureId((short) 1);
+        Room portalDefinition = new Room();
+        portalDefinition.setRoomId((short) 3);
+        Room lairDefinition = new Room();
+        lairDefinition.setRoomId((short) 2);
+        PlayerRoomControl rooms = new PlayerRoomControl(keeper, List.of(portalDefinition, lairDefinition));
+        PlayerCreatureControl creatures = new PlayerCreatureControl(keeper, imp, List.of(goblin, imp));
+        creatures.setTypeAvailable(goblin, true);
+        IPlayerController player = stub(IPlayerController.class, (method, args) -> switch (method) {
+            case "getKeeper" -> keeper;
+            case "getRoomControl" -> rooms;
+            case "getCreatureControl" -> creatures;
+            default -> throw new AssertionError(method);
+        });
+        Variable.CreaturePool pool = new Variable.CreaturePool();
+        pool.setValue(10);
+        IKwdFile level = stub(IKwdFile.class, (method, args) -> switch (method) {
+            case "getCreaturePool" -> Map.of(7, pool);
+            case "getPortal" -> portalDefinition;
+            case "getRoomById" -> lairDefinition;
+            default -> throw new AssertionError(method);
+        });
+        RoomInstance lair = new RoomInstance(lairDefinition);
+        lair.setOwnerId((short) 3);
+        lair.addCoordinate(new Point(1, 1));
+        rooms.onBuild(new LairController(entities.createEntity(), entities, level, lair, null, timer));
+        List<RoomListener> listeners = new ArrayList<>();
+        IMapController map = stub(IMapController.class, (method, args) -> {
+            if (!method.equals("addListener")) {
+                throw new AssertionError(method);
+            }
+            listeners.add((RoomListener) args[1]);
+            return null;
+        });
+        List<Short> spawned = new ArrayList<>();
+        ICreaturesController spawner = stub(ICreaturesController.class, (method, args) -> {
+            if (!method.equals("spawnCreature")) {
+                throw new AssertionError(method);
+            }
+            spawned.add((Short) args[0]);
+            return entities.createEntity();
+        });
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
+                new EnumMap<>(Variable.MiscVariable.MiscType.class);
+        setting(settings, Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS, 18);
+        setting(settings, Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD, 0);
+        setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, 10);
+        setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
+        setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 30);
+        CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
+                stub(ILevelInfo.class, (method, args) -> level), map,
+                stub(GameEventService.class, (method, args) -> null));
+        timer.processTick(109.5f);
+        system.processTick(109.5f);
+        RoomInstance room = new RoomInstance(portalDefinition);
+        room.setOwnerId((short) 3);
+        room.addCoordinate(new Point(5, 5));
+        ThreeByThreeController portal = new ThreeByThreeController(
+                entities.createEntity(), entities, level, room, null, timer);
+        rooms.onBuild(portal);
+        listeners.forEach(listener -> listener.onBuild(portal));
 
         // The tutorial's scripted Goblin is generated at 12 seconds after capture.
         timer.processTick(12);
@@ -206,7 +274,7 @@ class PortalSpawnCooldownTest {
             goblin.setCreatureId((short) 7);
             Creature.Attraction lairRequirement = new Creature.Attraction();
             lairRequirement.setRoomId(2);
-            lairRequirement.setPresent(1);
+            lairRequirement.setType(Creature.AttractionType.ROOM);
             goblin.setAttractions(new Creature.Attraction[]{lairRequirement});
             Creature imp = new Creature();
             imp.setCreatureId((short) 1);
@@ -260,7 +328,8 @@ class PortalSpawnCooldownTest {
             setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
             setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 30);
             system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
-                    stub(ILevelInfo.class, (method, args) -> level), map, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
+                    stub(ILevelInfo.class, (method, args) -> level), map,
+                    stub(GameEventService.class, (method, args) -> null));
             timer.processTick(initialTime);
             system.processTick(initialTime);
             RoomInstance room = new RoomInstance(portalDefinition);

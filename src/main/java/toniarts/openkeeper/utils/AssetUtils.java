@@ -29,6 +29,7 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
 import com.jme3.math.ColorRGBA;
+import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
@@ -61,6 +62,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.view.lighting.LightRules;
 
 /**
  * Collection of asset related common functions
@@ -75,6 +77,8 @@ public final class AssetUtils {
     private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
     private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
     private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
+    private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
+    private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
@@ -214,6 +218,171 @@ public final class AssetUtils {
         });
     }
 
+    public static final String VERTEX_MATDEF = "MatDefs/DkLighting/Vertex.j3md";
+
+    /**
+     * Builds a {@code Vertex} material carrying {@code original}'s
+     * DiffuseMap/AlphaDiscardThreshold/transparency and this terrain
+     * type's vertex ambient. Must be called BEFORE the
+     * geometry it's applied to is batched (jME refuses to re-material an
+     * already-batched {@code Geometry}, and {@code BatchNode.setMaterial}
+     * throws post-batch too -- "please set the material on the geoms
+     * before batching").
+     */
+    public static Material createVertexMaterial(AssetManager assetManager, Material original, ColorRGBA ambient) {
+        Material vertex = new Material(assetManager, VERTEX_MATDEF);
+        vertex.setName(original.getName());
+        if (original.getTextureParam("DiffuseMap") != null) {
+            vertex.setTexture("DiffuseMap", original.getTextureParam("DiffuseMap").getTextureValue());
+        }
+        if (original.getParam("AlphaDiscardThreshold") != null) {
+            vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
+        }
+        vertex.setTransparent(original.isTransparent());
+        vertex.setColor("Ambient", ambient);
+        return vertex;
+    }
+
+    /**
+     * A Vertex version of a water / lava surface material, so the surface
+     * is lit like the ground around it. Keeps the texture, the frame
+     * animation (water), the alpha handling and the blend mode of
+     * {@code original}.
+     */
+    public static Material createDkSurfaceMaterial(AssetManager assetManager, Material original) {
+        Material vertex = createVertexMaterial(assetManager, original, ColorRGBA.Black);
+        if (original.getParam("NumberOfTiles") != null) {
+            vertex.setInt("NumberOfTiles", (Integer) original.getParam("NumberOfTiles").getValue());
+        }
+        if (original.getParam("Speed") != null) {
+            vertex.setInt("Speed", (Integer) original.getParam("Speed").getValue());
+        }
+        vertex.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
+        return vertex;
+    }
+
+    public static boolean isVertexMaterial(Material material) {
+        return VERTEX_MATDEF.equals(material.getMaterialDef().getAssetName());
+    }
+
+    /**
+     * Refreshes the "flat" light sample on
+     * every {@code Flat}-materialled geometry under {@code spatial},
+     * using {@code spatial}'s current world position. Meant to be called
+     * once per frame for anything with an attached thing light -- position changes and modulator/flicker changes on
+     * nearby lights both need this, not just the former.
+     *
+     * @param spatial the model to refresh (a creature, object, effect...)
+     * @param lightRules the owning map's lighting rules
+     */
+    public static void applyFlatLight(Spatial spatial, LightRules lightRules) {
+        applyFlatLight(spatial, lightRules, false);
+    }
+
+    /**
+     * @param ignoreObjectLights true to leave out the lights carried by game
+     * objects
+     * @see #applyFlatLight(Spatial, LightRules)
+     */
+    public static void applyFlatLight(Spatial spatial, LightRules lightRules, boolean ignoreObjectLights) {
+        ColorRGBA flatLight = lightRules.computeFlatLight(spatial.getWorldTranslation(), ignoreObjectLights);
+        ColorRGBA globalAmbient = lightRules.getGlobalAmbient();
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial s) {
+                if (!(s instanceof Geometry geometry)) {
+                    return;
+                }
+                Material material = geometry.getMaterial();
+                if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                    return;
+                }
+                material.setColor("FlatLight", flatLight);
+                material.setColor("GlobalAmbient", globalAmbient);
+            }
+        });
+    }
+
+    /**
+     * Lights a model per vertex, like the floor it stands on: sets up its
+     * {@code Vertex} materials for a thing (no rock floor) and hooks them
+     * up to the shared light data. Materials still on {@code Flat} (old
+     * generated material files) are swapped once. Call once per frame, as the
+     * ambient map may only exist after the first call.
+     *
+     * @param ignoreObjectLights true to leave out the lights carried by game
+     * objects
+     */
+    public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
+            boolean ignoreObjectLights) {
+        applyVertexLight(assetManager, spatial, lightRules, ignoreObjectLights, true);
+    }
+
+    /**
+     * @param useTileAmbient false to ignore the per-tile (room / terrain)
+     * ambient under the thing, e.g. for creatures
+     * @see #applyVertexLight(AssetManager, Spatial, LightRules, boolean)
+     */
+    public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
+            boolean ignoreObjectLights, boolean useTileAmbient) {
+        List<Material> materials = new ArrayList<>();
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial s) {
+                if (!(s instanceof Geometry geometry) || geometry.isBatched()) {
+                    return;
+                }
+                Material material = geometry.getMaterial();
+                if (!isVertexMaterial(material)) {
+                    if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                        return;
+                    }
+                    Material vertex = createVertexMaterial(assetManager, material, ColorRGBA.Black);
+                    vertex.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
+                    vertex.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
+                    geometry.setMaterial(vertex);
+                    material = vertex;
+                }
+                material.setFloat("MinLight", 0f);
+                material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
+                materials.add(material);
+            }
+        });
+        lightRules.bindMaterials(materials);
+    }
+
+    /**
+     * Lights every {@code Flat} / {@code Vertex}-materialled geometry under
+     * {@code spatial} to full brightness, ignoring the scene's lights. For things that are
+     * not in the world, such as creatures held in the hand.
+     *
+     * @param spatial the model to light
+     */
+    public static void applyFullLight(Spatial spatial) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial s) {
+                if (!(s instanceof Geometry geometry)) {
+                    return;
+                }
+                Material material = geometry.getMaterial();
+                if (isVertexMaterial(material)) {
+                    // MinLight only scales the (zero) global ambient floor, RockFloor
+                    // is the absolute one
+                    material.setFloat("MinLight", 1f);
+                    material.setFloat("RockFloor", 1f);
+                    return;
+                }
+                if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
+                    return;
+                }
+                material.setColor("FlatLight", ColorRGBA.White);
+                material.setColor("GlobalAmbient", ColorRGBA.BlackNoAlpha);
+            }
+        });
+    }
+
     /**
      * Assign different kind of maps (Specular, Norma, etc.) to material, if
      * found
@@ -222,13 +391,6 @@ public final class AssetUtils {
      * @param material the material to apply to
      */
     public static void assignMapsToMaterial(AssetManager assetManager, Material material) {
-
-        // Also apply the native alpha-pass depth state to already converted
-        // materials; changing the KMF converter alone would require reconversion.
-        // Portal chasm surfaces must not depth-mask additive particles below them.
-        if (material.isTransparent()) {
-            material.getAdditionalRenderState().setDepthWrite(false);
-        }
 
         // Unharmed texture
         String diffuseTexture = ((Texture) material.getParam("DiffuseMap").getValue()).getKey().getName();
@@ -240,14 +402,23 @@ public final class AssetUtils {
 
     private static void assignMapToMaterial(AssetManager assetManager, Material material, String paramName, String textureName) {
 
-        Boolean found = TEXTURE_MAP_CACHE.get(textureName);
-        if (found == null) {
+        // Flat/Vertex (no specular term) don't declare
+        // Normal/Specular/ParallaxMap at all -- nothing to assign there.
+        if (material.getMaterialDef().getMaterialParam(paramName) == null) {
+            return;
+        }
+
+        boolean found;
+        Boolean cachedFound = TEXTURE_MAP_CACHE.get(textureName);
+        if (cachedFound == null) {
             AssetInfo assetInfo = assetManager.locateAsset(new TextureKey(textureName, false));
             found = (assetInfo != null);
             Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
             if (cached != null) {
                 found = cached;
             }
+        } else {
+            found = cachedFound;
         }
 
         // Set it
@@ -287,7 +458,7 @@ public final class AssetUtils {
                 !resource.getFlags().contains(ArtResource.ArtResourceFlag.USE_ANIMATING_TEXTURE_FOR_SELECTION)) {
             return createLightningSpriteMaterial(resource.getName(), 
                     resource.getType() == ArtResource.ArtResourceType.ALPHA, resource.getData("fps"), () -> {
-                        return getTextureFrames(resource);
+                        return getTextureFrames(resource, assetManager);
                     }, assetManager);
         }
         return null;
@@ -371,7 +542,7 @@ public final class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
                     resource.getType() == ArtResource.ArtResourceType.ALPHA,
-                    getTextureFrames(resource), assetManager);
+                    getTextureFrames(resource, assetManager), assetManager);
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -385,21 +556,46 @@ public final class AssetUtils {
         }
     }
     
-    private static List<String> getTextureFrames(ArtResource resource) {
-        int frames = resource.getData(ArtResource.KEY_FRAMES);
-        String assetFolder = AssetsConverter.TEXTURES_FOLDER + File.separator;
-        List<String> framesList = new ArrayList<>(frames);
-        for (int x = 0; x < frames; x++) {
-            framesList.add(assetFolder + resource.getName() + x + ".png");
+    /**
+     * Returns the available sprite animation length, independently of the KWD
+     * frame count. Native DK II probes consecutive texture names, up to 32.
+     * Non-animated resources always use a single image.
+     */
+    public static int getAnimationFrameCount(ArtResource resource, AssetManager assetManager) {
+        if (!resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
+            return 1;
         }
-        
-        return framesList;
+        return Math.max(1, getTextureFrames(resource, assetManager).size());
+    }
+
+    private static List<String> getTextureFrames(ArtResource resource, AssetManager assetManager) {
+        AssetKey<List<String>> key = new AssetKey<>("animation-frames:" + resource.getName());
+        List<String> cached = assetManager.getFromCache(key);
+        if (cached != null) {
+            return cached;
+        }
+        String assetFolder = AssetsConverter.TEXTURES_FOLDER + "/";
+        List<String> frames = new ArrayList<>();
+        for (int frame = 0; frame < 32; frame++) {
+            String name = assetFolder + resource.getName() + frame + ".png";
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(getCanonicalAssetKey(name, false)));
+            if (asset == null) {
+                break;
+            }
+            frames.add(asset.getKey().getName());
+        }
+        List<String> result = List.copyOf(frames);
+        assetManager.addToCache(key, result);
+        return result;
     }
 
     private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
+        if (textures.isEmpty()) {
+            throw new IOException("No animation frames found for " + name);
+        }
         // Get the first frame, the frames need to be same size
-        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(0)))));
+        BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey<>(textures.get(0))));
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -414,7 +610,7 @@ public final class AssetUtils {
         
         g.drawImage(img, null, 0, 0);
         for (int x = 1; x < textures.size(); x++) {
-            AssetInfo asset = assetManager.locateAsset(new AssetKey(getCanonicalAssetKey(textures.get(x))));
+            AssetInfo asset = assetManager.locateAsset(new AssetKey<>(textures.get(x)));
             if (asset != null) {
                 img = readImageFromAsset(asset);
             } else {
@@ -561,6 +757,14 @@ public final class AssetUtils {
                                         start = 1;
                                         break;
                                     }
+                                    case COMPLETE:
+                                    case CENTER_POOL:
+                                    case HERO_GATE:
+                                    case HERO_GATE_TILE:
+                                    case HERO_GATE_3_BY_1: {
+                                        // No numbered terrain meshes
+                                        break;
+                                    }
                                 }
                                 for (int i = start; i < count; i++) {
                                     models.add(loadModel(assetManager, artResource.getName() + i, false));
@@ -614,6 +818,12 @@ public final class AssetUtils {
 
                 try {
                     Material material = ((Geometry) spatial).getMaterial();
+                    if (material.getMaterialDef().getMaterialParam("TintOverlay") != null) {
+                        // Same look as a flashed tile (Vertex)
+                        material.setColor("Tint", enabled ? FLASH_BASE : ColorRGBA.BlackNoAlpha);
+                        material.setColor("TintOverlay", enabled ? FLASH_OVERLAY : ColorRGBA.BlackNoAlpha);
+                        return;
+                    }
                     if (material.getMaterialDef().getMaterialParam("Ambient") != null) {
                         material.setColor("Ambient", highlightColor);
                     } else {
@@ -699,7 +909,13 @@ public final class AssetUtils {
      * @return fully qualified and working asset key
      */
     public static String getCanonicalAssetKey(String asset) {
-        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset).replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
+        return getCanonicalAssetKey(asset, true);
+    }
+
+    /** Resolve expected animation-end probes without logging a missing-file warning. */
+    private static String getCanonicalAssetKey(String asset, boolean warnIfMissing) {
+        return PathUtils.getCanonicalRelativePath(AssetsConverter.getAssetsFolder(), asset, warnIfMissing)
+                .replaceAll(PathUtils.QUOTED_FILE_SEPARATOR, "/");
     }
 
 }

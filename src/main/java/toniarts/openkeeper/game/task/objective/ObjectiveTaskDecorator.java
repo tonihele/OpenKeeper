@@ -66,9 +66,9 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
         creature.setAssignedTask(this);
         if (isWorkerPartyTask() && creature.getParty() != null) {
 
-            // Assign to all workers
+            // Assign to all workers, a dead or knocked out member is still in the party
             for (ICreatureController c : creature.getParty().getActualMembers()) {
-                if (!c.equals(creature) && c.isWorker() && task.canAssign(c)) {
+                if (!c.equals(creature) && !c.isIncapacitated() && c.isWorker() && task.canAssign(c)) {
                     task.assign(c, true);
                 }
             }
@@ -113,6 +113,11 @@ public class ObjectiveTaskDecorator implements ObjectiveTask {
     @Override
     public boolean isFaceTarget() {
         return task.isFaceTarget();
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+        return task.getWorkPosition(creature);
     }
 
     @Override

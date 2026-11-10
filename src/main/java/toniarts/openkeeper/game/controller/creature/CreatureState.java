@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -85,9 +87,16 @@ public enum CreatureState implements State<ICreatureController> {
                 return; // Found work
             }
 
-            // Find work
+            // A full worker unloads its gold before it takes on new work
+            if (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return;
+            }
+
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
             entity.findWork((foundWork) -> {
-                if (foundWork || (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
+                if (foundWork) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
@@ -101,6 +110,12 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // Native hunger is checked every tick, not only when re-evaluating
+            if (entity.isHungry() && entity.goToEat()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
                 return;
             }
 
@@ -207,9 +222,21 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // Native hunger and fatigue can interrupt compatible room work, including travel to it.
+            Task task = entity.getAssignedTask();
+            if (task != null && (task.getTaskType() == TaskType.TRAIN
+                    || task.getTaskType() == TaskType.RESEARCH)
+                    && ((entity.isHungry() && entity.goToEat())
+                    || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
+                // setAssignedTask released the previous job. Keep WORK so its exit cannot
+                // unassign the newly selected eat or sleep task.
+                entity.navigateToAssignedTask();
+                return;
+            }
+
             // Check validity
-            // If we have some pocket money left, we should return it to treasury
-            if (!entity.isAssignedTaskValid() && !entity.dropGoldToTreasury()) {
+            // A full worker unloads its gold, otherwise it looks for new work and keeps the gold it carries for now
+            if (!entity.isAssignedTaskValid() && !(entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
                 entity.getStateMachine().changeState(IDLE);
                 return;
             }
@@ -220,11 +247,9 @@ public enum CreatureState implements State<ICreatureController> {
                 // Do the task we were supposed to do
                 entity.executeAssignedTask();
 
-                // If we have too much gold, drop it to the treasury
+                // If we have too much gold, take it to the treasury. With nowhere to take it, we keep it
                 if (entity.isTooMuchGold()) {
-                    if (!entity.dropGoldToTreasury()) {
-                        entity.dropGold();
-                    }
+                    entity.dropGoldToTreasury();
                 }
             } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
@@ -512,7 +537,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            if (!entity.hasLair() || entity.isFullHealth()) {
+            if (!entity.hasLair() || entity.isEnoughSleep()) {
                 entity.getStateMachine().changeState(IDLE);
             }
         }
@@ -625,6 +650,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+            entity.releaseCastShot();
             if (entity.isStateTimeExceeded()) {
                 entity.getStateMachine().changeState(FIGHT);
             }
@@ -632,7 +658,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void exit(ICreatureController entity) {
-
+            entity.cancelCastShot();
         }
 
         @Override
@@ -670,6 +696,53 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
 
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, GO_TO_SLEEP {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            if (entity.goToSleepAfterLairDrop()) {
+                entity.getStateMachine().changeState(WORK);
+            } else if (entity.getStateMachine().getCurrentState() == GO_TO_SLEEP) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CALL_TO_ARMS {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+            if (!entity.heedCallToArms()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+            entity.resetFollowTarget();
         }
 
         @Override

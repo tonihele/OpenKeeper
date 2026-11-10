@@ -1,4 +1,19 @@
-/* SPDX-License-Identifier: GPL-3.0-or-later */
+/*
+ * Copyright (C) 2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package toniarts.openkeeper.tools.convert.map;
 
 import com.jme3.asset.DesktopAssetManager;
@@ -43,27 +58,30 @@ class ParticleMaterialBlendTest {
     }
 
     @Test
-    void convertedTransparentModelsDoNotDepthMaskAdditiveParticles() throws Exception {
+    void convertedMaterialDepthStateSurvivesSerialization() throws Exception {
         var assets = new DesktopAssetManager(true);
-        assets.registerLocator(directory.toString(), FileLocator.class);
-        Files.createDirectories(directory.resolve("Textures"));
-        ImageIO.write(new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB), "png",
-                directory.resolve("Textures/chasm.png").toFile());
-        var material = new Material(assets, "Common/MatDefs/Light/Lighting.j3md");
-        material.setTexture("DiffuseMap", assets.loadTexture("Textures/chasm.png"));
-        material.setTransparent(true);
-        material.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
-        material.getAdditionalRenderState().setDepthWrite(true); // Old converted .j3m state.
-        AssetUtils.assignMapsToMaterial(assets, material);
-        assertFalse(material.getAdditionalRenderState().isDepthWrite());
-        assertTrue(material.getAdditionalRenderState().isDepthTest());
-        assertEquals(BlendMode.Alpha, material.getAdditionalRenderState().getBlendMode());
-
-        var opaque = material.clone();
-        opaque.setTransparent(false);
-        opaque.getAdditionalRenderState().setDepthWrite(true);
-        AssetUtils.assignMapsToMaterial(assets, opaque);
-        assertTrue(opaque.getAdditionalRenderState().isDepthWrite());
+        var flagsMethod = toniarts.openkeeper.tools.convert.KmfModelLoader.class.getDeclaredMethod(
+                "setMaterialFlags", Material.class, toniarts.openkeeper.tools.convert.kmf.Material.class);
+        flagsMethod.setAccessible(true);
+        var flagField = toniarts.openkeeper.tools.convert.kmf.Material.class.getDeclaredField("flag");
+        flagField.setAccessible(true);
+        var alpha = toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.HAS_ALPHA;
+        var additive = toniarts.openkeeper.tools.convert.kmf.Material.MaterialFlag.ALPHA_ADDITIVE;
+        for (var flags : java.util.List.of(EnumSet.noneOf(alpha.getDeclaringClass()),
+                EnumSet.of(alpha), EnumSet.of(additive), EnumSet.of(alpha, additive))) {
+            var source = new toniarts.openkeeper.tools.convert.kmf.Material();
+            flagField.set(source, flags);
+            var material = new Material(assets, "Common/MatDefs/Light/Lighting.j3md");
+            flagsMethod.invoke(new toniarts.openkeeper.tools.convert.KmfModelLoader(), material, source);
+            var bytes = new java.io.ByteArrayOutputStream();
+            com.jme3.export.binary.BinaryExporter.getInstance().save(material, bytes);
+            var importer = new com.jme3.export.binary.BinaryImporter();
+            importer.setAssetManager(assets);
+            var loaded = (Material) importer.load(new java.io.ByteArrayInputStream(bytes.toByteArray()));
+            assertEquals(flags.isEmpty(), loaded.getAdditionalRenderState().isDepthWrite());
+            assertTrue(loaded.getAdditionalRenderState().isDepthTest());
+            assertEquals(!flags.isEmpty(), loaded.isTransparent());
+        }
     }
 
     private static ArtResource resource(String name, ArtResource.ArtResourceType type) {
