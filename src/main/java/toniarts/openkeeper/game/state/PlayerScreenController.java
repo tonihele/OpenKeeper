@@ -155,6 +155,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 }
             }
             updateCallToArms();
+            syncCheatTabVisibility();
             lastUpdate = 0;
         }
     }
@@ -1433,16 +1434,35 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
+     * Makes the cheat tab button match the god mode. Nifty shows hidden children again when something
+     * above them is shown, so this is also checked now and then, not just when a cheat changes.
+     */
+    private void syncCheatTabVisibility() {
+        if (state == null || nifty == null) {
+            return;
+        }
+        GameClientState client = state.stateManager.getState(GameClientState.class);
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element tab = hud != null ? hud.findElementById("tab-god") : null;
+        Element tabs = hud != null ? hud.findElementById("tabs-hud") : null;
+        CustomTabGroupControl tabGroup = tabs != null ? tabs.getControl(CustomTabGroupControl.class) : null;
+        if (client == null || tab == null || tabGroup == null) {
+            return;
+        }
+        boolean visible = client.isGodMode() && !client.isMultiplayer();
+        Tab tabControl = tab.getNiftyControl(Tab.class);
+        if (tabGroup.isTabButtonVisible(tabControl) != visible) {
+            tabGroup.setTabButtonVisible(tabControl, visible);
+        }
+    }
+
+    /**
      * Shows the cheat tab only while in god mode, and has the buttons of the cheats that are on selected
      */
     public void refreshCheatTab() {
         GameClientState client = state.stateManager.getState(GameClientState.class);
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
-        Element tab = hud.findElementById("tab-god");
-        CustomTabGroupControl tabGroup = hud.findElementById("tabs-hud").getControl(CustomTabGroupControl.class);
-        if (tab != null && tabGroup != null) {
-            tabGroup.setTabButtonVisible(tab.getNiftyControl(Tab.class), client.isGodMode() && !client.isMultiplayer());
-        }
+        syncCheatTabVisibility();
         Element overlay = hud.findElementById("terrain-overlay");
         if (overlay != null) {
             overlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.TERRAIN_CHANGE));

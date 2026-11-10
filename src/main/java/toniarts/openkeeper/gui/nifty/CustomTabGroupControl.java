@@ -525,6 +525,16 @@ public final class CustomTabGroupControl extends AbstractController implements T
         }
     }
 
+    /**
+     * @param tab the tab
+     * @return whether the button of the tab is currently shown
+     */
+    public boolean isTabButtonVisible(final Tab tab) {
+        final int index = indexOf(tab);
+        final Element button = index == -1 ? null : getButton(index);
+        return button != null && button.isVisible();
+    }
+
     @Override
     public void removeTab(final int index) {
     }

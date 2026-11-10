@@ -149,7 +149,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
 
     @Override
     public void onKeyEvent(KeyInputEvent evt) {
-        if (evt.isPressed() && evt.getKeyChar() != 0) {
+        if (evt.isPressed() && evt.getKeyChar() >= ' ' && !Character.isISOControl(evt.getKeyChar())) {
             this.cheat += evt.getKeyChar();
 
             // Leave cheat mode if message was incorrect
