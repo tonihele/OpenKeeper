@@ -246,6 +246,22 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean shouldNavigateToFollowTarget();
 
+    /**
+     * Sends us to a Call to Arms banner, if we can get there
+     *
+     * @param banner the banner
+     * @return true if we answered the call
+     */
+    public boolean answerCallToArms(EntityId banner);
+
+    /**
+     * Gathers at the Call to Arms banner we answered and fights what comes
+     * close to it
+     *
+     * @return false when the banner is gone or we can't get to it
+     */
+    public boolean heedCallToArms();
+
     public boolean isSlapped();
 
     public boolean isPortalGemInPosession();
@@ -288,11 +304,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void makeHungry();
 
     /**
-     * Get research per second attribute
+     * Get the research points the creature makes on each game tick in the
+     * library
      *
-     * @return research per second
+     * @return research points per tick
      */
-    public int getResearchPerSecond();
+    public int getResearchPerTick();
 
     /**
      * Get manufacture per second attribute
@@ -332,6 +349,22 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param speedMode one of {@link toniarts.openkeeper.game.component.PossessedMovement}'s speed constants
      */
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+
+    /**
+     * Sets the attack intent for a possessed creature, as given by its keeper.
+     * The swings happen on the game logic thread, see
+     * {@link #executePossessedAttack()}.
+     *
+     * @param attacking whether the attack button is held down
+     */
+    public void setPossessedAttack(boolean attacking);
+
+    /**
+     * Swings the melee attack of a possessed creature, if it has recharged.
+     * Hits the nearest creature in front of it on the tiles around it, or if
+     * there is none, a worker digs the tile it is facing.
+     */
+    public void executePossessedAttack();
 
     /**
      * Converts creature to another player's bidding
