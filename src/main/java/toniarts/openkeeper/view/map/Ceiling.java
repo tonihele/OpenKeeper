@@ -92,10 +92,11 @@ public final class Ceiling {
     public static Geometry construct(AssetManager assetManager, ClearanceField clearanceField,
             Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
             Set<Point> straightTiles) {
-        Mesh mesh = createMesh(clearanceField, tiles, deformer, straightTiles);
+        Material material = createMaterial(assetManager, terrain, ceilingResource);
+        return construct(clearanceField, tiles, deformer, straightTiles, material);
+    }
 
-        Geometry geo = new Geometry("Ceiling", mesh);
-
+    static Material createMaterial(AssetManager assetManager, Terrain terrain, ArtResource ceilingResource) {
         Material mat = new Material(assetManager, "Common/MatDefs/Light/Lighting.j3md");
         String textureName = (ceilingResource != null) ? ceilingResource.getName() : "Ceiling";
         TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(
@@ -114,13 +115,20 @@ public final class Ceiling {
         // ground; the ceiling ignores them
         dkMat.setBoolean("IgnoreObjectLights", true);
         dkMat.setFloat("AmbientScale", 0f);
-        geo.setMaterial(dkMat);
+        return dkMat;
+    }
+
+    static Geometry construct(ClearanceField clearanceField, List<Point> tiles, TerrainDeformer deformer,
+            Set<Point> straightTiles, Material material) {
+        Mesh mesh = createMesh(clearanceField, tiles, deformer, straightTiles);
+        Geometry geo = new Geometry("Ceiling", mesh);
+        geo.setMaterial(material);
         geo.setShadowMode(RenderQueue.ShadowMode.Off); // Nothing above a ceiling to shadow it
 
         return geo;
     }
 
-    private static Mesh createMesh(ClearanceField clearanceField, List<Point> tiles, TerrainDeformer deformer,
+    static Mesh createMesh(ClearanceField clearanceField, List<Point> tiles, TerrainDeformer deformer,
             Set<Point> straightTiles) {
         Mesh mesh = new Mesh();
 
