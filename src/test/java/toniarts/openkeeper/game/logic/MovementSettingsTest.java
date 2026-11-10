@@ -29,7 +29,7 @@ class MovementSettingsTest {
         assertEquals(0.1f, MovementSettings.DEFAULT.waypointTolerance());
         assertEquals(20f, MovementSettings.DEFAULT.turnRate());
         assertEquals(0.1d, MovementSettings.DEFAULT.interpolationDelay());
-        assertEquals(0.05d, MovementSettings.DEFAULT.maxExtrapolation());
+        assertEquals(0.1d, MovementSettings.DEFAULT.maxExtrapolation());
     }
 
     @Test

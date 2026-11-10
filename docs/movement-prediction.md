@@ -52,7 +52,7 @@ session or test. Values use world units and seconds:
 | Wall approach gap | 1/6 tile | Distance left before a blocked tile edge |
 | Collision step | 1/4 tile | Maximum sweep distance per collision check |
 | Interpolation delay | 0.1 s | Render behind local snapshot arrival time |
-| Maximum extrapolation | 0.05 s | Maximum render projection beyond the latest sample |
+| Maximum extrapolation | 0.1 s | Maximum render projection beyond the latest sample |
 | Teleport distance | 2 tiles | Correction that discards the old view history |
 
 Collision settings reject a wall gap of half a tile or more and sweep steps
@@ -62,7 +62,7 @@ backwards or skipping a blocked tile.
 ## Limitations
 
 The render buffer uses local snapshot arrival times because the view layer does
-not currently receive authoritative server timestamps. Its short extrapolation
+not currently receive authoritative server timestamps. Its bounded extrapolation
 does not query map collision, so a remote model can render slightly ahead before
 the next authoritative correction. The simulation remains authoritative and
 collision checked. This implementation smooths received positions; it does not

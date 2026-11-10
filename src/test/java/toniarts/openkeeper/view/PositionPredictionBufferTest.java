@@ -49,7 +49,20 @@ class PositionPredictionBufferTest {
 
         buffer.sample(2d, sampledPosition);
 
-        assertEquals(1.05f, sampledPosition.x, 0.0001f);
+        assertEquals(1.1f, sampledPosition.x, 0.0001f);
+    }
+
+    @Test
+    void latePositionSamplesRemainPredictableAcrossTheDefaultWindow() {
+        buffer.addSample(0d, new Position(0f, new Vector3f(0, 0, 0)));
+        buffer.addSample(0.05d, new Position(0f, new Vector3f(0.05f, 0, 0)));
+
+        buffer.sample(0.14d, sampledPosition);
+
+        assertEquals(0.14f, sampledPosition.x, 0.0001f);
+
+        buffer.sample(0.2d, sampledPosition);
+        assertEquals(0.15f, sampledPosition.x, 0.0001f);
     }
 
     @Test

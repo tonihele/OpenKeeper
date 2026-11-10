@@ -47,7 +47,7 @@ public record MovementSettings(float waypointTolerance, float facingTolerance, f
             WorldUtils.TILE_WIDTH / 6f,
             WorldUtils.TILE_WIDTH / 4f,
             0.1,
-            0.05,
+            0.1,
             WorldUtils.TILE_WIDTH * 2f);
 
     public MovementSettings {
