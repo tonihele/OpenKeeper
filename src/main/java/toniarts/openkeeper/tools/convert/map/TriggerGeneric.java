@@ -69,8 +69,37 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_TORTURED(8), // Event, This creature is
         CREATURE_CONVERTED(9), // Event, This creature is
         CREATURE_CLAIMED(10), // Event, This creature is
-        CREATURE_ANGRY(11), // Event, This creature is
-        CREATURE_AFRAID(12), // Event, This creature is
+        /**
+         * Fires when a positive mood change moves this creature into the fully
+         * angry state. Merely becoming unhappy does not fire it, and staying
+         * angry does not repeatedly fire it. After recovery, becoming angry
+         * again can fire another event, subject to the script's repeat limits.
+         * <p>
+         * This event runs its child actions and conditions immediately; it is
+         * not a persistent test of the creature's current mood. Emotionless
+         * creatures do not generate it. For example, it can warn the player
+         * when a particular Warlock becomes fully angry for the first time.
+         */
+        CREATURE_ANGRY(11),
+        /**
+         * Fires when this creature passes a qualifying fear evaluation, before
+         * the game attempts an escape. It is an immediate creature-script
+         * event, not a poll of the current fleeing state. The event can occur
+         * even when escape is subsequently suppressed or unavailable.
+         * <p>
+         * For example, a weak creature confronted by an overwhelming enemy
+         * can trigger a warning or reinforcement script. Level4 contains
+         * two uses of this event. An active escape suppresses further events;
+         * later eligible fear checks can deliver it again, subject to the
+         * branch's repeat limit.
+         * <p>
+         * DKII dispatches matching active root branches synchronously and
+         * tests their child conditions at event time. The ordinary script
+         * walk does not match this enum, and nested event conditions are not
+         * searched recursively. OpenKeeper uses its existing fear evaluation;
+         * this condition does not replace fear scoring or flee navigation.
+         */
+        CREATURE_AFRAID(12),
         CREATURE_STEALS(13), // Event, This creature is
         CREATURE_LEAVES(14), // Event, This creature is
         CREATURE_STUNNED(15), // Event, This creature is
@@ -120,7 +149,25 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_EXPERIENCE_LEVEL(49), // Attribute, This creature's...
         PLAYER_CREATURES_AT_LEVEL(52), // Player
         GUI_BUTTON_PRESSED(53), // GUI
-        CREATURE_HUNGER_SATED(54), // Event, This creature is
+        /**
+         * Event: a feeding reduces this creature's remaining hunger to zero.
+         * Partial meals do not emit it. DK II also emits when its hunger-reduction
+         * routine is called while already at zero; a fresh positive-to-zero
+         * transition is not required. Being full at spawn, resting, or simply
+         * polling a creature that is not hungry does not emit this event.
+         * <p>
+         * Matching creature-root branches run at event time, after hunger is
+         * stored, and their nested conditions observe that state. The event is
+         * not latched for later polling or delivered to events nested below
+         * another condition. OpenKeeper delivers it from server-side completed
+         * meals and uses the existing script repeat counters.
+         * <p>
+         * Example: a scripted creature needs three chickens. The first two meals
+         * leave hunger outstanding; completing the third can advance an objective
+         * or play a message. Feeding the full creature again can emit again if
+         * the script branch permits repeats.
+         */
+        CREATURE_HUNGER_SATED(54),
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
         PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
         PLAYER_ENEMY_BREACHED(57), // Event, This player's...

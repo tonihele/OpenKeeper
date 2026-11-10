@@ -30,6 +30,9 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreaturesController extends IEntityWrapper<ICreatureController> {
 
+    /** Deliver a completed meal's zero-hunger event on the simulation thread. */
+    void onHungerSated(EntityId entityId);
+
     public enum SpawnType {
         PLACE,
         ENTRANCE,

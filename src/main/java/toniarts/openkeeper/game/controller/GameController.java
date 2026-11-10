@@ -75,6 +75,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final PlayerService playerService;
 
     private TriggerControl triggerControl = null;
+    private CreatureTriggerLogicController creatureTriggers;
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -111,6 +112,21 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         createNewGame();
     }
 
+    @Override
+    public void onCreatureAngry(EntityId entityId) {
+        creatureTriggers.onAngry(entityId);
+    }
+
+    @Override
+    public void onCreatureHungerSated(EntityId entityId) {
+        creatureTriggers.onHungerSated(entityId);
+    }
+
+    @Override
+    public void onCreatureAfraid(EntityId entityId) {
+        creatureTriggers.onAfraid(entityId);
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
@@ -137,9 +153,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData));
+                playerService, entityData);
+        controllers.add(creatureTriggers);
         controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData, gameWorldController.getObjectsController()));
