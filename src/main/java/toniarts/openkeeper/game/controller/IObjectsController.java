@@ -82,6 +82,14 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
     public EntityId spawnChicken(short ownerId, Vector3f pos);
 
     /**
+     * Knocks away the player's Call to Arms banner, like a slap. Only a banner
+     * that is up on the map, not one in the hand or still rising
+     *
+     * @param playerId the player
+     */
+    public void cancelCallToArms(short playerId);
+
+    /**
      * Spawns an freerange chicken in specified position.
      *
      * @param ownerId the chicken owner
