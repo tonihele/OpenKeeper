@@ -19,12 +19,10 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.controller.ITrapsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
-import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.utils.Point;
 
@@ -40,12 +38,7 @@ class ManufactureTest {
     @Test
     void creatureWorksOnceASecond() {
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
-        Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
-        ITrapsController trapsController = (ITrapsController) Proxy.newProxyInstance(
-                ITrapsController.class.getClassLoader(), new Class<?>[]{ITrapsController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "getTrapToManufacture" -> trap;
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
+        manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
         ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getManufacturePerSecond" -> TROLL;
@@ -53,7 +46,7 @@ class ManufactureTest {
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, trapsController, null);
+        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, null);
         task.assign(creature, false);
 
         // A minute of logic ticks
@@ -92,13 +85,9 @@ class ManufactureTest {
                     case "getObjectControl" -> crates;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
-        ITrapsController trapsController = (ITrapsController) Proxy.newProxyInstance(
-                ITrapsController.class.getClassLoader(), new Class<?>[]{ITrapsController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "getTrapToManufacture" -> trap;
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, new PlayerManufactureControl(), trapsController, null);
+        PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
+        manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
+        return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, null);
     }
 
 }

@@ -676,7 +676,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
-                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), gameWorldController.getTrapsController(), objectsController);
+                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
