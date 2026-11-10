@@ -172,8 +172,12 @@ public final class CheatController implements ICheatController {
             }
 
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE) && tile.getGold() > 0) {
-                // Gems never run out, they only give their yield, same as when mined
-                dropGold(p, (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS));
+                // Gems never run out, they only give their yield, same as when mined. The gem tile stays
+                // solid, so the gold lands on an open tile next to it
+                Point open = findOpenNeighbour(p);
+                if (open != null) {
+                    dropGold(open, (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS));
+                }
                 continue;
             }
 
@@ -182,6 +186,26 @@ public final class CheatController implements ICheatController {
             mapController.alterTerrain(p, terrain.getDestroyedTypeTerrainId(), Player.NEUTRAL_PLAYER_ID);
             dropGold(p, gold);
         }
+    }
+
+    /**
+     * Finds a non-solid tile next to the given one, the straight neighbours first
+     *
+     * @return the tile, {@code null} if all the neighbours are rock or outside the map
+     */
+    private Point findOpenNeighbour(Point p) {
+        int[][] offsets = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}, {-1, -1}, {1, -1}, {1, 1}, {-1, 1}};
+        for (int[] offset : offsets) {
+            Point n = new Point(p.x + offset[0], p.y + offset[1]);
+            if (n.x < 0 || n.y < 0 || n.x >= kwdFile.getMap().getWidth() || n.y >= kwdFile.getMap().getHeight()) {
+                continue;
+            }
+            Terrain terrain = kwdFile.getTerrain(mapController.getMapData().getTile(n).getTerrainId());
+            if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                return n;
+            }
+        }
+        return null;
     }
 
     private void dropGold(Point tile, int amount) {
