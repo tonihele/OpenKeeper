@@ -21,17 +21,27 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.chicken.ChickenState;
+import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.Point;
 
@@ -237,6 +247,7 @@ class MovementSystemTest {
         entityData.setComponents(creature,
                 new Position(0f, new Vector3f(0, 0, 0)),
                 new Mobile(false, false, false, 5f),
+                new CreatureComponent(),
                 new Navigation(new Point(2, 0), null,
                         new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0), new Vector2(2, 0)))));
         MovementSettings settings = MovementSettings.DEFAULT;
@@ -249,6 +260,77 @@ class MovementSystemTest {
 
         float x = entityData.getComponent(creature, Position.class).position.x;
         assertTrue(x > 0f && x <= 1f / 3f + 0.001f, "creature crossed wall to x=" + x);
+        movementSystem.stop();
+        entityData.close();
+    }
+
+    @Test
+    void chickenMovementUsesItsControllerWithoutAbortingLaterEntities() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId chicken = entityData.createEntity();
+        entityData.setComponents(chicken,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1f),
+                new Navigation(new Point(1, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0)))),
+                new ChickenAi(0, ChickenState.WANDERING));
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature,
+                new Position(0f, new Vector3f(0, 0, 0)),
+                new Mobile(false, false, false, 1f),
+                new CreatureComponent(),
+                new Navigation(new Point(1, 0), null,
+                        new ArrayList<>(List.of(new Vector2(0, 0), new Vector2(1, 0)))));
+
+        AtomicInteger chickenControllerRequests = new AtomicInteger();
+        AtomicInteger creatureControllerRequests = new AtomicInteger();
+        AtomicInteger chickenCostChecks = new AtomicInteger();
+        AtomicInteger creatureCostChecks = new AtomicInteger();
+        IChickenController chickenController = createProxy(IChickenController.class,
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getCost")) {
+                        chickenCostChecks.incrementAndGet();
+                        return 1f;
+                    }
+                    return defaultValue(method.getReturnType());
+                });
+        ICreatureController creatureController = createProxy(ICreatureController.class,
+                (proxy, method, args) -> {
+                    if (method.getName().equals("getCost")) {
+                        creatureCostChecks.incrementAndGet();
+                        return 1f;
+                    }
+                    return defaultValue(method.getReturnType());
+                });
+        IObjectsController objectsController = createProxy(IObjectsController.class, (proxy, method, args) -> {
+            if (method.getName().equals("createChickenController")) {
+                chickenControllerRequests.incrementAndGet();
+                return chickenController;
+            }
+            return defaultValue(method.getReturnType());
+        });
+        ICreaturesController creaturesController = createProxy(ICreaturesController.class,
+                (proxy, method, args) -> {
+                    if (method.getName().equals("createController") && creature.equals(args[0])) {
+                        creatureControllerRequests.incrementAndGet();
+                        return creatureController;
+                    }
+                    throw new AssertionError("non-creature was passed to the creature controller");
+                });
+
+        MovementSystem movementSystem = new MovementSystem(entityData, MovementSettings.DEFAULT,
+                new GridMovementCollision(PossessedMovementSystemTest.mapWithWallAtXOne(), null,
+                        MovementSettings.DEFAULT),
+                creaturesController, objectsController);
+
+        movementSystem.processTick(0.5f);
+
+        assertEquals(1, chickenControllerRequests.get());
+        assertEquals(1, creatureControllerRequests.get());
+        assertEquals(1, chickenCostChecks.get());
+        assertEquals(1, creatureCostChecks.get());
+        assertEquals(0.5f, entityData.getComponent(chicken, Position.class).position.x, 0.001f);
+        assertEquals(0.5f, entityData.getComponent(creature, Position.class).position.x, 0.001f);
         movementSystem.stop();
         entityData.close();
     }
@@ -282,5 +364,40 @@ class MovementSystemTest {
         movementSystem.stop();
         entityData.close();
         return copy;
+    }
+
+    private static <T> T createProxy(Class<T> type, InvocationHandler handler) {
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, handler));
+    }
+
+    private static Object defaultValue(Class<?> type) {
+        if (!type.isPrimitive()) {
+            return null;
+        }
+        if (type == boolean.class) {
+            return false;
+        }
+        if (type == char.class) {
+            return '\0';
+        }
+        if (type == byte.class) {
+            return (byte) 0;
+        }
+        if (type == short.class) {
+            return (short) 0;
+        }
+        if (type == int.class) {
+            return 0;
+        }
+        if (type == long.class) {
+            return 0L;
+        }
+        if (type == float.class) {
+            return 0f;
+        }
+        if (type == double.class) {
+            return 0d;
+        }
+        return null;
     }
 }

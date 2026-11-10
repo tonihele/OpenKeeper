@@ -169,7 +169,7 @@ public final class GameLoopManager {
                 new DungeonHeartConstruction(entityData,
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS)),
                 new MovementSystem(entityData, movementSettings, movementCollision,
-                        gameWorldController.getCreaturesController()),
+                        gameWorldController.getCreaturesController(), gameWorldController.getObjectsController()),
                 new PossessedMovementSystem(entityData, gameWorldController.getCreaturesController(), movementCollision),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()));
 

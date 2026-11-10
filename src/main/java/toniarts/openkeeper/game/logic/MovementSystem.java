@@ -26,17 +26,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.chicken.IChickenController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Advances AI-controlled creatures along their already-authoritative path.
+ * Advances AI-controlled mobile entities along their already-authoritative path.
  * Every displacement is bounded by speed and the current fixed game step, so
  * a creature cannot coast past a waypoint.
  */
@@ -52,6 +57,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final float waypointToleranceSquared;
     private final GridMovementCollision collision;
     private final ICreaturesController creaturesController;
+    private final IObjectsController objectsController;
     private final Map<EntityId, MovementCursor> movementCursors = new HashMap<>();
 
     public MovementSystem(EntityData entityData) {
@@ -64,12 +70,18 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
     public MovementSystem(EntityData entityData, MovementSettings settings, GridMovementCollision collision,
             ICreaturesController creaturesController) {
+        this(entityData, settings, collision, creaturesController, null);
+    }
+
+    public MovementSystem(EntityData entityData, MovementSettings settings, GridMovementCollision collision,
+            ICreaturesController creaturesController, IObjectsController objectsController) {
         this.entityData = Objects.requireNonNull(entityData, "entityData");
         this.settings = Objects.requireNonNull(settings, "settings");
         float waypointTolerance = settings.waypointTolerance();
         waypointToleranceSquared = waypointTolerance * waypointTolerance;
         this.collision = collision;
         this.creaturesController = creaturesController;
+        this.objectsController = objectsController;
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
     }
 
@@ -127,9 +139,14 @@ public final class MovementSystem implements IGameLogicUpdatable {
                 }
                 float oldX = moved.x;
                 float oldZ = moved.z;
-                if (collision != null && creaturesController != null) {
-                    ICreatureController navigable = creaturesController.createController(entityId);
-                    collision.move(navigable, oldX, oldZ, deltaX, deltaZ, moved);
+                if (collision != null) {
+                    INavigable navigable = navigableFor(entity);
+                    if (navigable != null) {
+                        collision.move(navigable, oldX, oldZ, deltaX, deltaZ, moved);
+                    } else {
+                        moved.x += deltaX;
+                        moved.z += deltaZ;
+                    }
                 } else {
                     moved.x += deltaX;
                     moved.z += deltaZ;
@@ -173,6 +190,24 @@ public final class MovementSystem implements IGameLogicUpdatable {
         if (pathComplete && facingComplete) {
             entityData.removeComponent(entityId, Navigation.class);
         }
+    }
+
+    /**
+     * Resolve the passability rules for the mobile entity being moved. The
+     * movement query also includes wandering chickens, whose controller is
+     * owned by the objects controller rather than the creatures controller.
+     */
+    private INavigable navigableFor(Entity entity) {
+        EntityId entityId = entity.getId();
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null && creaturesController != null) {
+            ICreatureController creatureController = creaturesController.createController(entityId);
+            return creatureController;
+        }
+        if (entityData.getComponent(entityId, ChickenAi.class) != null && objectsController != null) {
+            IChickenController chickenController = objectsController.createChickenController(entityId);
+            return chickenController;
+        }
+        return null;
     }
 
     /**

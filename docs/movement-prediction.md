@@ -15,6 +15,9 @@ to each path point. Turning uses the shortest angular difference and a bounded
 rate. AI and possessed movement share a grid sweep that checks each crossed
 tile with the existing navigation passability rule, holds creatures back from
 blocked tile edges, and slides along a wall when one axis is blocked.
+The same movement system routes chickens through their own navigable
+controller, so a wandering chicken cannot abort movement for later entities
+in the simulation tick.
 
 The client view keeps a bounded history of received creature positions. It
 interpolates position and facing on the render thread, then extrapolates for a
