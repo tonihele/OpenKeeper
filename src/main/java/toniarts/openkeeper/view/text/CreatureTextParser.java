@@ -126,6 +126,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case FOLLOW: {
                 return Utils.getMainTextResourceBundle().getString("2675");
             }
+            case CALL_TO_ARMS: {
+                return Utils.getMainTextResourceBundle().getString("2648");
+            }
             case IMPRISONED: {
                 return Utils.getMainTextResourceBundle().getString("2674");
             }
@@ -199,6 +202,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             }
             case RESEARCH -> {
                 return Utils.getMainTextResourceBundle().getString("2625");
+            }
+            case MANUFACTURE -> {
+                return Utils.getMainTextResourceBundle().getString("2624");
             }
             case GO_TO_EAT -> {
                 return Utils.getMainTextResourceBundle().getString("2668");
