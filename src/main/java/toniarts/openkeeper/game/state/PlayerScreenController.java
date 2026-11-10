@@ -1451,15 +1451,22 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (creatureOverlay != null) {
             creatureOverlay.setVisible(client.isGodMode() && client.isCheat(CheatState.CheatType.SPAWN_CREATURES));
         }
+        // The overlay modes stand alone, the other buttons are disabled while one of them is on
+        boolean overlayOn = false;
         for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
-            Element button = cheat.isMode() ? hud.findElementById("cheat_" + cheat.name()) : null;
+            overlayOn |= cheat.isOverlayMode() && client.isCheat(cheat);
+        }
+        for (CheatState.CheatType cheat : CheatState.CheatType.values()) {
+            Element button = hud.findElementById("cheat_" + cheat.name());
             if (button == null) {
                 continue;
             }
-            if (client.isCheat(cheat)) {
+            button.stopEffect(EffectEventId.onCustom);
+            if (cheat.isMode() && client.isCheat(cheat)) {
                 button.startEffect(EffectEventId.onCustom, null, "select");
-            } else {
-                button.stopEffect(EffectEventId.onCustom);
+            } else if (overlayOn) {
+                // Darkened like the spells that can't be cast
+                button.startEffect(EffectEventId.onCustom, null, "unaffordable");
             }
         }
     }
