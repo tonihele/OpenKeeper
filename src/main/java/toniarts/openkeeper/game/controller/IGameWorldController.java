@@ -179,6 +179,13 @@ public interface IGameWorldController {
     public IObjectsController getObjectsController();
 
     /**
+     * Get the traps controller
+     *
+     * @return traps controller
+     */
+    public ITrapsController getTrapsController();
+
+    /**
      * Get the shots controller
      *
      * @return shots controller

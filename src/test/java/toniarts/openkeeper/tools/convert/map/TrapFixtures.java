@@ -32,4 +32,11 @@ public final class TrapFixtures {
         return trap;
     }
 
+    public static Trap trapToManufacture(short trapId, int manufToBuild) {
+        Trap trap = new Trap();
+        trap.setTrapId(trapId);
+        trap.setManufToBuild(manufToBuild);
+        return trap;
+    }
+
 }
