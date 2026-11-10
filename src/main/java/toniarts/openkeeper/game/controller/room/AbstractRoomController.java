@@ -33,8 +33,8 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.WallSection;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
 import java.util.ArrayList;
 import java.util.Collections;
