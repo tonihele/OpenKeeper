@@ -102,6 +102,10 @@ public abstract class AbstractThingTriggerLogicController<T extends IEntityContr
      * @param triggerId the trigger ID
      * @param instanceControl the thing instance
      */
+    protected final AbstractThingTriggerControl<T> getTriggerControl(int triggerId) {
+        return thingTriggers.get(triggerId);
+    }
+
     private void setThing(int triggerId, T instanceControl) {
         thingTriggers.get(triggerId).setThing(instanceControl);
     }
