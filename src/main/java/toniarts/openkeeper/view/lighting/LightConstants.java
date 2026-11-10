@@ -184,7 +184,7 @@ public final class LightConstants {
      * Cursor light height above the floor, over solid rock (whose top is
      * higher up)
      */
-    public static final float CURSOR_LIGHT_HEIGHT = 2.125f;
+    public static final float CURSOR_LIGHT_HEIGHT = 2.5f;
 
     /**
      * Cursor light height over open ground, in world space: just above the
