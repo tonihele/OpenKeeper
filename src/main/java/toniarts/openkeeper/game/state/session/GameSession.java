@@ -123,6 +123,12 @@ public interface GameSession {
     public void getGold(int amount);
 
     /**
+     * Take down the player's Call to Arms banner
+     */
+    @Asynchronous
+    public void cancelCallToArms();
+
+    /**
      * Signals that any UI transition has ended
      */
     @Asynchronous
@@ -189,6 +195,15 @@ public interface GameSession {
      */
     @Asynchronous
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+
+    /**
+     * Start or stop attacking with the currently possessed creature. While the
+     * attack is held, the creature swings whenever its attack has recharged.
+     *
+     * @param attacking whether the attack button is held down
+     */
+    @Asynchronous
+    public void setPossessedAttack(boolean attacking);
 
     /**
      * Stop possessing the currently possessed creature
