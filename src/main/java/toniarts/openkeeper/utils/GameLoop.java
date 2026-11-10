@@ -38,6 +38,7 @@ public final class GameLoop {
     private final Runner loop;
 
     private final long updateRate;
+    private final float fixedTimeStep;
     private final AtomicBoolean pauseFlag = new AtomicBoolean(false);
 
     public GameLoop(IGameLogicUpdatable gameLoopManager) {
@@ -49,8 +50,12 @@ public final class GameLoop {
     }
 
     public GameLoop(IGameLogicUpdatable gameLoopManager, long updateRateNanos, String name) {
+        if (updateRateNanos <= 0) {
+            throw new IllegalArgumentException("Update rate must be positive");
+        }
         this.gameLoopManager = gameLoopManager;
         this.updateRate = updateRateNanos;
+        fixedTimeStep = updateRateNanos / 1_000_000_000f;
         this.loop = new Runner(NAME_PREFIX + " " + name);
     }
 
@@ -135,7 +140,9 @@ public final class GameLoop {
                 if (delta + frameRate >= updateRate) {
                     lastTime = time;
                     frameRate += delta - updateRate;
-                    gameLoopManager.processTick(delta / 1_000_000_000f);
+                    // The scheduler measures wall time to keep this rate, but
+                    // authoritative systems always receive the same step.
+                    gameLoopManager.processTick(fixedTimeStep);
                     long tickTime = System.nanoTime() - time;
                     // Logging
                     logger.log(tickTime < updateRate ? Level.TRACE : Level.ERROR, "Loop \"{0}\" took {1} ms!",

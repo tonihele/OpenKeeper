@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.event.ClientEvents;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.logic.MovementSettings;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -174,12 +175,44 @@ public class PlayerEntityViewState extends AbstractAppState {
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+    private final Map<EntityId, TrackedCreaturePosition> predictedCreaturePositions = new HashMap<>();
+    private final MovementSettings movementSettings;
+    private double presentationTime;
 
     /**
      * A thing whose light is created and positioned every frame (see
      * {@link #update(float)}), not only when its entity changes.
      */
     private record TrackedLight(Spatial spatial, Light light, float intensity, boolean honourPulse, boolean objectLight) {
+    }
+
+    private final class TrackedCreaturePosition {
+
+        private final Spatial spatial;
+        private final PositionPredictionBuffer prediction;
+        private final Vector3f predictedPosition = new Vector3f();
+
+        private TrackedCreaturePosition(Spatial spatial) {
+            this.spatial = spatial;
+            prediction = new PositionPredictionBuffer(movementSettings);
+        }
+
+        private void addSample(Position position) {
+            boolean changed = prediction.addSample(presentationTime, position);
+            if (changed && !prediction.hasHistory()) {
+                spatial.setLocalTranslation(position.position);
+                spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(0, position.rotation, 0));
+            }
+        }
+
+        private void update(double sampleTime) {
+            if (!prediction.hasHistory()) {
+                return;
+            }
+            float rotation = prediction.sample(sampleTime, predictedPosition);
+            spatial.setLocalTranslation(predictedPosition);
+            spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(0, rotation, 0));
+        }
     }
 
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId, TextParser textParser, Node rootNode) {
@@ -194,6 +227,13 @@ public class PlayerEntityViewState extends AbstractAppState {
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
             TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData,
             IFogOfWarInformation fogOfWarInformation) {
+        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, mapData, fogOfWarInformation,
+                MovementSettings.DEFAULT);
+    }
+
+    public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
+            TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData,
+            IFogOfWarInformation fogOfWarInformation, MovementSettings movementSettings) {
         super(Short.toString(playerId));
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
@@ -203,6 +243,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.rootNode = rootNode;
         this.mapData = mapData;
         this.fogOfWarInformation = fogOfWarInformation;
+        this.movementSettings = Objects.requireNonNull(movementSettings, "movementSettings");
 
         // Init the loaders
         objectLoader = new ObjectLoader(kwdFile);
@@ -256,6 +297,9 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void update(float tpf) {
+        if (Float.isFinite(tpf) && tpf > 0f) {
+            presentationTime += tpf;
+        }
 
         // Update the models
         objectModelContainer.update();
@@ -264,6 +308,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        updatePredictedCreaturePositions();
 
         // Lighting: re-derive attached-light positions and bind the
         // vertex-lit models every frame -- lights on other things
@@ -316,6 +361,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         shotModelContainer.stop();
+        predictedCreaturePositions.clear();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
 
         // Detach entities
@@ -782,8 +828,27 @@ public class PlayerEntityViewState extends AbstractAppState {
         object.setLocalRotation(object.getLocalRotation().fromAngles(0, position.rotation, 0));
     }
 
+    private void updateCreatureModelPosition(Spatial object, Entity e) {
+        Position position = e.get(Position.class);
+        EntityId entityId = e.getId();
+        TrackedCreaturePosition tracked = predictedCreaturePositions.get(entityId);
+        if (tracked == null || tracked.spatial != object) {
+            tracked = new TrackedCreaturePosition(object);
+            predictedCreaturePositions.put(entityId, tracked);
+        }
+        tracked.addSample(position);
+    }
+
+    private void updatePredictedCreaturePositions() {
+        double sampleTime = presentationTime - movementSettings.interpolationDelay();
+        for (TrackedCreaturePosition tracked : predictedCreaturePositions.values()) {
+            tracked.update(sampleTime);
+        }
+    }
+
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
+        predictedCreaturePositions.remove(e.getId());
 
         // Stop driving the light first, or update() would re-create it
         trackedLights.remove(e.getId());
@@ -867,7 +932,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
-            updateModelPosition(object, e);
+            updateCreatureModelPosition(object, e);
             updateCreatureModelAnimation(object, e);
         }
 

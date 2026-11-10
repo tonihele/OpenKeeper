@@ -80,7 +80,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
         for (EntityId entityId : creatureEntities.getArray()) {
 
             // Determine what animation to show
-            CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
+            Entity entity = creatureViewEntities.getEntity(entityId);
+            // applyChanges() refreshed this thread-owned view before the tick.
+            CreatureViewState state = entity.get(CreatureViewState.class);
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
