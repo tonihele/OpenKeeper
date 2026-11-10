@@ -152,6 +152,15 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     EntityId getPossessedCreature(short playerId);
 
     /**
+     * Counts living, fully angry non-worker creatures belonging to a player.
+     *
+     * @param playerId owning player, rather than a captor
+     * @param creatureId creature type, or zero for all types
+     * @return matching creature count
+     */
+    int getAngryCreatureCount(short playerId, short creatureId);
+
+    /**
      * Spawns creatures at the given player's dungeon heart entrance. Does nothing if the player has no
      * dungeon heart to spawn creatures at.
      *
