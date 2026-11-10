@@ -37,6 +37,12 @@ uniform vec2 m_AmbientMapSize;
 #ifdef LIGHT_DATA
 uniform sampler2D m_LightData;
 #endif
+#ifdef LIGHT_CLUSTER_LIST
+uniform sampler2D m_LightClusterList;
+uniform float m_LightClusterSize;
+uniform vec2 m_LightClusterGridSize;
+uniform float m_LightClusterListWidth;
+#endif
 
 attribute vec3 inPosition;
 attribute vec3 inNormal;
@@ -87,11 +93,43 @@ void main() {
 #ifdef LIGHT_DATA
     vec3 yieldingSum = vec3(0.0);
     float torchStrength = 0.0;
+    int candidateCount = numLights;
+    int clusterRow = 0;
+    int clusterOffset = 0;
+    bool useClusterList = false;
+#ifdef LIGHT_CLUSTER_LIST
+    ivec2 clusterPage = ivec2(floor(worldPos.xz / m_LightClusterSize));
+    ivec2 clusterGrid = ivec2(m_LightClusterGridSize);
+    int clusterPageCount = clusterGrid.x * clusterGrid.y;
+    int clusterTextureWidth = int(m_LightClusterListWidth + 0.5);
+    if (clusterPage.x >= 0 && clusterPage.y >= 0
+            && clusterPage.x < clusterGrid.x && clusterPage.y < clusterGrid.y) {
+        clusterRow = clusterPage.y * clusterGrid.x + clusterPage.x;
+        int countIndex = clusterRow;
+        ivec2 countCoord = ivec2(countIndex % clusterTextureWidth, countIndex / clusterTextureWidth);
+        int pageLightCount = int(texelFetch(m_LightClusterList, countCoord, 0).r);
+        if (pageLightCount >= 0) {
+            candidateCount = min(pageLightCount, numLights);
+            int offsetIndex = clusterPageCount + clusterRow;
+            ivec2 offsetCoord = ivec2(offsetIndex % clusterTextureWidth, offsetIndex / clusterTextureWidth);
+            clusterOffset = int(texelFetch(m_LightClusterList, offsetCoord, 0).r + 0.5);
+            useClusterList = true;
+        }
+    }
+#endif
     for (int i = 0; i < DK_MAX_LIGHTS; i++) {
-        if (i >= numLights) {
+        if (i >= candidateCount) {
             break;
         }
-        int base = 1 + 3 * i;
+        int lightIndex = i;
+#ifdef LIGHT_CLUSTER_LIST
+        if (useClusterList) {
+            int index = 2 * clusterPageCount + clusterOffset + i;
+            ivec2 indexCoord = ivec2(index % clusterTextureWidth, index / clusterTextureWidth);
+            lightIndex = int(texelFetch(m_LightClusterList, indexCoord, 0).r + 0.5);
+        }
+#endif
+        int base = 1 + 3 * lightIndex;
         vec4 posRadius = texelFetch(m_LightData, ivec2(base, 0), 0);
         vec4 colorIntensity = texelFetch(m_LightData, ivec2(base + 1, 0), 0);
         int flags = int(texelFetch(m_LightData, ivec2(base + 2, 0), 0).x + 0.5);

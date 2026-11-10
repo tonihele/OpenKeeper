@@ -29,6 +29,7 @@ import com.jme3.texture.image.ColorSpace;
 import com.jme3.util.BufferUtils;
 import java.nio.ByteBuffer;
 import java.nio.FloatBuffer;
+import java.util.Arrays;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -64,10 +65,24 @@ public final class SceneLights {
      */
     public static final int MAX_LIGHTS = 3084;
 
+    /** Width in tiles of the optional per-vertex light pages. */
+    public static final int LIGHT_CLUSTER_SIZE_TILES = 4;
+
+    /** Width of the packed cluster-list texture; shared with Vertex.vert. */
+    public static final int LIGHT_CLUSTER_LIST_WIDTH = 512;
+
+    /** Must match DK_SOFT_FALLOFF_TAIL_TILES in DkFalloff.glsllib. */
+    private static final float SHADER_LIGHT_TAIL_TILES = 0.1f;
+    private static final int MAX_CLUSTER_PAGES_PER_AXIS = (int) Math.ceil(
+            2f * (LightConstants.MAX_LIGHT_RADIUS_TILES + SHADER_LIGHT_TAIL_TILES)
+                    / LIGHT_CLUSTER_SIZE_TILES) + 1;
+    private static final int MAX_CLUSTER_PAGES_PER_LIGHT = MAX_CLUSTER_PAGES_PER_AXIS * MAX_CLUSTER_PAGES_PER_AXIS;
+    private static final int MAX_CLUSTER_INDICES = MAX_LIGHTS * MAX_CLUSTER_PAGES_PER_LIGHT;
+
     /**
      * Layout of {@code LightData}: texel 0 is a header (x = light count,
      * yzw = global ambient), then three texels per light: (x, y, z, radius),
-w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
+     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      * are described in {@code Vertex.vert}.
      */
     private static final int TEXELS_PER_LIGHT = 3;
@@ -87,6 +102,17 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     private volatile Texture2D ambientMap;
     private int ambientMapWidth;
     private int ambientMapHeight;
+    private Texture2D lightClusterList;
+    private FloatBuffer lightClusterFloats;
+    private int lightClusterGridWidth;
+    private int lightClusterGridHeight;
+    private int lightClusterIndexCapacity;
+    private int[] lightClusterCounts;
+    private int[] lightClusterOffsets;
+    private int[] lightClusterCursors;
+    private List<LightSource> lightClusterSources;
+    private boolean lightClusterListDirty;
+    private boolean lightClusterOverflow;
 
     public SceneLights() {
         int width = 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
@@ -134,6 +160,13 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
                 material.setTexture("LightData", lightData);
             }
             bindAmbientMap(material);
+            if (lightClusterList != null && material.getTextureParam("LightClusterList") == null) {
+                material.setTexture("LightClusterList", lightClusterList);
+                material.setFloat("LightClusterSize", LIGHT_CLUSTER_SIZE_TILES);
+                material.setVector2("LightClusterGridSize",
+                        new Vector2f(lightClusterGridWidth, lightClusterGridHeight));
+                material.setFloat("LightClusterListWidth", LIGHT_CLUSTER_LIST_WIDTH);
+            }
         }
     }
 
@@ -146,6 +179,12 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      */
     public void update(List<LightSource> lights, Camera camera) {
         Plane[] frustum = camera != null ? getFrustumPlanes(camera) : null;
+        if (lightClusterCounts != null) {
+            Arrays.fill(lightClusterCounts, 0);
+            lightClusterSources.clear();
+            lightClusterListDirty = false;
+            lightClusterOverflow = false;
+        }
 
         int count = 0;
         for (LightSource light : lights) {
@@ -165,6 +204,14 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
                 break;
             }
             writeLight(count, light);
+            if (lightClusterCounts != null) {
+                if (!lightClusterOverflow) {
+                    addLightToClusters(light);
+                    if (!lightClusterOverflow) {
+                        lightClusterSources.add(light);
+                    }
+                }
+            }
             count++;
         }
         lightFloats.put(0, count);
@@ -172,6 +219,90 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         lightFloats.put(2, globalAmbient.g);
         lightFloats.put(3, globalAmbient.b);
         lightData.getImage().setUpdateNeeded();
+        if (lightClusterCounts != null) {
+            updateLightClusterList();
+        }
+    }
+
+    private void addLightToClusters(LightSource light) {
+        Vector3f position = light.getPosition();
+        float reach = light.getRadius() + SHADER_LIGHT_TAIL_TILES;
+        int minX = Math.max(0, (int) Math.floor((position.x - reach) / LIGHT_CLUSTER_SIZE_TILES));
+        int maxX = Math.min(lightClusterGridWidth - 1,
+                (int) Math.floor((position.x + reach) / LIGHT_CLUSTER_SIZE_TILES));
+        int minZ = Math.max(0, (int) Math.floor((position.z - reach) / LIGHT_CLUSTER_SIZE_TILES));
+        int maxZ = Math.min(lightClusterGridHeight - 1,
+                (int) Math.floor((position.z + reach) / LIGHT_CLUSTER_SIZE_TILES));
+        if (minX > maxX || minZ > maxZ) {
+            return;
+        }
+
+        long coveredPages = (long) (maxX - minX + 1) * (maxZ - minZ + 1);
+        if (coveredPages > MAX_CLUSTER_PAGES_PER_LIGHT) {
+            // Custom terrain sources may exceed the normal light-radius cap.
+            // Falling back avoids an unbounded per-frame page walk.
+            lightClusterOverflow = true;
+            return;
+        }
+
+        for (int z = minZ; z <= maxZ; z++) {
+            int row = z * lightClusterGridWidth;
+            for (int x = minX; x <= maxX; x++) {
+                lightClusterCounts[row + x]++;
+            }
+        }
+    }
+
+    private void updateLightClusterList() {
+        int pageCount = lightClusterCounts.length;
+        long totalIndices = 0;
+        for (int count : lightClusterCounts) {
+            totalIndices += count;
+        }
+        boolean overflow = lightClusterOverflow || totalIndices > lightClusterIndexCapacity;
+
+        if (!overflow) {
+            int offset = 0;
+            Arrays.fill(lightClusterCursors, 0);
+            for (int cluster = 0; cluster < pageCount; cluster++) {
+                lightClusterOffsets[cluster] = offset;
+                offset += lightClusterCounts[cluster];
+            }
+            for (int lightIndex = 0; lightIndex < lightClusterSources.size(); lightIndex++) {
+                LightSource light = lightClusterSources.get(lightIndex);
+                Vector3f position = light.getPosition();
+                float reach = light.getRadius() + SHADER_LIGHT_TAIL_TILES;
+                int minX = Math.max(0, (int) Math.floor((position.x - reach) / LIGHT_CLUSTER_SIZE_TILES));
+                int maxX = Math.min(lightClusterGridWidth - 1,
+                        (int) Math.floor((position.x + reach) / LIGHT_CLUSTER_SIZE_TILES));
+                int minZ = Math.max(0, (int) Math.floor((position.z - reach) / LIGHT_CLUSTER_SIZE_TILES));
+                int maxZ = Math.min(lightClusterGridHeight - 1,
+                        (int) Math.floor((position.z + reach) / LIGHT_CLUSTER_SIZE_TILES));
+                for (int z = minZ; z <= maxZ; z++) {
+                    int row = z * lightClusterGridWidth;
+                    for (int x = minX; x <= maxX; x++) {
+                        int cluster = row + x;
+                        int index = lightClusterOffsets[cluster] + lightClusterCursors[cluster]++;
+                        writeClusterValue(2 * pageCount + index, lightIndex);
+                    }
+                }
+            }
+        }
+
+        for (int cluster = 0; cluster < pageCount; cluster++) {
+            writeClusterValue(cluster, overflow ? -1 : lightClusterCounts[cluster]);
+            writeClusterValue(pageCount + cluster, overflow ? 0 : lightClusterOffsets[cluster]);
+        }
+        if (lightClusterListDirty) {
+            lightClusterList.getImage().setUpdateNeeded();
+        }
+    }
+
+    private void writeClusterValue(int index, int value) {
+        if (lightClusterFloats.get(index) != value) {
+            lightClusterFloats.put(index, value);
+            lightClusterListDirty = true;
+        }
     }
 
     private static Plane[] getFrustumPlanes(Camera camera) {
@@ -285,9 +416,31 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         texture.setMagFilter(Texture.MagFilter.Bilinear);
         texture.setMinFilter(Texture.MinFilter.BilinearNoMipMaps);
         texture.setWrap(Texture.WrapMode.EdgeClamp);
-        ambientMap = texture;
         ambientMapWidth = width;
         ambientMapHeight = height;
+        initLightClusterList(width, height);
+        ambientMap = texture;
+    }
+
+    private void initLightClusterList(int mapWidth, int mapHeight) {
+        lightClusterGridWidth = (mapWidth + LIGHT_CLUSTER_SIZE_TILES - 1) / LIGHT_CLUSTER_SIZE_TILES;
+        lightClusterGridHeight = (mapHeight + LIGHT_CLUSTER_SIZE_TILES - 1) / LIGHT_CLUSTER_SIZE_TILES;
+        int pages = lightClusterGridWidth * lightClusterGridHeight;
+        lightClusterIndexCapacity = (int) Math.min(MAX_CLUSTER_INDICES, (long) MAX_LIGHTS * pages);
+        int rows = (int) ((2L * pages + lightClusterIndexCapacity + LIGHT_CLUSTER_LIST_WIDTH - 1)
+                / LIGHT_CLUSTER_LIST_WIDTH);
+        ByteBuffer data = BufferUtils.createByteBuffer(LIGHT_CLUSTER_LIST_WIDTH * rows * Float.BYTES);
+        Image image = new Image(Image.Format.R32F, LIGHT_CLUSTER_LIST_WIDTH, rows, data, ColorSpace.Linear);
+        lightClusterList = new Texture2D(image);
+        lightClusterList.setMagFilter(Texture.MagFilter.Nearest);
+        lightClusterList.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
+        lightClusterList.setWrap(Texture.WrapMode.EdgeClamp);
+        lightClusterFloats = data.asFloatBuffer();
+        image.setUpdateNeeded();
+        lightClusterCounts = new int[pages];
+        lightClusterOffsets = new int[pages];
+        lightClusterCursors = new int[pages];
+        lightClusterSources = new java.util.ArrayList<>(MAX_LIGHTS);
     }
 
     /**

@@ -41,6 +41,13 @@ MaterialDef DK Terrain Lighting {
         // 4 = override light (player-coloured creatures).
         Texture2D LightData
 
+        // Optional packed conservative per-page indices into LightData.
+        // Each page stores a count and offset before the shared index region.
+        Texture2D LightClusterList
+        Float LightClusterSize
+        Vector2 LightClusterGridSize
+        Float LightClusterListWidth
+
         // Scale of the minimum light every explored vertex gets: 1 for
         // walkable terrain, 0 for solid terrain (black where no light reaches)
         Float MinLight : 1.0
@@ -83,6 +90,7 @@ MaterialDef DK Terrain Lighting {
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap
             LIGHT_DATA : LightData
+            LIGHT_CLUSTER_LIST : LightClusterList
             IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
         }
     }

@@ -142,3 +142,10 @@ compileJava {
 wrapper {
     gradleVersion = '9.8.1'
 }
+
+tasks.register("sceneLightsClusterBenchmark", JavaExec) {
+    group = 'verification'
+    description = 'Compares full-list and page-local DkLighting with pixel and CPU/GPU measurements.'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.view.lighting.SceneLightsClusterBenchmark'
+}
