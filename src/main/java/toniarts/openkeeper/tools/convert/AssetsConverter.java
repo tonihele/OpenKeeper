@@ -193,7 +193,7 @@ public abstract class AssetsConverter implements IConversionTaskUpdate {
 
         // Create task manager for taking care of the conversion workflow
         ConversionTaskManager conversionTaskManager = new ConversionTaskManager();
-        AppSettings settings = Main.getSettings();
+        AppSettings settings = Main.getApplicationSettings();
         for (ConvertProcess conversion : ConvertProcess.values()) {
             conversionTaskManager.addTask(conversion,
                     () -> {

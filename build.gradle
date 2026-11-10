@@ -9,7 +9,7 @@ plugins {
 }
 
 ext {
-    jmonkeyengine_version = '3.9.0-stable'
+    jmonkeyengine_version = '3.10.0-beta3'
     license = file("$rootDir/license.txt")
 }
 
@@ -94,6 +94,58 @@ dependencies {
 
 test {
     useJUnitPlatform()
+}
+
+def registerRendererSmoke = { String taskName, String backend ->
+    tasks.register(taskName, JavaExec) {
+        group = 'verification'
+        description = "Renders and benchmarks a deterministic scene with the ${backend} backend."
+        dependsOn testClasses
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = 'toniarts.openkeeper.renderer.RendererSmokeApplication'
+        args backend
+    }
+}
+
+def rendererOpenGLSmoke = registerRendererSmoke('rendererOpenGLSmoke', 'opengl')
+def rendererVulkanSmoke = registerRendererSmoke('rendererVulkanSmoke', 'vulkan')
+rendererVulkanSmoke.configure {
+    mustRunAfter rendererOpenGLSmoke
+}
+
+def openGlCapture = layout.buildDirectory.file('renderer-smoke/opengl.rgba')
+def vulkanCapture = layout.buildDirectory.file('renderer-smoke/vulkan.rgba')
+tasks.register('rendererCompare') {
+    group = 'verification'
+    description = 'Runs both renderers and compares their deterministic framebuffer captures.'
+    dependsOn rendererOpenGLSmoke, rendererVulkanSmoke
+    inputs.files(openGlCapture, vulkanCapture)
+    doLast {
+        byte[] openGlBytes = openGlCapture.get().asFile.bytes
+        byte[] vulkanBytes = vulkanCapture.get().asFile.bytes
+        if (openGlBytes.length != vulkanBytes.length) {
+            throw new GradleException("Renderer captures have different sizes: ${openGlBytes.length} and ${vulkanBytes.length}")
+        }
+        long differingBytes = 0
+        long differingPixels = 0
+        for (int pixel = 0; pixel < openGlBytes.length; pixel += 4) {
+            boolean differs = false
+            for (int channel = 0; channel < 4; channel++) {
+                if (openGlBytes[pixel + channel] != vulkanBytes[pixel + channel]) {
+                    differingBytes++
+                    differs = true
+                }
+            }
+            if (differs) {
+                differingPixels++
+            }
+        }
+        long pixelCount = openGlBytes.length / 4
+        logger.lifecycle("OpenGL/Vulkan capture comparison: ${differingPixels}/${pixelCount} pixels differ (${differingBytes}/${openGlBytes.length} channel bytes); exact parity=${differingBytes == 0}")
+        if (differingBytes != 0) {
+            throw new GradleException('OpenGL and Vulkan smoke framebuffer captures differ.')
+        }
+    }
 }
 
 java {
