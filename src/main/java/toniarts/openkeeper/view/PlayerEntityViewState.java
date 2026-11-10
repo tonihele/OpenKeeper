@@ -33,12 +33,12 @@ import com.simsilica.event.EventType;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
@@ -176,8 +176,42 @@ public class PlayerEntityViewState extends AbstractAppState {
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
     private final Map<EntityId, TrackedCreaturePosition> predictedCreaturePositions = new HashMap<>();
+    private final PendingDirtyTileUpdates pendingDirtyTiles = new PendingDirtyTileUpdates();
     private final MovementSettings movementSettings;
     private double presentationTime;
+
+    /**
+     * Transfers fog changes to the render thread while coalescing duplicate
+     * tiles received between frames.
+     */
+    static final class PendingDirtyTileUpdates {
+
+        private final ConcurrentLinkedQueue<Point[]> batches = new ConcurrentLinkedQueue<>();
+
+        void add(Point[] points) {
+            if (points != null && points.length > 0) {
+                batches.add(points.clone());
+            }
+        }
+
+        Set<Point> drain() {
+            Point[] batch;
+            Set<Point> dirty = null;
+            while ((batch = batches.poll()) != null) {
+                if (dirty == null) {
+                    dirty = new HashSet<>();
+                }
+                for (Point point : batch) {
+                    dirty.add(point);
+                }
+            }
+            return dirty == null ? Set.of() : dirty;
+        }
+
+        void clear() {
+            batches.clear();
+        }
+    }
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -309,6 +343,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.update();
         shotModelContainer.update();
         updatePredictedCreaturePositions();
+        updateDirtyTileCullHints();
 
         // Lighting: re-derive attached-light positions and bind the
         // vertex-lit models every frame -- lights on other things
@@ -362,6 +397,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.stop();
         shotModelContainer.stop();
         predictedCreaturePositions.clear();
+        pendingDirtyTiles.clear();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
 
         // Detach entities
@@ -794,21 +830,21 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
-     * Fog-of-war state isn't an entity component, so a tile transitioning
-     * between explored/unexplored produces no {@link Position}/view-state
-     * component change on the (typically stationary) entities standing on
-     * it - the normal {@code updateObject*} paths above, which only run on
-     * such a change, would otherwise never re-run for them. This is called
-     * whenever fog notifies of newly-dirty tiles (mirroring how
-     * {@code MapViewController} re-derives terrain for the same tiles) to
-     * directly re-evaluate cull hint for every currently-tracked entity
-     * sitting on one of them.
+     * Queues fog-of-war changes so entity cull hints are re-evaluated on the
+     * render thread. Fog state isn't an entity component, so a visibility
+     * transition doesn't otherwise update stationary entities on that tile.
      */
     public void onTilesDirty(Point[] points) {
-        if (points.length == 0 || entityViewControls.isEmpty()) {
+        // Fog events can be delivered by the game/network thread. Scene graph
+        // cull hints must only be changed by this state's render-thread update.
+        pendingDirtyTiles.add(points);
+    }
+
+    private void updateDirtyTileCullHints() {
+        Set<Point> dirty = pendingDirtyTiles.drain();
+        if (dirty.isEmpty() || entityViewControls.isEmpty()) {
             return;
         }
-        Set<Point> dirty = new HashSet<>(Arrays.asList(points));
         for (IEntityViewControl control : entityViewControls.values()) {
 
             // From the control: its spatial stands at the entity's position, and an object's control has the latest view state
