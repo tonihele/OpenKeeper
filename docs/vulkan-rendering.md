@@ -6,8 +6,10 @@ OpenKeeper keeps its existing jMonkeyEngine `LWJGL_OPENGL*` backends. The new
 Vulkan choice uses jME's ANGLE GLES3 renderer and asks ANGLE to select its
 Vulkan renderer before SDL creates the context. Game rendering still uses the
 jME `GLRenderer` API; ANGLE translates the GLES calls and shaders to Vulkan.
-Startup checks the active ANGLE renderer string and fails clearly if Vulkan
-was requested but ANGLE selected another renderer.
+After the context is initialized, OpenKeeper queries the active GLES or desktop
+OpenGL renderer and version strings. The window title and startup log identify
+the API reported by that context, independently of the saved renderer choice;
+a usable OpenGL context is therefore labeled OpenGL even if Vulkan was selected.
 
 OpenKeeper's flat and vertex-lit terrain material definitions, unit flower,
 progress indicator, and movie material now provide GLSL ES 3.00/3.10 variants
