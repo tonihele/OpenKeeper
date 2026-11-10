@@ -170,9 +170,17 @@ public final class FullscreenMapOverlay {
         }
     }
 
-    private void updateDots(MapLayout layout, int rotationPhase) {
+    /**
+     * Takes in the changes to the creatures. Call it every frame, also while
+     * the map is closed, or every move of every creature piles up
+     */
+    public void applyChanges() {
         creatures.applyChanges();
         inHand.applyChanges();
+    }
+
+    private void updateDots(MapLayout layout, int rotationPhase) {
+        applyChanges();
 
         float half = Math.max(1f, DOT_SIZE * layout.getScale() / 2f);
         List<Dot> visible = new ArrayList<>();

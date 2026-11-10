@@ -22,14 +22,17 @@ import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.file.DirectoryStream;
+import java.nio.file.FileVisitOption;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
+import java.nio.file.LinkOption;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.SimpleFileVisitor;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -216,7 +219,7 @@ public final class PathUtils {
             // If it exists as such, that is super!
             Path testFile = Paths.get(fileName);
             if (Files.exists(testFile)) {
-                cachedName = testFile.toRealPath().toString();
+                cachedName = testFile.toRealPath(LinkOption.NOFOLLOW_LINKS).toString();
                 FILENAME_CACHE.put(fileKey, cachedName);
 
                 return cachedName;
@@ -230,17 +233,18 @@ public final class PathUtils {
             if (path.length == 1 && !certainPath.equalsIgnoreCase(realPath)) {
                 Path p = Paths.get(certainPath, path[0]);
                 if (Files.exists(p)) {
-                    cachedName = p.toRealPath().toString();
+                    cachedName = p.toRealPath(LinkOption.NOFOLLOW_LINKS).toString();
                     FILENAME_CACHE.put(fileKey, cachedName);
                     
                     return cachedName;
                 }
             }
 
-            // Find the file
+            // Find the file. Follow links (e.g. a linked DK II folder), but keep them in the
+            // result so that it stays under the given root
             final Path realPathAsPath = Paths.get(certainPath);
             FileFinder fileFinder = new FileFinder(realPathAsPath, path);
-            Files.walkFileTree(realPathAsPath, fileFinder);
+            Files.walkFileTree(realPathAsPath, EnumSet.of(FileVisitOption.FOLLOW_LINKS), Integer.MAX_VALUE, fileFinder);
             FILENAME_CACHE.put(fileKey, fileFinder.file);
             cachedName = fileFinder.file;
             if (fileFinder.file == null) {
@@ -320,7 +324,7 @@ public final class PathUtils {
                 } else {
 
                     // We are looking for a directory and we found it
-                    this.file = dir.toRealPath().toString().concat(File.separator);
+                    this.file = dir.toRealPath(LinkOption.NOFOLLOW_LINKS).toString().concat(File.separator);
                     return FileVisitResult.TERMINATE;
                 }
             }
@@ -332,7 +336,7 @@ public final class PathUtils {
 
             // See if this is the file we are looking for
             if (level == path.length - 1 && file.getName(file.getNameCount() - 1).toString().equalsIgnoreCase(path[level])) {
-                this.file = file.toRealPath().toString();
+                this.file = file.toRealPath(LinkOption.NOFOLLOW_LINKS).toString();
                 return FileVisitResult.TERMINATE;
             }
 

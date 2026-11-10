@@ -171,7 +171,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     };
 
     public enum CreatureFlag3 implements IFlagEnum {
-        UNK_1(1),
+        IS_IMMUNE_TO_LIGHTNING(1), // King Reginald, Stone Knight and Jack, the lightning shot (0x4AF1E0) leaves them alone
         UNK_2(2), // Only in stone knight
         UNK_4(4), // Only skeleton and Jack
         UNK_8(8);
@@ -296,6 +296,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
                 result = result.concat(" ").concat(s.substring(0, 1).toUpperCase()).concat(s.substring(1).toLowerCase());
             }
             return result.trim();
+        }
+        private final int id;
+    }
+
+    /**
+     * The kind of an attraction requirement. The original checks the room
+     * (all the keeper's rooms of the type together must have the size), the
+     * keeper's gold and mana, and the creature requirement in a way that never
+     * stops the creature.
+     */
+    public enum AttractionType implements IValueEnum {
+
+        NONE(0),
+        ROOM(1),
+        GOLD(2),
+        MANA(3),
+        CREATURE(4);
+
+        private AttractionType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
         }
         private final int id;
     }
@@ -541,7 +566,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     private ArtResource firstPersonMeleeResource; // 1027
     private int unk6; // 107b
     private final Map<OffsetType, Vector3f> animationOffsets = HashMap.newHashMap(8);
-    private X1323 x1323[];
+    private Footstep footstepFrames[];
     private int uniqueNameTextId;
     private int x14e1[]; // 14e1
     private int firstPersonSpecialAbility1Count; // 14e9, available uses or something, not really sure
@@ -1439,12 +1464,12 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         this.animationOffsets.put(type, new Vector3f(x, y, z));
     }
 
-    public X1323[] getX1323() {
-        return x1323;
+    public Footstep[] getFootstepFrames() {
+        return footstepFrames;
     }
 
-    protected void setX1323(X1323[] x1323) {
-        this.x1323 = x1323;
+    protected void setFootstepFrames(Footstep[] footstepFrames) {
+        this.footstepFrames = footstepFrames;
     }
 
     public int getUniqueNameTextId() {
@@ -1564,20 +1589,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         return true;
     }
 
+    /**
+     * A requirement for the creature to come in through a Portal. The level
+     * file stores two numbers for each, the converter reads them into the
+     * fields that the {@link #getType() type} tells to be in use.
+     */
     public static final class Attraction {
 
-        private int present; // dac
-        private int roomId; // db0
-        private int roomSize;
+        private AttractionType type;
+        private int roomId; // Room requirement
+        private int roomSize; // Room requirement, the least number of tiles, 0 for any
+        private int amount; // Gold and mana requirement
 
-        public int getPresent() {
-            return present;
+        public AttractionType getType() {
+            return type;
         }
 
-        protected void setPresent(int present) {
-            this.present = present;
+        protected void setType(AttractionType type) {
+            this.type = type;
         }
 
+        /**
+         * Get the required room, only for {@link AttractionType#ROOM}
+         *
+         * @return the room ID
+         */
         public int getRoomId() {
             return roomId;
         }
@@ -1586,12 +1622,32 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
             this.roomId = roomId;
         }
 
+        /**
+         * Get the required room size, only for {@link AttractionType#ROOM}
+         *
+         * @return the least number of tiles in the rooms of the type
+         * together, 0 if any room will do
+         */
         public int getRoomSize() {
             return roomSize;
         }
 
         protected void setRoomSize(int roomSize) {
             this.roomSize = roomSize;
+        }
+
+        /**
+         * Get the required amount, only for {@link AttractionType#GOLD} and
+         * {@link AttractionType#MANA}
+         *
+         * @return the least amount the keeper must have
+         */
+        public int getAmount() {
+            return amount;
+        }
+
+        protected void setAmount(int amount) {
+            this.amount = amount;
         }
     }
 
@@ -1809,25 +1865,28 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         }
     }
 
-    public static final class X1323 {
+    /**
+     * Footstep marks of an animation, in frames of the animation, 0 for none
+     */
+    public static final class Footstep {
 
-        private int x00;
-        private int x02;
+        private int left;
+        private int right;
 
-        public int getX00() {
-            return x00;
+        public int getLeft() {
+            return left;
         }
 
-        protected void setX00(int x00) {
-            this.x00 = x00;
+        protected void setLeft(int left) {
+            this.left = left;
         }
 
-        public int getX02() {
-            return x02;
+        public int getRight() {
+            return right;
         }
 
-        protected void setX02(int x02) {
-            this.x02 = x02;
+        protected void setRight(int right) {
+            this.right = right;
         }
     }
 

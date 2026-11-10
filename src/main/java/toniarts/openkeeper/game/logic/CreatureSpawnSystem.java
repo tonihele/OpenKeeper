@@ -18,8 +18,27 @@ package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.listener.RoomListener;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
+import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -28,21 +47,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
-import toniarts.openkeeper.game.controller.ICreaturesController;
-import toniarts.openkeeper.game.controller.ILevelInfo;
-import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
-import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.listener.RoomListener;
-import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.Room;
-import toniarts.openkeeper.tools.convert.map.Variable;
-import toniarts.openkeeper.tools.convert.map.Variable.CreaturePool;
-import toniarts.openkeeper.utils.GameTimeCounter;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  * Handles creatures spawning, from Portals, Dungeon Hearts...<br>
@@ -55,7 +59,9 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class CreatureSpawnSystem extends GameTimeCounter {
 
+    private final EntityData entityData;
     private final ICreaturesController creaturesController;
+    private final GameEventService gameEventService;
     private final int minimumImpCount;
     private final int entranceCooldownTime;
     private final int initialPortalCapacity;
@@ -65,10 +71,12 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     private final SafeArrayList<ICreatureEntrance> entrances = new SafeArrayList<>(ICreatureEntrance.class);
     private final IKwdFile kwdFile;
 
-    public CreatureSpawnSystem(ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
+    public CreatureSpawnSystem(EntityData entityData, ICreaturesController creaturesController, Collection<IPlayerController> playerControllers,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
-            IMapController mapController) {
+            IMapController mapController, GameEventService gameEventService) {
+        this.entityData = entityData;
         this.creaturesController = creaturesController;
+        this.gameEventService = gameEventService;
 
         // We need the game state just for the variables
         entranceCooldownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS).getValue();
@@ -128,8 +136,12 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
 
                 // Spawn imp
                 Point entranceCoordinate = entrance.getEntranceCoordinate();
-                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, new Vector2f(entranceCoordinate.x, entranceCoordinate.y), ICreaturesController.SpawnType.PLACE);
+                Vector2f spot = new Vector2f(entranceCoordinate.x, entranceCoordinate.y);
+                entityId = creaturesController.spawnCreature(kwdFile.getImp().getCreatureId(), player.getKeeper().getId(), 1, spot, ICreaturesController.SpawnType.PLACE);
                 spawned = true;
+
+                // The cast is not gated by the free flag
+                gameEventService.emit(GameEventType.IMPS_CREATED, WorldUtils.vector2fToVector3(spot));
             }
         } else if (timeSinceLastSpawn >= Math.max(entranceCooldownTime, entranceCooldownTime * player.getCreatureControl().getTypeCount() * 0.5)
                 && player.getRoomControl().isPortalsOpen() && !isCreatureLimitReached(player)) {
@@ -170,35 +182,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     }
 
     private boolean isCreatureRequirementsSatisfied(Creature creature, IPlayerController player) {
-        for (Attraction attraction : creature.getAttractions()) {
-            short roomId = (short) attraction.getRoomId();
-            if (roomId > 0) {
-                Room room = kwdFile.getRoomById(roomId);
-                if (player.getRoomControl().getTypeCount(room) > 0) {
-
-                    // Ok, we have these, see sizes, I recon we really need a room that size, not summed up tiles
-                    if (attraction.getRoomSize() > 0) {
-                        boolean roomFound = false;
-                        for (IRoomController genericRoom : new ArrayList<>(player.getRoomControl().getRoomControllers().get(room))) {
-                            if (attraction.getRoomSize() <= genericRoom.getRoomInstance().getCoordinates().size()) {
-                                roomFound = true;
-                                break; // Ok
-                            }
-                        }
-                        if (roomFound) {
-                            continue;
-                        }
-                    } else {
-                        continue; // We have the room
-                    }
-
-                    return false;
-                }
-
-                return false;
-            }
-        }
-        return true;
+        return CreatureAttraction.isSatisfied(creature, player, kwdFile);
     }
 
     private static boolean isCreatureAvailableFromPool(Creature creature, IPlayerController player, Map<Integer, CreaturePool> pool) {
