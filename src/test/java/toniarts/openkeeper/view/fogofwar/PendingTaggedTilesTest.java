@@ -49,6 +49,7 @@ class PendingTaggedTilesTest {
     private final List<Point> dirtyTiles = new ArrayList<>();
 
     private DefaultEntityData entityData;
+    private IMapDataInformation<IMapTileInformation> mapData;
     private FogOfWarController controller;
 
     @BeforeEach
@@ -61,7 +62,8 @@ class PendingTaggedTilesTest {
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        controller = new FogOfWarController(entityData, kwdFile, floorMap(), Player.KEEPER1_ID,
+        mapData = floorMap();
+        controller = new FogOfWarController(entityData, kwdFile, mapData, Player.KEEPER1_ID,
                 points -> dirtyTiles.addAll(Arrays.asList(points)), entity -> {
                 });
     }
@@ -77,6 +79,9 @@ class PendingTaggedTilesTest {
 
         assertEquals(List.of(new Point(2, 2), new Point(3, 2)), dirtyTiles);
         assertTrue(controller.isPendingTagged(new Point(2, 2)));
+        IMapTileInformation tile = mapData.getTile(2, 2);
+        assertEquals(controller.isPendingTagged(new Point(2, 2)), controller.isPendingTagged(tile));
+        assertEquals(controller.isHighlightable(new Point(2, 2)), controller.isHighlightable(tile));
     }
 
     @Test
@@ -93,9 +98,16 @@ class PendingTaggedTilesTest {
         IMapTileInformation[][] tiles = new IMapTileInformation[MAP_SIZE][MAP_SIZE];
         for (int x = 0; x < MAP_SIZE; x++) {
             for (int y = 0; y < MAP_SIZE; y++) {
+                Point location = new Point(x, y);
                 tiles[x][y] = proxy(IMapTileInformation.class, (proxy, method, args) -> switch (method.getName()) {
                     case "getTerrainId" ->
                         FLOOR_ID;
+                    case "getLocation" ->
+                        location;
+                    case "getX" ->
+                        location.x;
+                    case "getY" ->
+                        location.y;
                     default ->
                         throw new UnsupportedOperationException(method.getName());
                 });

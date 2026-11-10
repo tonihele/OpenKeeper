@@ -117,11 +117,28 @@ public final class MapColourGrid {
      * normally.
      */
     public void setHighlight(int x, int y, boolean on) {
+        setHighlight(x, y, on, null);
+    }
+
+    /**
+     * Updates the highlight using an already-resolved tile when available.
+     * This avoids a second map lookup in fog implementations that support
+     * tile-aware highlight checks.
+     *
+     * @param x tile x coordinate
+     * @param y tile y coordinate
+     * @param on whether the highlight is being enabled
+     * @param tile the tile at the coordinate, or {@code null}
+     */
+    public void setHighlight(int x, int y, boolean on, IMapTileInformation tile) {
         if (!inBounds(x, y)) {
             return;
         }
         if (on) {
-            if (fogOfWarInformation.isHighlightable(new Point(x, y))) {
+            boolean highlightable = tile == null
+                    ? fogOfWarInformation.isHighlightable(new Point(x, y))
+                    : fogOfWarInformation.isHighlightable(tile);
+            if (highlightable) {
                 classes[index(x, y)] = MapColourClass.HIGHLIGHT;
             }
         } else {

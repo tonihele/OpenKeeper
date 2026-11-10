@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.fogofwar;
 
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -81,6 +82,18 @@ public interface IFogOfWarInformation {
     boolean isHighlightable(Point p);
 
     /**
+     * The drag-box highlight rule for an already-resolved tile. The default
+     * preserves point-based behavior for implementations that do not have a
+     * tile-aware fast path.
+     *
+     * @param tile the map tile, or {@code null}
+     * @return whether the tile can be highlighted
+     */
+    default boolean isHighlightable(IMapTileInformation tile) {
+        return tile != null && isHighlightable(tile.getLocation());
+    }
+
+    /**
      * Local-only, optimistic "looks tagged" state for a still-unexplored
      * tile the viewer has dragged over. Fog never reaches the server, so the
      * server's own selected state on an unexplored tile only ever reflects
@@ -91,5 +104,16 @@ public interface IFogOfWarInformation {
      * the terrain really is taggable, or dropping it if not).
      */
     boolean isPendingTagged(Point p);
+
+    /**
+     * Pending-tag state for an already-resolved tile. The default preserves
+     * point-based behavior for other fog implementations.
+     *
+     * @param tile the map tile, or {@code null}
+     * @return whether this tile is pending-tagged
+     */
+    default boolean isPendingTagged(IMapTileInformation tile) {
+        return tile != null && isPendingTagged(tile.getLocation());
+    }
 
 }

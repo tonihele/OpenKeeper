@@ -250,16 +250,7 @@ public final class MinimapPanelState extends AbstractAppState {
      */
     private void applySelectionHighlight() {
         short playerId = localKeeper.getId();
-        int width = grid.getWidth();
-        int height = grid.getHeight();
-        for (int y = 0; y < height; y++) {
-            for (int x = 0; x < width; x++) {
-                Point p = new Point(x, y);
-                if (mapInformation.isSelected(p, playerId) || fogOfWarInformation.isPendingTagged(p)) {
-                    grid.setHighlight(x, y, true);
-                }
-            }
-        }
+        MinimapSelectionHighlighter.apply(grid, mapInformation, fogOfWarInformation, playerId);
 
         PlayerInteractionState interactionState = stateManager.getState(PlayerInteractionState.class);
         SelectionArea selectionArea = interactionState != null ? interactionState.getActiveSelectionArea() : null;

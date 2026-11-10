@@ -30,6 +30,7 @@ public final class FakeMapTile implements IMapTileInformation {
     public short terrainId;
     public short ownerId;
     public EntityId roomId;
+    public boolean selected;
 
     public FakeMapTile(Point location) {
         this.location = location;
@@ -117,7 +118,7 @@ public final class FakeMapTile implements IMapTileInformation {
 
     @Override
     public boolean isSelected(short playerId) {
-        return false;
+        return selected;
     }
 
     @Override

@@ -561,8 +561,33 @@ public final class FogOfWarController implements IFogOfWarInformation {
     }
 
     @Override
+    public boolean isHighlightable(IMapTileInformation tile) {
+        if (tile == null) {
+            return false;
+        }
+        if (!state.isExplored(tile.getX(), tile.getY())) {
+            return true;
+        }
+        return kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
+    }
+
+    @Override
     public boolean isPendingTagged(Point p) {
         return !isVisible(p) && pendingTaggedTiles.contains(p);
+    }
+
+    @Override
+    public boolean isPendingTagged(IMapTileInformation tile) {
+        return tile != null && !isVisible(tile) && pendingTaggedTiles.contains(tile.getLocation());
+    }
+
+    private boolean isVisible(IMapTileInformation tile) {
+        if (possessedCreature != null) {
+            return true;
+        }
+        boolean revealThrough = kwdFile.getTerrain(tile.getTerrainId()).getFlags()
+                .contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
+        return FogOfWarRules.isVisible(state, tile.getX(), tile.getY(), revealThrough);
     }
 
     private static final class PendingHeartReveal {

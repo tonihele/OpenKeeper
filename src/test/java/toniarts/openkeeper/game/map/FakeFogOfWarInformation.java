@@ -31,6 +31,7 @@ public final class FakeFogOfWarInformation implements IFogOfWarInformation {
     public final Set<Point> explored = new HashSet<>();
     public final Set<Point> perceived = new HashSet<>();
     public final Set<Point> highlightable = new HashSet<>();
+    public final Set<Point> pendingTagged = new HashSet<>();
 
     @Override
     public boolean isVisible(Point p) {
@@ -54,7 +55,7 @@ public final class FakeFogOfWarInformation implements IFogOfWarInformation {
 
     @Override
     public boolean isPendingTagged(Point p) {
-        return false;
+        return pendingTagged.contains(p);
     }
 
 }

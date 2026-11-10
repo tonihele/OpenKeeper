@@ -59,12 +59,13 @@ public final class FakeMapInformation implements IMapInformation<FakeMapTile> {
 
     @Override
     public boolean isSelected(Point p, short playerId) {
-        return false;
+        FakeMapTile tile = mapData.getTile(p.x, p.y);
+        return tile != null && isSelected(tile, playerId);
     }
 
     @Override
     public boolean isSelected(FakeMapTile tile, short playerId) {
-        return false;
+        return tile != null && tile.isSelected(playerId);
     }
 
     @Override
