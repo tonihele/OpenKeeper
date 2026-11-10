@@ -17,12 +17,14 @@
 package toniarts.openkeeper.utils;
 
 import com.jme3.system.AppSettings;
+import com.jme3.system.JmeContext;
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
+import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengles.GLES20;
 import static org.lwjgl.sdl.SDLStdinc.SDL_setenv_unsafe;
 
@@ -35,6 +37,8 @@ public final class GraphicsBackend {
     private static final Logger LOGGER = Logger.getLogger(GraphicsBackend.class.getName());
     private static final String ANGLE_DEFAULT_PLATFORM = "ANGLE_DEFAULT_PLATFORM";
     private static final String ANGLE_VULKAN = "vulkan";
+    private static final String OPENGL = "OpenGL";
+    private static final String VULKAN = "Vulkan";
 
     /** The user-facing graphics option backed by jME's ANGLE GLES3 renderer. */
     public static final String VULKAN_OPTION = "Vulkan (ANGLE GLES3)";
@@ -130,22 +134,66 @@ public final class GraphicsBackend {
     }
 
     /**
-     * Logs the active renderer and rejects ANGLE startup if Vulkan was not
-     * selected by the ANGLE implementation.
+     * Sets the window title using the graphics API reported by the active
+     * context. This also labels an OpenGL fallback when Vulkan was requested.
      *
-     * @param settings the active application settings
+     * @param context the initialized graphics context
+     * @param baseTitle the game title without a renderer label
+     * @return the active graphics API name
      */
-    public static void logAndVerifyActiveRenderer(AppSettings settings) {
-        if (isVulkan(settings)) {
-            String renderer = GLES20.glGetString(GLES20.GL_RENDERER);
-            String version = GLES20.glGetString(GLES20.GL_VERSION);
-            if (renderer == null || !renderer.toLowerCase(Locale.ROOT).contains("vulkan")) {
-                throw new IllegalStateException("Vulkan was selected, but ANGLE reported renderer '"
-                        + renderer + "' (version " + version + ")");
-            }
-            LOGGER.info(() -> "Vulkan renderer: " + renderer + " (" + version + ")");
-        } else {
-            LOGGER.info("OpenGL renderer selected: " + settings.getRenderer());
+    public static String setWindowTitleForActiveRenderer(JmeContext context, String baseTitle) {
+        RendererInfo renderer = queryActiveRenderer();
+        String api = isVulkanRenderer(renderer) ? VULKAN : OPENGL;
+        context.setTitle(baseTitle + " - " + api);
+        logActiveRenderer(api, renderer);
+        return api;
+    }
+
+    /**
+     * Logs the graphics API and renderer reported by the active context.
+     */
+    public static void logActiveRenderer() {
+        RendererInfo renderer = queryActiveRenderer();
+        logActiveRenderer(isVulkanRenderer(renderer) ? VULKAN : OPENGL, renderer);
+    }
+
+    private static RendererInfo queryActiveRenderer() {
+        RendererInfo renderer = queryGlesRenderer();
+        if (renderer == null) {
+            renderer = queryOpenGlRenderer();
         }
+        return renderer != null ? renderer : new RendererInfo(null, null);
+    }
+
+    private static RendererInfo queryGlesRenderer() {
+        try {
+            String renderer = GLES20.glGetString(GLES20.GL_RENDERER);
+            return renderer == null ? null : new RendererInfo(renderer, GLES20.glGetString(GLES20.GL_VERSION));
+        } catch (RuntimeException ex) {
+            // This context uses desktop OpenGL, so no GLES capabilities are current.
+            return null;
+        }
+    }
+
+    private static RendererInfo queryOpenGlRenderer() {
+        try {
+            String renderer = GL11.glGetString(GL11.GL_RENDERER);
+            return renderer == null ? null : new RendererInfo(renderer, GL11.glGetString(GL11.GL_VERSION));
+        } catch (RuntimeException ex) {
+            // This context uses GLES (including ANGLE), so no OpenGL capabilities are current.
+            return null;
+        }
+    }
+
+    private static boolean isVulkanRenderer(RendererInfo renderer) {
+        String description = (renderer.name() + " " + renderer.version()).toLowerCase(Locale.ROOT);
+        return description.contains("vulkan");
+    }
+
+    private static void logActiveRenderer(String api, RendererInfo renderer) {
+        LOGGER.info(() -> api + " renderer: " + renderer.name() + " (" + renderer.version() + ")");
+    }
+
+    private record RendererInfo(String name, String version) {
     }
 }

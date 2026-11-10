@@ -403,7 +403,7 @@ public final class Main extends SimpleApplication {
             }
         }
 
-        GraphicsBackend.logAndVerifyActiveRenderer(getSettings());
+        GraphicsBackend.setWindowTitleForActiveRenderer(getContext(), TITLE);
 
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
