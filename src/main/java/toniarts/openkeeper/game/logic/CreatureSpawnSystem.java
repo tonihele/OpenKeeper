@@ -30,7 +30,6 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.RoomListener;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Creature.Attraction;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -183,35 +182,7 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
     }
 
     private boolean isCreatureRequirementsSatisfied(Creature creature, IPlayerController player) {
-        for (Attraction attraction : creature.getAttractions()) {
-            short roomId = (short) attraction.getRoomId();
-            if (roomId > 0) {
-                Room room = kwdFile.getRoomById(roomId);
-                if (player.getRoomControl().getTypeCount(room) > 0) {
-
-                    // Ok, we have these, see sizes, I recon we really need a room that size, not summed up tiles
-                    if (attraction.getRoomSize() > 0) {
-                        boolean roomFound = false;
-                        for (IRoomController genericRoom : new ArrayList<>(player.getRoomControl().getRoomControllers().get(room))) {
-                            if (attraction.getRoomSize() <= genericRoom.getRoomInstance().getCoordinates().size()) {
-                                roomFound = true;
-                                break; // Ok
-                            }
-                        }
-                        if (roomFound) {
-                            continue;
-                        }
-                    } else {
-                        continue; // We have the room
-                    }
-
-                    return false;
-                }
-
-                return false;
-            }
-        }
-        return true;
+        return CreatureAttraction.isSatisfied(creature, player, kwdFile);
     }
 
     private static boolean isCreatureAvailableFromPool(Creature creature, IPlayerController player, Map<Integer, CreaturePool> pool) {
