@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -42,6 +43,34 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
             final PlayerService playerService) {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+    }
+
+    /** Native anger events select matching root branches and run their children immediately. */
+    void onAngry(ICreatureController creature) {
+        instanceControl = creature;
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == TriggerGeneric.TargetType.CREATURE_ANGRY) {
+                runAngryBranch(event);
+            }
+        }
+    }
+
+    private void runAngryBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runAngryBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
     }
 
     @Override

@@ -69,7 +69,18 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_TORTURED(8), // Event, This creature is
         CREATURE_CONVERTED(9), // Event, This creature is
         CREATURE_CLAIMED(10), // Event, This creature is
-        CREATURE_ANGRY(11), // Event, This creature is
+        /**
+         * Fires when a positive mood change moves this creature into the fully
+         * angry state. Merely becoming unhappy does not fire it, and staying
+         * angry does not repeatedly fire it. After recovery, becoming angry
+         * again can fire another event, subject to the script's repeat limits.
+         * <p>
+         * This event runs its child actions and conditions immediately; it is
+         * not a persistent test of the creature's current mood. Emotionless
+         * creatures do not generate it. For example, it can warn the player
+         * when a particular Warlock becomes fully angry for the first time.
+         */
+        CREATURE_ANGRY(11),
         CREATURE_AFRAID(12), // Event, This creature is
         CREATURE_STEALS(13), // Event, This creature is
         CREATURE_LEAVES(14), // Event, This creature is
