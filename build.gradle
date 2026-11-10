@@ -96,6 +96,17 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register("charredOverlayBenchmark", JavaExec) {
+    group = "verification"
+    description = "Benchmarks charred overlay baking with and without per-pixel ColorRGBA allocation."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    javaLauncher = javaToolchains.launcherFor {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+    mainClass = 'toniarts.openkeeper.view.CharredOverlayAllocationBenchmark'
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)

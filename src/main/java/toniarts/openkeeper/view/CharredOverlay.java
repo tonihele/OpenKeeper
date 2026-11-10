@@ -118,7 +118,7 @@ public final class CharredOverlay {
         return baked;
     }
 
-    private static Texture createBakedTexture(Texture diffuse, Texture charred) {
+    static Texture createBakedTexture(Texture diffuse, Texture charred) {
         Image source = diffuse.getImage();
         Image overlay = charred.getImage();
         if (source == null || overlay == null || source.getData().isEmpty() || overlay.getData().isEmpty()) {
@@ -134,11 +134,13 @@ public final class CharredOverlay {
         ImageRaster overlayRaster = ImageRaster.create(overlay);
         ImageRaster resultRaster = ImageRaster.create(result);
         ColorRGBA pixel = new ColorRGBA();
+        ColorRGBA overlayPixel = new ColorRGBA();
         for (int y = 0; y < height; y++) {
             int overlayY = y * overlay.getHeight() / height;
             for (int x = 0; x < width; x++) {
                 sourceRaster.getPixel(x, y, pixel);
-                ColorRGBA overlayPixel = overlayRaster.getPixel(x * overlay.getWidth() / width, overlayY);
+                // The convenience overload allocates a ColorRGBA for every pixel.
+                overlayRaster.getPixel(x * overlay.getWidth() / width, overlayY, overlayPixel);
 
                 // Plain alpha blend of the overlay on top, the body's own alpha stays
                 float a = overlayPixel.a;
