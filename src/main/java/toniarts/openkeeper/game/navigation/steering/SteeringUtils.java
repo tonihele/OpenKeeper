@@ -53,6 +53,32 @@ public final class SteeringUtils {
         return path;
     }
 
+    /**
+     * Leads a path of tile centers to an exact spot on the last tile. The path
+     * starts where the creature is and skips the middle of the last tile:
+     * stepping back from there to a spot between the last two tiles would turn
+     * the path back on itself, and following such a path goes round in
+     * circles.
+     *
+     * @param path the path from the creature's tile to the target tile, tile
+     * centers
+     * @param position where the creature is
+     * @param workPosition the exact spot on the target tile
+     * @return the path, changed in place
+     */
+    public static List<Vector2> pathToPosition(List<Vector2> path, Vector2 position, Vector2 workPosition) {
+        if (path.size() > 1) {
+            path.removeLast();
+        }
+        if (path.isEmpty()) {
+            path.add(position);
+        } else {
+            path.set(0, position);
+        }
+        path.add(workPosition);
+        return path;
+    }
+
     public static List<Vector2> pathToList(GraphPath<IMapTileInformation> inPath) {
         List<Vector2> path = new ArrayList<>(inPath.getCount());
         for (IMapTileInformation tile : inPath) {
