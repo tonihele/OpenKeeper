@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.event.ClientEvents;
 import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -160,6 +161,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
+    private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
+            stateManager.getApplication().enqueue(() -> showGeneratedEffect(effect));
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -252,6 +255,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.start();
         shotModelContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
+        EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
     }
 
     @Override
@@ -317,6 +321,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.stop();
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
+        EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
 
         // Detach entities
         rootNode.detachChild(root);
@@ -622,6 +627,18 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (LightConstants.OBJECT_LIGHTS_ENABLED) {
             applyThingLight(e.getId(), object, gameObject.getLight(), LightConstants.OBJECT_LIGHT_INTENSITY,
                     LightConstants.OBJECT_LIGHTS_PULSE, true);
+        }
+    }
+
+    private void showGeneratedEffect(GeneratedEffect effect) {
+        if (!isInitialized() || kwdFile.getEffect(effect.effectId()) == null
+                || !fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(effect.position()))) {
+            return;
+        }
+        VisualEffect visual = stateManager.getState(EffectManagerState.class)
+                .load(root, effect.position(), effect.effectId(), false);
+        if (visual != null) {
+            visual.getEffectNode().rotate(0, effect.yaw(), 0);
         }
     }
 

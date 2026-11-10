@@ -1025,10 +1025,10 @@ public abstract class Thing {
         private int posY; // 0-based coordinate
         private int x08;
         private int x0c;
-        private int x10;
-        private int x12;
-        private List<Integer> effectIds; // 4
-        private short frequency;
+        private int width;
+        private int height;
+        private List<Integer> effectIds; // Four slots, including empty (zero) slots.
+        private short frequency; // Seconds between successful emissions.
         private short id;
         private short pad[];
 
@@ -1064,20 +1064,20 @@ public abstract class Thing {
             this.x0c = x0c;
         }
 
-        public int getX10() {
-            return x10;
+        public int getWidth() {
+            return width;
         }
 
-        protected void setX10(int x10) {
-            this.x10 = x10;
+        protected void setWidth(int width) {
+            this.width = width;
         }
 
-        public int getX12() {
-            return x12;
+        public int getHeight() {
+            return height;
         }
 
-        protected void setX12(int x12) {
-            this.x12 = x12;
+        protected void setHeight(int height) {
+            this.height = height;
         }
 
         public List<Integer> getEffectIds() {

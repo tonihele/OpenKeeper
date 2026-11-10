@@ -562,6 +562,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEffect(effectId, position, yaw);
+        }
+    }
+
+    @Override
     public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
         if (playerId == null || playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {

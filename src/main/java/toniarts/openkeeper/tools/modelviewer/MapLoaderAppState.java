@@ -273,6 +273,11 @@ public final class MapLoaderAppState extends AbstractAppState {
         }
 
         @Override
+        public void sendEffect(int effectId, Vector3f position, float yaw) {
+            // The static map viewer does not run effect generators.
+        }
+
+        @Override
         public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }

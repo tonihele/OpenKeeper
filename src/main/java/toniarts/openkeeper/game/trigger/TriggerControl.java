@@ -310,6 +310,16 @@ public class TriggerControl extends Control {
                         trigger.getUserData("posY", int.class) - 1);
                 break;
 
+            case SET_MUSIC_LEVEL:
+                // Not implemented in the reference DKII executable either.
+                break;
+
+            case TOGGLE_EFFECT_GENERATOR:
+                short generatorId = trigger.getUserData("generatorId", short.class);
+                available = trigger.getUserData("available", short.class) == 1;
+                gameController.setEffectGeneratorEnabled(generatorId, available);
+                break;
+
             case SET_CREATURE_MOODS:
                 // TODO this
                 available = trigger.getUserData("available", short.class) != 0;

@@ -96,6 +96,9 @@ public interface GameSessionListener extends MapListener, PlayerListener {
     public void onGameEnded(boolean win);
 
     @Asynchronous(reliable = false)
+    void onEffect(int effectId, Vector3f position, float yaw);
+
+    @Asynchronous(reliable = false)
     void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId,
                    EntityId entity, Point position);
 
