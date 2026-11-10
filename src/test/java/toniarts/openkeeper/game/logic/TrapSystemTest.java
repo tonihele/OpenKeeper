@@ -88,6 +88,7 @@ class TrapSystemTest {
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
+    private int effectUpdates;
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
     private double gameTime = 0;
@@ -455,6 +456,17 @@ class TrapSystemTest {
     }
 
     @Test
+    void effectsAreKeptUpToDateWhenNoTrapFires() {
+        addTrap(SENTRY, TRAP_TILE);
+
+        tick();
+        tick();
+
+        assertTrue(shots.isEmpty());
+        assertEquals(2, effectUpdates);
+    }
+
+    @Test
     void hiddenTrapShowsItselfWhenItFires() {
         EntityId trap = addHiddenTrap(GAS, TRAP_TILE);
         addCreature(IMP, ENEMY, 10, 10);
@@ -562,7 +574,18 @@ class TrapSystemTest {
     }
 
     private ITrapEffects effects() {
-        return (trap, ownerId, origin, target) -> shots.add(new Fired(trap.getTrapId(), target));
+        return new ITrapEffects() {
+
+            @Override
+            public void fire(Trap trap, short ownerId, Vector3f origin, EntityId target) {
+                shots.add(new Fired(trap.getTrapId(), target));
+            }
+
+            @Override
+            public void update() {
+                effectUpdates++;
+            }
+        };
     }
 
     private IEntityPositionLookup positionLookup() {

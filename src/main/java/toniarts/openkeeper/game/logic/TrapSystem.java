@@ -147,6 +147,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         trapEntities.applyChanges();
         creatureEntities.applyChanges();
+        trapEffects.update();
 
         revealTrapsAroundCreatures();
 

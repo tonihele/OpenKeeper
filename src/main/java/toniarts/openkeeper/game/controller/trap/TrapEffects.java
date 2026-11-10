@@ -89,6 +89,12 @@ public final class TrapEffects implements ITrapEffects {
     }
 
     @Override
+    public void update() {
+        creatureEntities.applyChanges();
+        alarmEntities.applyChanges();
+    }
+
+    @Override
     public void fire(Trap trap, short ownerId, Vector3f origin, EntityId target) {
         Shot shot = kwdFile.getShotById(trap.getShotTypeId());
         if (shot == null) {
