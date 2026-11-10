@@ -143,6 +143,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final ILevelInfo levelInfo;
     private final IShotsController shotsController;
     private final GameEventService gameEventService;
+    private final Consumer<EntityId> onAfraid;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
@@ -151,7 +152,8 @@ public final class CreatureController extends EntityController implements ICreat
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, IEntityPositionLookup entityPositionLookup, IMapController mapController,
-            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController, GameEventService gameEventService) {
+            ILevelInfo levelInfo, IObjectsController objectsController, IShotsController shotsController,
+            GameEventService gameEventService, Consumer<EntityId> onAfraid) {
         super(entityId, entityData, objectsController, mapController);
         this.navigationService = navigationService;
         this.taskManager = taskManager;
@@ -163,6 +165,7 @@ public final class CreatureController extends EntityController implements ICreat
         this.levelInfo = levelInfo;
         this.shotsController = shotsController;
         this.gameEventService = gameEventService;
+        this.onAfraid = onAfraid;
         this.stateMachine = new DefaultStateMachine<>(this) {
             @Override
             public void changeState(CreatureState newState) {
@@ -196,6 +199,11 @@ public final class CreatureController extends EntityController implements ICreat
                     || isHealthAtCriticalLevel() ? threat : getOurThreat();
             if (threatToUs - threatCaused > fear && (getFellowFighters() == 0
                     || creature.getFlags().contains(Creature.CreatureFlag.ALWAYS_FLEE))) {
+
+                // DKII delivers fear before escape, but skips an already active escape.
+                if (!stateMachine.isInState(CreatureState.FLEE)) {
+                    onAfraid.accept(entityId);
+                }
 
                 // No longer flee from DHeart
                 IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
@@ -1403,6 +1411,7 @@ public final class CreatureController extends EntityController implements ICreat
         // was down already. That keeps a creature that is struck over and over down
         entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.FALLEN, creature.getId(),
                 entityData.getComponent(entityId, CreatureAi.class).getTargetState()));
+        creaturesController.onStunned(entityId);
     }
 
     private boolean isAlly(EntityId entity) {
@@ -1476,6 +1485,7 @@ public final class CreatureController extends EntityController implements ICreat
         entityData.setComponent(entityId, new Owner(owner.ownerId, playerId));
 
         stateMachine.changeState(CreatureState.IMPRISONED);
+        creaturesController.onImprisoned(entityId);
     }
 
     @Override

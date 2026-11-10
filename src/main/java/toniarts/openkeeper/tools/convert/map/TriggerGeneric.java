@@ -63,17 +63,143 @@ public final class TriggerGeneric extends Trigger {
         TIMER(2),
         CREATURE_CREATED(3), // Event, This creature is
         CREATURE_KILLED(4), // Event, This creature is
-        CREATURE_SLAPPED(5), // Event, This creature is
+        /**
+         * Event: this creature receives an accepted hand slap. Each accepted
+         * request is separate, even if several requests refresh the same slap
+         * effect before a simulation tick. It is not a persistent test for the
+         * creature's temporary slap animation or work-efficiency bonus.
+         * <p>
+         * DK II emits creature event 5 on its normal slap paths before the
+         * companion player event 60. OpenKeeper queues accepted creature hand
+         * slaps and dispatches them on the server simulation thread. Conditions
+         * observe delivery-time state rather than synchronous native call state.
+         * Object slaps and rejected hand interactions do not enqueue this event.
+         * Existing hand admission and
+         * slap mechanics are retained; this does not reproduce every native
+         * special-state or Horny slap path.
+         * <p>
+         * Matching creature-root branches run at delivery time, with nested
+         * conditions checked then. Ordinary polling stays false; nested events
+         * are not independently dispatched. Existing repeat counters still apply.
+         * <p>
+         * Example: a scripted creature reacts with a message on its first slap.
+         * A repeating branch can react to later slaps too, without firing every
+         * tick while the efficiency bonus remains active.
+         */
+        CREATURE_SLAPPED(5),
         CREATURE_ATTACKED(6), // Event, This creature is
-        CREATURE_IMPRISONED(7), // Event, This creature is
-        CREATURE_TORTURED(8), // Event, This creature is
+        /**
+         * Event: this creature is admitted to prison. Remaining imprisoned is
+         * not a repeated event, and manually setting a prison-state component
+         * does not count as an admission. Merely carrying a prisoner also does
+         * not emit: the transfer must reach its admission step.
+         * <p>
+         * DK II emits after room admission succeeds, while subsequent captive
+         * owner/state bookkeeping can still be pending. OpenKeeper instead queues
+         * completed admissions and checks nested conditions at simulation delivery
+         * time, after its admission state has been stored. These timings differ.
+         * <p>
+         * Producers cover carried-prisoner admission, hand drops accepted into
+         * prison, and living creatures placed in prison at spawn/load. The queue
+         * exists before world loading so initial admissions survive until their
+         * script controls exist. Existing admission/capacity rules are retained.
+         * <p>
+         * Matching creature-root branches run at delivery time; ordinary polling
+         * stays false and nested events are not independently dispatched. Existing
+         * repeat limits apply, so a later admission can trigger a repeating branch.
+         * <p>
+         * Example: an Imp finishes delivering a scripted hero to prison, allowing
+         * a message or objective branch to run once. That branch does not fire
+         * every tick while the hero remains locked up.
+         */
+        CREATURE_IMPRISONED(7),
+        /**
+         * Event: this creature is admitted to torture. Remaining in torture does
+         * not repeatedly trigger it; merely setting a torture-state component
+         * does not emit an admission either. A later accepted admission may emit
+         * again, subject to the existing branch repeat limit.
+         * <p>
+         * DK II validates a usable torture device on the creature's tile, switches
+         * to its torture command, then emits before later captive bookkeeping.
+         * OpenKeeper queues its completed hand-drop and living spawn/load
+         * admissions. The buffer exists before world loading, and only simulation
+         * ticks run matching creature-root branches. Nested conditions see the
+         * delivery-time state; ordinary polling stays false. This differs from
+         * native synchronous timing and does not independently dispatch nested events.
+         * <p>
+         * TODO #1010: current OpenKeeper admission rules still accept arbitrary
+         * enemy torture-room tiles, without DK II's device/proximity/occupancy
+         * checks. Own-room admissions are not supported by those existing paths.
+         * Event delivery preserves these gameplay rules; it does not establish
+         * full native torture admission or repeat-counter parity.
+         * <p>
+         * Example: dropping a scripted captured hero into torture runs a message
+         * or objective branch once on admission, rather than every tick throughout
+         * the hero's captivity or only after conversion.
+         */
+        CREATURE_TORTURED(8),
         CREATURE_CONVERTED(9), // Event, This creature is
         CREATURE_CLAIMED(10), // Event, This creature is
-        CREATURE_ANGRY(11), // Event, This creature is
-        CREATURE_AFRAID(12), // Event, This creature is
+        /**
+         * Fires when a positive mood change moves this creature into the fully
+         * angry state. Merely becoming unhappy does not fire it, and staying
+         * angry does not repeatedly fire it. After recovery, becoming angry
+         * again can fire another event, subject to the script's repeat limits.
+         * <p>
+         * This event runs its child actions and conditions immediately; it is
+         * not a persistent test of the creature's current mood. Emotionless
+         * creatures do not generate it. For example, it can warn the player
+         * when a particular Warlock becomes fully angry for the first time.
+         */
+        CREATURE_ANGRY(11),
+        /**
+         * Fires when this creature passes a qualifying fear evaluation, before
+         * the game attempts an escape. It is an immediate creature-script
+         * event, not a poll of the current fleeing state. The event can occur
+         * even when escape is subsequently suppressed or unavailable.
+         * <p>
+         * For example, a weak creature confronted by an overwhelming enemy
+         * can trigger a warning or reinforcement script. Level4 contains
+         * two uses of this event. An active escape suppresses further events;
+         * later eligible fear checks can deliver it again, subject to the
+         * branch's repeat limit.
+         * <p>
+         * DKII dispatches matching active root branches synchronously and
+         * tests their child conditions at event time. The ordinary script
+         * walk does not match this enum, and nested event conditions are not
+         * searched recursively. OpenKeeper uses its existing fear evaluation;
+         * this condition does not replace fear scoring or flee navigation.
+         */
+        CREATURE_AFRAID(12),
         CREATURE_STEALS(13), // Event, This creature is
         CREATURE_LEAVES(14), // Event, This creature is
-        CREATURE_STUNNED(15), // Event, This creature is
+        /**
+         * Event: an explicit stun/knockdown command is accepted for this creature.
+         * DK II emits after accepting the command, including repeated accepted
+         * knockdowns while already down. A rejected command emits nothing.
+         * This is not a persistent test for an AI state named "stunned".
+         * <p>
+         * OpenKeeper emits from its accepted knockDown() path, used by Lightning,
+         * after storing the FALLEN state and restarting its timer. Rejected
+         * knockdowns (including no AI, dead, unconscious, resting, falling or
+         * in-hand creatures) do not enqueue the event.
+         * Initial states, hand-drop landings and ordinary get-up transitions do
+         * not emit merely because their stored state is FALLEN or STUNNED.
+         * <p>
+         * Server simulation drains the event queue and runs matching creature-root
+         * branches, checking nested conditions against delivery-time state.
+         * Ordinary polling stays false; nested events are not independently
+         * dispatched. Existing knockdown eligibility, recovery and repeat limits
+         * are retained; queued delivery is not DK II's synchronous call timing.
+         * <p>
+         * Example: a scripted hero struck by Lightning can advance a branch when
+         * knocked down; another accepted hit can emit again while it is down.
+         * <p>
+         * TODO: validate additional stun causes and their native callers before
+         * wiring them, including whether the separate stun-imps special should
+         * emit. Its passive STUNNED state is not currently an event producer.
+         */
+        CREATURE_STUNNED(15),
         CREATURE_DYING(16), // Event, This creature is
         DOOR_DESTROYED(17), // Event, This door is
         OBJECT_CLAIMED(18), // Event, This object is
