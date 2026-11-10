@@ -663,6 +663,11 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public void onConverted(EntityId entityId) {
+        gameController.onCreatureConverted(entityId);
+    }
+
+    @Override
     public ICreatureController createController(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
@@ -687,7 +692,8 @@ public final class CreaturesController implements ICreaturesController {
                 gameController.getNavigationService(), gameController.getTaskManager(), gameTimer,
                 gameSettings, this, gameController.getEntityLookupService(), mapController, levelInfo,
                 gameController.getGameWorldController().getObjectsController(),
-                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService());
+                gameController.getGameWorldController().getShotsController(), gameController.getGameEventService(),
+                gameController::onCreatureAfraid);
     }
 
     @Override
