@@ -53,6 +53,9 @@ public interface ILevelInfo {
 
     Float getTimeLimit();
 
+    /** Enables or disables the level countdown announcements. */
+    void setTimerSpeechEnabled(boolean enabled);
+
     GameTimer getTimer(int id);
 
     void setFlag(int id, int value);

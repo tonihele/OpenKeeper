@@ -118,6 +118,12 @@ public final class GameEventSounds {
                             RoomCaptureSpeech.forRoom(kwdFile.getRoomById(event.subjectId)).getId(), null);
                 }
             }
+            case TIME_LIMIT_WARNING -> {
+                int speechId = TimeLimitSpeech.forSeconds(event.subjectId);
+                if (speechId != 0) {
+                    add(sounds, SoundCategory.SPEECH_MENTOR, speechId, null);
+                }
+            }
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
         }

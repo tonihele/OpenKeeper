@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.ServerGameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
@@ -52,6 +53,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -296,11 +298,56 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
         levelInfo.timeLimit = advanceTimeLimit(previous, tpf);
 
+        announceTimeLimitWarning(levelInfo.timerSpeechEnabled, previous, levelInfo.timeLimit,
+                levelInfo.players.values(), gameEventService);
+
         // The game itself does nothing more than note that the time is up,
         // the level script is what loses or wins the level
         if (isTimeLimitReached(previous, levelInfo.timeLimit)) {
             logger.log(Level.INFO, "Level time limit reached");
         }
+    }
+
+    /** Sends a countdown warning only to human keepers when timer speech is enabled. */
+    static void announceTimeLimitWarning(boolean enabled, float previous, float current,
+            Collection<Keeper> players, GameEventService events) {
+        if (!enabled) {
+            return;
+        }
+        int warning = crossedTimeLimitWarning(previous, current);
+        if (warning == 0) {
+            return;
+        }
+        for (Keeper player : players) {
+            if (!player.isAi() && player.getId() != 0 && player.getId() != Player.NEUTRAL_PLAYER_ID) {
+                events.emitToPlayer(GameEventType.TIME_LIMIT_WARNING, null, warning, player.getId());
+            }
+        }
+    }
+
+    /**
+     * Returns the latest countdown warning crossed this tick, in seconds.
+     * A delayed tick produces one current warning rather than a backlog.
+     */
+    static int crossedTimeLimitWarning(float previous, float current) {
+        if (current <= 0f || previous <= current) {
+            return 0;
+        }
+        for (int seconds = 1; seconds <= 10; seconds++) {
+            if (previous > seconds && current <= seconds) {
+                return seconds;
+            }
+        }
+        for (int minutes = 1; minutes <= 30; minutes++) {
+            if (minutes > 5 && minutes != 10 && minutes != 20 && minutes != 30) {
+                continue;
+            }
+            int seconds = minutes * 60;
+            if (previous > seconds && current <= seconds) {
+                return seconds;
+            }
+        }
+        return 0;
     }
 
     /**
@@ -453,6 +500,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         private final IKwdFile kwdFile;
         private int levelScore = 0;
         private Float timeLimit = null;
+        private boolean timerSpeechEnabled = true;
 
         private final SortedMap<Short, Keeper> players = new TreeMap<>();
         private final List<Integer> flags = new ArrayList<>(LEVEL_FLAG_MAX_COUNT);
@@ -508,6 +556,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         @Override
         public Float getTimeLimit() {
             return timeLimit;
+        }
+
+        @Override
+        public void setTimerSpeechEnabled(boolean enabled) {
+            timerSpeechEnabled = enabled;
         }
 
         @Override

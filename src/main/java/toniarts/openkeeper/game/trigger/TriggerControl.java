@@ -333,8 +333,8 @@ public class TriggerControl extends Control {
                 break;
 
             case SET_TIMER_SPEECH:
-                // TODO this
-                available = trigger.getUserData("available", short.class) != 0;
+                available = trigger.getUserData("available", short.class) == 1;
+                levelInfo.setTimerSpeechEnabled(available);
                 break;
 
             default:
