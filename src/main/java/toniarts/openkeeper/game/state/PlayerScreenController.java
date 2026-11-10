@@ -57,6 +57,7 @@ import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -127,6 +128,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private ResearchEffectControl payDayRing;
     private float payDayTimeLeft;
     private int payDayCost;
+    private EntitySet callToArmsBanners;
     private int lastImpCount = -1;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
@@ -160,6 +162,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (payDayClocks != null && payDayClocks.applyChanges()) {
                 updatePayDay();
             }
+            updateCallToArms();
             lastUpdate = 0;
         }
     }
@@ -211,6 +214,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
             payDayClocks = null;
         }
         payDayRing = null;
+        if (callToArmsBanners != null) {
+            callToArmsBanners.release();
+            callToArmsBanners = null;
+        }
 
         // Remove the resource bundle so that we can actually put a new one here
         nifty.getResourceBundles().remove("level");
@@ -603,6 +610,52 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     public int getPayDayCost() {
         return payDayCost;
+    }
+
+    /**
+     * The Call to Arms indicator, left click: take the banner down
+     */
+    public void cancelCallToArms() {
+        state.stateManager.getState(GameClientState.class).getGameClientService().cancelCallToArms();
+    }
+
+    /**
+     * The Call to Arms indicator, right click: zoom to the banner
+     */
+    public void zoomToCallToArms() {
+        Entity banner = getRaisedBanner();
+        if (banner != null) {
+            zoomToPosition(banner.get(Position.class).position);
+        }
+    }
+
+    /**
+     * Like the original, the indicator shows while our banner waves on the
+     * map, not while it rises, goes down or is in the hand
+     */
+    private void updateCallToArms() {
+        if (callToArmsBanners == null || screen == null) {
+            return;
+        }
+        callToArmsBanners.applyChanges();
+        Element indicator = screen.findElementById("callToArms");
+        boolean raised = getRaisedBanner() != null;
+        if (indicator != null && indicator.isVisible() != raised) {
+            indicator.setVisible(raised);
+        }
+    }
+
+    private Entity getRaisedBanner() {
+        if (callToArmsBanners == null) {
+            return null;
+        }
+        for (Entity banner : callToArmsBanners) {
+            if (banner.get(CallToArms.class).isUp()
+                    && banner.get(ObjectViewState.class).animState == ObjectViewState.GameObjectAnimState.ADDITIONAL_RESOURCE_1) {
+                return banner;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -1015,6 +1068,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         payDayClocks = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
                 PayDayClock.class, Owner.class);
+        callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
+                CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
         // Rooms
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
@@ -1368,25 +1423,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (researchableButton != null) {
             ResearchEffectControl researchControl = researchableButton.getControl(ResearchEffectControl.class);
             if (researchControl != null) {
-                float percentage = (float) researchableEntity.getResearch() / getResearchTime(researchableEntity);
+                float percentage = (float) researchableEntity.getResearch() / PlayerResearchControl.getResearchPoints(state.getKwdFile(), researchableEntity);
                 researchControl.setResearch(percentage);
             }
-        }
-    }
-
-    private int getResearchTime(ResearchableEntity researchableEntity) {
-        switch (researchableEntity.getResearchableType()) {
-            case SPELL:
-                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(researchableEntity.getId());
-                return researchableEntity.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime();
-            case TRAP:
-                return state.getKwdFile().getTrapById(researchableEntity.getId()).getResearchTime();
-            case DOOR:
-                return state.getKwdFile().getDoorById(researchableEntity.getId()).getResearchTime();
-            case ROOM:
-                return state.getKwdFile().getRoomById(researchableEntity.getId()).getResearchTime();
-            default:
-                throw new IllegalArgumentException("Invalid type!");
         }
     }
 
