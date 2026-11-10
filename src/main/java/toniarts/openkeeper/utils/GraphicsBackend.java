@@ -24,6 +24,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.logging.Logger;
+import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengles.GLES20;
 import static org.lwjgl.sdl.SDLStdinc.SDL_setenv_unsafe;
@@ -149,20 +150,16 @@ public final class GraphicsBackend {
         return api;
     }
 
-    /**
-     * Logs the graphics API and renderer reported by the active context.
-     */
-    public static void logActiveRenderer() {
-        RendererInfo renderer = queryActiveRenderer();
-        logActiveRenderer(isVulkanRenderer(renderer) ? VULKAN : OPENGL, renderer);
-    }
-
     private static RendererInfo queryActiveRenderer() {
-        RendererInfo renderer = queryGlesRenderer();
-        if (renderer == null) {
-            renderer = queryOpenGlRenderer();
+        try {
+            GL.getCapabilities();
+            RendererInfo renderer = queryOpenGlRenderer();
+            return renderer != null ? renderer : new RendererInfo(null, null);
+        } catch (IllegalStateException | LinkageError ex) {
+            // Only initialize LWJGL's GLES binding when the active context is not desktop OpenGL.
+            RendererInfo renderer = queryGlesRenderer();
+            return renderer != null ? renderer : new RendererInfo(null, null);
         }
-        return renderer != null ? renderer : new RendererInfo(null, null);
     }
 
     private static RendererInfo queryGlesRenderer() {

@@ -119,7 +119,7 @@ public final class RendererSmokeApplication extends SimpleApplication {
     @Override
     public void simpleInitApp() {
         try {
-            GraphicsBackend.logActiveRenderer();
+            GraphicsBackend.setWindowTitleForActiveRenderer(getContext(), "OpenKeeper renderer smoke");
             viewPort.setBackgroundColor(new ColorRGBA(0.05f, 0.10f, 0.15f, 1f));
 
             Geometry cube = new Geometry("Vulkan/OpenGL smoke cube", new Box(1f, 1f, 1f));
