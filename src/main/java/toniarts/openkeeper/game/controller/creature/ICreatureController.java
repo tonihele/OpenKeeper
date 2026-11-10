@@ -278,11 +278,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public int getResearchPerTick();
 
     /**
-     * Get manufacture per second attribute
+     * Get the manufacture points the creature makes on each game tick in the
+     * workshop
      *
-     * @return manufacture per second
+     * @return manufacture points per tick
      */
-    public int getManufacturePerSecond();
+    public int getManufacturePerTick();
 
     /**
      * Gives object to creature

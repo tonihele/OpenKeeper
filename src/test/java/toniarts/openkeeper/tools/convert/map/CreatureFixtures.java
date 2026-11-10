@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.List;
+
 /**
  * Builds {@link Creature} fixtures for tests. Lives in {@code Creature}'s own
  * package because its setters are {@code protected} (parser-only).
@@ -40,6 +42,22 @@ public final class CreatureFixtures {
 
         Creature creature = new Creature();
         creature.setAnimation(animation, resource);
+        return creature;
+    }
+
+    /**
+     * A creature that works in the workshop
+     *
+     * @param id the creature ID
+     * @param manufacturePerSecond the manufacture points per second in the
+     * creature data
+     * @return the creature
+     */
+    public static Creature manufacturer(short id, int manufacturePerSecond) {
+        Creature creature = new Creature();
+        creature.setCreatureId(id);
+        creature.setSpells(List.of());
+        creature.getAttributes().setManufacturePerSecond(manufacturePerSecond);
         return creature;
     }
 

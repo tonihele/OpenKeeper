@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -43,7 +44,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 /**
  * DK II turns the research per second of the creature data into research per
  * tick when the level loads: divide by the ticks per second (at least 1 if
- * there is anything to divide) and only then apply the level percentage
+ * there is anything to divide) and only then apply the level percentage. The
+ * manufacture per second is turned into manufacture per tick the same way
  */
 class CreatureResearchPerTickTest {
 
@@ -78,9 +80,24 @@ class CreatureResearchPerTickTest {
         assertEquals(7, researchPerTick(5, 4, 700));
     }
 
+    @Test
+    void manufacturePerSecondIsDividedByTheTicksPerSecond() {
+        assertEquals(12, manufacturePerTick(50)); // Bile Demon
+        assertEquals(15, manufacturePerTick(60)); // Troll
+        assertEquals(37, manufacturePerTick(150)); // Giant
+        assertEquals(0, manufacturePerTick(0));
+    }
+
     private static int researchPerTick(int researchPerSecond, int ticksPerSecond, int levelPercent) {
+        return levelUp(ResearchFixtures.researcher(CREATURE_ID, researchPerSecond), ticksPerSecond, levelPercent).researchPerTick;
+    }
+
+    private static int manufacturePerTick(int manufacturePerSecond) {
+        return levelUp(CreatureFixtures.manufacturer(CREATURE_ID, manufacturePerSecond), 4, 100).manufacturePerTick;
+    }
+
+    private static CreatureComponent levelUp(Creature creature, int ticksPerSecond, int levelPercent) {
         EntityData entityData = new DefaultEntityData();
-        Creature creature = ResearchFixtures.researcher(CREATURE_ID, researchPerSecond);
         GameLevel gameLevel = CreatureSleepFixtures.level(ticksPerSecond);
         Map<Variable.CreatureStats.StatType, Variable.CreatureStats> stats = ResearchFixtures.levelStats(levelPercent);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
@@ -106,7 +123,7 @@ class CreatureResearchPerTickTest {
 
         controller.levelUpCreature(entityId, 1, 0);
 
-        return entityData.getComponent(entityId, CreatureComponent.class).researchPerTick;
+        return entityData.getComponent(entityId, CreatureComponent.class);
     }
 
 }

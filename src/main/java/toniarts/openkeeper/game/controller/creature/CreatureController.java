@@ -1617,9 +1617,9 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public int getManufacturePerSecond() {
+    public int getManufacturePerTick() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.manufacturePerSecond;
+        return creatureComponent.manufacturePerTick;
     }
 
     @Override
