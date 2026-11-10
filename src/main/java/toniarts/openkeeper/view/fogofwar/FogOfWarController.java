@@ -46,11 +46,10 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Consumer;
@@ -91,6 +90,11 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     private final FogState state;
     private final LineOfSightTable losTable;
+    private final int mapWidth;
+    private final int mapHeight;
+    private final boolean[] sightBlockingDoorTiles;
+    private int[] doorTileIndices;
+    private int doorTileCount;
 
     private EntitySet creatureEntities;
     private EntitySet imprisonedCreatures;
@@ -104,7 +108,6 @@ public final class FogOfWarController implements IFogOfWarInformation {
      */
     private boolean heartRoomsChecked;
 
-    private final Map<Point, Entity> doorsByPosition = new HashMap<>();
     private final Set<Point> closedDoorTiles = new HashSet<>();
     private final Set<EntityId> seenEnemies = new HashSet<>();
     private final List<PendingHeartReveal> pendingHeartReveals = new ArrayList<>();
@@ -125,6 +128,10 @@ public final class FogOfWarController implements IFogOfWarInformation {
         this.onTilesDirty = onTilesDirty;
         this.onEnemySighted = onEnemySighted;
 
+        this.mapWidth = mapData.getWidth();
+        this.mapHeight = mapData.getHeight();
+        this.sightBlockingDoorTiles = new boolean[mapWidth * mapHeight];
+        this.doorTileIndices = new int[Math.max(1, Math.min(16, mapWidth * mapHeight))];
         this.state = new FogState(viewerId, mapData.getWidth(), mapData.getHeight());
         this.losTable = LineOfSightTable.generate(7);
     }
@@ -241,12 +248,24 @@ public final class FogOfWarController implements IFogOfWarInformation {
 
     private void updateDoors() {
         doorEntities.applyChanges();
-        doorsByPosition.clear();
+        // Clear only indices touched during the previous refresh.
+        for (int i = 0; i < doorTileCount; i++) {
+            sightBlockingDoorTiles[doorTileIndices[i]] = false;
+        }
+        doorTileCount = 0;
         closedDoorTiles.clear();
         for (Entity e : doorEntities) {
             Position position = e.get(Position.class);
             Point p = WorldUtils.vectorToPoint(position.position);
-            doorsByPosition.put(p, e);
+            if (p.x >= 0 && p.y >= 0 && p.x < mapWidth && p.y < mapHeight) {
+                int index = p.y * mapWidth + p.x;
+                if (doorTileCount == doorTileIndices.length) {
+                    doorTileIndices = Arrays.copyOf(doorTileIndices, doorTileIndices.length * 2);
+                }
+                doorTileIndices[doorTileCount++] = index;
+                Door doorData = kwdFile.getDoorById(e.get(DoorComponent.class).doorId);
+                sightBlockingDoorTiles[index] = !doorData.getFlags().contains(Door.DoorFlag.IS_BARRICADE);
+            }
             if (!e.get(DoorViewState.class).open) {
                 closedDoorTiles.add(p);
             }
@@ -262,12 +281,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             return true;
         }
-        Entity door = doorsByPosition.get(new Point(x, y));
-        if (door == null) {
-            return false;
-        }
-        Door doorData = kwdFile.getDoorById(door.get(DoorComponent.class).doorId);
-        return !doorData.getFlags().contains(Door.DoorFlag.IS_BARRICADE);
+        return sightBlockingDoorTiles[y * mapWidth + x];
     }
 
     private void updateCreatureVision() {

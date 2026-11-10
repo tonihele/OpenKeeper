@@ -96,6 +96,14 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register("fogDoorLookupBenchmark", JavaExec) {
+    group = "verification"
+    description = "Measures line-of-sight door lookup alternatives."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "toniarts.openkeeper.view.fogofwar.FogDoorLookupBenchmark"
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)
