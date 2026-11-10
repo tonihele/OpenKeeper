@@ -130,13 +130,12 @@ public final class ConversionUtils {
     }
 
     /**
-     * Converts JAVAX 3f vector to JME vector (also converts the coordinate
-     * system)
+     * Converts a model-space vector to jME coordinates.
      *
      * @param v vector
      * @return JME vector
      */
-    public static Vector3f convertVector(javax.vecmath.Vector3f v) {
+    public static Vector3f convertVector(Vector3f v) {
         return new Vector3f(v.x, -v.z, v.y);
     }
 

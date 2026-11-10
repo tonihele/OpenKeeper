@@ -52,7 +52,7 @@ class PlayerCameraTest {
         set(mode, "zoomValueMin", zoomMin);
         set(mode, "zoomValueMax", zoomMax);
         set(mode, "lensValue", lens);
-        set(mode, "position", new javax.vecmath.Vector3f(0, 0, focusHeight));
+        set(mode, "position", new Vector3f(0, 0, focusHeight));
         set(mode, "flags", EnumSet.noneOf(Thing.Camera.CameraFlag.class));
         return mode;
     }

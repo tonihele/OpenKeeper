@@ -22,7 +22,7 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import javax.vecmath.Vector3f;
+import com.jme3.math.Vector3f;
 import toniarts.openkeeper.tools.convert.BufferedResourceReader;
 import toniarts.openkeeper.tools.convert.ByteArrayResourceReader;
 import toniarts.openkeeper.tools.convert.IResourceChunkReader;
@@ -449,7 +449,7 @@ public final class KmfFile {
             float z = (((coordinates >>  0) % 1024) - 512) / 511.0f;
 
             Vector3f v = new Vector3f(x, y, z);
-            v.scale(a.getScale()); // Scale
+            v.multLocal(a.getScale()); // Scale
 
             geom = new AnimGeom();
             geom.setGeometry(v);

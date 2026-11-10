@@ -17,7 +17,7 @@
 package toniarts.openkeeper.tools.convert.kmf;
 
 import java.util.List;
-import javax.vecmath.Vector3f;
+import com.jme3.math.Vector3f;
 
 /**
  * KMF Mesh wrapper

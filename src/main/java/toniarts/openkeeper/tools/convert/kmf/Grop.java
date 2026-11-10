@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.kmf;
 
-import javax.vecmath.Vector3f;
+import com.jme3.math.Vector3f;
 
 /**
  * KMF Grop wrapper

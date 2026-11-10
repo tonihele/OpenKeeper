@@ -205,7 +205,7 @@ public final class KmfModelLoader implements AssetLoader {
             for (MeshVertex meshVertex : subMesh.getVertices()) {
 
                 //Vertice
-                javax.vecmath.Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
+                Vector3f v = sourceMesh.getGeometries().get(meshVertex.getGeomIndex());
                 vertices[i] = new Vector3f(v.x, -v.z, v.y);
 
                 //Texture coordinate
@@ -295,7 +295,7 @@ public final class KmfModelLoader implements AssetLoader {
             for (var animVertex : subMesh.getVertices()) {
 
                 // Bind Pose
-                javax.vecmath.Vector3f baseCoord = null;
+                Vector3f baseCoord = null;
 
                 // Keep the last frame for creating the target pose
                 KmfModelLoader.FrameInfo previousFrame = null;
