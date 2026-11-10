@@ -62,6 +62,9 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
@@ -124,6 +127,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private boolean isOnGui = false;
     private boolean isTaggable = false;
+    private Boolean tagSelection;
     private boolean isOnMap = false;
     private boolean isInteractable = false;
 
@@ -199,6 +203,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             app.getInputManager().removeRawInputListener(inputListener);
             inputListenerAdded = false;
             keys.clear();
+            cancelTagSelection();
+            selectionHandler.setActive(false);
 
             // We are no longer around to keep it updated (e.g. entering possession
             // mode), so drop any leftover held-item/spell icon and cursor image
@@ -211,6 +217,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
+        cancelTagSelection();
         playerEntityViewState = null;
         this.stateManager.detach(keeperHandState);
         keeperHandState = null;
@@ -241,7 +248,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         constructionBlockingDoors.applyChanges();
         constructionBlockingTraps.applyChanges();
 
-        selectionHandler.update(mousePosition);
+        boolean pointedTileChanged = selectionHandler.update(mousePosition);
+        if (pointedTileChanged && tagSelection != null && selectionHandler.isActive()) {
+            gameClientState.previewTaggedTiles(getRectPoints(selectionHandler.getSelectionArea()), tagSelection);
+        }
         cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
                 selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED, cursorPrice);
         if (isOnMap && !isOnGui && !isTaggable) {
@@ -281,6 +291,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
      * @param id object id, i.e. build state requires the room id
      */
     public void setInteractionState(Type type, int id) {
+        if (tagSelection != null) {
+            cancelTagSelection();
+            selectionHandler.setActive(false);
+        }
         interactionState.setState(type, id);
 
         // Call the update
@@ -623,6 +637,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         reactionCursorTimeRemaining = CursorFactory.getAnimationDuration(cursor, assetManager);
     }
 
+    private void cancelTagSelection() {
+        if (gameClientState != null) {
+            gameClientState.cancelTagPreview();
+        }
+        tagSelection = null;
+    }
+
     private void initializeInput() {
           inputListener = new MapInteractionInputListener();
     }
@@ -664,6 +685,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         public void onMouseButtonEvent(MouseButtonEvent evt) {
 //            timeFromLastUpdate = 0;
             if (isOnGui || !isOnMap) {
+                if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT && evt.isReleased() && tagSelection != null) {
+                    cancelTagSelection();
+                    selectionHandler.setActive(false);
+                    updateCursor();
+                }
                 return;
             }
 
@@ -707,34 +733,33 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 interactiveControl.interact(player.getPlayerId());
             } else {
 
-                // Selection stuff
                 if (selectionHandler.isVisible()) {
+                    boolean startingSelection = !selectionHandler.isActive();
                     selectionHandler.setActive(true);
-                }
-
-                // I suppose we are tagging
-                if (isTaggable) {
-                    updateCursor();
-                    // The tagging sound is positional and played against the cursor change, not the action itself
-                    Point pos = selectionHandler.getPointedTileIndex();
-//                    getWorldHandler().playSoundAtTile(pos, GlobalCategory.HAND, GlobalType.HAND_TAG);
+                    if (isTaggable) {
+                        updateCursor();
+                        if (startingSelection) {
+                            Point start = WorldUtils.vectorToPoint(selectionHandler.getSelectionArea().getRealStart());
+                            tagSelection = !gameClientState.isTileVisuallyTagged(start);
+                            gameClientState.previewTaggedTiles(getRectPoints(selectionHandler.getSelectionArea()), tagSelection);
+                            // Immediate local feedback; committing the tiles on release is silent.
+                            SoundManager.playSound(GlobalCategory.HAND, ThingSounds.TAG);
+                        }
+                    }
                 }
             }
         }
 
         private void onLeftMouseButtonReleased() {
             SelectionArea selectionArea = selectionHandler.getSelectionArea();
-            if (interactionState.getType() == Type.NONE
+            if (tagSelection != null || interactionState.getType() == Type.NONE
                     || (interactionState.getType() == Type.ROOM
                     && gameClientState.getFogOfWarInformation().isHighlightable(WorldUtils.vectorToPoint(selectionArea.getRealStart())))) {
 
-                // Determine if this is a select/deselect by the starting tile's status.
-                // An unexplored start tile has no real server-side selected state to
-                // speak of yet, so also fold in whether it currently *looks* tagged.
+                // Keep the press-time mode: the local tint has already changed.
                 Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
-                boolean currentlyTagged = gameClientState.getMapClientService().isSelected(realStart, player.getPlayerId())
-                        || gameClientState.getFogOfWarInformation().isPendingTagged(realStart);
-                boolean select = !currentlyTagged;
+                boolean select = tagSelection != null ? tagSelection
+                        : !gameClientState.isTileVisuallyTagged(realStart);
                 gameClientState.getGameClientService().selectTiles(selectionArea.getStart(), selectionArea.getEnd(), select);
 
                 // The server only marks a tile selected if its real, hidden terrain is
@@ -742,6 +767,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // still-unexplored tiles in this drag should look tagged regardless,
                 // until exploration reveals whether that's really true.
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
+                gameClientState.previewTaggedTiles(getRectPoints(selectionArea), select);
+                gameClientState.commitTagPreview();
+                tagSelection = null;
             } else if (interactionState.getType() == Type.ROOM
                     && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
@@ -760,11 +788,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 }
             }
 
+            cancelTagSelection();
             selectionHandler.setActive(false);
             updateCursor();
         }
 
         private void onRightMouseButtonReleased() {
+            if (tagSelection != null) {
+                cancelTagSelection();
+                selectionHandler.setActive(false);
+                updateCursor();
+                return;
+            }
             Point p = selectionHandler.getPointedTileIndex();
             if (interactionState.getType() == Type.NONE) {
 

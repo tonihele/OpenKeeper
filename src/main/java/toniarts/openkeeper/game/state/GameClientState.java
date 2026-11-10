@@ -829,6 +829,29 @@ public final class GameClientState extends AbstractPauseAwareState {
         return minimapPanelState;
     }
 
+    /** Reads the local drag tint as well as acknowledged tile selection. */
+    public boolean isTileVisuallyTagged(Point point) {
+        return playerMapViewState != null && playerMapViewState.getMapLoader().isTileTagged(point);
+    }
+
+    public void previewTaggedTiles(List<Point> points, boolean tagged) {
+        if (playerMapViewState != null) {
+            playerMapViewState.getMapLoader().previewTaggedTiles(points, tagged);
+        }
+    }
+
+    public void cancelTagPreview() {
+        if (playerMapViewState != null) {
+            playerMapViewState.getMapLoader().cancelTagPreview();
+        }
+    }
+
+    public void commitTagPreview() {
+        if (playerMapViewState != null) {
+            playerMapViewState.getMapLoader().commitTagPreview();
+        }
+    }
+
     /**
      * Marks (or unmarks) still-unexplored tiles as locally "looking tagged"
      * while the viewer drags a tag/dig selection over them - see

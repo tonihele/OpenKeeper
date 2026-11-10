@@ -96,8 +96,9 @@ public final class GameEventSounds {
             }
             case HAND_SLAP ->
                 add(sounds, GlobalCategory.HAND, ThingSounds.SLAP, null);
-            case TILES_TAGGED ->
-                add(sounds, GlobalCategory.HAND, ThingSounds.TAG, null);
+            case TILES_TAGGED -> {
+                // The initiating client already played the tag sound on mouse press.
+            }
             case SHOT_LAUNCH ->
                 add(sounds, subject, ThingSounds.SHOT_LAUNCH, event.position);
             case SHOT_HIT ->

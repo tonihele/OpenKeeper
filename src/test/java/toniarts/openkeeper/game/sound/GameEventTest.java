@@ -79,6 +79,15 @@ class GameEventTest {
     }
 
     @Test
+    void tileTagNotificationDoesNotReplayTheLocalPressSound() {
+        service.emitToPlayer(GameEventType.TILES_TAGGED, (short) 2);
+        assertEquals(1, sent.size(), "Tile selection still notifies the initiating player");
+        GameEvent event = new GameEvent(GameEventType.TILES_TAGGED, null, 0, null, 0, null, null);
+        assertTrue(GameEventSounds.getSounds(event, null).isEmpty(),
+                "The server notification must not play a second sound on release");
+    }
+
+    @Test
     void entityEventKnowsTheThingTypeOfTheEntity() {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new ObjectComponent((short) 5, AbstractRoomController.ObjectType.GOLD),
