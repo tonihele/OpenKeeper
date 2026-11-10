@@ -81,6 +81,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
     public final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
     private final static int PAGE_SQUARE_SIZE = 8; // Divide the terrain to square "pages"
+    private static final int CEILING_CHUNK_SIZE = 48;
     private final static int FLOOR_INDEX = 0;
     private final static int WALL_INDEX = 1;
     private final static int TOP_INDEX = 2;
@@ -118,7 +119,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final List<EntityInstance<Terrain>> lavaBatches = new ArrayList<>(); // Lakes and rivers, but hot
     private Spatial waterSurface; // Currently attached merged water mesh, if any
     private Spatial lavaSurface; // Currently attached merged lava mesh, if any
-    private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
+    private Spatial ceilingSurface; // Currently attached chunked ceiling surface, if any
+    private final Map<CeilingChunkCoordinate, List<Geometry>> ceilingChunkGeometries = new HashMap<>();
+    private final Map<CeilingBatchKey, Material> ceilingBatchMaterials = new HashMap<>();
     private boolean ceilingVisible = true; // Runtime show/hide toggle, independent of ceilingEnabled (which decides whether it's built at all)
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
@@ -393,26 +396,26 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Tiles sharing a {@code CeilingBatchKey} get merged into one
-     * {@link Ceiling#construct} draw call: the resolved terrain drives the
-     * material's static lighting tint and the resource name (if any) is a
-     * room's ceiling texture override - see {@link Room#getCeilingResource()}.
+     * Tiles in the same spatial chunk and sharing a {@code CeilingBatchKey}
+     * get merged into one {@link Ceiling#construct} draw call. The resolved
+     * terrain drives the material's static lighting tint and the resource
+     * name (if any) is a room's ceiling texture override - see
+     * {@link Room#getCeilingResource()}.
      */
     private record CeilingBatchKey(short terrainId, String ceilingResourceName) {
     }
 
-    /**
-     * Rebuilds the whole ceiling from scratch: the {@link ClearanceField} for
-     * the current map, a patch for every open tile the fog-of-war currently
-     * reveals, grouped into one merged mesh per resolved material. Like
-     * {@link #refreshWaterAndLavaSurfaces}, there's no incremental variant -
-     * every dig, room change or fog reveal just rebuilds the whole thing.
-     */
+    private record CeilingChunkCoordinate(int x, int y) {
+    }
+
+    /** Builds the initial chunked ceiling surface. */
     private void refreshCeilingSurface() {
         if (ceilingSurface != null) {
             ceilingSurface.removeFromParent();
             ceilingSurface = null;
         }
+        ceilingChunkGeometries.clear();
+        ceilingBatchMaterials.clear();
         if (!ceilingEnabled) {
             return;
         }
@@ -420,55 +423,141 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         IMapDataInformation<IMapTileInformation> mapData = getMapData();
         int width = mapData.getWidth();
         int height = mapData.getHeight();
+        Node surface = new Node("Ceiling");
+        if (!ceilingVisible) {
+            surface.setCullHint(Spatial.CullHint.Always);
+        }
+        ceilingSurface = surface;
+        map.attachChild(surface);
 
+        Set<CeilingChunkCoordinate> allChunks = new HashSet<>();
+        for (int y = 0; y < height; y += CEILING_CHUNK_SIZE) {
+            for (int x = 0; x < width; x += CEILING_CHUNK_SIZE) {
+                allChunks.add(new CeilingChunkCoordinate(x / CEILING_CHUNK_SIZE, y / CEILING_CHUNK_SIZE));
+            }
+        }
+        rebuildCeilingChunks(allChunks, mapData, getPillarTiles());
+    }
+
+    /**
+     * Rebuilds only ceiling chunks whose surface may have changed. Clearance
+     * queries inspect solid tiles up to six tiles from a patch, while room,
+     * fog and deformer updates pass their affected tiles here as well.
+     */
+    private void updateCeilingSurface(Collection<Point> changedTiles) {
+        if (!ceilingEnabled) {
+            return;
+        }
+        if (ceilingSurface == null) {
+            refreshCeilingSurface();
+            return;
+        }
+
+        IMapDataInformation<IMapTileInformation> mapData = getMapData();
+        int width = mapData.getWidth();
+        int height = mapData.getHeight();
+        Set<CeilingChunkCoordinate> dirtyChunks = new HashSet<>();
+        for (Point point : changedTiles) {
+            if (point.x < 0 || point.y < 0 || point.x >= width || point.y >= height) {
+                continue;
+            }
+            int minX = Math.max(0, point.x - ClearanceField.PATCH_DEPENDENCY_RADIUS);
+            int maxX = Math.min(width - 1, point.x + ClearanceField.PATCH_DEPENDENCY_RADIUS);
+            int minY = Math.max(0, point.y - ClearanceField.PATCH_DEPENDENCY_RADIUS);
+            int maxY = Math.min(height - 1, point.y + ClearanceField.PATCH_DEPENDENCY_RADIUS);
+            for (int chunkY = minY / CEILING_CHUNK_SIZE; chunkY <= maxY / CEILING_CHUNK_SIZE; chunkY++) {
+                for (int chunkX = minX / CEILING_CHUNK_SIZE; chunkX <= maxX / CEILING_CHUNK_SIZE; chunkX++) {
+                    dirtyChunks.add(new CeilingChunkCoordinate(chunkX, chunkY));
+                }
+            }
+        }
+        if (dirtyChunks.isEmpty()) {
+            return;
+        }
+
+        Set<Point> pillarTiles = getPillarTiles();
+        ClearanceField clearanceField = new ClearanceField(width, height,
+                createSolidGrid(mapData, pillarTiles));
+        rebuildCeilingChunks(dirtyChunks, mapData, pillarTiles, clearanceField);
+    }
+
+    private Set<Point> getPillarTiles() {
         Set<Point> pillarTiles = new HashSet<>();
         for (RoomInstance roomInstance : new HashSet<>(roomCoordinates.values())) {
             pillarTiles.addAll(PillarPlacement.getPillarTiles(roomInstance));
         }
+        return pillarTiles;
+    }
 
-        ClearanceField clearanceField = new ClearanceField(width, height,
+    private void rebuildCeilingChunks(Set<CeilingChunkCoordinate> chunks,
+            IMapDataInformation<IMapTileInformation> mapData, Set<Point> pillarTiles) {
+        ClearanceField clearanceField = new ClearanceField(mapData.getWidth(), mapData.getHeight(),
                 createSolidGrid(mapData, pillarTiles));
+        rebuildCeilingChunks(chunks, mapData, pillarTiles, clearanceField);
+    }
 
-        Map<CeilingBatchKey, List<Point>> batchTiles = new HashMap<>();
+    private void rebuildCeilingChunks(Set<CeilingChunkCoordinate> chunks,
+            IMapDataInformation<IMapTileInformation> mapData, Set<Point> pillarTiles,
+            ClearanceField clearanceField) {
+        Node surface = (Node) ceilingSurface;
+        Map<CeilingChunkCoordinate, Map<CeilingBatchKey, List<Point>>> chunkTiles = new HashMap<>();
         Map<CeilingBatchKey, Terrain> batchTerrain = new HashMap<>();
         Map<CeilingBatchKey, ArtResource> batchResource = new HashMap<>();
         for (IMapTileInformation tile : mapData) {
+            Point point = tile.getLocation();
+            CeilingChunkCoordinate chunk = new CeilingChunkCoordinate(
+                    point.x / CEILING_CHUNK_SIZE, point.y / CEILING_CHUNK_SIZE);
+            if (!chunks.contains(chunk)) {
+                continue;
+            }
             Terrain terrain = getTerrain(tile);
-            Point p = tile.getLocation();
             if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                    || pillarTiles.contains(p) || !fogOfWarInformation.isVisible(p)) {
+                    || pillarTiles.contains(point) || !fogOfWarInformation.isVisible(point)) {
                 continue;
             }
 
-            ArtResource ceilingResource = getRoomCeilingResource(p);
+            ArtResource ceilingResource = getRoomCeilingResource(point);
             CeilingBatchKey key = new CeilingBatchKey(terrain.getTerrainId(),
                     ceilingResource != null ? ceilingResource.getName() : null);
-            batchTiles.computeIfAbsent(key, k -> new ArrayList<>()).add(p);
+            chunkTiles.computeIfAbsent(chunk, ignored -> new HashMap<>())
+                    .computeIfAbsent(key, ignored -> new ArrayList<>()).add(point);
             batchTerrain.putIfAbsent(key, terrain);
             if (ceilingResource != null) {
                 batchResource.putIfAbsent(key, ceilingResource);
             }
         }
 
-        if (batchTiles.isEmpty()) {
-            return;
-        }
-
-        Node surface = new Node("Ceiling");
         List<Material> ceilingMaterials = new ArrayList<>();
-        for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
-            CeilingBatchKey key = batch.getKey();
-            Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer, pillarTiles);
-            surface.attachChild(ceilingGeometry);
-            ceilingMaterials.add(ceilingGeometry.getMaterial());
+        for (CeilingChunkCoordinate chunk : chunks) {
+            List<Geometry> previous = ceilingChunkGeometries.remove(chunk);
+            if (previous != null) {
+                for (Geometry geometry : previous) {
+                    geometry.removeFromParent();
+                }
+            }
+
+            Map<CeilingBatchKey, List<Point>> batches = chunkTiles.get(chunk);
+            if (batches == null) {
+                continue;
+            }
+            List<Geometry> geometries = new ArrayList<>(batches.size());
+            for (Map.Entry<CeilingBatchKey, List<Point>> batch : batches.entrySet()) {
+                CeilingBatchKey key = batch.getKey();
+                Material material = ceilingBatchMaterials.get(key);
+                if (material == null) {
+                    material = Ceiling.createMaterial(assetManager, batchTerrain.get(key), batchResource.get(key));
+                    ceilingBatchMaterials.put(key, material);
+                    ceilingMaterials.add(material);
+                }
+                Geometry geometry = Ceiling.construct(clearanceField, batch.getValue(), deformer,
+                        pillarTiles, material);
+                geometry.setName("Ceiling-" + chunk.x() + "_" + chunk.y() + "-" + key.terrainId());
+                surface.attachChild(geometry);
+                geometries.add(geometry);
+            }
+            ceilingChunkGeometries.put(chunk, geometries);
         }
         lightRules.bindMaterials(ceilingMaterials);
-        if (!ceilingVisible) {
-            surface.setCullHint(Spatial.CullHint.Always);
-        }
-        ceilingSurface = surface;
-        map.attachChild(ceilingSurface);
     }
 
     /**
@@ -591,7 +680,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
 
         // The tiles around a pillar that was straightened (or released) while the above was going on were
         // deformed with the old field, redo them now that the pillars are known
+        Set<Point> ceilingDirtyTiles = new HashSet<>(pointsToUpdate);
         Set<Point> stale = new HashSet<>(pillarDirtyTiles);
+        ceilingDirtyTiles.addAll(stale);
         pillarDirtyTiles.clear();
         for (Point point : stale) {
             if (getMapData().getTile(point) != null) {
@@ -613,10 +704,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         refreshWaterAndLavaSurfaces(waterShoreChanged || waterBatches.size() != waterBatchesBefore,
                 lavaShoreChanged || lavaBatches.size() != lavaBatchesBefore);
 
-        // Dig, fog and room changes all reshape which tiles get a ceiling patch
-        // and how tall it is - always rebuild it whole, there's no incremental
-        // variant, same as the water/lava surfaces above
-        refreshCeilingSurface();
+        // Dig, fog, room and deformer changes affect local ceiling patches.
+        updateCeilingSurface(ceilingDirtyTiles);
     }
 
     private void rebuildTile(Point point, Node terrainNode, Set<BatchNode> nodesNeedBatching) {

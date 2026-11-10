@@ -96,6 +96,22 @@ test {
     useJUnitPlatform()
 }
 
+tasks.register("ceilingIncrementalBenchmark", JavaExec) {
+    group = "verification"
+    description = "Measures full versus spatially chunked ceiling mesh rebuilds."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "toniarts.openkeeper.view.map.CeilingIncrementalBenchmark"
+}
+
+tasks.register("ceilingIncrementalRenderBenchmark", JavaExec) {
+    group = "verification"
+    description = "Measures GPU and render-thread costs of full and chunked ceiling surfaces."
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = "toniarts.openkeeper.view.map.CeilingIncrementalRenderBenchmark"
+}
+
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(25)

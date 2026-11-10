@@ -50,6 +50,12 @@ public final class ClearanceField {
      */
     private static final int SEARCH_RADIUS = 5;
 
+    /**
+     * Furthest tile whose ceiling patch can sample a changed solid tile.
+     * Patch normals sample one tile beyond the patch corners.
+     */
+    static final int PATCH_DEPENDENCY_RADIUS = SEARCH_RADIUS + 1;
+
     private final int width;
     private final int height;
     private final boolean[] solid;
