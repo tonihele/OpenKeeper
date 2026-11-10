@@ -42,12 +42,14 @@ import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
+import toniarts.openkeeper.game.logic.InfernoSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
+import toniarts.openkeeper.game.logic.PlayerManufactureSystem;
 import toniarts.openkeeper.game.logic.PlayerSpellbookSystem;
 import toniarts.openkeeper.game.logic.PossessedMovementSystem;
 import toniarts.openkeeper.game.logic.PossessedSystem;
@@ -112,11 +114,13 @@ public final class GameLoopManager {
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
+                new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
+                new PlayerManufactureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 (IGameLogicUpdatable) gameController,
                 new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
                         gameSettings, levelInfo, gameWorldController.getMapController(), gameEventService),
@@ -129,7 +133,7 @@ public final class GameLoopManager {
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
-                new CreatureViewSystem(entityData),
+                new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
