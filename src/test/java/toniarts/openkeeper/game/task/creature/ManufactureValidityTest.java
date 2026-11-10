@@ -16,18 +16,14 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
-import com.simsilica.es.EntityData;
-import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.component.TrapComponent;
-import toniarts.openkeeper.game.component.TrapViewState;
-import toniarts.openkeeper.game.controller.WorkshopOrders;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -81,18 +77,14 @@ class ManufactureValidityTest {
         });
 
         // A trap blueprint waiting for its crate is something to make
-        Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
-        EntityData entityData = new DefaultEntityData();
+        PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
         if (somethingToMake) {
-            entityData.setComponents(entityData.createEntity(), new TrapComponent(trap.getTrapId()), new TrapViewState(trap.getTrapId(), true),
-                    new Owner(PLAYER_ID, PLAYER_ID));
+            Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
+            manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
+                    trap.getManufCrateObjectId()));
         }
-        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
-            case "getTrapById" -> trap;
-            default -> null;
-        });
 
-        return new Manufacture(null, null, new Point(5, 5), PLAYER_ID, workshop, null, null, new WorkshopOrders(entityData, kwdFile), null);
+        return new Manufacture(null, null, new Point(5, 5), PLAYER_ID, workshop, null, manufactureControl, null);
     }
 
     private interface Answer {

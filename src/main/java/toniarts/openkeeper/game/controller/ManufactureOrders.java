@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.data.ResearchableType;
 
 /**
  * What the workshop manufactures next. Every blueprint is an order for a
@@ -27,6 +28,18 @@ import java.util.Map;
  * fulfills the oldest open order of its type.
  */
 public final class ManufactureOrders {
+
+    /**
+     * An item to manufacture
+     *
+     * @param type trap or door
+     * @param typeId the trap or door id
+     * @param manufToBuild the manufacture points it needs
+     * @param crateObjectId the object of its crate
+     */
+    public record Order(ResearchableType type, short typeId, int manufToBuild, short crateObjectId) {
+
+    }
 
     private ManufactureOrders() {
         // Nope
