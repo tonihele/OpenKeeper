@@ -46,7 +46,8 @@ import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.loader.ILoader;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 import toniarts.openkeeper.view.map.construction.RoomConstructor;
 import toniarts.openkeeper.view.map.construction.SingleQuadConstructor;
 import toniarts.openkeeper.view.map.construction.WaterConstructor;
@@ -494,6 +495,16 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             }
         }
         return solid;
+    }
+
+    /**
+     * Get the room on a tile, as the map shows it
+     *
+     * @param p the tile
+     * @return the room, {@code null} if there is none on the tile
+     */
+    public RoomInstance getRoomInstance(Point p) {
+        return roomCoordinates.get(p);
     }
 
     /**
@@ -959,20 +970,25 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         lightRules.setTileAmbient(p.x, p.y, getVertexAmbient(terrain, tile.getOwnerId()),
                 fogOfWarInformation.isExplored(p));
 
-        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
-        // explored ground: a tile that is merely perceived (claim scan) shows no torches
-        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            handleTorch(tile, pageNode);
-        }
-
         // Room
         boolean isRoomTile = terrain.getFlags().contains(Terrain.TerrainFlag.ROOM);
         RoomInstance roomInstance = null;
+        Room room = null;
         if (isRoomTile) {
 
             // Construct the actual room
-            Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
+            room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
             roomInstance = handleRoom(p, room, null);
+        }
+
+        // Torch (see https://github.com/tonihele/OpenKeeper/issues/128). Only on
+        // explored ground: a tile that is merely perceived (claim scan) shows no torches.
+        // After the room is found, as some rooms put their torches between the wall furniture
+        if (torchesEnabled && fogOfWarInformation.isExplored(p) && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+            handleTorch(tile, pageNode, roomInstance);
+        }
+
+        if (isRoomTile) {
 
             // Swap the terrain if this is a bridge
             Terrain bridgeTerrain = kwdFile.getTerrainBridge(tile.getBridgeTerrainType(), room);
@@ -993,11 +1009,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
     }
 
-    private void handleTorch(IMapTileInformation tile, Node pageNode) {
+    private void handleTorch(IMapTileInformation tile, Node pageNode, RoomInstance roomInstance) {
 
         // DKII places at most one torch per tile. At corners, the direction order makes the
         // perpendicular wall skip this tile and resume on the next eligible tile in its run.
-        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY())) {
+        for (WallDirection direction : TorchPlacement.getTorchDirections(tile.getX(), tile.getY(), roomInstance)) {
             Point neighbor = switch (direction) {
                 case NORTH -> new Point(tile.getX(), tile.getY() - 1);
                 case WEST -> new Point(tile.getX() - 1, tile.getY());
@@ -1930,110 +1946,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      */
     private void findRoomWallSections(RoomInstance roomInstance) {
         if (hasRoomWalls(roomInstance.getRoom())) {
-            List<WallSection> sections = new ArrayList<>();
-            Map<Point, Set<WallDirection>> alreadyWalledPoints = new HashMap<>();
-            for (Point p : roomInstance.getCoordinates()) {
-
-                // Traverse in all four directions to find wallable sections facing the same direction
-                traverseRoomWalls(p, roomInstance, WallDirection.NORTH, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, roomInstance, WallDirection.EAST, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, roomInstance, WallDirection.SOUTH, sections, alreadyWalledPoints);
-                traverseRoomWalls(p, roomInstance, WallDirection.WEST, sections, alreadyWalledPoints);
-            }
-            roomInstance.setWallSections(sections);
+            roomInstance.setWallSections(WallSection.findWallSections(roomInstance, getMapData(), kwdFile));
         }
-    }
-
-    /**
-     * Traverses room walls facing in certain direction from a room point. Finds
-     * a section.
-     *
-     * @param p starting room point
-     * @param roomInstance the room instance of which walls we need to find
-     * @param direction the direction of which the want the walls to face
-     * @param sections list of already find sections
-     * @param alreadyWalledPoints already found wall points
-     */
-    private void traverseRoomWalls(Point p, RoomInstance roomInstance, WallDirection direction,
-            List<WallSection> sections, Map<Point, Set<WallDirection>> alreadyWalledPoints) {
-
-        Set<WallDirection> alreadyTraversedDirections = alreadyWalledPoints.get(p);
-        if (alreadyTraversedDirections == null || !alreadyTraversedDirections.contains(direction)) {
-
-            List<Point> section = getRoomWalls(p, roomInstance, direction);
-            if (!section.isEmpty()) {
-
-                // Add section
-                sections.add(new WallSection(direction, section));
-
-                // Add to known points
-                for (Point sectionPoint : section) {
-                    Set<WallDirection> directions = alreadyWalledPoints.get(sectionPoint);
-                    if (directions == null) {
-                        directions = EnumSet.noneOf(WallDirection.class);
-                    }
-                    directions.add(direction);
-                    alreadyWalledPoints.put(sectionPoint, directions);
-                }
-            }
-        }
-    }
-
-    private List<Point> getRoomWalls(Point p, RoomInstance roomInstance, WallDirection wallDirection) {
-
-        // A missing direction is treated as WEST
-        WallDirection direction = wallDirection != null ? wallDirection : WallDirection.WEST;
-
-        // See if the starting point has a wall to the given direction
-        Point wallPoint = getWallNeighbour(p, direction);
-        IMapTileInformation tile = getMapData().getTile(wallPoint.x, wallPoint.y);
-        Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                || !terrain.getFlags().contains(Terrain.TerrainFlag.ALLOW_ROOM_WALLS)) {
-            return Collections.emptyList();
-        }
-
-        // Found wallable
-        List<Point> wallPoints = new ArrayList<>();
-        wallPoints.add(p);
-
-        // Traverse possible directions, well one direction, "to the right"
-        Point nextPoint = getNextWallPoint(p, direction);
-        RoomInstance instance = roomCoordinates.get(nextPoint);
-        if (instance != null && instance.equals(roomInstance)) {
-            wallPoints.addAll(getRoomWalls(nextPoint, roomInstance, wallDirection));
-        }
-
-        return wallPoints;
-    }
-
-    /**
-     * The tile on the wall side of the room tile
-     */
-    private static Point getWallNeighbour(Point p, WallDirection direction) {
-        return switch (direction) {
-            case NORTH ->
-                new Point(p.x, p.y + 1);
-            case EAST ->
-                new Point(p.x - 1, p.y);
-            case SOUTH ->
-                new Point(p.x, p.y - 1);
-            default ->
-                new Point(p.x + 1, p.y); // West
-        };
-    }
-
-    /**
-     * The next tile along the wall ("to the right", sorting forces the
-     * directions to be what they are)
-     */
-    private static Point getNextWallPoint(Point p, WallDirection direction) {
-        return switch (direction) {
-            case NORTH, SOUTH ->
-                new Point(p.x + 1, p.y); // East
-            default ->
-                new Point(p.x, p.y + 1); // South
-        };
     }
 
     /**

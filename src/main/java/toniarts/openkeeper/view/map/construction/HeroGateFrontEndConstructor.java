@@ -43,7 +43,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.FullMoon;
 import toniarts.openkeeper.utils.WorldUtils;
-import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection;
 
 import javax.annotation.Nonnull;
 
