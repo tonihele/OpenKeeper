@@ -1618,6 +1618,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return objectsController;
     }
 
+    @Override
     public ITrapsController getTrapsController() {
         return trapsController;
     }
