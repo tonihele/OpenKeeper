@@ -16,14 +16,9 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.Entity;
-import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.EntitySet;
 import java.util.Map;
 import java.util.function.ToIntFunction;
-import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
@@ -55,19 +50,9 @@ public class RoomTextParser {
 
     private ToIntFunction<Short> patrolRouteCounter = owner -> 0;
     private final IRoomsInformation roomsInformation;
-    private final EntitySet portalLimits;
 
     public RoomTextParser(IRoomsInformation roomsInformation) {
-        this(roomsInformation, null);
-    }
-
-    /**
-     * @param roomsInformation the rooms
-     * @param entityData the entities, for the portal numbers the server keeps for each keeper
-     */
-    public RoomTextParser(IRoomsInformation roomsInformation, EntityData entityData) {
         this.roomsInformation = roomsInformation;
-        this.portalLimits = entityData != null ? entityData.getEntities(Owner.class, PortalCreatureLimit.class) : null;
     }
 
     public String parseText(String text, EntityId room, Keeper roomOwner) {
@@ -96,28 +81,12 @@ public class RoomTextParser {
             case DUNGEON_HEART_MAX_MANA:
                 return Integer.toString(roomOwner.getMaxMana());
             case ATTRACTED_CREATURE_COUNT:
-                if (portalLimits == null) {
-                    return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
-                }
-                return Integer.toString(getPortalLimit(room.getOwnerId()).attracted);
+                return Integer.toString(roomOwner.getAttractedCreatures());
             case PORTAL_CREATURE_CAPACITY:
-                if (portalLimits == null) {
-                    return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
-                }
-                return Integer.toString(getPortalLimit(room.getOwnerId()).capacity);
+                return Integer.toString(roomOwner.getPortalCreatureCapacity());
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
-    }
-
-    private PortalCreatureLimit getPortalLimit(short ownerId) {
-        portalLimits.applyChanges();
-        for (Entity keeper : portalLimits) {
-            if (keeper.get(Owner.class).ownerId == ownerId) {
-                return keeper.get(PortalCreatureLimit.class);
-            }
-        }
-        return new PortalCreatureLimit();
     }
 
     private String getRoomAmount(IRoomInformation room, int roomId) {

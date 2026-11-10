@@ -47,6 +47,8 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int manaGain;
     private int manaLoose;
     private int maxMana;
+    private int attractedCreatures;
+    private int portalCreatureCapacity;
     private Point dungeonHeartLocation;
     private boolean possession;
     private List<ResearchableEntity> availableRooms = new ArrayList<>();
@@ -210,6 +212,37 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setMaxMana(int maxMana) {
         this.maxMana = maxMana;
+    }
+
+    /**
+     * Get the creatures that came in through the portals, the ones that count
+     * towards the portal limit
+     *
+     * @return the number of attracted creatures
+     */
+    public int getAttractedCreatures() {
+        return attractedCreatures;
+    }
+
+    /**
+     * Get the number of creatures the portals can attract
+     *
+     * @return the portal limit
+     */
+    public int getPortalCreatureCapacity() {
+        return portalCreatureCapacity;
+    }
+
+    /**
+     * Set the portal numbers the server keeps for the keeper
+     *
+     * @param attractedCreatures the creatures that came in through the portals
+     * @param portalCreatureCapacity the number of creatures the portals can
+     * attract
+     */
+    public void setPortalCreatures(int attractedCreatures, int portalCreatureCapacity) {
+        this.attractedCreatures = attractedCreatures;
+        this.portalCreatureCapacity = portalCreatureCapacity;
     }
 
     public Point getDungeonHeartLocation() {

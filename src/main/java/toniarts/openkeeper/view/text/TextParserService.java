@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.view.text;
 
-import com.simsilica.es.EntityData;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 
@@ -42,22 +41,6 @@ public final class TextParserService implements TextParser {
         this.objectTextParser = new ObjectTextParser();
         this.mapTileTextParser = new MapTileTextParser();
         this.roomTextParser = new RoomTextParser(roomsInformation);
-    }
-
-    /**
-     * A text parser that can also fill in the portal values of the room tooltips
-     *
-     * @param mapInformation the map
-     * @param roomsInformation the rooms
-     * @param entityData the entities
-     */
-    public TextParserService(IMapInformation mapInformation, IRoomsInformation roomsInformation, EntityData entityData) {
-        this.creatureTextParser = new CreatureTextParser(mapInformation);
-        this.trapTextParser = new TrapTextParser();
-        this.doorTextParser = new DoorTextParser();
-        this.objectTextParser = new ObjectTextParser();
-        this.mapTileTextParser = new MapTileTextParser();
-        this.roomTextParser = new RoomTextParser(roomsInformation, entityData);
     }
 
     @Override
