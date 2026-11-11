@@ -308,6 +308,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void setPossession(boolean possessed);
 
     /**
+     * Selects the current AI movement speed from the creature runtime attributes.
+     * The current path and traversal capabilities are preserved. This is not a
+     * permanent override of subsequent movement commands or possessed input.
+     *
+     * @param running true for running, false for walking
+     */
+    void setMovementSpeed(boolean running);
+
+    /**
      * Sets the movement intent for a possessed creature, as steered by its keeper
      *
      * @param direction movement direction on the map plane, may be a zero vector

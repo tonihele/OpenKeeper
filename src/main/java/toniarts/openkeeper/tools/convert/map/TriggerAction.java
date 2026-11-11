@@ -63,6 +63,14 @@ public final class TriggerAction extends Trigger {
         SHOW_HEALTH_FLOWER(30),
         FOLLOW_CAMERA_PATH(31),
         COLLAPSE_HERO_GATE(32),
+        /**
+         * Changes the bound creature's current movement speed: zero selects
+         * walking and any nonzero available byte selects running. Uses the
+         * runtime creature speeds and the matching navigation animation, with
+         * a walk fallback when no run asset exists. Keeps the current path. For
+         * example, a scripted hero can run toward an action point, then walk.
+         * This does not permanently override later movement commands.
+         */
         ALTER_SPEED(33),
         SET_MUSIC_LEVEL(34), // text like X
         REMOVE_FROM_MAP(35),

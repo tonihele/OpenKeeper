@@ -170,14 +170,16 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 break;
 
             case ALTER_SPEED:
-                boolean available = trigger.getUserData("available", short.class) != 0; // 0 = Walk, !0 = Run
+                if (instanceControl != null) {
+                    instanceControl.setMovementSpeed(trigger.getUserData("available", short.class) != 0);
+                }
                 break;
 
             case REMOVE_FROM_MAP:
                 break;
 
             case SET_FIGHT_FLAG:
-                available = trigger.getUserData("available", short.class) != 0; // 0 = Don`t Fight, !0 = Fight
+                boolean available = trigger.getUserData("available", short.class) != 0; // 0 = Don`t Fight, !0 = Fight
                 break;
 
             case ZOOM_TO:

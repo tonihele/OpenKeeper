@@ -1661,6 +1661,17 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void setMovementSpeed(boolean running) {
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        CreatureComponent attributes = entityData.getComponent(entityId, CreatureComponent.class);
+        if (mobile == null || attributes == null) {
+            return;
+        }
+        entityData.setComponent(entityId, new Mobile(mobile.canFly, mobile.canWalkOnWater,
+                mobile.canWalkOnLava, running ? attributes.runSpeed : attributes.speed, running));
+    }
+
+    @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         // Use the level scaled speeds, same as the AI movement does
         Creature.Attributes attributes = creature.getAttributes();
