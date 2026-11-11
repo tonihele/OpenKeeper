@@ -39,7 +39,6 @@ import com.jme3.system.AppSettings;
 import com.jme3.system.lwjgl.LwjglWindow;
 import com.jme3.system.JmeSystem;
 import de.lessvoid.nifty.Nifty;
-import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
 import java.awt.event.WindowAdapter;
 import java.awt.event.WindowEvent;
 import java.awt.image.BufferedImage;
@@ -784,19 +783,14 @@ public final class Main extends SimpleApplication {
     private NiftyJmeDisplay getNiftyDisplay() {
         if (niftyDisplay == null) {
 
-            // Batching
-            BatchRenderConfiguration config = new BatchRenderConfiguration();
-            config.atlasHeight = 2048;
-            config.atlasWidth = 2048;
-            config.fillRemovedImagesInAtlas = false;
-            config.disposeImagesBetweenScreens = false;
-            config.useHighQualityTextures = true;
-
-            // Init Nifty
-            niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
+            // The batched Nifty backend keeps atlas sub-images only on the GPU. A jME context
+            // restart therefore restores the atlas' blank backing image and loses font glyphs.
+            // Use the standard renderer, which keeps each image as a regular jME texture and
+            // lets jME restore it from its image data after graphics settings are applied.
+            niftyDisplay = new NiftyJmeDisplay(assetManager,
                     inputManager,
                     getAudioRenderer(),
-                    getGuiViewPort(), config);
+                    getGuiViewPort());
 
             // Attach the nifty display to the gui view port as a processor
             getGuiViewPort().addProcessor(niftyDisplay);
