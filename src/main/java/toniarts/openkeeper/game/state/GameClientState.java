@@ -849,18 +849,6 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
     }
 
-    /**
-     * Shows or hides the map ceiling, which is only wanted while possessing a
-     * creature
-     *
-     * @param visible show the ceiling
-     */
-    public void setCeilingVisible(boolean visible) {
-        if (playerMapViewState != null) {
-            playerMapViewState.setCeilingVisible(visible);
-        }
-    }
-
     public GameSessionClientService getGameClientService() {
         return gameClientService;
     }

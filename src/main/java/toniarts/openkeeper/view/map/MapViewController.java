@@ -559,9 +559,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     }
 
     /**
-     * Shows or hides the already-built ceiling without rebuilding it - a
-     * runtime debug toggle, e.g. for the model viewer. Has no effect if this
-     * scene was constructed with the ceiling disabled entirely.
+     * Shows or hides the already-built ceiling without rebuilding it. The
+     * game uses this when switching between keeper and creature views; tools
+     * can use it for inspection as well. Has no effect if this scene was
+     * constructed with the ceiling disabled entirely.
      *
      * @param visible show the ceiling if built
      */

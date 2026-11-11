@@ -33,6 +33,9 @@ import toniarts.openkeeper.view.minimap.MinimapCoordinates;
  */
 public final class PlayerCamera {
 
+    /** Shared near plane for gameplay cameras, including possession view. */
+    public static final float NEAR_CLIP_DISTANCE = 0.01f;
+
     // Allowed range of the camera direction's vertical component (-1 is straight down)
     private static final float MIN_PITCH_DIRECTION_Y = -0.98f;
     private static final float MAX_PITCH_DIRECTION_Y = -0.2f;
@@ -83,7 +86,7 @@ public final class PlayerCamera {
     private void setLens(float lens) {
         this.lens = lens;
         float fov = 2f * FastMath.atan(LENS_FOV_SCALE / lens) * FastMath.RAD_TO_DEG;
-        cam.setFrustumPerspective(fov, (float) cam.getWidth() / cam.getHeight(), 0.1f, 100f);
+        cam.setFrustumPerspective(fov, (float) cam.getWidth() / cam.getHeight(), NEAR_CLIP_DISTANCE, 100f);
     }
 
     /**
