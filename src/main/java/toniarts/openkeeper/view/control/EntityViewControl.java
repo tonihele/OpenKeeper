@@ -211,7 +211,8 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     public short getControlId() {
-        return entity.get(Owner.class).controlId;
+        Owner owner = entity.get(Owner.class);
+        return owner != null ? owner.controlId : NO_OWNER;
     }
 
     @Override
