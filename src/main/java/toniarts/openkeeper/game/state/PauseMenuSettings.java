@@ -207,7 +207,7 @@ final class PauseMenuSettings {
         DropDown<AudioOutputMode> output = find("audioOutputMode", DropDown.class);
         output.addAllItems(java.util.Arrays.asList(AudioOutputMode.values()));
         output.selectItem(AudioOutputMode.fromSetting(Main.getUserSettings().getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
-        new LabelBuilder("audioOutputStatus", AudioOutput.getStatus().message()) {{
+        new LabelBuilder("audioOutputStatus", AudioOutput.getStatus().applied() ? "" : AudioOutput.getStatus().message()) {{
             style(LABEL_STYLE); width("100%"); wrap(true);
         }}.build(parent);
         addSlider(parent, "${menu.1460}", "masterVolume", null, 0f, 1f, 0.01f);
@@ -243,7 +243,7 @@ final class PauseMenuSettings {
         if (mode == null) mode = AudioOutputMode.AUTO;
         settings.setSetting(Settings.Setting.AUDIO_OUTPUT_MODE, mode.name());
         AudioOutput.Result result = AudioOutput.apply(mode);
-        find("audioOutputStatus", Label.class).setText(result.message());
+        find("audioOutputStatus", Label.class).setText(result.applied() ? "" : result.message());
         Main.setupNiftySound(nifty);
         save();
     }

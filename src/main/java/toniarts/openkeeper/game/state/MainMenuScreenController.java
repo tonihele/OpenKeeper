@@ -1175,7 +1175,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         output.addAllItems(Arrays.asList(AudioOutputMode.values()));
         output.selectItem(AudioOutputMode.fromSetting(settings.getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
         screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class)
-                .setText(AudioOutput.getStatus().message());
+                .setText(AudioOutput.getStatus().applied() ? "" : AudioOutput.getStatus().message());
 
         Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
         Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
@@ -1226,7 +1226,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             if (mode == null) mode = AudioOutputMode.AUTO;
             settings.setSetting(Settings.Setting.AUDIO_OUTPUT_MODE, mode.name());
             AudioOutput.Result result = AudioOutput.apply(mode);
-            screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class).setText(result.message());
+            screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class).setText(result.applied() ? "" : result.message());
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
             if (result.applied()) {
