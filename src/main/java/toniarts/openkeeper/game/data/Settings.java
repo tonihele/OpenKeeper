@@ -84,6 +84,9 @@ public final class Settings {
         AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),
         TORCHES_ENABLED(Boolean.class, true, SettingCategory.GRAPHICS),
+        // Grid cells per ceiling tile edge: 2 is low, 4 is the default, 8 is
+        // high quality, and 16 is the extreme developer setting.
+        CEILING_SUBDIVISIONS(Integer.class, 4, SettingCategory.GRAPHICS),
         // Controls
         CAMERA_ZOOM_IN(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_W, SettingCategory.CONTROLS, 124),
         CAMERA_ZOOM_OUT(Integer.class, KeyInput.KEY_LCONTROL, KeyInput.KEY_S, SettingCategory.CONTROLS, 125),

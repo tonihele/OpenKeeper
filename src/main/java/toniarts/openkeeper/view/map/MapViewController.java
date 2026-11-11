@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.RoomPillars;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.*;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -122,6 +123,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Spatial lavaSurface; // Currently attached merged lava mesh, if any
     private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
     private boolean ceilingVisible = true; // Runtime show/hide toggle, independent of ceilingEnabled (which decides whether it's built at all)
+    private int ceilingSubdivisions;
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
@@ -163,6 +165,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this.playerId = playerId;
         this.torchesEnabled = torchesEnabled;
         this.ceilingEnabled = ceilingEnabled;
+        this.ceilingSubdivisions = Ceiling.normalizeSubdivisions(
+                Main.getUserSettings().getInteger(Settings.Setting.CEILING_SUBDIVISIONS));
 
         // Lighting consults the same local-viewer fog as the renderer
         // (cursor colour, terrain-light selection)
@@ -429,8 +433,10 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         for (IMapTileInformation tile : mapData) {
             Terrain terrain = getTerrain(tile);
             Point p = tile.getLocation();
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                    || pillarTiles.contains(p) || !fogOfWarInformation.isVisible(p)) {
+            boolean terrainSolid = terrain.getFlags().contains(Terrain.TerrainFlag.SOLID);
+            boolean visible = fogOfWarInformation.isVisible(p);
+            boolean adjacentToOpenTile = terrainSolid && hasAdjacentOpenCeilingTile(mapData, p);
+            if (!shouldBuildCeilingPatch(terrainSolid, pillarTiles.contains(p), visible, adjacentToOpenTile)) {
                 continue;
             }
 
@@ -453,24 +459,63 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         for (Map.Entry<CeilingBatchKey, List<Point>> batch : batchTiles.entrySet()) {
             CeilingBatchKey key = batch.getKey();
             Geometry ceilingGeometry = Ceiling.construct(assetManager, clearanceField,
-                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer);
+                    batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer,
+                    ceilingSubdivisions);
             surface.attachChild(ceilingGeometry);
             ceilingMaterials.add(ceilingGeometry.getMaterial());
         }
+        Geometry boundary = Ceiling.constructBoundary(assetManager, batchTerrain.values().iterator().next(),
+                width, height, deformer);
+        surface.attachChild(boundary);
+        ceilingMaterials.add(boundary.getMaterial());
         lightRules.bindMaterials(ceilingMaterials);
-        if (!ceilingVisible) {
-            surface.setCullHint(Spatial.CullHint.Always);
-        }
+        applyCeilingVisibility(surface, ceilingVisible);
         ceilingSurface = surface;
         map.attachChild(ceilingSurface);
     }
 
     /**
+     * Include exposed solid tiles as the underside of the cavern roof, plus
+     * pillar tiles so the ceiling closes around each pillar cap. Buried solid
+     * tiles have no visible underside from the playable cave and need no mesh.
+     */
+    static boolean shouldBuildCeilingPatch(boolean terrainSolid, boolean pillarTile,
+            boolean visible, boolean adjacentToOpenTile) {
+        return visible && (!terrainSolid || pillarTile || adjacentToOpenTile);
+    }
+
+    private boolean hasAdjacentOpenCeilingTile(IMapDataInformation<IMapTileInformation> mapData, Point p) {
+        for (int y = Math.max(0, p.y - 1); y <= Math.min(mapData.getHeight() - 1, p.y + 1); y++) {
+            for (int x = Math.max(0, p.x - 1); x <= Math.min(mapData.getWidth() - 1, p.x + 1); x++) {
+                if (x == p.x && y == p.y) {
+                    continue;
+                }
+                IMapTileInformation neighbour = mapData.getTile(x, y);
+                if (neighbour == null) {
+                    continue;
+                }
+                Point neighbourPoint = neighbour.getLocation();
+                if (fogOfWarInformation.isVisible(neighbourPoint)
+                        && !getTerrain(neighbour).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    static void applyCeilingVisibility(Spatial surface, boolean visible) {
+        if (surface != null) {
+            surface.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        }
+    }
+
+    /**
      * Per-tile solidity for the {@link ClearanceField}. The field's window scan
      * probes each tile up to 81 times, so it is resolved once per tile rather
-     * than re-resolving (fog-substituted) terrain that many times over. A
-     * pillar has its own little ceiling cap - it needs to push the cave
-     * ceiling away and get no patch of its own, exactly like a solid tile.
+     * than re-resolving (fog-substituted) terrain that many times over. Pillar
+     * tiles act as local roof supports in this field; their visible cap patch
+     * is generated separately and the adjacent ceiling meets it here.
      */
     private boolean[] createSolidGrid(IMapDataInformation<IMapTileInformation> mapData, Set<Point> pillarTiles) {
         int width = mapData.getWidth();
@@ -521,9 +566,28 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * @param visible show the ceiling if built
      */
     public void setCeilingVisible(boolean visible) {
+        if (ceilingVisible == visible) {
+            return;
+        }
         ceilingVisible = visible;
-        if (ceilingSurface != null) {
-            ceilingSurface.setCullHint(visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
+        applyCeilingVisibility(ceilingSurface, visible);
+    }
+
+    /**
+     * Changes the ceiling grid density. The mesh is rebuilt once when this is
+     * changed after map loading; ordinary frames do not allocate or rebuild it.
+     *
+     * @param subdivisions grid cells per tile edge; values are clamped to the
+     * supported range
+     */
+    public void setCeilingSubdivisions(int subdivisions) {
+        int normalized = Ceiling.normalizeSubdivisions(subdivisions);
+        if (ceilingSubdivisions == normalized) {
+            return;
+        }
+        ceilingSubdivisions = normalized;
+        if (map != null && ceilingEnabled) {
+            refreshCeilingSurface();
         }
     }
 

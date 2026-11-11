@@ -74,7 +74,14 @@ public final class ClearanceField {
     public float clearanceAt(float worldX, float worldY) {
         int baseX = Math.round(worldX);
         int baseY = Math.round(worldY);
-        float bestDistance = SEARCH_LIMIT;
+        // The map perimeter is a solid roof support too. Without this bound
+        // the ceiling can rise to its apex at the outermost tiles, leaving a
+        // view line over perimeter walls and exposing the clear background
+        // in the corners of a first-person view.
+        float boundaryDistance = Math.min(
+                Math.min(worldX + 0.5f, width - 0.5f - worldX),
+                Math.min(worldY + 0.5f, height - 0.5f - worldY));
+        float bestDistance = Math.min(SEARCH_LIMIT, Math.max(0f, boundaryDistance));
 
         for (int oy = -SEARCH_RADIUS; oy <= SEARCH_RADIUS; oy++) {
             int ty = baseY + oy;

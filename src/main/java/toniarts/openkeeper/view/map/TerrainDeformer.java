@@ -296,7 +296,18 @@ public final class TerrainDeformer {
      * @param normal the normal, if there is one, it stays normalized
      */
     public void deform(Vector3f position, Vector3f normal) {
-        Matrix3f jacobian = new Matrix3f();
+        deformPositionAndNormal(position, normal, new Matrix3f());
+    }
+
+    /**
+     * Moves a position and normal through the field using reusable scratch
+     * storage. Mesh builders can reuse one matrix for large tessellated meshes.
+     *
+     * @param position the position, changed in place
+     * @param normal the normal, changed and normalized in place, or null
+     * @param jacobian scratch matrix, overwritten for this sample
+     */
+    public void deformPositionAndNormal(Vector3f position, Vector3f normal, Matrix3f jacobian) {
         deform(position, position, jacobian);
         if (normal != null) {
             jacobian.invertLocal().transposeLocal().mult(normal, normal).normalizeLocal();

@@ -44,6 +44,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.map.Ceiling;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -67,6 +68,7 @@ public final class MapLoaderAppState extends AbstractAppState {
     private volatile MapViewController mapViewController;
     private Application app;
     private final Set<LightSource.Group> disabledLightGroups = EnumSet.noneOf(LightSource.Group.class);
+    private int ceilingSubdivisions = Ceiling.DEFAULT_SUBDIVISIONS;
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
@@ -76,6 +78,8 @@ public final class MapLoaderAppState extends AbstractAppState {
         this.stateManager = stateManager;
         assetManager = app.getAssetManager();
         inputManager = app.getInputManager();
+        ceilingSubdivisions = Ceiling.normalizeSubdivisions(
+                Main.getUserSettings().getInteger(Settings.Setting.CEILING_SUBDIVISIONS));
     }
 
     public Node loadMap(IKwdFile kwdFile, boolean litSolidRock, boolean terrainAmbient, boolean ceilingVisible) {
@@ -96,6 +100,7 @@ public final class MapLoaderAppState extends AbstractAppState {
             }
 
         };
+        mapLoader.setCeilingSubdivisions(ceilingSubdivisions);
         mapLoader.setTerrainAmbientEnabled(terrainAmbient);
         mapLoader.setCeilingVisible(ceilingVisible);
         mapNode.attachChild(mapLoader.load(assetManager, kwdFile));
@@ -171,6 +176,14 @@ public final class MapLoaderAppState extends AbstractAppState {
     public void setCeilingVisible(boolean visible) {
         if (mapViewController != null) {
             mapViewController.setCeilingVisible(visible);
+        }
+    }
+
+    /** Configure ceiling mesh density for the next/current map. */
+    public void setCeilingSubdivisions(int subdivisions) {
+        ceilingSubdivisions = Ceiling.normalizeSubdivisions(subdivisions);
+        if (mapViewController != null) {
+            mapViewController.setCeilingSubdivisions(ceilingSubdivisions);
         }
     }
 
