@@ -28,6 +28,8 @@ import com.jme3.scene.VertexBuffer.Type;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.nio.FloatBuffer;
+import java.util.IdentityHashMap;
+import java.util.Map;
 import java.util.function.BiFunction;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
@@ -117,9 +119,19 @@ public final class TerrainDeformer {
     private final boolean[] valid;
     private final int[] doorPinned; // How many doors pin the lattice point (the 3 x 3 points of the door tile)
     private final java.util.Set<Long> doorTiles = new java.util.HashSet<>();
-    private final int[] straightPinned; // The same for the tiles that must be completely straight, the pillars
-    private final java.util.Set<Long> straightTiles = new java.util.HashSet<>();
+    private final Map<Geometry, PillarMeshState> pillarMeshes = new IdentityHashMap<>();
     private int version; // Changes whenever the shape may have changed
+
+    private static final class PillarMeshState {
+
+        private final Mesh source;
+        private final Mesh deformed;
+
+        private PillarMeshState(Mesh source, Mesh deformed) {
+            this.source = source;
+            this.deformed = deformed;
+        }
+    }
 
     /**
      * @param width map width in tiles
@@ -137,7 +149,6 @@ public final class TerrainDeformer {
         this.displacements = new float[pointsX * pointsY * LEVELS * 3];
         this.valid = new boolean[pointsX * pointsY];
         this.doorPinned = new int[pointsX * pointsY];
-        this.straightPinned = new int[pointsX * pointsY];
     }
 
     /**
@@ -158,30 +169,6 @@ public final class TerrainDeformer {
         for (int j = 2 * y; j <= 2 * y + 2; j++) {
             for (int i = 2 * x; i <= 2 * x + 2; i++) {
                 doorPinned[j * pointsX + i] += delta;
-            }
-        }
-        invalidateTile(x, y);
-    }
-
-    /**
-     * A tile must be completely straight (or stops being): no wibble, no
-     * lean and not even the wave over the tops. The lattice points on the tile
-     * (corners, edge middles, centre) stay put, and with them the edges of
-     * the walls next to it. For the pillars, their models are not bent, the
-     * walls must meet them.
-     */
-    public void setStraight(int x, int y, boolean present) {
-        if (x < 0 || y < 0 || x >= width || y >= height) {
-            return;
-        }
-        long key = ((long) x << 32) | (y & 0xFFFFFFFFL);
-        if (present ? !straightTiles.add(key) : !straightTiles.remove(key)) {
-            return; // No change
-        }
-        int delta = present ? 1 : -1;
-        for (int j = 2 * y; j <= 2 * y + 2; j++) {
-            for (int i = 2 * x; i <= 2 * x + 2; i++) {
-                straightPinned[j * pointsX + i] += delta;
             }
         }
         invalidateTile(x, y);
@@ -309,7 +296,18 @@ public final class TerrainDeformer {
      * @param normal the normal, if there is one, it stays normalized
      */
     public void deform(Vector3f position, Vector3f normal) {
-        Matrix3f jacobian = new Matrix3f();
+        deformPositionAndNormal(position, normal, new Matrix3f());
+    }
+
+    /**
+     * Moves a position and normal through the field using reusable scratch
+     * storage. Mesh builders can reuse one matrix for large tessellated meshes.
+     *
+     * @param position the position, changed in place
+     * @param normal the normal, changed and normalized in place, or null
+     * @param jacobian scratch matrix, overwritten for this sample
+     */
+    public void deformPositionAndNormal(Vector3f position, Vector3f normal, Matrix3f jacobian) {
         deform(position, position, jacobian);
         if (normal != null) {
             jacobian.invertLocal().transposeLocal().mult(normal, normal).normalizeLocal();
@@ -331,7 +329,13 @@ public final class TerrainDeformer {
     public void apply(Spatial spatial, Spatial space) {
         if (spatial instanceof Geometry geometry) {
             try {
-                deformGeometry(geometry, space);
+                if (geometry.isGrouped()) {
+                    geometry.unassociateFromGroupNode();
+                }
+                Mesh original = geometry.getMesh();
+                Mesh mesh = copyMeshForDeformation(original, false);
+                geometry.setMesh(mesh);
+                deformGeometry(geometry, mesh, space, false);
             } catch (RuntimeException e) {
                 // It is only cosmetic, don't lose the whole tile or room over it
                 logger.log(Level.WARNING, "Failed to deform geometry " + geometry.getName() + "!", e);
@@ -343,12 +347,103 @@ public final class TerrainDeformer {
         }
     }
 
-    private void deformGeometry(Geometry geometry, Spatial space) {
-        // The normals are left as they were: bending them tilts the walls away
-        // from the torches (which stay where they are), and the lighting takes
-        // those walls for unlit
-        Mesh original = geometry.getMesh();
-        VertexBuffer positionBuffer = original.getBuffer(Type.Position);
+    /**
+     * Applies the current terrain field to a pillar using a persistent copy
+     * of its source mesh. Repeated terrain updates rewrite the same buffers
+     * from the source positions, so deformation never accumulates and does not
+     * allocate a new GPU mesh each time.
+     *
+     * @param spatial pillar root, already positioned and aligned to its floor
+     * @param space ancestor whose frame is the terrain lattice, or {@code null}
+     */
+    public void applyPillar(Spatial spatial, Spatial space) {
+        if (spatial instanceof Geometry geometry) {
+            try {
+                applyPillarGeometry(geometry, space);
+            } catch (RuntimeException e) {
+                logger.log(Level.WARNING, "Failed to deform pillar geometry " + geometry.getName() + "!", e);
+            }
+        } else if (spatial instanceof com.jme3.scene.Node node) {
+            for (Spatial child : node.getChildren()) {
+                applyPillar(child, space);
+            }
+        }
+    }
+
+    /** Restores source meshes and releases the persistent copies for a pillar. */
+    public void restorePillar(Spatial spatial) {
+        if (spatial instanceof Geometry geometry) {
+            PillarMeshState state = pillarMeshes.remove(geometry);
+            if (state != null) {
+                geometry.setMesh(state.source);
+                geometry.updateModelBound();
+            }
+        } else if (spatial instanceof com.jme3.scene.Node node) {
+            for (Spatial child : node.getChildren()) {
+                restorePillar(child);
+            }
+        }
+    }
+
+    private void applyPillarGeometry(Geometry geometry, Spatial space) {
+        if (geometry.isGrouped()) {
+            geometry.unassociateFromGroupNode();
+        }
+        PillarMeshState state = pillarMeshes.get(geometry);
+        if (state == null || geometry.getMesh() != state.deformed) {
+            Mesh source = geometry.getMesh();
+            VertexBuffer positionBuffer = source.getBuffer(Type.Position);
+            if (positionBuffer == null || positionBuffer.getFormat() != VertexBuffer.Format.Float
+                    || positionBuffer.getNumComponents() != 3) {
+                return;
+            }
+            state = new PillarMeshState(source, copyMeshForDeformation(source, true));
+            pillarMeshes.put(geometry, state);
+        }
+
+        resetBuffer(state.source, state.deformed, Type.Position);
+        resetBuffer(state.source, state.deformed, Type.Normal);
+        resetBuffer(state.source, state.deformed, Type.Tangent);
+        geometry.setMesh(state.deformed);
+        deformGeometry(geometry, state.deformed, space, true);
+    }
+
+    private static Mesh copyMeshForDeformation(Mesh original, boolean copyNormals) {
+        Mesh mesh = original.clone();
+        mesh.clearCollisionData();
+        Type[] types = copyNormals
+                ? new Type[]{Type.Position, Type.Normal, Type.Tangent}
+                : new Type[]{Type.Position, Type.Tangent};
+        for (Type type : types) {
+            VertexBuffer buffer = original.getBuffer(type);
+            if (buffer != null) {
+                mesh.clearBuffer(type);
+                mesh.setBuffer(buffer.clone());
+            }
+        }
+        return mesh;
+    }
+
+    private static void resetBuffer(Mesh source, Mesh target, Type type) {
+        VertexBuffer sourceBuffer = source.getBuffer(type);
+        VertexBuffer targetBuffer = target.getBuffer(type);
+        if (sourceBuffer == null || targetBuffer == null
+                || sourceBuffer.getFormat() != VertexBuffer.Format.Float
+                || targetBuffer.getFormat() != VertexBuffer.Format.Float) {
+            return;
+        }
+        FloatBuffer input = ((FloatBuffer) sourceBuffer.getData()).duplicate();
+        FloatBuffer output = (FloatBuffer) targetBuffer.getData();
+        input.position(0);
+        input.limit(sourceBuffer.getData().limit());
+        output.clear();
+        output.put(input);
+        output.flip();
+        targetBuffer.updateData(output);
+    }
+
+    private void deformGeometry(Geometry geometry, Mesh mesh, Spatial space, boolean deformNormals) {
+        VertexBuffer positionBuffer = mesh.getBuffer(Type.Position);
         if (positionBuffer == null || positionBuffer.getFormat() != VertexBuffer.Format.Float
                 || positionBuffer.getNumComponents() != 3) {
             return;
@@ -360,26 +455,9 @@ public final class TerrainDeformer {
             toSpace.combineWithParent(parent.getLocalTransform());
         }
 
-        if (geometry.isGrouped()) {
-            geometry.unassociateFromGroupNode();
-        }
-        // Only the positions and tangents are copied, the other buffers stay
-        // shared with the cached model. Rooms are rebuilt whole whenever a
-        // tile next to them changes, and each copied buffer is a new one on
-        // the GPU, which jME deletes at most a hundred a frame once dropped
-        Mesh mesh = original.clone();
-        mesh.clearCollisionData();
-        for (Type type : new Type[]{Type.Position, Type.Tangent}) {
-            VertexBuffer buffer = mesh.getBuffer(type);
-            if (buffer != null) {
-                mesh.clearBuffer(type);
-                mesh.setBuffer(buffer.clone());
-            }
-        }
-        geometry.setMesh(mesh);
-
         FloatBuffer positions = (FloatBuffer) mesh.getBuffer(Type.Position).getData();
         FloatBuffer tangents = vectorBuffer(mesh, Type.Tangent);
+        FloatBuffer normals = deformNormals ? vectorBuffer(mesh, Type.Normal) : null;
 
         Vector3f scale = toSpace.getScale();
         Vector3f inverseScale = new Vector3f(1 / scale.x, 1 / scale.y, 1 / scale.z);
@@ -390,6 +468,7 @@ public final class TerrainDeformer {
         Vector3f world = new Vector3f();
         Vector3f moved = new Vector3f();
         Vector3f vector = new Vector3f();
+        Matrix3f normalMatrix = new Matrix3f();
         Matrix3f jacobian = new Matrix3f();
         int count = positions.limit() / 3;
         for (int i = 0; i < count; i++) {
@@ -407,11 +486,24 @@ public final class TerrainDeformer {
                 inverseRotation.mult(vector, vector).multLocal(inverseScale).normalizeLocal();
                 tangents.put(4 * i, vector.x).put(4 * i + 1, vector.y).put(4 * i + 2, vector.z);
             }
+
+            if (normals != null && normals.limit() >= 3 * (i + 1)) {
+                vector.set(normals.get(3 * i) * inverseScale.x,
+                        normals.get(3 * i + 1) * inverseScale.y,
+                        normals.get(3 * i + 2) * inverseScale.z);
+                rotation.mult(vector, vector);
+                normalMatrix.set(jacobian).invertLocal().transposeLocal().mult(vector, vector);
+                inverseRotation.mult(vector, vector).multLocal(scale).normalizeLocal();
+                normals.put(3 * i, vector.x).put(3 * i + 1, vector.y).put(3 * i + 2, vector.z);
+            }
         }
 
         mesh.getBuffer(Type.Position).updateData(positions);
         if (tangents != null) {
             mesh.getBuffer(Type.Tangent).updateData(tangents);
+        }
+        if (normals != null) {
+            mesh.getBuffer(Type.Normal).updateData(normals);
         }
         mesh.updateBound();
         mesh.updateCounts();
@@ -474,13 +566,9 @@ public final class TerrainDeformer {
                 z += (random(i, j, level, 1) - 0.5f) * wibbleH + direction.z * wibbleH / 2;
                 y -= random(i, j, level, 2) * wibbleV;
             }
-            if (straightPinned[j * pointsX + i] > 0) {
-                x = 0;
-                y = 0;
-                z = 0;
-            } else if (level == 3) {
+            if (level == 3) {
                 // The tops of the rock are not a flat plane. A sine wave over the whole map, independent
-                // of the terrain (so it also applies to pinned tiles), raises the tops by 0.025 - 0.275
+                // of the terrain raises the tops by 0.025 - 0.275
                 y += SWELL_SCALE * (SWELL_BASE + SWELL_AMPLITUDE * FastMath.sin((i + j) * 0.5f));
             }
             int at = base + (level - 1) * 3;

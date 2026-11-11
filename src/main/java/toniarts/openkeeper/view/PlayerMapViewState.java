@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.PossessionInteractionState;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.FogOfWarController;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
@@ -78,6 +79,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private MapTileEffectTracker tileEffects;
     private final FogOfWarController fogOfWarController;
     private final GameEventSoundPlayer gameEventSoundPlayer;
+    private boolean ceilingVisible;
 
     // Tile updates (the fog seeding, fog changes from the server) that came
     // while the map was still loading. Render thread only
@@ -259,6 +261,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     @Override
     public void update(float tpf) {
 
+        updateCeilingVisibility();
+
         // Always process rooms before the map tiles, and the fog of war after
         // the map is up to date
         mapRoomContainer.update();
@@ -354,8 +358,13 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         fogOfWarController.markPendingTagged(points, tagged);
     }
 
-    public void setCeilingVisible(boolean visible) {
-        mapLoader.setCeilingVisible(visible);
+    private void updateCeilingVisibility() {
+        PossessionInteractionState possessionState = stateManager.getState(PossessionInteractionState.class);
+        boolean visible = possessionState != null && possessionState.getViewMode().isCeilingVisible();
+        if (visible != ceilingVisible) {
+            ceilingVisible = visible;
+            mapLoader.setCeilingVisible(visible);
+        }
     }
 
     public void setPossessedCreature(EntityId entityId) {

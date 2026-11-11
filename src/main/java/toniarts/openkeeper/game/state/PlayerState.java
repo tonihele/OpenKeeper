@@ -197,7 +197,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
                 protected void onEnter() {
                     screen.showPossessionFilter();
                     gameState.setPossessedCreature(getTarget());
-                    gameState.setCeilingVisible(true);
                 }
 
                 @Override
@@ -213,9 +212,6 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
                 @Override
                 protected void onExit() {
-                    // Exit transition is done, the ceiling can go away
-                    gameState.setCeilingVisible(false);
-
                     // Enable states
                     for (AbstractAppState state : appStates) {
                         if (state instanceof PossessionInteractionState

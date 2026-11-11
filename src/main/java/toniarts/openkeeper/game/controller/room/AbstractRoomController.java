@@ -35,6 +35,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.game.map.WallSection;
 import toniarts.openkeeper.game.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.RoomPillars;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -498,37 +499,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      * @return the object ID for the room pillar or {@code null} if not found
      */
     protected static Short getPillarObject(short roomId) {
-
-        // FIXME: Is this data available somewhere??
-        switch (roomId) {
-            case 1:  // Treasury
-                return 76;
-            case 2:  // Lair
-                // Object 77 exists, but native DK II does not use lair pillars (#607).
-                return null;
-            case 4:  // Hatchery
-                return 78;
-            case 10:  // Workshop
-                return 80;
-            case 11:  // Prison
-                //return 81; // Model exists, but not used by the game
-                return null;
-            case 12:  // Torture
-                return 82;
-            case 13:  // Temple
-                //return 83; // This is the actual model, but place candle sticks instead...
-                return 111;
-            case 14: // Graveyard
-                return 84;
-            case 15: // Casino
-                return 85;
-            case 16: // Pit
-                return 79;
-            case 26: // Crypt
-                return 141;
-            default:
-                return null; // No pillars
-        }
+        return RoomPillars.getObjectId(roomId);
     }
 
     @Override

@@ -47,6 +47,28 @@ import toniarts.openkeeper.view.PossessionCameraControl.Direction;
 // TODO: States, now only selection
 public abstract class PossessionInteractionState extends AbstractPauseAwareState {
 
+    /**
+     * Camera presentation during the possession transition. The ceiling stays
+     * visible through the exit flight and is hidden again when the keeper view
+     * takes over.
+     */
+    public enum ViewMode {
+        NORMAL(false),
+        ENTERING_POSSESSION(false),
+        POSSESSED(true),
+        EXITING_POSSESSION(true);
+
+        private final boolean ceilingVisible;
+
+        ViewMode(boolean ceilingVisible) {
+            this.ceilingVisible = ceilingVisible;
+        }
+
+        public boolean isCeilingVisible() {
+            return ceilingVisible;
+        }
+    }
+
     public enum Action {
 
         MELEE, SPELL_1, SPELL_2, SPELL_3, ABILITY_1, ABILITY_2, GROUP
@@ -63,6 +85,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
     private RawInputListener inputListener;
     public Vector2f mousePosition = Vector2f.ZERO;
     private Action action;
+    private ViewMode viewMode = ViewMode.NORMAL;
 
     public PossessionInteractionState(boolean enabled) {
         super.setEnabled(enabled);
@@ -94,6 +117,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
         inputManager.setCursorVisible(!enabled);
 
         if (enabled) {
+            viewMode = ViewMode.ENTERING_POSSESSION;
             changeAction(Action.MELEE);
             app.getInputManager().addRawInputListener(inputListener);
 
@@ -101,7 +125,7 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             Spatial spatial = getTargetSpatial();
             if (spatial == null) {
                 stateManager.getState(PossessionCameraState.class).setEnabled(true);
-                onEnter();
+                enterPossessionView();
             } else {
                 removeCameraControls(spatial);
                 spatial.addControl(new PossessionCameraControl(app.getCamera(), Direction.ENTRANCE) {
@@ -109,12 +133,15 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
                     public void onExit() {
                         if (PossessionInteractionState.this.isEnabled()) {
                             stateManager.getState(PossessionCameraState.class).setEnabled(true);
-                            PossessionInteractionState.this.onEnter();
+                            PossessionInteractionState.this.enterPossessionView();
                         }
                     }
                 });
             }
         } else {
+            viewMode = viewMode == ViewMode.POSSESSED || viewMode == ViewMode.EXITING_POSSESSION
+                    ? ViewMode.EXITING_POSSESSION
+                    : ViewMode.NORMAL;
             Spatial spatial = getTargetSpatial();
             stateManager.getState(PossessionCameraState.class).setEnabled(false);
             app.getInputManager().removeRawInputListener(inputListener);
@@ -127,14 +154,14 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             PlayerCamera pc = stateManager.getState(PlayerCameraState.class).getCamera();
             pc.initialize();
             if (spatial == null) {
-                onExit();
+                finishPossessionView();
             } else {
                 pc.setLookAt(spatial.getWorldTranslation());
                 removeCameraControls(spatial);
                 spatial.addControl(new PossessionCameraControl(app.getCamera(), Direction.EXIT) {
                     @Override
                     public void onExit() {
-                        PossessionInteractionState.this.onExit();
+                        PossessionInteractionState.this.finishPossessionView();
                     }
                 });
             }
@@ -191,6 +218,27 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
 
     public EntityId getTarget() {
         return target;
+    }
+
+    /**
+     * Returns the view mode spanning the possession camera hand-off. This is
+     * separate from {@link #isEnabled()}, which switches off at the start of
+     * the exit animation while the camera is still inside the creature.
+     *
+     * @return current possession camera presentation mode
+     */
+    public ViewMode getViewMode() {
+        return viewMode;
+    }
+
+    private void enterPossessionView() {
+        viewMode = ViewMode.POSSESSED;
+        onEnter();
+    }
+
+    private void finishPossessionView() {
+        viewMode = ViewMode.NORMAL;
+        onExit();
     }
 
     public void setTarget(EntityId target) {

@@ -121,6 +121,49 @@ class TerrainDeformerTest {
     }
 
     @Test
+    void pillarMeshesDeformWithoutAccumulationOrSharedAssetMutation() {
+        boolean[] rigid = {false};
+        TerrainDeformer d = new TerrainDeformer(SIZE, SIZE,
+                (x, y) -> y == 3 && !(x == 3 && rigid[0]) ? PATH : ROCK);
+        Mesh shared = new Mesh();
+        shared.setBuffer(Type.Position, 3, BufferUtils.createFloatBuffer(
+                new Vector3f(0.1f, 0.75f, 0.1f), new Vector3f(0.2f, 0.75f, 0.1f), new Vector3f(0.1f, 1f, 0.1f)));
+        shared.setBuffer(Type.Normal, 3, BufferUtils.createFloatBuffer(
+                new Vector3f(0, 1, 0), new Vector3f(0, 1, 0), new Vector3f(0, 1, 0)));
+        shared.setBuffer(Type.Index, 3, BufferUtils.createIntBuffer(new int[]{0, 1, 2}));
+        shared.updateBound();
+        float[] sourcePositions = read((FloatBuffer) shared.getBuffer(Type.Position).getData());
+
+        Geometry pillar = new Geometry("pillar", shared);
+        pillar.setLocalTranslation(3, 1, 3);
+        d.applyPillar(pillar, null);
+
+        Mesh output = pillar.getMesh();
+        assertNotSame(shared, output);
+        assertNotEquals(sourcePositions[0], ((FloatBuffer) output.getBuffer(Type.Position).getData()).get(0),
+                "the pillar must deform against its tile and neighboring terrain");
+        assertArrayEquals(sourcePositions, read((FloatBuffer) shared.getBuffer(Type.Position).getData()),
+                "the cached model mesh must remain unchanged");
+        float[] firstDeformation = read((FloatBuffer) output.getBuffer(Type.Position).getData());
+
+        d.applyPillar(pillar, null);
+        assertSame(output, pillar.getMesh(), "terrain updates reuse the persistent output mesh");
+        assertArrayEquals(firstDeformation, read((FloatBuffer) output.getBuffer(Type.Position).getData()),
+                "reapplying the same field must not accumulate deformation");
+
+        rigid[0] = true;
+        d.invalidateTile(3, 3);
+        d.applyPillar(pillar, null);
+        assertSame(output, pillar.getMesh());
+        assertFalse(java.util.Arrays.equals(firstDeformation,
+                read((FloatBuffer) output.getBuffer(Type.Position).getData())),
+                "a changed neighboring terrain shape updates the pillar in place");
+
+        d.restorePillar(pillar);
+        assertSame(shared, pillar.getMesh(), "removing a pillar releases its private mesh");
+    }
+
+    @Test
     void wallsLeanBackAndNeverIntoTheCorridor() {
         TerrainDeformer d = corridor();
         // Walk along the top of the south wall (rock row 4), the wall face is at z = 3.5
@@ -207,5 +250,13 @@ class TerrainDeformerTest {
         for (Type type : new Type[]{Type.Normal, Type.TexCoord, Type.Index}) {
             assertSame(shared.getBuffer(type), mesh.getBuffer(type), type + " was copied");
         }
+    }
+
+    private static float[] read(FloatBuffer buffer) {
+        FloatBuffer copy = buffer.duplicate();
+        copy.position(0);
+        float[] values = new float[copy.limit()];
+        copy.get(values);
+        return values;
     }
 }

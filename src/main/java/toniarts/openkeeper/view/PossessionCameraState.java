@@ -63,6 +63,8 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      * How far the possessed creature can see, in tiles
      */
     private static final float VIEW_DISTANCE_TILES = 15f;
+    /** Shared with the headless capture camera to avoid cutting nearby models. */
+    public static final float VIEW_NEAR_CLIP = PlayerCamera.NEAR_CLIP_DISTANCE;
     /**
      * Tunable, the original's unit is unknown: how many degrees of turn roll a
      * unit of mouse analog input adds, the roll is clamped by the walk cycle
@@ -169,7 +171,8 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      */
     private void loadCameraStartLocation() {
         Camera cam = app.getCamera();
-        cam.setFrustumPerspective(45, (float) cam.getWidth() / cam.getHeight(), 0.01f, VIEW_DISTANCE_TILES * WorldUtils.TILE_WIDTH);
+        cam.setFrustumPerspective(45, (float) cam.getWidth() / cam.getHeight(),
+                VIEW_NEAR_CLIP, VIEW_DISTANCE_TILES * WorldUtils.TILE_WIDTH);
         if (targetSpatial != null) {
             updateCameraLocation();
             Vector3f facing = targetSpatial.getWorldRotation().mult(Vector3f.UNIT_Z);
