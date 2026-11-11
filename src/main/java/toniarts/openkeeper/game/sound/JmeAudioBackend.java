@@ -21,6 +21,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.audio.AudioData;
 import com.jme3.audio.AudioNode;
 import com.jme3.audio.AudioSource;
+import com.jme3.math.Vector3f;
 import java.util.function.Supplier;
 import javax.annotation.Nullable;
 
@@ -32,48 +33,68 @@ import javax.annotation.Nullable;
  */
 public final class JmeAudioBackend implements AudioBackend {
 
-    private static final float DEFAULT_REF_DISTANCE = 1.0f;
-
     private final AudioNode node;
-    private final Supplier<Float> sourceHeight;
+    private final Supplier<Vector3f> listenerPosition;
+    private final AudioSpec spec;
+    private float dryGain;
 
     public JmeAudioBackend(Application app, AudioSpec spec) {
-        this(app.getAssetManager(), spec);
+        this(app.getAssetManager(), spec, () -> app.getListener().getLocation());
     }
 
     public JmeAudioBackend(AssetManager assetManager, AudioSpec spec) {
-        this(assetManager, spec, () -> spec.y());
+        this(assetManager, spec, () -> new Vector3f(0, spec.y(), 0));
     }
 
     /**
-     * @param sourceHeight height of the sound sources, the listener (camera) hovers high above the
-     * ground, so a source on the ground would be heard from far away. Placing the sources at the height
-     * of the listener makes the distance a ground distance
+     * @param listenerPosition current listener position; sources follow its height so
+     * top-down camera height does not increase their horizontal distance
      */
-    public JmeAudioBackend(AssetManager assetManager, AudioSpec spec, Supplier<Float> sourceHeight) {
-        this.sourceHeight = sourceHeight;
-        String path = spec.assetPath();
-        if (path == null) {
-            throw new IllegalArgumentException("No asset path");
-        }
+    public JmeAudioBackend(AssetManager assetManager, AudioSpec spec, Supplier<Vector3f> listenerPosition) {
+        this(loadNode(assetManager, spec), spec, listenerPosition);
+    }
 
-        try {
-            // A cached stream is shared by every node of the clip and is not seekable, so a second
-            // voice of a clip that has already ended once would fail to rewind it. Streams are not cached.
-            node = new AudioNode(assetManager, path, spec.streamed(), false);
-        } catch (RuntimeException ex) {
-            throw new IllegalArgumentException("Failed to load " + path, ex);
-        }
-
+    JmeAudioBackend(AudioNode node, AudioSpec spec, Supplier<Vector3f> listenerPosition) {
+        this.node = node;
+        this.spec = spec;
+        this.listenerPosition = listenerPosition;
         node.setLooping(spec.looping());
         node.setPositional(spec.positional());
-        node.setPitch(Math.max(AudioSpec.MIN_PITCH, Math.min(AudioSpec.MAX_PITCH, spec.pitch())));
-        node.setVolume(clampVolume(spec.gain()));
+        node.setPitch(spec.pitch());
         if (spec.positional()) {
-            node.setLocalTranslation(spec.x(), sourceHeight.get(), spec.z());
-            node.setRefDistance(spec.refDistance() > 0 ? spec.refDistance() : DEFAULT_REF_DISTANCE);
-            node.setMaxDistance(spec.maxDistance() > 0 ? spec.maxDistance() : 1000.0f);
+            node.setLocalTranslation(spec.x(), listenerPosition.get().y, spec.z());
+            // AudioNode cannot set AL_ROLLOFF_FACTOR. Calculate QMixer's curve here;
+            // equal, large distance bounds keep OpenAL's own distance gain at one.
+            // The source remains positional for OpenAL panning / HRTF.
+            node.setRefDistance(Float.MAX_VALUE);
+            node.setMaxDistance(Float.MAX_VALUE);
         }
+        setGain(spec.gain());
+    }
+
+    private static AudioNode loadNode(AssetManager assetManager, AudioSpec spec) {
+        if (spec.assetPath() == null) {
+            throw new IllegalArgumentException("No asset path");
+        }
+        try {
+            // Streams must not be shared: an ended cached stream cannot rewind.
+            return new AudioNode(assetManager, spec.assetPath(), spec.streamed(), false);
+        } catch (RuntimeException ex) {
+            throw new IllegalArgumentException("Failed to load " + spec.assetPath(), ex);
+        }
+    }
+
+    private void updateGain() {
+        float distance = 0;
+        if (spec.positional()) {
+            Vector3f listener = listenerPosition.get();
+            Vector3f source = node.getLocalTranslation();
+            node.setLocalTranslation(source.x, listener.y, source.z);
+            float dx = source.x - listener.x;
+            float dz = source.z - listener.z;
+            distance = (float) Math.sqrt(dx * dx + dz * dz);
+        }
+        node.setVolume(dryGain * spec.distanceGain(distance));
     }
 
     @Nullable
@@ -111,7 +132,8 @@ public final class JmeAudioBackend implements AudioBackend {
 
     @Override
     public void setGain(float gain) {
-        node.setVolume(clampVolume(gain));
+        dryGain = clampVolume(gain);
+        updateGain();
     }
 
     @Override
@@ -121,7 +143,8 @@ public final class JmeAudioBackend implements AudioBackend {
 
     @Override
     public void setPosition(float x, float y, float z) {
-        node.setLocalTranslation(x, sourceHeight.get(), z);
+        node.setLocalTranslation(x, listenerPosition.get().y, z);
+        updateGain();
         node.updateGeometricState();
     }
 
