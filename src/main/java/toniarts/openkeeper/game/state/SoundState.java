@@ -24,9 +24,9 @@ import com.jme3.audio.AudioSource;
 import com.jme3.audio.AudioStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -77,7 +77,12 @@ public final class SoundState extends AbstractPauseAwareState {
      * AMBIENCE(341) | OPTIONS_MUSIC(838) | MUSIC(343, 345) | maybe ONE_SHOT_ATMOS(746)
      */
     private final BackgroundState backgroundState = new BackgroundState("MUSIC");
-    private final Queue<Speech> speechQueue = new ArrayDeque<>();
+
+    /**
+     * Speeches are queued from the game logic (or network) thread and played
+     * on the render thread
+     */
+    private final Queue<Speech> speechQueue = new ConcurrentLinkedQueue<>();
 
     /**
      * Music event per level sound track, as in DK II (track 0 plays track 1).
