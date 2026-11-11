@@ -55,6 +55,8 @@ import toniarts.openkeeper.game.sound.GlobalType;
 import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
+import toniarts.openkeeper.game.sound.AudioOutput;
+import toniarts.openkeeper.game.sound.AudioOutputMode;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -1168,6 +1170,12 @@ public final class MainMenuScreenController implements IMainMenuScreenController
 
     private void setSoundSettingsToGUI() {
         Settings settings = Main.getUserSettings();
+        DropDown<AudioOutputMode> output = screen.findNiftyControl("audioOutputMode", DropDown.class);
+        output.clear();
+        output.addAllItems(Arrays.asList(AudioOutputMode.values()));
+        output.selectItem(AudioOutputMode.fromSetting(settings.getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
+        screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class)
+                .setText(AudioOutput.getStatus().message());
 
         Slider masterVolume = screen.findNiftyControl("masterVolume", Slider.class);
         Slider voiceVolume = screen.findNiftyControl("voiceVolume", Slider.class);
@@ -1213,13 +1221,20 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             settings.setSetting(Settings.Setting.MUSIC_ENABLED, musicEnabled.isChecked());
             settings.setSetting(Settings.Setting.SFX_ENABLED, sfxEnabled.isChecked());
 
+            DropDown<AudioOutputMode> output = screen.findNiftyControl("audioOutputMode", DropDown.class);
+            AudioOutputMode mode = output.getSelection();
+            if (mode == null) mode = AudioOutputMode.AUTO;
+            settings.setSetting(Settings.Setting.AUDIO_OUTPUT_MODE, mode.name());
+            AudioOutput.Result result = AudioOutput.apply(mode);
+            screen.findElementById("audioOutputStatus").getRenderer(TextRenderer.class).setText(result.message());
             Main.setupNiftySound(nifty);
             Settings.getInstance().save();
+            if (result.applied()) {
+                nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
+            }
         } catch (IOException ex) {
             logger.log(Logger.Level.ERROR, ex);
         }
-
-        nifty.gotoScreen(SCREEN_OPTIONS_MAIN_ID);
     }
 
     public static final class Cutscene {

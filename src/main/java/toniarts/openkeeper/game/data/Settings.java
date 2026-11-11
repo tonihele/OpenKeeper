@@ -176,6 +176,7 @@ public final class Settings {
         MULTIPLAYER_LAST_IP(String.class, "127.0.0.1", SettingCategory.MISCELLANEOUS),
         MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS),
         // Sound settings
+        AUDIO_OUTPUT_MODE(String.class, "AUTO", SettingCategory.SOUND),
         MASTER_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
         VOICE_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
         VOICE_ENABLED(Boolean.class, true, SettingCategory.SOUND),
