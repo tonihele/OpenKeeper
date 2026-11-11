@@ -100,7 +100,18 @@ public final class TriggerGeneric extends Trigger {
          * this condition does not replace fear scoring or flee navigation.
          */
         CREATURE_AFRAID(12),
-        CREATURE_STEALS(13), // Event, This creature is
+        /**
+         * Event emitted for an accepted stealing attempt, before loot is taken.
+         * It does not poll carried gold or require a positive stolen amount.
+         * Matching root branches and nested conditions run synchronously on the
+         * simulation loop, using normal repeat limits. Both hero and keeper
+         * creatures can emit it through the existing STEAL_GOLD objective; no
+         * alignment filter or new autonomous stealing behavior is introduced.
+         * For example, a thief's first attempt can raise a scripted alarm.
+         * Other native stealing callbacks and exact command eligibility remain
+         * separate from OpenKeeper's current gold-stealing task.
+         */
+        CREATURE_STEALS(13),
         CREATURE_LEAVES(14), // Event, This creature is
         CREATURE_STUNNED(15), // Event, This creature is
         CREATURE_DYING(16), // Event, This creature is

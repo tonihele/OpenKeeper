@@ -118,7 +118,7 @@ class TaskManagerDeletedTaskTest {
                 mapController, stub(IObjectsController.class, TaskManagerDeletedTaskTest::defaultHandler), creaturesController,
                 stub(INavigationService.class, TaskManagerDeletedTaskTest::defaultHandler), List.of(player),
                 stub(ILevelInfo.class, TaskManagerDeletedTaskTest::defaultHandler),
-                stub(IEntityPositionLookup.class, TaskManagerDeletedTaskTest::defaultHandler), Map.of());
+                stub(IEntityPositionLookup.class, TaskManagerDeletedTaskTest::defaultHandler), Map.of(), id -> {});
         manager.addTask(PLAYER_ID, recordingTask(TASK_ID));
         manager.addTask(PLAYER_ID, recordingTask(OTHER_TASK_ID));
         return manager;

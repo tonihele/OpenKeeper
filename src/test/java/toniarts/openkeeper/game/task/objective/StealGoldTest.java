@@ -23,12 +23,17 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.StolenGold;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -36,6 +41,11 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
+import toniarts.openkeeper.tools.convert.map.CreatureStealsFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -68,7 +78,15 @@ class StealGoldTest {
     };
 
     private final EntityData entityData = new DefaultEntityData();
-    private final EntityId thiefId = entityData.createEntity();
+    private final EntityId thiefId = createThief();
+    private Consumer<ICreatureController> stealingListener = thief -> {};
+    private short thiefOwner = HERO;
+
+    private EntityId createThief() {
+        EntityId id = entityData.createEntity();
+        entityData.setComponent(id, new CreatureComponent());
+        return id;
+    }
     private final List<Integer> goldGiven = new ArrayList<>();
     private final List<Integer> goldLost = new ArrayList<>();
 
@@ -191,6 +209,121 @@ class StealGoldTest {
         assertFalse(task.isValid(thief));
     }
 
+    @ParameterizedTest
+    @ValueSource(shorts = {HERO, OTHER_KEEPER})
+    void stealingEventRunsBeforeLootForHeroAndKeeperCreatures(short owner) {
+        thiefOwner = owner;
+        try (ScriptScene scene = scripts(255, true)) {
+            stealingListener = thief -> {
+                assertTrue(goldGiven.isEmpty());
+                assertNull(entityData.getComponent(thiefId, StolenGold.class));
+                scene.controller.onSteals(thief.getEntityId());
+                assertEquals(1, scene.count());
+            };
+            stealGold(100_000, new ArrayList<>()).getCurrentTask().executeTask(thief(KEEPER), 0);
+            assertEquals(1, scene.count());
+            assertEquals(0, scene.flags.getOrDefault((short) 2, 0));
+            assertEquals(List.of(THIEF_MAX_GOLD / 2), goldGiven);
+        }
+    }
+
+    @Test
+    void acceptedAttemptEmitsEvenWhenNoGoldIsLeft() {
+        try (ScriptScene scene = scripts(255, true)) {
+            stealingListener = thief -> scene.controller.onSteals(thief.getEntityId());
+            stealGold(0, new ArrayList<>()).getCurrentTask().executeTask(thief(KEEPER), 0);
+            assertEquals(1, scene.count());
+            assertEquals(List.of(0), goldGiven);
+        }
+    }
+
+    @Test
+    void carryingGoldPollingAndEscapingDoNotEmitStealingAgain() {
+        try (ScriptScene scene = scripts(255, false)) {
+            stealingListener = thief -> scene.controller.onSteals(thief.getEntityId());
+            StealGold task = stealGold(100_000, new ArrayList<>());
+            task.getCurrentTask().executeTask(thief(KEEPER), 0);
+            for (int i = 0; i < 12; i++) scene.controller.processTick(0.25f);
+            assertEquals(1, scene.count());
+            StealGold resumed = stealGold(List.of(), navigation(Set.of()),
+                    treasuryGold(0, new ArrayList<>()), NO_ESCAPE_LISTENER);
+            resumed.getCurrentTask().executeTask(thief(KEEPER), 0);
+            assertEquals(1, scene.count());
+            assertEquals(0, scene.flags.getOrDefault((short) 2, 0));
+        }
+    }
+
+    @Test
+    void noReachableGoldDoesNotEmitAnAttempt() {
+        try (ScriptScene scene = scripts(255, false)) {
+            stealingListener = thief -> scene.controller.onSteals(thief.getEntityId());
+            assertNull(stealGold(List.of(), navigation(Set.of()),
+                    treasuryGold(0, new ArrayList<>()), NO_ESCAPE_LISTENER).getCurrentTask());
+            scene.controller.processTick(0.25f);
+            assertEquals(0, scene.count());
+        }
+    }
+
+    @Test
+    void separateAttemptsRespectFiniteScriptRepeats() {
+        try (ScriptScene scene = scripts(2, false)) {
+            stealingListener = thief -> scene.controller.onSteals(thief.getEntityId());
+            for (int i = 0; i < 3; i++) {
+                entityData.removeComponent(thiefId, StolenGold.class);
+                stealGold(100_000, new ArrayList<>()).getCurrentTask().executeTask(thief(KEEPER), 0);
+            }
+            assertEquals(2, scene.count());
+            assertEquals(3, goldGiven.size());
+        }
+    }
+
+    @Test
+    void eventWithoutCurrentBindingIsIgnored() {
+        try (ScriptScene scene = scripts(255, false)) {
+            entityData.removeComponent(thiefId, toniarts.openkeeper.game.component.Trigger.class);
+            scene.controller.onSteals(thiefId);
+            assertEquals(0, scene.count());
+        }
+    }
+
+    @Test
+    void removalDuringEventDoesNotTakeGoldOrRecreateThief() {
+        List<Integer> asked = new ArrayList<>();
+        stealingListener = thief -> entityData.removeEntity(thief.getEntityId());
+        stealGold(100_000, asked).getCurrentTask().executeTask(thief(KEEPER), 0);
+        assertTrue(asked.isEmpty());
+        assertTrue(goldGiven.isEmpty());
+        assertNull(entityData.getComponent(thiefId, StolenGold.class));
+    }
+
+    private ScriptScene scripts(int repeats, boolean checkGold) {
+        Map<Short, Integer> flags = new HashMap<>();
+        Thing.Creature thing = CreatureStealsFixtures.thing(thiefOwner);
+        IKwdFile kwd = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getTriggers" -> CreatureStealsFixtures.script(repeats, checkGold);
+            case "getThings" -> ((Class<?>) args[0]).isInstance(thing) ? List.of(thing) : List.of();
+            default -> null;
+        });
+        ILevelInfo info = stub(ILevelInfo.class, (name, args) -> switch (name) {
+            case "getLevelData" -> kwd;
+            case "getFlag" -> flags.getOrDefault(((Number) args[0]).shortValue(), 0);
+            case "setFlag" -> flags.put(((Number) args[0]).shortValue(), ((Number) args[1]).intValue());
+            default -> null;
+        });
+        ICreaturesController creatures = stub(ICreaturesController.class, (name, args) ->
+                name.equals("createController") ? thief(KEEPER) : null);
+        entityData.setComponent(thiefId, new toniarts.openkeeper.game.component.Trigger(1));
+        return new ScriptScene(new CreatureTriggerLogicController(null, info, () -> 0,
+                null, creatures, null, entityData), flags);
+    }
+
+    private record ScriptScene(CreatureTriggerLogicController controller,
+            Map<Short, Integer> flags) implements AutoCloseable {
+        int count() { return flags.getOrDefault((short) 1, 0); }
+        @Override
+        public void close() { controller.stop(); }
+    }
+
     private StealGold stealGold(int held, List<Integer> requests) {
         return stealGold(List.of(treasury(false, GOLD_TILE)), navigation(Set.of()), treasuryGold(held, requests), NO_ESCAPE_LISTENER);
     }
@@ -198,7 +331,7 @@ class StealGoldTest {
     private StealGold stealGold(List<IRoomController> treasuries, INavigationService navigation, IGameWorldController gameWorldController,
             Consumer<ICreatureController> escapeListener) {
         IMapController map = stub(IMapController.class, (name, args) -> "getRoomsByFunction".equals(name) ? treasuries : null);
-        return new StealGold(navigation, map, gameWorldController, entityData, thief(KEEPER), escapeListener);
+        return new StealGold(navigation, map, gameWorldController, entityData, thief(KEEPER), escapeListener, stealingListener);
     }
 
     /**
@@ -257,7 +390,7 @@ class StealGoldTest {
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getEntityId" -> thiefId;
             case "getCreatureCoordinates" -> THIEF_TILE;
-            case "getOwnerId" -> HERO;
+            case "getOwnerId" -> thiefOwner;
             case "getObjective" -> Thing.HeroParty.Objective.STEAL_GOLD;
             case "getObjectiveTargetPlayerId" -> objectiveTarget;
             case "getGold" -> entityData.getComponent(thiefId, StolenGold.class) == null ? 0 : 3750;

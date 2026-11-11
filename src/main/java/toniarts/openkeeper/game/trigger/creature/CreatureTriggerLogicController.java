@@ -66,6 +66,11 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
         onEvent(entityId, TriggerGeneric.TargetType.CREATURE_AFRAID);
     }
 
+    /** Runs a stealing-attempt event synchronously before any loot is taken. */
+    public void onSteals(EntityId entityId) {
+        onEvent(entityId, TriggerGeneric.TargetType.CREATURE_STEALS);
+    }
+
     private void onEvent(EntityId entityId, TriggerGeneric.TargetType eventType) {
         Trigger binding = entityData.getComponent(entityId, Trigger.class);
         if (binding == null || entityData.getComponent(entityId, CreatureComponent.class) == null) {

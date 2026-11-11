@@ -89,7 +89,7 @@ class KillCreaturesObjectiveTest {
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> null);
         TaskManager taskManager = new TaskManager(entityData, stub(IGameWorldController.class, (name, args) -> null), map, null, creatures, navigation, List.of(player),
-                levelInfo, null, Map.of());
+                levelInfo, null, Map.of(), id -> {});
 
         Task[] assigned = new Task[1];
         ICreatureController hero = stub(ICreatureController.class, (name, args) -> switch (name) {

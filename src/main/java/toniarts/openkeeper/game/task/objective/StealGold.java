@@ -23,6 +23,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.function.Consumer;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.StolenGold;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -51,6 +52,7 @@ public final class StealGold extends AbstractObjectiveTask {
     private final EntityData entityData;
     private final short targetPlayerId;
     private final Consumer<ICreatureController> escapeListener;
+    private final Consumer<ICreatureController> stealingListener;
     private final boolean somethingToDo;
     private boolean executed = false;
 
@@ -64,16 +66,18 @@ public final class StealGold extends AbstractObjectiveTask {
      * @param thief the thief
      * @param escapeListener told when the thief gets away, to take him out of
      * the level
+     * @param stealingListener called on the simulation loop before taking loot
      */
     public StealGold(final INavigationService navigationService, final IMapController mapController,
             final IGameWorldController gameWorldController, final EntityData entityData, ICreatureController thief,
-            Consumer<ICreatureController> escapeListener) {
+            Consumer<ICreatureController> escapeListener, Consumer<ICreatureController> stealingListener) {
         super(navigationService, mapController, getExit(entityData, thief), thief.getOwnerId());
 
         this.gameWorldController = gameWorldController;
         this.entityData = entityData;
         this.targetPlayerId = thief.getObjectiveTargetPlayerId();
         this.escapeListener = escapeListener;
+        this.stealingListener = stealingListener;
         this.somethingToDo = hasStolenGold(entityData, thief) || createStealTask(thief);
     }
 
@@ -164,6 +168,11 @@ public final class StealGold extends AbstractObjectiveTask {
      * can only hold on to half of it
      */
     private void steal(ICreatureController thief, Point goldTile) {
+        stealingListener.accept(thief);
+        // Event actions may remove the thief synchronously.
+        if (entityData.getComponent(thief.getEntityId(), CreatureComponent.class) == null) {
+            return;
+        }
         int wanted = thief.getMaxGold() - thief.getGold();
         int taken = wanted - gameWorldController.substractGold(wanted, targetPlayerId, goldTile);
         thief.addGold(taken / 2);

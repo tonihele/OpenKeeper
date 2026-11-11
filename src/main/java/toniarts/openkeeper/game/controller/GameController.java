@@ -122,6 +122,11 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         creatureTriggers.onAfraid(entityId);
     }
 
+    @Override
+    public void onCreatureSteals(EntityId entityId) {
+        creatureTriggers.onSteals(entityId);
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
@@ -143,7 +148,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // Initialize tasks
         taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(),
                 gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(),
-                navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings);
+                navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings, this::onCreatureSteals);
 
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
