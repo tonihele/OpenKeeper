@@ -2655,9 +2655,9 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                         case SET_TIMER_SPEECH:
                         case SET_WIDESCREEN_MODE:
                         case ALTER_SPEED:  // 0 = Walk, !0 = Run
-                        case SET_FIGHT_FLAG: // 0 = Don`t Fight, !0 = Fight
+                        case SET_FIGHT_FLAG: // 1 = Fight; other values = Don't Fight
                         case SET_PORTAL_STATUS: // 0 = Closed, !0 = Open
-                            trigger.setUserData("available", reader.readUnsignedByte());  // 0 = Off, !0 = On
+                            trigger.setUserData("available", reader.readUnsignedByte());  // Raw availability byte; action-specific semantics
                             reader.readAndCheckNull(7); // reader.skipBytes(7);
                             break;
 

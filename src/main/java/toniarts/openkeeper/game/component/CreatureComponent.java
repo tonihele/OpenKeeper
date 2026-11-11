@@ -44,6 +44,8 @@ public final class CreatureComponent implements EntityComponent {
     public boolean worker;
     public short creatureId;
     public boolean diesInstantly;
+    /** Suppresses ordinary AI fighting; explicit attacks and fear remain separate. */
+    public boolean fightDisabled;
 
     public CreatureComponent() {
 
@@ -69,6 +71,7 @@ public final class CreatureComponent implements EntityComponent {
         this.worker = creatureComponent.worker;
         this.creatureId = creatureComponent.creatureId;
         this.diesInstantly = creatureComponent.diesInstantly;
+        this.fightDisabled = creatureComponent.fightDisabled;
     }
 
 }

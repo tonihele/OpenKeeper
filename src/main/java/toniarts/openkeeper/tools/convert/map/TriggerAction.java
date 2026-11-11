@@ -66,6 +66,15 @@ public final class TriggerAction extends Trigger {
         ALTER_SPEED(33),
         SET_MUSIC_LEVEL(34), // text like X
         REMOVE_FROM_MAP(35),
+        /**
+         * Enables ordinary AI fighting for the bound creature only when the
+         * available byte equals 1; other values disable it. Existing targets
+         * and actions are not cancelled immediately, and fear and explicitly
+         * directed attacks remain separate. For example, a scripted hero can
+         * travel without engaging enemies until its arrival action enables it.
+         * Initial Thing WILL_FIGHT flags and the complete native forced-command
+         * exceptions are separate from this switch in OpenKeeper.
+         */
         SET_FIGHT_FLAG(36),
         SET_PORTAL_STATUS(37),
         SET_WIDESCREEN_MODE(38),

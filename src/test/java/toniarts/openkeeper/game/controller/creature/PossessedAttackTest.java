@@ -108,6 +108,15 @@ class PossessedAttackTest {
     }
 
     @Test
+    void scriptFightFlagDoesNotBlockPossessedMelee() {
+        EntityId enemy = createCreature(HERO, new Vector3f(5, 0, 5.8f));
+        CreatureController controller = createController();
+        controller.setFightEnabled(false);
+        controller.executePossessedAttack();
+        assertEquals(DAMAGE, entityData.getComponent(enemy, Damage.class).damage);
+    }
+
+    @Test
     void firstPersonStatsRaiseTheDamage() {
         firstPersonStats.put(Variable.CreatureStats.StatType.MELEE_DAMAGE,
                 PossessionFixtures.firstPersonStat(Variable.CreatureStats.StatType.MELEE_DAMAGE, 60));
