@@ -311,8 +311,8 @@ public class TriggerControl extends Control {
                 break;
 
             case SET_CREATURE_MOODS:
-                // TODO this
-                available = trigger.getUserData("available", short.class) != 0;
+                creaturesController.setCreatureMoodsEnabled(
+                        trigger.getUserData("available", short.class) == 1);
                 break;
 
             case SET_SYSTEM_MESSAGES:

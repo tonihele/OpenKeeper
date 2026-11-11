@@ -65,13 +65,14 @@ class PayDaySystemTest {
     private final PayDaySystem payDaySystem;
     private double gameTime;
     private int treasury = 1000;
+    private boolean moodsEnabled = true;
 
     PayDaySystemTest() {
         creatures.put(GOBLIN, PayDayFixtures.creature(GOBLIN, ANGER_NO_PAY));
         creatures.put(IMP, PayDayFixtures.creature(IMP, 0));
         payDaySystem = new PayDaySystem(entityData, kwdFile(), () -> gameTime,
                 List.of(playerController(Player.GOOD_PLAYER_ID, new PlayerStatsControl()), playerController(KEEPER, keeperStats)),
-                gameWorldController(), gameSettings());
+                gameWorldController(), gameSettings(), () -> moodsEnabled);
     }
 
     @Test
@@ -234,6 +235,40 @@ class PayDaySystemTest {
 
         assertNull(entityData.getComponent(knight, CreaturePay.class));
         assertEquals(0, gold(knight));
+    }
+
+    @Test
+    void disablingMoodsFreezesUnpaidAngerAndEnablingResumesIt() {
+        treasury = 0;
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        entityData.setComponent(goblin, new CreatureMood(0, 0, 0, 0, 100, 0));
+        moodsEnabled = false;
+        tick(0);
+        tick(FIRST_PAY_DAY);
+        assertEquals(WAGE, entityData.getComponent(goblin, CreaturePay.class).unpaid);
+        assertEquals(100, mood(goblin).noPay);
+        moodsEnabled = true;
+        tick(FIRST_PAY_DAY + 0.25);
+        assertEquals(100 + ANGER_NO_PAY / 4, mood(goblin).noPay);
+    }
+
+    @Test
+    void paymentContinuesWhileMoodsAreFrozenAndDoesNotClearAnger() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        entityData.setComponent(goblin, new CreatureMood(0, 0, 0, 0, 100, 0));
+        moodsEnabled = false;
+        tick(0);
+        tick(FIRST_PAY_DAY);
+        assertEquals(500, treasury);
+        assertEquals(WAGE / 2, gold(goblin));
+        assertNull(entityData.getComponent(goblin, CreaturePay.class));
+        assertEquals(100, mood(goblin).noPay);
+        moodsEnabled = true;
+        tick(FIRST_PAY_DAY + 0.25);
+        // The clear skipped while disabled is not replayed on enabling.
+        assertEquals(100, mood(goblin).noPay);
+        tick(FIRST_PAY_DAY + FREQUENCY);
+        assertEquals(0, mood(goblin).noPay);
     }
 
     private void tick(double time) {
