@@ -29,6 +29,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import org.junit.jupiter.params.provider.ValueSource;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.trigger.player.PlayerTriggerLogicController;
+import toniarts.openkeeper.tools.convert.map.PlayerSackFixtures;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -221,11 +224,63 @@ class CreatureSackedTriggerTest {
         }
     }
 
+    @Test
+    void manualDismissalSendsCreatureThenOwnerEventsAtBothPreCleanupStages() {
+        try (Fixture f = new Fixture(255)) {
+            f.enablePlayerEvents(255);
+            f.markDrop();
+            f.leaving.processTick(.25f);
+            assertEquals(0, f.flags[3]);
+            f.landAndLeave();
+            assertEquals(2, f.flags[3]);
+            assertEquals(0, f.flags[4], "another keeper must not receive it");
+            assertEquals(List.of(0, 3, 0, 3), f.actionOrder);
+            assertEquals(List.of(100, 100, 100, 100), f.goldAtAction);
+            assertNull(f.data.getComponent(f.entity, CreatureComponent.class));
+            f.playerScripts.processTick(.25f);
+            assertEquals(2, f.flags[3]);
+        }
+    }
+
+    @Test
+    void sharedDepartureNotifiesTheOwnerEvenWithoutACreatureScriptBinding() {
+        try (Fixture f = new Fixture(255)) {
+            f.enablePlayerEvents(255);
+            f.data.removeComponent(f.entity, Trigger.class);
+            f.creatures.leaveDungeon(f.entity);
+            assertEquals(0, f.flags[0]);
+            assertEquals(1, f.flags[3]);
+            assertEquals(List.of(100), f.goldAtAction);
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1,1", "2,2", "255,2"})
+    void ownerEventUsesRepeatLimitsAcrossBothManualStages(int repeats, int expected) {
+        try (Fixture f = new Fixture(255)) {
+            f.enablePlayerEvents(repeats);
+            f.markDrop(); f.landAndLeave();
+            assertEquals(expected, f.flags[3]);
+        }
+    }
+
+    @Test
+    void ordinaryRemovalDoesNotSendAPlayerDepartureEvent() {
+        try (Fixture f = new Fixture(255)) {
+            f.enablePlayerEvents(255);
+            f.creatures.createController(f.entity).remove();
+            f.playerScripts.processTick(.25f);
+            assertEquals(0, f.flags[3]);
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final Thread simulation=Thread.currentThread();
         final EntityData data=new DefaultEntityData();
         final EntityId entity=data.createEntity();
-        final int[] flags=new int[3];
+        final int[] flags=new int[5];
+        final List<Integer> actionOrder = new ArrayList<>();
+        PlayerTriggerLogicController playerScripts;
         final List<Integer> goldAtAction=new ArrayList<>(), healthAtAction=new ArrayList<>();
         final List<EntityId> freedStorage=new ArrayList<>();
         int flagsAtCleanup, looseGold;
@@ -245,14 +300,22 @@ class CreatureSackedTriggerTest {
                         ? List.of(CreatureAngryFixtures.thing(1)) : List.of();
                 case "getCreature" -> CreatureSleepFixtures.sleeper(1);
                 case "getTriggers" -> records;
+                case "getPlayers" -> Map.of((short) 3,
+                        PlayerSackFixtures.player((short) 3, 101),
+                        (short) 4, PlayerSackFixtures.player((short) 4, 102));
                 default -> throw new UnsupportedOperationException(name);
             });
             level=proxy(ILevelInfo.class,(name,args)->switch(name) {
                 case "getLevelData" -> kwd;
+                case "getPlayers" -> Map.of((short) 3, new Keeper(false, (short) 3),
+                        (short) 4, new Keeper(false, (short) 4));
                 case "getFlag" -> flags[((Number)args[0]).intValue()];
                 case "setFlag" -> {
                     assertSame(simulation,Thread.currentThread());
-                    assertNotNull(data.getComponent(entity,Trigger.class));
+                    if (((Number) args[0]).intValue() < 3) {
+                        assertNotNull(data.getComponent(entity,Trigger.class));
+                    }
+                    actionOrder.add(((Number) args[0]).intValue());
                     goldAtAction.add(data.getComponent(entity,Gold.class).gold);
                     healthAtAction.add(data.getComponent(entity,Health.class).health);
                     flags[((Number)args[0]).intValue()]=(int)args[1];
@@ -283,7 +346,10 @@ class CreatureSackedTriggerTest {
             IGameWorldController world=proxy(IGameWorldController.class,(name,args)->
                     name.equals("getObjectsController") ? objects : null);
             IGameController game=proxy(IGameController.class,(name,args)->switch(name) {
-                case "onCreatureSacked" -> { assertSame(simulation,Thread.currentThread()); scripts.onSacked((EntityId)args[0]); yield null; }
+                case "onCreatureSacked" -> { assertSame(simulation,Thread.currentThread()); scripts.onSacked((EntityId)args[0]);
+                    Owner owner = data.getComponent((EntityId) args[0], Owner.class);
+                    if (playerScripts != null && owner != null) playerScripts.onCreatureSacked(owner.ownerId);
+                    yield null; }
                 case "getGameWorldController" -> world;
                 default -> null;
             });
@@ -295,6 +361,16 @@ class CreatureSackedTriggerTest {
             bindScripts();
             falling=new CreatureFallSystem(data,()->0,proxy(GameEventService.class,(name,args)->null));
             leaving=new CreatureLeaveSystem(data,creatures);
+        }
+        void enablePlayerEvents(int repeats) {
+            records.put(101, PlayerSackFixtures.condition(
+                    101, PLAYER_CREATURE_SACKED, -101, 0, repeats));
+            records.put(-101, CreatureAngryFixtures.action(-101, 3));
+            records.put(102, PlayerSackFixtures.condition(
+                    102, PLAYER_CREATURE_SACKED, -102, 0, 255));
+            records.put(-102, CreatureAngryFixtures.action(-102, 4));
+            playerScripts = new PlayerTriggerLogicController(
+                    null, level, () -> 0, null, creatures, null);
         }
         void bindScripts() {
             if(scripts!=null) scripts.stop();

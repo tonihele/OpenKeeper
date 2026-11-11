@@ -156,6 +156,15 @@ public final class TriggerGeneric extends Trigger {
         PLAYER_CREATURE_PICKED_UP(58), // Event, This player's...
         PLAYER_CREATURE_DROPPED(59), // Event, This player's...
         PLAYER_CREATURE_SLAPPED(60), // Event, This player's...
+        /**
+         * Event on the departing creature's current owner, after CREATURE_SACKED
+         * and before inventory cleanup/removal. DKII ignores the creature selector
+         * and emits at both the manual Portal check and shared departure stage.
+         * Example: a matching player root can increment a dismissal counter.
+         * Ordinary polling stays false; voluntary leaving still needs gameplay.
+         * Full native hand/drop and finite-repeat fidelity share the verification
+         * TODO described for CREATURE_SACKED.
+         */
         PLAYER_CREATURE_SACKED(61), // Event, This player's...
         AP_TAG_PART_OF(62), // Action point
         /**
