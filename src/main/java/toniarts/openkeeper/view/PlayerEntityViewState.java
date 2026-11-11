@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -83,6 +84,8 @@ import toniarts.openkeeper.view.loader.ObjectLoader;
 import toniarts.openkeeper.view.loader.ShotLoader;
 import toniarts.openkeeper.view.loader.TrapLoader;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.map.PillarGeometry;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.lighting.LightSource;
@@ -171,6 +174,10 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
+    private final Map<Spatial, Integer> pillarDeformationVersions = new IdentityHashMap<>();
+    private TerrainDeformer lastPillarDeformer;
+    private int lastPillarTerrainVersion = Integer.MIN_VALUE;
+    private boolean pillarGeometryDirty = true;
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
@@ -264,6 +271,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        updatePillarGeometry();
 
         // Lighting: re-derive attached-light positions and bind the
         // vertex-lit models every frame -- lights on other things
@@ -310,6 +318,17 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        TerrainDeformer terrainDeformer = getTerrainDeformer();
+        if (terrainDeformer != null) {
+            for (Spatial pillar : pillarDeformationVersions.keySet()) {
+                terrainDeformer.restorePillar(pillar);
+            }
+        }
+        pillarDeformationVersions.clear();
+        lastPillarDeformer = null;
+        lastPillarTerrainVersion = Integer.MIN_VALUE;
+        pillarGeometryDirty = true;
+
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
@@ -778,11 +797,70 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void updateModelPosition(Spatial object, Entity e) {
         Position position = e.get(Position.class);
+        TerrainDeformer terrainDeformer = getTerrainDeformer();
+        if (pillarDeformationVersions.containsKey(object) && terrainDeformer != null) {
+            terrainDeformer.restorePillar(object);
+        }
         object.setLocalTranslation(position.position);
         object.setLocalRotation(object.getLocalRotation().fromAngles(0, position.rotation, 0));
+        if (isPillar(e)) {
+            PillarGeometry.alignBaseToFloor(object, position.position.y);
+            pillarDeformationVersions.put(object, Integer.MIN_VALUE);
+            pillarGeometryDirty = true;
+        } else {
+            pillarDeformationVersions.remove(object);
+        }
+    }
+
+    private boolean isPillar(Entity e) {
+        ObjectViewState state = e.get(ObjectViewState.class);
+        if (state == null) {
+            return false;
+        }
+        GameObject object = kwdFile.getObject(state.objectId);
+        return object != null && object.getFlags().contains(GameObject.ObjectFlag.PILLAR);
+    }
+
+    private TerrainDeformer getTerrainDeformer() {
+        if (stateManager == null) {
+            return null;
+        }
+        PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+        return mapViewState == null ? null : mapViewState.getTerrainDeformer();
+    }
+
+    private void updatePillarGeometry() {
+        if (pillarDeformationVersions.isEmpty()) {
+            return;
+        }
+        TerrainDeformer terrainDeformer = getTerrainDeformer();
+        if (terrainDeformer == null) {
+            return;
+        }
+        int version = terrainDeformer.getVersion();
+        boolean deformerChanged = terrainDeformer != lastPillarDeformer;
+        if (!pillarGeometryDirty && !deformerChanged && version == lastPillarTerrainVersion) {
+            return;
+        }
+        for (Map.Entry<Spatial, Integer> entry : pillarDeformationVersions.entrySet()) {
+            if (deformerChanged || entry.getValue() != version) {
+                terrainDeformer.applyPillar(entry.getKey(), rootNode);
+                entry.setValue(version);
+            }
+        }
+        lastPillarDeformer = terrainDeformer;
+        lastPillarTerrainVersion = version;
+        pillarGeometryDirty = false;
     }
 
     private void removeModel(Spatial spatial, Entity e) {
+        if (pillarDeformationVersions.remove(spatial) != null) {
+            TerrainDeformer terrainDeformer = getTerrainDeformer();
+            if (terrainDeformer != null) {
+                terrainDeformer.restorePillar(spatial);
+            }
+            pillarGeometryDirty = true;
+        }
         spatial.removeFromParent();
 
         // Stop driving the light first, or update() would re-create it

@@ -37,7 +37,6 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 
 /**
  * Builds the cave ceiling: a merged mesh of one patch per open, visible tile,
@@ -85,14 +84,11 @@ public final class Ceiling {
      * @param tiles the tile coordinates in this batch
      * @param deformer bends the ceiling together with the walls it rests on,
      * may be {@code null}
-     * @param straightTiles the ceiling is not bent over (and on the edges of)
-     * these tiles, the pillars, as the pillar models themselves are straight
      * @return the visual representation of this batch
      */
     public static Geometry construct(AssetManager assetManager, ClearanceField clearanceField,
-            Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
-            Set<Point> straightTiles) {
-        Mesh mesh = createMesh(clearanceField, tiles, deformer, straightTiles);
+            Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer) {
+        Mesh mesh = createMesh(clearanceField, tiles, deformer);
 
         Geometry geo = new Geometry("Ceiling", mesh);
 
@@ -120,8 +116,7 @@ public final class Ceiling {
         return geo;
     }
 
-    private static Mesh createMesh(ClearanceField clearanceField, List<Point> tiles, TerrainDeformer deformer,
-            Set<Point> straightTiles) {
+    static Mesh createMesh(ClearanceField clearanceField, List<Point> tiles, TerrainDeformer deformer) {
         Mesh mesh = new Mesh();
 
         List<Vector3f> vertices = new ArrayList<>(tiles.size() * 9);
@@ -139,7 +134,7 @@ public final class Ceiling {
                 for (int i = 0; i < 3; i++) {
                     float height = heightAt(clearanceField, tile.x - 0.5f + i * STEP, tile.y - 0.5f + j * STEP);
                     heights[patchVertexIndex(i, j)] = height;
-                    addVertex(vertices, textureCoordinates, normals, clearanceField, deformer, straightTiles, tile,
+                    addVertex(vertices, textureCoordinates, normals, clearanceField, deformer, tile,
                             i * STEP, j * STEP, height);
                 }
             }
@@ -162,7 +157,7 @@ public final class Ceiling {
 
                     if (Math.abs(centerHeight - flatHeight) > SPLIT_THRESHOLD) {
                         int center = vertices.size();
-                        addVertex(vertices, textureCoordinates, normals, clearanceField, deformer, straightTiles, tile, u, v, centerHeight);
+                        addVertex(vertices, textureCoordinates, normals, clearanceField, deformer, tile, u, v, centerHeight);
 
                         indexes.add(topLeft);
                         indexes.add(topRight);
@@ -206,8 +201,7 @@ public final class Ceiling {
      */
     private static void addVertex(List<Vector3f> vertices, List<Vector2f> textureCoordinates,
             List<Vector3f> normals, ClearanceField clearanceField, TerrainDeformer deformer,
-            Set<Point> straightTiles, Point tile,
-            float u, float v, float height) {
+            Point tile, float u, float v, float height) {
 
         // Tile-space position, i.e. the same unit ClearanceField indexes its
         // solidity grid in
@@ -224,28 +218,12 @@ public final class Ceiling {
 
         // At a wall face the ceiling is at the top of the wall, which is bent. Go through the same
         // field so they stay together, higher up the field fades out.
-        if (deformer != null && !touchesAny(straightTiles, px, py)) {
+        if (deformer != null) {
             deformer.deform(vertex, normal);
         }
         vertices.add(vertex);
         textureCoordinates.add(new Vector2f(u, v));
         normals.add(normal);
-    }
-
-    /**
-     * @return true if the tile-space point is on one of the tiles, edges
-     * included
-     */
-    private static boolean touchesAny(Set<Point> tiles, float px, float py) {
-        if (tiles.isEmpty()) {
-            return false;
-        }
-        int x0 = (int) Math.floor(px + 0.5f);
-        int x1 = (int) Math.ceil(px - 0.5f);
-        int y0 = (int) Math.floor(py + 0.5f);
-        int y1 = (int) Math.ceil(py - 0.5f);
-        return tiles.contains(new Point(x0, y0)) || tiles.contains(new Point(x1, y0))
-                || tiles.contains(new Point(x0, y1)) || tiles.contains(new Point(x1, y1));
     }
 
     private static int patchVertexIndex(int i, int j) {
