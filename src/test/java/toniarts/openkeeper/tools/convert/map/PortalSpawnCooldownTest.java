@@ -197,7 +197,7 @@ class PortalSpawnCooldownTest {
         setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
         setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 5);
         CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
-                stub(ILevelInfo.class, (method, args) -> stub(IKwdFile.class, (m, a) -> imp)), map,
+                stub(ILevelInfo.class, (method, args) -> stub(IKwdFile.class, (m, a) -> m.equals("getImp") ? imp : null)), map,
                 stub(GameEventService.class, (method, args) -> null));
         listeners.get(0).onBuild(stub(ICreatureEntrance.class, (method, args) -> switch (method) {
             case "isDungeonHeart" -> true;
