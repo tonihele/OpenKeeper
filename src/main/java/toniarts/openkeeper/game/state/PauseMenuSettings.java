@@ -203,6 +203,11 @@ final class PauseMenuSettings {
     // --------------------------------------------------------------- sound
 
     void buildSound(Element parent) {
+        addSlider(parent, "${menu.1460}", "masterVolume", null, 0f, 1f, 0.01f);
+        addSlider(parent, "${menu.1457}", "voiceVolume", "voiceEnabled", 0f, 1f, 0.01f);
+        addSlider(parent, "${menu.1459}", "musicVolume", "musicEnabled", 0f, 1f, 0.01f);
+        addSlider(parent, "${menu.1458}", "sfxVolume", "sfxEnabled", 0f, 1f, 0.01f);
+
         addDropDown(parent, "Spatial audio", "audioOutputMode", "220px");
         DropDown<AudioOutputMode> output = find("audioOutputMode", DropDown.class);
         output.addAllItems(java.util.Arrays.asList(AudioOutputMode.values()));
@@ -210,10 +215,6 @@ final class PauseMenuSettings {
         new LabelBuilder("audioOutputStatus", AudioOutput.getStatus().applied() ? "" : AudioOutput.getStatus().message()) {{
             style(LABEL_STYLE); width("100%"); wrap(true);
         }}.build(parent);
-        addSlider(parent, "${menu.1460}", "masterVolume", null, 0f, 1f, 0.01f);
-        addSlider(parent, "${menu.1457}", "voiceVolume", "voiceEnabled", 0f, 1f, 0.01f);
-        addSlider(parent, "${menu.1459}", "musicVolume", "musicEnabled", 0f, 1f, 0.01f);
-        addSlider(parent, "${menu.1458}", "sfxVolume", "sfxEnabled", 0f, 1f, 0.01f);
 
         Settings settings = Main.getUserSettings();
         find("masterVolume", Slider.class).setValue(settings.getFloat(Settings.Setting.MASTER_VOLUME));
