@@ -1,0 +1,18 @@
+# Copy this file, then replace the sample camera coordinates with world-space
+# coordinates for the map supplied with -PmapFile.
+output-dir=./captures
+width=1600
+height=900
+startup-frames=120
+ceiling-subdivisions=4
+near-clip=0.01
+shots=example
+
+# Camera coordinates use OpenKeeper world space (X, vertical Y, Z).
+# Provide either look-at or rotation-degrees. Rotation is yaw, pitch, roll.
+shot.example.file=example.png
+shot.example.position=0,18,20
+shot.example.look-at=0,0,0
+shot.example.fov=42
+shot.example.settle-frames=4
+shot.example.ceiling-visible=true

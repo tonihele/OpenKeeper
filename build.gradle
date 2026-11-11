@@ -40,6 +40,49 @@ tasks.register("modelViewer", JavaExec) {
     mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
+tasks.register("captureScreenshots", JavaExec) {
+    group = "developer tools"
+    description = "Render configured map screenshots in an offscreen OpenGL context."
+    classpath = sourceSets.main.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.tools.screenshot.HeadlessScreenshotCapture'
+    workingDir = layout.buildDirectory.dir("headless-screenshot-capture").get().asFile
+    outputs.upToDateWhen { false }
+    def rootDirectory = layout.projectDirectory.asFile
+    def mapFileProvider = providers.gradleProperty("mapFile")
+    def captureConfigProvider = providers.gradleProperty("captureConfig")
+    def dkFolderProvider = providers.gradleProperty("dkFolder")
+    def mapRootProvider = providers.gradleProperty("mapRoot")
+    def assetsDirProvider = providers.gradleProperty("assetsDir")
+    def resolvePath = { String value ->
+        def candidate = new File(value)
+        (candidate.isAbsolute() ? candidate : new File(rootDirectory, value)).absolutePath
+    }
+
+    doFirst {
+        workingDir.mkdirs()
+        def mapFile = mapFileProvider.orNull
+        def captureConfig = captureConfigProvider.orNull
+        if (!mapFile || !captureConfig) {
+            throw new GradleException("Provide -PmapFile=<map.kwd> and -PcaptureConfig=<capture.properties>")
+        }
+
+        def captureArgs = ["--map", resolvePath(mapFile), "--config", resolvePath(captureConfig)]
+        def dkFolder = dkFolderProvider.orNull
+        def mapRoot = mapRootProvider.orNull
+        def assetsDir = assetsDirProvider.orNull
+        if (dkFolder) {
+            captureArgs.addAll(["--dk-folder", resolvePath(dkFolder)])
+        }
+        if (mapRoot) {
+            captureArgs.addAll(["--map-root", resolvePath(mapRoot)])
+        }
+        if (assetsDir) {
+            captureArgs.addAll(["--assets-dir", resolvePath(assetsDir)])
+        }
+        setArgs(captureArgs)
+    }
+}
+
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
