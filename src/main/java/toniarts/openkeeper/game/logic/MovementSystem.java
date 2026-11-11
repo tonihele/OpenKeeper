@@ -115,7 +115,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         if (steeringBehavior == null) {
 
             // The fug, can't navigate, are we there already??
-            entityData.removeComponent(entity.getId(), Navigation.class);
+            removeNavigation(entity.getId(), navigation);
             return;
         }
         steerableEntitiesByEntityId.put(entity.getId(), steerableEntity);
@@ -167,13 +167,24 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * Removes the navigation we are done with. The game logic runs on another
+     * thread and may have given the entity a new path since we last applied
+     * the changes, that one is not ours to remove.
+     */
+    private void removeNavigation(EntityId entityId, Navigation navigation) {
+        if (entityData.getComponent(entityId, Navigation.class) == navigation) {
+            entityData.removeComponent(entityId, Navigation.class);
+        }
+    }
+
     private void applySteering(EntityId entityId, ISteerableEntity steerableEntity, SteeringAcceleration<Vector2> steering, float tpf) {
 
         // We are done
         if (steering.isZero()
                 && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
                 && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
-            entityData.removeComponent(entityId, Navigation.class);
+            removeNavigation(entityId, movableEntities.getEntity(entityId).get(Navigation.class));
             return;
         }
 
