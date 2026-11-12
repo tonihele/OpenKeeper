@@ -43,6 +43,7 @@ public enum TaskType {
     GO_TO_EAT,
     TRAIN,
     MANUFACTURE,
+    PRAY,
     GAMBLE,
     COLLECT_WINNINGS
 }

@@ -78,6 +78,20 @@ public enum GameEventType {
     ROOM_CAPTURED,
     TERRAIN_DESTROYED,
 
+    // Temple
+    /**
+     * A creature was dropped into the pool, the subject is the creature type
+     */
+    CREATURE_SACRIFICED,
+    /**
+     * The sacrifices completed a recipe, the subject is the room, at the reward's tile
+     */
+    SACRIFICE_REWARD,
+    /**
+     * The mentor's verdict on a sacrifice, only the temple's owner gets this. The subject id is the speech id of the
+     * recipe, or 1 when no recipe matched.
+     */
+    SACRIFICE_SPEECH,
     // The Casino
     /**
      * A gambler became the big winner, the place is the winner's
