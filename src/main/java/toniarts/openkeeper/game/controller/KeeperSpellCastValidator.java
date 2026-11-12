@@ -51,6 +51,19 @@ public final class KeeperSpellCastValidator {
         // Nope
     }
 
+    /**
+     * Checks whether the player can cast the spell
+     *
+     * @param keeperSpell the spell
+     * @param kwdFile the level
+     * @param mapInformation the map
+     * @param mapTile the tile the spell is cast on
+     * @param player the casting player
+     * @param entityData the entities
+     * @param target the targeted entity, can be {@code null}
+     * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
+     * @return true if the cast is allowed
+     */
     public static boolean isValidCast(
             KeeperSpell keeperSpell,
             IKwdFile kwdFile,
@@ -58,7 +71,8 @@ public final class KeeperSpellCastValidator {
             IMapTileInformation mapTile,
             Keeper player,
             EntityData entityData,
-            EntityId target) {
+            EntityId target,
+            int manaCost) {
         Creature creature = null;
         Short owner = null;
         if (target != null) {
@@ -72,7 +86,7 @@ public final class KeeperSpellCastValidator {
             }
         }
 
-        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner);
+        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost);
     }
 
     /**
@@ -87,6 +101,7 @@ public final class KeeperSpellCastValidator {
      * creature
      * @param owner the keeper in control of the target, {@code null} if
      * there is no target or it has no owner
+     * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
      * @return whether the cast is allowed
      */
     public static boolean isValidCast(
@@ -95,14 +110,15 @@ public final class KeeperSpellCastValidator {
             IMapTileInformation mapTile,
             Keeper player,
             Creature creature,
-            Short owner) {
-        return checkPlayerMana(keeperSpell, player)
+            Short owner,
+            int manaCost) {
+        return checkPlayerMana(manaCost, player)
                 && checkCastRule(mapInformation, mapTile, keeperSpell, player)
                 && checkTargetRule(creature, owner, keeperSpell, player);
     }
 
-    private static boolean checkPlayerMana(KeeperSpell keeperSpell, Keeper player) {
-        return keeperSpell.getManaCost() <= player.getMana() - player.getManaLoose();
+    private static boolean checkPlayerMana(int manaCost, Keeper player) {
+        return manaCost <= player.getMana() - player.getManaLoose();
     }
 
     private static boolean checkTargetRule(Creature creature, Short owner, KeeperSpell keeperSpell, Keeper player) {

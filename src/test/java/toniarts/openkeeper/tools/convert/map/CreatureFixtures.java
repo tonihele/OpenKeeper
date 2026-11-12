@@ -36,4 +36,22 @@ public final class CreatureFixtures {
         return creature;
     }
 
+    /**
+     * A creature with one animation slot filled
+     *
+     * @param animation the animation slot
+     * @param resourceType the resource in the slot, {@code NONE} for an empty
+     * slot as in the data
+     * @return the creature
+     */
+    public static Creature creatureWithAnimation(Creature.AnimationType animation, ArtResource.ArtResourceType resourceType) {
+        ArtResource resource = new ArtResource();
+        resource.setName(resourceType == ArtResource.ArtResourceType.NONE ? "" : "Test-" + animation);
+        resource.setType(resourceType);
+
+        Creature creature = new Creature();
+        creature.setAnimation(animation, resource);
+        return creature;
+    }
+
 }
