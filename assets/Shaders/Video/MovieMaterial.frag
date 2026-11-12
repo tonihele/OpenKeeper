@@ -58,5 +58,10 @@ void main(){
     }
 #endif
 
+#ifdef GAMMA_CORRECTION
+    // The video is sRGB encoded, the framebuffer expects linear values
+    color.rgb = pow(max(color.rgb, 0.0), vec3(2.2));
+#endif
+
     gl_FragColor = color;
 }
