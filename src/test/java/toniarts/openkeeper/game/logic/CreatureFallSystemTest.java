@@ -56,6 +56,7 @@ class CreatureFallSystemTest {
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<Integer> effects = new ArrayList<>();
     private CreatureFallSystem fallSystem;
+    private CreatureLandingSystem landingSystem;
 
     @BeforeEach
     void setUp() {
@@ -80,12 +81,14 @@ class CreatureFallSystemTest {
             }
             return null;
         });
-        fallSystem = new CreatureFallSystem(entityData, gameTimer, gameEventService, mapInformation, TICKS_PER_SECOND, GRAVITY_CONSTANT);
+        fallSystem = new CreatureFallSystem(entityData, mapInformation, TICKS_PER_SECOND, GRAVITY_CONSTANT);
+        landingSystem = new CreatureLandingSystem(entityData, gameTimer, gameEventService);
     }
 
     @AfterEach
     void tearDown() {
         fallSystem.stop();
+        landingSystem.stop();
         entityData.close();
     }
 
@@ -102,6 +105,13 @@ class CreatureFallSystemTest {
         fallSystem.processTick(TURN);
 
         assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT, 4), entityData.getComponent(creature, Position.class).position);
+
+        // The landing is the game logic's
+        assertNotNull(entityData.getComponent(creature, CreatureFall.class));
+        assertNull(entityData.getComponent(creature, CreatureAi.class));
+
+        landingSystem.processTick(TURN);
+
         assertNull(entityData.getComponent(creature, CreatureFall.class));
         assertNotNull(entityData.getComponent(creature, CreatureAi.class));
     }
@@ -122,6 +132,12 @@ class CreatureFallSystemTest {
         EntityId creature = createThrownCreature(new Vector3f(0, 0, 0));
 
         fallSystem.processTick(TURN);
+
+        // The damage is given on the game logic thread, the health system works on it there
+        assertNull(entityData.getComponent(creature, Damage.class));
+        assertEquals(List.of(), effects);
+
+        landingSystem.processTick(TURN);
 
         assertEquals(50, entityData.getComponent(creature, Damage.class).damage);
         assertEquals(List.of(117), effects);
