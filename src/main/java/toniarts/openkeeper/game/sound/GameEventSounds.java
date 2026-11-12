@@ -104,6 +104,8 @@ public final class GameEventSounds {
                 addShotHit(sounds, event, kwdFile, subject);
             case IMPS_CREATED ->
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
+            case CALL_TO_ARMS_UNREACHABLE ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
             case TORTURE_ELECTROCUTED -> {
                 add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
                 add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,
@@ -121,6 +123,12 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.OBJECT_CREATE, event.position);
             case ROOM_SOLD ->
                 add(sounds, subject, ThingSounds.ROOM_SELL, event.position);
+            case ROOM_CAPTURED -> {
+                if (event.subjectKind == ThingFlag.ROOM) {
+                    add(sounds, SoundCategory.SPEECH_MENTOR,
+                            RoomCaptureSpeech.forRoom(kwdFile.getRoomById(event.subjectId)).getId(), null);
+                }
+            }
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
         }
