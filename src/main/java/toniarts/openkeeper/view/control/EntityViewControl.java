@@ -20,6 +20,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector2f;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
+import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityComponent;
@@ -32,6 +33,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Objects;
 import java.util.Set;
+import java.util.function.Consumer;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.DropValidator;
@@ -61,6 +63,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     protected final AssetManager assetManager;
     protected final EntityTextParser<T> textParser;
     protected boolean isAnimationPlaying = false;
+    private Consumer<Spatial> vertexLightingConfigurer;
 
     /**
      * The owner of an entity that has lost its owner, never a player's id
@@ -80,6 +83,23 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
         // Subscribe to the entity changes
         entity = entityData.watchEntity(entityId, compileWatchedComponents());
+    }
+
+    /**
+     * Registers the owner of this control's scene subtree to configure lighting
+     * when an animation replaces its model geometry.
+     *
+     * @param configurer callback to queue lighting setup for the supplied spatial
+     */
+    public final void setVertexLightingConfigurer(Consumer<Spatial> configurer) {
+        vertexLightingConfigurer = configurer;
+    }
+
+    /** Queues lighting setup for scene geometry added or replaced by this control. */
+    protected final void configureVertexLighting(Spatial target) {
+        if (vertexLightingConfigurer != null && target != null) {
+            vertexLightingConfigurer.accept(target);
+        }
     }
 
     /**

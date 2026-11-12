@@ -36,6 +36,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.IdentityHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -174,6 +175,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
+    private final Map<Spatial, Boolean> pendingVertexLighting = new IdentityHashMap<>();
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
@@ -269,13 +271,11 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.update();
         shotModelContainer.update();
 
-        // Lighting: re-derive attached-light positions and bind the
-        // vertex-lit models every frame -- lights on other things
-        // (a nearby flickering torch) change even for a thing that hasn't
-        // itself moved, so this can't rely on EntityContainer's own
-        // change-driven updateObject().
+        // Attached-light positions can change even when their owning entity
+        // is unchanged. Vertex material setup is queued when model geometry changes.
         LightRules lightRules = getLightRules();
         if (lightRules != null) {
+            applyPendingVertexLighting(lightRules);
             // Create missing thing lights and follow the (possibly moving)
             // owners: the local translation is what updateModelPosition just
             // set, whereas the world one lags a frame behind
@@ -283,25 +283,34 @@ public class PlayerEntityViewState extends AbstractAppState {
                 TrackedLight tracked = entry.getValue();
                 applyThingLight(entry.getKey(), tracked.spatial(), tracked.light(), tracked.intensity(), tracked.honourPulse(), tracked.objectLight());
             }
-            for (Spatial object : objectModelContainer.getModels()) {
-                // The parts of the dungeon heart take no light from objects
-                // (the heart's own glow, the arches' light), only from
-                // effects, the hand, creatures, etc.
-                ObjectViewControl control = object.getControl(ObjectViewControl.class);
-                int objectId = control != null ? control.getDataObject().getObjectId() : -1;
+        }
+    }
 
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+    private void applyPendingVertexLighting(LightRules lightRules) {
+        if (pendingVertexLighting.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<Spatial, Boolean> entry : pendingVertexLighting.entrySet()) {
+            Spatial spatial = entry.getKey();
+            if (spatial.getParent() != null) {
+                // Creatures take no room / terrain ambient colour; other world models do.
+                AssetUtils.applyVertexLight(assetManager, spatial, lightRules, false, entry.getValue());
             }
-            for (Spatial object : creatureModelContainer.getModels()) {
-                // Creatures take no room / terrain ambient colour, only lights
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false, false);
-            }
-            for (Spatial object : doorModelContainer.getModels()) {
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
-            }
-            for (Spatial object : trapModelContainer.getModels()) {
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
-            }
+        }
+        pendingVertexLighting.clear();
+    }
+
+    private void queueVertexLighting(Spatial spatial) {
+        queueVertexLighting(spatial, true);
+    }
+
+    private void queueCreatureVertexLighting(Spatial spatial) {
+        queueVertexLighting(spatial, false);
+    }
+
+    private void queueVertexLighting(Spatial spatial, boolean useTileAmbient) {
+        if (spatial != null) {
+            pendingVertexLighting.put(spatial, useTileAmbient);
         }
     }
 
@@ -322,6 +331,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
+        pendingVertexLighting.clear();
 
         // Detach entities
         rootNode.detachChild(root);
@@ -419,10 +429,11 @@ public class PlayerEntityViewState extends AbstractAppState {
                         ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
                 boolean uniqueCreatureBed = lairCreatureType != null
                         && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
+                ObjectViewControl control = new ObjectViewControl(e.getId(), entityData,
                         kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
                         textParser != null ? textParser.getObjectTextParser() : null, mapData,
                         uniqueCreatureBed);
+                control.setVertexLightingConfigurer(this::queueVertexLighting);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -434,6 +445,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = new Node("Wat"); // FIXME: Yeah...
         }
         nodeObjects.attachChild(result);
+        queueVertexLighting(result);
         return result;
     }
 
@@ -465,6 +477,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
                 CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                control.setVertexLightingConfigurer(this::queueCreatureVertexLighting);
                 control.setWaterCheck(this::isWater);
                 result.addControl(control);
 
@@ -479,6 +492,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = new Node("Wat"); // FIXME: Yeah...
         }
         nodeCreatures.attachChild(result);
+        queueCreatureVertexLighting(result);
         return result;
     }
 
@@ -496,7 +510,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (doorViewState != null) {
             Door door = kwdFile.getDoorById(doorViewState.doorId);
             result = doorLoader.load(assetManager, doorViewState);
-            EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, textParser != null ? textParser.getDoorTextParser() : null, kwdFile.getObject(door.getKeyObjectId()));
+            DoorViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, textParser != null ? textParser.getDoorTextParser() : null, kwdFile.getObject(door.getKeyObjectId()));
+            control.setVertexLightingConfigurer(this::queueVertexLighting);
             result.addControl(control);
 
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
@@ -509,6 +524,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = new Node("Wat"); // FIXME: Yeah...
         }
         nodeDoors.attachChild(result);
+        queueVertexLighting(result);
         return result;
     }
 
@@ -526,7 +542,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (trapViewState != null) {
             Trap trap = kwdFile.getTrapById(trapViewState.trapId);
             result = trapLoader.load(assetManager, trapViewState);
-            EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager, textParser != null ? textParser.getTrapTextParser() : null);
+            TrapViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager, textParser != null ? textParser.getTrapTextParser() : null);
+            control.setVertexLightingConfigurer(this::queueVertexLighting);
             result.addControl(control);
 
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);
@@ -539,6 +556,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             result = new Node("Wat"); // FIXME: Yeah...
         }
         nodeTraps.attachChild(result);
+        queueVertexLighting(result);
         return result;
     }
 
@@ -801,6 +819,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private void removeModel(Spatial spatial, Entity e) {
         spatial.removeFromParent();
+        pendingVertexLighting.remove(spatial);
 
         // Stop driving the light first, or update() would re-create it
         trackedLights.remove(e.getId());
@@ -858,10 +877,6 @@ public class PlayerEntityViewState extends AbstractAppState {
             removeModel(object, e);
         }
 
-        Spatial[] getModels() {
-            return getArray();
-        }
-
     }
 
     /**
@@ -891,10 +906,6 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
-        }
-
-        Spatial[] getModels() {
-            return getArray();
         }
 
     }
@@ -928,10 +939,6 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void removeObject(Spatial object, Entity e) {
             removeModel(object, e);
             notifyTerrainOfDoor(e, false);
-        }
-
-        Spatial[] getModels() {
-            return getArray();
         }
 
         /**
@@ -978,9 +985,6 @@ public class PlayerEntityViewState extends AbstractAppState {
             removeModel(object, e);
         }
 
-        Spatial[] getModels() {
-            return getArray();
-        }
     }
 
     /**

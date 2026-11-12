@@ -134,6 +134,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private void playAnimation(Creature.AnimationType animation) {
         AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
+        configureVertexLighting(getSpatial());
         if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
