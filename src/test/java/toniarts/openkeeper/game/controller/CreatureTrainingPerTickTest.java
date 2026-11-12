@@ -96,7 +96,7 @@ class CreatureTrainingPerTickTest {
                             new Class<?>[]{GameEventService.class}, (p, m, a) -> null);
                     default -> null;
                 });
-        CreaturesController controller = new CreaturesController(kwdFile, entityData, Map.of(), null, gameController, null, null);
+        CreaturesController controller = new CreaturesController(kwdFile, entityData, Map.of(), null, gameController, null, null, null);
 
         EntityId entityId = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();

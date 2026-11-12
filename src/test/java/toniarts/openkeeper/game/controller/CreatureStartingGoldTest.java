@@ -51,7 +51,7 @@ class CreatureStartingGoldTest {
     private final Creature imp = CreatureGoldFixtures.goldCreature(IMP_ID, MAX_GOLD, INITIAL_GOLD);
     private final Creature knight = CreatureGoldFixtures.goldCreature(KNIGHT_ID, MAX_GOLD, INITIAL_GOLD);
     private final CreaturesController controller = new CreaturesController(kwdFile(), entityData,
-            Collections.emptyMap(), stub(IGameTimer.class), gameController(), stub(IMapController.class), null);
+            Collections.emptyMap(), stub(IGameTimer.class), gameController(), stub(IMapController.class), null, null);
 
     @Test
     void placedKeeperCreatureWithoutGoldCarriesNone() {
