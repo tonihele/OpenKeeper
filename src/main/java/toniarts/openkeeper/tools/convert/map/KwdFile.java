@@ -2195,32 +2195,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                     break;
                 }
                 case THING_EFFECT_GENERATOR: {
-
-                    // Effect generator
-                    thing = new Thing.EffectGenerator();
-                    ((Thing.EffectGenerator) thing).setPosX(reader.readInteger());
-                    ((Thing.EffectGenerator) thing).setPosY(reader.readInteger());
-                    ((Thing.EffectGenerator) thing).setX08(reader.readInteger());
-                    ((Thing.EffectGenerator) thing).setX0c(reader.readInteger());
-                    ((Thing.EffectGenerator) thing).setX10(reader.readUnsignedShort());
-                    ((Thing.EffectGenerator) thing).setX12(reader.readUnsignedShort());
-                    List<Integer> effectIds = new ArrayList<>(4);
-                    for (int x = 0; x < 4; x++) {
-                        int effectId = reader.readUnsignedShort();
-                        if (effectId > 0) {
-                            effectIds.add(effectId);
-                        }
-                    }
-                    ((Thing.EffectGenerator) thing).setEffectIds(effectIds);
-                    ((Thing.EffectGenerator) thing).setFrequency(reader.readUnsignedByte());
-                    ((Thing.EffectGenerator) thing).setId(reader.readUnsignedByte());
-                    short[] pad = new short[6];
-                    for (int x = 0; x < pad.length; x++) {
-                        pad[x] = reader.readUnsignedByte();
-                    }
-                    ((Thing.EffectGenerator) thing).setPad(pad);
-
-                    addThing((Thing.EffectGenerator) thing);
+                    addThing(readEffectGenerator(reader));
                     break;
                 }
                 case THING_ROOM: {
@@ -2282,6 +2257,32 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             // Check reader offset
             checkOffset(thingTag[1], reader, offset);
         }
+    }
+
+    /** Reads all four generator slots, including the empty ones used by random selection. */
+    static Thing.EffectGenerator readEffectGenerator(IResourceChunkReader reader) throws IOException {
+        var thing = new Thing.EffectGenerator();
+        thing.setPosX(reader.readInteger());
+        thing.setPosY(reader.readInteger());
+        thing.setX08(reader.readInteger());
+        thing.setX0c(reader.readInteger());
+        thing.setWidth(reader.readUnsignedShort());
+        thing.setHeight(reader.readUnsignedShort());
+        List<Integer> effectIds = new ArrayList<>(4);
+        for (int x = 0; x < 4; x++) {
+            int effectId = reader.readUnsignedShort();
+            effectIds.add(effectId);
+        }
+        thing.setEffectIds(effectIds);
+        thing.setFrequency(reader.readUnsignedByte());
+        thing.setId(reader.readUnsignedByte());
+        short[] pad = new short[6];
+        for (int x = 0; x < pad.length; x++) {
+            pad[x] = reader.readUnsignedByte();
+        }
+        thing.setPad(pad);
+
+        return thing;
     }
 
     private <T extends Thing> void addThing(T thing) {

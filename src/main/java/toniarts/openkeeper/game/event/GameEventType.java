@@ -74,6 +74,8 @@ public enum GameEventType {
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
+    /** A completed room capture, delivered only to its new owner. */
+    ROOM_CAPTURED,
     TERRAIN_DESTROYED,
 
     // Temple
