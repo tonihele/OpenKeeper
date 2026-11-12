@@ -44,6 +44,7 @@ public enum TaskType {
     TRAIN,
     MANUFACTURE,
     PRAY,
+    GUARD,
     FETCH_CORPSE,
     CARRY_CORPSE_TO_GRAVEYARD
 }
