@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -43,6 +44,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -64,6 +66,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
@@ -78,9 +81,12 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.CollectPay;
+import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Manufacture;
+import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -703,6 +709,21 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
                         playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
             }
+            case WORSHIPPER -> {
+                return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
+            }
+            case GUARD -> {
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                        (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        FastMath.rand);
+            }
+            case GAMBLER -> {
+                return new Gamble(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
+                        gameWorldController, objectsController, gameSettings,
+                        room instanceof CasinoController casino ? casino::getPayOut : () -> Casino.PayOut.SMILES,
+                        FastMath.rand);
+            }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
                 return null;
@@ -828,6 +849,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case MANUFACTURE: {
                 return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
+            }
+            case PRAY: {
+                return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
+            }
+            case GUARD: {
+                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
+            }
+            case DRINK: {
+                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
             default:
                 return false;
