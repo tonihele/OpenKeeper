@@ -606,6 +606,10 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public ICreatureController getAttackTarget() {
+        CreatureComponent attributes = entityData.getComponent(entityId, CreatureComponent.class);
+        if (attributes != null && attributes.fightDisabled) {
+            return null;
+        }
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         ICreatureController attackTargetController = null;
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
@@ -1649,6 +1653,17 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void setFightEnabled(boolean enabled) {
+        CreatureComponent attributes = entityData.getComponent(entityId, CreatureComponent.class);
+        if (attributes == null) {
+            return;
+        }
+        CreatureComponent updated = new CreatureComponent(attributes);
+        updated.fightDisabled = !enabled;
+        entityData.setComponent(entityId, updated);
     }
 
     @Override

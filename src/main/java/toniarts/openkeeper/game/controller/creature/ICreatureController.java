@@ -301,6 +301,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isRecuperating();
 
     /**
+     * Enables or disables ordinary autonomous fighting for this creature.
+     * Does not change fear, enemy targetability or explicitly directed attacks.
+     *
+     * @param enabled whether normal AI may select an attack target
+     */
+    void setFightEnabled(boolean enabled);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven
