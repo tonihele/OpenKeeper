@@ -76,5 +76,7 @@ public enum GameEventType {
     ROOM_SOLD,
     /** A completed room capture, delivered only to its new owner. */
     ROOM_CAPTURED,
+    /** Level countdown warning; subjectId is the remaining time in seconds. */
+    TIME_LIMIT_WARNING,
     TERRAIN_DESTROYED
 }
