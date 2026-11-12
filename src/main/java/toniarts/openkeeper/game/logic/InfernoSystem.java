@@ -48,7 +48,8 @@ public final class InfernoSystem implements IGameLogicUpdatable {
         this.entityPositionLookup = entityPositionLookup;
         this.kwdFile = kwdFile;
 
-        fires = entityData.getEntities(InfernoArea.class, Position.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        fires = entityData.getEntities(InfernoArea.class);
     }
 
     @Override
@@ -56,8 +57,12 @@ public final class InfernoSystem implements IGameLogicUpdatable {
         fires.applyChanges();
 
         for (Entity fire : fires) {
+            Position position = entityData.getComponent(fire.getId(), Position.class);
+            if (position == null) {
+                continue;
+            }
             InfernoArea area = fire.get(InfernoArea.class);
-            burn(area, fire.get(Position.class).position);
+            burn(area, position.position);
             entityData.setComponent(fire.getId(), new InfernoArea(area.damage, area.radius, area.burns + 1));
         }
     }

@@ -49,7 +49,8 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
         this.gameTimer = gameTimer;
         this.gameEventService = gameEventService;
 
-        fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        fallEntities = entityData.getEntities(CreatureFall.class, CreatureComponent.class);
     }
 
     @Override
@@ -59,10 +60,13 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (Entity entity : fallEntities) {
-            Position position = entity.get(Position.class);
+            Position position = entityData.getComponent(entity.getId(), Position.class);
+            if (position == null) {
+                continue;
+            }
             Position newPosition = new Position(position.rotation, position.position);
             newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
-            entity.set(newPosition);
+            entityData.setComponent(entity.getId(), newPosition);
             if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
 
                 // We'll just remove this and add the AI

@@ -58,7 +58,9 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
         this.mapController = mapController;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
-        possessedEntities = entityData.getEntities(Possessed.class, PossessedMovement.class, Position.class);
+
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        possessedEntities = entityData.getEntities(Possessed.class, PossessedMovement.class);
     }
 
     @Override
@@ -67,7 +69,10 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
 
         for (Entity entity : possessedEntities) {
             PossessedMovement movement = entity.get(PossessedMovement.class);
-            Position position = entity.get(Position.class);
+            Position position = entityData.getComponent(entity.getId(), Position.class);
+            if (position == null) {
+                continue;
+            }
             Vector3f newPosition = position.position.clone();
             if (!movement.direction.equals(Vector2f.ZERO)) {
                 INavigable navigable = creaturesController.createController(entity.getId());

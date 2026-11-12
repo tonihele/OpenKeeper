@@ -63,7 +63,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
 
-        creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        creatureViewEntities = entityData.getEntities(CreatureViewState.class);
         processAddedEntities(creatureViewEntities);
     }
 
@@ -78,6 +79,9 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
         // Process ticks
         for (EntityId entityId : creatureEntities.getArray()) {
+            if (entityData.getComponent(entityId, Position.class) == null) {
+                continue;
+            }
 
             // Determine what animation to show
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);

@@ -45,8 +45,9 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
         this.creaturesController = creaturesController;
         this.mapInformation = mapInformation;
 
-        // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
-        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
+        // Mind the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
+        // It is read per tick instead of being in the set, a set gets every change of its components, and Position changes with every step of every creature
+        torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Owner.class);
     }
 
     @Override
@@ -57,8 +58,9 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
         // Process ticks
         for (Entity entity : torturedEntities) {
+            Position position = entityData.getComponent(entity.getId(), Position.class);
             CreatureTortured creatureTortured = entity.get(CreatureTortured.class);
-            if (creatureTortured.tortureCheckTime >= timeElapsed) {
+            if (position == null || creatureTortured.tortureCheckTime >= timeElapsed) {
                 continue;
             }
 
@@ -66,7 +68,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             if (creatureTortured.timeTortured + tpf >= creatureComponent.tortureTimeToConvert) {
 
                 Owner owner = entity.get(Owner.class);
-                short playerId = mapInformation.getMapData().getTile(WorldUtils.vectorToPoint(entity.get(Position.class).position)).getOwnerId();
+                short playerId = mapInformation.getMapData().getTile(WorldUtils.vectorToPoint(position.position)).getOwnerId();
                 if (owner.ownerId != playerId) {
 
                     // Convert!
