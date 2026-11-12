@@ -121,6 +121,17 @@ class CreatureWorkExperienceTest {
         assertEquals(9 * IMP_EXPERIENCE_GAIN_PER_SECOND, experience(imp));
     }
 
+    @Test
+    void levelUpDropsTheExperienceOverTheNeed() {
+        EntityId imp = worker(IMP, TaskType.CLAIM_TILE);
+        entityData.setComponent(imp, new CreatureExperience(8, 21590, 21600, DWARF_EXPERIENCE_PER_SECOND, 40));
+
+        tenSeconds();
+
+        assertEquals(9, levelUps.get(0)[1]);
+        assertEquals(0, levelUps.get(0)[2], "The 20 over the need are not carried into the next level");
+    }
+
     /**
      * The first tick only starts the clock, so ten seconds give experience
      * nine times
