@@ -1542,19 +1542,24 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isHungry() {
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
-        if (creatureHunger != null) {
-            if (creatureHunger.amountNeeded > 0) {
-                return true;
-            } else if (gameTimer.getGameTime() - creatureHunger.lastEatTime >= creature.getAttributes().getHungerRate()) {
-
-                // We are hungry now, mark the amount of food we need
-                makeHungry(creatureHunger);
-
-                return true;
-            }
+        if (creatureHunger == null) {
+            return false;
         }
 
-        return false;
+        // Every hunger rate seconds without a meal adds another meal to the need, and the clock starts again
+        float hungerRate = creature.getAttributes().getHungerRate();
+        int mealsMissed = hungerRate > 0 ? (int) ((gameTimer.getGameTime() - creatureHunger.lastEatTime) / hungerRate) : 0;
+        if (mealsMissed > 0) {
+            CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+            CreatureHunger updated = new CreatureHunger(creatureHunger.lastEatTime + mealsMissed * hungerRate,
+                    creatureHunger.amountNeeded + mealsMissed * creatureComponent.hungerFill);
+            updated.lastEatAttemptTime = creatureHunger.lastEatAttemptTime;
+            entityData.setComponent(entityId, updated);
+
+            return true;
+        }
+
+        return creatureHunger.amountNeeded > 0;
     }
 
     @Override
@@ -1587,12 +1592,10 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void sate() {
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
-        if (creatureHunger.amountNeeded == 1) {
+        if (creatureHunger.amountNeeded > 0) {
 
-            // We are full
-            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
-        } else if (creatureHunger.amountNeeded > 0) {
-            entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureHunger.amountNeeded - 1));
+            // Every chicken starts the hunger clock again
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), creatureHunger.amountNeeded - 1));
         }
 
         // Increase health
