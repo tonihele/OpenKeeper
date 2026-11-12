@@ -32,6 +32,11 @@ public final class CreatureHunger implements EntityComponent {
      */
     public int amountNeeded;
 
+    /**
+     * Game time of the last try to go eat
+     */
+    public double lastEatAttemptTime = Double.NEGATIVE_INFINITY;
+
     public CreatureHunger() {
         // For serialization
     }

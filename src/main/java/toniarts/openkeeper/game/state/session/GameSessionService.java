@@ -33,11 +33,12 @@ import toniarts.openkeeper.game.listener.PlayerListener;
 public interface GameSessionService extends PlayerListener, PlayerService {
 
     /**
-     * Get the entity data
+     * Get the server's entity data, the game logic reads and writes it. The
+     * clients get theirs from {@link GameSession#getEntityData()}
      *
      * @return the entity data
      */
-    public EntityData getEntityData();
+    public EntityData getServerEntityData();
 
     /**
      * Sends the game data to the clients to allow them to load it up visually

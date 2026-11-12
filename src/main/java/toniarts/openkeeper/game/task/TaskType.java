@@ -42,6 +42,7 @@ public enum TaskType {
     RESCUE_CREATURE,
     GO_TO_EAT,
     TRAIN,
+    MANUFACTURE,
     FETCH_CORPSE,
     CARRY_CORPSE_TO_GRAVEYARD
 }
