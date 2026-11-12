@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
@@ -64,6 +65,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -388,6 +390,23 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void asksTheTaskForItsTargetOnceAndOnlyWhenStopped() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+            f.targetQueries = 0;
+
+            // On its way, a task may search a path for its target
+            f.data.setComponent(f.entity, new Navigation(new Point(3, 4), null, List.of()));
+            assertFalse(f.controller.isAtAssignedTaskTarget());
+            assertEquals(0, f.targetQueries);
+
+            f.data.removeComponent(f.entity, Navigation.class);
+            assertTrue(f.controller.isAtAssignedTaskTarget());
+            assertEquals(1, f.targetQueries);
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data = new DefaultEntityData();
         final EntityId entity = data.createEntity();
@@ -409,6 +428,7 @@ class CreatureControllerTest {
         final List<Double> eatAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
         int oldJobUnassignments;
+        int targetQueries;
         double time;
 
         Fixture(int timeSleep) {
@@ -494,7 +514,7 @@ class CreatureControllerTest {
                 case "getId" -> id;
                 case "getTaskType" -> type;
                 case "isValid" -> true;
-                case "getTarget" -> new Vector2f(3, 4);
+                case "getTarget" -> { targetQueries++; yield new Vector2f(3, 4); }
                 case "getWorkPosition" -> null;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
