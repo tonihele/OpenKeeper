@@ -307,8 +307,10 @@ public final class AssetUtils {
      * Lights a model per vertex, like the floor it stands on: sets up its
      * {@code Vertex} materials for a thing (no rock floor) and hooks them
      * up to the shared light data. Materials still on {@code Flat} (old
-     * generated material files) are swapped once. Call once per frame, as the
-     * ambient map may only exist after the first call.
+     * generated material files) are swapped once. Call when the model's
+     * geometry or materials are created or replaced, after the map ambient
+     * texture is available. The shared light data is updated separately by
+     * {@link LightRules#update(float, com.jme3.renderer.Camera)}.
      *
      * @param ignoreObjectLights true to leave out the lights carried by game
      * objects
