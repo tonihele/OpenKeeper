@@ -34,6 +34,10 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+            if (entity.isCombatPitFighter()) {
+                entity.getStateMachine().changeState(COMBAT_PIT);
+                return;
+            }
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
@@ -94,9 +98,10 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it.
+            // The Casino is only a fallback for a creature that could not start any of its jobs, as in the original
             entity.findWork((foundWork) -> {
-                if (foundWork) {
+                if (foundWork || entity.goGambling()) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
@@ -107,6 +112,10 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+            if (entity.isCombatPitFighter()) {
+                entity.getStateMachine().changeState(COMBAT_PIT);
+                return;
+            }
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
@@ -225,7 +234,8 @@ public enum CreatureState implements State<ICreatureController> {
             // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
-                    || task.getTaskType() == TaskType.RESEARCH)
+                    || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.GAMBLE)
                     && ((entity.isHungry() && entity.goToEat())
                     || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
@@ -277,7 +287,7 @@ public enum CreatureState implements State<ICreatureController> {
         public void update(ICreatureController entity) {
             ICreatureController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
-                entity.getStateMachine().changeState(IDLE); // Nothing to do
+                entity.getStateMachine().changeState(entity.isCombatPitFighter() ? COMBAT_PIT : IDLE); // Nothing to do
                 return;
             }
 
@@ -692,6 +702,36 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.getStateMachine().changeState(CreatureState.IDLE);
             }
 
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, COMBAT_PIT {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Wait in the pit for someone to fight, now and then walking to another spot in it
+            if (!entity.isCombatPitFighter()) {
+                entity.getStateMachine().changeState(IDLE);
+            } else if (entity.getAttackTarget() != null) {
+                entity.getStateMachine().changeState(FIGHT);
+            } else if (entity.isTimeToReEvaluate()) {
+                entity.resetReEvaluationTimer();
+                entity.navigateToRandomPointInCombatPit();
+            }
         }
 
         @Override
