@@ -84,6 +84,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -407,6 +408,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Terrain terrain = kwdFile.getTerrain(tile.getTerrainId());
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
             return getRoomTooltip(tile, terrain);
+        }
+
+        // Text 0 is "Jelly", the terrains that have it have no tooltip
+        if (terrain.getTooltipStringId() == 0) {
+            return "";
         }
 
         return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
@@ -902,9 +908,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
+        int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner);
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
     }
 
     private Set<Point> getConstructionBlockingTiles() {
@@ -1020,6 +1027,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 case SELL, ROOM, DOOR, TRAP -> true;
                 default -> false;
             };
+        }
+
+        @Override
+        protected TerrainDeformer getDeformer() {
+            PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+            return mapViewState != null ? mapViewState.getTerrainDeformer() : null;
         }
 
         @Override
