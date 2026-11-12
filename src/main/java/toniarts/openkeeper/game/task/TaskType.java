@@ -43,6 +43,7 @@ public enum TaskType {
     GO_TO_EAT,
     TRAIN,
     MANUFACTURE,
+    PRAY,
     FETCH_CORPSE,
     CARRY_CORPSE_TO_GRAVEYARD
 }
