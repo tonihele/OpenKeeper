@@ -103,6 +103,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 gems;
+            case "getThings" ->
+                List.of();
             default ->
                 throw new UnsupportedOperationException(name);
         });
