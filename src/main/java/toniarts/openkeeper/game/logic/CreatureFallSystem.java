@@ -19,19 +19,14 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
-import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.event.GameEventService;
-import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Handles creature falling (dropped from hand). In the future maybe all these would be handled by a physics
- * thingie?
+ * thingie? This only brings the creature down, the {@link CreatureLandingSystem} lands it.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -39,16 +34,9 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
 
     private static final float GRAVITY = 2.0f;
 
-    private final EntityData entityData;
-    private final IGameTimer gameTimer;
-    private final GameEventService gameEventService;
     private final EntitySet fallEntities;
 
-    public CreatureFallSystem(EntityData entityData, IGameTimer gameTimer, GameEventService gameEventService) {
-        this.entityData = entityData;
-        this.gameTimer = gameTimer;
-        this.gameEventService = gameEventService;
-
+    public CreatureFallSystem(EntityData entityData) {
         fallEntities = entityData.getEntities(CreatureFall.class, Position.class, CreatureComponent.class);
     }
 
@@ -60,24 +48,14 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
         // Process ticks
         for (Entity entity : fallEntities) {
             Position position = entity.get(Position.class);
+            if (position.position.y <= WorldUtils.FLOOR_HEIGHT) {
+
+                // Down already, waiting for the game logic to land it
+                continue;
+            }
             Position newPosition = new Position(position.rotation, position.position);
             newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
             entity.set(newPosition);
-            if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
-
-                // We'll just remove this and add the AI
-                entityData.removeComponent(entity.getId(), CreatureFall.class);
-
-                // The landing, on touchdown (hand drops and conjured creatures alike)
-                gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
-
-                // Preserve any requested AI target through landing and get-up.
-                // The state, depending on the landing
-                CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                CreatureAi ai = entityData.getComponent(entity.getId(), CreatureAi.class);
-                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId,
-                        ai == null ? null : ai.getTargetState()));
-            }
         }
     }
 
