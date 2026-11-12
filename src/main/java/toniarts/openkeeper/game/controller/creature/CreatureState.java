@@ -87,6 +87,13 @@ public enum CreatureState implements State<ICreatureController> {
                 return; // Found work
             }
 
+            // See if we are owed pay
+            if (entity.goToCollectPay()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return; // Found work
+            }
+
             // A full worker unloads its gold before it takes on new work
             if (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
@@ -115,6 +122,12 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Native hunger is checked every tick, not only when re-evaluating
             if (entity.isHungry() && entity.goToEat()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                return;
+            }
+
+            // So is the pay
+            if (entity.goToCollectPay()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
                 return;
             }
@@ -230,6 +243,15 @@ public enum CreatureState implements State<ICreatureController> {
                     || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
                 // unassign the newly selected eat or sleep task.
+                entity.navigateToAssignedTask();
+                return;
+            }
+
+            // Pay day takes a creature out of any room job, the Workshop included
+            if (task != null && (task.getTaskType() == TaskType.TRAIN
+                    || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.MANUFACTURE)
+                    && entity.goToCollectPay()) {
                 entity.navigateToAssignedTask();
                 return;
             }

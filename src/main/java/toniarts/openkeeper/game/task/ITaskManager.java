@@ -101,6 +101,15 @@ public interface ITaskManager {
     boolean assignEatTask(ICreatureController creature);
 
     /**
+     * Sends the creature to collect its pay from the nearest of its keeper's
+     * gold rooms that holds gold and that it can reach
+     *
+     * @param creature the creature that is owed pay
+     * @return true if the task was assigned
+     */
+    boolean assignCollectPayTask(ICreatureController creature);
+
+    /**
      * Adds a creature to unemployment queue. You need to separately process the
      * queue
      *
