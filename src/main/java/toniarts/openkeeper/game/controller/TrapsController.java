@@ -24,6 +24,7 @@ import java.lang.System.Logger.Level;
 import java.util.Map;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
@@ -108,17 +109,9 @@ public final class TrapsController implements ITrapsController {
         pos.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
-        Trap trap = kwdFile.getTrapById(trapId);
-
         // Health and threat
         if (!blueprint) {
-            entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
-            entityData.setComponent(entity, new Threat(trap.getThreat()));
-
-            // Regeneration
-            if (trap.getHealthGain() > 0) {
-                entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
-            }
+            setArmed(entity, kwdFile.getTrapById(trapId));
         }
 
         // Add some interaction properties
@@ -128,6 +121,33 @@ public final class TrapsController implements ITrapsController {
         entityData.setComponent(entity, new TrapViewState(trapId, blueprint));
 
         return entity;
+    }
+
+    private void setArmed(EntityId entity, Trap trap) {
+        entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
+        entityData.setComponent(entity, new Threat(trap.getThreat()));
+
+        // Regeneration
+        if (trap.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
+        }
+
+        // An armed trap costs its owner mana every second, whether it needs mana to fire or not (DKII.EXE 0x4A96D0,
+        // 0x4C1B60). The upkeep goes with the trap entity
+        if (trap.getManaUsage() > 0) {
+            entityData.setComponent(entity, new Mana(-trap.getManaUsage()));
+        }
+    }
+
+    @Override
+    public void armTrap(EntityId blueprint) {
+        TrapViewState viewState = entityData.getComponent(blueprint, TrapViewState.class);
+        if (viewState == null || !viewState.blueprint) {
+            return;
+        }
+
+        setArmed(blueprint, kwdFile.getTrapById(viewState.trapId));
+        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false));
     }
 
     @Override
