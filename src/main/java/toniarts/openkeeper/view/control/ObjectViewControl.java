@@ -38,6 +38,8 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -54,19 +56,29 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
-        this(entityId, entityData, data, state, assetManager, textParser, null, false);
+        this(entityId, entityData, data, state, assetManager, textParser, null, false,
+                NoOpMaterialProvider.INSTANCE);
     }
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
             IMapDataInformation<? extends IMapTileInformation> mapData) {
-        this(entityId, entityData, data, state, assetManager, textParser, mapData, false);
+        this(entityId, entityData, data, state, assetManager, textParser, mapData, false,
+                NoOpMaterialProvider.INSTANCE);
     }
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
             IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed) {
-        super(entityId, entityData, data, state, assetManager, textParser);
+        this(entityId, entityData, data, state, assetManager, textParser, mapData, uniqueCreatureBed,
+                NoOpMaterialProvider.INSTANCE);
+    }
+
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
+            AssetManager assetManager, EntityTextParser<GameObject> textParser,
+            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed,
+            MaterialProvider materialProvider) {
+        super(entityId, entityData, data, state, assetManager, textParser, materialProvider);
         this.mapData = mapData;
         this.uniqueCreatureBed = uniqueCreatureBed;
     }
@@ -222,6 +234,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     private void playAnimation(ObjectViewState viewState) {
         AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
+        invalidateMaterialSetup();
         if (uniqueCreatureBed) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }

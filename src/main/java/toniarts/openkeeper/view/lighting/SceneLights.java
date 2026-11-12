@@ -87,6 +87,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     private volatile Texture2D ambientMap;
     private int ambientMapWidth;
     private int ambientMapHeight;
+    private volatile long materialBindingRevision;
 
     public SceneLights() {
         int width = 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
@@ -288,6 +289,12 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         ambientMap = texture;
         ambientMapWidth = width;
         ambientMapHeight = height;
+        materialBindingRevision++;
+    }
+
+    /** Changes when a previously unavailable material texture becomes bindable. */
+    public long getMaterialBindingRevision() {
+        return materialBindingRevision;
     }
 
     /**

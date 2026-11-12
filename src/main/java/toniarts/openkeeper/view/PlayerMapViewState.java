@@ -49,6 +49,8 @@ import toniarts.openkeeper.view.map.MapTileContainer;
 import toniarts.openkeeper.view.map.MapTileEffectTracker;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.TerrainDeformer;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProvider;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -70,6 +72,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final MapViewController mapLoader;
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
+    private final MaterialProvider materialProvider;
     private final MapTileContainer mapTileContainer;
     private Node worldNode;
     private final EffectManagerState effectManager;
@@ -98,9 +101,18 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     };
 
     protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
+        this(app, kwdFile, assetManager, players, entityData, playerId, ceilingEnabled,
+                loadCompleteNotifier, enemySightedNotifier, new JmeMaterialProvider(assetManager));
+    }
+
+    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager,
+            Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled,
+            ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier,
+            MaterialProvider materialProvider) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.materialProvider = java.util.Objects.requireNonNull(materialProvider, "materialProvider");
 
         // We don't update anything until the map has loaded, we enable ourselves then
         setEnabled(false);
@@ -161,11 +173,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                 this::updateTiles, enemySightedNotifier);
 
         // Effect manager
-        effectManager = new EffectManagerState(kwdFile, assetManager);
+        effectManager = new EffectManagerState(kwdFile, assetManager, materialProvider);
 
         // Create the actual map
         mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId,
-                Main.getUserSettings().getBoolean(Settings.Setting.TORCHES_ENABLED), ceilingEnabled) {
+                Main.getUserSettings().getBoolean(Settings.Setting.TORCHES_ENABLED), ceilingEnabled,
+                materialProvider) {
 
             @Override
             protected void updateProgress(float progress) {

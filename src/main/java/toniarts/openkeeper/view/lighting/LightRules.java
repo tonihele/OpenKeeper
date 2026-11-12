@@ -175,6 +175,14 @@ public final class LightRules {
     }
 
     /**
+     * Returns the revision of shared material textures. A provider uses this
+     * to rebind cached spatial setups after the ambient map is initialized.
+     */
+    public long getMaterialBindingRevision() {
+        return sceneLights.getMaterialBindingRevision();
+    }
+
+    /**
      * The "flat" sample for a thing/effect's material. Callers own re-deriving {@code worldPos} each frame
      * from the owner's current position + light offset.
      */

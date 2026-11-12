@@ -43,6 +43,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.material.MaterialProvider;
 
 /**
  * Don't let the name fool you, this bad boy also handles lava construction. The
@@ -91,6 +92,12 @@ public final class Water {
      */
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances,
             TerrainDeformer deformer) {
+        return construct(assetManager, entityInstances, deformer, null);
+    }
+
+    /** Construct water/lava using the supplied material provider when present. */
+    public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances,
+            TerrainDeformer deformer, MaterialProvider materialProvider) {
         boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
         Mesh mesh = createMesh(entityInstances, (water && WATER_TYPE == WaterType.SIMPLE), deformer);
 
@@ -139,7 +146,9 @@ public final class Water {
         // Light it like the terrain (the caller registers the material with
         // the scene lights)
         if (mat != null && !(water && WATER_TYPE == WaterType.SIMPLE)) {
-            mat = AssetUtils.createDkSurfaceMaterial(assetManager, mat);
+            mat = materialProvider != null
+                    ? materialProvider.createDkSurfaceMaterial(mat)
+                    : AssetUtils.createDkSurfaceMaterial(assetManager, mat);
         }
 
         // Set it all

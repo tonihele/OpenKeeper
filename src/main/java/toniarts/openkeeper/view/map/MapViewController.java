@@ -45,6 +45,8 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.lighting.LightSource;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProvider;
 import toniarts.openkeeper.view.loader.ILoader;
 import toniarts.openkeeper.game.map.WallSection;
 import toniarts.openkeeper.game.map.WallSection.WallDirection;
@@ -132,6 +134,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final Set<Point> pillarDirtyTiles = new HashSet<>(); // Tiles around pillars that changed since built
     private final Map<String, Material> randomTextureMaterials = new HashMap<>(); // Alternative terrain materials by asset name, configured once and reused
     private final LightRules lightRules;
+    private final MaterialProvider materialProvider;
     private final boolean litSolidTerrain;
     private boolean terrainAmbientEnabled = LightConstants.TERRAIN_AMBIENT_ENABLED;
 
@@ -145,6 +148,14 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled, false, ceilingEnabled);
     }
 
+    /** Map viewer constructor with an injected material service. */
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled,
+            boolean ceilingEnabled, MaterialProvider materialProvider) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled,
+                false, ceilingEnabled, materialProvider);
+    }
+
     /**
      * Map viewer set-up: no fog of war, and solid rock lit like any other tile
      * (minimum ambient floor) instead of staying black where no light reaches.
@@ -154,12 +165,28 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         this(assetManager, kwdFile, mapClientService, IFogOfWarInformation.ALWAYS_VISIBLE, playerId, torchesEnabled, litSolidTerrain, ceilingEnabled);
     }
 
+    /** Model-viewer constructor with an injected material provider. */
+    protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            short playerId, boolean torchesEnabled, boolean litSolidTerrain, boolean ceilingEnabled,
+            MaterialProvider materialProvider) {
+        this(assetManager, kwdFile, mapClientService, IFogOfWarInformation.ALWAYS_VISIBLE, playerId,
+                torchesEnabled, litSolidTerrain, ceilingEnabled, materialProvider);
+    }
+
     private MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled,
             boolean litSolidTerrain, boolean ceilingEnabled) {
+        this(assetManager, kwdFile, mapClientService, fogOfWarInformation, playerId, torchesEnabled,
+                litSolidTerrain, ceilingEnabled, new JmeMaterialProvider(assetManager));
+    }
+
+    private MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
+            IFogOfWarInformation fogOfWarInformation, short playerId, boolean torchesEnabled,
+            boolean litSolidTerrain, boolean ceilingEnabled, MaterialProvider materialProvider) {
         this.litSolidTerrain = litSolidTerrain;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.materialProvider = java.util.Objects.requireNonNull(materialProvider, "materialProvider");
         this.mapClientService = mapClientService;
         this.fogOfWarInformation = fogOfWarInformation;
         this.playerId = playerId;
@@ -385,7 +412,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (batches.isEmpty()) {
             return null;
         }
-        Spatial surface = Water.construct(assetManager, batches, deformer);
+        Spatial surface = Water.construct(assetManager, batches, deformer, materialProvider);
         if (surface instanceof Geometry geometry && AssetUtils.isVertexMaterial(geometry.getMaterial())) {
             lightRules.bindMaterials(List.of(geometry.getMaterial()));
         }
@@ -465,7 +492,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             CeilingBatchKey key = batch.getKey();
             Geometry ceilingGeometry = Ceiling.construct(assetManager,
                     batchTerrain.get(key), batchResource.get(key), batch.getValue(), deformer,
-                    pillarTiles, clearanceSamples);
+                    pillarTiles, clearanceSamples, materialProvider);
             surface.attachChild(ceilingGeometry);
             ceilingMaterials.add(ceilingGeometry.getMaterial());
         }
@@ -1511,7 +1538,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
      * @param roomInstance the room instance
      */
     private Spatial handleRoom(RoomInstance roomInstance) {
-        RoomConstructor roomConstructor = RoomFactory.constructRoom(roomInstance, assetManager, kwdFile);
+        RoomConstructor roomConstructor = RoomFactory.constructRoom(roomInstance, assetManager, kwdFile, materialProvider);
         roomActuals.put(roomInstance, roomConstructor);
         updateRoomWalls(roomInstance);
         if (roomConstructor != null) {
@@ -1694,7 +1721,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
                 if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
                     return;
                 }
-                Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
+                Material vertex = materialProvider.createVertexMaterial(geometry.getMaterial(), ambient);
                 if (solid && !litSolidTerrain) {
                     vertex.setFloat("MinLight", 0f);
                 } else if (solid) {

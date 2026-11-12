@@ -41,6 +41,8 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.animation.AnimationControl;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 import static toniarts.openkeeper.view.map.MapViewController.COLOR_FLASH;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
@@ -60,6 +62,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     protected S targetState;
     protected final AssetManager assetManager;
     protected final EntityTextParser<T> textParser;
+    protected final MaterialProvider materialProvider;
     protected boolean isAnimationPlaying = false;
 
     /**
@@ -71,15 +74,28 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     private boolean active = false;
 
     public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, EntityTextParser<T> textParser) {
+        this(entityId, entityData, data, state, assetManager, textParser, NoOpMaterialProvider.INSTANCE);
+    }
+
+    public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager,
+            EntityTextParser<T> textParser, MaterialProvider materialProvider) {
         this.entityId = entityId;
         this.currentState = state;
         this.targetState = state;
         this.assetManager = assetManager;
         this.data = data;
         this.textParser = textParser;
+        this.materialProvider = Objects.requireNonNull(materialProvider, "materialProvider");
 
         // Subscribe to the entity changes
         entity = entityData.watchEntity(entityId, compileWatchedComponents());
+    }
+
+    /** Invalidate injected material setup after this control changes its model. */
+    protected final void invalidateMaterialSetup() {
+        if (spatial != null) {
+            materialProvider.invalidate(spatial);
+        }
     }
 
     /**

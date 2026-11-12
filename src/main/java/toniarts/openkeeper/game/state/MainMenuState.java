@@ -75,6 +75,8 @@ import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProvider;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -133,6 +135,7 @@ public final class MainMenuState extends AbstractAppState {
     private EffectManagerState effectManagerState;
     private GameController gameController;
     private volatile MapViewController mapViewController;
+    private MaterialProvider materialProvider;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     /**
@@ -170,6 +173,7 @@ public final class MainMenuState extends AbstractAppState {
         // state is attached and initialize() sets this field, yet refreshCampaignMap()
         // below already needs it
         this.assetManager = assetManager;
+        materialProvider = new JmeMaterialProvider(assetManager);
 
         // Load the 3D Front end
         frontEndKwd = KwdFile.load("FrontEnd3DLevel");
@@ -191,7 +195,8 @@ public final class MainMenuState extends AbstractAppState {
         // DKII generates room torch lights and optional meshes in the front end too.
         // Keep the cave ceiling off for this fixed-camera scene.
         MapViewController mapLoader = new MapViewController(assetManager, frontEndKwd,
-                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID, true, true, false) {
+                gameController.getGameWorldController().getMapController(), Player.KEEPER1_ID,
+                true, true, false, materialProvider) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -221,7 +226,7 @@ public final class MainMenuState extends AbstractAppState {
         // Effects (currently just the hero gate's gem holder swirl, spawned
         // by PlayerEntityViewState/MainMenuEntityViewState's RoomEffectContainer
         // once HeroGateFrontEndController's RoomEffect component appears)
-        effectManagerState = new EffectManagerState(frontEndKwd, assetManager);
+        effectManagerState = new EffectManagerState(frontEndKwd, assetManager, materialProvider);
         // No PlayerMapViewState in the menu, the effects are lit by the menu map's own light rules
         effectManagerState.setLightRulesSupplier(() -> {
             MapViewController controller = mapViewController;
@@ -250,7 +255,7 @@ public final class MainMenuState extends AbstractAppState {
             // Every animation change loads a new creature model, light them like creatures in the game
             Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
             if (mpdCreature != null) {
-                AssetUtils.applyVertexLight(assetManager, mpdCreature, controller.getLightRules(), false, false);
+                materialProvider.applyVertexLight(mpdCreature, controller.getLightRules(), false, false);
             }
         }
     }

@@ -86,6 +86,9 @@ import toniarts.openkeeper.view.loader.TrapLoader;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 import toniarts.openkeeper.view.lighting.LightSource;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -141,6 +144,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private AppStateManager stateManager;
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
+    private final MaterialProvider materialProvider;
     private final EntityData entityData;
     private final short playerId;
     private final Node rootNode;
@@ -197,9 +201,23 @@ public class PlayerEntityViewState extends AbstractAppState {
     public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
             TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData,
             IFogOfWarInformation fogOfWarInformation) {
+        this(kwdFile, assetManager, entityData, playerId, textParser, rootNode, mapData,
+                fogOfWarInformation, assetManager == null
+                        ? NoOpMaterialProvider.INSTANCE : new JmeMaterialProvider(assetManager));
+    }
+
+    /**
+     * Creates this player view with an injectable material and lighting
+     * provider. Sharing one provider across a session lets stable model
+     * lighting setup be reused without sharing mutable Material instances.
+     */
+    public PlayerEntityViewState(IKwdFile kwdFile, AssetManager assetManager, EntityData entityData, short playerId,
+            TextParser textParser, Node rootNode, IMapDataInformation<? extends IMapTileInformation> mapData,
+            IFogOfWarInformation fogOfWarInformation, MaterialProvider materialProvider) {
         super(Short.toString(playerId));
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.materialProvider = java.util.Objects.requireNonNull(materialProvider, "materialProvider");
         this.entityData = entityData;
         this.playerId = playerId;
         this.textParser = textParser;
@@ -290,17 +308,17 @@ public class PlayerEntityViewState extends AbstractAppState {
                 ObjectViewControl control = object.getControl(ObjectViewControl.class);
                 int objectId = control != null ? control.getDataObject().getObjectId() : -1;
 
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+                materialProvider.applyVertexLight(object, lightRules, false, true);
             }
             for (Spatial object : creatureModelContainer.getModels()) {
                 // Creatures take no room / terrain ambient colour, only lights
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false, false);
+                materialProvider.applyVertexLight(object, lightRules, false, false);
             }
             for (Spatial object : doorModelContainer.getModels()) {
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+                materialProvider.applyVertexLight(object, lightRules, false, true);
             }
             for (Spatial object : trapModelContainer.getModels()) {
-                AssetUtils.applyVertexLight(assetManager, object, lightRules, false);
+                materialProvider.applyVertexLight(object, lightRules, false, true);
             }
         }
     }
@@ -422,7 +440,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
                         kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
                         textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed);
+                        uniqueCreatureBed, materialProvider);
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -464,7 +482,9 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature,
+                        creatureViewState.state, assetManager,
+                        textParser != null ? textParser.getCreatureTextParser() : null, materialProvider);
                 control.setWaterCheck(this::isWater);
                 result.addControl(control);
 
@@ -496,7 +516,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (doorViewState != null) {
             Door door = kwdFile.getDoorById(doorViewState.doorId);
             result = doorLoader.load(assetManager, doorViewState);
-            EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState, assetManager, textParser != null ? textParser.getDoorTextParser() : null, kwdFile.getObject(door.getKeyObjectId()));
+            EntityViewControl control = new DoorViewControl(e.getId(), entityData, door, doorViewState,
+                    assetManager, textParser != null ? textParser.getDoorTextParser() : null,
+                    kwdFile.getObject(door.getKeyObjectId()), materialProvider);
             result.addControl(control);
 
             DoorFlowerControl flowerControl = new DoorFlowerControl(e.getId(), entityData, door, assetManager);
@@ -526,7 +548,8 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (trapViewState != null) {
             Trap trap = kwdFile.getTrapById(trapViewState.trapId);
             result = trapLoader.load(assetManager, trapViewState);
-            EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState, assetManager, textParser != null ? textParser.getTrapTextParser() : null);
+            EntityViewControl control = new TrapViewControl(e.getId(), entityData, trap, trapViewState,
+                    assetManager, textParser != null ? textParser.getTrapTextParser() : null, materialProvider);
             result.addControl(control);
 
             TrapFlowerControl flowerControl = new TrapFlowerControl(e.getId(), entityData, trap, assetManager);

@@ -636,7 +636,7 @@ public class VisualEffect {
         // own position is set once at construction and never moves.
         LightRules lightRules = getLightRules();
         if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
-            AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);
+            effectManagerState.getMaterialProvider().applyVertexLight(lightTarget, lightRules, false, true);
         }
         lightMeshElements(lightRules);
 
@@ -673,7 +673,7 @@ public class VisualEffect {
         for (Spatial element : effectElements.keySet()) {
             if (element instanceof EffectEmitter emitter) {
                 for (Spatial instance : emitter.getChildren()) {
-                    AssetUtils.applyVertexLight(assetManager, instance, lightRules, false);
+                    effectManagerState.getMaterialProvider().applyVertexLight(instance, lightRules, false, true);
                 }
             }
         }

@@ -30,6 +30,8 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.text.EntityTextParser;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 
 /**
  * View control that is intended specifically for traps
@@ -42,7 +44,12 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
 
     public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState,
             AssetManager assetManager, EntityTextParser<Trap> textParser) {
-        super(entityId, entityData, data, viewState, assetManager, textParser);
+        this(entityId, entityData, data, viewState, assetManager, textParser, NoOpMaterialProvider.INSTANCE);
+    }
+
+    public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState,
+            AssetManager assetManager, EntityTextParser<Trap> textParser, MaterialProvider materialProvider) {
+        super(entityId, entityData, data, viewState, assetManager, textParser, materialProvider);
     }
 
     @Override
@@ -99,6 +106,7 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
         if (current == null || current.blueprint != target.blueprint) {
             if (target.blueprint) {
                 AssetUtils.setBlueprint(assetManager, spatial);
+                invalidateMaterialSetup();
             } else {
                 // TODO: Unblueprint?
                 if (current != null && spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
@@ -133,6 +141,7 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
         // Restore blueprint state
         if (currentState.blueprint) {
             AssetUtils.setBlueprint(assetManager, spatial);
+            invalidateMaterialSetup();
         }
     }
 }
