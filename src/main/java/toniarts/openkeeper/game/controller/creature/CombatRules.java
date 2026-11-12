@@ -37,7 +37,6 @@ public final class CombatRules {
     private static final int HALF_CIRCLE_STEPS = 1024;
     private static final int STEPS_PER_BONUS_PERCENT = 20;
     private static final int MIN_REAR_ATTACK_BONUS_PERCENT = 16;
-    private static final int POSSESSED_DAMAGE_TAKEN_PERCENT = 50;
 
     private CombatRules() {
         // Nope
@@ -74,22 +73,6 @@ public final class CombatRules {
         }
 
         return damage + damage * bonusPercent / 100;
-    }
-
-    /**
-     * Scales the damage by how much of it the target takes. A possessed
-     * creature takes only half of the damage.
-     *
-     * @param damage the damage of the hit
-     * @param targetPossessed whether the target is possessed by its keeper
-     * @return the damage the target takes
-     */
-    public static int getDamageTaken(int damage, boolean targetPossessed) {
-        if (targetPossessed) {
-            return damage * POSSESSED_DAMAGE_TAKEN_PERCENT / 100;
-        }
-
-        return damage;
     }
 
     /**

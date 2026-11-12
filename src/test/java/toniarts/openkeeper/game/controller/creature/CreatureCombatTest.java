@@ -36,7 +36,6 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -113,16 +112,6 @@ class CreatureCombatTest {
         createController(us).executeAttack(thing);
 
         assertEquals(100, entityData.getComponent(thing, Damage.class).damage);
-    }
-
-    @Test
-    void possessedTargetTakesHalfTheDamage() {
-        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 5), 0);
-        entityData.setComponent(target, new Possessed(0, 0));
-
-        createController(us).executeAttack(target);
-
-        assertEquals(75, entityData.getComponent(target, Damage.class).damage);
     }
 
     @Test

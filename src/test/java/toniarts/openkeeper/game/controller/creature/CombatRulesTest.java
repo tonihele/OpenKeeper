@@ -62,12 +62,6 @@ class CombatRulesTest {
     }
 
     @Test
-    void possessedCreatureTakesHalfTheDamage() {
-        assertEquals(240, CombatRules.getDamageTaken(240, false));
-        assertEquals(60, CombatRules.getDamageTaken(120, true));
-    }
-
-    @Test
     void hornedReaperCannotBeHurt() {
         assertFalse(CombatRules.canBeHurtBy(EnumSet.noneOf(CreatureFlag.class), EnumSet.of(CreatureFlag.IS_HORNY)));
     }
