@@ -86,6 +86,25 @@ class TerrainDeformerTest {
     }
 
     @Test
+    void tileShapesAreCachedUntilInvalidated() {
+        int[] shapeCalls = {0};
+        TerrainDeformer d = new TerrainDeformer(SIZE, SIZE, (x, y) -> {
+            shapeCalls[0]++;
+            return ROCK;
+        });
+        Vector3f first = deformed(d, 3f, 2f, 3f);
+        int callsAfterFirstDeformation = shapeCalls[0];
+        assertTrue(callsAfterFirstDeformation > 0);
+
+        assertEquals(first, deformed(d, 3f, 2f, 3f));
+        assertEquals(callsAfterFirstDeformation, shapeCalls[0]);
+
+        d.invalidateTile(3, 3);
+        assertEquals(first, deformed(d, 3f, 2f, 3f));
+        assertTrue(shapeCalls[0] > callsAfterFirstDeformation);
+    }
+
+    @Test
     void rigidTileDoesNotMove() {
         TerrainDeformer d = corridor();
         // Pinned only where all the touching tiles are rigid, the centre of the tile is. Only the

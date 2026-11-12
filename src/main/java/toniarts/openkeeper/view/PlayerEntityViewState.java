@@ -42,12 +42,14 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.event.ClientEvents;
 import toniarts.openkeeper.game.event.GameEvent;
+import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -102,6 +104,11 @@ public class PlayerEntityViewState extends AbstractAppState {
     private static final int LEVEL_UP_EFFECT_ID = 339;
 
     /**
+     * "Call to arms active effect", the banner gives it every third call
+     */
+    private static final int CALL_TO_ARMS_EFFECT_ID = 330;
+
+    /**
      * Used where no fog of war applies: everything is simply always visible.
      */
     private static final IFogOfWarInformation ALWAYS_VISIBLE = new IFogOfWarInformation() {
@@ -154,6 +161,8 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
+    private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
+            stateManager.getApplication().enqueue(() -> showGeneratedEffect(effect));
 
     private final ILoader<ObjectViewState> objectLoader;
     private final ILoader<CreatureViewState> creatureLoader;
@@ -246,6 +255,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.start();
         shotModelContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
+        EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
     }
 
     @Override
@@ -311,6 +321,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         roomEffectContainer.stop();
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
+        EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
 
         // Detach entities
         rootNode.detachChild(root);
@@ -539,9 +550,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
         nodeShots.attachChild(result);
 
+        Shot shot = kwdFile.getShotById(shotViewState.shotId);
         Vector3f position = e.get(Position.class).position;
         if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
-            playShotEffects(kwdFile.getShotById(shotViewState.shotId), position);
+            playShotEffects(shot, position);
         }
 
         return result;
@@ -619,11 +631,40 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
     }
 
+    private void showGeneratedEffect(GeneratedEffect effect) {
+        if (!isInitialized() || kwdFile.getEffect(effect.effectId()) == null
+                || !fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(effect.position()))) {
+            return;
+        }
+        VisualEffect visual = stateManager.getState(EffectManagerState.class)
+                .load(root, effect.position(), effect.effectId(), false);
+        if (visual != null) {
+            visual.getEffectNode().rotate(0, effect.yaw(), 0);
+        }
+    }
+
     private void onGameEvent(EventType<GameEvent> type, GameEvent event) {
         if (event.type == GameEventType.CREATURE_LEVEL_UP && event.entity != null) {
 
             // The events come from the game loop's thread
             stateManager.getApplication().enqueue(() -> showLevelUpEffect(event.entity));
+        } else if (event.type == GameEventType.CALL_TO_ARMS && event.entity != null) {
+            stateManager.getApplication().enqueue(() -> showCallToArmsEffect(event.entity));
+        }
+    }
+
+    /**
+     * The banner's effect, in its keeper's colour. Not shown in the fog of war.
+     */
+    private void showCallToArmsEffect(EntityId entityId) {
+        Spatial banner = isInitialized() ? getEntitySpatial(entityId) : null;
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (banner == null || owner == null) {
+            return;
+        }
+        Vector3f location = banner.getLocalTranslation();
+        if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(location))) {
+            stateManager.getState(EffectManagerState.class).load(nodeObjects, location.clone(), CALL_TO_ARMS_EFFECT_ID, false, owner.ownerId);
         }
     }
 
