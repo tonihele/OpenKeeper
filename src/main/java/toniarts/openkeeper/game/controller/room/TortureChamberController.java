@@ -25,6 +25,10 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
+
+import java.util.List;
 
 
 /**
@@ -34,7 +38,12 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class TortureChamberController extends NormalRoomController {
 
-    private static final short TORTURE_WHEEL_OBJECT_ID = 8;
+    private static final short OBJECT_TORTURE_WHEEL_ID = 8;
+    private static final short OBJECT_TORTURE_COALS_ID = 62;
+    private static final short OBJECT_TORTURE_WATER_ID = 63;
+    private static final float WALL_WHEEL_DISTANCE = 0x7C0 / 4096f;
+    private static final float WALL_WHEEL_HEIGHT = 0x800 / 4096f;
+    private static final float TROUGH_DISTANCE = 0x480 / 4096f;
 
     private final IGameTimer gameTimer;
 
@@ -52,7 +61,9 @@ public final class TortureChamberController extends NormalRoomController {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getFurnitureCount();
+
+                // A trough shares its tile with the wheel above it
+                return getCoordinates().size();
             }
         });
 
@@ -62,10 +73,28 @@ public final class TortureChamberController extends NormalRoomController {
         // Like in DK II, the torture wheels spin all the time
         for (EntityId furniture : getFloorFurniture()) {
             ObjectViewState viewState = entityData.getComponent(furniture, ObjectViewState.class);
-            if (viewState != null && viewState.objectId == TORTURE_WHEEL_OBJECT_ID) {
+            if (viewState != null && viewState.objectId == OBJECT_TORTURE_WHEEL_ID) {
                 entityData.setComponent(furniture, new ObjectViewState(viewState.objectId,
                         GameObject.State.TORTURE_WHEEL_SPIN, viewState.animState, viewState.visible));
             }
         }
+    }
+
+    /**
+     * Like DK II (MyRooms_RoomManager_cpp_4EDFC0, 0x4EDFC0), a wheel on the
+     * wall hangs half a tile up, and a trough of coals or water stands under
+     * a wheel
+     */
+    @Override
+    protected List<EntityId> constructWallObject(short objectId, Point p, WallDirection direction) {
+        return switch (objectId) {
+            case OBJECT_TORTURE_WHEEL_ID ->
+                List.of(loadWallObject(objectId, p, direction, WALL_WHEEL_DISTANCE, WALL_WHEEL_HEIGHT));
+            case OBJECT_TORTURE_COALS_ID, OBJECT_TORTURE_WATER_ID ->
+                List.of(loadWallObject(objectId, p, direction, TROUGH_DISTANCE, 0),
+                        loadWallObject(OBJECT_TORTURE_WHEEL_ID, p, direction, WALL_WHEEL_DISTANCE, WALL_WHEEL_HEIGHT));
+            default ->
+                super.constructWallObject(objectId, p, direction);
+        };
     }
 }

@@ -108,7 +108,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Mobile mobile = entity.get(Mobile.class);
         Navigation navigation = entity.get(Navigation.class);
         Position position = entity.get(Position.class);
-        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, 0.25f, position.position.x, position.position.z, position.rotation);
+
+        // Steering orientation is the rotation negated, as applySteering writes it back
+        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, 0.25f, position.position.x, position.position.z, -position.rotation);
         EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target);
         if (steeringBehavior == null) {
 
@@ -223,7 +225,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
      * @return
      */
     public float limitAngular(float angular, float limit) {
-        return (Math.abs(angular) > limit) ? limit : angular;
+        return (Math.abs(angular) > limit) ? Math.copySign(limit, angular) : angular;
     }
 
     public boolean isZeroAngular(float angular, float threshold) {

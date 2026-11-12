@@ -18,7 +18,7 @@ package toniarts.openkeeper.view.map;
 
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
 import java.util.EnumSet;
 import java.util.HashSet;
@@ -37,10 +37,11 @@ final class PillarPlacement {
      * whose full 3x3 interior block also belongs to the room. Work Shop (10)
      * and Temple (13) are deliberately excluded - their corner prop doesn't
      * carry the {@code PILLAR} object flag.
+      * The Lair (2) and Prison (11) have no pillar object at all (#607), so no tile
+     * is kept straight for them. Keep this in step with {@code getPillarObject}.
      */
     private static final Set<Short> PILLAR_ROOM_IDS = Set.of(
             (short) 1,  // Treasury
-            (short) 2,  // Lair
             (short) 4,  // Hatchery
             (short) 12, // Torture
             (short) 14, // Graveyard
