@@ -155,6 +155,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void addGold(int amount);
 
+    /**
+     * The keeper pays the creature by hand, by dropping gold on it. The
+     * creature keeps half of the gold, up to what it can carry, and the rest
+     * is gone. However little it got, it is owed nothing more
+     *
+     * @param amount the gold dropped on the creature
+     */
+    public void takePay(int amount);
+
     public int getObjectiveTargetActionPointId();
 
     public void setObjectiveTargetActionPointId(int actionPointId);
