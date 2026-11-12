@@ -868,13 +868,20 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
 
         // Pick closest we can actually access
+        Set<Point> reachableArea = null;
         for (EntityId food : foods) {
             Point target = entityPositionLookup.getEntityLocation(food).getLocation();
-            if (target == creature.getCreatureCoordinates() || navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null) {
+            if (target == creature.getCreatureCoordinates() || ((reachableArea == null || reachableArea.contains(target))
+                    && navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null)) {
                 GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
                 return true;
+            }
+
+            // A search that fails goes through all of the creature's land first. Not again for each food out of its reach
+            if (reachableArea == null) {
+                reachableArea = getReachableArea(creature, creature.getCreatureCoordinates());
             }
         }
 
