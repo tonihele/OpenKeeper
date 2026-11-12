@@ -25,6 +25,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
@@ -56,7 +57,9 @@ import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomLairControl;
@@ -66,6 +69,7 @@ import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -123,6 +127,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IDoorsController doorsController;
     private ITrapsController trapsController;
     private IShotsController shotsController;
+    private SacrificeController sacrificeController;
     private IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<Short, Keeper> players;
@@ -132,6 +137,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private IMapController mapController;
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
+    private final SafeArrayList<SpecialListener> specialListeners = new SafeArrayList<>(SpecialListener.class);
 
     public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -167,6 +173,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Init handlers
         shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
+        sacrificeController = new SacrificeController(entityData, kwdFile.getSacrifices(), creaturesController, objectsController, this, playerControllers, gameEventService);
 
         // Setup player stuff
         initPlayerMoney();
@@ -310,6 +317,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             playerControllers.get(playerId).getGoldControl().subGold(amount - moneyToSubstract);
 
             return moneyToSubstract;
+        }
+    }
+
+    @Override
+    public int substractGold(int amount, short playerId, Point p) {
+
+        synchronized (GOLD_LOCK) {
+            IRoomController room = mapController.getRoomControllerByCoordinates(p);
+            if (room == null || room.getRoomInstance().getOwnerId() != playerId || !room.canStoreGold()) {
+                return amount;
+            }
+
+            RoomGoldControl control = room.getObjectControl(ObjectType.GOLD);
+            int moneyLeft = control.removeGold(amount);
+            playerControllers.get(playerId).getGoldControl().subGold(amount - moneyLeft);
+
+            return moneyLeft;
         }
     }
 
@@ -689,7 +713,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 if (goldLeft > 0) {
 
                     // Add loose gold to this tile
-                    objectsController.addLooseGold(playerId, moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+                    objectsController.addLooseGold(moneyToReturn.getKey().x, moneyToReturn.getKey().y, goldLeft, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
                 }
             }
         }
@@ -862,6 +886,22 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         listeners.remove(listener);
     }
 
+    @Override
+    public void addSpecialListener(SpecialListener listener) {
+        specialListeners.add(listener);
+    }
+
+    @Override
+    public void removeSpecialListener(SpecialListener listener) {
+        specialListeners.remove(listener);
+    }
+
+    private void notifyOnSpecialActivated(short playerId, short objectId) {
+        for (SpecialListener listener : specialListeners.getArray()) {
+            listener.onSpecialActivated(playerId, objectId);
+        }
+    }
+
     private void notifyOnBuild(short playerId, List<Point> buildTiles) {
         for (PlayerActionListener listener : listeners.getArray()) {
             listener.onBuild(playerId, buildTiles);
@@ -949,6 +989,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 creaturesController.angerEnemyCreatures(playerId);
             case ObjectsController.OBJECT_SPECIAL_HEAL_ALL_ID ->
                 creaturesController.healCreatures(playerId);
+            case ObjectsController.OBJECT_SPECIAL_LOCATE_HIDDEN_LAND_ID ->
+                notifyOnSpecialActivated(playerId, objectId);
             default -> {
                 logger.log(Level.WARNING, "Unknown special, objectId: {0}", objectId);
                 return false;
@@ -1084,6 +1126,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         entityData.removeComponent(entity, CreatureTortured.class);
         entityData.removeComponent(entity, CreatureImprisoned.class);
         entityData.removeComponent(entity, AttackTarget.class);
+        entityData.removeComponent(entity, CombatPitFighter.class);
         entityData.removeComponent(entity, FollowTarget.class);
         entityData.removeComponent(entity, HauledBy.class);
 
@@ -1113,8 +1156,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (owner == null || owner.controlId != playerId) {
+        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
             return false;
         }
 
@@ -1129,7 +1173,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         return EntityPickupValidator.isValidLocation(
-                entityData.getComponent(entityId, ObjectComponent.class),
+                objectComponent,
+                owner,
                 entityData.getComponent(entityId, Position.class),
                 playerId,
                 mapController.getMapData());
@@ -1216,7 +1261,15 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean imprison = false;
         CreatureState creatureState = null;
         CreatureState targetState = null;
-        // TODO: Evict & sacrifice
+
+        // Creatures dropped into a temple's pool are sacrificed
+        if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
+            entityData.setComponent(entity, new Position(0, new Vector3f(coordinates.x, WorldUtils.FLOOR_HEIGHT, coordinates.y)));
+            sacrificeController.sacrificeCreature(temple, entity);
+            return;
+        }
+
+        // TODO: Evict
         // TODO: Duplicated code with CreaturesController
         // TODO: capacities
         if (roomController != null) {
@@ -1244,6 +1297,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 }
             }
             tortureOrImprisonment = imprison || torture;
+
+            // Our own creatures dropped into the pit itself fight there, workers just go back to work
+            if (roomController instanceof CombatPitController combatPit
+                    && roomController.getRoomInstance().getOwnerId() == owner.ownerId
+                    && combatPit.isFightingTile(tile)
+                    && !entityData.getComponent(entity, CreatureComponent.class).worker) {
+                entityData.setComponent(entity, new CombatPitFighter(roomController.getEntityId()));
+            }
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
@@ -1314,10 +1375,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
             // The treasury is filled first, the rest forms a loose pile in the treasury
             if (leftOverGold > 0) {
-                dropLooseGold(playerId, tile, null, leftOverGold);
+                dropLooseGold(tile, null, leftOverGold);
             }
         } else {
-            dropLooseGold(playerId, tile, coordinates, gold.gold);
+            dropLooseGold(tile, coordinates, gold.gold);
         }
         entityData.removeEntity(entity);
     }
@@ -1325,27 +1386,26 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     /**
      * Drops loose gold from the hand. Like in DK II, the gold is added to a
      * loose gold pile already lying on the tile, there is no limit to the pile
-     * size. Gold can only be dropped on own land, and in DK II loose gold
-     * belongs to the owner of the land, so the pile becomes ours
+     * size. Like in DK II, the gold dropped from the hand has no owner, the
+     * land it lies on decides who can take it
      *
-     * @param playerId the player dropping the gold
      * @param tile the tile to drop the gold to
      * @param coordinates exact coordinates for a new pile, {@code null} for
      * anywhere on the tile
      * @param amount the amount of gold
      */
-    private void dropLooseGold(short playerId, Point tile, Vector2f coordinates, int amount) {
+    private void dropLooseGold(Point tile, Vector2f coordinates, int amount) {
         synchronized (GOLD_LOCK) {
             EntityId goldPile = findLooseGoldPile(entityData, entityPositionLookup, tile);
             if (goldPile != null) {
                 Gold gold = entityData.getComponent(goldPile, Gold.class);
                 entityData.setComponent(goldPile, new Gold(gold.gold + amount, gold.maxGold));
-                entityData.setComponent(goldPile, new Owner(playerId, playerId));
+                entityData.setComponent(goldPile, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
                 return;
             }
         }
 
-        EntityId newGold = objectsController.addLooseGold(playerId, tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
+        EntityId newGold = objectsController.addLooseGold(tile.x, tile.y, amount, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         if (coordinates != null) {
             Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
             entityData.setComponent(newGold, new Position(0, pos));
@@ -1397,7 +1457,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 int leftOverRequest = substractGold(realAmount, playerId);
                 realAmount -= leftOverRequest;
                 if (realAmount > 0) {
-                    EntityId goldEntity = objectsController.addLooseGold(playerId, 0, 0, realAmount, maxGold);
+                    EntityId goldEntity = objectsController.addLooseGold(0, 0, realAmount, maxGold);
                     putToKeeperHand(playerHandControl, goldEntity, playerId);
                 }
             }
@@ -1597,6 +1657,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return objectsController;
     }
 
+    @Override
     public ITrapsController getTrapsController() {
         return trapsController;
     }
