@@ -626,7 +626,8 @@ public class SoundEngine {
 
         boolean looping = voice.getEvent().getBehaviour() == Behaviour.REPEAT_LOOP_EACH;
         boolean streamed = looping || sample.getDurationMs() > 20_000;
-        AudioSpec spec = AudioSpec.stereo(AssetsConverter.SOUNDS_FOLDER + '/' + path, 1.0f, looping, streamed)
+        AudioSpec spec = AudioSpec.stereo(AssetUtils.getCanonicalAssetKey(AssetsConverter.SOUNDS_FOLDER + '/' + path),
+                1.0f, looping, streamed)
                 .withPitch(pitch);
         if (voice.isPositional()) {
             Point position = voice.getPosition();

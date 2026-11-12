@@ -30,7 +30,7 @@ import java.nio.FloatBuffer;
  */
 public class LavaWaveControl extends AbstractControl {
 
-    private static final float WAVE_AMPLITUDE = 0.10f;
+    private static final float WAVE_AMPLITUDE = 0.08f;
     private static final float WAVE_LENGTH = 3.0f;
     private static final float WAVE_SPEED = 3.0f;
 

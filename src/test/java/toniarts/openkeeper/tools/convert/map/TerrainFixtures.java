@@ -41,6 +41,11 @@ public final class TerrainFixtures {
         return terrain;
     }
 
+    public static Terrain withMaxManaGain(Terrain terrain, int maxManaGain) {
+        terrain.setMaxManaGain(maxManaGain);
+        return terrain;
+    }
+
     public static EnumSet<Terrain.TerrainFlag> flags(Terrain.TerrainFlag... flags) {
         EnumSet<Terrain.TerrainFlag> set = EnumSet.noneOf(Terrain.TerrainFlag.class);
         for (Terrain.TerrainFlag flag : flags) {

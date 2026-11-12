@@ -71,9 +71,12 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
                 // The landing, on touchdown (hand drops and conjured creatures alike)
                 gameEventService.emit(GameEventType.CREATURE_LAND, entity.getId(), newPosition.position);
 
+                // Preserve any requested AI target through landing and get-up.
                 // The state, depending on the landing
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
-                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId));
+                CreatureAi ai = entityData.getComponent(entity.getId(), CreatureAi.class);
+                entityData.setComponent(entity.getId(), new CreatureAi(gameTimer.getGameTime(), creatureComponent.stunDuration > 0f ? CreatureState.FALLEN : CreatureState.IDLE, creatureComponent.creatureId,
+                        ai == null ? null : ai.getTargetState()));
             }
         }
     }

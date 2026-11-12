@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.sound;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.function.Function;
+import java.util.function.IntSupplier;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.utils.Point;
 
@@ -44,15 +45,16 @@ public final class AmbienceDriver {
     public static final String OBJECT_TORCH = "OBJECT_TORCH";
 
     /**
-     * Play both background layers at the "resting" intensity of the music.
-     * The ambience bed fades out under combat music, which does not exist here
-     * (yet), so the bed is always allowed to play.
+     * The "resting" intensity of the music. The one-shot atmos always plays at
+     * it, the ambience follows the music intensity and drops out under louder
+     * music.
      */
     private static final int BED_PROPERTY = 0;
 
     private final SoundEngine engine;
     private final Function<String, SoundCategory> loader;
     private final AmbienceBeds beds;
+    private final IntSupplier musicIntensity;
 
     @Nullable
     private AmbienceLayer ambience;
@@ -66,8 +68,17 @@ public final class AmbienceDriver {
     private boolean torchMissing;
 
     public AmbienceDriver(SoundEngine engine, Function<String, SoundCategory> loader) {
+        this(engine, loader, () -> BED_PROPERTY);
+    }
+
+    /**
+     * @param musicIntensity the current music intensity, the property of the
+     * ambience
+     */
+    public AmbienceDriver(SoundEngine engine, Function<String, SoundCategory> loader, IntSupplier musicIntensity) {
         this.engine = engine;
         this.loader = loader;
+        this.musicIntensity = musicIntensity;
         this.beds = new AmbienceBeds(engine, loader);
     }
 
@@ -81,8 +92,8 @@ public final class AmbienceDriver {
     public void update(long now, @Nullable String[] cells, Point listener, @Nullable Point nearestTorch) {
         if (!started) {
             started = true;
-            ambience = createLayer(GlobalCategory.AMBIENCE, AMBIENCE_EVENT);
-            atmos = createLayer(GlobalCategory.ONE_SHOT_ATMOS, ONE_SHOT_ATMOS_EVENT);
+            ambience = createLayer(GlobalCategory.AMBIENCE, AMBIENCE_EVENT, musicIntensity);
+            atmos = createLayer(GlobalCategory.ONE_SHOT_ATMOS, ONE_SHOT_ATMOS_EVENT, () -> BED_PROPERTY);
         }
 
         if (ambience != null) {
@@ -114,14 +125,14 @@ public final class AmbienceDriver {
     }
 
     @Nullable
-    private AmbienceLayer createLayer(String categoryName, int eventId) {
+    private AmbienceLayer createLayer(String categoryName, int eventId, IntSupplier property) {
         SoundCategory category = loader.apply(categoryName);
         if (category == null || !category.hasEvent(eventId)) {
             logger.log(Level.WARNING, "No ambience event 0x{0} in category {1}",
                     Integer.toHexString(eventId), categoryName);
             return null;
         }
-        return new AmbienceLayer(engine, category, eventId, null, BED_PROPERTY);
+        return new AmbienceLayer(engine, category, eventId, null, property);
     }
 
     private void updateTorch(long now, Point listener, @Nullable Point nearestTorch) {

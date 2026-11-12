@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.map;
 import com.jme3.asset.AssetManager;
 import com.jme3.asset.TextureKey;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -36,6 +37,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Builds the cave ceiling: a merged mesh of one patch per open, visible tile,
@@ -75,17 +77,22 @@ public final class Ceiling {
      * resolve to the same material.
      *
      * @param assetManager asset manager instance
-     * @param clearanceField the clearance field for the whole map
+     * @param clearanceSamples cached clearance samples for the whole map
      * @param terrain the terrain to draw the material's static lighting tint
      * from - see {@link MapViewController#setTerrainMaterialLighting}
      * @param ceilingResource the room's ceiling texture override, or
      * {@code null} to use the default engine ceiling texture
      * @param tiles the tile coordinates in this batch
+     * @param deformer bends the ceiling together with the walls it rests on,
+     * may be {@code null}
+     * @param straightTiles the ceiling is not bent over (and on the edges of)
+     * these tiles, the pillars, as the pillar models themselves are straight
      * @return the visual representation of this batch
      */
-    public static Geometry construct(AssetManager assetManager, ClearanceField clearanceField,
-            Terrain terrain, ArtResource ceilingResource, List<Point> tiles) {
-        Mesh mesh = createMesh(clearanceField, tiles);
+    static Geometry construct(AssetManager assetManager,
+            Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
+            Set<Point> straightTiles, ClearanceFieldSamples clearanceSamples) {
+        Mesh mesh = createMesh(tiles, deformer, straightTiles, clearanceSamples);
 
         Geometry geo = new Geometry("Ceiling", mesh);
 
@@ -97,13 +104,24 @@ public final class Ceiling {
         mat.setTexture("DiffuseMap", tex);
         MapViewController.setTerrainMaterialLighting(mat, terrain);
 
-        geo.setMaterial(mat);
-        geo.setShadowMode(RenderQueue.ShadowMode.Off); // Nothing above a ceiling to light or shadow it
+        // Lit by the same shared light data as the floor and walls (the caller
+        // binds it, see MapViewController#refreshCeilingSurface). Its normals
+        // face down, so lights below shine on it
+        ColorRGBA ambient = mat.getParam("Ambient") != null
+                ? (ColorRGBA) mat.getParam("Ambient").getValue() : ColorRGBA.Black;
+        Material dkMat = AssetUtils.createVertexMaterial(assetManager, mat, ambient);
+        // Object lights and the terrain's per-tile ambient belong to the
+        // ground; the ceiling ignores them
+        dkMat.setBoolean("IgnoreObjectLights", true);
+        dkMat.setFloat("AmbientScale", 0f);
+        geo.setMaterial(dkMat);
+        geo.setShadowMode(RenderQueue.ShadowMode.Off); // Nothing above a ceiling to shadow it
 
         return geo;
     }
 
-    private static Mesh createMesh(ClearanceField clearanceField, List<Point> tiles) {
+    static Mesh createMesh(List<Point> tiles, TerrainDeformer deformer, Set<Point> straightTiles,
+            ClearanceFieldSamples clearanceSamples) {
         Mesh mesh = new Mesh();
 
         List<Vector3f> vertices = new ArrayList<>(tiles.size() * 9);
@@ -119,9 +137,10 @@ public final class Ceiling {
             // midpoints and the centre
             for (int j = 0; j < 3; j++) {
                 for (int i = 0; i < 3; i++) {
-                    float height = heightAt(clearanceField, tile.x - 0.5f + i * STEP, tile.y - 0.5f + j * STEP);
+                    float height = heightAt(clearanceSamples,
+                            tile.x - 0.5f + i * STEP, tile.y - 0.5f + j * STEP);
                     heights[patchVertexIndex(i, j)] = height;
-                    addVertex(vertices, textureCoordinates, normals, clearanceField, tile,
+                    addVertex(vertices, textureCoordinates, normals, clearanceSamples, deformer, straightTiles, tile,
                             i * STEP, j * STEP, height);
                 }
             }
@@ -138,13 +157,15 @@ public final class Ceiling {
 
                     float u = (ci + 0.5f) * STEP;
                     float v = (cj + 0.5f) * STEP;
-                    float centerHeight = heightAt(clearanceField, tile.x - 0.5f + u, tile.y - 0.5f + v);
+                    float centerHeight = heightAt(clearanceSamples,
+                            tile.x - 0.5f + u, tile.y - 0.5f + v);
                     float flatHeight = (heights[patchVertexIndex(ci, cj)] + heights[patchVertexIndex(ci + 1, cj)]
                             + heights[patchVertexIndex(ci, cj + 1)] + heights[patchVertexIndex(ci + 1, cj + 1)]) / 4f;
 
                     if (Math.abs(centerHeight - flatHeight) > SPLIT_THRESHOLD) {
                         int center = vertices.size();
-                        addVertex(vertices, textureCoordinates, normals, clearanceField, tile, u, v, centerHeight);
+                        addVertex(vertices, textureCoordinates, normals, clearanceSamples,
+                                deformer, straightTiles, tile, u, v, centerHeight);
 
                         indexes.add(topLeft);
                         indexes.add(topRight);
@@ -187,7 +208,9 @@ public final class Ceiling {
      * Adds one vertex at the tile-local offset (u, v), both 0..1 across the tile.
      */
     private static void addVertex(List<Vector3f> vertices, List<Vector2f> textureCoordinates,
-            List<Vector3f> normals, ClearanceField clearanceField, Point tile, float u, float v, float height) {
+            List<Vector3f> normals, ClearanceFieldSamples clearanceSamples, TerrainDeformer deformer,
+            Set<Point> straightTiles, Point tile,
+            float u, float v, float height) {
 
         // Tile-space position, i.e. the same unit ClearanceField indexes its
         // solidity grid in
@@ -197,11 +220,35 @@ public final class Ceiling {
         // The height curve's "0" is the floor plane, but WorldUtils.FLOOR_HEIGHT
         // is already 1 tile above this engine's ground reference (it's where
         // creatures stand) - adding it on top double-counts that tile
-        vertices.add(new Vector3f(px * WorldUtils.TILE_WIDTH,
+        Vector3f vertex = new Vector3f(px * WorldUtils.TILE_WIDTH,
                 WorldUtils.UNDERFLOOR_HEIGHT + height,
-                py * WorldUtils.TILE_WIDTH));
+                py * WorldUtils.TILE_WIDTH);
+        Vector3f normal = normalAt(clearanceSamples, px, py);
+
+        // At a wall face the ceiling is at the top of the wall, which is bent. Go through the same
+        // field so they stay together, higher up the field fades out.
+        if (deformer != null && !touchesAny(straightTiles, px, py)) {
+            deformer.deform(vertex, normal);
+        }
+        vertices.add(vertex);
         textureCoordinates.add(new Vector2f(u, v));
-        normals.add(normalAt(clearanceField, px, py));
+        normals.add(normal);
+    }
+
+    /**
+     * @return true if the tile-space point is on one of the tiles, edges
+     * included
+     */
+    private static boolean touchesAny(Set<Point> tiles, float px, float py) {
+        if (tiles.isEmpty()) {
+            return false;
+        }
+        int x0 = (int) Math.floor(px + 0.5f);
+        int x1 = (int) Math.ceil(px - 0.5f);
+        int y0 = (int) Math.floor(py + 0.5f);
+        int y1 = (int) Math.ceil(py - 0.5f);
+        return tiles.contains(new Point(x0, y0)) || tiles.contains(new Point(x1, y0))
+                || tiles.contains(new Point(x0, y1)) || tiles.contains(new Point(x1, y1));
     }
 
     private static int patchVertexIndex(int i, int j) {
@@ -212,8 +259,8 @@ public final class Ceiling {
      * The ceiling height directly above a continuous tile-space point, from
      * {@link ClearanceField#clearanceAt} mapped through the height curve.
      */
-    private static float heightAt(ClearanceField clearanceField, float px, float py) {
-        float clearance = clearanceField.clearanceAt(px, py);
+    private static float heightAt(ClearanceFieldSamples clearanceSamples, float px, float py) {
+        float clearance = clearanceSamples.clearanceAt(px, py);
 
         // A parabola whose apex sits one step past MAX_CLEARANCE, so it is
         // monotonic and concave across the whole input range: the ceiling
@@ -229,11 +276,11 @@ public final class Ceiling {
      * surface, so the patch is lit rather than reading as flat-black under
      * the terrain lighting model every other surface uses.
      */
-    private static Vector3f normalAt(ClearanceField clearanceField, float px, float py) {
-        float hu0 = heightAt(clearanceField, px - STEP, py);
-        float hu1 = heightAt(clearanceField, px + STEP, py);
-        float hv0 = heightAt(clearanceField, px, py - STEP);
-        float hv1 = heightAt(clearanceField, px, py + STEP);
+    private static Vector3f normalAt(ClearanceFieldSamples clearanceSamples, float px, float py) {
+        float hu0 = heightAt(clearanceSamples, px - STEP, py);
+        float hu1 = heightAt(clearanceSamples, px + STEP, py);
+        float hv0 = heightAt(clearanceSamples, px, py - STEP);
+        float hv1 = heightAt(clearanceSamples, px, py + STEP);
 
         float slopeU = (hu1 - hu0) / (2 * STEP);
         float slopeV = (hv1 - hv0) / (2 * STEP);
