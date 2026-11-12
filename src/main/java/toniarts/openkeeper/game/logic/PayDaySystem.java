@@ -30,9 +30,11 @@ import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -238,9 +240,20 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         }
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         int anger = creature != null ? CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoPay()) : 0;
-        if (anger != 0) {
+        if (anger != 0 && !isTorturingItself(entity.getId())) {
             entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_NO_PAY, anger));
         }
+    }
+
+    /**
+     * A creature that is on a torture device because it likes it. DKII leaves
+     * the anger for unmet needs alone there (DKII.EXE 0x478D00 skips the
+     * states with state flag 2, and the on device state 0x83 has it)
+     */
+    private boolean isTorturingItself(EntityId entityId) {
+        TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+        return task != null && task.taskType == TaskType.TORTURE && task.taskStarted
+                && (task.targetEntity == null || entityData.getComponent(task.targetEntity, CreatureComponent.class) == null);
     }
 
     @Override
