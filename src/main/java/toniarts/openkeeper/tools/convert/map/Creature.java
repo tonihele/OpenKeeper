@@ -300,6 +300,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         private final int id;
     }
 
+    /**
+     * The kind of an attraction requirement. The original checks the room
+     * (all the keeper's rooms of the type together must have the size), the
+     * keeper's gold and mana, and the creature requirement in a way that never
+     * stops the creature.
+     */
+    public enum AttractionType implements IValueEnum {
+
+        NONE(0),
+        ROOM(1),
+        GOLD(2),
+        MANA(3),
+        CREATURE(4);
+
+        private AttractionType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    }
+
     public enum JobClass implements IValueEnum {
 
         ARTISAN(0),
@@ -1555,20 +1580,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         return true;
     }
 
+    /**
+     * A requirement for the creature to come in through a Portal. The level
+     * file stores two numbers for each, the converter reads them into the
+     * fields that the {@link #getType() type} tells to be in use.
+     */
     public static final class Attraction {
 
-        private int present; // dac
-        private int roomId; // db0
-        private int roomSize;
+        private AttractionType type;
+        private int roomId; // Room requirement
+        private int roomSize; // Room requirement, the least number of tiles, 0 for any
+        private int amount; // Gold and mana requirement
 
-        public int getPresent() {
-            return present;
+        public AttractionType getType() {
+            return type;
         }
 
-        protected void setPresent(int present) {
-            this.present = present;
+        protected void setType(AttractionType type) {
+            this.type = type;
         }
 
+        /**
+         * Get the required room, only for {@link AttractionType#ROOM}
+         *
+         * @return the room ID
+         */
         public int getRoomId() {
             return roomId;
         }
@@ -1577,12 +1613,32 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
             this.roomId = roomId;
         }
 
+        /**
+         * Get the required room size, only for {@link AttractionType#ROOM}
+         *
+         * @return the least number of tiles in the rooms of the type
+         * together, 0 if any room will do
+         */
         public int getRoomSize() {
             return roomSize;
         }
 
         protected void setRoomSize(int roomSize) {
             this.roomSize = roomSize;
+        }
+
+        /**
+         * Get the required amount, only for {@link AttractionType#GOLD} and
+         * {@link AttractionType#MANA}
+         *
+         * @return the least amount the keeper must have
+         */
+        public int getAmount() {
+            return amount;
+        }
+
+        protected void setAmount(int amount) {
+            this.amount = amount;
         }
     }
 
