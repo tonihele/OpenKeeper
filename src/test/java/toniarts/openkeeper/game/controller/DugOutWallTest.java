@@ -107,7 +107,7 @@ class DugOutWallTest {
         MapController mapController = new MapController(kwdFile, null,
                 Map.of(MiscType.MINE_GOLD_HEALTH, CreatureSleepFixtures.variable(MiscType.MINE_GOLD_HEALTH, 75),
                         MiscType.GOLD_MINED_FROM_GEMS, CreatureSleepFixtures.variable(MiscType.GOLD_MINED_FROM_GEMS, 25)),
-                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
+                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null), null);
 
         for (int blow = 0; blow < 3; blow++) {
             assertEquals(25, mapController.damageTile(new Point(0, 0), KEEPER_ID, null));
