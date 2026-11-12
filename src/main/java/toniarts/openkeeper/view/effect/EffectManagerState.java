@@ -26,6 +26,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 
 import java.lang.System.Logger;
 import java.util.ArrayList;
@@ -45,13 +48,20 @@ public class EffectManagerState extends AbstractAppState {
 
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
+    private final MaterialProvider materialProvider;
     private final List<VisualEffect> activeEffects = new ArrayList<>();
     private AppStateManager stateManager;
     private Supplier<LightRules> lightRulesSupplier;
 
     public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager) {
+        this(kwdFile, assetManager, assetManager == null
+                ? NoOpMaterialProvider.INSTANCE : new JmeMaterialProvider(assetManager));
+    }
+
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, MaterialProvider materialProvider) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.materialProvider = java.util.Objects.requireNonNull(materialProvider, "materialProvider");
     }
 
     @Override
@@ -165,6 +175,10 @@ public class EffectManagerState extends AbstractAppState {
 
     public AssetManager getAssetManger() {
         return assetManager;
+    }
+
+    public MaterialProvider getMaterialProvider() {
+        return materialProvider;
     }
 
     public IKwdFile getKwdFile() {

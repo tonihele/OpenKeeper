@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.map;
 import com.jme3.asset.AssetManager;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.view.material.MaterialProvider;
 import toniarts.openkeeper.view.map.construction.*;
 import toniarts.openkeeper.view.map.construction.room.*;
 
@@ -110,5 +111,18 @@ public final class RoomFactory {
                 logger.log(Level.WARNING, "Room {0} not exist", roomName);
         }
         return null;
+    }
+
+    /**
+     * Constructs a room and injects the material provider used while its
+     * geometry is prepared for batching.
+     */
+    public static RoomConstructor constructRoom(RoomInstance roomInstance, AssetManager assetManager,
+            IKwdFile kwdFile, MaterialProvider materialProvider) {
+        RoomConstructor constructor = constructRoom(roomInstance, assetManager, kwdFile);
+        if (constructor != null) {
+            constructor.setMaterialProvider(materialProvider);
+        }
+        return constructor;
     }
 }

@@ -32,6 +32,8 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -47,7 +49,14 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
 
     public DoorViewControl(EntityId entityId, EntityData entityData, Door data, DoorViewState viewState, AssetManager assetManager,
             EntityTextParser<Door> textParser, GameObject lockObject) {
-        super(entityId, entityData, data, viewState, assetManager, textParser);
+        this(entityId, entityData, data, viewState, assetManager, textParser, lockObject,
+                NoOpMaterialProvider.INSTANCE);
+    }
+
+    public DoorViewControl(EntityId entityId, EntityData entityData, Door data, DoorViewState viewState,
+            AssetManager assetManager, EntityTextParser<Door> textParser, GameObject lockObject,
+            MaterialProvider materialProvider) {
+        super(entityId, entityData, data, viewState, assetManager, textParser, materialProvider);
 
         this.lockObject = lockObject;
     }
@@ -95,6 +104,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
     private void playAnimation(DoorViewState viewState) {
         if (!getDataObject().getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
             AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager, !initialized);
+            invalidateMaterialSetup();
             isAnimationPlaying = true;
         }
     }
@@ -130,6 +140,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         if (current == null || current.blueprint != target.blueprint) {
             if (target.blueprint) {
                 AssetUtils.setBlueprint(assetManager, spatial);
+                invalidateMaterialSetup();
             } else {
                 // TODO: Unblueprint?
                 if (current != null) {
@@ -170,6 +181,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         // Restore blueprint state
         if (currentState.blueprint) {
             AssetUtils.setBlueprint(assetManager, spatial);
+            invalidateMaterialSetup();
         }
     }
 
@@ -177,6 +189,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         if (lockSpatial != null) {
             ((Node) getSpatial()).detachChild(lockSpatial);
             lockSpatial = null;
+            invalidateMaterialSetup();
         }
     }
 
@@ -185,6 +198,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
             lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName(), lockObject.getMeshResource());
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
+            invalidateMaterialSetup();
         }
     }
 }

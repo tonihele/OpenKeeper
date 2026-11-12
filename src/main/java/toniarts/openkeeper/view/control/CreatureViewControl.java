@@ -45,6 +45,8 @@ import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.NoOpMaterialProvider;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -69,7 +71,12 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
-        super(entityId, entityData, data, animation, assetManager, textParser);
+        this(entityId, entityData, data, animation, assetManager, textParser, NoOpMaterialProvider.INSTANCE);
+    }
+
+    public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
+            AssetManager assetManager, EntityTextParser<Creature> textParser, MaterialProvider materialProvider) {
+        super(entityId, entityData, data, animation, assetManager, textParser, materialProvider);
     }
 
     @Override
@@ -134,6 +141,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private void playAnimation(Creature.AnimationType animation) {
         AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
+        invalidateMaterialSetup();
         if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }

@@ -152,12 +152,14 @@ public abstract class KeeperHandState extends AbstractAppState {
         if (inHandLoader.update()) {
             updateHand();
             updateCursor();
+            // Held things are outside the world's lighting: they are fully lit
+            // when a model is attached or the hand queue changes. Their material
+            // parameters are invariant between those updates.
+            AssetUtils.applyFullLight(handRootNode);
         }
 
         updateHandCamera();
 
-        // Held things are outside the world's lighting: always fully lit
-        AssetUtils.applyFullLight(handRootNode);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
     }

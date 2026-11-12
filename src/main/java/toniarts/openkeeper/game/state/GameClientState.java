@@ -59,6 +59,9 @@ import toniarts.openkeeper.view.minimap.MinimapPanelState;
 import toniarts.openkeeper.view.text.GuardPostCounter;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProvider;
+import toniarts.openkeeper.view.material.MaterialProviderConfig;
 
 import javax.annotation.Nullable;
 import java.lang.System.Logger;
@@ -387,6 +390,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                 // Create player state
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
+                MaterialProvider materialProvider = new JmeMaterialProvider(app.getAssetManager(),
+                        MaterialProviderConfig.gameplayDefault());
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
                         true, // Built, but hidden until the viewer possesses a creature
                         () -> {
@@ -401,7 +406,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                                     systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
                                 }
                             });
-                        }) {
+                        }, materialProvider) {
 
                     private float lastProgress = 0;
 
@@ -420,7 +425,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 mapInformation = playerMapViewState.getMapInformation();
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation, materialProvider);
                 guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
                         trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
                 textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
@@ -428,7 +433,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
-                effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
+                effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager(), materialProvider);
 
                 // Attach the states
                 stateManager.attach(playerState);

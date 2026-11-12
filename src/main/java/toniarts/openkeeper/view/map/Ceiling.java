@@ -34,6 +34,7 @@ import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.material.MaterialProvider;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -91,7 +92,7 @@ public final class Ceiling {
      */
     static Geometry construct(AssetManager assetManager,
             Terrain terrain, ArtResource ceilingResource, List<Point> tiles, TerrainDeformer deformer,
-            Set<Point> straightTiles, ClearanceFieldSamples clearanceSamples) {
+            Set<Point> straightTiles, ClearanceFieldSamples clearanceSamples, MaterialProvider materialProvider) {
         Mesh mesh = createMesh(tiles, deformer, straightTiles, clearanceSamples);
 
         Geometry geo = new Geometry("Ceiling", mesh);
@@ -109,7 +110,7 @@ public final class Ceiling {
         // face down, so lights below shine on it
         ColorRGBA ambient = mat.getParam("Ambient") != null
                 ? (ColorRGBA) mat.getParam("Ambient").getValue() : ColorRGBA.Black;
-        Material dkMat = AssetUtils.createVertexMaterial(assetManager, mat, ambient);
+        Material dkMat = materialProvider.createVertexMaterial(mat, ambient);
         // Object lights and the terrain's per-tile ambient belong to the
         // ground; the ceiling ignores them
         dkMat.setBoolean("IgnoreObjectLights", true);

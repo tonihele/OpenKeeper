@@ -28,6 +28,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.game.map.WallSection;
 import toniarts.openkeeper.view.map.TerrainDeformer;
+import toniarts.openkeeper.view.material.MaterialProvider;
 
 /**
  * A base class for constructing different kind of rooms. FIXME: Basically
@@ -51,6 +52,7 @@ public abstract class RoomConstructor {
      * onto BEFORE batching it (jME forbids re-materialling afterwards).
      */
     private ColorRGBA ambient = ColorRGBA.Black;
+    private MaterialProvider materialProvider;
     private final List<Material> lightingMaterials = new ArrayList<>();
 
     // Per-tile floor pieces attached via attachFloorTile(), keyed by their world
@@ -73,6 +75,10 @@ public abstract class RoomConstructor {
 
     public void setAmbient(ColorRGBA ambient) {
         this.ambient = ambient;
+    }
+
+    public void setMaterialProvider(MaterialProvider materialProvider) {
+        this.materialProvider = materialProvider;
     }
 
     /**
@@ -153,7 +159,9 @@ public abstract class RoomConstructor {
                 if (!(spatial instanceof Geometry geometry) || geometry.isBatched()) {
                     return;
                 }
-                Material vertex = AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
+                Material vertex = materialProvider != null
+                        ? materialProvider.createVertexMaterial(geometry.getMaterial(), ambient)
+                        : AssetUtils.createVertexMaterial(assetManager, geometry.getMaterial(), ambient);
                 geometry.setMaterial(vertex);
                 outMaterials.add(vertex);
             }
