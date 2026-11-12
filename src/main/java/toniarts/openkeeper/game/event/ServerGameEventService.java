@@ -46,6 +46,11 @@ public final class ServerGameEventService implements GameEventService {
     }
 
     @Override
+    public void emitEffect(int effectId, Vector3f position, float yaw) {
+        playerService.sendEffect(effectId, position, yaw);
+    }
+
+    @Override
     public void emit(GameEventType type, ThingFlag subjectKind, int subjectId,
                      @Nullable Point position) {
         create(type, subjectKind, subjectId, null, 0, null, position, ALL_PLAYERS);
@@ -96,6 +101,11 @@ public final class ServerGameEventService implements GameEventService {
     @Override
     public void emitToPlayer(GameEventType type, short playerId) {
         create(type, null, 0, null, 0, null, null, playerId);
+    }
+
+    @Override
+    public void emitToPlayer(GameEventType type, ThingFlag subjectKind, int subjectId, short playerId) {
+        create(type, subjectKind, subjectId, null, 0, null, null, playerId);
     }
 
     private void create(GameEventType type, @Nullable ThingFlag subjectKind,
