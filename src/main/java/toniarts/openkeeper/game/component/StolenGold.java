@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2015 OpenKeeper
+ * Copyright (C) 2014-2026 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -14,32 +14,25 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.view.map;
+package toniarts.openkeeper.game.component;
 
-import com.jme3.math.FastMath;
+import com.simsilica.es.EntityComponent;
 import toniarts.openkeeper.utils.Point;
-import java.util.List;
 
 /**
- * Single wall section
- *
- * @author Toni Helenius <helenius.toni@gmail.com>
+ * Tags a thief that has taken the keeper's gold. He runs back to the exit,
+ * where he came into the level, and leaves with the gold
  */
-public record WallSection(toniarts.openkeeper.view.map.WallSection.WallDirection direction, List<Point> coordinates) {
+public final class StolenGold implements EntityComponent {
 
-    public enum WallDirection {
+    public Point exit;
 
-        EAST(-FastMath.HALF_PI), NORTH(0), WEST(FastMath.HALF_PI), SOUTH(FastMath.PI);
+    public StolenGold() {
+        // For serialization
+    }
 
-        WallDirection(float angle) {
-            this.angle = angle;
-        }
-
-        public float getAngle() {
-            return angle;
-        }
-
-        private final float angle;
+    public StolenGold(Point exit) {
+        this.exit = exit;
     }
 
 }
