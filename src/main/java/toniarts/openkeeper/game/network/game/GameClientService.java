@@ -189,6 +189,11 @@ public final class GameClientService extends AbstractClientService
     }
 
     @Override
+    public void cancelCallToArms() {
+        getDelegate().cancelCallToArms();
+    }
+
+    @Override
     public void transitionEnd() {
         getDelegate().transitionEnd();
     }
@@ -235,6 +240,11 @@ public final class GameClientService extends AbstractClientService
     @Override
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
         getDelegate().setPossessedMovement(direction, rotation, speedMode);
+    }
+
+    @Override
+    public void setPossessedAttack(boolean attacking) {
+        getDelegate().setPossessedAttack(attacking);
     }
 
     @Override
@@ -373,6 +383,13 @@ public final class GameClientService extends AbstractClientService
         public void onGameEnded(boolean win) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onGameEnded(win);
+            }
+        }
+
+        @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onEffect(effectId, position, yaw);
             }
         }
 

@@ -39,4 +39,13 @@ public final class KeeperSpellFixtures {
         return keeperSpell;
     }
 
+    public static KeeperSpell keeperSpell(short keeperSpellId, int manaCost, int manaDrain, short shotTypeId, int shotData1) {
+        KeeperSpell keeperSpell = keeperSpell("Spell " + keeperSpellId, manaCost);
+        keeperSpell.setKeeperSpellId(keeperSpellId);
+        keeperSpell.setManaDrain(manaDrain);
+        keeperSpell.setShotTypeId(shotTypeId);
+        keeperSpell.setShotData1(shotData1);
+        return keeperSpell;
+    }
+
 }
