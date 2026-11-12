@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -1186,6 +1187,16 @@ public final class CreatureController extends EntityController implements ICreat
 
         if (looseGold > 0) {
             Point coordinates = getCreatureCoordinates();
+
+            // Like in DKII (0x4510C0), the gold goes to the pile at our feet if there is one
+            synchronized (GameWorldController.GOLD_LOCK) {
+                EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
+                if (goldPile != null) {
+                    Gold pile = entityData.getComponent(goldPile, Gold.class);
+                    entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
+                    return;
+                }
+            }
             objectsController.addLooseGold(coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         }
     }
