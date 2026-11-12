@@ -119,7 +119,7 @@ public final class RoomControllerFactory {
         } else if (roomName.equalsIgnoreCase("Guard Room")) {
             return new GuardRoomController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Casino")) {
-            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController);
+            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Graveyard")) {
             return new GraveyardController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
