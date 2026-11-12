@@ -45,5 +45,6 @@ public enum TaskType {
     MANUFACTURE,
     PRAY,
     GUARD,
-    GAMBLE
+    GAMBLE,
+    TORTURE
 }

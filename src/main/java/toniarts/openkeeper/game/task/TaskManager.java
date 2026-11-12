@@ -43,6 +43,7 @@ import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -87,6 +88,7 @@ import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
@@ -613,13 +615,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * @return true if the task was assigned
      */
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {
+        return assignClosestRoomTask(creature, objectType, targetEntity, assign,
+                room -> room.isFullCapacity() ? Collections.emptyList() : room.getObjectControl(objectType).getAvailableCoordinates());
+    }
+
+    private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign,
+            Function<IRoomController, Collection<Point>> spots) {
         Point currentPosition = creature.getCreatureCoordinates();
 
         // Get all the rooms of the given type
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!room.isFullCapacity()) {
+            if (!spots.apply(room).isEmpty()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -630,7 +638,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             // FIXME: if we are to have more capacity than one per tile, we need to refactor
             // The whole rooms are always accessible, take a random point from the room like DK II seems to do
-            List<Point> coordinates = new ArrayList<>(room.getObjectControl(objectType).getAvailableCoordinates());
+            List<Point> coordinates = new ArrayList<>(spots.apply(room));
             Iterator<Point> iter = coordinates.iterator();
             Map<Point, AbstractCapacityCriticalRoomTask> taskPoints = roomTasks.get(room);
             while (iter.hasNext()) {
@@ -672,6 +680,23 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return false;
     }
 
+    /**
+     * The torture devices with a victim on them
+     */
+    private Collection<Point> getTortureVictimSpots(IRoomController room) {
+        List<Point> spots = new ArrayList<>();
+        Set<EntityId> devices = new HashSet<>(room.getFloorFurniture());
+        devices.addAll(room.getWallFurniture());
+        for (EntityId device : devices) {
+            Point p = WorldUtils.vectorToPoint(entityData.getComponent(device, Position.class).position);
+            Collection<?> victims = room.getObjectControl(ObjectType.TORTUREE).getItems(p);
+            if (victims != null && !victims.isEmpty()) {
+                spots.add(p);
+            }
+        }
+        return spots;
+    }
+
     private static Integer getShortestDistance(Point currentPosition, Point... coordinates) {
         int distance = Integer.MAX_VALUE;
         for (Point p : coordinates) {
@@ -700,6 +725,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
+            }
+            case TORTUREE -> {
+                return new Torture(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData);
             }
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
@@ -845,6 +873,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+            }
+            case TORTURE: {
+
+                // As in the original (0x483AE0), whip a victim if there is one, otherwise get on a free device
+                return assignClosestRoomTask(creature, ObjectType.TORTUREE, null, assign, this::getTortureVictimSpots)
+                        || assignClosestRoomTask(creature, ObjectType.TORTUREE, null, assign);
             }
             case MANUFACTURE: {
                 return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
