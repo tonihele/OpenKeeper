@@ -82,7 +82,10 @@ public final class TrapPlacementValidator {
         return Failure.NONE;
     }
 
-    private static boolean isOwnFloor(Terrain terrain, IMapTileInformation mapTile, short playerId) {
+    /**
+     * The keeper's own claimed floor outside of rooms, doors go on it too
+     */
+    static boolean isOwnFloor(Terrain terrain, IMapTileInformation mapTile, short playerId) {
         return terrain != null
                 && mapTile.getOwnerId() == playerId
                 && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
