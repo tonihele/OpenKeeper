@@ -296,6 +296,7 @@ public final class CreaturesController implements ICreaturesController {
 
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack, regeneration);
+        goldComponent.gold = getStartingGold(money, goldComponent.maxGold);
         setSpells(entity, creature, level);
 
         entityData.setComponent(entity, creatureComponent);
@@ -339,6 +340,21 @@ public final class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
         return entity;
+    }
+
+    /**
+     * The gold a new creature carries. Only a creature placed in the editor
+     * carries any: its gold held percentage of its max gold held, like in the
+     * original (0x520180, 0x520460, 0x5208B0). Everything else starts with
+     * none (0x4872A0 clears it), the "initial gold held" attribute of the
+     * creature record is never read
+     *
+     * @param goldHeldPercent the gold held of the placed creature, in percent
+     * @param maxGold the most gold the creature can carry on its level
+     * @return the gold the creature starts with
+     */
+    static int getStartingGold(int goldHeldPercent, int maxGold) {
+        return (int) (goldHeldPercent * 0.01 * maxGold);
     }
 
     private void setFlagDrivenComponents(EntityId entity, Creature creature) {
@@ -512,8 +528,10 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.level = level;
         creatureExperience.experience = experience;
 
-        // Update stats
+        // Update stats, the gold carried stays
+        int carriedGold = gold.gold;
         setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack, regeneration);
+        gold.gold = carriedGold;
         setSpells(entityId, kwdFile.getCreature(creatureComponent.creatureId), level);
 
         // Set the new components to the entity
@@ -546,7 +564,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureComponent.manaGenPrayer = scaleByLevel(attributes.getManaGenPrayer(), getStatPercent(stats, Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND));
         creatureExperience.experienceToNextLevel = scaleByLevel(attributes.getExpForNextLevel(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL));
         creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
-        creatureExperience.experiencePerSecondTraining = scaleByLevel(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
+        creatureExperience.experiencePerTickTraining = getPointsPerTick(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
         creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
         creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));

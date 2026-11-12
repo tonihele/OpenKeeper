@@ -60,6 +60,15 @@ public enum GameEventType {
      */
     SHOT_HIT,
     IMPS_CREATED,
+    /**
+     * A Call to Arms banner calls its creatures, the entity is the banner
+     */
+    CALL_TO_ARMS,
+    /**
+     * Some creatures can't get to the Call to Arms banner, only its keeper
+     * gets this
+     */
+    CALL_TO_ARMS_UNREACHABLE,
 
     // The Torture Chamber
     /**
@@ -84,5 +93,7 @@ public enum GameEventType {
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
+    /** A completed room capture, delivered only to its new owner. */
+    ROOM_CAPTURED,
     TERRAIN_DESTROYED
 }

@@ -31,7 +31,9 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -118,5 +120,31 @@ class CreatureViewSystemTest {
         CreatureViewSystem system = new CreatureViewSystem(entityData);
         system.processTick(1);
         return entityData.getComponent(mistress, CreatureViewState.class).state;
+    }
+
+    @Test
+    void bileDemonUsesItsOwnWorkshopAnimation() {
+        Creature bileDemon = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.MANUFACTURING,
+                ArtResource.ArtResourceType.ANIMATING_MESH);
+
+        assertEquals(Creature.AnimationType.MANUFACTURING, CreatureViewSystem.getManufactureAnimation(bileDemon));
+    }
+
+    @Test
+    void trollSwingsItsHammer() {
+
+        // The Troll's workshop slot is empty in the data
+        Creature troll = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.MANUFACTURING,
+                ArtResource.ArtResourceType.NONE);
+
+        assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(troll));
+    }
+
+    @Test
+    void missingSlotFallsBackToTheHammer() {
+        Creature creature = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.IDLE_1,
+                ArtResource.ArtResourceType.ANIMATING_MESH);
+
+        assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(creature));
     }
 }

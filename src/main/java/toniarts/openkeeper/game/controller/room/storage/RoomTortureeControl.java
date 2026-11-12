@@ -26,8 +26,10 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -238,8 +240,8 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     @Override
     protected Collection<Point> getCoordinates() {
 
-        // Only furniture
-        List<Point> coordinates = new ArrayList<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
+        // Only furniture, once per tile
+        Set<Point> coordinates = new LinkedHashSet<>(parent.getFloorFurnitureCount() + parent.getWallFurnitureCount());
         for (EntityId oc : parent.getFloorFurniture()) {
             coordinates.add(WorldUtils.vectorToPoint(entityData.getComponent(oc, Position.class).position));
         }
