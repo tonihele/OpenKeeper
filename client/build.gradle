@@ -29,6 +29,14 @@ tasks.register("modelViewer", JavaExec) {
     workingDir = rootProject.projectDir
 }
 
+tasks.register("benchmarkCeilingBuild", JavaExec) {
+    group = "verification"
+    description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.view.map.CeilingBuildBenchmark'
+}
+
 dependencies {
     implementation project(':core')
     implementation "org.jmonkeyengine:jme3-desktop:$jmonkeyengine_version"
