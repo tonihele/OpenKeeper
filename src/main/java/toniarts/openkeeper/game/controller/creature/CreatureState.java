@@ -94,9 +94,10 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it.
+            // The Casino is only a fallback for a creature that could not start any of its jobs, as in the original
             entity.findWork((foundWork) -> {
-                if (foundWork) {
+                if (foundWork || entity.goGambling()) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
@@ -225,7 +226,8 @@ public enum CreatureState implements State<ICreatureController> {
             // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
-                    || task.getTaskType() == TaskType.RESEARCH)
+                    || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.GAMBLE)
                     && ((entity.isHungry() && entity.goToEat())
                     || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
