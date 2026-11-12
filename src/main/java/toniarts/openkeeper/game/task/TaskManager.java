@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
@@ -86,6 +87,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
@@ -721,6 +723,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case WORSHIPPER -> {
                 return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
             }
+            case GUARD -> {
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                        (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        FastMath.rand);
+            }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
                 return null;
@@ -849,6 +857,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case PRAY: {
                 return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
+            }
+            case GUARD: {
+                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
             }
             default:
                 return false;
