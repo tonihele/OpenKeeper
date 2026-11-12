@@ -42,7 +42,6 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.ObjectViewState;
-import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.ShotViewState;
@@ -657,14 +656,15 @@ public class PlayerEntityViewState extends AbstractAppState {
      * The banner's effect, in its keeper's colour. Not shown in the fog of war.
      */
     private void showCallToArmsEffect(EntityId entityId) {
-        Spatial banner = isInitialized() ? getEntitySpatial(entityId) : null;
-        Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (banner == null || owner == null) {
+
+        // The client must not look up components from the entity data, the banner's control knows its owner
+        IEntityViewControl banner = isInitialized() ? getEntityViewControl(entityId) : null;
+        if (banner == null || banner.getSpatial() == null) {
             return;
         }
-        Vector3f location = banner.getLocalTranslation();
+        Vector3f location = banner.getSpatial().getLocalTranslation();
         if (fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(location))) {
-            stateManager.getState(EffectManagerState.class).load(nodeObjects, location.clone(), CALL_TO_ARMS_EFFECT_ID, false, owner.ownerId);
+            stateManager.getState(EffectManagerState.class).load(nodeObjects, location.clone(), CALL_TO_ARMS_EFFECT_ID, false, banner.getOwnerId());
         }
     }
 
