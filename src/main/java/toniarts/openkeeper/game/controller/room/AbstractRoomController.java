@@ -57,7 +57,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      */
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE, MANUFACTURER, CRATE, WORSHIPPER;
+        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE, MANUFACTURER, CRATE, WORSHIPPER, GUARD;
 
     };
 
