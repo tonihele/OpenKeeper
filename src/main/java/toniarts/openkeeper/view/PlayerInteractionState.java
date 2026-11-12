@@ -84,6 +84,7 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -1026,6 +1027,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 case SELL, ROOM, DOOR, TRAP -> true;
                 default -> false;
             };
+        }
+
+        @Override
+        protected TerrainDeformer getDeformer() {
+            PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+            return mapViewState != null ? mapViewState.getTerrainDeformer() : null;
         }
 
         @Override

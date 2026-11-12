@@ -25,10 +25,13 @@ import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -62,6 +65,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
@@ -75,11 +79,14 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
+import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
+import toniarts.openkeeper.game.task.objective.StealGold;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
@@ -125,9 +132,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<Short, Set<Task>> taskQueues;
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
+    private final Map<EntityId, ICreatureController> creaturesByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
+    private final Set<ICreatureController> escapedThieves = new HashSet<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
@@ -196,6 +205,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public void processTick(float tpf) {
+        removeEscapedThieves();
         if (taskEntities.applyChanges()) {
             processDeletedTasks(taskEntities.getRemovedEntities());
             processAddedTasks(taskEntities.getAddedEntities());
@@ -219,15 +229,28 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             tasksIdsByEntities.put(entity.getId(), taskId);
+            trackCreature(entity.getId());
+        }
+    }
+
+    /**
+     * Remembers the creature that has a task. When it is killed its entity is
+     * removed outright and a controller can't be made of it anymore, but the
+     * task still needs to let go of it
+     */
+    private void trackCreature(EntityId entityId) {
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            creaturesByEntities.put(entityId, creaturesController.createController(entityId));
         }
     }
 
     private void processDeletedTasks(Set<Entity> entities) {
         for (Entity entity : entities) {
             Long taskId = tasksIdsByEntities.remove(entity.getId());
+            ICreatureController creature = creaturesByEntities.remove(entity.getId());
             Task task = tasksByIds.get(taskId);
-            if (task != null) {
-                task.unassign(creaturesController.createController(entity.getId()));
+            if (task != null && creature != null) {
+                task.unassign(creature);
                 if (task.getAssigneeCount() == 0 && task.isRemovable()) {
                     //tasksByIds.remove(taskId);
                 }
@@ -239,13 +262,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            trackCreature(entity.getId());
+            ICreatureController creature = creaturesByEntities.get(entity.getId());
             if (oldTaskId == null || taskId == oldTaskId) {
                 continue;
             }
 
             Task task = tasksByIds.get(oldTaskId);
-            if (task != null) {
-                task.unassign(creaturesController.createController(entity.getId()));
+            if (task != null && creature != null) {
+                task.unassign(creature);
                 if (task.getAssigneeCount() == 0 && task.isRemovable()) {
                     //tasksByIds.remove(taskId);
                 }
@@ -667,11 +692,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case PRISONER -> {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
-            case SPECIAL, SPELL_BOOK -> {
+            case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+            }
+            case MANUFACTURER -> {
+                return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
@@ -698,7 +727,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
-                task = new SendToActionPoint(navigationService, mapController, levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId()), creature.getOwnerId());
+                ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
+                if (actionPoint != null) {
+                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature.getOwnerId());
+                } else {
+                    logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!", creature.getObjectiveTargetActionPointId());
+                }
                 break;
             }
             case KILL_PLAYER: {
@@ -707,6 +741,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 if (KillPlayer.isTargetPresent(levelInfo, creature.getObjectiveTargetPlayerId())) {
                     task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
                 }
+                break;
+            }
+            case KILL_CREATURES: {
+                task = KillCreatures.create(navigationService, mapController, levelInfo, creature,
+                        getCreatures(creature.getObjectiveTargetPlayerId()));
+                break;
+            }
+            case STEAL_GOLD: {
+                task = new StealGold(navigationService, mapController, gameWorldController, entityData, creature, escapedThieves::add);
                 break;
             }
             default: {
@@ -723,6 +766,41 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return true;
         }
         return false;
+    }
+
+    private List<ICreatureController> getCreatures(short playerId) {
+        IPlayerController playerController = playerControllers.get(playerId);
+        if (playerController == null) {
+            return Collections.emptyList();
+        }
+
+        List<ICreatureController> creatures = new ArrayList<>();
+        for (Set<EntityId> creatureEntities : playerController.getCreatureControl().getAllCreatures().values()) {
+            for (EntityId entityId : creatureEntities) {
+
+                // A creature removed this tick is still listed until the player creature system catches up
+                if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+                    creatures.add(creaturesController.createController(entityId));
+                }
+            }
+        }
+
+        return creatures;
+    }
+
+    /**
+     * Thieves that got away with their loot leave the level. Not done while
+     * the thief is busy with his own task
+     */
+    private void removeEscapedThieves() {
+        for (ICreatureController thief : escapedThieves) {
+
+            // Done with the task here, the thief won't be around to be told later
+            thief.unassingCurrentTask();
+            tasksIdsByEntities.remove(thief.getEntityId());
+            thief.remove();
+        }
+        escapedThieves.clear();
     }
 
     private AbstractTask getObjectTask(IObjectController gameObject, short playerId) {
@@ -746,6 +824,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+            }
+            case MANUFACTURE: {
+                return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
             }
             default:
                 return false;
@@ -857,10 +938,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             ICreatureController creature = workerEntry.getKey();
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
+            Set<Point> reachableArea = getReachableArea(creature, currentLocation);
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
             for (Task task : taskQueue) {
+
+                // A task is worked on its tile or next to it. One out of the worker's reach would cost a path search that
+                // goes through all of the worker's land before it fails
+                if (Arrays.stream(WorldUtils.getSurroundingTiles(mapController.getMapData(), task.getTaskLocation(), false))
+                        .noneMatch(reachableArea::contains)) {
+                    continue;
+                }
+
                 int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
                 priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
             }
@@ -899,6 +989,32 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         unemployedWorkers.forEach((t, u) -> {
             u.accept(Boolean.FALSE);
         });
+    }
+
+    /**
+     * The tiles a creature can walk to from where it stands, the same steps the
+     * path finding takes. DK II keeps the connected areas of the map, so a path
+     * to somewhere out of reach fails at once (DKII.EXE 0x4C9400, 0x4D0150)
+     *
+     * @param creature the creature
+     * @param start the tile the creature stands on
+     * @return the reachable tiles, the start included
+     */
+    private Set<Point> getReachableArea(ICreatureController creature, Point start) {
+        IMapDataInformation<IMapTileController> mapData = mapController.getMapData();
+        Set<Point> area = new HashSet<>();
+        area.add(start);
+        Deque<Point> open = new ArrayDeque<>(area);
+        while (!open.isEmpty()) {
+            Point p = open.poll();
+            for (Point next : WorldUtils.getSurroundingTiles(mapData, p, false)) {
+                if (!area.contains(next) && navigationService.isAccessible(mapData.getTile(p), mapData.getTile(next), creature)) {
+                    area.add(next);
+                    open.add(next);
+                }
+            }
+        }
+        return area;
     }
 
     static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
