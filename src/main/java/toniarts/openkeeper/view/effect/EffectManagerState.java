@@ -125,12 +125,25 @@ public class EffectManagerState extends AbstractAppState {
      * @param ownerId the player who owns the effect
      */
     public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
+        return load(node, location, effectId, infinite, ownerId, false);
+    }
+
+    /**
+     * Loads up an particle effect owned by a specific player
+     *
+     * @param emitOverLifetime emit the elements every effect tick for the
+     * effect's whole lifetime (hp), instead of a single burst
+     * @see #load(Node, Vector3f, int, boolean, short)
+     */
+    public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId,
+            boolean emitOverLifetime) {
 
         // Load the effect
         if (effectId == 0) {
             return null;
         }
-        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite, ownerId);
+        VisualEffect visualEffect = new VisualEffect(this, node, location, kwdFile.getEffect(effectId), infinite,
+                ownerId, emitOverLifetime);
         activeEffects.add(visualEffect);
         return visualEffect;
     }
