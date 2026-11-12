@@ -24,6 +24,7 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -254,10 +255,10 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean isTargetedByEnemyFighter() {
-        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
-            AttackTarget target = entityData.getComponent(entity, AttackTarget.class);
-            if (target != null && target.entityId.equals(entityId) && isEnemy(entity)
-                    && getEntityFightingStyle(entity) != Creature.FightStyle.NON_FIGHTER) {
+
+        // Whoever is after us counts, an archer shoots from farther than a worker senses
+        for (EntityId entity : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", entityId), AttackTarget.class)) {
+            if (isEnemy(entity) && getEntityFightingStyle(entity) != Creature.FightStyle.NON_FIGHTER) {
                 return true;
             }
         }

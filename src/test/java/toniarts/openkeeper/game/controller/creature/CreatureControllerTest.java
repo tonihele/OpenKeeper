@@ -428,6 +428,20 @@ class CreatureControllerTest {
     }
 
     @Test
+    void workerWithdrawsFromAnEnemyAfterItThatItCantSense() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId archer = heroNextToWorker(f, 8, 20);
+            f.data.setComponent(archer, new AttackTarget(f.entity));
+
+            // An archer shoots from farther than a worker senses
+            f.sensed = Set.of();
+            f.controller.shouldFleeOrAttack();
+
+            assertEquals(CreatureState.FLEE, f.state());
+        }
+    }
+
+    @Test
     void workerWithdrawsNextToItsHeartAndGoesBackToWorkOnArrival() {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
             EntityId hero = heroNextToWorker(f, 3.5f, 3);
