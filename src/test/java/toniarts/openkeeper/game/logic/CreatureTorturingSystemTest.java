@@ -113,7 +113,7 @@ class CreatureTorturingSystemTest {
     @Test
     void electricChairZapsOnTheTickTheVictimTurnsIntoItsSkeleton() {
         EntityId victim = victimOn(ELECTRIC_CHAIR);
-        CreatureViewSystem view = new CreatureViewSystem(entityData);
+        CreatureViewSystem view = new CreatureViewSystem(entityData, null);
         List<Integer> shocks = new ArrayList<>();
 
         // The systems run in this order in the game loop
