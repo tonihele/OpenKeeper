@@ -134,6 +134,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
     private final SafeArrayList<SpecialListener> specialListeners = new SafeArrayList<>(SpecialListener.class);
+    private final SlapLimit slapLimit = new SlapLimit();
 
     public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -1178,9 +1179,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void interact(EntityId entity, short playerId) {
 
         // Creatures can only be slapped, also enemies held in our prison
-        // TODO: Slap limit
         if (entityData.getComponent(entity, CreatureComponent.class) != null) {
-            if (canSlapCreature(entity, playerId)) {
+            if (canSlapCreature(entity, playerId) && slapLimit.tryUseSlap(playerId)) {
                 entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
                 notifySlap(entity, playerId);
             }
@@ -1207,11 +1207,16 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Objects
         ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
-        if (objectComponent != null && interaction.slappable) {
+        if (objectComponent != null && interaction.slappable && slapLimit.tryUseSlap(playerId)) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             notifySlap(entity, playerId);
             return;
         }
+    }
+
+    @Override
+    public void setSlapsLimit(int limit) {
+        slapLimit.setLimit(limit);
     }
 
     private void notifySlap(EntityId entity, short playerId) {
