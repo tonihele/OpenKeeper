@@ -260,12 +260,10 @@ public final class PartyController implements IPartyController {
 
             // No path by ordinary means, but we might want to tunnel or smash our way through obstacles
             Terrain terrain = mapController.getTerrain(to);
-            if (terrain.getFlags().contains(Terrain.TerrainFlag.SOLID) && isWorkersAvailable()) {
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.DWARF_CAN_DIG_THROUGH)) {
-                    return 5f; // Dig our selves in
-                }
-                if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)) {
-                    return 6f; // It seems that everybody can attack reinforced walls i.e. ?
+            if (isWorkersAvailable()) {
+                Float tunnelCost = Tunneller.getTunnelCost(terrain);
+                if (tunnelCost != null) {
+                    return tunnelCost;
                 }
             }
 

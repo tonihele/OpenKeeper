@@ -22,6 +22,9 @@ package toniarts.openkeeper.game.sound;
 public record AudioSpec(String assetPath, boolean positional, boolean looping, boolean streamed, float gain,
         float pitch, float x, float y, float z, float refDistance, float maxDistance) {
 
+    public static final float MIN_PITCH = 0.5f;
+    public static final float MAX_PITCH = 2.0f;
+
     public static AudioSpec stereo(String assetPath, float gain) {
         return new AudioSpec(assetPath, false, false, false, gain, 1.0f, 0, 0, 0, 1.0f, 1000.0f);
     }
@@ -34,8 +37,12 @@ public record AudioSpec(String assetPath, boolean positional, boolean looping, b
         return new AudioSpec(assetPath, positional, looping, streamed, newGain, pitch, x, y, z, refDistance, maxDistance);
     }
 
+    /**
+     * Sets the pitch, held to the range jME's AudioNode accepts. The group pitch of a sound is a
+     * signed byte on top of 100, so it can reach 0 to 2.27.
+     */
     public AudioSpec withPitch(float newPitch) {
-        return new AudioSpec(assetPath, positional, looping, streamed, gain, newPitch, x, y, z, refDistance, maxDistance);
+        return new AudioSpec(assetPath, positional, looping, streamed, gain, Math.max(MIN_PITCH, Math.min(MAX_PITCH, newPitch)), x, y, z, refDistance, maxDistance);
     }
 
     public AudioSpec withPosition(float nx, float ny, float nz) {

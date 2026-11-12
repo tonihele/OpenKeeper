@@ -20,13 +20,16 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.Map;
 import java.util.WeakHashMap;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
@@ -40,6 +43,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Spellbook;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.chicken.ChickenController;
@@ -78,6 +82,7 @@ public final class ObjectsController implements IObjectsController {
     public final static short OBJECT_GOLD_PILE_ID = 3;
     public final static short OBJECT_SPELL_BOOK_ID = 4;
     public final static short OBJECT_CHICKEN_ID = 9;
+    public final static short OBJECT_CALL_TO_ARMS_ID = 10;
     public final static short OBJECT_EGG_ID = 47;
     public final static short OBJECT_SPECIAL_INCREASE_LEVEL_ID = 117;
     public final static short OBJECT_SPECIAL_REVEAL_MAP_ID = 118;
@@ -224,6 +229,9 @@ public final class ObjectsController implements IObjectsController {
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
             entityData.setComponent(entity, new Food());
         }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_CRATE) && researchableType != null) {
+            entityData.setComponent(entity, new Crate(researchableType, researchTypeId));
+        }
         if (obj.getHp() > 0) {
             entityData.setComponent(entity, new Health(
                     objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp(),
@@ -285,6 +293,11 @@ public final class ObjectsController implements IObjectsController {
     }
 
     @Override
+    public EntityId addRoomCrate(short crateObjectId, short ownerId, int x, int y, ResearchableType type, short typeId) {
+        return loadObject(crateObjectId, ownerId, x, y, null, type, typeId);
+    }
+
+    @Override
     public IObjectController createController(EntityId entityId) {
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         if (objectComponent == null) {
@@ -296,6 +309,17 @@ public final class ObjectsController implements IObjectsController {
     @Override
     public boolean isValidEntity(EntityId entityId) {
         return entityData.getComponent(entityId, ObjectComponent.class) != null;
+    }
+
+    @Override
+    public void cancelCallToArms(short playerId) {
+        double now = gameTimer.getGameTime();
+        for (EntityId banner : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), CallToArms.class, Owner.class, Position.class)) {
+            CallToArms callToArms = entityData.getComponent(banner, CallToArms.class);
+            if (callToArms != null && callToArms.isUp() && now >= callToArms.waveTime) {
+                entityData.setComponent(banner, new Slapped(now));
+            }
+        }
     }
 
     @Override
@@ -362,6 +386,9 @@ public final class ObjectsController implements IObjectsController {
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
             return AbstractRoomController.ObjectType.FOOD;
+        }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_CRATE)) {
+            return AbstractRoomController.ObjectType.CRATE;
         }
 
         return null;
