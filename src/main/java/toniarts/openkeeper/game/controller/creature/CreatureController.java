@@ -1617,6 +1617,12 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public int getManufacturePerSecond() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.manufacturePerSecond;
+    }
+
+    @Override
     public void giveObject(IObjectController object) {
         if (object.getType() == AbstractRoomController.ObjectType.GOLD) {
 

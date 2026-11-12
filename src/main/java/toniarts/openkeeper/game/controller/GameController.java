@@ -81,6 +81,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private final EntityData entityData;
     private final PlayerService playerService;
 
+    private EffectGeneratorsController effectGenerators;
     private TriggerControl triggerControl = null;
     private final List<TriggerControl> triggerControls = new ArrayList<>();
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
@@ -208,6 +209,9 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         controllers.add(actionPointTriggers);
         controllers.add(playerTriggers);
         controllers.add(gameTimer);
+        effectGenerators = new EffectGeneratorsController(levelInfo.kwdFile.getThings(Thing.EffectGenerator.class),
+                gameWorldController.getMapController(), gameTimer, gameEventService);
+        controllers.add(effectGenerators);
         controllers.add(positionSystem);
 
         int triggerId = levelInfo.kwdFile.getGameLevel().getTriggerId();
@@ -417,7 +421,18 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     }
 
     @Override
+    public void setEffectGeneratorEnabled(short generatorId, boolean enabled) {
+        effectGenerators.setEnabled(generatorId, enabled);
+    }
+
+    @Override
     public void endGame(short playerId, boolean win) {
+
+        // A player's game ends only once, the first result stands
+        Keeper keeper = levelInfo.getPlayer(playerId);
+        if (keeper != null && !keeper.claimResult()) {
+            return;
+        }
 
         // Determine what happens to the game & players
         gameResult = new GameResult();
