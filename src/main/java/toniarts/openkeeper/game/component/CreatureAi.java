@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 public final class CreatureAi implements EntityComponent {
 
     private static final int NO_STATE = -1;
+    private static final CreatureState[] CREATURE_STATES = CreatureState.values();
 
     public double stateStartTime;
     private int creatureState;
@@ -61,7 +62,7 @@ public final class CreatureAi implements EntityComponent {
 
     /** Returns the requested state, or null when ordinary state selection applies. */
     public CreatureState getTargetState() {
-        return targetState == NO_STATE ? null : CreatureState.values()[targetState];
+        return targetState == NO_STATE ? null : CREATURE_STATES[targetState];
     }
 
     public final CreatureState getCreatureState() {
@@ -71,7 +72,7 @@ public final class CreatureAi implements EntityComponent {
          * serialize it. Easiest for us now is just to emulate the serialization
          * like this
          */
-        return CreatureState.class.getEnumConstants()[creatureState];
+        return CREATURE_STATES[creatureState];
     }
 
 }

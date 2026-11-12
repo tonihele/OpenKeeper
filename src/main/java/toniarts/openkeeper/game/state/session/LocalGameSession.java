@@ -367,6 +367,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void cancelCallToArms() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onCancelCallToArms(PLAYER_ID);
+        }
+    }
+
+    @Override
     public void transitionEnd() {
         playerInTransition = false;
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
@@ -551,6 +558,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
             for (GameSessionListener listener : listeners.getArray()) {
                 listener.onGameEnded(win);
             }
+        }
+    }
+
+    @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onEffect(effectId, position, yaw);
         }
     }
 

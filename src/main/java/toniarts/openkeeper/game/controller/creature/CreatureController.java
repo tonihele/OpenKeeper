@@ -19,13 +19,17 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -70,6 +74,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
@@ -193,7 +198,7 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Check fleeing, TODO: Always flee?
         boolean inDHeart = false;
-        if (entityData.getComponent(entityId, Fearless.class) == null) {
+        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()) {
             Threat threatComponent = entityData.getComponent(entityId, Threat.class);
             int threat = threatComponent != null ? threatComponent.threat : 0;
             int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
@@ -219,7 +224,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Should we attack, try to avoid i.e. imps engaging in a fight
         if ((creature.getFightStyle()
-                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null) {
+                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null
+                && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
             }
@@ -300,8 +306,9 @@ public final class CreatureController extends EntityController implements ICreat
      * @return is entity a captive
      */
     private boolean isCaptive(EntityId entity) {
-        // TODO: Fighting in arena is kind of captivity
-        return isImprisoned(entityData, entity) || isTortured(entityData, entity);
+        // Fighting in the Combat Pit is kind of captivity too
+        return isImprisoned(entityData, entity) || isTortured(entityData, entity)
+                || entityData.getComponent(entity, CombatPitFighter.class) != null;
     }
 
     /**
@@ -341,6 +348,14 @@ public final class CreatureController extends EntityController implements ICreat
             if (destination != null) {
                 createNavigation(start, destination, null);
             }
+        }
+    }
+
+    @Override
+    public void navigateToRandomPointInCombatPit() {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        if (pitFighter != null && mapController.getRoomController(pitFighter.pit) instanceof CombatPitController pit) {
+            createNavigation(getCreatureCoordinates(), pit.getRandomFightingTile(), null);
         }
     }
 
@@ -533,24 +548,38 @@ public final class CreatureController extends EntityController implements ICreat
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
             Vector2f loc = assignedTask.getTarget(this);
-            if (!isNear(loc)) {
+            Vector2f workPosition = assignedTask.getWorkPosition(this);
+            if (workPosition != null && workPosition.equals(loc)) {
+                workPosition = null;
+            }
+
+            // The middle of the target tile is near enough, unless the task wants us somewhere else on the tile
+            boolean there = workPosition != null ? isAt(workPosition) : loc != null && isNear(loc);
+            if (loc != null && !there) {
                 //workNavigationRequired = false;
 
-                if (loc != null) {
-                    Point destination = WorldUtils.vectorToPoint(loc);
-                    createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null);
-                }
+                Point destination = WorldUtils.vectorToPoint(loc);
+                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
             }
         }
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, null);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
+        List<Vector2> navigationPath = SteeringUtils.pathToList(path);
+        if (workPosition != null) {
+            Vector3f position = getPosition();
+            SteeringUtils.pathToPosition(navigationPath, new Vector2(position.x, position.z), new Vector2(workPosition.x, workPosition.y));
+        }
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
         return false;
     }
 
@@ -566,6 +595,16 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isNear(Vector2f target) {
         Vector3f currentPos = getPosition();
         return (target.distanceSquared(currentPos.x, currentPos.z) < 0.5f);
+    }
+
+    /**
+     * Standing on the spot, not just on the tile. Well above the arrival
+     * tolerance of the steering (0.1), or the creature keeps stepping around
+     * the spot
+     */
+    private boolean isAt(Vector2f target) {
+        Vector3f currentPos = getPosition();
+        return (target.distanceSquared(currentPos.x, currentPos.z) < 0.25f * 0.25f);
     }
 
     @Override
@@ -587,6 +626,10 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public ICreatureController getAttackTarget() {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        if (pitFighter != null) {
+            return getCombatPitOpponent(pitFighter.pit);
+        }
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         ICreatureController attackTargetController = null;
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
@@ -619,6 +662,61 @@ public final class CreatureController extends EntityController implements ICreat
             attackTargetController = creaturesController.createController(attackTarget.entityId);
         }
         return attackTargetController;
+    }
+
+    /**
+     * Gets the creature we fight in the Combat Pit. An enemy fighter comes
+     * first, then the nearest one of our own side.
+     *
+     * @param pit the Combat Pit we fight in
+     * @return the opponent, or {@code null} if there is none
+     */
+    private ICreatureController getCombatPitOpponent(EntityId pit) {
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        if (attackTarget != null && isCombatPitOpponent(attackTarget.entityId, pit)) {
+            return creaturesController.createController(attackTarget.entityId);
+        }
+
+        EntityId nearestEnemy = null;
+        float nearestEnemyDistance = Float.MAX_VALUE;
+        EntityId nearestOther = null;
+        float nearestOtherDistance = Float.MAX_VALUE;
+        if (!isAtTopCombatPitLevel(entityId)) {
+            for (EntityId entity : entityData.findEntities(new FieldFilter<>(CombatPitFighter.class, "pit", pit), CombatPitFighter.class)) {
+                if (!isCombatPitOpponent(entity, pit)) {
+                    continue;
+                }
+                float distance = getDistanceToCreature(entity);
+                if (isEnemy(entity)) {
+                    if (distance < nearestEnemyDistance) {
+                        nearestEnemyDistance = distance;
+                        nearestEnemy = entity;
+                    }
+                } else if (distance < nearestOtherDistance) {
+                    nearestOtherDistance = distance;
+                    nearestOther = entity;
+                }
+            }
+        }
+
+        EntityId opponent = nearestEnemy != null ? nearestEnemy : nearestOther;
+        setAttackTarget(opponent);
+        return opponent != null ? creaturesController.createController(opponent) : null;
+    }
+
+    private boolean isCombatPitOpponent(EntityId entity, EntityId pit) {
+        CombatPitFighter pitFighter = entityData.getComponent(entity, CombatPitFighter.class);
+        return !entity.equals(entityId) && pitFighter != null && pit.equals(pitFighter.pit)
+                && !isIncapacitated(entity) && !isAtTopCombatPitLevel(entity);
+    }
+
+    /**
+     * Creatures at the top level the Combat Pit teaches neither fight nor are
+     * fought there
+     */
+    private boolean isAtTopCombatPitLevel(EntityId entity) {
+        CreatureExperience creatureExperience = entityData.getComponent(entity, CreatureExperience.class);
+        return creatureExperience != null && creatureExperience.level >= (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue();
     }
 
     private boolean hasPathToEntity(EntityId entity) {
@@ -734,7 +832,7 @@ public final class CreatureController extends EntityController implements ICreat
         if (isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
-                hitWithMelee(attackTarget, creatureMeleeAttack, creatureMeleeAttack.damage);
+                hitWithMelee(attackTarget, creatureMeleeAttack, getCombatPitDamage(attackTarget, creatureMeleeAttack.damage));
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -810,6 +908,25 @@ public final class CreatureController extends EntityController implements ICreat
                 .findFirst();
     }
 
+    /**
+     * Fighters in the Combat Pit hit by the melee damage modifier percentage
+     * (normal damage at 100) and take only a part of the damage
+     *
+     * @param attackTarget the target we hit
+     * @param damage the damage of our hit
+     * @return the damage the target takes
+     */
+    private int getCombatPitDamage(EntityId attackTarget, int damage) {
+        if (isCombatPitFighter()) {
+            damage = damage * (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MELEE_DAMAGE_MODIFIER_PERCENTAGE).getValue() / 100;
+        }
+        if (entityData.getComponent(attackTarget, CombatPitFighter.class) != null) {
+            damage = damage * (int) gameSettings.get(Variable.MiscVariable.MiscType.PIT_PERCENTAGE_DAMAGE_TAKEN_OF_NORMAL_COMBAT).getValue() / 100;
+        }
+
+        return damage;
+    }
+
     private boolean isAttackRecharged(Attack attack) {
         return attack.attactStartTime == null || attack.attactStartTime + attack.rechargeTime <= gameTimer.getGameTime();
     }
@@ -846,6 +963,76 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean shouldNavigateToFollowTarget() {
         return (isStopped() && getDistanceToCreature(getFollowTarget().getEntityId()) > 1.5f) || (getDistanceToCreature(getFollowTarget().getEntityId()) > 2.5f);
+    }
+
+    @Override
+    public boolean answerCallToArms(EntityId banner) {
+        Position bannerPosition = entityData.getComponent(banner, Position.class);
+        if (bannerPosition == null) {
+            return false;
+        }
+        Point destination = WorldUtils.vectorToPoint(bannerPosition.position);
+        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
+        if (path == null) {
+            return false;
+        }
+
+        stateMachine.changeState(CreatureState.CALL_TO_ARMS);
+        setFollowTarget(banner);
+        entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+        return true;
+    }
+
+    @Override
+    public boolean heedCallToArms() {
+        FollowTarget followTarget = entityData.getComponent(entityId, FollowTarget.class);
+        if (followTarget == null || entityData.getComponent(followTarget.entityId, CallToArms.class) == null) {
+            return false;
+        }
+
+        // Wait while the keeper carries the banner
+        Position bannerPosition = entityData.getComponent(followTarget.entityId, Position.class);
+        if (bannerPosition == null || shouldFleeOrAttack()) {
+            return true;
+        }
+        if (!isStopped()) {
+            return true;
+        }
+
+        // Go to the banner, or mill about it when there
+        Point banner = WorldUtils.vectorToPoint(bannerPosition.position);
+        Point ourPosition = getCreatureCoordinates();
+        if (Math.max(Math.abs(ourPosition.x - banner.x), Math.abs(ourPosition.y - banner.y)) > 2) {
+            if (createNavigation(ourPosition, banner, null)) {
+                gameEventService.emitToPlayer(GameEventType.CALL_TO_ARMS_UNREACHABLE, getOwnerId());
+                return false;
+            }
+        } else {
+            navigateToRandomPointAroundTarget(followTarget.entityId, 2);
+        }
+        return true;
+    }
+
+    /**
+     * While its keeper has a Call to Arms banner up, a creature only starts a
+     * fight near the banner
+     *
+     * @return true if we may start a fight here
+     */
+    private boolean isNearCallToArms() {
+        Vector3f ourPosition = getPosition();
+        if (ourPosition == null) {
+            return true;
+        }
+        for (EntityId banner : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", getOwnerId()), CallToArms.class, Owner.class)) {
+            CallToArms callToArms = entityData.getComponent(banner, CallToArms.class);
+            Position bannerPosition = entityData.getComponent(banner, Position.class);
+            if (callToArms != null && callToArms.isUp() && bannerPosition != null
+                    && bannerPosition.position.distance(ourPosition) > gameSettings.get(Variable.MiscVariable.MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES).getValue() * WorldUtils.TILE_WIDTH) {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Override
@@ -937,6 +1124,11 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean isEnoughSleep() {
         CreatureSleep creatureSleep = entityData.getComponent(entityId, CreatureSleep.class);
         return creatureSleep.sleepNeed == 0 && isFullHealth();
+    }
+
+    @Override
+    public boolean isCombatPitFighter() {
+        return entityData.getComponent(entityId, CombatPitFighter.class) != null;
     }
 
     @Override
@@ -1074,7 +1266,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // See that we have been motionless for enough time, per state
         // TODO: now just 5 seconds, it is the default for imps
-        return motionless >= 5f;
+        // DK II's pit fighter waits four seconds' worth of ticks on each spot (0x457CF0)
+        return motionless >= (stateMachine.getCurrentState() == CreatureState.COMBAT_PIT ? 4f : 5f);
     }
 
     @Override
@@ -1487,6 +1680,15 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean goGambling() {
+
+        // As in the original, the wish only depends on the gold held, the stake is the money mode one
+        return !isWorker() && getOwnerId() >= Player.KEEPER1_ID && getGold() > Math.abs(
+                gameSettings.get(Variable.MiscVariable.MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND).getValue())
+                && taskManager.assignTask(this, Creature.JobType.DRINK);
+    }
+
+    @Override
     public void eat(IEntityController target) {
 
         // Ok, first we destroy the entity we are eating so that nobody else gets it
@@ -1531,11 +1733,25 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public int getManufacturePerSecond() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent.manufacturePerSecond;
+    }
+
+    @Override
     public void giveObject(IObjectController object) {
         if (object.getType() == AbstractRoomController.ObjectType.GOLD) {
-            addGold(entityData.getComponent(object.getEntityId(), Gold.class).gold);
-            entityData.removeComponent(object.getEntityId(), Gold.class);
-            object.remove();
+
+            // Take only what we can carry, the rest stays in the pile
+            Gold pile = entityData.getComponent(object.getEntityId(), Gold.class);
+            int amount = Math.min(pile.gold, getMaxGold() - getGold());
+            addGold(amount);
+            if (amount < pile.gold) {
+                entityData.setComponent(object.getEntityId(), new Gold(pile.gold - amount, pile.maxGold));
+            } else {
+                entityData.removeComponent(object.getEntityId(), Gold.class);
+                object.remove();
+            }
         } else {
             logger.log(Level.WARNING, "Object {0} receiving not specified!", object.getType());
         }
