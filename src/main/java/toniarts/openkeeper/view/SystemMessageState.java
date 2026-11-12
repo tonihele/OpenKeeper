@@ -81,6 +81,25 @@ public final class SystemMessageState extends AbstractPauseAwareState {
     }
 
     /**
+     * Adds a message to the message queue of the attached message state, if
+     * there is one. The state is gone when the level has ended, or is not yet
+     * loaded.
+     *
+     * @param stateManager the state manager to look the message state up from
+     * @param type message type
+     * @param text message text
+     * @return {@code true} if there was a message state to hand the message to
+     */
+    public static boolean addMessageIfAttached(AppStateManager stateManager, MessageType type, String text) {
+        SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+        if (systemMessageState == null) {
+            return false;
+        }
+        systemMessageState.addMessage(type, text);
+        return true;
+    }
+
+    /**
      * Adds a message to the message queue
      *
      * @param type message type
