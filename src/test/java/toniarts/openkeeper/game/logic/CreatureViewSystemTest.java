@@ -55,7 +55,7 @@ class CreatureViewSystemTest {
 
     private Creature.AnimationType tortureAnimation(short deviceObjectId) {
         EntityId victim = victim(deviceObjectId);
-        CreatureViewSystem system = new CreatureViewSystem(entityData);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
         system.processTick(1);
         return entityData.getComponent(victim, CreatureViewState.class).state;
     }
@@ -68,7 +68,7 @@ class CreatureViewSystemTest {
     @Test
     void victimOnTheElectricChairIsElectrocutedForThreeSecondsThenSitsForThreeSeconds() {
         EntityId victim = victim(ELECTRIC_CHAIR);
-        CreatureViewSystem system = new CreatureViewSystem(entityData);
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
 
         // Four ticks a second, like in DK II
         Creature.AnimationType[] seconds = new Creature.AnimationType[12];
