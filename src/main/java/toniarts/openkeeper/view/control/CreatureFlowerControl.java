@@ -274,6 +274,8 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 return "Textures/GUI/moods/SJ-Hungry.png";
             case TRAIN:
                 return "Textures/GUI/moods/SJ-Training.png";
+            case PRAY:
+                return "Textures/GUI/moods/SJ-Temple.png";
             case TORTURE:
                 return "Textures/GUI/moods/SJ-Torture.png";
             default:
