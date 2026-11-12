@@ -83,6 +83,7 @@ import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Manufacture;
+import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -711,6 +712,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
                         playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
             }
+            case WORSHIPPER -> {
+                return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
+            }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
                 return null;
@@ -839,6 +843,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case MANUFACTURE: {
                 return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
+            }
+            case PRAY: {
+                return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
             }
             default:
                 return false;
