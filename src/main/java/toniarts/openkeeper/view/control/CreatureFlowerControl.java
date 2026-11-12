@@ -268,6 +268,8 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 return "Textures/GUI/moods/SJ-Rest.png";
             case RESEARCH:
                 return "Textures/GUI/moods/SJ-Library.png";
+            case MANUFACTURE:
+                return "Textures/GUI/moods/SJ-Workshop.png";
             case GO_TO_EAT:
                 return "Textures/GUI/moods/SJ-Hungry.png";
             case TRAIN:

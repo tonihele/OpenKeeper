@@ -38,11 +38,28 @@ import toniarts.openkeeper.tools.convert.map.Tile.BridgeTerrainType;
 public final class MapTileController extends AbstractMapTileInformation implements IMapTileController {
 
     private final EntityData entityData;
+    private Point location;
+    private int index;
 
     public MapTileController(EntityId entityId, EntityData entityData) {
         super(entityId);
 
         this.entityData = entityData;
+
+        // Path finding asks for the location all the time, and it doesn't change
+        MapTile mapTile = entityData.getComponent(entityId, MapTile.class);
+        location = mapTile.p;
+        index = mapTile.index;
+    }
+
+    @Override
+    public Point getLocation() {
+        return location;
+    }
+
+    @Override
+    public int getIndex() {
+        return index;
     }
 
     public static void setAttributesFromTerrain(EntityData entityData, IMapTileInformation mapTile, Terrain terrain) {
@@ -139,6 +156,7 @@ public final class MapTileController extends AbstractMapTileInformation implemen
         MapTile mapTileComponent = new MapTile(getEntityComponent(MapTile.class));
         mapTileComponent.index = index;
         entityData.setComponent(entityId, mapTileComponent);
+        this.index = index;
     }
 
     @Override
@@ -146,6 +164,7 @@ public final class MapTileController extends AbstractMapTileInformation implemen
         MapTile mapTileComponent = new MapTile(getEntityComponent(MapTile.class));
         mapTileComponent.p = p;
         entityData.setComponent(entityId, mapTileComponent);
+        location = p;
     }
 
     @Override
