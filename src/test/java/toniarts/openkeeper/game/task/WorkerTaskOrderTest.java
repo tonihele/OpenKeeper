@@ -36,12 +36,12 @@ class WorkerTaskOrderTest {
     void floorIsClaimedBeforeWalls() {
 
         // An imp just claimed a tile, another imp already works on the floor next to it. The wall next
-        // to it is free, but a free floor tile further away is still claimed first
+        // to it is free, but the closer floor tile is still claimed first
         TaskManager.TaskWorkerPriority takenFloor = pair(TaskType.CLAIM_TILE, 1, 101);
         TaskManager.TaskWorkerPriority wall = pair(TaskType.CLAIM_WALL, 0, 177);
         TaskManager.TaskWorkerPriority farFloor = pair(TaskType.CLAIM_TILE, 0, 106);
 
-        assertEquals(List.of(farFloor, takenFloor, wall), sorted(wall, takenFloor, farFloor));
+        assertEquals(List.of(takenFloor, farFloor, wall), sorted(wall, takenFloor, farFloor));
     }
 
     @Test
@@ -63,14 +63,14 @@ class WorkerTaskOrderTest {
     }
 
     @Test
-    void otherTasksKeepTheirOrder() {
+    void nearestTaskWinsWhateverTheWorkers() {
 
-        // Free tasks first, then the points (distance and priority)
+        // The points (distance and priority) decide, a task that already has a worker is not put last
         TaskManager.TaskWorkerPriority takenNearDig = pair(TaskType.DIG_TILE, 1, 11);
         TaskManager.TaskWorkerPriority freeFarFloor = pair(TaskType.CLAIM_TILE, 0, 130);
         TaskManager.TaskWorkerPriority freeNearFloor = pair(TaskType.CLAIM_TILE, 0, 102);
 
-        assertEquals(List.of(freeNearFloor, freeFarFloor, takenNearDig), sorted(takenNearDig, freeFarFloor, freeNearFloor));
+        assertEquals(List.of(takenNearDig, freeNearFloor, freeFarFloor), sorted(takenNearDig, freeFarFloor, freeNearFloor));
     }
 
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
