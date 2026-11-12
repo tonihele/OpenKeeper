@@ -80,6 +80,7 @@ public final class TorchControl extends BillboardControl {
 
                 result = new Geometry("torch flame", createMesh(FLAME_SIZE, FLAME_SIZE));
                 result.setMaterial(material);
+                // Keep flames after water; TranslucentBucketFilter preserves scene depth with SSAO.
                 result.setQueueBucket(RenderQueue.Bucket.Translucent);
                 result.setBatchHint(BatchHint.Never); // prevent constant updates of the wall batches
                 // Keep the camera-facing quad fully in front of the wall at every angle.
