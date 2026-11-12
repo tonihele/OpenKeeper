@@ -72,7 +72,8 @@ public class Variable {
     // Variable IDs
     public final static int CREATURE_POOL = 1;
     public final static int AVAILABILITY = 2;
-    // 17, 19, 29, 43, 44, 56 - 66, 69, 72, 74, 77, 80, 81, 89 - 92, 99,
+    public final static int RESEARCH_ORDER = 17;
+    // 19, 29, 43, 44, 56 - 66, 69, 72, 74, 77, 80, 81, 89 - 92, 99,
     // 107 - 109, 117 - 124, 137, 153, 171, 172
     public final static int SACRIFICES_ID = 43;
     public final static int CREATURE_STATS_ID = 65;
@@ -80,7 +81,6 @@ public class Variable {
     public final static int PLAYER_ALLIANCE = 66;
 
     public final static int UNKNOWN_0 = 0;
-    public final static int UNKNOWN_17 = 17;
     public final static int UNKNOWN_77 = 77;
 
     public static final class CreaturePool extends Variable {
@@ -611,6 +611,65 @@ public class Variable {
         @Override
         public String toString() {
             return "MiscVariable{" + "variableId=" + variableId + ", value=" + value + ", unknown_1=" + unknown1 + ", unknown_2=" + unknown2 + '}';
+        }
+    }
+
+    /**
+     * One step of the research order. The keepers research the rooms, doors,
+     * traps and spells in this order, and each one takes the given amount of
+     * research points. What is not in the order is never researched
+     */
+    public static final class ResearchOrder extends Variable {
+
+        public enum ResearchOrderType implements IValueEnum {
+
+            ROOM(1),
+            DOOR(2),
+            TRAP(3),
+            SPELL(4);
+
+            private ResearchOrderType(int id) {
+                this.id = id;
+            }
+
+            @Override
+            public int getValue() {
+                return id;
+            }
+            private final int id;
+        }
+
+        private ResearchOrderType type;
+        private int typeId;
+        private int researchPoints;
+
+        public ResearchOrderType getType() {
+            return type;
+        }
+
+        protected void setType(ResearchOrderType type) {
+            this.type = type;
+        }
+
+        public int getTypeId() {
+            return typeId;
+        }
+
+        protected void setTypeId(int typeId) {
+            this.typeId = typeId;
+        }
+
+        public int getResearchPoints() {
+            return researchPoints;
+        }
+
+        protected void setResearchPoints(int researchPoints) {
+            this.researchPoints = researchPoints;
+        }
+
+        @Override
+        public String toString() {
+            return "ResearchOrder{" + "type=" + type + ", typeId=" + typeId + ", researchPoints=" + researchPoints + '}';
         }
     }
 

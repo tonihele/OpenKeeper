@@ -295,6 +295,7 @@ public final class CreaturesController implements ICreaturesController {
 
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack, regeneration);
+        goldComponent.gold = getStartingGold(money, goldComponent.maxGold);
         setSpells(entity, creature, level);
 
         entityData.setComponent(entity, creatureComponent);
@@ -338,6 +339,21 @@ public final class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new CreatureViewState(creatureId, gameTimer.getGameTime(), animationType));
 
         return entity;
+    }
+
+    /**
+     * The gold a new creature carries. Only a creature placed in the editor
+     * carries any: its gold held percentage of its max gold held, like in the
+     * original (0x520180, 0x520460, 0x5208B0). Everything else starts with
+     * none (0x4872A0 clears it), the "initial gold held" attribute of the
+     * creature record is never read
+     *
+     * @param goldHeldPercent the gold held of the placed creature, in percent
+     * @param maxGold the most gold the creature can carry on its level
+     * @return the gold the creature starts with
+     */
+    static int getStartingGold(int goldHeldPercent, int maxGold) {
+        return (int) (goldHeldPercent * 0.01 * maxGold);
     }
 
     private void setFlagDrivenComponents(EntityId entity, Creature creature) {
@@ -505,8 +521,10 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.level = level;
         creatureExperience.experience = experience;
 
-        // Update stats
+        // Update stats, the gold carried stays
+        int carriedGold = gold.gold;
         setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack, regeneration);
+        gold.gold = carriedGold;
         setSpells(entityId, kwdFile.getCreature(creatureComponent.creatureId), level);
 
         // Set the new components to the entity
@@ -539,8 +557,8 @@ public final class CreaturesController implements ICreaturesController {
         creatureComponent.manaGenPrayer = scaleByLevel(attributes.getManaGenPrayer(), getStatPercent(stats, Variable.CreatureStats.StatType.MANA_GENERATED_BY_PRAYER_PER_SECOND));
         creatureExperience.experienceToNextLevel = scaleByLevel(attributes.getExpForNextLevel(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FOR_NEXT_LEVEL));
         creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
-        creatureExperience.experiencePerSecondTraining = scaleByLevel(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
-        creatureComponent.researchPerSecond = scaleByLevel(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
+        creatureExperience.experiencePerTickTraining = getPointsPerTick(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
+        creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
         creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
         creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
@@ -593,6 +611,25 @@ public final class CreaturesController implements ICreaturesController {
         return value * percent / 100f;
     }
 
+    /**
+     * Turn a per second value of the creature data into the points made on
+     * each game tick, like DK II. When the level loads, DK II divides the per
+     * second value by the ticks per second, keeping at least 1 if there is
+     * anything to divide. The creature's level percentage is applied to that
+     * per tick value.
+     *
+     * @param pointsPerSecond the points per second in the creature data
+     * @param levelPercent the level percentage of the creature stat
+     * @return the points per tick
+     */
+    private int getPointsPerTick(int pointsPerSecond, int levelPercent) {
+        if (pointsPerSecond <= 0) {
+            return 0;
+        }
+        int pointsPerTick = Math.max(1, pointsPerSecond / Math.max(1, kwdFile.getGameLevel().getTicksPerSec()));
+        return scaleByLevel(pointsPerTick, levelPercent);
+    }
+
     @Override
     public void spawnHeroParty(short partyId, PartyType partyType, Vector2f position) {
         /**
@@ -606,9 +643,17 @@ public final class CreaturesController implements ICreaturesController {
         }
         partyController.setType(partyType);
         partyController.create();
+
+        // The whole party walks at the speed of its slowest member
+        float partySpeed = Float.MAX_VALUE;
+        for (Thing.GoodCreature creature : partyController.getMembers()) {
+            partySpeed = Math.min(partySpeed, kwdFile.getCreature(creature.getCreatureId()).getAttributes().getSpeed());
+        }
         for (Thing.GoodCreature creature : partyController.getMembers()) {
             EntityId entityId = spawnCreature(creature, position);
             entityData.setComponent(entityId, new Party(partyController.getId()));
+            Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+            entityData.setComponent(entityId, new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, partySpeed));
 
             partyController.addMemberInstance(creature, createController(entityId));
         }
@@ -691,6 +736,33 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
 
+    public int getAngryCreatureCount(short playerId, short creatureId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, CreatureComponent.class, Health.class, CreatureMood.class);
+        try {
+            int count = 0;
+            for (Entity entity : entities) {
+                short type = entity.get(CreatureComponent.class).creatureId;
+                if (creatureId != 0 && type != creatureId) {
+                    continue;
+                }
+                Creature creature = kwdFile.getCreature(type);
+                if (creature == null || creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
+                    continue;
+                }
+                int unhappyThreshold = CreatureMood.toRuntimeThreshold(
+                        creature.getAttributes().getUnhappyThreshold());
+                if (entity.get(CreatureMood.class).getState(unhappyThreshold) == 2) {
+                    count++;
+                }
+            }
+            return count;
+        } finally {
+            entities.release();
+        }
+    }
+
+    @Override
     public EntityId getPossessedCreature(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
         try {
