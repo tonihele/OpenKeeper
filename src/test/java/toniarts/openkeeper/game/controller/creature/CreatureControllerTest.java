@@ -463,6 +463,8 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60));
             settings.put(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND,
                     CreatureSleepFixtures.variable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, -3));
+            settings.put(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND,
+                    CreatureSleepFixtures.variable(MiscType.GAMBLING_MODIFY_CREATURE_MONEY_MONEY_PER_SECOND, -10));
             settings.put(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND,
                     CreatureSleepFixtures.variable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 100));
             settings.put(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
@@ -495,6 +497,7 @@ class CreatureControllerTest {
                 case "getTaskType" -> type;
                 case "isValid" -> true;
                 case "getTarget" -> new Vector2f(3, 4);
+                case "getWorkPosition" -> null;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }
                 default -> throw new UnsupportedOperationException(method);

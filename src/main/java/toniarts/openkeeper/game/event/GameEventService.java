@@ -13,6 +13,9 @@ public interface GameEventService {
      */
     short ALL_PLAYERS = -1;
 
+    /** Emits one finite visual effect at an exact world position, seen by all players. */
+    void emitEffect(int effectId, Vector3f position, float yaw);
+
     /**
      * An event about a thing type, seen by everyone
      */
@@ -57,4 +60,12 @@ public interface GameEventService {
      * An event only one player gets, with no place
      */
     void emitToPlayer(GameEventType type, short playerId);
+
+    /** An event about a thing type, delivered only to the specified player. */
+    void emitToPlayer(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, short playerId);
+
+    /**
+     * An event only one player gets, with no place, and with a subject id but no subject kind
+     */
+    void emitToPlayer(GameEventType type, int subjectId, short playerId);
 }

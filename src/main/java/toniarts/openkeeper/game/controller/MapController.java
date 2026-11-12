@@ -43,9 +43,12 @@ import toniarts.openkeeper.game.map.MapInformation;
 import toniarts.openkeeper.game.map.MapTileController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.game.map.WallSection;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -131,6 +134,7 @@ public final class MapController extends Container implements IMapController {
         roomInstance.setDestroyed(roomInstance.getRoom() == kwdFile.getDungeonHeart() && (owner == null || owner.isDestroyed()));
         roomInstance.setOwnerId(mapTile.getOwnerId());
         findRoom(p, roomInstance);
+        roomInstance.setWallSections(WallSection.findWallSections(roomInstance, mapData, kwdFile));
         int health = 0;
         int maxHealth = 0;
         for (Point coordinate : roomInstance.getCoordinates()) {
@@ -497,10 +501,9 @@ public final class MapController extends Container implements IMapController {
         if (tile.getGold() > 0) { // Mine
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
 
-                // Gems never run out: the face collapses, comes back at full health, and every collapse yields the
-                // same small amount
-                tileDestroyed = applyDamage(tile, damage);
-                returnedGold = tileDestroyed ? (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS) : 0;
+                // Gems never run out: a blow does no damage and always yields the same small amount
+                tileDestroyed = false;
+                returnedGold = (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS);
             } else {
                 TileWork.Mining mining = TileWork.mine(terrain.getGoldValue(), tile.getMaxHealth(), tile.getHealth(), tile.getGold(), damage);
                 tile.setHealth(mining.health());
@@ -561,7 +564,7 @@ public final class MapController extends Container implements IMapController {
                 }
             } else if (tile.getGold() > 0) {
 
-                // Mining damages the seam like any dig, the gold comes out in proportion, gems included
+                // Mining damages the seam like any dig, the gold comes out in proportion
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
             } else {
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
@@ -682,14 +685,7 @@ public final class MapController extends Container implements IMapController {
                     roomTile.setOwnerId(playerId); // Claimed!
                     applyHealing(roomTile, tile.getMaxHealth());
 
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(point).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            tile.getTerrain().getMaxHealthEffectId(), false);
-//
-//                    // FIXME ROOM_CLAIM_ID is realy claim effect?
-//                    effectManager.load(worldNode,
-//                            WorldUtils.pointToVector3f(p2).addLocal(0, MapViewController.FLOOR_HEIGHT, 0),
-//                            room.getRoom().getEffects().get(EffectManagerState.ROOM_CLAIM_ID), false);
+                    // The client plays claim effects from these ownership transitions.
                     // TODO: Claimed room wall tiles lose the claiming I think?
                 }
 
@@ -699,6 +695,10 @@ public final class MapController extends Container implements IMapController {
                 room.setHealth(room.getMaxHealth());
                 notifyOnCapturedByEnemy(owner, room);
                 notifyOnCaptured(playerId, room);
+                if (playerId != owner && playerId != 0 && playerId != Player.NEUTRAL_PLAYER_ID) {
+                    gameEventService.emitToPlayer(GameEventType.ROOM_CAPTURED, ThingFlag.ROOM,
+                            room.getRoom().getRoomId(), playerId);
+                }
                 return;
             }
             currentHealth += roomTile.getHealth();
@@ -747,6 +747,8 @@ public final class MapController extends Container implements IMapController {
             tile.setSelected(false, Player.KEEPER3_ID);
             tile.setSelected(false, Player.KEEPER4_ID);
         }
+
+        updateRoomWalls(tile.getLocation());
     }
 
     @Override
@@ -919,9 +921,33 @@ public final class MapController extends Container implements IMapController {
 
     @Override
     public void addRoomCoordinate(EntityId roomInstance, Collection<Point> points) {
-        roomControllers.get(roomInstance).getRoomInstance().addCoordinates(points);
+        RoomInstance instance = roomControllers.get(roomInstance).getRoomInstance();
+        instance.addCoordinates(points);
+        instance.setWallSections(WallSection.findWallSections(instance, mapData, kwdFile));
         for (Point point : points) {
             getMapData().getTile(point).setRoomId(roomInstance);
+        }
+    }
+
+    /**
+     * A tile next to rooms has become a wall or stopped being one. Like in DK
+     * II (MyRooms_4ECDB0, 0x4ECDB0), the rooms next to it that have wall
+     * furniture lay out their furniture again.
+     *
+     * @param p the changed tile
+     */
+    private void updateRoomWalls(Point p) {
+        Set<IRoomController> rooms = new HashSet<>();
+        for (Point neighbour : WorldUtils.getSurroundingTiles(mapData, p, false)) {
+            IRoomController roomController = getRoomControllerByCoordinates(neighbour);
+            if (roomController != null && roomController.getRoom().getFlags().contains(Room.RoomFlag.SPECIAL_WALLS)) {
+                rooms.add(roomController);
+            }
+        }
+        for (IRoomController roomController : rooms) {
+            RoomInstance instance = roomController.getRoomInstance();
+            instance.setWallSections(WallSection.findWallSections(instance, mapData, kwdFile));
+            roomController.construct();
         }
     }
 }
