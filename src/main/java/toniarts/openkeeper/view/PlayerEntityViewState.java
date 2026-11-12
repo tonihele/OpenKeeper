@@ -41,6 +41,7 @@ import java.util.Objects;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -73,6 +74,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -160,6 +162,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
     private final ShotModelContainer shotModelContainer;
+    private final EffectTriggerContainer effectTriggerContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
     private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
             stateManager.getApplication().enqueue(() -> showGeneratedEffect(effect));
@@ -172,6 +175,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
@@ -236,6 +240,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
         shotModelContainer = new ShotModelContainer(entityData);
+        effectTriggerContainer = new EffectTriggerContainer(entityData);
     }
 
     @Override
@@ -254,6 +259,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.start();
         roomEffectContainer.start();
         shotModelContainer.start();
+        effectTriggerContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
     }
@@ -268,6 +274,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.update();
         roomEffectContainer.update();
         shotModelContainer.update();
+        effectTriggerContainer.update();
 
         // Lighting: re-derive attached-light positions and bind the
         // vertex-lit models every frame -- lights on other things
@@ -320,6 +327,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         trapModelContainer.stop();
         roomEffectContainer.stop();
         shotModelContainer.stop();
+        effectTriggerContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
 
@@ -548,6 +556,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
         }
+        if (shotViewState.velocity != null) {
+            Node flyingShot = new Node(result.getName());
+            flyingShot.attachChild(result);
+            flyingShot.addControl(new ShotFlightControl(shotViewState.velocity));
+            addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), flyingShot);
+            result = flyingShot;
+        }
         nodeShots.attachChild(result);
 
         Shot shot = kwdFile.getShotById(shotViewState.shotId);
@@ -557,6 +572,23 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
 
         return result;
+    }
+
+    /**
+     * A flying shot drags its general effect along, like the fire trail of the
+     * cannon ball. DKII.EXE moves the effect with the shot every turn
+     * (0x4AB180). The effect lasts as long as the shot flies.
+     */
+    private void addShotTrail(EntityId entityId, Shot shot, Node flyingShot) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), true);
+        if (trail != null) {
+            shotTrails.put(entityId, trail);
+        }
     }
 
     /**
@@ -1023,6 +1055,39 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     /**
+     * Plays the effects the game logic sets off, like a shot hitting a
+     * creature. Each plays once, as long as it lasts, the entity is gone
+     * sooner.
+     */
+    private final class EffectTriggerContainer extends EntityContainer<Boolean> {
+
+        public EffectTriggerContainer(EntityData ed) {
+            super(ed, Position.class, EffectTrigger.class);
+        }
+
+        @Override
+        protected Boolean addObject(Entity e) {
+            logger.log(Level.TRACE, "EffectTriggerContainer.addObject({0})", e);
+            Vector3f position = e.get(Position.class).position;
+            EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+            if (effectManagerState != null && fogOfWarInformation.isVisible(WorldUtils.vectorToPoint(position))) {
+                effectManagerState.load(nodeShots, position.clone(), e.get(EffectTrigger.class).effectId, false);
+            }
+            return Boolean.TRUE;
+        }
+
+        @Override
+        protected void updateObject(Boolean object, Entity e) {
+            // The effect plays where it was set off
+        }
+
+        @Override
+        protected void removeObject(Boolean object, Entity e) {
+            // The effect plays on until it ends by itself
+        }
+    }
+
+    /**
      * Contains the shots, spells and missiles on their way or striking
      */
     private final class ShotModelContainer extends EntityContainer<Spatial> {
@@ -1048,6 +1113,10 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+            VisualEffect trail = shotTrails.remove(e.getId());
+            if (trail != null) {
+                trail.removeEffect();
+            }
             removeModel(object, e);
         }
     }
