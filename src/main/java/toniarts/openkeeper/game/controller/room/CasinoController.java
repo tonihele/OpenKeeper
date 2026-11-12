@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Casino.PayOut;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGamblerControl;
@@ -31,31 +33,17 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class CasinoController extends NormalRoomController {
 
-    /**
-     * How the casino pays out. In DK II the keeper switches this with the pay
-     * out adjuster in the casino.
-     */
-    public enum PayOut {
-
-        /**
-         * The gamblers win gold and cheer up, the keeper pays
-         */
-        SMILES,
-        /**
-         * The gamblers lose gold and get angrier, the keeper takes it
-         */
-        MONEY;
-
-    }
-
     private final IGameTimer gameTimer;
-    private volatile PayOut payOut = PayOut.SMILES;
 
     public CasinoController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GAMBLER);
 
         this.gameTimer = gameTimer;
+
+        if (getEntityComponent(Casino.class) == null) {
+            setPayOut(PayOut.SMILES);
+        }
     }
 
     @Override
@@ -76,7 +64,7 @@ public final class CasinoController extends NormalRoomController {
      * @return the pay out setting
      */
     public PayOut getPayOut() {
-        return payOut;
+        return getEntityComponent(Casino.class).payOut;
     }
 
     /**
@@ -85,7 +73,7 @@ public final class CasinoController extends NormalRoomController {
      * @param payOut the pay out setting
      */
     public void setPayOut(PayOut payOut) {
-        this.payOut = payOut;
+        entityData.setComponent(entityId, new Casino(payOut));
     }
 
 }
