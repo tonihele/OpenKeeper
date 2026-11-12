@@ -49,6 +49,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void navigateToRandomPoint();
 
+    /**
+     * Walks to a random tile in the Combat Pit we fight in, off its edge
+     */
+    public void navigateToRandomPointInCombatPit();
+
     public IPartyController getParty();
 
     public StateMachine<ICreatureController, CreatureState> getStateMachine();
@@ -122,6 +127,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isEnoughSleep();
 
     public boolean isIncapacitated();
+
+    /**
+     * Is the creature fighting in a Combat Pit
+     *
+     * @return true if dropped into a Combat Pit to fight
+     */
+    public boolean isCombatPitFighter();
 
     public boolean isTimeToReEvaluate();
 

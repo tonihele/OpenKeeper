@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -720,7 +721,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case GAMBLER -> {
                 return new Gamble(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
                         gameWorldController, objectsController, gameSettings,
-                        room instanceof CasinoController casino ? casino::getPayOut : () -> CasinoController.PayOut.SMILES,
+                        room instanceof CasinoController casino ? casino::getPayOut : () -> Casino.PayOut.SMILES,
                         FastMath.rand);
             }
             default -> {

@@ -33,10 +33,12 @@ import com.simsilica.ethereal.EtherealHost;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CasinoDisco;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -174,6 +176,7 @@ public final class NetworkServer {
             Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
+            Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
@@ -183,6 +186,7 @@ public final class NetworkServer {
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
+            Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
@@ -192,6 +196,7 @@ public final class NetworkServer {
             Serializer.registerClass(CasinoDisco.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());
+            Serializer.registerClass(CombatPitFighter.class, new FieldSerializer());
             Serializer.registerClass(Crate.class, new FieldSerializer());
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());

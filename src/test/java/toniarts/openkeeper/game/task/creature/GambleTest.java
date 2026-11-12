@@ -28,6 +28,8 @@ import java.util.random.RandomGenerator;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Casino.PayOut;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CasinoDisco;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -37,7 +39,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.controller.room.CasinoController.PayOut;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.task.TaskType;
@@ -228,6 +230,18 @@ class GambleTest {
         entityData.setComponent(casinoId, new CasinoDisco(0));
 
         assertFalse(gamble.isValid(creature));
+    }
+
+    @Test
+    void thePayOutSettingIsKeptOnTheCasinoEntity() {
+        EntityId casinoId = entityData.createEntity();
+        CasinoController casino = new CasinoController(casinoId, entityData, null, new RoomInstance(new Room()), null, null);
+        assertEquals(PayOut.SMILES, casino.getPayOut());
+
+        casino.setPayOut(PayOut.MONEY);
+
+        assertEquals(PayOut.MONEY, entityData.getComponent(casinoId, Casino.class).payOut);
+        assertEquals(PayOut.MONEY, new CasinoController(casinoId, entityData, null, new RoomInstance(new Room()), null, null).getPayOut());
     }
 
     private Gamble gamble(PayOut payOut, int jackpotRoll) {
