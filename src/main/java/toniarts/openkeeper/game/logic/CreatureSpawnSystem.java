@@ -127,8 +127,10 @@ public final class CreatureSpawnSystem extends GameTimeCounter {
         double timeSinceLastSpawn = timeElapsed - entrance.getLastSpawnTime();
         IPlayerController player = playerControllersById.get(entrance.getOwnerId());
         if (entrance.isDungeonHeart()) {
+            // A defeated keeper gets no free imps
             if (timeSinceLastSpawn >= freeImpCoolDownTime
-                    && player.getCreatureControl().getImpCount() < minimumImpCount) {
+                    && player.getCreatureControl().getImpCount() < minimumImpCount
+                    && !player.getKeeper().isDestroyed()) {
                 spawnFreeImp(entrance, player);
             }
         } else {
