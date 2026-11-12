@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector3f;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -30,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
- * Finding the spot to dig a tile from (#671)
+ * Finding the spot to dig a tile from (#671), and how many can dig it
  */
 class DigTileTargetTest {
 
@@ -64,6 +65,29 @@ class DigTileTargetTest {
 
         assertNull(task.getTarget(imp));
         assertEquals(4, pathSearches.get(), "One search for each of the four sides");
+    }
+
+    @Test
+    void threeImpsFitOnEachOpenSide() {
+        assertEquals(3, digTaskWithOpenSides(new Point(10, 11)).getMaxAllowedNumberOfAsignees());
+        assertEquals(6, digTaskWithOpenSides(new Point(10, 11), new Point(9, 10)).getMaxAllowedNumberOfAsignees());
+        assertEquals(12, digTaskWithOpenSides(new Point(10, 9), new Point(11, 10), new Point(10, 11), new Point(9, 10))
+                .getMaxAllowedNumberOfAsignees());
+        assertEquals(0, digTaskWithOpenSides(new Point(11, 11)).getMaxAllowedNumberOfAsignees(), "A corner is not a side");
+    }
+
+    private static DigTileTask digTaskWithOpenSides(Point... openTiles) {
+        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> switch (name) {
+            case "getTile" -> tile(args.length == 1 ? (Point) args[0] : new Point((int) args[0], (int) args[1]));
+            default -> null;
+        });
+        IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
+            case "getMapData" -> mapData;
+            case "isSolid" -> !List.of(openTiles).contains((Point) args[0]);
+            default -> null;
+        });
+
+        return new DigTileTask(stub(INavigationService.class, (name, args) -> null), mapController, new Point(10, 10), (short) 3);
     }
 
     private static IMapTileInformation tile(Point location) {
