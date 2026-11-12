@@ -94,16 +94,10 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // See if we want to gamble
-            if (entity.goGambling()) {
-                entity.getStateMachine().changeState(CreatureState.WORK);
-                workResult.accept(true);
-                return; // Found work
-            }
-
-            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it.
+            // The Casino is only a fallback for a creature that could not start any of its jobs, as in the original
             entity.findWork((foundWork) -> {
-                if (foundWork) {
+                if (foundWork || entity.goGambling()) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
