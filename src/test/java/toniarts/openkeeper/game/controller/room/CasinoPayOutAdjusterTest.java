@@ -22,13 +22,13 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Casino.PayOut;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
-import toniarts.openkeeper.game.controller.room.CasinoController.PayOut;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -39,17 +39,12 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.RoomFixtures.roomWithObjects;
 
-class CasinoPayOutTest {
+class CasinoPayOutAdjusterTest {
 
     private static final short PAY_OUT_ADJUSTER = 95;
     private static final short ROULETTE_TABLE = 87;
 
     private final EntityData entityData = new DefaultEntityData();
-
-    @Test
-    void newCasinoPaysOutInSmiles() {
-        assertEquals(PayOut.SMILES, buildCasino(5).getPayOut());
-    }
 
     @Test
     void adjusterTakesTheFirstFurnitureTileWithNoFurnitureAbove() {

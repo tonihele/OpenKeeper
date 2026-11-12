@@ -21,7 +21,8 @@ import com.simsilica.es.EntityId;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
-import toniarts.openkeeper.game.component.CasinoPayOut;
+import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Casino.PayOut;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
@@ -40,23 +41,6 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class CasinoController extends NormalRoomController {
 
-    /**
-     * How the casino pays out. In DK II the keeper switches this with the pay
-     * out adjuster in the casino.
-     */
-    public enum PayOut {
-
-        /**
-         * The gamblers win gold and cheer up, the keeper pays
-         */
-        SMILES,
-        /**
-         * The gamblers lose gold and get angrier, the keeper takes it
-         */
-        MONEY;
-
-    }
-
     private static final short OBJECT_PAY_OUT_ADJUSTER_ID = 95;
 
     private final IGameTimer gameTimer;
@@ -67,16 +51,15 @@ public final class CasinoController extends NormalRoomController {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GAMBLER);
 
         this.gameTimer = gameTimer;
+
+        if (getEntityComponent(Casino.class) == null) {
+            setPayOut(PayOut.SMILES);
+        }
     }
 
     @Override
     public void construct() {
         super.construct();
-
-        // A new casino pays out in smiles, like in DK II
-        if (getEntityComponent(CasinoPayOut.class) == null) {
-            setPayOut(PayOut.SMILES);
-        }
 
         addObjectControl(new RoomGamblerControl(kwdFile, this, entityData, gameTimer));
     }
@@ -92,8 +75,7 @@ public final class CasinoController extends NormalRoomController {
      * @return the pay out setting
      */
     public PayOut getPayOut() {
-        CasinoPayOut casinoPayOut = getEntityComponent(CasinoPayOut.class);
-        return casinoPayOut != null ? casinoPayOut.payOut : PayOut.SMILES;
+        return getEntityComponent(Casino.class).payOut;
     }
 
     /**
@@ -102,7 +84,7 @@ public final class CasinoController extends NormalRoomController {
      * @param payOut the pay out setting
      */
     public void setPayOut(PayOut payOut) {
-        entityData.setComponent(entityId, new CasinoPayOut(payOut));
+        entityData.setComponent(entityId, new Casino(payOut));
         showPayOut();
     }
 

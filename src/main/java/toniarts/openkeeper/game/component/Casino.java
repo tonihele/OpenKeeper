@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2014-2026 OpenKeeper
+ * Copyright (C) 2014-2024 OpenKeeper
  *
  * OpenKeeper is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,22 +17,36 @@
 package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
-import toniarts.openkeeper.game.controller.room.CasinoController;
 
 /**
- * How a Casino pays out. In DK II the keeper switches it with the Casino Pay
- * Out Adjuster
+ * The settings of a casino, kept on the room's entity
  */
-public final class CasinoPayOut implements EntityComponent {
+public final class Casino implements EntityComponent {
 
-    public CasinoController.PayOut payOut;
+    /**
+     * How the casino pays out. In DK II the keeper switches this with the pay
+     * out adjuster in the casino.
+     */
+    public enum PayOut {
 
-    public CasinoPayOut() {
+        /**
+         * The gamblers win gold and cheer up, the keeper pays
+         */
+        SMILES,
+        /**
+         * The gamblers lose gold and get angrier, the keeper takes it
+         */
+        MONEY;
+
+    }
+
+    public PayOut payOut;
+
+    public Casino() {
         // For serialization
     }
 
-    public CasinoPayOut(CasinoController.PayOut payOut) {
+    public Casino(PayOut payOut) {
         this.payOut = payOut;
     }
-
 }

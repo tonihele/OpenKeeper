@@ -44,6 +44,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -703,12 +704,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
             }
-            case GAMBLER -> {
-                return new Gamble(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
-                        gameWorldController, objectsController, gameSettings,
-                        room instanceof CasinoController casino ? casino::getPayOut : () -> CasinoController.PayOut.SMILES,
-                        FastMath.rand);
-            }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
                         playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
@@ -720,6 +715,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
                         levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
                         (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        FastMath.rand);
+            }
+            case GAMBLER -> {
+                return new Gamble(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
+                        gameWorldController, objectsController, gameSettings,
+                        room instanceof CasinoController casino ? casino::getPayOut : () -> Casino.PayOut.SMILES,
                         FastMath.rand);
             }
             default -> {
@@ -845,9 +846,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
             }
-            case DRINK: {
-                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
-            }
             case MANUFACTURE: {
                 return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
             }
@@ -856,6 +854,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case GUARD: {
                 return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
+            }
+            case DRINK: {
+                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
             default:
                 return false;

@@ -33,7 +33,7 @@ import com.simsilica.ethereal.EtherealHost;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
-import toniarts.openkeeper.game.component.CasinoPayOut;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.Crate;
@@ -104,7 +104,6 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
-import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.data.PlayerSpell;
@@ -169,12 +168,12 @@ public final class NetworkServer {
             Serializer.registerClass(Thing.HeroParty.Objective.class, new EnumSerializer());
             Serializer.registerClass(ObjectiveType.class, new EnumSerializer());
             Serializer.registerClass(AbstractRoomController.ObjectType.class, new EnumSerializer());
-            Serializer.registerClass(CasinoController.PayOut.class, new EnumSerializer());
             Serializer.registerClass(ViewType.class, new EnumSerializer());
             Serializer.registerClass(TaskType.class, new EnumSerializer());
             Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
+            Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
@@ -184,12 +183,12 @@ public final class NetworkServer {
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
+            Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
             Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
             Serializer.registerClass(Portal.class, new FieldSerializer());
-            Serializer.registerClass(CasinoPayOut.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());
             Serializer.registerClass(Crate.class, new FieldSerializer());
