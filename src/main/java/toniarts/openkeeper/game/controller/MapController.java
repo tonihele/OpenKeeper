@@ -501,10 +501,9 @@ public final class MapController extends Container implements IMapController {
         if (tile.getGold() > 0) { // Mine
             if (terrain.getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
 
-                // Gems never run out: the face collapses, comes back at full health, and every collapse yields the
-                // same small amount
-                tileDestroyed = applyDamage(tile, damage);
-                returnedGold = tileDestroyed ? (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS) : 0;
+                // Gems never run out: a blow does no damage and always yields the same small amount
+                tileDestroyed = false;
+                returnedGold = (int) getLevelVariable(Variable.MiscVariable.MiscType.GOLD_MINED_FROM_GEMS);
             } else {
                 TileWork.Mining mining = TileWork.mine(terrain.getGoldValue(), tile.getMaxHealth(), tile.getHealth(), tile.getGold(), damage);
                 tile.setHealth(mining.health());
@@ -565,7 +564,7 @@ public final class MapController extends Container implements IMapController {
                 }
             } else if (tile.getGold() > 0) {
 
-                // Mining damages the seam like any dig, the gold comes out in proportion, gems included
+                // Mining damages the seam like any dig, the gold comes out in proportion
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.MINE_GOLD_HEALTH);
             } else {
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
