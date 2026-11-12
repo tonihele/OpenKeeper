@@ -71,4 +71,13 @@ public final class GameResult {
 
         data.put(key, value);
     }
+
+    /**
+     * See if the level was won. A result that doesn't say so is no win.
+     *
+     * @return {@code true} if the level was won
+     */
+    public boolean isLevelWon() {
+        return Boolean.TRUE.equals(getData(ResultType.LEVEL_WON));
+    }
 }

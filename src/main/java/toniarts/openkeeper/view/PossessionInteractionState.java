@@ -225,7 +225,11 @@ public abstract class PossessionInteractionState extends AbstractPauseAwareState
             @Override
             public void onMouseButtonEvent(MouseButtonEvent evt) {
                 if (evt.getButtonIndex() == MouseInput.BUTTON_LEFT) {
-                    // attack
+
+                    // Only the melee attack for now, but always let go of it
+                    if (action == Action.MELEE || evt.isReleased()) {
+                        stateManager.getState(GameClientState.class).getGameClientService().setPossessedAttack(evt.isPressed());
+                    }
                 } else if (evt.getButtonIndex() == MouseInput.BUTTON_RIGHT && evt.isReleased()) {
 
                     // The server tells us when the possession has ended
