@@ -38,6 +38,9 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreatureController extends IGameLogicUpdatable, INavigable, IEntityController {
 
+    /** Move to the authored end position after a completed Portal entrance animation. */
+    public void completeDungeonEntrance();
+
     public boolean shouldFleeOrAttack();
 
     /**
@@ -102,6 +105,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
+
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
 
     public void navigateToAttackTarget(EntityId attackTarget);
 

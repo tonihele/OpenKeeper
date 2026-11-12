@@ -175,10 +175,17 @@ public final class PathUtils {
      * @return fully qualified and working relative path
      */
     public static String getCanonicalRelativePath(String rootPath, String path) {
+        return getCanonicalRelativePath(rootPath, path, true);
+    }
+
+    /** Like the regular lookup, but allows expected missing-file probes to stay quiet. */
+    public static String getCanonicalRelativePath(String rootPath, String path, boolean warnIfMissing) {
         try {
             return getRealFileName(rootPath, path).substring(rootPath.length());
         } catch (IOException e) {
-            logger.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
+            if (warnIfMissing) {
+                logger.log(Level.WARNING, "Can not locate path " + path + " from " + rootPath + "!", e);
+            }
             return path;
         }
     }

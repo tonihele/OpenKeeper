@@ -20,7 +20,6 @@ import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
-import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -81,6 +80,8 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private final short ownerId;
     private boolean infinite;
+    private int generationStepsRemaining;
+    private double generationStepRemainder;
     private Spatial lightTarget;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
@@ -186,7 +187,7 @@ public class VisualEffect {
             case ADDITIVE_ALPHA:
             case SPRITE:
                 EffectGeometry g = new EffectGeometry("effect", resource.getFlags().contains(ArtResource.ArtResourceFlag.FLAT));
-                g.setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+                g.setFrames(AssetUtils.getAnimationFrameCount(resource, assetManager));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 g.setMaterial(material);
@@ -384,7 +385,7 @@ public class VisualEffect {
 
         Material material = AssetUtils.createParticleMaterial(resource, assetManager);
         emitter.setMaterial(material);
-        emitter.setImagesX(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+        emitter.setImagesX(AssetUtils.getAnimationFrameCount(resource, assetManager));
         emitter.setImagesY(1);
         emitter.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
         emitter.setInWorldSpace(false);
@@ -438,6 +439,15 @@ public class VisualEffect {
         }
 
         ColorRGBA rgb = getElementColor(element);
+        if (element.getArtResource().getType() == ArtResourceType.ADDITIVE_ALPHA) {
+            // ONE/ONE ignores alpha for RGB blending. DKII fades the colour
+            // channels themselves, once per native update (0x4364dd..0x436566).
+            emitter.setStartColor(rgb);
+            emitter.setEndColor(rgb);
+            ((EffectParticleEmitter) emitter).setAdditiveColor(rgb,
+                    element.getFlags().contains(EffectElement.EffectElementFlag.FADE));
+            return;
+        }
         emitter.setStartColor(new ColorRGBA(rgb.r, rgb.g, rgb.b, 1f));
         emitter.setEndColor(new ColorRGBA(rgb.r, rgb.g, rgb.b, alpha));
     }
@@ -456,6 +466,12 @@ public class VisualEffect {
         }
 
         Color color = element.getColor();
+        if (element.getArtResource().getType() == ArtResourceType.ADDITIVE_ALPHA) {
+            // Native initialization copies the authored bytes, without normalizing
+            // the largest channel to white (0x43639b..0x4363b4).
+            return new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f,
+                    color.getBlue() / 255f, 1f);
+        }
         int maxComponent = Math.max(color.getRed(), Math.max(color.getGreen(), color.getBlue()));
         if (maxComponent == 0) {
             return new ColorRGBA(1f, 1f, 1f, 1f);
@@ -623,6 +639,22 @@ public class VisualEffect {
     }
 
     /**
+     * Emit particle elements each effect tick for the effect's authored lifetime.
+     * Portal build-up needs a sustained emitter instead of the legacy one-shot burst.
+     */
+    public void generateThroughoutLifetime() {
+        generationStepsRemaining = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp());
+        generationStepRemainder = 0;
+        for (Entry<Spatial, EffectElement> entry : effectElements.entrySet()) {
+            if (entry.getKey() instanceof ParticleEmitter emitter) {
+                int perTick = effect.getElementsPerTurn();
+                emitter.setNumParticles(Math.max(perTick, perTick * (entry.getValue().getMaxHp() + 1)));
+                emitter.setParticlesPerSec(0);
+            }
+        }
+    }
+
+    /**
      * Regular style update, but also signals whether this effect has come to an
      * end
      *
@@ -630,6 +662,21 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if the effect has died
      */
     public boolean update(float tpf) {
+        if (generationStepsRemaining > 0) {
+            generationStepRemainder += tpf;
+            int steps = (int) ((generationStepRemainder + 1e-7) / 0.05);
+            if (steps > 0) {
+                generationStepRemainder -= steps * 0.05;
+                // Native CBridge advances life by elapsed 50 ms steps, but CUBE_GEN
+                // emits one packet per update call, including when that call catches up.
+                for (Spatial element : effectElements.keySet()) {
+                    if (element instanceof ParticleEmitter emitter) {
+                        emitter.emitParticles(effect.getElementsPerTurn());
+                    }
+                }
+                generationStepsRemaining -= steps;
+            }
+        }
         updateCircularPath(tpf);
 
         // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
@@ -702,7 +749,7 @@ public class VisualEffect {
             Spatial value = entry.getKey();
             boolean depleted = (value instanceof ParticleEmitter particleEmitter && particleEmitter.getNumVisibleParticles() == 0)
                     || (value instanceof EffectEmitter effectEmitter && effectEmitter.getQuantity() == 0);
-            if (depleted) {
+            if (depleted && generationStepsRemaining <= 0) {
 
                 // Kill
                 value.removeFromParent();
@@ -762,8 +809,12 @@ public class VisualEffect {
     }
 
     public void removeEffect() {
+        effects.forEach(VisualEffect::removeEffect);
         effects.clear();
         effectElements.clear();
+        effectNode.detachAllChildren();
+        effectNode.removeFromParent();
         infinite = false;
+        generationStepsRemaining = 0;
     }
 }

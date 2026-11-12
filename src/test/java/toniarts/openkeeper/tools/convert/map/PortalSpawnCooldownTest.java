@@ -16,11 +16,16 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.PortalViewState;
 import toniarts.openkeeper.game.controller.GameTimeController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.trigger.TriggerActionData;
+import toniarts.openkeeper.game.trigger.player.PlayerTriggerControl;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -42,6 +47,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
 /** Tests live spawn decisions; this package also permits parser-only fixture setters. */
 class PortalSpawnCooldownTest {
@@ -130,6 +136,234 @@ class PortalSpawnCooldownTest {
         timer.processTick(0.25f);
         system.processTick(0.25f);
         assertEquals(List.of((short) 7), spawned);
+    }
+
+    @Test
+    void closedPortalMatchesNativeLevelOneGenerationChecks() {
+        Fixture f = new Fixture(0);
+        f.rooms.setPortalsOpen(false);
+        f.tick(12);
+        // The scripted Goblin increases the interval from 18 to 19 seconds, preserving the clock.
+        f.generateScriptedGoblin();
+        f.spawned.clear();
+        assertEquals(0, f.portal.getLastSpawnTime());
+        assertEquals(1, f.portal.getGeneratedCount());
+        f.tick(7);
+        assertEquals(19, f.portal.getLastSpawnTime());
+        f.tick(19);
+        assertEquals(38, f.portal.getLastSpawnTime());
+        assertEquals(1, f.portal.getGeneratedCount());
+        assertEquals(List.of(), f.spawned);
+
+        f.tick(2.25f);
+        f.rooms.setPortalsOpen(true);
+        f.tick(0.25f);
+        assertEquals(List.of(), f.spawned);
+        f.tick(16.25f);
+        assertEquals(List.of(), f.spawned);
+        f.tick(0.25f);
+        assertEquals(List.of((short) 7), f.spawned);
+        assertEquals(57, f.portal.getLastSpawnTime());
+        assertEquals(2, f.portal.getGeneratedCount());
+    }
+
+    @Test
+    void successfulArrivalsUsePerPortalCountEvenWhenPlayerCountDoesNotChange() {
+        Fixture f = new Fixture(0);
+        f.tick(18);
+        assertEquals(1, f.spawned.size());
+        f.tick(18.75f);
+        assertEquals(1, f.spawned.size());
+        f.tick(0.25f);
+        assertEquals(2, f.spawned.size());
+        f.tick(21.75f);
+        assertEquals(2, f.spawned.size());
+        f.tick(0.25f);
+        assertEquals(3, f.spawned.size());
+    }
+
+    @Test
+    void captureResetsGeneratedCountAlongWithClock() {
+        Fixture f = new Fixture(0);
+        f.tick(18);
+        assertEquals(1, f.portal.getGeneratedCount());
+        f.portal.captured((short) 3);
+        assertEquals(0, f.portal.getGeneratedCount());
+        f.tick(18);
+        assertEquals(2, f.spawned.size());
+    }
+
+    @Test
+    void emptyPoolAdvancesClockWithoutIncreasingCount() {
+        Fixture f = new Fixture(0);
+        f.pool.setValue(0);
+        f.tick(18);
+        assertEquals(18, f.portal.getLastSpawnTime());
+        assertEquals(0, f.portal.getGeneratedCount());
+        f.pool.setValue(10);
+        f.tick(0.25f);
+        assertEquals(List.of(), f.spawned);
+        f.tick(17.75f);
+        assertEquals(List.of((short) 7), f.spawned);
+    }
+
+    @Test
+    void failedScriptedCreationDoesNotCountOrRestartClock() {
+        Fixture f = new Fixture(0);
+        f.failSpawn = true;
+        f.tick(12);
+        f.generateScriptedGoblin();
+        assertEquals(0, f.portal.getGeneratedCount());
+        assertEquals(0, f.portal.getLastSpawnTime());
+    }
+
+    @Test
+    void failedAutomaticCreationStillAdvancesClockWithoutCounting() {
+        Fixture f = new Fixture(0);
+        f.failSpawn = true;
+        f.tick(18);
+        assertEquals(0, f.portal.getGeneratedCount());
+        assertEquals(18, f.portal.getLastSpawnTime());
+    }
+
+    @Test
+    void buildupOccursOnceThreeSecondsBeforeGeneration() {
+        Fixture f = new Fixture(0);
+        f.tick(14.75f);
+        assertEquals(-1, f.preparation().preparationTime);
+        f.tick(0.25f);
+        PortalViewState event = f.preparation();
+        assertEquals(15, event.preparationTime);
+        assertEquals(List.of(), f.spawned);
+        f.tick(0.25f);
+        assertSame(event, f.preparation(), "An unchanged preparation event must not restart the particles");
+        f.tick(2.75f);
+        assertEquals(List.of((short) 7), f.spawned);
+        f.tick(16);
+        assertEquals(34, f.preparation().preparationTime);
+        f.portal.captured((short) 3);
+        assertEquals(-1, f.preparation().preparationTime);
+    }
+
+    @Test
+    void ineligiblePortalDoesNotBuildUp() {
+        Fixture f = new Fixture(0);
+        f.pool.setValue(0);
+        f.tick(15);
+        assertEquals(-1, f.preparation().preparationTime);
+    }
+
+    private static final class Fixture {
+        final DefaultEntityData entities;
+        final GameTimeController timer;
+        final PlayerRoomControl rooms;
+        final List<Short> spawned;
+        final ICreaturesController spawner;
+        final CreatureSpawnSystem system;
+        final ThreeByThreeController portal;
+        final EntityId portalId;
+        final Variable.CreaturePool pool;
+        final IKwdFile level;
+        final IPlayerController player;
+        boolean failSpawn;
+
+        Fixture(float initialTime) {
+            entities = new DefaultEntityData();
+            timer = new GameTimeController();
+            Keeper keeper = new Keeper(false, (short) 3);
+            Creature goblin = new Creature();
+            goblin.setCreatureId((short) 7);
+            Creature.Attraction lairRequirement = new Creature.Attraction();
+            lairRequirement.setRoomId(2);
+            lairRequirement.setType(Creature.AttractionType.ROOM);
+            goblin.setAttractions(new Creature.Attraction[]{lairRequirement});
+            Creature imp = new Creature();
+            imp.setCreatureId((short) 1);
+            Room portalDefinition = new Room();
+            portalDefinition.setRoomId((short) 3);
+            Room lairDefinition = new Room();
+            lairDefinition.setRoomId((short) 2);
+            rooms = new PlayerRoomControl(keeper, List.of(portalDefinition, lairDefinition));
+            PlayerCreatureControl creatures = new PlayerCreatureControl(keeper, imp, List.of(goblin, imp));
+            creatures.setTypeAvailable(goblin, true);
+            player = stub(IPlayerController.class, (method, args) -> switch (method) {
+                case "getKeeper" -> keeper;
+                case "getRoomControl" -> rooms;
+                case "getCreatureControl" -> creatures;
+                default -> throw new AssertionError(method);
+            });
+            pool = new Variable.CreaturePool();
+            pool.setValue(10);
+            level = stub(IKwdFile.class, (method, args) -> switch (method) {
+                case "getTriggers" -> Map.of(1, new TriggerGeneric(null));
+                case "getCreaturePool" -> Map.of(7, pool);
+                case "getPortal" -> portalDefinition;
+                case "getRoomById" -> lairDefinition;
+                default -> throw new AssertionError(method);
+            });
+            RoomInstance lair = new RoomInstance(lairDefinition);
+            lair.setOwnerId((short) 3);
+            lair.addCoordinate(new Point(1, 1));
+            rooms.onBuild(new LairController(entities.createEntity(), entities, level, lair, null, timer));
+            List<RoomListener> listeners = new ArrayList<>();
+            IMapController map = stub(IMapController.class, (method, args) -> {
+                if (!method.equals("addListener")) {
+                    throw new AssertionError(method);
+                }
+                listeners.add((RoomListener) args[1]);
+                return null;
+            });
+            spawned = new ArrayList<>();
+            spawner = stub(ICreaturesController.class, (method, args) -> {
+                if (!method.equals("spawnCreature")) {
+                    throw new AssertionError(method);
+                }
+                spawned.add((Short) args[0]);
+                return failSpawn ? null : entities.createEntity();
+            });
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
+                    new EnumMap<>(Variable.MiscVariable.MiscType.class);
+            setting(settings, Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS, 18);
+            setting(settings, Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD, 0);
+            setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, 10);
+            setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
+            setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 30);
+            system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
+                    stub(ILevelInfo.class, (method, args) -> level), map,
+                    stub(GameEventService.class, (method, args) -> null));
+            timer.processTick(initialTime);
+            system.processTick(initialTime);
+            RoomInstance room = new RoomInstance(portalDefinition);
+            room.setOwnerId((short) 3);
+            room.addCoordinate(new Point(5, 5));
+            portalId = entities.createEntity();
+            portal = new ThreeByThreeController(
+                    portalId, entities, level, room, null, timer);
+            rooms.onBuild(portal);
+            listeners.forEach(listener -> listener.onBuild(portal));
+        }
+
+        PortalViewState preparation() {
+            return entities.getComponent(portalId, PortalViewState.class);
+        }
+
+        void generateScriptedGoblin() {
+            IGameController game = stub(IGameController.class, (method, args) -> player);
+            new PlayerTriggerControl(game, stub(ILevelInfo.class, (method, args) -> level),
+                    timer, null, spawner, 1, (short) 3, null) {
+                void generate() {
+                    TriggerActionData action = new TriggerActionData(2, null, TriggerAction.ActionType.GENERATE_CREATURE);
+                    action.setUserData("creatureId", (short) 7);
+                    action.setUserData("level", (short) 1);
+                    doAction(action);
+                }
+            }.generate();
+        }
+
+        void tick(float seconds) {
+            timer.processTick(seconds);
+            system.processTick(seconds);
+        }
     }
 
     @Test

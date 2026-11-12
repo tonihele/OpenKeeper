@@ -196,9 +196,9 @@ public final class LightConstants {
     // ---- portals ----
 
     /**
-     * Portal light radius
+     * Keep the light, including its shader falloff, inside the 3x3 Portal footprint.
      */
-    public static final float PORTAL_LIGHT_RADIUS_TILES = 2f;
+    public static final float PORTAL_LIGHT_RADIUS_TILES = 1.4f;
 
     /**
      * Portal light colour and intensity, used for the room ids 3 (Portal) and
@@ -207,7 +207,14 @@ public final class LightConstants {
     public static final int PORTAL_LIGHT_RED = 255;
     public static final int PORTAL_LIGHT_GREEN = 33;
     public static final int PORTAL_LIGHT_BLUE = 26;
-    public static final float PORTAL_LIGHT_INTENSITY = 1.0f;
+    // TODO: The Portal glow still does not match DKII; revisit its brightness and appearance.
+    public static final float PORTAL_LIGHT_INTENSITY = 2.0f;
+    /** Interval between the brief brightness dips measured in DKII. */
+    public static final float PORTAL_LIGHT_PULSE_SECONDS = 2.5f;
+    /** Smoothly dim and recover over one second per cycle. */
+    public static final float PORTAL_LIGHT_DIP_SECONDS = 1.0f;
+    /** Keep the Portal glowing at the darkest point of its pulse. */
+    public static final float PORTAL_LIGHT_MIN_BRIGHTNESS = 0.5f;
 
     // ---- thing lights (objects, creatures, shots, effects) ----
 

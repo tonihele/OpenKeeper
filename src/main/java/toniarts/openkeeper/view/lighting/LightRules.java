@@ -261,11 +261,13 @@ public final class LightRules {
     // ------------------------------------------------------------------
 
     public LightSource addPortalLight(Object room, Vector3f position) {
+        removeRoomLight(room);
         LightSource light = new LightSource(LightSource.Kind.PORTAL, room, position,
                 LightConstants.PORTAL_LIGHT_RED, LightConstants.PORTAL_LIGHT_GREEN,
                 LightConstants.PORTAL_LIGHT_BLUE, LightConstants.PORTAL_LIGHT_INTENSITY,
                 LightConstants.PORTAL_LIGHT_RADIUS_TILES);
-        light.startPulse();
+        light.startPulse(LightConstants.PORTAL_LIGHT_PULSE_SECONDS, LightConstants.PORTAL_LIGHT_DIP_SECONDS,
+                LightConstants.PORTAL_LIGHT_MIN_BRIGHTNESS);
         roomLights.put(room, light);
         modulators.add(light);
         return light;

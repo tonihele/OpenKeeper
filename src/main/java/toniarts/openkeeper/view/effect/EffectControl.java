@@ -90,7 +90,7 @@ public abstract class EffectControl extends AbstractControl {
 
         // float zyAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
         float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
-        vel.y = FastMath.nextRandomFloat() * zySpeed;
+        vel.y = zySpeed;
 
         return vel;
     }
