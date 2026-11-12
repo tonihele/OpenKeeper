@@ -44,6 +44,7 @@ public enum TaskType {
     TRAIN,
     MANUFACTURE,
     PRAY,
+    GUARD,
     GAMBLE,
     COLLECT_WINNINGS
 }
