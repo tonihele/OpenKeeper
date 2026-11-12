@@ -58,6 +58,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -576,6 +577,18 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
     }
 
+    /**
+     * A temple's reward appears in the room's first effect. Not shown in the
+     * fog of war.
+     */
+    private void showSacrificeRewardEffect(GameEvent event) {
+        Room room = kwdFile.getRoomById(event.subjectId);
+        if (room != null && !room.getEffects().isEmpty() && fogOfWarInformation.isVisible(event.position)) {
+            Vector3f location = WorldUtils.pointToVector3f(event.position).addLocal(0, WorldUtils.FLOOR_HEIGHT, 0);
+            stateManager.getState(EffectManagerState.class).load(nodeObjects, location, room.getEffects().get(0), false);
+        }
+    }
+
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
         CreatureViewState viewState = e.get(CreatureViewState.class);
 
@@ -647,6 +660,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             // The events come from the game loop's thread
             stateManager.getApplication().enqueue(() -> showLevelUpEffect(event.entity));
+        } else if (event.type == GameEventType.SACRIFICE_REWARD && event.position != null) {
+            stateManager.getApplication().enqueue(() -> showSacrificeRewardEffect(event));
         } else if (event.type == GameEventType.CALL_TO_ARMS && event.entity != null) {
             stateManager.getApplication().enqueue(() -> showCallToArmsEffect(event.entity));
         }
