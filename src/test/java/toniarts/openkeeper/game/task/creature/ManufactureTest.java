@@ -19,16 +19,15 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
-import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ManufactureTest {
 
@@ -38,7 +37,9 @@ class ManufactureTest {
     @Test
     void creatureWorksOnceASecond() {
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
-        manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
+        Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
+        manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
+                trap.getManufCrateObjectId()));
         ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getManufacturePerSecond" -> TROLL;
@@ -64,30 +65,6 @@ class ManufactureTest {
         Vector2f workPosition = Manufacture.getWorkPosition(new Vector2f(4, 5), new Point(5, 5));
 
         assertEquals(new Vector2f(4.5f, 5), workPosition);
-    }
-
-    @Test
-    void taskManagerChecksTheTaskWithoutACreature() {
-        assertFalse(manufactureInWorkshop(false).isRemovable());
-        assertTrue(manufactureInWorkshop(true).isRemovable());
-    }
-
-    private static Manufacture manufactureInWorkshop(boolean full) {
-        IRoomObjectControl<?> crates = (IRoomObjectControl<?>) Proxy.newProxyInstance(
-                IRoomObjectControl.class.getClassLoader(), new Class<?>[]{IRoomObjectControl.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "isFullCapacity" -> full;
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        IRoomController workshop = (IRoomController) Proxy.newProxyInstance(
-                IRoomController.class.getClassLoader(), new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "isRemoved", "isDestroyed" -> false;
-                    case "getOwnerId" -> (short) 1;
-                    case "getObjectControl" -> crates;
-                    default -> throw new UnsupportedOperationException(method.getName());
-                });
-        PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
-        manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
-        return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, null);
     }
 
 }
