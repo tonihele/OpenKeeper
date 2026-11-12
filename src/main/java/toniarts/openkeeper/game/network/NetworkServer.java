@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -191,6 +192,7 @@ public final class NetworkServer {
             Serializer.registerClass(Portal.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());
+            Serializer.registerClass(CombatPitFighter.class, new FieldSerializer());
             Serializer.registerClass(Crate.class, new FieldSerializer());
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
