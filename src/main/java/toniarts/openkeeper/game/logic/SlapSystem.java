@@ -221,7 +221,7 @@ public final class SlapSystem extends GameTimeCounter {
             int piles = (dropped < 1000 ? 1 : dropped < 3000 ? 2 : 3);
             Point p = WorldUtils.vectorToPoint(entityData.getComponent(entity.getId(), Position.class).position);
             for (int i = 0; i < piles; i++) {
-                objectsController.addLooseGold(ownerId, p.x, p.y, dropped / piles, maxGoldPile);
+                objectsController.addLooseGold(p.x, p.y, dropped / piles, maxGoldPile);
             }
         }
 

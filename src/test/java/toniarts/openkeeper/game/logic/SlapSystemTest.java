@@ -83,10 +83,9 @@ class SlapSystemTest {
         assertEquals(500, entityData.getComponent(bigWinner, Gold.class).gold);
         assertEquals(2, goldPiles.size());
         for (int[] pile : goldPiles) {
-            assertEquals(KEEPER, pile[0]);
+            assertEquals(6, pile[0]);
             assertEquals(6, pile[1]);
-            assertEquals(6, pile[2]);
-            assertEquals(500, pile[3]);
+            assertEquals(500, pile[2]);
         }
         assertEquals(1250, entityData.getComponent(bigWinner, CreatureMood.class).other);
         assertEquals(1000, entityData.getComponent(otherCreature, CreatureMood.class).other);
@@ -107,7 +106,7 @@ class SlapSystemTest {
         // It can only drop the gold it has
         assertEquals(0, entityData.getComponent(bigWinner, Gold.class).gold);
         assertEquals(1, goldPiles.size());
-        assertEquals(100, goldPiles.get(0)[3]);
+        assertEquals(100, goldPiles.get(0)[2]);
         assertEquals(1250, entityData.getComponent(bigWinner, CreatureMood.class).other);
         assertEquals(6000, entityData.getComponent(otherCreature, CreatureMood.class).other);
         assertEquals(1000, entityData.getComponent(enemyCreature, CreatureMood.class).other);
@@ -161,7 +160,7 @@ class SlapSystemTest {
     private IObjectsController objectsController() {
         return (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> {
             if ("addLooseGold".equals(method.getName())) {
-                goldPiles.add(new int[]{(short) args[0], (int) args[1], (int) args[2], (int) args[3]});
+                goldPiles.add(new int[]{(int) args[0], (int) args[1], (int) args[2]});
                 return null;
             }
             throw new UnsupportedOperationException(method.getName());
