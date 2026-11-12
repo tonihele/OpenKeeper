@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 
 /**
- * Who owns a wall once it is dug out
+ * Who owns a wall once it is dug out, and what mining gems gives
  */
 class DugOutWallTest {
 
@@ -82,6 +82,38 @@ class DugOutWallTest {
         IMapTileController tile = mapController.getMapData().getTile(0, 0);
         assertEquals(0, tile.getTerrainId());
         assertEquals(Player.NEUTRAL_PLAYER_ID, tile.getOwnerId());
+    }
+
+    @Test
+    void gemsPayOnEveryBlowAndTakeNoDamage() {
+        Terrain gems = TerrainFixtures.terrain(WALL_ID, flags(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.IMPENETRABLE), 1, 100, 100, WALL_ID);
+        GameMap map = new GameMap(1, 1);
+        map.getTiles()[0][0] = new Tile() {
+
+            @Override
+            public short getTerrainId() {
+                return WALL_ID;
+            }
+        };
+        IKwdFile kwdFile = proxy(IKwdFile.class, (name, args) -> switch (name) {
+            case "getMap" ->
+                map;
+            case "getTerrain" ->
+                gems;
+            default ->
+                throw new UnsupportedOperationException(name);
+        });
+        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> Map.of(KEEPER_ID, new Keeper(false, KEEPER_ID)));
+        MapController mapController = new MapController(kwdFile, null,
+                Map.of(MiscType.MINE_GOLD_HEALTH, CreatureSleepFixtures.variable(MiscType.MINE_GOLD_HEALTH, 75),
+                        MiscType.GOLD_MINED_FROM_GEMS, CreatureSleepFixtures.variable(MiscType.GOLD_MINED_FROM_GEMS, 25)),
+                null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
+
+        for (int blow = 0; blow < 3; blow++) {
+            assertEquals(25, mapController.damageTile(new Point(0, 0), KEEPER_ID, null));
+        }
+
+        assertEquals(100, mapController.getMapData().getTile(0, 0).getHealth());
     }
 
     @FunctionalInterface
