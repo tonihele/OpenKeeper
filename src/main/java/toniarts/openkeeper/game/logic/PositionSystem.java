@@ -342,18 +342,28 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
-    private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
-        if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                || range-- < 0) {
-            return;
+    private void addSensedEntities(IMapTileInformation startTile, int range, Set<EntityId> sensedEntities) {
+
+        // Go out one step at a time, so each tile is looked at only once
+        Set<IMapTileInformation> visitedTiles = new HashSet<>();
+        List<IMapTileInformation> tiles = List.of(startTile);
+        for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
+            List<IMapTileInformation> nextTiles = new ArrayList<>();
+            for (IMapTileInformation tile : tiles) {
+                if (tile == null || !visitedTiles.add(tile)
+                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    continue;
+                }
+
+                sensedEntities.addAll(entitiesByMapTile[tile.getX()][tile.getY()]);
+
+                nextTiles.add(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1));
+            }
+            tiles = nextTiles;
         }
-
-        sensedEntities.addAll(getEntitiesInLocation(tile));
-
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, sensedEntities);
     }
 
 }
