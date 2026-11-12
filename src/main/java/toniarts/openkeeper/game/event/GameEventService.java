@@ -63,4 +63,9 @@ public interface GameEventService {
 
     /** An event about a thing type, delivered only to the specified player. */
     void emitToPlayer(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, short playerId);
+
+    /**
+     * An event only one player gets, with no place, and with a subject id but no subject kind
+     */
+    void emitToPlayer(GameEventType type, int subjectId, short playerId);
 }
