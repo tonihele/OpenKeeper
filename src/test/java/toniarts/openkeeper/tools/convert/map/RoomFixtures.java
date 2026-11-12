@@ -31,4 +31,10 @@ public final class RoomFixtures {
         return room;
     }
 
+    public static Room room(short roomId, List<Short> objects, Room.RoomFlag... flags) {
+        Room room = room(roomId, 0, flags);
+        room.setObjects(objects);
+        return room;
+    }
+
 }

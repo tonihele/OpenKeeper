@@ -41,4 +41,20 @@ public interface ICheatController {
      */
     void spawnCreature(short creatureId, int level, int amount, short playerId);
 
+    /**
+     * Adds gold to the given player
+     *
+     * @param amount how much gold to add
+     * @param playerId the player who gets the gold
+     */
+    void addGold(int amount, short playerId);
+
+    /**
+     * Adds mana to the given player
+     *
+     * @param amount how much mana to add
+     * @param playerId the player who gets the mana
+     */
+    void addMana(int amount, short playerId);
+
 }
