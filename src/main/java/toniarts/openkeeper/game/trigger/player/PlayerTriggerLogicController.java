@@ -50,6 +50,15 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         // TODO: get notified on new parties (a.k.a. parties re-spawned)
     }
 
+    /** Delivers the departure event only to the creature's current owner. */
+    public void onCreatureSacked(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onCreatureSacked();
+            }
+        }
+    }
+
     @Override
     public void start() {
 

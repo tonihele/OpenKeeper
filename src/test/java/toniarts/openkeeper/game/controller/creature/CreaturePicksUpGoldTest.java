@@ -107,7 +107,7 @@ class CreaturePicksUpGoldTest {
 
         // Leaving gold on the floor as a new pile would call the objects controller
         return new CreatureController(entityId, entityData, null, null, null, null, Map.of(), null, null, null, null,
-                stub(IObjectsController.class, Map.of()), null, null);
+                stub(IObjectsController.class, Map.of()), null, null, id -> {});
     }
 
     private EntityId pile(int gold) {

@@ -20,6 +20,7 @@ import com.badlogic.gdx.ai.GdxAI;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.GameResult;
@@ -76,6 +77,8 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     private EffectGeneratorsController effectGenerators;
     private TriggerControl triggerControl = null;
+    private CreatureTriggerLogicController creatureTriggers;
+    private PlayerTriggerLogicController playerTriggers;
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -112,6 +115,27 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         createNewGame();
     }
 
+    @Override
+    public void onCreatureAngry(EntityId entityId) {
+        creatureTriggers.onAngry(entityId);
+    }
+
+    @Override
+    public void onCreatureAfraid(EntityId entityId) {
+        creatureTriggers.onAfraid(entityId);
+    }
+
+    @Override
+    public void onCreatureSacked(EntityId entityId) {
+        creatureTriggers.onSacked(entityId);
+        // Native departure dispatches the creature script first, then its owner's
+        // player script. Re-read ownership because the first script can change it.
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner != null) {
+            playerTriggers.onCreatureSacked(owner.ownerId);
+        }
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
@@ -138,9 +162,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData));
+                playerService, entityData);
+        controllers.add(creatureTriggers);
         controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData, gameWorldController.getObjectsController()));
@@ -150,9 +175,10 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         controllers.add(new ActionPointTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 positionSystem));
-        controllers.add(new PlayerTriggerLogicController(this, levelInfo, gameTimer,
+        playerTriggers = new PlayerTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService));
+                playerService);
+        controllers.add(playerTriggers);
         controllers.add(gameTimer);
         effectGenerators = new EffectGeneratorsController(levelInfo.kwdFile.getThings(Thing.EffectGenerator.class),
                 gameWorldController.getMapController(), gameTimer, gameEventService);
