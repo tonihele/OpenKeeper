@@ -1048,6 +1048,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * @param gold the gold the player has
      */
     private void updateRoomAffordability(int gold) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
             if (!room.isDiscovered()) {
@@ -1100,6 +1104,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     private void updateSpellAffordability(int availableMana) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
             if (!spell.isDiscovered()) {
@@ -1344,6 +1352,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     public void updateEntityResearch(ResearchableEntity researchableEntity) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         String itemId = getItemTypeId(researchableEntity);
         Element researchableButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
         if (researchableButton != null) {
