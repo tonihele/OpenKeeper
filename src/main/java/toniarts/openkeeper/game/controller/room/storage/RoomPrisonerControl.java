@@ -19,8 +19,6 @@ package toniarts.openkeeper.game.controller.room.storage;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.ArrayList;
-import java.util.LinkedHashSet;
-import java.util.Set;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
@@ -42,7 +40,6 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<EntityId> {
 
     private final IGameTimer gameTimer;
-    private final Set<EntityId> prisoners = new LinkedHashSet<>();
 
     public RoomPrisonerControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.PRISONER);
@@ -58,9 +55,9 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
 
     @Override
     public EntityId addItem(EntityId creature, Point p) {
+        objectsByCoordinate.computeIfAbsent(p, key -> new ArrayList<>(1)).add(creature);
         setRoomStorageToItem(creature, false);
         addCurrentCapacity(1);
-        prisoners.add(creature);
 
         return creature;
     }
@@ -70,7 +67,6 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
         super.removeItem(object);
 
         addCurrentCapacity(-1);
-        prisoners.remove(object);
     }
 
     @Override
@@ -88,7 +84,7 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
      * Sets all the prisoners held here free
      */
     private void releasePrisoners() {
-        for (EntityId prisoner : new ArrayList<>(prisoners)) {
+        for (EntityId prisoner : getItems()) {
             removeItem(prisoner);
             release(prisoner);
         }

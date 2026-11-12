@@ -36,6 +36,7 @@ import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The prisoners of a Prison go free when the room is lost: they keep their own
@@ -66,6 +67,7 @@ class RoomPrisonerControlTest {
         control.destroy();
 
         assertFree(prisoner);
+        assertTrue(control.getItems().isEmpty());
     }
 
     @Test
