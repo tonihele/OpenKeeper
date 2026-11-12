@@ -178,10 +178,9 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     private void addExperience(EntityId entityId, CreatureExperience creatureExperience, int gain) {
         int experience = creatureExperience.experience + gain;
 
-        // See if we gained a level
+        // See if we gained a level, the new level starts from nothing
         if (experience >= creatureExperience.experienceToNextLevel) {
-            experience -= creatureExperience.experienceToNextLevel;
-            creaturesController.levelUpCreature(entityId, creatureExperience.level + 1, experience);
+            creaturesController.levelUpCreature(entityId, creatureExperience.level + 1, 0);
         } else {
             entityData.setComponent(entityId, new CreatureExperience(creatureExperience.level, experience, creatureExperience.experienceToNextLevel, creatureExperience.experiencePerSecond, creatureExperience.experiencePerTickTraining));
         }
