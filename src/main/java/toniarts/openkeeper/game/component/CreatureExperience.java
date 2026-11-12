@@ -29,18 +29,18 @@ public final class CreatureExperience implements EntityComponent {
     public int experience;
     public int experienceToNextLevel;
     public int experiencePerSecond;
-    public int experiencePerSecondTraining;
+    public int experiencePerTickTraining;
 
     public CreatureExperience() {
         // For serialization
     }
 
-    public CreatureExperience(int level, int experience, int experienceToNextLevel, int experiencePerSecond, int experiencePerSecondTraining) {
+    public CreatureExperience(int level, int experience, int experienceToNextLevel, int experiencePerSecond, int experiencePerTickTraining) {
         this.level = level;
         this.experience = experience;
         this.experienceToNextLevel = experienceToNextLevel;
         this.experiencePerSecond = experiencePerSecond;
-        this.experiencePerSecondTraining = experiencePerSecondTraining;
+        this.experiencePerTickTraining = experiencePerTickTraining;
     }
 
     public CreatureExperience(CreatureExperience creatureExperience) {
@@ -48,7 +48,7 @@ public final class CreatureExperience implements EntityComponent {
         this.experience = creatureExperience.experience;
         this.experienceToNextLevel = creatureExperience.experienceToNextLevel;
         this.experiencePerSecond = creatureExperience.experiencePerSecond;
-        this.experiencePerSecondTraining = creatureExperience.experiencePerSecondTraining;
+        this.experiencePerTickTraining = creatureExperience.experiencePerTickTraining;
     }
 
 }
