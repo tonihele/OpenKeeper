@@ -107,6 +107,14 @@ public interface GameSessionServiceListener {
     public void onGetGold(int amount, short playerId);
 
     /**
+     * Player wants to take down the Call to Arms banner
+     *
+     * @param playerId who wants it
+     */
+    @Asynchronous
+    public void onCancelCallToArms(short playerId);
+
+    /**
      * Player UI transition has ended
      *
      * @param playerId the player whose transition ended
