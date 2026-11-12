@@ -33,6 +33,7 @@ import com.simsilica.ethereal.EtherealHost;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.Crate;
@@ -172,6 +173,7 @@ public final class NetworkServer {
             Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
+            Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
@@ -181,6 +183,7 @@ public final class NetworkServer {
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
+            Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
