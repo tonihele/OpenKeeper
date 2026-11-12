@@ -30,7 +30,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomCrateControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomManufacturerControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection;
 
 /**
  * The workshop
