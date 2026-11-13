@@ -85,6 +85,15 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     }
 
     /**
+     * Get all the objects in the room
+     *
+     * @return the objects in all the points of the room
+     */
+    public Collection<EntityId> getItems() {
+        return objectsByCoordinate.values().stream().flatMap(Collection::stream).toList();
+    }
+
+    /**
      * Get the max capacity of the room
      *
      * @return max capacity in number of objects

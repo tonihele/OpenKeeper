@@ -64,6 +64,7 @@ import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -1242,6 +1243,13 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration + tpf, taskComponent.taskStarted));
         }
 
+        // A slap interrupts the work, once per slap
+        Slapped slapped = entityData.getComponent(entityId, Slapped.class);
+        if (slapped != null && !slapped.reacted) {
+            entityData.setComponent(entityId, new Slapped(slapped.startTime, true));
+            interruptWork();
+        }
+
         stateMachine.update();
 
         // Also change our state component
@@ -1281,6 +1289,16 @@ public final class CreatureController extends EntityController implements ICreat
 
         if (looseGold > 0) {
             Point coordinates = getCreatureCoordinates();
+
+            // Like in DKII (0x4510C0), the gold goes to the pile at our feet if there is one
+            synchronized (GameWorldController.GOLD_LOCK) {
+                EntityId goldPile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, coordinates);
+                if (goldPile != null) {
+                    Gold pile = entityData.getComponent(goldPile, Gold.class);
+                    entityData.setComponent(goldPile, new Gold(pile.gold + looseGold, pile.maxGold));
+                    return;
+                }
+            }
             objectsController.addLooseGold(coordinates.x, coordinates.y, looseGold, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY).getValue());
         }
     }
@@ -1423,6 +1441,18 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean isSlapped() {
         Slapped creatureSlapped = entityData.getComponent(entityId, Slapped.class);
         return creatureSlapped != null;
+    }
+
+    /**
+     * A slapped worker drops whatever it is working on and looks for work
+     * anew
+     */
+    private void interruptWork() {
+        if (!isWorker() || stateMachine.getCurrentState() != CreatureState.WORK) {
+            return;
+        }
+
+        stateMachine.changeState(CreatureState.IDLE);
     }
 
     @Override

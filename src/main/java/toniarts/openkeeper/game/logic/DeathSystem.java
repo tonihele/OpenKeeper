@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -67,6 +68,12 @@ public final class DeathSystem extends GameTimeCounter {
         // Decay stuff
         for (EntityId entityId : entityIds.getArray()) {
             Death death = deathEntities.getEntity(entityId).get(Death.class);
+            if (entityData.getComponent(entityId, HauledBy.class) != null) {
+
+                // A body doesn't decay while it is being carried
+                entityData.setComponent(entityId, new Death(death.startTime + tpf));
+                continue;
+            }
             if (timeElapsed - death.startTime >= timeToDecay) {
                 entityData.removeEntity(entityId);
             }
