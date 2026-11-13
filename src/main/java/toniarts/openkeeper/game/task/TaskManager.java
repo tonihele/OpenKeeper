@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -132,6 +133,13 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
+
+    /**
+     * How far around the drop a dropped worker looks for work first, in tiles
+     * in every direction. The original (DKII.EXE 0x463DF0) searches 2 tiles
+     * around a dropped imp before its usual work.
+     */
+    static final int DROP_AREA_RADIUS = 2;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -1074,6 +1082,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
             Set<Point> reachableArea = getReachableArea(creature, currentLocation);
+            DropArea dropArea = entityData.getComponent(creature.getEntityId(), DropArea.class);
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
@@ -1087,7 +1096,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
 
                 int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
-                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
+                int dropRing = dropArea != null ? getDropRing(task, dropArea.center) : Integer.MAX_VALUE;
+                priorizedTasks.add(new TaskWorkerPriority(task, creature, points, dropRing, workResult));
+            }
+
+            // Only the first search after the drop looks around it, then the worker is back to its usual work
+            if (dropArea != null) {
+                entityData.removeComponent(creature.getEntityId(), DropArea.class);
             }
         }
 
@@ -1152,7 +1167,30 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         return area;
     }
 
-    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, Consumer<Boolean> workResult) {
+    /**
+     * The ring around the spot a worker was dropped on that the task lies in:
+     * 0 on the spot itself, 1 for the eight tiles around it and so on, up to
+     * {@link #DROP_AREA_RADIUS}. Any kind of work counts, walls and gold too.
+     *
+     * @param task the task
+     * @param dropCenter the tile the worker was dropped on
+     * @return the ring, {@link Integer#MAX_VALUE} if the task is further away
+     */
+    static int getDropRing(Task task, Point dropCenter) {
+        Point tile = task.getTaskLocation();
+        if (tile == null) {
+            return Integer.MAX_VALUE;
+        }
+        int ring = Math.max(Math.abs(tile.x - dropCenter.x), Math.abs(tile.y - dropCenter.y));
+        return ring <= DROP_AREA_RADIUS ? ring : Integer.MAX_VALUE;
+    }
+
+    /**
+     * @param dropRing the ring around the spot this worker was dropped on
+     * that the task lies in, see {@link #getDropRing(Task, Point)}
+     */
+    static record TaskWorkerPriority(Task task, ICreatureController creature, int points, int dropRing,
+            Consumer<Boolean> workResult) {
 
     }
 
