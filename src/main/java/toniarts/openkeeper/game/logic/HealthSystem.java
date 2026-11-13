@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -79,6 +80,7 @@ public final class HealthSystem extends GameTimeCounter {
     private final int timeToDeath;
     private final int healthRegeneratePerSecond;
     private final int healthRegeneratePerSecondImprisoned;
+    private final int stunTimeIncreaseWhenHit;
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
@@ -114,6 +116,8 @@ public final class HealthSystem extends GameTimeCounter {
         timeToDeath = (int) gameSettings.get(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS).getValue();
         healthRegeneratePerSecondImprisoned = (int) gameSettings.get(Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND).getValue();
         healthRegeneratePerSecond = (int) gameSettings.get(Variable.MiscVariable.MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
+        Variable.MiscVariable stunTimeIncrease = gameSettings.get(Variable.MiscVariable.MiscType.STUN_TIME_PERCENTAGE_INCREASE_WHEN_HIT);
+        stunTimeIncreaseWhenHit = stunTimeIncrease != null ? (int) stunTimeIncrease.getValue() : 0;
 
         healthEntities = entityData.getEntities(Health.class);
         processAddedEntities(healthEntities);
@@ -323,6 +327,7 @@ public final class HealthSystem extends GameTimeCounter {
             delta -= damage.damage;
             if (damage.damage > 0) {
                 gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+                extendStun(entityId, gameTime);
             }
 
             // Remove the damage
@@ -394,6 +399,41 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return delta;
+    }
+
+    /**
+     * A creature hit while it lies stunned stays down longer, if a creature
+     * other than an Imp is fighting it. The stun time left grows by the level's
+     * percentage, but never past a full stun.
+     */
+    private void extendStun(EntityId entityId, double gameTime) {
+        CreatureAi ai = entityData.getComponent(entityId, CreatureAi.class);
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        if (ai == null || creatureComponent == null
+                || (ai.getCreatureState() != CreatureState.FALLEN && ai.getCreatureState() != CreatureState.STUNNED)) {
+            return;
+        }
+
+        double timeStunned = gameTime - ai.stateStartTime;
+        double stunLeft = creatureComponent.stunDuration - timeStunned;
+        if (stunLeft <= 0 || !isFoughtByNonImp(entityId)) {
+            return;
+        }
+
+        double extension = Math.min(stunLeft * stunTimeIncreaseWhenHit / 100, timeStunned);
+        entityData.setComponent(entityId, new CreatureAi(ai.stateStartTime + extension, ai.getCreatureState(),
+                ai.creatureId, ai.getTargetState()));
+    }
+
+    private boolean isFoughtByNonImp(EntityId entityId) {
+        short impId = levelInfo.getLevelData().getImp().getCreatureId();
+        for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", entityId),
+                AttackTarget.class, CreatureComponent.class)) {
+            if (entityData.getComponent(attacker, CreatureComponent.class).creatureId != impId) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void processDeath(EntityId entityId) {
