@@ -25,6 +25,7 @@ import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -69,6 +71,7 @@ class CreatureCombatExperienceTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getImp" -> creatures.get(IMP);
             case "getCreature" -> creatures.get((Short) args[0]);
+            case "getGameLevel" -> CreatureSleepFixtures.level((int) (1 / TPF));
             default -> throw new UnsupportedOperationException(method.getName());
         });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
@@ -106,7 +109,8 @@ class CreatureCombatExperienceTest {
 
         tenSeconds();
 
-        assertEquals(9 * EXPERIENCE_PER_SECOND, experience(dwarf));
+        // Fighting teaches on every tick
+        assertEquals(10 * EXPERIENCE_PER_SECOND, experience(dwarf));
     }
 
     @Test
@@ -115,7 +119,8 @@ class CreatureCombatExperienceTest {
 
         tenSeconds();
 
-        assertEquals(9 * EXPERIENCE_PER_SECOND, experience(goblin));
+        // Fighting teaches on every tick
+        assertEquals(10 * EXPERIENCE_PER_SECOND, experience(goblin));
     }
 
     /**
@@ -139,6 +144,12 @@ class CreatureCombatExperienceTest {
                 new CreatureAi(0, state, creatureId));
         if (state == CreatureState.WORK) {
             entityData.setComponent(entityId, new TaskComponent(1, null, null, TaskType.CLAIM_TILE, 0, true));
+        } else {
+
+            // Only fighting another creature teaches
+            EntityId enemy = entityData.createEntity();
+            entityData.setComponent(enemy, new CreatureComponent());
+            entityData.setComponent(entityId, new AttackTarget(enemy));
         }
         return entityId;
     }
