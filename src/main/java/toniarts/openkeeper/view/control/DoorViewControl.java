@@ -30,6 +30,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
@@ -68,20 +69,16 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         String tooltip;
         ResourceBundle bundle = Utils.getMainTextResourceBundle();
         Door door = getDataObject();
-        if (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
-            if (currentState.blueprint) {
-                tooltip = bundle.getString("2512");
-            } else {
-                tooltip = bundle.getString("2536");
-            }
-        } else if (playerId == getOwnerId()) {
-            if (currentState.blueprint) {
-                tooltip = bundle.getString("2512");
-            } else {
-                tooltip = bundle.getString("2532");
-            }
+        if (currentState.blueprint) {
+            tooltip = bundle.getString("2512");
+        } else if (playerId != getOwnerId()) {
+
+            // DK II tells only the name of other players' doors and barricades
+            tooltip = "%" + TextParameter.ENTITY_NAME.getId();
+        } else if (door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+            tooltip = bundle.getString("2536");
         } else {
-            tooltip = bundle.getString("2540");
+            tooltip = bundle.getString("2532");
         }
         return textParser.parseText(tooltip, getEntity(), getDataObject());
     }
