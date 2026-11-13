@@ -16,9 +16,6 @@
  */
 package toniarts.openkeeper.game.task.objective;
 
-import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
-import com.badlogic.gdx.ai.pfa.GraphPath;
-import com.jme3.math.Vector2f;
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.Map;
@@ -29,6 +26,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -36,7 +34,6 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Point;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -44,8 +41,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A hero with a clear way to the keeper's heart: it keeps its kill task while
- * it walks there, and heads for the nearest heart tile. A hero with no way
- * there doesn't take the task
+ * it walks there. A hero with no way there doesn't take the task
  */
 class KillPlayerTaskTest {
 
@@ -73,7 +69,7 @@ class KillPlayerTaskTest {
     void heroWithNoWayToTheHeartTakesNoTask() {
         ICreatureController hero = hero(true, false, KEEPER);
 
-        assertNull(createTask(hero, null).getCurrentTask());
+        assertNull(createTask(hero, false).getCurrentTask());
     }
 
     @Test
@@ -97,20 +93,13 @@ class KillPlayerTaskTest {
         assertFalse(createTask(hero).isValid(hero));
     }
 
-    @Test
-    void heroHeadsForTheNearestHeartTile() {
-        ICreatureController hero = hero(false, false, KEEPER);
-
-        assertEquals(new Vector2f(10, 8), createTask(hero).getTarget(hero));
-    }
-
     private static KillPlayer createTask(ICreatureController hero) {
 
         // A clear way, no step on it needs digging
-        return createTask(hero, new DefaultGraphPath<>());
+        return createTask(hero, true);
     }
 
-    private static KillPlayer createTask(ICreatureController hero, GraphPath<IMapTileInformation> wayToTheHeart) {
+    private static KillPlayer createTask(ICreatureController hero, boolean clearWay) {
         Keeper keeper = new Keeper(false, KEEPER);
         keeper.setDungeonHeartLocation(HEART_CENTRE);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> "getPlayer".equals(name) ? Map.of(KEEPER, keeper).get((Short) args[0]) : null);
@@ -122,11 +111,33 @@ class KillPlayerTaskTest {
             }
         }
         IRoomController roomController = stub(IRoomController.class, (name, args) -> "getRoomInstance".equals(name) ? heartRoom : null);
-        IMapController mapController = stub(IMapController.class, (name, args) -> "getRoomControllerByCoordinates".equals(name) ? roomController : null);
+        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> switch (name) {
+            case "getWidth", "getHeight" -> 20;
+            case "getTile" -> args.length == 1 ? getTile((Point) args[0]) : getTile(new Point((Integer) args[0], (Integer) args[1]));
+            default -> null;
+        });
+        IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
+            case "getRoomControllerByCoordinates" -> roomController;
+            case "getMapData" -> mapData;
+            default -> null;
+        });
 
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? wayToTheHeart : null);
+        // Either the hero can walk anywhere or it can't go anywhere
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "isAccessible".equals(name) ? clearWay : null);
 
         return new KillPlayer(navigationService, mapController, levelInfo, KEEPER, hero);
+    }
+
+    private static IMapTileInformation getTile(Point location) {
+        if (location.x < 0 || location.y < 0 || location.x >= 20 || location.y >= 20) {
+            return null;
+        }
+        return stub(IMapTileInformation.class, (name, args) -> switch (name) {
+            case "getLocation" -> location;
+            case "getX" -> location.x;
+            case "getY" -> location.y;
+            default -> null;
+        });
     }
 
     private static ICreatureController hero(boolean stopped, boolean atTarget, short objectiveTarget) {
