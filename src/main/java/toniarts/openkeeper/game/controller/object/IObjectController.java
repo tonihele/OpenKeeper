@@ -27,6 +27,13 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
  */
 public interface IObjectController extends IEntityController {
 
+    /**
+     * Returns the KWD object definition ID for this object instance.
+     *
+     * @return the object definition ID
+     */
+    public short getObjectId();
+
     public int getPickUpPriority();
 
     public AbstractRoomController.ObjectType getType();

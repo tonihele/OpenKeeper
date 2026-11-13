@@ -50,10 +50,17 @@ public final class ActionPoint extends Container implements ITriggerable {
         flags = acionPoint.getFlags();
         triggerId = acionPoint.getTriggerId();
 
-        points = new ArrayList<>((end.x - start.x + 1) * (end.y - start.y + 1));
-        for (int x = start.x; x <= end.x; x++) {
-            for (int y = start.y; y <= end.y; y++) {
-                points.add(new Point(x, y));
+        long width = (long) end.x - start.x + 1;
+        long height = (long) end.y - start.y + 1;
+        if (width <= 0 || height <= 0 || width > Integer.MAX_VALUE
+                || height > Integer.MAX_VALUE || width > Integer.MAX_VALUE / height) {
+            throw new IllegalArgumentException("Invalid action point rectangle: start=" + start + ", end=" + end);
+        }
+
+        points = new ArrayList<>((int) (width * height));
+        for (long x = start.x; x <= end.x; x++) {
+            for (long y = start.y; y <= end.y; y++) {
+                points.add(new Point((int) x, (int) y));
             }
         }
 
