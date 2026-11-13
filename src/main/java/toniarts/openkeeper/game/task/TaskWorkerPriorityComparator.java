@@ -26,15 +26,34 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
     @Override
     public int compare(TaskManager.TaskWorkerPriority o1, TaskManager.TaskWorkerPriority o2) {
 
-        // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
-        // work order (DKII.EXE 0x463DF0)
-        int result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
+        // A dropped worker first takes the closest work around the drop, whatever it is
+        int result = Integer.compare(o1.dropRing(), o2.dropRing());
         if (result != 0) {
             return result;
         }
 
-        // Walls are only reinforced once there is nothing else to do, the floor is claimed first
-        result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
+        // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
+        // work order (DKII.EXE 0x463DF0)
+        result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
+        if (result != 0) {
+            return result;
+        }
+
+        // A digging or claiming worker carries on with the closest work of the same kind, however far
+        result = Boolean.compare(o2.sameWork(), o1.sameWork());
+        if (result != 0) {
+            return result;
+        }
+        if (o1.sameWork()) {
+            result = Integer.compare(o1.points(), o2.points());
+            if (result != 0) {
+                return result;
+            }
+        }
+
+        // Walls are only worked on once there is nothing else to do, the floor is claimed first. Repairing goes with
+        // reinforcing, in the original (DKII.EXE 0x46AEA0) both are one job that only comes after the usual work
+        result = Boolean.compare(isWallWork(o1.task()), isWallWork(o2.task()));
         if (result != 0) {
             return result;
         }
@@ -55,8 +74,8 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
         return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
     }
 
-    private static boolean isClaimWall(Task task) {
-        return task.getTaskType() == TaskType.CLAIM_WALL;
+    private static boolean isWallWork(Task task) {
+        return task.getTaskType() == TaskType.CLAIM_WALL || task.getTaskType() == TaskType.REPAIR_WALL;
     }
 
 }
