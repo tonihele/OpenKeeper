@@ -123,6 +123,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private boolean initHud = false;
     private String cinematicText;
     private EntityData entityData;
+    private WorkshopAvailability workshopAvailability;
+    private boolean workshopAvailable;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
     private int lastImpCount = -1;
@@ -140,6 +142,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void update(float tpf) {
+        if (workshopAvailability != null) {
+            workshopAvailability.update();
+        }
         lastUpdate += tpf;
 
         if (lastUpdate >= SCREEN_UPDATE_INTERVAL) {
@@ -162,6 +167,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void cleanup() {
+        if (workshopAvailability != null) {
+            workshopAvailability.close();
+            workshopAvailability = null;
+        }
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
             creatureCardManager = null;
@@ -790,6 +799,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             this.playButtonSound(sound);
         }
         reapplyIconEffects();
+        updateWorkshopIconTints();
     }
 
     protected void initHud(String resource, EntityData entityData) {
@@ -812,6 +822,37 @@ public final class PlayerScreenController implements IPlayerScreenController {
         nifty.gotoScreen(IPlayerScreenController.SCREEN_HUD_ID);
 
         hud.layoutLayers();
+        if (workshopAvailability != null) {
+            workshopAvailability.close();
+        }
+        workshopAvailability = new WorkshopAvailability(entityData, state.getPlayerId(), this::setWorkshopAvailable);
+        workshopAvailability.update();
+    }
+
+    private void setWorkshopAvailable(boolean available) {
+        workshopAvailable = available;
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        CustomTabGroupControl tabs = hud.findNiftyControl("tabs-hud", CustomTabGroupControl.class);
+        CustomTabControl workshop = hud.findNiftyControl("tab-workshop", CustomTabControl.class);
+        tabs.setTabDimmed(workshop, !available);
+        updateWorkshopIconTints();
+    }
+
+    private void updateWorkshopIconTints() {
+        if (state == null) {
+            return;
+        }
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity door : state.getAvailableDoors()) {
+            if (door.isDiscovered()) {
+                NiftyUtils.setImageDimmed(hud.findElementById("door_" + door.getId()), !workshopAvailable);
+            }
+        }
+        for (ResearchableEntity trap : state.getAvailableTraps()) {
+            if (trap.isDiscovered()) {
+                NiftyUtils.setImageDimmed(hud.findElementById("trap_" + trap.getId()), !workshopAvailable);
+            }
+        }
     }
 
     public void setPause(boolean paused) {
@@ -1186,6 +1227,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             Element element = contentPanel.addElement(createTrapIcon(trap));
             setResearchEffect(trap, element);
         }
+        updateWorkshopIconTints();
     }
 
     /**
