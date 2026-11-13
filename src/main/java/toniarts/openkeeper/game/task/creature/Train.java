@@ -60,7 +60,7 @@ public final class Train extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return playerController.getKeeper().getGold() >= trainingCost && creature.getLevel() < trainingRoomMaxExperienceLevel && super.isValid(creature);
+        return playerController.getGoldControl().getGold() >= trainingCost && creature.getLevel() < trainingRoomMaxExperienceLevel && super.isValid(creature);
     }
 
     @Override
