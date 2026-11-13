@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.room.storage;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.ArrayList;
+import java.util.function.Predicate;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
@@ -78,6 +79,24 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
     @Override
     public void captured(short playerId) {
         releasePrisoners();
+    }
+
+    /**
+     * Sets the first prisoner that is still imprisoned and accepted by the
+     * filter free
+     *
+     * @param filter tells which prisoners may be freed
+     * @return the freed prisoner, or {@code null} if there was none
+     */
+    public EntityId releaseFirst(Predicate<EntityId> filter) {
+        for (EntityId prisoner : getItems()) {
+            if (entityData.getComponent(prisoner, CreatureImprisoned.class) != null && filter.test(prisoner)) {
+                removeItem(prisoner);
+                release(prisoner);
+                return prisoner;
+            }
+        }
+        return null;
     }
 
     /**
