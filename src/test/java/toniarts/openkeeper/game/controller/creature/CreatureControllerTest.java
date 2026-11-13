@@ -89,6 +89,19 @@ class CreatureControllerTest {
     }
 
     @Test
+    void eatingAChickenClearsOnlyTheNoFoodAnger() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 2));
+            f.controller.sate();
+            CreatureMood mood = f.data.getComponent(f.entity, CreatureMood.class);
+            assertEquals(0, mood.noFood);
+            assertEquals(100, mood.general);
+            assertEquals(600, mood.other);
+            assertEquals(1, f.data.getComponent(f.entity, CreatureHunger.class).amountNeeded);
+        }
+    }
+
+    @Test
     void fatigueInterruptsRoomWorkAndKeepsTheNewSleepTaskAssigned() {
         for (TaskType type : List.of(TaskType.TRAIN, TaskType.RESEARCH)) {
             try (Fixture f = new Fixture(9)) {
