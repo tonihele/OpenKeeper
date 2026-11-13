@@ -735,6 +735,26 @@ public final class CreaturesController implements ICreaturesController {
     }
 
     @Override
+    public int getDyingCreatureCount(short playerId, short creatureId) {
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, CreatureComponent.class, Health.class, Unconscious.class);
+        try {
+            if (creatureId == 0) {
+                return entities.size();
+            }
+            int count = 0;
+            for (Entity entity : entities) {
+                if (entity.get(CreatureComponent.class).creatureId == creatureId) {
+                    count++;
+                }
+            }
+            return count;
+        } finally {
+            entities.release();
+        }
+    }
+
+    @Override
 
     public int getAngryCreatureCount(short playerId, short creatureId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
