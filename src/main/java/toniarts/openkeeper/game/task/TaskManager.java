@@ -108,6 +108,7 @@ import toniarts.openkeeper.game.task.worker.CarryObjectToStorageTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
+import toniarts.openkeeper.game.task.worker.DeliverTrapCrateTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
@@ -270,6 +271,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
             }
         }
+        for (Set<Task> tasks : taskQueues.values()) {
+            tasks.removeIf(task -> task instanceof DeliverTrapCrateTask && task.isRemovable());
+        }
 
         Map<EntityId, EntityId> underWay = HashMap.newHashMap(armTrapTasks.size());
         for (ArmTrapTask task : armTrapTasks.values()) {
@@ -300,7 +304,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(blueprints, crates, underWay).entrySet()) {
                 Point tile = WorldUtils.vectorToPoint(trapBlueprintEntities.getEntity(delivery.getKey()).get(Position.class).position);
-                ArmTrapTask task = new ArmTrapTask(navigationService, mapController, entityData, gameWorldController.getTrapsController(),
+                ArmTrapTask task = new ArmTrapTask(this, navigationService, mapController, entityData, gameWorldController.getTrapsController(),
                         objectsController, delivery.getKey(), tile, delivery.getValue(), playerId);
                 armTrapTasks.put(delivery.getKey(), task);
                 addTask(playerId, task);
@@ -652,6 +656,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
+    @Override
     public void addTask(short playerId, Task task) {
         Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {

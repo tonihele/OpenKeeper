@@ -39,12 +39,15 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -59,10 +62,11 @@ class ArmTrapTaskTest {
     private final EntityData entityData = new DefaultEntityData();
     private final List<EntityId> armed = new ArrayList<>();
     private final List<EntityId> takenFromStorage = new ArrayList<>();
-    private final List<TaskType> shownTasks = new ArrayList<>();
+    private final List<Task> queued = new ArrayList<>();
     private EntityId blueprint;
     private EntityId crate;
     private ICreatureController imp;
+    private Task assigned;
     private ArmTrapTask task;
 
     @BeforeEach
@@ -73,13 +77,13 @@ class ArmTrapTaskTest {
         entityData.setComponents(crate, new Crate(ResearchableType.TRAP, SENTRY), at(WORKSHOP_TILE),
                 new Stored(entityData.createEntity(), ObjectType.CRATE));
         imp = creature(entityData.createEntity());
-        task = new ArmTrapTask(null, mapController(), entityData, trapsController(), objectsController(), blueprint, BLUEPRINT_TILE,
-                crate, PLAYER);
-        task.assign(imp, false);
+        task = new ArmTrapTask(taskManager(), null, mapController(), entityData, trapsController(), objectsController(), blueprint,
+                BLUEPRINT_TILE, crate, PLAYER);
+        task.assign(imp, true);
     }
 
     @Test
-    void impFetchesTheCrateFromTheWorkshopAndDeliversIt() {
+    void impFetchesTheCrateFromTheWorkshopAndGetsTheDelivery() {
         assertEquals(WORKSHOP_TILE, task.getTaskLocation());
         assertEquals(TaskType.FETCH_TRAP_CRATE, task.getTaskType());
 
@@ -87,9 +91,16 @@ class ArmTrapTaskTest {
 
         assertEquals(List.of(crate), takenFromStorage);
         assertEquals(imp.getEntityId(), entityData.getComponent(crate, HauledBy.class).entityId);
-        assertEquals(BLUEPRINT_TILE, task.getTaskLocation());
-        assertEquals(List.of(TaskType.DELIVER_TRAP_CRATE), shownTasks);
-        assertTrue(task.isValid(imp));
+        assertEquals(List.of(assigned), queued);
+        assertInstanceOf(DeliverTrapCrateTask.class, assigned);
+        assertEquals(TaskType.DELIVER_TRAP_CRATE, assigned.getTaskType());
+        assertEquals(BLUEPRINT_TILE, assigned.getTaskLocation());
+        assertTrue(assigned.isValid(imp));
+
+        // Nobody else fetches the crate while it is carried, but the blueprint still waits for it
+        assertEquals(0, task.getAssigneeCount());
+        assertFalse(task.isValid(creature(entityData.createEntity())));
+        assertFalse(task.isRemovable());
     }
 
     @Test
@@ -97,25 +108,35 @@ class ArmTrapTaskTest {
         task.executeTask(imp, 0);
         assertTrue(armed.isEmpty());
 
-        task.executeTask(imp, 0);
+        assigned.executeTask(imp, 0);
 
         assertEquals(List.of(blueprint), armed);
         assertNull(entityData.getComponent(crate, Crate.class));
+        assertTrue(assigned.isRemovable());
         assertTrue(task.isRemovable());
     }
 
     @Test
     void droppedCrateWaitsToBeFetchedAgain() {
         task.executeTask(imp, 0);
+        Task delivery = assigned;
         entityData.setComponent(crate, at(new Point(9, 7)));
 
         // Picked up by the hand on the way
-        task.unassign(imp);
+        delivery.unassign(imp);
 
         assertNull(entityData.getComponent(crate, HauledBy.class));
-        assertEquals(TaskType.FETCH_TRAP_CRATE, task.getTaskType());
+        assertTrue(delivery.isRemovable());
         assertEquals(new Point(9, 7), task.getTaskLocation());
+        assertTrue(task.isValid(imp));
         assertFalse(task.isRemovable());
+
+        // The next worker gets a delivery of its own
+        task.executeTask(imp, 0);
+
+        assertEquals(2, queued.size());
+        assertTrue(assigned.isValid(imp));
+        assertFalse(delivery.isValid(imp));
     }
 
     @Test
@@ -139,8 +160,11 @@ class ArmTrapTaskTest {
 
     @Test
     void soldBlueprintEndsTheTask() {
+        task.executeTask(imp, 0);
+
         entityData.removeEntity(blueprint);
 
+        assertFalse(assigned.isValid(imp));
         assertTrue(task.isRemovable());
         assertFalse(task.isValid(imp));
     }
@@ -155,12 +179,28 @@ class ArmTrapTaskTest {
         return (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getEntityId" -> entityId;
-            case "updateAssignedTask" -> {
-                shownTasks.add(((ArmTrapTask) args[0]).getTaskType());
+            case "setAssignedTask" -> {
+
+                // As the creature does, the task it had lets go of it
+                if (assigned != null) {
+                    assigned.unassign((ICreatureController) proxy);
+                }
+                assigned = (Task) args[0];
                 yield null;
             }
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+    }
+
+    private ITaskManager taskManager() {
+        return (ITaskManager) Proxy.newProxyInstance(ITaskManager.class.getClassLoader(), new Class<?>[]{ITaskManager.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "addTask" -> {
+                queued.add((Task) args[1]);
+                yield null;
+            }
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }

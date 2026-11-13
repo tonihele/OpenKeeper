@@ -29,24 +29,23 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ITrapsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
-import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTask;
+import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * A worker fetches a trap crate, from the workshop or from the floor, and
- * carries it to its blueprint. As soon as it gets there, the trap is armed.
+ * A worker fetches a trap crate for a blueprint, from the workshop or from
+ * the floor. Once it has the crate, it gets a {@link DeliverTrapCrateTask} to
+ * carry it to the blueprint. This task stays until the trap is armed, so a
+ * crate dropped on the way is fetched again.
  */
 public final class ArmTrapTask extends AbstractTask {
 
-    private enum Step {
-        FETCH, DELIVER
-    }
-
+    private final ITaskManager taskManager;
     private final EntityData entityData;
     private final ITrapsController trapsController;
     private final IObjectsController objectsController;
@@ -54,14 +53,13 @@ public final class ArmTrapTask extends AbstractTask {
     private final EntityId crate;
     private final Point blueprintTile;
     private final short playerId;
-    private Step step = Step.FETCH;
-    private boolean installed = false;
 
-    public ArmTrapTask(final INavigationService navigationService, final IMapController mapController, EntityData entityData,
-            ITrapsController trapsController, IObjectsController objectsController, EntityId blueprint, Point blueprintTile, EntityId crate,
-            short playerId) {
+    public ArmTrapTask(final ITaskManager taskManager, final INavigationService navigationService, final IMapController mapController,
+            EntityData entityData, ITrapsController trapsController, IObjectsController objectsController, EntityId blueprint,
+            Point blueprintTile, EntityId crate, short playerId) {
         super(navigationService, mapController);
 
+        this.taskManager = taskManager;
         this.entityData = entityData;
         this.trapsController = trapsController;
         this.objectsController = objectsController;
@@ -81,11 +79,9 @@ public final class ArmTrapTask extends AbstractTask {
 
     @Override
     public Point getTaskLocation() {
-        if (step == Step.FETCH) {
-            Position position = entityData.getComponent(crate, Position.class);
-            if (position != null) {
-                return WorldUtils.vectorToPoint(position.position);
-            }
+        Position position = entityData.getComponent(crate, Position.class);
+        if (position != null) {
+            return WorldUtils.vectorToPoint(position.position);
         }
         return blueprintTile;
     }
@@ -97,17 +93,17 @@ public final class ArmTrapTask extends AbstractTask {
 
     @Override
     public EntityId getTaskTarget() {
-        return step == Step.FETCH ? crate : blueprint;
+        return crate;
     }
 
     /**
-     * Done, or it can't be done anymore: the trap is installed, the blueprint
-     * is sold or the crate is gone. Unlike {@link #isValid}, which also says
-     * no while somebody else carries the crate for a moment.
+     * Done, or it can't be done anymore: the trap is armed, the blueprint is
+     * sold or the crate is gone. Unlike {@link #isValid}, which also says no
+     * while somebody carries the crate.
      */
     @Override
     public boolean isRemovable() {
-        if (installed || entityData.getComponent(crate, Crate.class) == null) {
+        if (entityData.getComponent(crate, Crate.class) == null) {
             return true;
         }
         TrapViewState viewState = entityData.getComponent(blueprint, TrapViewState.class);
@@ -116,39 +112,11 @@ public final class ArmTrapTask extends AbstractTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        if (isRemovable()) {
-            return false;
-        }
-
-        // Somebody else may not carry our crate, and we must still carry it after picking it up
-        HauledBy hauledBy = entityData.getComponent(crate, HauledBy.class);
-        if (step == Step.FETCH) {
-            return hauledBy == null || (creature != null && hauledBy.entityId.equals(creature.getEntityId()));
-        }
-        return creature == null || (hauledBy != null && hauledBy.entityId.equals(creature.getEntityId()));
+        return !isRemovable() && entityData.getComponent(crate, HauledBy.class) == null;
     }
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        switch (step) {
-            case FETCH -> {
-                pickUpCrate(creature);
-                step = Step.DELIVER;
-                creature.updateAssignedTask(this);
-            }
-            case DELIVER -> {
-
-                // Let go of the crate first, so it isn't moved along anymore once it is gone
-                IObjectController crateController = objectsController.createController(crate);
-                crateController.setHaulable(null);
-                trapsController.armTrap(blueprint);
-                crateController.remove();
-                installed = true;
-            }
-        }
-    }
-
-    private void pickUpCrate(ICreatureController creature) {
 
         // Out of the workshop storage, the crates left in the stack settle
         Stored stored = entityData.getComponent(crate, Stored.class);
@@ -161,35 +129,22 @@ public final class ArmTrapTask extends AbstractTask {
             }
         }
         objectsController.createController(crate).setHaulable(creature);
-    }
 
-    @Override
-    public void unassign(ICreatureController creature) {
-        super.unassign(creature);
-
-        // The crate is dropped where the worker is, somebody can fetch it from there
-        if (step != Step.FETCH && !installed) {
-            HauledBy hauledBy = entityData.getComponent(crate, HauledBy.class);
-            if (hauledBy != null && hauledBy.entityId.equals(creature.getEntityId())) {
-                objectsController.createController(crate).setHaulable(null);
-            }
-            step = Step.FETCH;
-        }
+        // Assign carry to blueprint
+        DeliverTrapCrateTask task = new DeliverTrapCrateTask(navigationService, mapController, entityData, trapsController,
+                objectsController, blueprint, blueprintTile, crate);
+        taskManager.addTask(playerId, task);
+        task.assign(creature, true);
     }
 
     @Override
     public TaskType getTaskType() {
-        return switch (step) {
-            case FETCH ->
-                TaskType.FETCH_TRAP_CRATE;
-            case DELIVER ->
-                TaskType.DELIVER_TRAP_CRATE;
-        };
+        return TaskType.FETCH_TRAP_CRATE;
     }
 
     @Override
     public String toString() {
-        return "Arming trap at " + blueprintTile + " with crate " + crate + " (" + step + ")";
+        return "Fetching crate " + crate + " for the trap at " + blueprintTile;
     }
 
     @Override
