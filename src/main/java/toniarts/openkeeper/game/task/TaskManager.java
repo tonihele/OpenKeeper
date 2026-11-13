@@ -721,7 +721,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!room.getObjectControl(objectType).isFullCapacity()) {
+
+            // A destroyed room serves nobody, like a claimed ruined Dungeon Heart that no longer stores gold
+            if (!room.isDestroyed() && !room.getObjectControl(objectType).isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
