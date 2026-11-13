@@ -82,7 +82,7 @@ public final class ClearanceField {
     public float clearanceAt(float worldX, float worldY) {
         int baseX = Math.round(worldX);
         int baseY = Math.round(worldY);
-        float bestDistance = SEARCH_LIMIT;
+        float bestDistanceSquared = SEARCH_LIMIT * SEARCH_LIMIT;
 
         for (int oy = -SEARCH_RADIUS; oy <= SEARCH_RADIUS; oy++) {
             int ty = baseY + oy;
@@ -100,13 +100,13 @@ public final class ClearanceField {
                 // nearest face
                 float dx = Math.max(0f, Math.abs(worldX - tx) - 0.5f);
                 float dy = Math.max(0f, Math.abs(worldY - ty) - 0.5f);
-                float distance = FastMath.sqrt(dx * dx + dy * dy);
-                if (distance < bestDistance) {
-                    bestDistance = distance;
+                float distanceSquared = dx * dx + dy * dy;
+                if (distanceSquared < bestDistanceSquared) {
+                    bestDistanceSquared = distanceSquared;
                 }
             }
         }
 
-        return Math.min(MAX_CLEARANCE, 4f * bestDistance);
+        return Math.min(MAX_CLEARANCE, 4f * FastMath.sqrt(bestDistanceSquared));
     }
 }
