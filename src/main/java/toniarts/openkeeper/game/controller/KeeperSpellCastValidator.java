@@ -18,8 +18,10 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -86,7 +88,8 @@ public final class KeeperSpellCastValidator {
             }
         }
 
-        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost);
+        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost)
+                && checkChickenRule(target, entityData, keeperSpell);
     }
 
     /**
@@ -159,6 +162,33 @@ public final class KeeperSpellCastValidator {
         }
 
         return true;
+    }
+
+    /**
+     * Spells for all creatures, such as Chicken, can't be cast on neutral
+     * creatures. And a creature that is a chicken can't be possessed
+     *
+     * @param target the spell target, can be null
+     * @param entityData the entities
+     * @param keeperSpell the spell
+     * @return true if the target is fine for the spell
+     */
+    static boolean checkChickenRule(EntityId target, EntityData entityData, KeeperSpell keeperSpell) {
+        if (target == null) {
+            return true;
+        }
+
+        Owner owner = entityData.getComponent(target, Owner.class);
+        return switch (keeperSpell.getTargetRule()) {
+            case ALL_CREATURES ->
+                owner != null && owner.ownerId != Player.NEUTRAL_PLAYER_ID;
+            case POSESSION -> {
+                CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
+                yield creatureAi == null || creatureAi.getCreatureState() != CreatureState.CHICKEN;
+            }
+            default ->
+                true;
+        };
     }
 
     private static boolean checkCastRule(IMapInformation mapInformation, IMapTileInformation mapTile, KeeperSpell keeperSpell, Keeper player) {

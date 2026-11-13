@@ -321,6 +321,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isRecuperating();
 
     /**
+     * Turns the creature into a chicken for a while, as by the Chicken spell.
+     * Creatures immune to the spell stay as they are
+     *
+     * @param duration how long, in seconds
+     */
+    public void turnIntoChicken(double duration);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven

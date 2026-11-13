@@ -102,6 +102,7 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -135,6 +136,14 @@ public final class CreatureController extends EntityController implements ICreat
      * that angle
      */
     private static final float POSSESSED_ATTACK_MIN_FACING = FastMath.cos(341 / 2048f * FastMath.TWO_PI);
+
+    /**
+     * The states the Chicken spell interrupts, the creature is going about its own business in these
+     */
+    private static final Set<CreatureState> CHICKEN_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
+            CreatureState.WANDER, CreatureState.WORK, CreatureState.FIGHT, CreatureState.FOLLOW, CreatureState.FLEE,
+            CreatureState.SLEEPING, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.EATING,
+            CreatureState.CHICKEN);
 
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
@@ -286,7 +295,7 @@ public final class CreatureController extends EntityController implements ICreat
      * @return is the entity a threat to anyone
      */
     private boolean isThreat(EntityId entity) {
-        return !isIncapacitated(entity) && !isCaptive(entity);
+        return !isIncapacitated(entity) && !isCaptive(entity) && !isChicken(entity);
     }
 
     /**
@@ -1604,6 +1613,9 @@ public final class CreatureController extends EntityController implements ICreat
             case EATING -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.EATING);
             }
+            case CHICKEN -> {
+                stateTargetTime = entityData.getComponent(entityId, CreatureAi.class).stateDuration;
+            }
             case FLEE -> {
                 // I couldn't find a variable for this, so lets use this for now
                 stateTargetTime = gameSettings.get(Variable.MiscVariable.MiscType.IMP_IDLE_DELAY_BEFORE_REEVALUATION_SECONDS).getValue();
@@ -1753,6 +1765,26 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isRecuperating() {
         return entityData.getComponent(entityId, CreatureRecuperating.class) != null;
+    }
+
+    @Override
+    public void turnIntoChicken(double duration) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_IMMUNE_TO_CHICKEN)) {
+            return;
+        }
+
+        // Drop whatever we were doing, unless we are not in control of ourselves
+        if (entityData.getComponent(entityId, Possessed.class) == null
+                && CHICKEN_INTERRUPTIBLE_STATES.contains(stateMachine.getCurrentState())) {
+            stateMachine.changeState(CreatureState.CHICKEN);
+            entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), CreatureState.CHICKEN,
+                    creature.getId(), null, duration));
+        }
+    }
+
+    private boolean isChicken(EntityId entity) {
+        CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
     }
 
     @Override
