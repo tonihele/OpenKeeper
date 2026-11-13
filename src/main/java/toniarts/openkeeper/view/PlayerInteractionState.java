@@ -113,6 +113,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final EntitySet constructionBlockingObjects;
     private final EntitySet constructionBlockingDoors;
     private final EntitySet constructionBlockingTraps;
+    private final ConstructionBlockingTiles constructionBlockingTiles = new ConstructionBlockingTiles();
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
@@ -151,6 +152,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
         constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class, Owner.class);
         constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class, Owner.class);
+        constructionBlockingTiles.addAll(constructionBlockingObjects, this::isConstructionBlockingObject);
+        constructionBlockingTiles.addAll(constructionBlockingDoors, entity -> true);
+        constructionBlockingTiles.addAll(constructionBlockingTraps, entity -> true);
         this.mapInformation = mapInformation;
         this.textParser = textParser;
 
@@ -238,9 +242,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return;
         }
 
-        constructionBlockingObjects.applyChanges();
-        constructionBlockingDoors.applyChanges();
-        constructionBlockingTraps.applyChanges();
+        if (constructionBlockingObjects.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingObjects, this::isConstructionBlockingObject);
+        }
+        if (constructionBlockingDoors.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingDoors, entity -> true);
+        }
+        if (constructionBlockingTraps.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingTraps, entity -> true);
+        }
 
         selectionHandler.update(mousePosition);
         cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
@@ -747,7 +757,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // until exploration reveals whether that's really true.
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
             } else if (interactionState.getType() == Type.ROOM
-                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    && RoomPlacementValidator.validate(kwdFile, mapInformation, constructionBlockingTiles,
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
                             gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
@@ -916,14 +926,6 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
         return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
-    }
-
-    private Set<Point> getConstructionBlockingTiles() {
-        Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects, this::isConstructionBlockingObject);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors, entity -> true);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps, entity -> true);
-        return blockedTiles;
     }
 
     private boolean isTrapPlacementValid(Point tile) {
@@ -1139,7 +1141,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         private long getRoomCost() {
             SelectionArea area = getSelectionArea();
             RoomPlacementValidator.Result result = RoomPlacementValidator.validate(kwdFile, mapInformation,
-                    getConstructionBlockingTiles(), area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
+                    constructionBlockingTiles, area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
                     (short) interactionState.getItemId(), Integer.MAX_VALUE);
             if (!result.isValid()) {
                 return 0;
