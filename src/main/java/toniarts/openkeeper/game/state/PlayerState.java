@@ -54,6 +54,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.WorkshopCameraCycler;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -91,6 +92,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final CampaignLevel campaignLevel;
 
     private EntitySet heartEntities;
+    private WorkshopCameraCycler workshopCameraCycler;
     private boolean paused = false;
     private boolean levelWon = false;
 
@@ -125,6 +127,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
 
+        workshopCameraCycler = new WorkshopCameraCycler(entityData, playerId);
         assetManager = this.app.getAssetManager();
         this.stateManager = stateManager;
         heartEntities = entityData.getEntities(new AndFilter(ObjectComponent.class,
@@ -136,6 +139,8 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void cleanup() {
         unregisterPauseKey();
+        workshopCameraCycler.close();
+        workshopCameraCycler = null;
         heartEntities.release();
         heartEntities = null;
 
@@ -475,6 +480,24 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
 
     public void quitToOS() {
         app.stop();
+    }
+
+    public void cycleDoor(short doorId) {
+        if (workshopCameraCycler != null && cameraState != null) {
+            Vector3f position = workshopCameraCycler.nextDoor(doorId);
+            if (position != null) {
+                zoomToPosition(position, true);
+            }
+        }
+    }
+
+    public void cycleTrap(short trapId) {
+        if (workshopCameraCycler != null && cameraState != null) {
+            Vector3f position = workshopCameraCycler.nextTrap(trapId);
+            if (position != null) {
+                zoomToPosition(position, true);
+            }
+        }
     }
 
     public void zoomToDungeon() {
