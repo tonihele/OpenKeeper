@@ -1736,7 +1736,16 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public int getResearchPerTick() {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        return creatureComponent.researchPerTick;
+        int pointsPerTick = creatureComponent.researchPerTick;
+
+        // A slapped creature researches faster, DK II adds the bonus on the
+        // first tick of every second (DKII.EXE 0x4C2DC0)
+        int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        if (isSlapped() && Math.round(gameTimer.getGameTime() * ticksPerSecond) % ticksPerSecond == 0) {
+            int bonusPercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_PECENTAGE_FROM_SLAPPING).getValue();
+            pointsPerTick += ticksPerSecond * ticksPerSecond * bonusPercentage * pointsPerTick / 100;
+        }
+        return pointsPerTick;
     }
 
     @Override
