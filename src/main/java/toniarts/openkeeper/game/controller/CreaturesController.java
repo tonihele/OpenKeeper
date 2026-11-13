@@ -112,8 +112,10 @@ public final class CreaturesController implements ICreaturesController {
      * an CreatureController. That is probably wrong (should be inside a system instead). But while it is in
      * there, we should share the instances for it to function properly.<br>
      * The value needs to be weak reference also since it references the key
+     * The map is synchronized: the logic loop, the steering loop (possessed
+     * movement) and the render thread (possession input) all come here
      */
-    private final Map<EntityId, WeakReference<ICreatureController>> creatureControllersByEntityId = new WeakHashMap<>();
+    private final Map<EntityId, WeakReference<ICreatureController>> creatureControllersByEntityId = Collections.synchronizedMap(new WeakHashMap<>());
     private final IGameTimer gameTimer;
     private final IGameController gameController;
     private final IMapController mapController;
