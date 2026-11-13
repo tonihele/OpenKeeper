@@ -54,7 +54,21 @@ class WorkerTaskOrderTest {
         TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 2, 400);
         TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 1, 300);
 
-        assertEquals(wall, sorted(wall, repair, dig, gold).getLast());
+        assertEquals(List.of(gold, dig, wall, repair), sorted(wall, repair, dig, gold));
+    }
+
+    @Test
+    void damagedWallsAreRepairedWithTheOtherWallWork() {
+
+        // As in the original, repairing is not done first: it comes after the usual work, together with
+        // reinforcing, the free and closest first
+        TaskManager.TaskWorkerPriority repair = pair(TaskType.REPAIR_WALL, 0, 140);
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 12);
+        TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 0, 105);
+        TaskManager.TaskWorkerPriority wall = pair(TaskType.CLAIM_WALL, 0, 177);
+
+        assertEquals(List.of(dig, claim, gold, repair, wall), sorted(wall, gold, claim, dig, repair));
     }
 
     @Test

@@ -51,8 +51,9 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             }
         }
 
-        // Walls are only reinforced once there is nothing else to do, the floor is claimed first
-        result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
+        // Walls are only worked on once there is nothing else to do, the floor is claimed first. Repairing goes with
+        // reinforcing, in the original (DKII.EXE 0x46AEA0) both are one job that only comes after the usual work
+        result = Boolean.compare(isWallWork(o1.task()), isWallWork(o2.task()));
         if (result != 0) {
             return result;
         }
@@ -73,8 +74,8 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
         return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
     }
 
-    private static boolean isClaimWall(Task task) {
-        return task.getTaskType() == TaskType.CLAIM_WALL;
+    private static boolean isWallWork(Task task) {
+        return task.getTaskType() == TaskType.CLAIM_WALL || task.getTaskType() == TaskType.REPAIR_WALL;
     }
 
 }
