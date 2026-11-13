@@ -47,4 +47,27 @@ public final class CreatureSleepFixtures {
         variable.setValue(value);
         return variable;
     }
+
+    /**
+     * A creature whose melee animation, the one DK II's dig swing plays, has
+     * the given frames
+     */
+    public static Creature digger(String name, int frames, int fps, int startFrames, int endFrames) {
+        ArtResource melee = new ArtResource();
+        melee.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
+        melee.setData(ArtResource.KEY_FRAMES, frames);
+        melee.setData(ArtResource.KEY_FPS, fps);
+        if (startFrames > 0) {
+            melee.getFlags().add(ArtResource.ArtResourceFlag.HAS_START_ANIMATION);
+            melee.setData(ArtResource.KEY_START_AF, startFrames);
+        }
+        if (endFrames > 0) {
+            melee.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+            melee.setData(ArtResource.KEY_END_AF, endFrames);
+        }
+        Creature creature = new Creature();
+        creature.setName(name);
+        creature.setAnimation(Creature.AnimationType.MELEE_ATTACK, melee);
+        return creature;
+    }
 }
