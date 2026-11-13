@@ -444,6 +444,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     public void captured(short playerId) {
 
         // Nothing, hmm, should we move some logic here from the MapController
+        roomInstance.setOwnerId(playerId);
         entityData.setComponent(entityId, new Owner(playerId, playerId));
 
         // Notify the controls
