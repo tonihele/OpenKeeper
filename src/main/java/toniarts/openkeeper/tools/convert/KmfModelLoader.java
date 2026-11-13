@@ -60,6 +60,7 @@ import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
+import toniarts.openkeeper.tools.convert.kmf.AnimControl;
 import toniarts.openkeeper.tools.convert.kmf.Grop;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
@@ -105,6 +106,20 @@ public final class KmfModelLoader implements AssetLoader {
      * is the resolved ".j3o" asset path, not the original name)
      */
     public static final String GROUP_PART_NAME = "GroupPartName";
+    /**
+     * User data key prefix on an animation node, followed by the id of one of
+     * the animation's control points (e.g. 5000, over the creature's head).
+     * The value is "geometry index, vertex index" of the vertex the point
+     * follows.
+     */
+    public static final String ANIM_CONTROL_POINT = "AnimControlPoint";
+    /**
+     * User data key on an animation node, "geometry index, vertex index" of
+     * the vertex furthest to the front in the animation's last frame. After a
+     * fall that is where the head lies, also for creatures without a head
+     * control point.
+     */
+    public static final String ANIM_FRONT_POINT = "AnimFrontPoint";
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
@@ -264,10 +279,16 @@ public final class KmfModelLoader implements AssetLoader {
         }
 
         int subMeshIndex = 0;
+        List<Integer> geometryIndices = new ArrayList<>(anim.getSprites().size());
+        float frontY = Float.MAX_VALUE;
+        String frontPoint = null;
         for (var subMesh : anim.getSprites()) {
 
-            if (subMesh.getTriangles().get(0).isEmpty())
+            if (subMesh.getTriangles().get(0).isEmpty()) {
+                geometryIndices.add(-1);
                 continue; // FIXME: LODs are broken so we only take L0
+            }
+            geometryIndices.add(subMeshIndex);
 
             // Animation
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
@@ -317,6 +338,10 @@ public final class KmfModelLoader implements AssetLoader {
                     // Store the frame zero coord
                     if (frame == 0) {
                         baseCoord = coord;
+                    }
+                    if (frame == anim.getFrames() - 1 && coord.y < frontY) {
+                        frontY = coord.y;
+                        frontPoint = subMeshIndex + " " + i;
                     }
 
                     // Create frame info
@@ -459,6 +484,18 @@ public final class KmfModelLoader implements AssetLoader {
             //Attach the geometry to the node
             node.attachChild(geom);
             ++subMeshIndex;
+        }
+
+        // The control points follow a vertex of a sprite, an id may be listed more than once, the first one counts
+        for (AnimControl control : anim.getControls()) {
+            String key = ANIM_CONTROL_POINT + control.getUnknown3();
+            int sprite = control.getUnknown1();
+            if (sprite < geometryIndices.size() && geometryIndices.get(sprite) >= 0 && node.getUserData(key) == null) {
+                node.setUserData(key, geometryIndices.get(sprite) + " " + control.getUnknown2());
+            }
+        }
+        if (frontPoint != null) {
+            node.setUserData(ANIM_FRONT_POINT, frontPoint);
         }
 
         // Create the animation itself and attach the animation
