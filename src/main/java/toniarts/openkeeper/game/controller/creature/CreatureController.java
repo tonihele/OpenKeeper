@@ -578,10 +578,13 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isAtAssignedTaskTarget() {
         Task assignedTask = getAssignedTask();
-        return (assignedTask != null && assignedTask.getTarget(this) != null
-                //&& !workNavigationRequired
-                && isStopped()
-                && isNear(assignedTask.getTarget(this)));
+
+        // Stopped comes first and the target is asked once, a task may search a path for its target
+        if (assignedTask == null || !isStopped()) {
+            return false;
+        }
+        Vector2f target = assignedTask.getTarget(this);
+        return target != null && isNear(target);
     }
 
     private boolean isNear(Vector2f target) {
