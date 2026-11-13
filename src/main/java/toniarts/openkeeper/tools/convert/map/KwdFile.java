@@ -2405,7 +2405,7 @@ public final class KwdFile implements IKwdFile, IKwdMap {
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
                             trigger.setUserData("playerId", reader.readUnsignedByte());
                             trigger.setUserData("targetId", reader.readUnsignedByte()); // creatureId, objectId
-                            trigger.setUserData("targetType", reader.readUnsignedByte()); // 3 = Creature, 6 = Object
+                            trigger.setUserData("targetType", reader.readUnsignedByte()); // Type 70: 6 = Object; otherwise Creature.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 

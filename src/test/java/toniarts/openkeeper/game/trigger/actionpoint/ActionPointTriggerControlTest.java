@@ -24,8 +24,10 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -40,12 +42,14 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.data.ActionPoint;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.game.trigger.TriggerLoader;
+import toniarts.openkeeper.tools.convert.map.APPossessedCreatureEntersTriggerFixtures;
 import toniarts.openkeeper.tools.convert.map.APCongregateInTriggerFixtures;
 import toniarts.openkeeper.tools.convert.map.ActionPointFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -111,6 +115,248 @@ class ActionPointTriggerControlTest {
         fixture.addCreature((short) 2, (short) 8, 2, 2);
 
         assertTrue(fixture.isActive());
+    }
+
+    @Test
+    void possessedCreatureConditionTracksCurrentPresenceInInclusiveRectangle() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 3, 0, false);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        TriggerGenericData condition = fixture.condition();
+        Occupant creature = fixture.addCreature((short) 1, (short) 7, 0, 1);
+
+        assertFalse(control.isActive(condition)); // not possessed
+        creature.moveTo(1, 1);
+        assertFalse(control.isActive(condition)); // inside, but not possessed
+        fixture.possess(creature);
+        assertTrue(control.isActive(condition));
+        assertTrue(control.isActive(condition)); // this is an existence predicate, not an edge counter
+
+        creature.moveTo(3, 1);
+        assertFalse(control.isActive(condition));
+        creature.moveTo(2, 2); // inclusive bottom-right edge
+        assertTrue(control.isActive(condition));
+    }
+
+    @Test
+    void possessionAndOwnershipTransitionsInsideUpdateTheCondition() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 0, 0, false);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        TriggerGenericData condition = fixture.condition();
+        Occupant creature = fixture.addCreature((short) 2, (short) 7, 1, 1);
+
+        assertFalse(control.isActive(condition)); // wrong owner
+        fixture.possess(creature);
+        assertFalse(control.isActive(condition)); // still wrong owner
+
+        fixture.changeOwner(creature, (short) 1);
+        assertTrue(control.isActive(condition)); // owner changes while possession is active
+        assertTrue(control.isActive(condition));
+
+        fixture.endPossession(creature);
+        assertFalse(control.isActive(condition));
+        fixture.possess(creature);
+        assertTrue(control.isActive(condition));
+    }
+
+    @Test
+    void conditionRequiresPossessionAndMatchingCreatureAndPlayerFilters() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 3, 0, false);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        TriggerGenericData condition = fixture.condition();
+        Occupant wrongType = fixture.addCreature((short) 1, (short) 8, 0, 1);
+        fixture.possess(wrongType);
+        assertFalse(control.isActive(condition));
+
+        wrongType.moveTo(1, 1);
+        assertFalse(control.isActive(condition));
+        fixture.remove(wrongType);
+
+        Occupant wrongOwner = fixture.addCreature((short) 2, (short) 7, 0, 1);
+        fixture.possess(wrongOwner);
+        assertFalse(control.isActive(condition));
+        wrongOwner.moveTo(1, 1);
+        assertFalse(control.isActive(condition));
+
+        Occupant unpossessed = fixture.addCreature((short) 1, (short) 7, 0, 2);
+        assertFalse(control.isActive(condition));
+        unpossessed.moveTo(1, 2);
+        assertFalse(control.isActive(condition));
+        fixture.possess(unpossessed);
+        assertTrue(control.isActive(condition)); // possession starts while already inside
+        fixture.endPossession(unpossessed);
+        assertFalse(control.isActive(condition));
+    }
+
+    @Test
+    void zeroPlayerAndCreatureSelectorsMatchAnEligiblePossessedCreature() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 0, (short) 23, (short) 0, 0, false);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        TriggerGenericData condition = fixture.condition();
+        Occupant creature = fixture.addCreature((short) 2, (short) 23, 0, 1);
+        fixture.possess(creature);
+
+        creature.moveTo(1, 1);
+        assertTrue(control.isActive(condition));
+    }
+
+    @Test
+    void possessionRemovalAndReplacementUpdateCurrentPresence() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 0, (short) 3, 0, false);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        TriggerGenericData condition = fixture.condition();
+        Occupant creature = fixture.addCreature((short) 1, (short) 7, 0, 1);
+        fixture.possess(creature);
+
+        creature.moveTo(1, 1);
+        assertTrue(control.isActive(condition));
+
+        fixture.remove(creature);
+        assertFalse(control.isActive(condition));
+        Occupant replacement = fixture.addCreature((short) 1, (short) 8, 1, 1);
+        fixture.possess(replacement);
+        assertTrue(control.isActive(condition));
+
+        replacement.moveTo(3, 1);
+        assertFalse(control.isActive(condition));
+        replacement.moveTo(2, 1);
+        assertTrue(control.isActive(condition));
+    }
+
+    @Test
+    void objectSelectorIsUnsupportedAndComparisonAndValueAreUnusedForType70() {
+        IKwdFile unsupportedSelector = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 0, (short) 0, (short) 6, 0, false);
+        Fixture selectorFixture = new Fixture(unsupportedSelector, ACTION_POINT, 4, 4);
+        Occupant creature = selectorFixture.addCreature((short) 1, (short) 7, 0, 1);
+        selectorFixture.possess(creature);
+        ActionPointTriggerControl selectorControl = selectorFixture.control();
+        TriggerGenericData selectorCondition = selectorFixture.condition();
+        assertFalse(selectorControl.isActive(selectorCondition));
+        creature.moveTo(1, 1);
+        assertFalse(selectorControl.isActive(selectorCondition));
+
+        IKwdFile unsupportedComparison = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(
+                TriggerGeneric.ComparisonType.EQUAL_TO, (short) 0, (short) 0, (short) 3, 1, false);
+        Fixture comparisonFixture = new Fixture(unsupportedComparison, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl comparisonControl = comparisonFixture.control();
+        TriggerGenericData comparisonCondition = comparisonFixture.condition();
+        Occupant comparisonCreature = comparisonFixture.addCreature((short) 1, (short) 7, 0, 1);
+        comparisonFixture.possess(comparisonCreature);
+        comparisonCreature.moveTo(1, 1);
+        assertTrue(comparisonControl.isActive(comparisonCondition));
+
+        IKwdFile otherCreatureSelector = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 9, 0, false);
+        Fixture otherSelectorFixture = new Fixture(otherCreatureSelector, ACTION_POINT, 4, 4);
+        Occupant selectedCreature = otherSelectorFixture.addCreature((short) 1, (short) 7, 1, 1);
+        otherSelectorFixture.possess(selectedCreature);
+        assertTrue(otherSelectorFixture.isActive()); // executable treats every selector except 6 as a creature
+
+        IKwdFile missingValue = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 0, (short) 3, null, false);
+        Fixture missingValueFixture = new Fixture(missingValue, ACTION_POINT, 4, 4);
+        Occupant anyCreature = missingValueFixture.addCreature((short) 1, (short) 9, 1, 1);
+        missingValueFixture.possess(anyCreature);
+        assertTrue(missingValueFixture.control().isActive(missingValueFixture.condition()));
+
+        IKwdFile valid = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 0, (short) 3, 0, false);
+        Fixture outOfMapFixture = new Fixture(valid, actionPoint(4, 4, 4, 4), 4, 4);
+        ActionPointTriggerControl outOfMapControl = outOfMapFixture.control();
+        assertFalse(outOfMapControl.isActive(outOfMapFixture.condition()));
+    }
+
+    @Test
+    void missingType70ParametersAndRuntimeServicesFailClosed() {
+        for (int missingField = 0; missingField < 3; missingField++) {
+            Short playerId = missingField == 0 ? null : (short) 1;
+            Short targetId = missingField == 1 ? null : (short) 7;
+            Short targetType = missingField == 2 ? null : (short) 3;
+            IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                    playerId, targetId, targetType, 0, false);
+            Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+            assertFalse(fixture.control().isActive(fixture.condition()), "missing field " + missingField);
+        }
+
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 3, 0, false);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        Occupant creature = fixture.addCreature((short) 1, (short) 7, 1, 1);
+        fixture.possess(creature);
+        TriggerGenericData condition = fixture.condition();
+
+        ActionPointTriggerControl missingCreaturesController = new ActionPointTriggerControl(null, fixture.levelInfo,
+                null, fixture.mapController, null, 1, fixture.ap, fixture.spatialLookup.lookup);
+        assertFalse(missingCreaturesController.isActive(condition));
+
+        ActionPointTriggerControl withoutPositionLookup = new ActionPointTriggerControl(null, fixture.levelInfo,
+                null, fixture.mapController, fixture.creaturesController, 1, fixture.ap, null);
+        assertTrue(withoutPositionLookup.isActive(condition)); // the current creature tile is read directly
+    }
+
+    @Test
+    void repeatedConditionRunsItsChildWhileThePossessedCreatureRemainsInside() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 3, 0, true);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        Occupant creature = fixture.addCreature((short) 1, (short) 7, 1, 1);
+
+        control.update(0.25f); // inside, but not possessed
+        assertFalse(control.isActive(fixture.condition()));
+
+        fixture.possess(creature); // possession begins while inside the AP
+        control.update(0.25f); // the current-presence predicate becomes true
+        control.update(0.25f); // downstream action runs
+        assertEquals(1, fixture.flags.get((short) 2));
+
+        control.update(0.25f);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertEquals(2, fixture.flags.get((short) 2)); // repeat=255 keeps evaluating while true
+
+        creature.moveTo(3, 1);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertEquals(2, fixture.flags.get((short) 2)); // outside the AP: condition is false
+
+        creature.moveTo(1, 1);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertEquals(3, fixture.flags.get((short) 2));
+    }
+
+    @Test
+    void oneShotPossessedCreatureConditionRunsItsChildOnlyOnce() {
+        IKwdFile kwd = APPossessedCreatureEntersTriggerFixtures.possessedCreatureEnters(null,
+                (short) 1, (short) 7, (short) 3, 0, (short) 1, true);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        ActionPointTriggerControl control = fixture.control();
+        Occupant creature = fixture.addCreature((short) 1, (short) 7, 1, 1);
+
+        control.update(0.25f); // inside, but not possessed
+        fixture.possess(creature);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertEquals(1, fixture.flags.get((short) 2));
+
+        fixture.endPossession(creature);
+        control.update(0.25f);
+        control.update(0.25f);
+        fixture.possess(creature);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertEquals(1, fixture.flags.get((short) 2));
     }
 
     @Test
@@ -287,6 +533,92 @@ class ActionPointTriggerControlTest {
         }
     }
 
+    @Test
+    void evaluatesEveryPossessedCreatureRecordFromRetailCampaignMapsWhenAvailable() throws IOException {
+        String gameDirectory = System.getProperty("openkeeper.dk2.game", System.getenv("OPENKEEPER_DK2_GAME"));
+        Assumptions.assumeTrue(gameDirectory != null && !gameDirectory.isBlank(),
+                "Set OPENKEEPER_DK2_GAME to the retail DK2 install directory to run this integration test");
+
+        Map<String, Map<Integer, Integer>> expectedRecords = Map.of(
+                "Level15a", Map.of(74, 51),
+                "level15b", Map.of(7, 11),
+                "level4", Map.of(79, 24),
+                "Secret3", Map.of(13, 12, 14, 14, 17, 15));
+        int totalRecords = 0;
+        for (Map.Entry<String, Map<Integer, Integer>> mapEntry : expectedRecords.entrySet()) {
+            Path mapFile = Path.of(gameDirectory, "Data", "Editor", "Maps", mapEntry.getKey() + ".kwd");
+            Assumptions.assumeTrue(Files.isRegularFile(mapFile), "Missing stock map " + mapFile);
+            IKwdFile kwd = KwdFile.load(gameDirectory, mapFile);
+            int width = kwd.getMap().getWidth();
+            int height = kwd.getMap().getHeight();
+            Set<String> foundRecords = new HashSet<>();
+
+            for (Thing.ActionPoint thing : kwd.getThings(Thing.ActionPoint.class)) {
+                if (thing.getTriggerId() == 0) {
+                    continue;
+                }
+                ActionPoint ap = new ActionPoint(thing);
+                TriggerGenericData tree = new TriggerLoader(kwd).load(thing.getTriggerId());
+                List<TriggerGenericData> possessedCreatureTriggers = new ArrayList<>();
+                collectPossessedCreatureTriggers(tree, possessedCreatureTriggers);
+
+                for (TriggerGenericData trigger : possessedCreatureTriggers) {
+                    totalRecords++;
+                    foundRecords.add(trigger.getId() + ":" + thing.getId());
+                    short playerId = trigger.getUserData("playerId", short.class);
+                    short targetId = trigger.getUserData("targetId", short.class);
+                    short targetType = trigger.getUserData("targetType", short.class);
+                    assertTrue(targetType == 0 || targetType == 3,
+                            mapEntry.getKey() + " trigger " + trigger.getId() + " targetType " + targetType);
+                    assertEquals(3, playerId, mapEntry.getKey() + " trigger " + trigger.getId() + " player");
+                    assertTrue(trigger.getComparison() == null || trigger.getComparison() == TriggerGeneric.ComparisonType.NONE,
+                            mapEntry.getKey() + " trigger " + trigger.getId() + " comparison " + trigger.getComparison());
+                    assertEquals(0, trigger.getUserData("value", int.class),
+                            mapEntry.getKey() + " trigger " + trigger.getId() + " event value");
+
+                    Fixture fixture = new Fixture(kwd, ap, width, height);
+                    ActionPointTriggerControl control = fixture.control(thing.getTriggerId());
+                    Occupant creature = fixture.addCreature(playerId, targetId == 0 ? (short) 7 : targetId,
+                            ap.getStart().x, ap.getStart().y);
+                    assertFalse(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId() + " unpossessed");
+
+                    fixture.possess(creature);
+                    assertTrue(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId() + " possession while inside");
+                    assertTrue(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId() + " continuous presence");
+
+                    int outsideX = ap.getEnd().x + 1 < width ? ap.getEnd().x + 1 : ap.getStart().x - 1;
+                    assertTrue(outsideX >= 0 && outsideX < width, "No outside test tile for " + mapEntry.getKey());
+                    creature.moveTo(outsideX, ap.getStart().y);
+                    assertFalse(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId() + " outside");
+
+                    creature.moveTo(ap.getStart().x, ap.getStart().y);
+                    assertTrue(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId() + " returned inside");
+                    fixture.endPossession(creature);
+                    assertFalse(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId() + " possession ended");
+                }
+            }
+
+            assertEquals(mapEntry.getValue().size(), foundRecords.size(),
+                    "AP_POSESSED_CREATURE_ENTERS records in " + mapEntry.getKey());
+            Set<String> expectedKeys = new HashSet<>();
+            mapEntry.getValue().forEach((triggerId, actionPointId) -> expectedKeys.add(triggerId + ":" + actionPointId));
+            assertEquals(expectedKeys, foundRecords, "Stock trigger/action-point references in " + mapEntry.getKey());
+        }
+
+        assertEquals(6, totalRecords, "Total retail AP_POSESSED_CREATURE_ENTERS records");
+    }
+
+    private static void collectPossessedCreatureTriggers(TriggerGenericData trigger, List<TriggerGenericData> result) {
+        if (trigger.getType() == TriggerGeneric.TargetType.AP_POSESSED_CREATURE_ENTERS) {
+            result.add(trigger);
+        }
+        for (var child : trigger.getChildren()) {
+            if (child instanceof TriggerGenericData generic) {
+                collectPossessedCreatureTriggers(generic, result);
+            }
+        }
+    }
+
     private static void collectCongregateTriggers(TriggerGenericData trigger, List<TriggerGenericData> result) {
         if (trigger.getType() == TriggerGeneric.TargetType.AP_CONGREGATE_IN) {
             result.add(trigger);
@@ -319,8 +651,23 @@ class ActionPointTriggerControlTest {
         private final ActionPoint ap;
         private final SpatialLookup spatialLookup = new SpatialLookup();
         private final Map<Short, Integer> flags = new HashMap<>();
+        private final Map<Short, EntityId> possessedCreatures = new HashMap<>();
+        private final Map<EntityId, ICreatureController> creatureControllers = new HashMap<>();
         private final IMapController mapController;
         private final ILevelInfo levelInfo;
+        private long nextEntityId = 1;
+        private final ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(
+                ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getPossessedCreature" -> possessedCreatures.get(((Number) args[0]).shortValue());
+                    case "createController" -> creatureControllers.get(args[0]);
+                    case "isValidEntity" -> creatureControllers.containsKey(args[0]);
+                    default -> defaultValue(method.getReturnType());
+                });
+        private final Map<Short, Keeper> players = Map.of(
+                (short) 1, new Keeper(false, (short) 1),
+                (short) 2, new Keeper(false, (short) 2),
+                (short) 3, new Keeper(false, (short) 3));
 
         private Fixture(IKwdFile kwd, ActionPoint ap, int width, int height) {
             this.kwd = kwd;
@@ -343,6 +690,7 @@ class ActionPointTriggerControlTest {
             levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                     new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> switch (method.getName()) {
                         case "getLevelData" -> kwd;
+                        case "getPlayers" -> players;
                         case "getFlag" -> flags.getOrDefault(((Number) args[0]).shortValue(), 0);
                         case "setFlag" -> {
                             flags.put(((Number) args[0]).shortValue(), ((Number) args[1]).intValue());
@@ -353,20 +701,24 @@ class ActionPointTriggerControlTest {
         }
 
         private Occupant addCreature(short ownerId, short creatureId, int x, int y) {
-            Occupant occupant = new Occupant(ownerId, creatureId, x, y);
+            Occupant occupant = new Occupant(new EntityId(nextEntityId++), ownerId, creatureId, x, y);
             Creature definition = APCongregateInTriggerFixtures.creatureDefinition(creatureId);
             occupant.controller = Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                     new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "getEntityId" -> occupant.entityId;
                         case "getOwnerId" -> occupant.ownerId;
                         case "getCreature" -> definition;
+                        case "getPosition" -> WorldUtils.pointToVector3f(occupant.x, occupant.y);
+                        case "getTile" -> SpatialLookup.tile(occupant);
                         default -> defaultValue(method.getReturnType());
                     });
+            creatureControllers.put(occupant.entityId, (ICreatureController) occupant.controller);
             spatialLookup.occupants.add(occupant);
             return occupant;
         }
 
         private Occupant addObject(short ownerId, short objectId, int x, int y) {
-            Occupant occupant = new Occupant(ownerId, objectId, x, y);
+            Occupant occupant = new Occupant(new EntityId(nextEntityId++), ownerId, objectId, x, y);
             occupant.controller = Proxy.newProxyInstance(IObjectController.class.getClassLoader(),
                     new Class<?>[]{IObjectController.class}, (proxy, method, args) -> switch (method.getName()) {
                         case "getOwnerId" -> occupant.ownerId;
@@ -379,6 +731,25 @@ class ActionPointTriggerControlTest {
 
         private void remove(Occupant occupant) {
             spatialLookup.occupants.remove(occupant);
+            creatureControllers.remove(occupant.entityId);
+            possessedCreatures.values().removeIf(occupant.entityId::equals);
+        }
+
+        private void possess(Occupant creature) {
+            possessedCreatures.values().removeIf(creature.entityId::equals);
+            possessedCreatures.put(creature.ownerId, creature.entityId);
+        }
+
+        private void endPossession(Occupant creature) {
+            possessedCreatures.remove(creature.ownerId, creature.entityId);
+        }
+
+        private void changeOwner(Occupant creature, short ownerId) {
+            boolean possessed = possessedCreatures.values().removeIf(creature.entityId::equals);
+            creature.ownerId = ownerId;
+            if (possessed) {
+                possessedCreatures.put(ownerId, creature.entityId);
+            }
         }
 
         private ActionPointTriggerControl control() {
@@ -387,7 +758,11 @@ class ActionPointTriggerControlTest {
 
         private ActionPointTriggerControl control(int triggerId) {
             return new ActionPointTriggerControl(null, levelInfo, null, mapController,
-                    (ICreaturesController) null, triggerId, ap, spatialLookup.lookup);
+                    creaturesController, triggerId, ap, spatialLookup.lookup);
+        }
+
+        private TriggerGenericData condition() {
+            return (TriggerGenericData) new TriggerLoader(kwd).load(1).getChild(0);
         }
 
         private boolean isActive() {
@@ -404,6 +779,15 @@ class ActionPointTriggerControlTest {
         private final IEntityPositionLookup lookup = (IEntityPositionLookup) Proxy.newProxyInstance(
                 IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
                 (proxy, method, args) -> {
+                    if (method.getName().equals("getEntityLocation")) {
+                        EntityId entityId = (EntityId) args[0];
+                        for (Occupant occupant : occupants) {
+                            if (occupant.entityId.equals(entityId)) {
+                                return tile(occupant);
+                            }
+                        }
+                        return null;
+                    }
                     if (!method.getName().equals("getEntityTypesInLocation")) {
                         throw new UnsupportedOperationException(method.getName());
                     }
@@ -419,6 +803,15 @@ class ActionPointTriggerControlTest {
                     }
                     return result;
                 });
+
+        private static IMapTileInformation tile(Occupant occupant) {
+            return (IMapTileInformation) Proxy.newProxyInstance(IMapTileInformation.class.getClassLoader(),
+                    new Class<?>[]{IMapTileInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "getX" -> occupant.x;
+                        case "getY" -> occupant.y;
+                        default -> defaultValue(method.getReturnType());
+                    });
+        }
     }
 
     private static final class PositionSystemFixture implements AutoCloseable {
@@ -514,13 +907,15 @@ class ActionPointTriggerControlTest {
 
     private static final class Occupant {
 
+        private final EntityId entityId;
         private short ownerId;
         private final short targetId;
         private int x;
         private int y;
         private Object controller;
 
-        private Occupant(short ownerId, short targetId, int x, int y) {
+        private Occupant(EntityId entityId, short ownerId, short targetId, int x, int y) {
+            this.entityId = entityId;
             this.ownerId = ownerId;
             this.targetId = targetId;
             this.x = x;

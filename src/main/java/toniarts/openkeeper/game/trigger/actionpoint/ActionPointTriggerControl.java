@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.actionpoint;
 
 
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.HashSet;
@@ -49,6 +50,7 @@ public final class ActionPointTriggerControl extends TriggerControl {
     private final boolean actionPointWithinMap;
     private boolean invalidActionPointWarningLogged;
     private final Set<Integer> warnedCongregateInTriggers = new HashSet<>();
+    private final Set<Integer> warnedPossessedCreatureTriggers = new HashSet<>();
 
     public ActionPointTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId, ActionPoint ap,
@@ -75,21 +77,7 @@ public final class ActionPointTriggerControl extends TriggerControl {
                 return isCongregateInActive(trigger);
 
             case AP_POSESSED_CREATURE_ENTERS:
-                playerId = trigger.getUserData("playerId", short.class);
-                targetId = trigger.getUserData("targetId", short.class);
-                value = trigger.getUserData("value", int.class);
-                type = trigger.getUserData("targetType", short.class);
-                switch (type) {
-                    //case 0:
-                    case 3: // Creature
-                        break;
-                    case 6: // Object. Chicken
-                        break;
-                    default:
-                        logger.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS unknown targetType");
-                        break;
-                }
-                return false;
+                return isPossessedCreatureInActionPointActive(trigger);
 
             case AP_CLAIM_PART_OF:
                 playerId = trigger.getUserData("playerId", short.class);
@@ -221,6 +209,83 @@ public final class ActionPointTriggerControl extends TriggerControl {
         }
 
         return compare(target, comparisonType, value);
+    }
+
+    private boolean isPossessedCreatureInActionPointActive(TriggerGenericData trigger) {
+        if (!actionPointWithinMap) {
+            warnInvalidPossessedCreatureTrigger(trigger, "invalid action point rectangle");
+            return false;
+        }
+
+        Short playerIdValue = trigger.getUserData("playerId", short.class);
+        Short targetIdValue = trigger.getUserData("targetId", short.class);
+        Short typeValue = trigger.getUserData("targetType", short.class);
+        if (playerIdValue == null || targetIdValue == null || typeValue == null) {
+            warnInvalidPossessedCreatureTrigger(trigger, "missing required parameters");
+            return false;
+        }
+
+        short playerId = playerIdValue;
+        short targetId = targetIdValue;
+        short type = typeValue;
+        if (type == 6) {
+            // Do not equate OpenKeeper's InHand state with DK2's object Possessed flag without evidence.
+            warnInvalidPossessedCreatureTrigger(trigger, "possessed-object selector is unsupported");
+            return false;
+        }
+
+        if (creaturesController == null) {
+            warnInvalidPossessedCreatureTrigger(trigger, "creature service is unavailable");
+            return false;
+        }
+
+        if (playerId == 0) {
+            var players = levelInfo == null ? null : levelInfo.getPlayers();
+            if (players == null) {
+                warnInvalidPossessedCreatureTrigger(trigger, "player list is unavailable for an any-player selector");
+                return false;
+            }
+            for (short ownerId : players.keySet()) {
+                if (isPossessedCreatureInActionPoint(ownerId, targetId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return isPossessedCreatureInActionPoint(playerId, targetId);
+    }
+
+    private boolean isPossessedCreatureInActionPoint(short playerId, short targetId) {
+        // DK2 type 70 is an existence condition over the action-point rectangle, not an edge counter.
+        EntityId entityId = creaturesController.getPossessedCreature(playerId);
+        if (entityId == null || !creaturesController.isValidEntity(entityId)) {
+            return false;
+        }
+
+        ICreatureController creature = creaturesController.createController(entityId);
+        if (creature == null) {
+            return false;
+        }
+        var creatureDefinition = creature.getCreature();
+        if (creatureDefinition == null || creature.getPosition() == null
+                || (targetId != 0 && creatureDefinition.getCreatureId() != targetId)) {
+            return false;
+        }
+
+        // Read the creature's current tile directly. The position-system tile cache is refreshed
+        // after action-point triggers in GameController.processTick().
+        IMapTileInformation tile = creature.getTile();
+        if (tile == null || tile.getX() < ap.getStart().x || tile.getX() > ap.getEnd().x
+                || tile.getY() < ap.getStart().y || tile.getY() > ap.getEnd().y) {
+            return false;
+        }
+        return true;
+    }
+
+    private void warnInvalidPossessedCreatureTrigger(TriggerGenericData trigger, String reason) {
+        if (warnedPossessedCreatureTriggers.add(trigger.getId())) {
+            logger.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS trigger {0}: {1}", new Object[]{trigger.getId(), reason});
+        }
     }
 
     private void warnInvalidCongregateIn(TriggerGenericData trigger, String reason) {
