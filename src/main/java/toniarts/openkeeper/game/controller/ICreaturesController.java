@@ -30,6 +30,21 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreaturesController extends IEntityWrapper<ICreatureController> {
 
+    /**
+     * Whether anger mutations are enabled for all creatures in this game.
+     * Disabling preserves the existing counters; new games start enabled.
+     *
+     * @return whether mood writers may change anger
+     */
+    boolean isCreatureMoodsEnabled();
+
+    /**
+     * Applies the global SET_CREATURE_MOODS script switch.
+     *
+     * @param enabled whether subsequent anger mutations are allowed
+     */
+    void setCreatureMoodsEnabled(boolean enabled);
+
     public enum SpawnType {
         PLACE,
         ENTRANCE,

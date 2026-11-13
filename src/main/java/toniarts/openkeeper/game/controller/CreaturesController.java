@@ -118,6 +118,7 @@ public final class CreaturesController implements ICreaturesController {
     private final IGameController gameController;
     private final IMapController mapController;
     private final ILevelInfo levelInfo;
+    private volatile boolean creatureMoodsEnabled = true;
 
     private final static int MANA_GENERATION_IMP = -7;  // I don't find in Creature.java
 
@@ -150,6 +151,16 @@ public final class CreaturesController implements ICreaturesController {
 
         // Load creatures
         loadCreatures();
+    }
+
+    @Override
+    public boolean isCreatureMoodsEnabled() {
+        return creatureMoodsEnabled;
+    }
+
+    @Override
+    public void setCreatureMoodsEnabled(boolean enabled) {
+        creatureMoodsEnabled = enabled;
     }
 
     private void loadCreatures() {
@@ -788,6 +799,9 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
     public void makeCreaturesHappy(short playerId) {
+        if (!creatureMoodsEnabled) {
+            return;
+        }
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureMood.class);
         for (Entity entity : entities) {
             entityData.setComponent(entity.getId(), new CreatureMood());
@@ -812,6 +826,9 @@ public final class CreaturesController implements ICreaturesController {
     
     @Override
     public void angerEnemyCreatures(short playerId) {
+        if (!creatureMoodsEnabled) {
+            return;
+        }
         EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);
         for (Entity entity : entities) {
             if (entity.get(Owner.class).ownerId == playerId) {

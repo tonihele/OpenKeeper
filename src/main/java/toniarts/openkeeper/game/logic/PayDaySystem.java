@@ -23,6 +23,7 @@ import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -70,6 +71,7 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     private static final int MAX_COLLECTION_ATTEMPTS = 2;
 
     private final EntityData entityData;
+    private final BooleanSupplier creatureMoodsEnabled;
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final IGameWorldController gameWorldController;
@@ -89,12 +91,14 @@ public final class PayDaySystem implements IGameLogicUpdatable {
      * @param gameTimer the game time
      * @param playerControllers the players, only the keepers have pay days
      * @param gameWorldController takes the pay from the keepers' gold
+     * @param creatureMoodsEnabled the current global script-controlled mood switch
      * @param gameSettings the level variables
      */
     public PayDaySystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer,
             Collection<IPlayerController> playerControllers, IGameWorldController gameWorldController,
-            Map<MiscType, MiscVariable> gameSettings) {
+            Map<MiscType, MiscVariable> gameSettings, BooleanSupplier creatureMoodsEnabled) {
         this.entityData = entityData;
+        this.creatureMoodsEnabled = creatureMoodsEnabled;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         this.gameWorldController = gameWorldController;
@@ -227,6 +231,9 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     }
 
     private void updateAnger(Entity entity, boolean unpaid) {
+        if (!creatureMoodsEnabled.getAsBoolean()) {
+            return;
+        }
         CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
         if (mood == null) {
             return;

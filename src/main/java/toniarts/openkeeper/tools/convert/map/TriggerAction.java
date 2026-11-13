@@ -71,6 +71,12 @@ public final class TriggerAction extends Trigger {
         SET_WIDESCREEN_MODE(38),
         MAKE_OBJECTIVE(42),
         ZOOM_TO(43),
+        /**
+         * Enables anger mutations globally only when available equals 1. Other
+         * values freeze existing counters, including recovery and clears; they
+         * do not reset mood. New games start enabled. For example, a tutorial
+         * can freeze moods while explaining room construction, then resume them.
+         */
         SET_CREATURE_MOODS(44),
         SET_SYSTEM_MESSAGES(45),
         DISPLAY_SLAB_OWNER(46), // text like [ On | Off ] Of [ X, 1635980 ]
