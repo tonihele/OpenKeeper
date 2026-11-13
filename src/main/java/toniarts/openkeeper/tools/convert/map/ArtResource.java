@@ -104,6 +104,22 @@ public final class ArtResource {
 
     private Map<String, Number> data = null;
 
+    public ArtResource() {
+    }
+
+    /**
+     * Art that the game itself uses, not found in the data files. Like the
+     * skeletons DK II shows on the Electric Chair.
+     *
+     * @param name the name of the model
+     * @param type the type of the art
+     */
+    public ArtResource(String name, ArtResourceType type) {
+        this.name = name;
+        this.type = type;
+        this.flags = EnumSet.noneOf(ArtResourceFlag.class);
+    }
+
     public String getName() {
         return name;
     }

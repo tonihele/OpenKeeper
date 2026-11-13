@@ -16,13 +16,23 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumSet;
+
 /**
- * Builds {@link Creature} fixtures for tests. Lives in {@code Creature}'s own
- * package because its setters are {@code protected} (parser-only).
+ * Builds {@link Creature} fixtures for tests. Lives in the data classes' own
+ * package because their setters are {@code protected} (parser-only).
  */
 public final class CreatureFixtures {
 
     private CreatureFixtures() {
+    }
+
+    public static Creature creature(short creatureId, short tortureMoodChange, boolean emotionless) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        creature.setFlags2(emotionless ? EnumSet.of(Creature.CreatureFlag2.IS_EMOTIONLESS) : EnumSet.noneOf(Creature.CreatureFlag2.class));
+        creature.getAttributes().setTortureMoodChange(tortureMoodChange);
+        return creature;
     }
 
     /**
