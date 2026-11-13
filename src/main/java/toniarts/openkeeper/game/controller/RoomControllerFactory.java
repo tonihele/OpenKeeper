@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.game.controller.room.GuardRoomController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
 import toniarts.openkeeper.game.controller.room.HeroGateController;
 import toniarts.openkeeper.game.controller.room.HeroGateFrontEndController;
@@ -99,7 +100,7 @@ public final class RoomControllerFactory {
         } else if (roomName.equalsIgnoreCase("Combat Pit")) {
             return new CombatPitController(entity, entityData, kwdFile, roomInstance, objectsController);
         } else if (roomName.equalsIgnoreCase("Temple")) {
-            return new TempleController(entity, entityData, kwdFile, roomInstance, objectsController);
+            return new TempleController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         }
 
         return new DoubleQuadController(entity, entityData, kwdFile, roomInstance, objectsController);
@@ -114,10 +115,10 @@ public final class RoomControllerFactory {
             return new TrainingRoomController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Work Shop")) {
             return new WorkshopController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
-//                } else if (roomName.equalsIgnoreCase("Guard Room")) {
-//                    return new GuardRoom(assetManager, roomInstance, objectLoader, worldState, effectManager);
+        } else if (roomName.equalsIgnoreCase("Guard Room")) {
+            return new GuardRoomController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Casino")) {
-            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController);
+            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
 //                } else if (roomName.equalsIgnoreCase("Graveyard")) {
 //                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
         } else if (roomName.equalsIgnoreCase("Torture Chamber")) {

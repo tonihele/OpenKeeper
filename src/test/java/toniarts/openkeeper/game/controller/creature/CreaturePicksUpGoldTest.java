@@ -26,12 +26,15 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -100,6 +103,22 @@ class CreaturePicksUpGoldTest {
 
         assertTrue(calls.contains("dropGoldToTreasury"));
         assertFalse(calls.contains("dropGold"));
+    }
+
+    @Test
+    void fullCreatureAddsMinedGoldToThePileAtItsFeet() {
+        EntityId pile = pile(273);
+        entityData.setComponent(pile, new ObjectComponent((short) 1, ObjectType.GOLD));
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, new Gold(300, 300), new Position(0, new Vector3f(5, 0, 7)));
+        CreatureController dwarf = new CreatureController(entityId, entityData, null, null, null, null, Map.of(), null,
+                stub(IEntityPositionLookup.class, Map.of("getEntitiesInLocation", List.of(pile))), null, null,
+                stub(IObjectsController.class, Map.of()), null, null);
+
+        dwarf.addGold(273);
+
+        assertEquals(300, dwarf.getGold());
+        assertEquals(546, entityData.getComponent(pile, Gold.class).gold);
     }
 
     private CreatureController worker(int gold, int maxGold) {
