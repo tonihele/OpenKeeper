@@ -1422,7 +1422,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      * @param tile the tile to search
      * @return the gold pile, {@code null} if there is none
      */
-    static EntityId findLooseGoldPile(EntityData entityData, IEntityPositionLookup entityPositionLookup, Point tile) {
+    public static EntityId findLooseGoldPile(EntityData entityData, IEntityPositionLookup entityPositionLookup, Point tile) {
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
             ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
             if (objectComponent != null && objectComponent.objectType == ObjectType.GOLD
