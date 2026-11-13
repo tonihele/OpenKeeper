@@ -137,7 +137,6 @@ public final class HealthSystem extends GameTimeCounter {
         if (healthEntities.applyChanges()) {
             processAddedEntities(healthEntities.getAddedEntities());
             processDeletedEntities(healthEntities.getRemovedEntities());
-            processChangedEntities(healthEntities.getChangedEntities());
         }
 
         // Update other monitorable sets
@@ -363,11 +362,12 @@ public final class HealthSystem extends GameTimeCounter {
                 Owner owner = entity.get(Owner.class);
                 if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
 
-                    // In own land
+                    // In own land, every second. Hits don't hold it up (DKII.EXE's creature tick 0x488930)
                     Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
                     if (lastTimeOnOwnLand == null) {
                         setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
                     } else if (elapsedTime - lastTimeOnOwnLand >= 1) {
+                        setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
                         delta += regeneration.ownLandHealthIncrease;
                     }
                 } else {
@@ -426,17 +426,6 @@ public final class HealthSystem extends GameTimeCounter {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(entityIds, entity.getId());
             entityIds.remove(index);
-        }
-    }
-
-    private void processChangedEntities(Set<Entity> entities) {
-        for (Entity entity : entities) {
-            // If the health is changed (either by us or damage)...
-            // Reset the health regen counter
-            Regeneration regeneration = entityData.getComponent(entity.getId(), Regeneration.class);
-            if (regeneration != null && regeneration.timeOnOwnLand != null) {
-                setTimeOwnOwnLand(regeneration, entity.getId(), null);
-            }
         }
     }
 
