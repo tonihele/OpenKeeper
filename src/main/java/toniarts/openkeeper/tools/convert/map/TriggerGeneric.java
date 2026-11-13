@@ -69,9 +69,49 @@ public final class TriggerGeneric extends Trigger {
         CREATURE_TORTURED(8), // Event, This creature is
         CREATURE_CONVERTED(9), // Event, This creature is
         CREATURE_CLAIMED(10), // Event, This creature is
-        CREATURE_ANGRY(11), // Event, This creature is
-        CREATURE_AFRAID(12), // Event, This creature is
-        CREATURE_STEALS(13), // Event, This creature is
+        /**
+         * Fires when a positive mood change moves this creature into the fully
+         * angry state. Merely becoming unhappy does not fire it, and staying
+         * angry does not repeatedly fire it. After recovery, becoming angry
+         * again can fire another event, subject to the script's repeat limits.
+         * <p>
+         * This event runs its child actions and conditions immediately; it is
+         * not a persistent test of the creature's current mood. Emotionless
+         * creatures do not generate it. For example, it can warn the player
+         * when a particular Warlock becomes fully angry for the first time.
+         */
+        CREATURE_ANGRY(11),
+        /**
+         * Fires when this creature passes a qualifying fear evaluation, before
+         * the game attempts an escape. It is an immediate creature-script
+         * event, not a poll of the current fleeing state. The event can occur
+         * even when escape is subsequently suppressed or unavailable.
+         * <p>
+         * For example, a weak creature confronted by an overwhelming enemy
+         * can trigger a warning or reinforcement script. Level4 contains
+         * two uses of this event. An active escape suppresses further events;
+         * later eligible fear checks can deliver it again, subject to the
+         * branch's repeat limit.
+         * <p>
+         * DKII dispatches matching active root branches synchronously and
+         * tests their child conditions at event time. The ordinary script
+         * walk does not match this enum, and nested event conditions are not
+         * searched recursively. OpenKeeper uses its existing fear evaluation;
+         * this condition does not replace fear scoring or flee navigation.
+         */
+        CREATURE_AFRAID(12),
+        /**
+         * Event emitted for an accepted stealing attempt, before loot is taken.
+         * It does not poll carried gold or require a positive stolen amount.
+         * Matching root branches and nested conditions run synchronously on the
+         * simulation loop, using normal repeat limits. Both hero and keeper
+         * creatures can emit it through the existing STEAL_GOLD objective; no
+         * alignment filter or new autonomous stealing behavior is introduced.
+         * For example, a thief's first attempt can raise a scripted alarm.
+         * Other native stealing callbacks and exact command eligibility remain
+         * separate from OpenKeeper's current gold-stealing task.
+         */
+        CREATURE_STEALS(13),
         CREATURE_LEAVES(14), // Event, This creature is
         CREATURE_STUNNED(15), // Event, This creature is
         CREATURE_DYING(16), // Event, This creature is

@@ -195,7 +195,7 @@ class WorkerTaskAssignmentTest {
         });
         IGameWorldController gameWorldController = stub(IGameWorldController.class, (name, args) -> null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> null);
-        return new TaskManager(entityData, gameWorldController, mapController, null, null, navigationService, List.of(player), levelInfo, null, Map.of());
+        return new TaskManager(entityData, gameWorldController, mapController, null, null, navigationService, List.of(player), levelInfo, null, Map.of(), id -> {});
     }
 
     private static IMapTileInformation tile(Point location) {

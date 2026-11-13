@@ -76,6 +76,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
 
     private EffectGeneratorsController effectGenerators;
     private TriggerControl triggerControl = null;
+    private CreatureTriggerLogicController creatureTriggers;
     private final List<IGameLogicUpdatable> controllers = new ArrayList<>();
 
     private GameWorldController gameWorldController;
@@ -112,6 +113,21 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         createNewGame();
     }
 
+    @Override
+    public void onCreatureAngry(EntityId entityId) {
+        creatureTriggers.onAngry(entityId);
+    }
+
+    @Override
+    public void onCreatureAfraid(EntityId entityId) {
+        creatureTriggers.onAfraid(entityId);
+    }
+
+    @Override
+    public void onCreatureSteals(EntityId entityId) {
+        creatureTriggers.onSteals(entityId);
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players
@@ -133,14 +149,15 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         // Initialize tasks
         taskManager = new TaskManager(entityData, gameWorldController, gameWorldController.getMapController(),
                 gameWorldController.getObjectsController(), gameWorldController.getCreaturesController(),
-                navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings);
+                navigationService, playerControllers.values(), levelInfo, positionSystem, gameSettings, this::onCreatureSteals);
 
         // The triggers
         controllers.add(new PartyTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController()));
-        controllers.add(new CreatureTriggerLogicController(this, levelInfo, gameTimer,
+        creatureTriggers = new CreatureTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
-                playerService, entityData));
+                playerService, entityData);
+        controllers.add(creatureTriggers);
         controllers.add(new ObjectTriggerLogicController(this, levelInfo, gameTimer,
                 gameWorldController.getMapController(), gameWorldController.getCreaturesController(),
                 playerService, entityData, gameWorldController.getObjectsController()));

@@ -156,12 +156,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
     private final Set<ICreatureController> escapedThieves = new HashSet<>();
+    private final Consumer<EntityId> onCreatureSteals;
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
             Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Consumer<EntityId> onCreatureSteals) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
@@ -171,6 +172,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         this.levelInfo = levelInfo;
         this.entityPositionLookup = entityPositionLookup;
         this.gameSettings = gameSettings;
+        this.onCreatureSteals = onCreatureSteals;
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -852,7 +854,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 break;
             }
             case STEAL_GOLD: {
-                task = new StealGold(navigationService, mapController, gameWorldController, entityData, creature, escapedThieves::add);
+                task = new StealGold(navigationService, mapController, gameWorldController, entityData, creature,
+                        escapedThieves::add, thief -> onCreatureSteals.accept(thief.getEntityId()));
                 break;
             }
             default: {
