@@ -96,13 +96,13 @@
                             <image valign="center" filename="Textures/GUI/Windows/gold-bg-01.png" />
                         </panel>
                         <panel childLayout="horizontal" valign="center">
-                            <panel backgroundImage="Textures/GUI/Windows/payday-Hp.png" childLayout="center" valign="center">
+                            <panel childLayout="center" valign="center">
                                 <effect>
                                     <onHover name="hint" hintText="${menu.2143}" hintDelay="200" />
                                     <onHover name="simpleHintEx" hintText="${menu.2144}" targetElement="tooltip" />
                                     <onEndHover name="simpleHintEx" hintText="" targetElement="tooltip" />
                                 </effect>
-                                <image filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
+                                <image id="payDay" filename="Textures/GUI/Windows/payday-BG.png" align="left" valign="center" />
                             </panel>
                             <panel childLayout="center" valign="center" align="center" padding="0px,14px,0px,36px">
                                 <control name="label" id="gold" color="#D3B000" text="0" style="text" width="100%" textHAlign="right" valign="center" />

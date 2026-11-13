@@ -29,6 +29,7 @@ import de.lessvoid.nifty.tools.SizeValue;
 import de.lessvoid.nifty.tools.TargetElementResolver;
 import javax.annotation.Nonnull;
 import javax.annotation.Nullable;
+import toniarts.openkeeper.game.state.IPlayerScreenController;
 
 /**
  * This is a simple extension to the Nifty {@link SimpleHint}. SimpleHint
@@ -70,9 +71,11 @@ public final class SimpleHintEx implements EffectImpl {
         TargetElementResolver resolver = new TargetElementResolver(nifty.getCurrentScreen(), element);
         targetElement = resolver.resolve(parameter.getProperty("targetElement"));
 
+        // Fill in the values the text shows, like the pay day's cost, as they are now
         String text = parameter.getProperty("hintText");
         if (text != null) {
-            hintText = text;
+            hintText = screen.getScreenController() instanceof IPlayerScreenController controller
+                    ? controller.formatTooltipText(text) : text;
         }
     }
 
