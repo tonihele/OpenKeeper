@@ -41,6 +41,7 @@ import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.control.TorchControl;
+import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
@@ -122,6 +123,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private Spatial ceilingSurface; // Currently attached merged ceiling mesh, if any
     private boolean ceilingVisible = true; // Runtime show/hide toggle, independent of ceilingEnabled (which decides whether it's built at all)
     private final Map<Point, RoomInstance> roomCoordinates = new HashMap<>(); // A quick glimpse whether room at specific coordinates is already "found"
+    private EffectManagerState effectManager;
+    private RoomFlameManager roomFlames;
     private final Map<RoomInstance, Spatial> roomNodes = new HashMap<>(); // Room instances by node
     private final Map<Point, Thing.Room> roomThings = new HashMap<>();
     private final Map<RoomInstance, RoomConstructor> roomActuals = new HashMap<>(); // Rooms by room constructor
@@ -134,6 +137,11 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
     private final LightRules lightRules;
     private final boolean litSolidTerrain;
     private boolean terrainAmbientEnabled = LightConstants.TERRAIN_AMBIENT_ENABLED;
+
+    /** Supply the game effect manager before loading rooms. */
+    public void setEffectManager(EffectManagerState effectManager) {
+        this.effectManager = effectManager;
+    }
 
     protected MapViewController(AssetManager assetManager, IKwdFile kwdFile, IMapInformation mapClientService,
             short playerId, boolean torchesEnabled, boolean ceilingEnabled) {
@@ -633,6 +641,9 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         // and how tall it is - always rebuild it whole, there's no incremental
         // variant, same as the water/lava surfaces above
         refreshCeilingSurface();
+        if (roomFlames != null) {
+            roomFlames.retainRooms(roomNodes.keySet());
+        }
     }
 
     private void rebuildTile(Point point, Node terrainNode, Set<BatchNode> nodesNeedBatching) {
@@ -1168,6 +1179,7 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
 
         RoomInstance roomInstance = new RoomInstance(room, thing != null ? thing : roomThings.get(p));
+        roomInstance.setOwnerId(getMapData().getTile(p).getOwnerId());
         findRoom(p, roomInstance, thing);
         findRoomWallSections(roomInstance);
         straightenPillars(roomInstance);
@@ -1440,7 +1452,8 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
 
             if (!roomCoordinates.containsKey(p)) {
-                if (roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
+                if (tile.getOwnerId() == roomInstance.getOwnerId()
+                        && roomInstance.getRoom().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()))) {
 
                     // Add the coordinate
                     roomCoordinates.put(p, roomInstance);
@@ -1523,6 +1536,12 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
             roomConstructor.setAmbient(getVertexAmbient(roomTerrain, roomInstance.getOwnerId()));
 
             Spatial roomNode = roomConstructor.construct(fogOfWarInformation, deformer);
+            if (effectManager != null && kwdFile.getEffect(20) != null && RoomFlameControl.isEligible(roomInstance)) {
+                if (roomFlames == null) {
+                    roomFlames = new RoomFlameManager(roomsNode, effectManager, fogOfWarInformation);
+                }
+                roomFlames.add(roomInstance);
+            }
             List<Material> materials = roomConstructor.getLightingMaterials();
             if (!materials.isEmpty()) {
                 lightRules.bindMaterials(materials);

@@ -174,6 +174,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         };
 
+        mapLoader.setEffectManager(effectManager);
+
         // The ceiling is only shown while possessing a creature
         mapLoader.setCeilingVisible(false);
 
