@@ -208,7 +208,11 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_DESTROYS:
                 return false;
             case PLAYER_CREATURES_AT_LEVEL:
-                return false;
+                short minimumLevel = trigger.getUserData("level", short.class);
+                target = creaturesController.getCreatureCountAtLevel(playerId, minimumLevel);
+                // Native byte 3 is the minimum level, not another player selector.
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_KILLED:
 
                 // Has this player been defeated, by a certain player or by anyone (0)

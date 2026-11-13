@@ -118,6 +118,9 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     void levelUpCreatures(short playerId, int level);
 
+    /** Counts living owned non-worker creatures at or above the minimum level. */
+    int getCreatureCountAtLevel(short playerId, int minimumLevel);
+
     /**
      * Increases the experience level of all of the player's creatures by the given amount, capped at the
      * maximum creature level
