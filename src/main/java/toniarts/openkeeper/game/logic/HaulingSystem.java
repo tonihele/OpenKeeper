@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 
 /**
  * Manages hauled entities. Basically moves them as their hauler moves.
@@ -50,7 +51,10 @@ public final class HaulingSystem implements IGameLogicUpdatable {
             HauledBy hauledBy = entity.get(HauledBy.class);
             Position position = entity.get(Position.class);
             Position haulerPosition = entityData.getComponent(hauledBy.entityId, Position.class);
-            if (haulerPosition == null) {
+
+            // A hauler that has left its job, like an Imp that runs away, puts it down. Held on to, a knocked out
+            // creature would never bleed out and nobody would pick it up again
+            if (haulerPosition == null || entityData.getComponent(hauledBy.entityId, TaskComponent.class) == null) {
                 entityData.removeComponent(entity.getId(), HauledBy.class);
                 continue;
             }
