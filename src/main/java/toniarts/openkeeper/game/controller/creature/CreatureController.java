@@ -1015,10 +1015,12 @@ public final class CreatureController extends EntityController implements ICreat
         if (ourPosition == null) {
             return true;
         }
-        for (EntityId banner : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", getOwnerId()), CallToArms.class, Owner.class)) {
+        // Not filtered by the owner field: that would go through the owner of every entity, map tiles included
+        for (EntityId banner : entityData.findEntities(null, CallToArms.class)) {
             CallToArms callToArms = entityData.getComponent(banner, CallToArms.class);
             Position bannerPosition = entityData.getComponent(banner, Position.class);
-            if (callToArms != null && callToArms.isUp() && bannerPosition != null
+            Owner owner = entityData.getComponent(banner, Owner.class);
+            if (callToArms != null && callToArms.isUp() && bannerPosition != null && owner != null && owner.ownerId == getOwnerId()
                     && bannerPosition.position.distance(ourPosition) > gameSettings.get(Variable.MiscVariable.MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES).getValue() * WorldUtils.TILE_WIDTH) {
                 return false;
             }
