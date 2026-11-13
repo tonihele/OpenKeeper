@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
@@ -60,6 +61,23 @@ class RoomLairControlTest {
         destination.destroy();
 
         assertNull(entityData.getComponent(bed, Position.class));
+    }
+
+    @Test
+    void soldRoomContainsNothing() {
+        EntityData entityData = new DefaultEntityData();
+        Point location = new Point(3, 4);
+        RoomLairControl control = createControl(entityData, entityData.createEntity(), location);
+        EntityId bed = entityData.createEntity();
+        entityData.setComponent(bed, new Position(0, new Vector3f(location.x, 1, location.y)));
+        control.addExistingItem(bed, location);
+        Stored stored = entityData.getComponent(bed, Stored.class);
+
+        // A guard still carries its mark while its task lets go of the sold room
+        control.destroy();
+        entityData.setComponent(bed, stored);
+
+        assertFalse(control.contains(bed));
     }
 
     private static RoomLairControl createControl(EntityData entityData, EntityId roomEntity, Point location) {

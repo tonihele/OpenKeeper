@@ -47,7 +47,9 @@ public abstract class AbstractRoomTask extends AbstractTileTask {
     public boolean isValid(ICreatureController creature) {
 
         // See that the room exists and has capacity etc.
-        return !room.isRemoved() && room.getOwnerId() == playerId && !room.isDestroyed() && !getRoomObjectControl().isFullCapacity();
+        // The creature has a place in the room already if it is counted, it can't be full for it
+        return !room.isRemoved() && room.getOwnerId() == playerId && !room.isDestroyed()
+                && (!getRoomObjectControl().isFullCapacity() || creature != null && getRoomObjectControl().contains(creature.getEntityId()));
     }
 
     protected abstract ObjectType getRoomObjectType();

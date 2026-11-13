@@ -47,17 +47,15 @@ public abstract class RoomTraineeControl extends AbstractRoomObjectControl<Entit
 
     @Override
     public EntityId addItem(EntityId trainee, Point p) {
-        setRoomStorageToItem(trainee, false);
-        addCurrentCapacity(1);
-
-        return trainee;
+        return addOccupant(trainee);
     }
 
     @Override
     public void removeItem(EntityId object) {
-        super.removeItem(object);
-
-        addCurrentCapacity(-1);
+        if (contains(object)) {
+            super.removeItem(object);
+            addCurrentCapacity(-1);
+        }
     }
 
     @Override
