@@ -55,7 +55,10 @@ public final class WorkshopController extends NormalRoomController {
         addObjectControl(new RoomManufacturerControl(kwdFile, this, entityData, gameTimer) {
             @Override
             protected int getNumberOfAccessibleTiles() {
-                return getFurnitureCount();
+
+                // One worker per piece of furniture, plus one, like in DK II
+                int furnitureCount = getFurnitureCount();
+                return furnitureCount > 0 ? furnitureCount + 1 : 0;
             }
         });
         addObjectControl(new RoomCrateControl(kwdFile, this, entityData, gameTimer) {
