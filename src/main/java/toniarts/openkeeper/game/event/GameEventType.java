@@ -60,10 +60,36 @@ public enum GameEventType {
      */
     SHOT_HIT,
     IMPS_CREATED,
+    /**
+     * A Call to Arms banner calls its creatures, the entity is the banner
+     */
+    CALL_TO_ARMS,
+    /**
+     * Some creatures can't get to the Call to Arms banner, only its keeper
+     * gets this
+     */
+    CALL_TO_ARMS_UNREACHABLE,
 
     // Rooms and terrain, the subject is the room or the terrain
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
-    TERRAIN_DESTROYED
+    /** A completed room capture, delivered only to its new owner. */
+    ROOM_CAPTURED,
+    TERRAIN_DESTROYED,
+
+    // Temple
+    /**
+     * A creature was dropped into the pool, the subject is the creature type
+     */
+    CREATURE_SACRIFICED,
+    /**
+     * The sacrifices completed a recipe, the subject is the room, at the reward's tile
+     */
+    SACRIFICE_REWARD,
+    /**
+     * The mentor's verdict on a sacrifice, only the temple's owner gets this. The subject id is the speech id of the
+     * recipe, or 1 when no recipe matched.
+     */
+    SACRIFICE_SPEECH
 }

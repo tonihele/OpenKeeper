@@ -21,6 +21,7 @@ import java.util.Objects;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
@@ -52,7 +53,8 @@ public final class FetchObjectTask extends AbstractTileTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return !isRemovable() && gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull() && !gameObject.isDragged();
+        return !isRemovable() && gameObject.isPickableByPlayerCreature(playerId) && !isPlayerCapacityFull() && !gameObject.isDragged()
+                && !(gameObject.getType() == AbstractRoomController.ObjectType.GOLD && creature != null && creature.isTooMuchGold());
     }
 
     @Override
