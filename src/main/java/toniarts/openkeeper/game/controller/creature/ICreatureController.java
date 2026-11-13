@@ -41,6 +41,21 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean shouldFleeOrAttack();
 
     /**
+     * A fighter with no enemy creature to fight goes for the nearest enemy
+     * trap it sees, as DKII.EXE does
+     *
+     * @return true if there is such a trap and we are on it
+     */
+    public boolean attackVisibleTrap();
+
+    /**
+     * An idle fighter hits an enemy door that is next to it, as DKII.EXE does
+     *
+     * @return true if there is such a door and we are on it
+     */
+    public boolean attackAdjacentDoor();
+
+    /**
      * Checks what the creature sees and hears
      */
     public void checkSurroundings();
@@ -107,6 +122,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void stopCreature();
 
     public void executeAttack(EntityId attackTarget);
+
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
 
     public void navigateToAttackTarget(EntityId attackTarget);
 

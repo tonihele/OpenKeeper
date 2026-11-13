@@ -25,7 +25,7 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.MapColourClass;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -59,7 +59,7 @@ public final class MinimapMarkerPainter {
         this.viewerId = viewerId;
         creatures = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
         doors = entityData.getEntities(Position.class, Owner.class, DoorComponent.class);
-        traps = entityData.getEntities(Position.class, Owner.class, TrapComponent.class);
+        traps = entityData.getEntities(Position.class, Owner.class, TrapViewState.class);
         inHand = entityData.getEntities(InHand.class);
     }
 
@@ -165,7 +165,8 @@ public final class MinimapMarkerPainter {
 
     /*
      * Marker 4: all traps (own, or explored - hiddenFromMinimap doesn't
-     * exist in this codebase, see this class's own javadoc).
+     * exist in this codebase, see this class's own javadoc). Hidden traps and
+     * blueprints only for their owner.
      */
     private void paintTraps(byte[] raster, boolean fit, MinimapRasteriser.FitGeometry fitGeometry,
             float cameraTileX, float cameraTileY, int pixelsPerTile, IFogOfWarInformation fogOfWarInformation,
@@ -175,7 +176,8 @@ public final class MinimapMarkerPainter {
             Position position = e.get(Position.class);
             Point tile = WorldUtils.vectorToPoint(position.position);
             boolean own = owner.ownerId == viewerId;
-            if (!own && !fogOfWarInformation.isExplored(tile)) {
+            if (!own && !fogOfWarInformation.isExplored(tile)
+                    || !e.get(TrapViewState.class).isShownTo(owner.ownerId, viewerId)) {
                 continue;
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);
