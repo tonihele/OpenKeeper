@@ -21,6 +21,8 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import java.util.Set;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.controller.IEntityWrapper;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -33,6 +35,8 @@ import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class AbstractThingTriggerLogicController<T extends IEntityController> implements IGameLogicUpdatable {
+
+    private static final Logger logger = System.getLogger(AbstractThingTriggerLogicController.class.getName());
 
     private final Map<Integer, AbstractThingTriggerControl<T>> thingTriggers;
     private final SafeArrayList<AbstractThingTriggerControl> triggerControls;
@@ -103,6 +107,11 @@ public abstract class AbstractThingTriggerLogicController<T extends IEntityContr
      * @param instanceControl the thing instance
      */
     private void setThing(int triggerId, T instanceControl) {
-        thingTriggers.get(triggerId).setThing(instanceControl);
+        AbstractThingTriggerControl<T> trigger = thingTriggers.get(triggerId);
+        if (trigger == null) {
+            logger.log(Level.WARNING, "Thing instance references unknown trigger {0}", triggerId);
+            return;
+        }
+        trigger.setThing(instanceControl);
     }
 }

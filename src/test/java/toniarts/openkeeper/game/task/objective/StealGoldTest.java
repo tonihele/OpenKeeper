@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.StolenGold;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -40,6 +41,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -161,6 +163,55 @@ class StealGoldTest {
     }
 
     @Test
+    void partyEscortTracksTheRaiderFromTreasuryToExit() {
+        ICreatureController raider = thief(KEEPER);
+        ICreatureController leader = thief(KEEPER);
+        StealGold theft = stealGold(raider, List.of(treasury(false, GOLD_TILE)), navigation(Set.of()),
+                treasuryGold(100_000, new ArrayList<>()), NO_ESCAPE_LISTENER);
+        StealGoldEscort outboundEscort = new StealGoldEscort(navigation(Set.of()), null,
+                leader, raider, theft, KEEPER);
+
+        assertEquals(WorldUtils.pointToVector2f(GOLD_TILE), outboundEscort.getTarget(leader));
+
+        entityData.setComponent(thiefId, new StolenGold(THIEF_TILE));
+        StealGold returnTask = stealGold(raider, List.of(), navigation(Set.of()),
+                treasuryGold(100_000, new ArrayList<>()), NO_ESCAPE_LISTENER);
+        StealGoldEscort returnEscort = new StealGoldEscort(navigation(Set.of()), null,
+                leader, raider, returnTask, KEEPER);
+
+        assertEquals(WorldUtils.pointToVector2f(THIEF_TILE), returnEscort.getTarget(leader));
+    }
+
+    @Test
+    void partyEscortReplansWhenTheRaiderFinishesStealing() {
+        Task[] assignedTask = new Task[1];
+        ICreatureController[] leaderHolder = new ICreatureController[1];
+        IPartyController party = stub(IPartyController.class, (name, args) ->
+                "isPartyLeader".equals(name) && args[0] == leaderHolder[0]);
+        ICreatureController leader = thief(KEEPER, party, null);
+        leaderHolder[0] = leader;
+        ICreatureController raider = thief(KEEPER, party, assignedTask);
+        StealGold outboundTask = stealGold(raider, List.of(treasury(false, GOLD_TILE)), navigation(Set.of()),
+                treasuryGold(100_000, new ArrayList<>()), NO_ESCAPE_LISTENER);
+        assignedTask[0] = outboundTask.getCurrentTask();
+        StealGoldEscort outboundEscort = new StealGoldEscort(navigation(Set.of()), null,
+                leader, raider, outboundTask, KEEPER);
+
+        assertTrue(outboundEscort.isValid(leader));
+        outboundTask.getCurrentTask().executeTask(raider, 0);
+        assertFalse(outboundEscort.isValid(leader));
+
+        StealGold returnTask = stealGold(raider, List.of(), navigation(Set.of()),
+                treasuryGold(100_000, new ArrayList<>()), NO_ESCAPE_LISTENER);
+        assignedTask[0] = returnTask.getCurrentTask();
+        StealGoldEscort returnEscort = new StealGoldEscort(navigation(Set.of()), null,
+                leader, raider, returnTask, KEEPER);
+
+        assertTrue(returnEscort.isValid(leader));
+        assertEquals(WorldUtils.pointToVector2f(THIEF_TILE), returnEscort.getTarget(leader));
+    }
+
+    @Test
     void thiefSentToAnotherKeeperDropsTheTask() {
         StealGold task = stealGold(100_000, new ArrayList<>());
 
@@ -197,8 +248,13 @@ class StealGoldTest {
 
     private StealGold stealGold(List<IRoomController> treasuries, INavigationService navigation, IGameWorldController gameWorldController,
             Consumer<ICreatureController> escapeListener) {
+        return stealGold(thief(KEEPER), treasuries, navigation, gameWorldController, escapeListener);
+    }
+
+    private StealGold stealGold(ICreatureController thief, List<IRoomController> treasuries, INavigationService navigation,
+            IGameWorldController gameWorldController, Consumer<ICreatureController> escapeListener) {
         IMapController map = stub(IMapController.class, (name, args) -> "getRoomsByFunction".equals(name) ? treasuries : null);
-        return new StealGold(navigation, map, gameWorldController, entityData, thief(KEEPER), escapeListener);
+        return new StealGold(navigation, map, gameWorldController, entityData, thief, escapeListener);
     }
 
     /**
@@ -254,12 +310,19 @@ class StealGoldTest {
      * A thief with no gold of his own, and 3750 once he has stolen some
      */
     private ICreatureController thief(short objectiveTarget) {
+        return thief(objectiveTarget, null, null);
+    }
+
+    private ICreatureController thief(short objectiveTarget, IPartyController party, Task[] assignedTask) {
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getEntityId" -> thiefId;
             case "getCreatureCoordinates" -> THIEF_TILE;
             case "getOwnerId" -> HERO;
+            case "getParty" -> party;
+            case "getAssignedTask" -> assignedTask == null ? null : assignedTask[0];
             case "getObjective" -> Thing.HeroParty.Objective.STEAL_GOLD;
             case "getObjectiveTargetPlayerId" -> objectiveTarget;
+            case "isRemoved", "isDead", "isIncapacitated" -> false;
             case "getGold" -> entityData.getComponent(thiefId, StolenGold.class) == null ? 0 : 3750;
             case "getMaxGold" -> THIEF_MAX_GOLD;
             case "addGold" -> {

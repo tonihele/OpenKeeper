@@ -27,6 +27,8 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
+import toniarts.openkeeper.game.controller.creature.PartyController;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerControl;
 import toniarts.openkeeper.game.trigger.AbstractThingTriggerLogicController;
@@ -71,11 +73,27 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
             }
         }
         for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
+            Thing.GoodCreature leader = PartyController.selectLeaderMember(heroParty);
+            if (heroParty.getHeroPartyMembers() == null) {
+                continue;
+            }
             for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
+                if (creature == null || creature == leader) {
+                    continue;
+                }
                 if (creature.getTriggerId() != 0) {
                     creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
                             creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService));
                 }
+            }
+            if (leader != null && leader.getTriggerId() != 0) {
+                int leaderTriggerId = leader.getTriggerId();
+                short partyId = heroParty.getId();
+                creatureTriggers.put(leaderTriggerId, new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, leaderTriggerId, Player.GOOD_PLAYER_ID, playerService, () -> {
+                            IPartyController party = creaturesController.getParty(partyId);
+                            return party != null && party.isCreated() ? party.getPartyLeader() : null;
+                        }));
             }
         }
         return creatureTriggers;

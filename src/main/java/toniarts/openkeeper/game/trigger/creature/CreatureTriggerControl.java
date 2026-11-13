@@ -31,6 +31,7 @@ import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import java.util.function.Supplier;
 
 /**
  *
@@ -38,14 +39,34 @@ import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
  */
 public final class CreatureTriggerControl extends AbstractThingTriggerControl<ICreatureController> {
 
+    private final Supplier<ICreatureController> creatureResolver;
+
     public CreatureTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
             final PlayerService playerService) {
+        this(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId,
+                playerService, null);
+    }
+
+    /**
+     * Construct a trigger control whose active creature can change over time,
+     * as happens when a hero-party leader is incapacitated or the party is
+     * spawned again.
+     */
+    public CreatureTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
+            final ICreaturesController creaturesController, final int triggerId, final short playerId,
+            final PlayerService playerService, final Supplier<ICreatureController> creatureResolver) {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+        this.creatureResolver = creatureResolver;
+    }
+
+    private ICreatureController getControlledCreature() {
+        return creatureResolver != null ? creatureResolver.get() : instanceControl;
     }
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
+        ICreatureController instanceControl = getControlledCreature();
         boolean result = false;
 
         float target = 0;
@@ -80,7 +101,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_CONVERTED:
-                return instanceControl.getOwnerId() != getPlayerId();
+                return instanceControl != null && instanceControl.getOwnerId() != getPlayerId();
             case CREATURE_CLAIMED:
                 if (instanceControl != null) {
                     return instanceControl.isClaimed();
@@ -122,7 +143,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 }
                 return false;
             case CREATURE_HUNGER_SATED:
-                return !instanceControl.isHungry();
+                return instanceControl != null && !instanceControl.isHungry();
             case CREATURE_PICKS_UP_PORTAL_GEM:
                 if (instanceControl != null) {
                     return instanceControl.isPortalGemInPosession();
@@ -149,6 +170,7 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
 
     @Override
     protected void doAction(TriggerActionData trigger) {
+        ICreatureController instanceControl = getControlledCreature();
         TriggerAction.ActionType type = trigger.getType();
 
         // Some triggers are bound to the creature itself
@@ -160,7 +182,9 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 break;
 
             case MAKE_HUNGRY:
-                instanceControl.makeHungry();
+                if (instanceControl != null) {
+                    instanceControl.makeHungry();
+                }
                 break;
 
             case SHOW_HEALTH_FLOWER:

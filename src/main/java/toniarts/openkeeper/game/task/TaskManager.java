@@ -33,6 +33,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.Deque;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -40,6 +41,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
@@ -63,6 +65,8 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
+import toniarts.openkeeper.game.controller.creature.PartyObjectiveOrder;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -91,8 +95,13 @@ import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
+import toniarts.openkeeper.game.task.objective.PartyObjectiveActorSelector;
+import toniarts.openkeeper.game.task.objective.PartyObjectiveTaskFactory;
+import toniarts.openkeeper.game.task.objective.PartyObjectiveTaskPlan;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.objective.StealGold;
+import toniarts.openkeeper.game.task.objective.StealGoldEscort;
+import toniarts.openkeeper.game.task.objective.Wait;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
@@ -144,11 +153,27 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
     private final Set<ICreatureController> escapedThieves = new HashSet<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
+    private final PartyObjectiveActorSelector partyObjectiveActorSelector;
+    private final Map<Thing.HeroParty.Objective, PartyObjectiveTaskFactory> objectiveTaskFactories;
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
             IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
             Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this(entityData, gameWorldController, mapController, objectsController, creaturesController, navigationService,
+                players, levelInfo, entityPositionLookup, gameSettings, Map.of());
+    }
+
+    /**
+     * Construct a task manager with objective-specific task factories. The
+     * supplied factories replace matching built-ins and may add handlers for
+     * additional map objectives.
+     */
+    public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
+            IObjectsController objectsController, ICreaturesController creaturesController, INavigationService navigationService,
+            Collection<IPlayerController> players, ILevelInfo levelInfo, IEntityPositionLookup entityPositionLookup,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            Map<Thing.HeroParty.Objective, PartyObjectiveTaskFactory> objectiveTaskFactories) {
         this.entityData = entityData;
         this.mapController = mapController;
         this.gameWorldController = gameWorldController;
@@ -158,6 +183,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         this.levelInfo = levelInfo;
         this.entityPositionLookup = entityPositionLookup;
         this.gameSettings = gameSettings;
+        this.partyObjectiveActorSelector = new PartyObjectiveActorSelector(entityData);
 
         // Set the players
         // Create a queue for each managed player (everybody except Good & Neutral)
@@ -171,6 +197,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             if (keeper.getId() != Player.GOOD_PLAYER_ID && keeper.getId() != Player.NEUTRAL_PLAYER_ID) {
                 taskQueues.put(keeper.getId(), new HashSet<>());
             }
+        }
+
+        this.objectiveTaskFactories = createDefaultObjectiveTaskFactories();
+        if (objectiveTaskFactories != null) {
+            objectiveTaskFactories.forEach((objective, factory) -> this.objectiveTaskFactories.put(
+                    Objects.requireNonNull(objective, "objective"), Objects.requireNonNull(factory, "factory")));
         }
 
         // Scan the initial tasks
@@ -745,48 +777,112 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public boolean assignObjectiveTask(ICreatureController creature, Thing.HeroParty.Objective objective) {
-        AbstractObjectiveTask task = null;
-        switch (objective) {
-            case SEND_TO_ACTION_POINT: {
-                ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
-                if (actionPoint != null) {
-                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature.getOwnerId());
-                } else {
-                    logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!", creature.getObjectiveTargetActionPointId());
-                }
-                break;
-            }
-            case KILL_PLAYER: {
-
-                // Without the keeper the creature has nobody to go after, it just carries on as usual
-                if (KillPlayer.isTargetPresent(levelInfo, creature.getObjectiveTargetPlayerId())) {
-                    task = new KillPlayer(navigationService, mapController, levelInfo, creature.getObjectiveTargetPlayerId(), creature);
-                }
-                break;
-            }
-            case KILL_CREATURES: {
-                task = KillCreatures.create(navigationService, mapController, levelInfo, creature,
-                        getCreatures(creature.getObjectiveTargetPlayerId()));
-                break;
-            }
-            case STEAL_GOLD: {
-                task = new StealGold(navigationService, mapController, gameWorldController, entityData, creature, escapedThieves::add);
-                break;
-            }
-            default: {
-
-                // The other objectives don't give the creature a task of its own
-                break;
-            }
+        if (creature == null || objective == null) {
+            return false;
         }
 
-        // Assign
-        if (task != null && task.getCurrentTask() != null) {
-            task.getCurrentTask().assign(creature, true);
+        IPartyController party = creature.getParty();
+        if (party != null && !party.isPartyLeader(creature)) {
+            return false;
+        }
+
+        PartyObjectiveTaskFactory factory = objectiveTaskFactories.get(objective);
+        PartyObjectiveTaskPlan plan = factory != null ? factory.create(creature, objective) : null;
+        if (plan == null || plan.assignments().isEmpty()) {
+            return false;
+        }
+
+        boolean assigned = false;
+        for (PartyObjectiveTaskPlan.Assignment assignment : plan.assignments().stream()
+                .sorted(Comparator.comparing(assignment -> assignment.creature() == creature))
+                .toList()) {
+            ICreatureController executor = assignment.creature();
+            AbstractObjectiveTask task = assignment.task();
+            if (executor.isRemoved() || executor.isDead() || executor.isIncapacitated()) {
+                continue;
+            }
+
+            Task currentTask = task.getCurrentTask();
+            if (currentTask == null) {
+                continue;
+            }
+
+            // Assign an explicitly coordinated executor before the leader's
+            // follow/escort task, which may depend on the executor being live.
+            currentTask.assign(executor, true);
             tasksByIds.put(task.getId(), task);
-            return true;
+            assigned = true;
         }
-        return false;
+        return assigned;
+    }
+
+    private Map<Thing.HeroParty.Objective, PartyObjectiveTaskFactory> createDefaultObjectiveTaskFactories() {
+        Map<Thing.HeroParty.Objective, PartyObjectiveTaskFactory> factories = new EnumMap<>(Thing.HeroParty.Objective.class);
+        factories.put(Thing.HeroParty.Objective.SEND_TO_ACTION_POINT, (creature, objective) -> {
+            ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
+            if (actionPoint == null) {
+                logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!",
+                        creature.getObjectiveTargetActionPointId());
+                return null;
+            }
+            return PartyObjectiveTaskPlan.forLeader(creature,
+                    new SendToActionPoint(navigationService, mapController, actionPoint, creature.getOwnerId()));
+        });
+        factories.put(Thing.HeroParty.Objective.KILL_PLAYER, (creature, objective) -> {
+            short targetPlayerId = creature.getObjectiveTargetPlayerId();
+            AbstractObjectiveTask task = KillPlayer.isTargetPresent(levelInfo, targetPlayerId)
+                    ? new KillPlayer(navigationService, mapController, levelInfo, targetPlayerId, creature) : null;
+            return PartyObjectiveTaskPlan.forLeader(creature, task);
+        });
+        factories.put(Thing.HeroParty.Objective.KILL_CREATURES, (creature, objective) ->
+                PartyObjectiveTaskPlan.forLeader(creature, KillCreatures.create(
+                        navigationService, mapController, levelInfo, creature, getCreatures(creature.getObjectiveTargetPlayerId()))));
+        factories.put(Thing.HeroParty.Objective.STEAL_GOLD, this::createStealGoldPlan);
+        factories.put(Thing.HeroParty.Objective.WAIT, (creature, objective) ->
+                PartyObjectiveTaskPlan.forLeader(creature, createWaitTask(creature)));
+        return factories;
+    }
+
+    private PartyObjectiveTaskPlan createStealGoldPlan(ICreatureController leader, Thing.HeroParty.Objective objective) {
+        ICreatureController raider = partyObjectiveActorSelector.selectStealGoldActor(leader);
+        if (raider == null) {
+            return PartyObjectiveTaskPlan.empty();
+        }
+
+        StealGold stealTask = new StealGold(navigationService, mapController, gameWorldController,
+                entityData, raider, escapedThieves::add);
+        if (stealTask.getCurrentTask() == null) {
+            return PartyObjectiveTaskPlan.empty();
+        }
+        if (raider == leader) {
+            return PartyObjectiveTaskPlan.forLeader(leader, stealTask);
+        }
+
+        short targetPlayerId = leader.getObjectiveTargetPlayerId();
+        StealGoldEscort escort = new StealGoldEscort(navigationService, mapController,
+                leader, raider, stealTask, targetPlayerId);
+        return new PartyObjectiveTaskPlan(List.of(
+                new PartyObjectiveTaskPlan.Assignment(raider, stealTask),
+                new PartyObjectiveTaskPlan.Assignment(leader, escort)));
+    }
+
+    private AbstractObjectiveTask createWaitTask(ICreatureController creature) {
+        Point waitPosition = null;
+        IPartyController party = creature.getParty();
+        if (party != null && party.isPartyLeader(creature)) {
+            PartyObjectiveOrder order = party.getObjectiveOrder();
+            if (order != null) {
+                // WAIT has no destination in DK2. It holds the leader where
+                // the order is resumed, including after combat has drawn the
+                // party away from its previous position.
+                waitPosition = creature.getCreatureCoordinates();
+                party.setObjectiveOrder(order.withWaitPosition(waitPosition));
+            }
+        }
+        if (waitPosition == null) {
+            waitPosition = creature.getCreatureCoordinates();
+        }
+        return waitPosition != null ? new Wait(navigationService, mapController, waitPosition, creature.getOwnerId()) : null;
     }
 
     private List<ICreatureController> getCreatures(short playerId) {

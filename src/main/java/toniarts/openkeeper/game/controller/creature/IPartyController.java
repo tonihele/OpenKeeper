@@ -32,7 +32,8 @@ import toniarts.openkeeper.tools.convert.map.Thing;
 public interface IPartyController extends INavigable {
 
     /**
-     * Get the party members, as real instances, if the party has been created
+     * Get the non-null party member instances in map-definition order. The
+     * returned read-only view updates as the party is spawned.
      *
      * @return the member instances
      */
@@ -65,6 +66,22 @@ public interface IPartyController extends INavigable {
     ICreatureController getPartyLeader();
 
     int getTriggerId();
+
+    /**
+     * Get the current order issued through the party leader.
+     *
+     * @return the current order, or {@code null} if the map definition has no
+     * order and none has been issued at runtime
+     */
+    PartyObjectiveOrder getObjectiveOrder();
+
+    /**
+     * Replace the party's authoritative leader order and synchronize it to the
+     * current leader.
+     *
+     * @param order the new order, or {@code null} to clear it
+     */
+    void setObjectiveOrder(PartyObjectiveOrder order);
 
     PartyType getType();
 

@@ -37,11 +37,11 @@ public final class PartyTriggerLogicController implements IGameLogicUpdatable {
             final ICreaturesController creaturesController) {
         for (IPartyController partyController : creaturesController.getParties()) {
             if (partyController.getTriggerId() != 0) {
-                partyControllers.add(new PartyTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, partyController.getTriggerId(), partyController));
+                short partyId = partyController.getPartyId();
+                partyControllers.add(new PartyTriggerControl(gameController, levelInfo, gameTimer, mapController,
+                        creaturesController, partyController.getTriggerId(), () -> creaturesController.getParty(partyId)));
             }
         }
-
-        // TODO: get notified on new parties (a.k.a. parties re-spawned)
     }
 
     @Override

@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -42,6 +43,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -92,16 +94,24 @@ class KillCreaturesObjectiveTest {
                 levelInfo, null, Map.of());
 
         Task[] assigned = new Task[1];
+        ICreatureController[] leaderHolder = new ICreatureController[1];
+        IPartyController party = stub(IPartyController.class, (name, args) ->
+                "isPartyLeader".equals(name) && args[0] == leaderHolder[0]);
         ICreatureController hero = stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> new Point(2, 2);
             case "getOwnerId" -> Player.GOOD_PLAYER_ID;
+            case "getParty" -> party;
             case "getObjectiveTargetPlayerId" -> Player.KEEPER1_ID;
             case "setAssignedTask" -> assigned[0] = (Task) args[0];
             default -> null;
         });
+        leaderHolder[0] = hero;
+        ICreatureController follower = stub(ICreatureController.class, (name, args) ->
+                "getParty".equals(name) ? party : null);
 
         assertTrue(taskManager.assignObjectiveTask(hero, Thing.HeroParty.Objective.KILL_CREATURES));
         assertEquals(WorldUtils.pointToVector2f(preyTile), assigned[0].getTarget(hero));
+        assertFalse(taskManager.assignObjectiveTask(follower, Thing.HeroParty.Objective.KILL_CREATURES));
     }
 
     @FunctionalInterface

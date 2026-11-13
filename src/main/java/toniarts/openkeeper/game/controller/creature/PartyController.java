@@ -18,12 +18,15 @@ package toniarts.openkeeper.game.controller.creature;
 
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Objects;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -42,6 +45,7 @@ import toniarts.openkeeper.utils.Utils;
  */
 public final class PartyController implements IPartyController {
 
+    private static final Logger logger = System.getLogger(PartyController.class.getName());
     private static final AtomicLong PARTY_ID_GENERATOR = new AtomicLong(1);
 
     private long id;
@@ -49,18 +53,60 @@ public final class PartyController implements IPartyController {
     private final int triggerId;
     private final String name;
     private final SequencedMap<Thing.GoodCreature, ICreatureController> members;
+    private final List<ICreatureController> actualMembers = new ArrayList<>();
+    private final Collection<ICreatureController> actualMembersView = Collections.unmodifiableList(actualMembers);
+    private final Thing.GoodCreature leaderDefinition;
     private PartyType type;
     private ICreatureController leader;
+    private PartyObjectiveOrder objectiveOrder;
     private boolean created = false;
 
     public PartyController(Thing.HeroParty heroParty) {
+        Objects.requireNonNull(heroParty, "heroParty");
         partyId = heroParty.getId();
         name = heroParty.getName();
         triggerId = heroParty.getTriggerId();
-        members = LinkedHashMap.newLinkedHashMap(heroParty.getHeroPartyMembers().size());
-        for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
+        List<Thing.GoodCreature> definitions = heroParty.getHeroPartyMembers() != null
+                ? heroParty.getHeroPartyMembers().stream().filter(Objects::nonNull).toList() : List.of();
+        leaderDefinition = selectLeaderMember(definitions);
+        long flaggedLeaderCount = definitions.stream().filter(PartyController::isLeaderDefinition).count();
+        if (!definitions.isEmpty() && flaggedLeaderCount == 0) {
+            logger.log(Level.WARNING, "Hero party {0} has no leader flag; using its first member as leader", partyId);
+        } else if (flaggedLeaderCount > 1) {
+            logger.log(Level.WARNING, "Hero party {0} has {1} leader flags; using the first flagged member", partyId, flaggedLeaderCount);
+        }
+
+        members = new LinkedHashMap<>();
+        for (Thing.GoodCreature creature : definitions) {
             members.put(creature, null);
         }
+        objectiveOrder = leaderDefinition != null
+                ? new PartyObjectiveOrder(leaderDefinition.getObjective(), leaderDefinition.getObjectiveTargetPlayerId(),
+                        leaderDefinition.getObjectiveTargetActionPointId(), null)
+                : null;
+    }
+
+    /**
+     * Selects the authored leader, falling back to the first member when a map
+     * omits the flag. The same deterministic rule is used by trigger binding.
+     *
+     * @param heroParty the map party definition
+     * @return the selected leader member, or {@code null} for an empty party
+     */
+    public static Thing.GoodCreature selectLeaderMember(Thing.HeroParty heroParty) {
+        if (heroParty == null || heroParty.getHeroPartyMembers() == null) {
+            return null;
+        }
+        return selectLeaderMember(heroParty.getHeroPartyMembers());
+    }
+
+    private static Thing.GoodCreature selectLeaderMember(List<Thing.GoodCreature> definitions) {
+        return definitions.stream().filter(Objects::nonNull).filter(PartyController::isLeaderDefinition)
+                .findFirst().orElseGet(() -> definitions.stream().filter(Objects::nonNull).findFirst().orElse(null));
+    }
+
+    private static boolean isLeaderDefinition(Thing.GoodCreature creature) {
+        return creature.getFlags() != null && creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER);
     }
 
     @Override
@@ -90,6 +136,19 @@ public final class PartyController implements IPartyController {
     }
 
     @Override
+    public PartyObjectiveOrder getObjectiveOrder() {
+        return objectiveOrder;
+    }
+
+    @Override
+    public void setObjectiveOrder(PartyObjectiveOrder order) {
+        objectiveOrder = order;
+        if (leader != null) {
+            leader.setPartyObjectiveOrder(order);
+        }
+    }
+
+    @Override
     public PartyType getType() {
         return type;
     }
@@ -112,16 +171,31 @@ public final class PartyController implements IPartyController {
 
     @Override
     public void addMemberInstance(Thing.GoodCreature creature, ICreatureController entity) {
-        members.put(creature, entity);
+        if (creature == null || entity == null || !members.containsKey(creature)) {
+            logger.log(Level.WARNING, "Ignoring invalid member instance for hero party {0}", partyId);
+            return;
+        }
+        ICreatureController previous = members.put(creature, entity);
+        if (previous == null) {
+            actualMembers.add(entity);
+        } else if (previous != entity) {
+            int memberIndex = actualMembers.indexOf(previous);
+            if (memberIndex < 0) {
+                actualMembers.add(entity);
+            } else {
+                actualMembers.set(memberIndex, entity);
+            }
+        }
 
-        if (leader == null && creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER)) {
+        if (creature.equals(leaderDefinition)) {
             leader = entity;
+            leader.setPartyObjectiveOrder(objectiveOrder);
         }
     }
 
     @Override
     public Collection<ICreatureController> getActualMembers() {
-        return members.values();
+        return actualMembersView;
     }
 
     @Override
@@ -143,7 +217,7 @@ public final class PartyController implements IPartyController {
      */
     @Override
     public boolean isPartyLeader(ICreatureController creature) {
-        return creature.equals(getPartyLeader());
+        return creature != null && Objects.equals(creature, getPartyLeader());
     }
 
     /**
@@ -151,27 +225,25 @@ public final class PartyController implements IPartyController {
      * and objectives
      */
     private void checkPartyLeader() {
-        if (leader != null && leader.isIncapacitated()) {
-            List<ICreatureController> leaderCandidates = new ArrayList<>(getActualMembers());
-            Iterator<ICreatureController> iter = leaderCandidates.iterator();
-            while (iter.hasNext()) {
-                ICreatureController c = iter.next();
-                if (c.isIncapacitated()) {
-                    iter.remove();
-                }
-            }
+        if (isActiveMember(leader)) {
+            return;
+        }
 
-            // See if any left
-            if (!leaderCandidates.isEmpty()) {
-                ICreatureController oldLeader = leader;
-                leader = Utils.getRandomItem(leaderCandidates);
-
-                // Swap duties
-                // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
-                leader.setObjectiveTargetActionPointId(oldLeader.getObjectiveTargetActionPointId());
-                leader.setObjective(oldLeader.getObjective());
+        List<ICreatureController> leaderCandidates = new ArrayList<>();
+        for (ICreatureController member : getActualMembers()) {
+            if (isActiveMember(member)) {
+                leaderCandidates.add(member);
             }
         }
+
+        leader = leaderCandidates.isEmpty() ? null : Utils.getRandomItem(leaderCandidates);
+        if (leader != null) {
+            leader.setPartyObjectiveOrder(objectiveOrder);
+        }
+    }
+
+    private static boolean isActiveMember(ICreatureController creature) {
+        return creature != null && !creature.isRemoved() && !creature.isDead() && !creature.isIncapacitated();
     }
 
     /**
@@ -183,7 +255,7 @@ public final class PartyController implements IPartyController {
     @Override
     public boolean isWorkersAvailable() {
         for (ICreatureController creature : getActualMembers()) {
-            if (!creature.isIncapacitated() && creature.isWorker()) {
+            if (isActiveMember(creature) && creature.isWorker()) {
                 return true;
             }
         }
@@ -197,32 +269,47 @@ public final class PartyController implements IPartyController {
 
     @Override
     public boolean canFly() {
+        boolean hasActiveMember = false;
         for (ICreatureController creature : getActualMembers()) {
-            if (!creature.isIncapacitated() && !creature.canFly()) {
+            if (!isActiveMember(creature)) {
+                continue;
+            }
+            hasActiveMember = true;
+            if (!creature.canFly()) {
                 return false;
             }
         }
-        return true;
+        return hasActiveMember;
     }
 
     @Override
     public boolean canWalkOnWater() {
+        boolean hasActiveMember = false;
         for (ICreatureController creature : getActualMembers()) {
-            if (!creature.isIncapacitated() && !creature.canWalkOnWater()) {
+            if (!isActiveMember(creature)) {
+                continue;
+            }
+            hasActiveMember = true;
+            if (!creature.canWalkOnWater()) {
                 return false;
             }
         }
-        return true;
+        return hasActiveMember;
     }
 
     @Override
     public boolean canWalkOnLava() {
+        boolean hasActiveMember = false;
         for (ICreatureController creature : getActualMembers()) {
-            if (!creature.isIncapacitated() && !creature.canWalkOnLava()) {
+            if (!isActiveMember(creature)) {
+                continue;
+            }
+            hasActiveMember = true;
+            if (!creature.canWalkOnLava()) {
                 return false;
             }
         }
-        return true;
+        return hasActiveMember;
     }
 
     @Override

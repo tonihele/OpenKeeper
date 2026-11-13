@@ -84,6 +84,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
@@ -366,13 +367,13 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean hasObjective() {
-        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
-        return (creatureObjective != null && creatureObjective.objective != null);
+        return getObjective() != null;
     }
 
     @Override
     public boolean followObjective() {
-        return taskManager.assignObjectiveTask(this, entityData.getComponent(entityId, Objective.class).objective);
+        Thing.HeroParty.Objective objective = getObjective();
+        return objective != null && taskManager.assignObjectiveTask(this, objective);
     }
 
     @Override
@@ -560,7 +561,7 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
-        GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
+        GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, getNavigationAgent());
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
@@ -572,6 +573,11 @@ public final class CreatureController extends EntityController implements ICreat
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
         return false;
+    }
+
+    private INavigable getNavigationAgent() {
+        IPartyController party = getParty();
+        return party != null && party.isPartyLeader(this) ? party : this;
     }
 
     @Override
@@ -1354,6 +1360,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public int getObjectiveTargetActionPointId() {
+        IPartyController party = getParty();
+        if (party != null) {
+            PartyObjectiveOrder order = party.getObjectiveOrder();
+            return order != null ? order.actionPointId() : 0;
+        }
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         if (creatureObjective != null) {
             return creatureObjective.actionPointId;
@@ -1363,12 +1374,22 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void setObjectiveTargetActionPointId(int actionPointId) {
+        IPartyController party = getParty();
+        if (party != null && party.isPartyLeader(this)) {
+            party.setObjectiveOrder(getCurrentPartyObjectiveOrder(party).withActionPointId(actionPointId));
+            return;
+        }
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         entityData.setComponent(entityId, new Objective((creatureObjective != null ? creatureObjective.objective : null), (creatureObjective != null ? creatureObjective.objectiveTargetPlayerId : 0), actionPointId));
     }
 
     @Override
     public Thing.HeroParty.Objective getObjective() {
+        IPartyController party = getParty();
+        if (party != null) {
+            PartyObjectiveOrder order = party.getObjectiveOrder();
+            return order != null ? order.objective() : null;
+        }
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         if (creatureObjective != null) {
             return creatureObjective.objective;
@@ -1378,8 +1399,35 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void setObjective(Thing.HeroParty.Objective objective) {
+        IPartyController party = getParty();
+        if (party != null && party.isPartyLeader(this)) {
+            party.setObjectiveOrder(getCurrentPartyObjectiveOrder(party).withObjective(objective,
+                    objective == Thing.HeroParty.Objective.WAIT ? getCreatureCoordinates() : null));
+            return;
+        }
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         entityData.setComponent(entityId, new Objective(objective, (creatureObjective != null ? creatureObjective.objectiveTargetPlayerId : 0), (creatureObjective != null ? creatureObjective.actionPointId : 0)));
+    }
+
+    @Override
+    public void setPartyObjectiveOrder(PartyObjectiveOrder order) {
+        if (order == null) {
+            entityData.removeComponent(entityId, Objective.class);
+        } else {
+            entityData.setComponent(entityId, new Objective(order.objective(), order.targetPlayerId(), order.actionPointId()));
+        }
+    }
+
+    private PartyObjectiveOrder getCurrentPartyObjectiveOrder(IPartyController party) {
+        PartyObjectiveOrder order = party.getObjectiveOrder();
+        if (order != null) {
+            return order;
+        }
+        Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
+        return creatureObjective == null
+                ? new PartyObjectiveOrder(null, (short) 0, 0, null)
+                : new PartyObjectiveOrder(creatureObjective.objective, creatureObjective.objectiveTargetPlayerId,
+                        creatureObjective.actionPointId, null);
     }
 
     @Override
@@ -1437,12 +1485,22 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void setObjectiveTargetPlayerId(short playerId) {
+        IPartyController party = getParty();
+        if (party != null && party.isPartyLeader(this)) {
+            party.setObjectiveOrder(getCurrentPartyObjectiveOrder(party).withTargetPlayerId(playerId));
+            return;
+        }
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         entityData.setComponent(entityId, new Objective((creatureObjective != null ? creatureObjective.objective : null), playerId, (creatureObjective != null ? creatureObjective.actionPointId : 0)));
     }
 
     @Override
     public short getObjectiveTargetPlayerId() {
+        IPartyController party = getParty();
+        if (party != null) {
+            PartyObjectiveOrder order = party.getObjectiveOrder();
+            return order != null ? order.targetPlayerId() : -1;
+        }
         Objective creatureObjective = entityData.getComponent(entityId, Objective.class);
         if (creatureObjective != null) {
             return creatureObjective.objectiveTargetPlayerId;
