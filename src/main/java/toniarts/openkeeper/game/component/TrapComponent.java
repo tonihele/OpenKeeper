@@ -26,13 +26,19 @@ import com.simsilica.es.EntityComponent;
 public final class TrapComponent implements EntityComponent {
 
     public short trapId;
+    public boolean blueprint;
 
     public TrapComponent() {
         // For serialization
     }
 
     public TrapComponent(short trapId) {
+        this(trapId, false);
+    }
+
+    public TrapComponent(short trapId, boolean blueprint) {
         this.trapId = trapId;
+        this.blueprint = blueprint;
     }
 
 }

@@ -17,13 +17,19 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
@@ -49,6 +55,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TrapsController implements ITrapsController {
     
     private static final Logger logger = System.getLogger(TrapsController.class.getName());
+
+    private static final short BOULDER_SHOT_ID = 26;
+    private static final short BOULDER_OBJECT_ID = 74;
 
     private IKwdFile kwdFile;
     private EntityData entityData;
@@ -81,6 +90,52 @@ public final class TrapsController implements ITrapsController {
         loadTraps();
     }
 
+    @Override
+    public int getTrapCount(short playerId, short trapId, TrapCountMode mode) {
+        int count = 0;
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                Owner.class, TrapComponent.class);
+        try {
+            for (Entity entity : entities) {
+                TrapComponent trap = entity.get(TrapComponent.class);
+                // Door-mounted traps are not part of the player's placed trap roster.
+                if (entityData.getComponent(entity.getId(), DoorComponent.class) != null
+                        || entityData.getComponent(entity.getId(), Death.class) != null
+                        || (!trap.blueprint && entityData.getComponent(entity.getId(), Health.class) == null)) {
+                    continue;
+                }
+                if (trapId != 0 && trap.trapId != trapId) {
+                    continue;
+                }
+                if ((mode == TrapCountMode.BLUEPRINTS && !trap.blueprint)
+                        || (mode == TrapCountMode.BUILT && trap.blueprint)) {
+                    continue;
+                }
+                count++;
+            }
+        } finally {
+            entities.release();
+        }
+
+        Trap type = trapId == 0 ? null : kwdFile.getTrapById(trapId);
+        if (mode == TrapCountMode.ALL && type != null && type.getShotTypeId() == BOULDER_SHOT_ID) {
+            // DKII keeps launched boulders in the ordinary typed trap count.
+            EntitySet objects = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
+                    Owner.class, ObjectComponent.class);
+            try {
+                for (Entity object : objects) {
+                    if (object.get(ObjectComponent.class).objectId == BOULDER_OBJECT_ID
+                            && entityData.getComponent(object.getId(), Death.class) == null) {
+                        count++;
+                    }
+                }
+            } finally {
+                objects.release();
+            }
+        }
+        return count;
+    }
+
     private void loadTraps() {
         for (Thing.Trap trap : kwdFile.getThings(Thing.Trap.class)) {
             try {
@@ -100,7 +155,7 @@ public final class TrapsController implements ITrapsController {
 
     private EntityId loadTrap(int x, int y, short trapId, short ownerId, boolean blueprint) {
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new TrapComponent(trapId));
+        entityData.setComponent(entity, new TrapComponent(trapId, blueprint));
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
