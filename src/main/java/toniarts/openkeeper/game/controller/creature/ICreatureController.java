@@ -56,6 +56,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public IPartyController getParty();
 
+    /**
+     * Replace this creature's objective data with the party's authoritative
+     * order. Used when a party leader is assigned or inherits the order.
+     *
+     * @param order the party order, or {@code null} to clear the objective
+     */
+    public void setPartyObjectiveOrder(PartyObjectiveOrder order);
+
     public StateMachine<ICreatureController, CreatureState> getStateMachine();
 
     public boolean hasObjective();

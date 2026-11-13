@@ -636,20 +636,39 @@ public final class CreaturesController implements ICreaturesController {
          * In the game manual it is said that it is entirely possible to have multiple parties with the same
          * party ID, the old party just isn't controlled anymore
          */
+        Thing.HeroParty heroParty = heroParties.get(partyId);
+        if (heroParty == null) {
+            logger.log(Level.WARNING, "Cannot spawn undefined hero party {0}", partyId);
+            return;
+        }
+
         IPartyController partyController = creaturePartiesByPartyId.get(partyId);
-        if (partyController.isCreated()) {
-            partyController = new PartyController(heroParties.get(partyId));
+        if (partyController == null) {
+            partyController = new PartyController(heroParty);
+        } else if (partyController.isCreated()) {
+            partyController = new PartyController(heroParty);
             logger.log(Level.DEBUG, "Re-spawning party {0}!", partyId);
+        }
+        List<Thing.GoodCreature> spawnableMembers = partyController.getMembers().stream()
+                .filter(creature -> kwdFile.getCreature(creature.getCreatureId()) != null)
+                .toList();
+        if (spawnableMembers.size() != partyController.getMembers().size()) {
+            logger.log(Level.WARNING, "Skipping {0} hero party members with unknown creature definitions in party {1}",
+                    partyController.getMembers().size() - spawnableMembers.size(), partyId);
+        }
+        if (spawnableMembers.isEmpty()) {
+            logger.log(Level.WARNING, "Cannot spawn empty hero party {0}", partyId);
+            return;
         }
         partyController.setType(partyType);
         partyController.create();
 
         // The whole party walks at the speed of its slowest member
         float partySpeed = Float.MAX_VALUE;
-        for (Thing.GoodCreature creature : partyController.getMembers()) {
+        for (Thing.GoodCreature creature : spawnableMembers) {
             partySpeed = Math.min(partySpeed, kwdFile.getCreature(creature.getCreatureId()).getAttributes().getSpeed());
         }
-        for (Thing.GoodCreature creature : partyController.getMembers()) {
+        for (Thing.GoodCreature creature : spawnableMembers) {
             EntityId entityId = spawnCreature(creature, position);
             entityData.setComponent(entityId, new Party(partyController.getId()));
             Mobile mobile = entityData.getComponent(entityId, Mobile.class);
@@ -662,7 +681,6 @@ public final class CreaturesController implements ICreaturesController {
         // TODO: Hmm, should we clean these up...
         creaturePartiesById.put(partyController.getId(), partyController);
 
-        // TODO: listener, mainly for the PartyTrigger, to replace the party with new instance just in case
     }
 
     @Override

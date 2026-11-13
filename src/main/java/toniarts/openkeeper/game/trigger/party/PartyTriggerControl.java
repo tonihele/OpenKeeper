@@ -26,20 +26,33 @@ import toniarts.openkeeper.game.controller.creature.IPartyController;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
+import java.util.Objects;
+import java.util.function.Supplier;
 
 public final class PartyTriggerControl extends TriggerControl {
 
-    private final IPartyController partyController;
+    private final Supplier<IPartyController> partyControllerResolver;
 
     public PartyTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId,
             final IPartyController partyController) {
+        this(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId,
+                () -> partyController);
+    }
+
+    public PartyTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
+            final IMapController mapController, final ICreaturesController creaturesController, int triggerId,
+            final Supplier<IPartyController> partyControllerResolver) {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
-        this.partyController = partyController;
+        this.partyControllerResolver = Objects.requireNonNull(partyControllerResolver, "partyControllerResolver");
     }
 
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
+        IPartyController partyController = partyControllerResolver.get();
+        if (partyController == null) {
+            return false;
+        }
         boolean result = false;
 
         float target = 0;

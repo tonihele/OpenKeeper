@@ -56,11 +56,22 @@ public enum CreatureState implements State<ICreatureController> {
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
 
             // See if we should just follow
-            if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
-                entity.setFollowTarget(entity.getParty().getPartyLeader().getEntityId());
-                entity.getStateMachine().changeState(CreatureState.FOLLOW);
-                workResult.accept(true);
-                return;
+            IPartyController party = entity.getParty();
+            if (party != null) {
+                ICreatureController leader = party.getPartyLeader();
+                if (leader == null) {
+                    // A malformed or fully incapacitated party has no order
+                    // owner. Do not execute a follower's conflicting map order.
+                    entity.stopCreature();
+                    workResult.accept(true);
+                    return;
+                }
+                if (!party.isPartyLeader(entity)) {
+                    entity.setFollowTarget(leader.getEntityId());
+                    entity.getStateMachine().changeState(CreatureState.FOLLOW);
+                    workResult.accept(true);
+                    return;
+                }
             }
 
             // See if we have an objective
