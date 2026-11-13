@@ -147,7 +147,8 @@ class LightningShotProcessorTest {
         for (EntityId creature : new EntityId[]{possessed, prisoner, horny}) {
             processor.process(strike(creature));
 
-            assertEquals(DAMAGE, entityData.getComponent(creature, Damage.class).damage);
+            // A possessed creature takes half the damage
+            assertEquals(creature == possessed ? DAMAGE / 2 : DAMAGE, entityData.getComponent(creature, Damage.class).damage);
             assertFalse(knockedDown.contains(creature));
         }
     }
