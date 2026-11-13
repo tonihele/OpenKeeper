@@ -1,0 +1,20 @@
+MaterialDef Possession display gamma {
+    MaterialParameters {
+        Texture2D Frame
+        Texture2D Ramps
+        Int Effect
+        Boolean OutputSrgb
+    }
+    Technique {
+        VertexShader GLSL150: Shaders/PossessionGamma/Gamma.vert
+        FragmentShader GLSL150: Shaders/PossessionGamma/Gamma.frag
+        WorldParameters {
+            WorldViewProjectionMatrix
+        }
+        RenderState {
+            DepthTest Off
+            DepthWrite Off
+            FaceCull Off
+        }
+    }
+}
