@@ -719,13 +719,16 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         private void setResearchableEntity(short keeperId, ResearchableEntity researchableEntity, Runnable notifier) {
-            Keeper keeper = getPlayer(keeperId);
-            setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
 
-            // FIXME: See in what thread we are
-            if (notifier != null && playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(notifier);
-            }
+            // The HUD reads the lists on the render thread, so they are changed there as well
+            app.enqueue(() -> {
+                Keeper keeper = getPlayer(keeperId);
+                setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
+
+                if (notifier != null && playerState != null && playerState.getPlayerId() == keeperId) {
+                    notifier.run();
+                }
+            });
         }
 
         @Override
