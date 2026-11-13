@@ -620,7 +620,8 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
-            EventBus.publish(ClientEvents.GAME_EVENT, event);
+            // We are called from the game loops' threads (or the network), the listeners are view code
+            app.enqueue(() -> EventBus.publish(ClientEvents.GAME_EVENT, event));
         }
 
         @Override
