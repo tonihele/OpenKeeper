@@ -21,42 +21,53 @@ import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.ChickenSpawnFixtures;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.FogVisionFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The Dungeon Heart's start-of-level reveal runs on the first updates after
- * the level start seeding, also for a heart that was already there when the
- * fog of war started.
+ * The fog of war must not run before the level start seeding. The seeding
+ * clears everything explored so far, so anything seen or reported before it
+ * would be back in the fog but already reported, and the Dungeon Heart's
+ * start-of-level reveal would be used up.
  */
 class FogOfWarControllerTest {
 
     private static final short VIEWER = Player.KEEPER1_ID;
+    private static final short ENEMY = Player.KEEPER2_ID;
     private static final short FLOOR_ID = 1;
+    private static final short CREATURE_ID = 1;
     private static final int MAP_SIZE = 21;
 
     /**
      * More than enough to cover the heart reveal's start delay and steps
      */
     private static final int UPDATES = 100;
+
+    private final List<EntityId> sightings = new ArrayList<>();
 
     private DefaultEntityData entityData;
     private FogOfWarController controller;
@@ -65,12 +76,15 @@ class FogOfWarControllerTest {
     void setUp() {
         entityData = new DefaultEntityData();
         Terrain floor = TerrainFixtures.terrain(FLOOR_ID, TerrainFixtures.flags(), 0, 0, 0, FLOOR_ID);
+        Creature creature = FogVisionFixtures.creature(CREATURE_ID, 3, 0);
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> variables = Map.of(
                 Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES,
-                ChickenSpawnFixtures.miscVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES, 15));
+                FogVisionFixtures.miscVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES, 15));
         IKwdFile kwdFile = proxy(IKwdFile.class, (proxy, method, args) -> switch (method.getName()) {
             case "getTerrain" ->
                 floor;
+            case "getCreature" ->
+                creature;
             case "getThings" ->
                 List.of();
             case "getVariables" ->
@@ -80,8 +94,7 @@ class FogOfWarControllerTest {
         });
         controller = new FogOfWarController(entityData, kwdFile, neutralFloorMap(), VIEWER,
                 points -> {
-                }, entityId -> {
-                });
+                }, sightings::add);
     }
 
     @AfterEach
@@ -91,31 +104,123 @@ class FogOfWarControllerTest {
     }
 
     @Test
-    void heartAddedAfterStartIsRevealed() {
+    void updateBeforeSeedingExploresAndReportsNothing() {
+        createCreature(VIEWER, 10, 10);
+        createCreature(ENEMY, 11, 10);
         controller.start();
-        createHeart(10, 10);
 
-        assertHeartRevealedAfterSeeding();
+        update(UPDATES);
+
+        assertTrue(sightings.isEmpty(), "No enemy can be sighted before the fog is seeded");
+        assertFalse(controller.isExplored(new Point(10, 10)), "Nothing is explored before the fog is seeded");
     }
 
     @Test
-    void heartPresentAtStartIsRevealed() {
+    void enemyNextToOwnCreatureIsReportedOnceAfterSeeding() {
+        createCreature(VIEWER, 10, 10);
+        EntityId enemy = createCreature(ENEMY, 11, 10);
+        controller.start();
+        update(UPDATES);
+        assertTrue(sightings.isEmpty(), "No enemy can be sighted before the fog is seeded");
+
+        controller.seedLevelStart();
+        update(UPDATES);
+
+        assertEquals(List.of(enemy), sightings);
+        assertTrue(controller.isExplored(new Point(11, 10)));
+    }
+
+    @Test
+    void scriptedRevealDoesNotReportEnemiesInIt() {
+        createCreature(VIEWER, 3, 3);
+        createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+
+        controller.revealActionPointTiles(List.of(new Point(14, 14), new Point(15, 14),
+                new Point(14, 15), new Point(15, 15)), true);
+        update(UPDATES);
+
+        assertTrue(controller.isExplored(new Point(15, 15)), "The script revealed the tiles");
+        assertTrue(sightings.isEmpty(), "A scripted reveal, e.g. in the level intro, is not a sighting");
+    }
+
+    @Test
+    void revealBeforeSeedingIsAppliedLaterWithoutReportingEnemies() {
+        createCreature(VIEWER, 3, 3);
+        createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+        update(UPDATES);
+
+        controller.revealActionPointTiles(List.of(new Point(15, 15)), true);
+        controller.update(0.01f);
+        update(UPDATES);
+
+        assertTrue(sightings.isEmpty());
+    }
+
+    @Test
+    void enemyWalkingIntoSightAfterScriptedRevealIsStillReported() {
+        EntityId own = createCreature(VIEWER, 3, 3);
+        EntityId enemy = createCreature(ENEMY, 15, 15);
+        controller.start();
+        controller.seedLevelStart();
+        controller.revealActionPointTiles(List.of(new Point(15, 15)), true);
+        update(UPDATES);
+        assertTrue(sightings.isEmpty());
+
+        entityData.setComponents(enemy, new Position(0, WorldUtils.pointToVector3f(8, 3)));
+        entityData.setComponents(own, new Position(0, WorldUtils.pointToVector3f(10, 3)));
+        update(UPDATES);
+
+        assertEquals(List.of(enemy), sightings, "Our own creature sees the enemy come close");
+    }
+
+    @Test
+    void heartAddedBeforeSeedingIsRevealedAfterSeeding() {
+        controller.start();
+        createHeart(10, 10);
+
+        assertHeartRevealedOnlyAfterSeeding();
+    }
+
+    @Test
+    void heartPresentAtStartIsRevealedAfterSeeding() {
         createHeart(10, 10);
         controller.start();
 
-        assertHeartRevealedAfterSeeding();
+        assertHeartRevealedOnlyAfterSeeding();
     }
 
-    private void assertHeartRevealedAfterSeeding() {
+    private void assertHeartRevealedOnlyAfterSeeding() {
         Point nearEdgeOfReveal = new Point(10, 18);
+
+        update(UPDATES);
+        assertFalse(controller.isExplored(nearEdgeOfReveal), "The heart reveal must wait for the fog seeding");
 
         controller.seedLevelStart();
         assertFalse(controller.isExplored(nearEdgeOfReveal));
-        for (int i = 0; i < UPDATES; i++) {
-            controller.update(0.2f);
-        }
+        update(UPDATES);
 
         assertTrue(controller.isExplored(nearEdgeOfReveal), "The heart reveal runs once the fog is seeded");
+    }
+
+    private void update(int times) {
+        for (int i = 0; i < times; i++) {
+            controller.update(0.2f);
+        }
+    }
+
+    private EntityId createCreature(short ownerId, int x, int y) {
+        EntityId id = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = CREATURE_ID;
+        entityData.setComponents(id,
+                new Position(0, WorldUtils.pointToVector3f(x, y)),
+                new Owner(ownerId, ownerId),
+                creatureComponent);
+        return id;
     }
 
     private void createHeart(int x, int y) {
