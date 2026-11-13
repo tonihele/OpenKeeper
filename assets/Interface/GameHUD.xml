@@ -210,7 +210,7 @@
                     <!--The top bar-->
                     <panel height="64px" width="100%" childLayout="horizontal" align="left" valign="top">
                         <panel height="75%" width="*" valign="center" backgroundImage="Textures/GUI/Windows/Bar-00.png" imageMode="repeat:0,0,128,64" />
-                        <panel height="100%" width="128px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" imageMode="repeat:0,0,128,64" />
+                        <panel height="100%" width="240px" valign="center" backgroundImage="Textures/GUI/Windows/Bar-02.png" />
                     </panel>
                     <!--Map (place for it) & the works-->
                     <panel height="*" width="100%" childLayout="horizontal" align="left" valign="top" padding="6px,0px,6px,0px">
@@ -366,7 +366,7 @@
 
                     </panel>
                     <!-- bottom right -->
-                    <panel width="128px" height="100%" valign="center" align="right" childLayout="vertical">
+                    <panel width="160px" height="100%" valign="center" align="right" childLayout="vertical">
                         <panel height="64px" childLayout="horizontal">
                             <!-- place for fight or call to arm -->
                             <control name="fight" visible="false" />

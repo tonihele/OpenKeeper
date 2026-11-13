@@ -348,7 +348,7 @@
 
     <!-- Reaper -->
     <controlDefinition style="nifty-panel-style" name="reaperTalisman" controller="de.lessvoid.nifty.controls.DefaultController">
-        <image align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
+        <image width="128px" height="128px" align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
     </controlDefinition>
 
     <!-- Fight Icon -->
