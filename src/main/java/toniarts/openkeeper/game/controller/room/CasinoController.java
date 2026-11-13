@@ -18,13 +18,21 @@ package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import java.util.HashMap;
+import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Casino.PayOut;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.ObjectViewState.GameObjectAnimState;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomGamblerControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * The casino
@@ -33,7 +41,10 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class CasinoController extends NormalRoomController {
 
+    private static final short OBJECT_PAY_OUT_ADJUSTER_ID = 95;
+
     private final IGameTimer gameTimer;
+    private EntityId payOutAdjuster;
 
     public CasinoController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
@@ -74,6 +85,77 @@ public final class CasinoController extends NormalRoomController {
      */
     public void setPayOut(PayOut payOut) {
         entityData.setComponent(entityId, new Casino(payOut));
+        showPayOut();
+    }
+
+    /**
+     * The pay out adjuster has no model of its own, it shows one of its two
+     * indicators: the first one while the Casino pays out in smiles, the second
+     * one when it takes money (DK II 0x4D6890)
+     */
+    private void showPayOut() {
+        ObjectViewState viewState = payOutAdjuster != null ? entityData.getComponent(payOutAdjuster, ObjectViewState.class) : null;
+        if (viewState != null) {
+            entityData.setComponent(payOutAdjuster, new ObjectViewState(viewState.objectId, viewState.state,
+                    getPayOut() == PayOut.SMILES ? GameObjectAnimState.ADDITIONAL_RESOURCE_1 : GameObjectAnimState.ADDITIONAL_RESOURCE_2,
+                    viewState.visible));
+        }
+    }
+
+    @Override
+    public boolean switchFurniture(EntityId furniture) {
+        ObjectComponent objectComponent = entityData.getComponent(furniture, ObjectComponent.class);
+        if (objectComponent == null || objectComponent.objectId != OBJECT_PAY_OUT_ADJUSTER_ID) {
+            return false;
+        }
+
+        // The pay out adjuster switches how the casino pays out, like in DK II. A controller built again on the
+        // room's entities took the furniture over without placing it, so this is the adjuster to show it on
+        payOutAdjuster = furniture;
+        setPayOut(getPayOut() == PayOut.SMILES ? PayOut.MONEY : PayOut.SMILES);
+        return true;
+    }
+
+    @Override
+    protected void constructObjects() {
+        removePayOutAdjuster();
+        super.constructObjects();
+
+        // Like in DK II, the pay out adjuster takes the place of the first piece of furniture that has no
+        // furniture in the row above it
+        Map<Point, EntityId> furnitureByTile = new HashMap<>();
+        for (EntityId piece : floorFurniture) {
+            Position position = entityData.getComponent(piece, Position.class);
+            if (position != null) {
+                furnitureByTile.put(WorldUtils.vectorToPoint(position.position), piece);
+            }
+        }
+        for (Point p : roomInstance.getCoordinates()) {
+            EntityId piece = furnitureByTile.get(p);
+            if (piece != null && !furnitureByTile.containsKey(new Point(p.x - 1, p.y - 1))
+                    && !furnitureByTile.containsKey(new Point(p.x, p.y - 1))
+                    && !furnitureByTile.containsKey(new Point(p.x + 1, p.y - 1))) {
+                floorFurniture.remove(piece);
+                entityData.removeEntity(piece);
+                payOutAdjuster = objectsController.loadObject(OBJECT_PAY_OUT_ADJUSTER_ID, roomInstance.getOwnerId(), p.x, p.y);
+                showPayOut();
+                return;
+            }
+        }
+    }
+
+    @Override
+    public void remove() {
+        super.remove();
+
+        removePayOutAdjuster();
+    }
+
+    private void removePayOutAdjuster() {
+        if (payOutAdjuster != null) {
+            entityData.removeEntity(payOutAdjuster);
+            payOutAdjuster = null;
+        }
     }
 
 }

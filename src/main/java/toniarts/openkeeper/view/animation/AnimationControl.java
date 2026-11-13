@@ -40,4 +40,14 @@ public interface AnimationControl extends Control {
      * Should we stop the animation
      */
     public boolean isStopAnimation();
+
+    /**
+     * Should the animation stay on its last frame once it has played through,
+     * instead of looping
+     *
+     * @return true to hold the last frame
+     */
+    default boolean isHoldLastFrame() {
+        return false;
+    }
 }
