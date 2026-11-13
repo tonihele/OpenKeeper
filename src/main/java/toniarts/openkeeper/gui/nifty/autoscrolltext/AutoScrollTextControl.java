@@ -103,7 +103,7 @@ public final class AutoScrollTextControl extends AbstractController implements L
             autoScroll.getParameters().setProperty("delay", Integer.toString(2));
             textControl.getElement().startEffect(EffectEventId.onCustom);
         } else {
-            textRenderer.setTextHAlign(HorizontalAlign.center);
+            textRenderer.setTextHAlign(HorizontalAlign.left);
             textControl.getElement().stopEffect(EffectEventId.onCustom);
         }
     }
