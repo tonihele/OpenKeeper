@@ -100,7 +100,8 @@ public class HighlightBlinkControl extends AbstractControl {
 
                 Material material = ((Geometry) spatial).getMaterial();
                 try {
-                    Texture texture = assetManager.loadTexture(new TextureKey(textureKey, false));
+                    Texture texture = AssetUtils.enableWorldTextureMipmaps(
+                            assetManager.loadTexture(new TextureKey(textureKey, false)));
                     material.setTexture("DiffuseMap", texture);
                     AssetUtils.assignMapsToMaterial(assetManager, material);
                 } catch (Exception e) {

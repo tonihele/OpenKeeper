@@ -100,7 +100,7 @@ public final class Ceiling {
         String textureName = (ceilingResource != null) ? ceilingResource.getName() : "Ceiling";
         TextureKey textureKey = new TextureKey(AssetUtils.getCanonicalAssetKey(
                 AssetsConverter.TEXTURES_FOLDER.concat("/").concat(textureName).concat(".png")), false);
-        Texture tex = assetManager.loadTexture(textureKey);
+        Texture tex = AssetUtils.enableWorldTextureMipmaps(assetManager.loadTexture(textureKey));
         mat.setTexture("DiffuseMap", tex);
         MapViewController.setTerrainMaterialLighting(mat, terrain);
 

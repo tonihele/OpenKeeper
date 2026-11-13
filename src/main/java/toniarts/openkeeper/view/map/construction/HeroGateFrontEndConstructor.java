@@ -558,7 +558,8 @@ public final class HeroGateFrontEndConstructor extends RoomConstructor {
                 String currentTexture = material.getTextureParam("DiffuseMap").getTextureValue().getKey().getName();
                 if (!targetTexture.equals(currentTexture)) {
                     try {
-                        Texture texture = assetManager.loadTexture(new TextureKey(targetTexture, false));
+                        Texture texture = AssetUtils.enableWorldTextureMipmaps(
+                                assetManager.loadTexture(new TextureKey(targetTexture, false)));
                         material.setTexture("DiffuseMap", texture);
                         AssetUtils.assignMapsToMaterial(assetManager, material);
                     } catch (Exception e) {
