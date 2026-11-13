@@ -24,12 +24,30 @@ import toniarts.openkeeper.utils.GameTimeCounter;
  */
 public final class GameTimeController extends GameTimeCounter implements IGameTimer {
 
+    private final double startTime;
     private long ticks;
+
+    /**
+     * A game timer that starts from zero, for a new game
+     */
+    public GameTimeController() {
+        this(0.0);
+    }
+
+    /**
+     * A game timer that starts from the given time, the time of a loaded game
+     *
+     * @param startTime the game time to start from, in seconds
+     */
+    public GameTimeController(double startTime) {
+        this.startTime = startTime;
+        timeElapsed = startTime;
+    }
 
     @Override
     public void start() {
         ticks = 0;
-        timeElapsed = 0.0;
+        timeElapsed = startTime;
     }
 
     @Override

@@ -58,6 +58,22 @@ public final class MapData implements IMapData {
         }
     }
 
+    /**
+     * Creates the map of a loaded game from its map tile entities
+     *
+     * @param kwdFile the level, for the map size
+     * @param entityData the entities of the loaded game
+     */
+    public MapData(IKwdFile kwdFile, EntityData entityData) {
+        width = kwdFile.getMap().getWidth();
+        height = kwdFile.getMap().getHeight();
+        this.tiles = new IMapTileController[width][height];
+        for (EntityId entityId : entityData.findEntities(null, MapTile.class)) {
+            Point p = entityData.getComponent(entityId, MapTile.class).p;
+            tiles[p.x][p.y] = new MapTileController(entityId, entityData);
+        }
+    }
+
     private static MapTileController createMapTile(EntityData entityData, Tile tile, IKwdFile kwdFile, int x, int y, int index,
             Map<Short, Keeper> playersById) {
         EntityId entityId = entityData.createEntity();

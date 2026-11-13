@@ -20,6 +20,8 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Supplier;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 
 /**
@@ -39,6 +41,7 @@ public final class GameLoop {
 
     private final long updateRate;
     private final AtomicBoolean pauseFlag = new AtomicBoolean(false);
+    private final ReentrantLock frameLock = new ReentrantLock(true);
 
     public GameLoop(IGameLogicUpdatable gameLoopManager) {
         this(gameLoopManager, INTERVAL_FPS_60); // 60 FPS
@@ -76,10 +79,37 @@ public final class GameLoop {
         pauseFlag.set(true);
     }
 
+    /**
+     * Is the loop paused. A frame may still be finishing after the pause.
+     *
+     * @return true if paused
+     */
+    public boolean isPaused() {
+        return pauseFlag.get();
+    }
+
     public void resume() {
         pauseFlag.set(false);
         synchronized (pauseFlag) {
             pauseFlag.notify();
+        }
+    }
+
+    /**
+     * Runs the action between two frames. A frame that is running is finished
+     * first, and the next one waits until the action is done. Unlike
+     * {@link #pause()}, this guarantees that no frame is running.
+     *
+     * @param <T> the result type
+     * @param action the action to run
+     * @return the result of the action
+     */
+    public <T> T hold(Supplier<T> action) {
+        frameLock.lock();
+        try {
+            return action.get();
+        } finally {
+            frameLock.unlock();
         }
     }
 
@@ -135,7 +165,12 @@ public final class GameLoop {
                 if (delta + frameRate >= updateRate) {
                     lastTime = time;
                     frameRate += delta - updateRate;
-                    gameLoopManager.processTick(delta / 1_000_000_000f);
+                    frameLock.lock();
+                    try {
+                        gameLoopManager.processTick(delta / 1_000_000_000f);
+                    } finally {
+                        frameLock.unlock();
+                    }
                     long tickTime = System.nanoTime() - time;
                     // Logging
                     logger.log(tickTime < updateRate ? Level.TRACE : Level.ERROR, "Loop \"{0}\" took {1} ms!",

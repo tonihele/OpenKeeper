@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.room.storage;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -28,6 +29,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -36,6 +38,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Room object controller. FIXME: Cache the coordinates and listen to changes in
@@ -51,7 +54,7 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
     protected final EntityData entityData;
     private final IGameTimer gameTimer;
     protected final Map<Point, Collection<EntityId>> objectsByCoordinate = new HashMap<>();
-    private final EntityId entityId;
+    private EntityId entityId;
 
     public AbstractRoomObjectControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData,
             IGameTimer gameTimer, AbstractRoomController.ObjectType objectType) {
@@ -62,6 +65,27 @@ public abstract class AbstractRoomObjectControl<V> implements IRoomObjectControl
 
         entityId = entityData.createEntity();
         entityData.setComponent(entityId, new Storage(parent.getEntityId(), objectType, 0, calculateMaxCapacity()));
+    }
+
+    @Override
+    public void restore() {
+        AbstractRoomController.ObjectType objectType = getObjectType();
+        for (EntityId storage : entityData.findEntities(new FieldFilter(Storage.class, "room", parent.getEntityId()), Storage.class)) {
+            if (!storage.equals(entityId) && entityData.getComponent(storage, Storage.class).objectType == objectType) {
+                entityData.removeEntity(entityId);
+                entityId = storage;
+                break;
+            }
+        }
+
+        // The stored creatures are only counted, the objects are kept by their tiles
+        for (EntityId object : entityData.findEntities(new FieldFilter(Stored.class, "room", parent.getEntityId()),
+                Stored.class, ObjectComponent.class, Position.class)) {
+            if (entityData.getComponent(object, Stored.class).objectType == objectType) {
+                Point p = WorldUtils.vectorToPoint(entityData.getComponent(object, Position.class).position);
+                objectsByCoordinate.computeIfAbsent(p, key -> new ArrayList<>()).add(object);
+            }
+        }
     }
 
     protected abstract int getObjectsPerTile();

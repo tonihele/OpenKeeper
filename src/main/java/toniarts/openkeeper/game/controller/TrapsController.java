@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
 import toniarts.openkeeper.game.controller.trap.TrapController;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -68,9 +70,11 @@ public final class TrapsController implements ITrapsController {
      * @param gameSettings the game settings
      * @param gameController
      * @param levelInfo
+     * @param saveGame the loaded game, its traps are in the entities already.
+     * {@code null} for a new game
      */
     public TrapsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            IGameController gameController, ILevelInfo levelInfo) {
+            IGameController gameController, ILevelInfo levelInfo, @Nullable SaveGame saveGame) {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
@@ -78,7 +82,9 @@ public final class TrapsController implements ITrapsController {
         this.levelInfo = levelInfo;
 
         // Load traps
-        loadTraps();
+        if (saveGame == null) {
+            loadTraps();
+        }
     }
 
     private void loadTraps() {

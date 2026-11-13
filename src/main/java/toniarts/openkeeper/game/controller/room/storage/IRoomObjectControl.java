@@ -44,6 +44,13 @@ public interface IRoomObjectControl<V> {
     void destroy();
 
     /**
+     * Takes over the storage and the stored items of a room of a loaded game,
+     * in place of the new storage
+     */
+    default void restore() {
+    }
+
+    /**
      * Get the room currently used capacity
      *
      * @return the currently used capacity in number of objects

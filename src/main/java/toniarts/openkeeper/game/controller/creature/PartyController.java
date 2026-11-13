@@ -21,6 +21,7 @@ import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -67,6 +68,28 @@ public final class PartyController implements IPartyController {
     public void create() {
         id = PARTY_ID_GENERATOR.getAndIncrement();
         created = true;
+    }
+
+    /**
+     * Sets a created party back to the way it was saved
+     *
+     * @param id the unique ID, the members' Party components refer to it
+     * @param type the party type
+     * @param members the member instances, in the order of the party members
+     * in the level
+     * @param leader the leader
+     */
+    public void restore(long id, PartyType type, List<ICreatureController> members, ICreatureController leader) {
+        this.id = id;
+        this.type = type;
+        this.leader = leader;
+        created = true;
+        PARTY_ID_GENERATOR.accumulateAndGet(id + 1, Math::max);
+
+        Iterator<ICreatureController> iter = members.iterator();
+        for (Map.Entry<Thing.GoodCreature, ICreatureController> member : this.members.entrySet()) {
+            member.setValue(iter.hasNext() ? iter.next() : null);
+        }
     }
 
     @Override
@@ -132,6 +155,11 @@ public final class PartyController implements IPartyController {
     @Override
     public ICreatureController getPartyLeader() {
         checkPartyLeader();
+        return leader;
+    }
+
+    @Override
+    public ICreatureController getLeader() {
         return leader;
     }
 

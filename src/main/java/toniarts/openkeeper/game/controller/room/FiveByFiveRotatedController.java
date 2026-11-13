@@ -81,8 +81,8 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
             }
         });
 
-        // Init the spawn point
-        if (!isDestroyed()) {
+        // Init the spawn point, a loaded Dungeon Heart carries on with its spawn time
+        if (!isDestroyed() && getEntityComponent(ImpGenerator.class) == null) {
             entityData.setComponent(entityId, new ImpGenerator(start, Double.MIN_VALUE));
         }
     }

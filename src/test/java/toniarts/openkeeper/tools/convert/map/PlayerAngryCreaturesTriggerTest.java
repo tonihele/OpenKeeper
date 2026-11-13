@@ -209,7 +209,7 @@ class PlayerAngryCreaturesTriggerTest {
                         case "setFlag" -> { flag.set((int) a[1]); yield null; }
                         default -> throw new UnsupportedOperationException(m.getName());
                     });
-            creatures = new CreaturesController(kwd, data, Map.of(), null, null, null, level);
+            creatures = new CreaturesController(kwd, data, Map.of(), null, null, null, level, null);
         }
 
         EntityId creature(short type, short owner, boolean angry) {

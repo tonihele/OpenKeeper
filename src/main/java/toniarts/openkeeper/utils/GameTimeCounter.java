@@ -27,6 +27,17 @@ abstract public class GameTimeCounter implements IGameLogicUpdatable {
 
     protected double timeElapsed = 0.0;
 
+    /**
+     * Goes on counting from the given time. A loaded game goes on from the
+     * game time it was saved at, and the times in its components are from
+     * that clock.
+     *
+     * @param time the time to count from, in seconds
+     */
+    public void setTimeElapsed(double time) {
+        timeElapsed = time;
+    }
+
     @Override
     public void processTick(float tpf) {
         timeElapsed += tpf;
