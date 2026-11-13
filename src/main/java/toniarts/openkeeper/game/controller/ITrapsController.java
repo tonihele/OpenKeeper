@@ -38,4 +38,12 @@ public interface ITrapsController extends IEntityWrapper<ITrapController> {
      */
     public EntityId addTrapBlueprint(short trapId, Point tile, short ownerId);
 
+    /**
+     * Arms a blueprint when its crate is delivered, it becomes a working trap
+     *
+     * @param blueprint the blueprint, nothing happens if it is not a blueprint
+     * (anymore)
+     */
+    public void armTrap(EntityId blueprint);
+
 }

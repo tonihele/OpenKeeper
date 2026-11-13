@@ -27,12 +27,23 @@ public final class Slapped implements EntityComponent {
 
     public double startTime;
 
+    /**
+     * Whether the slapped entity has already reacted to this slap. Slaps come
+     * from the keeper's own thread, so the start time can fall between ticks.
+     */
+    public boolean reacted;
+
     public Slapped() {
         // For serialization
     }
 
     public Slapped(double startTime) {
+        this(startTime, false);
+    }
+
+    public Slapped(double startTime, boolean reacted) {
         this.startTime = startTime;
+        this.reacted = reacted;
     }
 
 }
