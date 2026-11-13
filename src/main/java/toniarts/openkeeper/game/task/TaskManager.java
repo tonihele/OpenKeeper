@@ -394,7 +394,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void processDeletedUnconsciousEntities(Set<Entity> entities) {
-        // TODO:
+
+        // The creature got up, was locked up or died, there is nobody to rescue or capture anymore
+        for (Entity entity : entities) {
+            for (Set<Task> tasks : taskQueues.values()) {
+                tasks.removeIf(task -> (task instanceof RescueCreatureTask || task instanceof CaptureEnemyCreatureTask)
+                        && entity.getId().equals(task.getTaskTarget()));
+            }
+        }
     }
 
     private void processAddedCorpseEntities(Set<Entity> entities) {
