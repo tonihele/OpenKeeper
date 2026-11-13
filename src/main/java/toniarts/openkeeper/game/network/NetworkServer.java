@@ -82,6 +82,8 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.Portal;
+import toniarts.openkeeper.game.component.PortalAttracted;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -233,6 +235,8 @@ public final class NetworkServer {
             Serializer.registerClass(Party.class, new FieldSerializer());
             Serializer.registerClass(Placeable.class, new FieldSerializer());
             Serializer.registerClass(PlayerObjective.class, new FieldSerializer());
+            Serializer.registerClass(PortalAttracted.class, new FieldSerializer());
+            Serializer.registerClass(PortalCreatureLimit.class, new FieldSerializer());
             Serializer.registerClass(PortalGem.class, new FieldSerializer());
             Serializer.registerClass(Position.class, new FieldSerializer());
             Serializer.registerClass(Possessed.class, new FieldSerializer());
