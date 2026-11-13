@@ -21,21 +21,29 @@ import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.ChickenSpawnFixtures;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.ResearchFixtures;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.reflect.InvocationHandler;
+import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -51,6 +59,8 @@ class FogOfWarControllerTest {
 
     private static final short VIEWER = Player.KEEPER1_ID;
     private static final short FLOOR_ID = 1;
+    private static final short WOODEN_DOOR_ID = 1;
+    private static final short BARRICADE_DOOR_ID = 2;
     private static final int MAP_SIZE = 21;
 
     /**
@@ -68,9 +78,14 @@ class FogOfWarControllerTest {
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> variables = Map.of(
                 Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES,
                 ChickenSpawnFixtures.miscVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES, 15));
+        Map<Integer, Door> doors = Map.of(
+                (int) WOODEN_DOOR_ID, door(WOODEN_DOOR_ID, false),
+                (int) BARRICADE_DOOR_ID, door(BARRICADE_DOOR_ID, true));
         IKwdFile kwdFile = proxy(IKwdFile.class, (proxy, method, args) -> switch (method.getName()) {
             case "getTerrain" ->
                 floor;
+            case "getDoorById" ->
+                doors.get(args[0]);
             case "getThings" ->
                 List.of();
             case "getVariables" ->
@@ -106,6 +121,24 @@ class FogOfWarControllerTest {
         assertHeartRevealedAfterSeeding();
     }
 
+    @Test
+    void doorSightIndexPreservesDoorAndBarricadeRulesAndClearsMovedDoors() {
+        controller.start();
+        EntityId woodenDoor = createDoor(10, 10, WOODEN_DOOR_ID);
+        createDoor(12, 10, BARRICADE_DOOR_ID);
+
+        controller.update(0.2f);
+        assertTrue(blocksSightAt(controller, 10, 10));
+        assertFalse(blocksSightAt(controller, 11, 10));
+        assertFalse(blocksSightAt(controller, 12, 10));
+
+        moveDoor(woodenDoor, 14, 14, WOODEN_DOOR_ID);
+        controller.update(0.2f);
+        assertFalse(blocksSightAt(controller, 10, 10));
+        assertTrue(blocksSightAt(controller, 14, 14));
+        assertFalse(blocksSightAt(controller, 12, 10));
+    }
+
     private void assertHeartRevealedAfterSeeding() {
         Point nearEdgeOfReveal = new Point(10, 18);
 
@@ -124,6 +157,37 @@ class FogOfWarControllerTest {
                 new RoomComponent((short) 1, false, new Point(x, y)),
                 new Owner(VIEWER, VIEWER),
                 new DungeonHeart());
+    }
+
+    private EntityId createDoor(int x, int y, short doorId) {
+        EntityId id = entityData.createEntity();
+        entityData.setComponents(id, new DoorComponent(doorId, false, false),
+                new DoorViewState(doorId, false, false, false),
+                new Position(0f, WorldUtils.pointToVector3f(x, y)));
+        return id;
+    }
+
+    private void moveDoor(EntityId id, int x, int y, short doorId) {
+        entityData.setComponents(id, new DoorComponent(doorId, false, false),
+                new DoorViewState(doorId, false, false, false),
+                new Position(0f, WorldUtils.pointToVector3f(x, y)));
+    }
+
+    private static boolean blocksSightAt(FogOfWarController controller, int x, int y) {
+        try {
+            Method method = FogOfWarController.class.getDeclaredMethod("blocksSight", int.class, int.class);
+            method.setAccessible(true);
+            return (boolean) method.invoke(controller, x, y);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError("Unable to check the fog controller's sight rule", e);
+        }
+    }
+
+    private static Door door(short id, boolean barricade) {
+        EnumSet<Door.DoorFlag> flags = barricade
+                ? EnumSet.of(Door.DoorFlag.IS_BARRICADE)
+                : EnumSet.noneOf(Door.DoorFlag.class);
+        return ResearchFixtures.door(id, 1, flags);
     }
 
     @SuppressWarnings("unchecked")
