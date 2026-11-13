@@ -160,7 +160,8 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         // Floor objects 0-2
         Room room = roomInstance.getRoom();
         int index = -1;
-        if (room.getObjects().get(0) > 0 || room.getObjects().get(1) > 0 || room.getObjects().get(2) > 0) {
+        if (isFloorFurnitureEnabled()
+                && (room.getObjects().get(0) > 0 || room.getObjects().get(1) > 0 || room.getObjects().get(2) > 0)) {
 
             // Object map
             boolean[][] objectMap = new boolean[map.length][map[0].length];
@@ -282,6 +283,11 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
     private static int random(int seed, int bound) {
         return Integer.remainderUnsigned(Integer.rotateRight(seed, 13), bound);
+    }
+
+    /** Ordinary floor furniture is enabled by SPECIAL_TILES; dedicated room routines may opt in. */
+    protected boolean isFloorFurnitureEnabled() {
+        return roomInstance.getRoom().getFlags().contains(Room.RoomFlag.SPECIAL_TILES);
     }
 
     protected static boolean hasSameTile(boolean[][] map, int x, int y) {

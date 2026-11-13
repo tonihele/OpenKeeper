@@ -43,8 +43,8 @@ public final class Room implements Comparable<Room>, ISoundable, IIndexable {
         PLACEABLE_ON_LAVA(0x0002),
         PLACEABLE_ON_LAND(0x0004),
         HAS_WALLS(0x0008),
-        CENTRE(0x0010), // Placement
-        SPECIAL_TILES(0x0020), // Placement
+        CENTRE(0x0010), // Use not found in DKII yet.
+        SPECIAL_TILES(0x0020), // Enables generic floor furniture from the room object slots.
         NORMAL_TILES(0x0040), // Placement
         BUILDABLE(0x0080),
         SPECIAL_WALLS(0x0100), // Placement

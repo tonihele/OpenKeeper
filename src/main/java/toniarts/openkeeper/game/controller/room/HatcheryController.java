@@ -58,6 +58,12 @@ public final class HatcheryController extends NormalRoomController implements IC
     }
 
     @Override
+    protected boolean isFloorFurnitureEnabled() {
+        // DKII creates coops through the Hatchery's own routine, without SPECIAL_TILES.
+        return true;
+    }
+
+    @Override
     protected RoomObjectLayout getRoomObjectLayout() {
         return RoomObjectLayout.ISOLATED;
     }
