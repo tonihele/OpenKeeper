@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 
 /**
@@ -51,6 +52,7 @@ public final class ActionPointTriggerControl extends TriggerControl {
     private boolean invalidActionPointWarningLogged;
     private final Set<Integer> warnedCongregateInTriggers = new HashSet<>();
     private final Set<Integer> warnedPossessedCreatureTriggers = new HashSet<>();
+    private final Set<Integer> warnedTagAllOfTriggers = new HashSet<>();
 
     public ActionPointTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId, ActionPoint ap,
@@ -78,6 +80,9 @@ public final class ActionPointTriggerControl extends TriggerControl {
 
             case AP_POSESSED_CREATURE_ENTERS:
                 return isPossessedCreatureInActionPointActive(trigger);
+
+            case AP_TAG_ALL_OF:
+                return isTagAllOfActive(trigger);
 
             case AP_CLAIM_PART_OF:
                 playerId = trigger.getUserData("playerId", short.class);
@@ -140,20 +145,6 @@ public final class ActionPointTriggerControl extends TriggerControl {
                 }
                 break;
 
-            case AP_TAG_ALL_OF:
-                playerId = trigger.getUserData("playerId", short.class);
-                // value = trigger.getUserData("value", int.class); // Unusefull ?
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        // TODO check who tagged tile
-                        if (!map.getTile(x, y).isSelected(playerId)) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
-
             default:
                 return super.isActive(trigger);
         }
@@ -209,6 +200,63 @@ public final class ActionPointTriggerControl extends TriggerControl {
         }
 
         return compare(target, comparisonType, value);
+    }
+
+    private boolean isTagAllOfActive(TriggerGenericData trigger) {
+        if (!actionPointWithinMap) {
+            warnInvalidTagAllOf(trigger, "invalid action point rectangle");
+            return false;
+        }
+
+        Short playerId = trigger.getUserData("playerId", short.class);
+        if (playerId == null) {
+            warnInvalidTagAllOf(trigger, "missing player id");
+            return false;
+        }
+
+        IMapDataInformation map = mapController.getMapData();
+        if (map == null) {
+            warnInvalidTagAllOf(trigger, "map data is unavailable");
+            return false;
+        }
+
+        int playerTaskCount = 0;
+        int taggableTileCount = 0;
+        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                IMapTileInformation tile = map.getTile(x, y);
+                if (tile == null) {
+                    warnInvalidTagAllOf(trigger, "missing map tile at " + x + "," + y);
+                    return false;
+                }
+
+                // Reverse engineering shows that type 69 counts this player's
+                // excavation tasks independently from the current taggable
+                // terrain count; the two counts are not matched by tile identity.
+                if (tile.isSelected(playerId)) {
+                    playerTaskCount++;
+                }
+
+                Terrain terrain = mapController.getTerrain(tile);
+                if (terrain == null || terrain.getFlags() == null) {
+                    warnInvalidTagAllOf(trigger, "terrain is unavailable for tile " + x + "," + y);
+                    return false;
+                }
+                if (terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                    taggableTileCount++;
+                }
+            }
+        }
+
+        // Reverse-engineered type 69 ignores comparison/value and uses a literal >=.
+        // Therefore an area with no taggable tiles evaluates as 0 >= 0.
+        return playerTaskCount >= taggableTileCount;
+    }
+
+    private void warnInvalidTagAllOf(TriggerGenericData trigger, String reason) {
+        if (warnedTagAllOfTriggers.add(trigger.getId())) {
+            logger.log(Level.WARNING, "AP_TAG_ALL_OF trigger {0}: {1}", new Object[]{trigger.getId(), reason});
+        }
     }
 
     private boolean isPossessedCreatureInActionPointActive(TriggerGenericData trigger) {

@@ -51,10 +51,12 @@ import toniarts.openkeeper.game.trigger.TriggerGenericData;
 import toniarts.openkeeper.game.trigger.TriggerLoader;
 import toniarts.openkeeper.tools.convert.map.APPossessedCreatureEntersTriggerFixtures;
 import toniarts.openkeeper.tools.convert.map.APCongregateInTriggerFixtures;
+import toniarts.openkeeper.tools.convert.map.APTagAllOfTriggerFixtures;
 import toniarts.openkeeper.tools.convert.map.ActionPointFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.Point;
@@ -69,6 +71,140 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ActionPointTriggerControlTest {
 
     private static final ActionPoint ACTION_POINT = actionPoint(1, 1, 2, 2);
+
+    @Test
+    void tagAllOfCountsPlayerTasksAgainstTaggableTerrainAndIgnoresAuthoredComparison() {
+        IKwdFile kwd = APTagAllOfTriggerFixtures.tagAllOf((short) 1,
+                TriggerGeneric.ComparisonType.EQUAL_TO, 99);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        fixture.setTerrain(1, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(1, 2, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(0, 0, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTagged(1, 1, (short) 1, true);
+        fixture.setTagged(2, 1, (short) 1, true);
+        fixture.setTagged(1, 2, (short) 2, true);
+        fixture.setTagged(0, 0, (short) 1, true);
+
+        TriggerGenericData condition = fixture.condition();
+        ActionPointTriggerControl control = fixture.control();
+        assertFalse(control.isActive(condition), "other players' tasks do not count");
+
+        fixture.setTagged(1, 2, (short) 1, true);
+        assertTrue(control.isActive(condition), "three player tasks cover the three taggable tiles");
+
+        fixture.setTagged(1, 1, (short) 1, false);
+        assertFalse(control.isActive(condition), "removing a player's task lowers the count immediately");
+    }
+
+    @Test
+    void tagAllOfUsesAPlayerTaskCountComparedWithTheEligibleTileCount() {
+        IKwdFile kwd = APTagAllOfTriggerFixtures.tagAllOf((short) 1,
+                TriggerGeneric.ComparisonType.EQUAL_TO, 500);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        fixture.setTerrain(1, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(1, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTagged(1, 1, (short) 1, true);
+
+        TriggerGenericData condition = fixture.condition();
+        ActionPointTriggerControl control = fixture.control();
+        assertFalse(control.isActive(condition));
+
+        // The executable compares counts, not tile identities. This models a
+        // task record surviving a terrain eligibility change. Normal tagging
+        // input cannot create a task on a tile after it becomes untaggable.
+        fixture.setTerrain(1, 1, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        assertTrue(control.isActive(condition));
+    }
+
+    @Test
+    void tagAllOfReevaluatesDynamicTerrainAndTaskChanges() {
+        IKwdFile kwd = APTagAllOfTriggerFixtures.tagAllOf((short) 1,
+                TriggerGeneric.ComparisonType.NONE, 0);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        fixture.setTerrain(1, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(1, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTagged(1, 1, (short) 1, true);
+        fixture.setTagged(2, 1, (short) 1, true);
+
+        TriggerGenericData condition = fixture.condition();
+        ActionPointTriggerControl control = fixture.control();
+        assertTrue(control.isActive(condition));
+
+        fixture.setTerrain(1, 2, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        assertFalse(control.isActive(condition), "newly taggable terrain raises the required count");
+        fixture.setTagged(1, 2, (short) 1, true);
+        assertTrue(control.isActive(condition));
+
+        fixture.setTerrain(2, 1, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTagged(2, 1, (short) 1, false);
+        assertTrue(control.isActive(condition), "removed eligible terrain lowers the required count");
+
+        fixture.setTagged(1, 1, (short) 1, false);
+        assertFalse(control.isActive(condition), "untagging lowers the task count");
+    }
+
+    @Test
+    void tagAllOfTreatsAnAreaWithoutTaggableTilesAsSatisfied() {
+        IKwdFile kwd = APTagAllOfTriggerFixtures.tagAllOf((short) 1,
+                TriggerGeneric.ComparisonType.NONE, 0);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        for (int x = 1; x <= 2; x++) {
+            for (int y = 1; y <= 2; y++) {
+                fixture.setTerrain(x, y, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+            }
+        }
+
+        assertTrue(fixture.isActive(), "type 69's literal comparison is 0 >= 0");
+    }
+
+    @Test
+    void tagAllOfRejectsInvalidTriggerAndMapDataWithoutThrowing() {
+        IKwdFile missingPlayer = APTagAllOfTriggerFixtures.tagAllOfWithoutPlayerId(
+                TriggerGeneric.ComparisonType.NONE, 0);
+        Fixture missingPlayerFixture = new Fixture(missingPlayer, ACTION_POINT, 4, 4);
+        assertFalse(missingPlayerFixture.isActive());
+
+        IKwdFile kwd = APTagAllOfTriggerFixtures.tagAllOf((short) 1,
+                TriggerGeneric.ComparisonType.NONE, 0);
+        Fixture invalidAreaFixture = new Fixture(kwd, actionPoint(0, 0, 4, 4), 4, 4);
+        assertFalse(invalidAreaFixture.isActive());
+
+        Fixture unknownTerrainFixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        unknownTerrainFixture.setTerrain(1, 1, (short) 99);
+        assertFalse(unknownTerrainFixture.isActive());
+    }
+
+    @Test
+    void tagAllOfActivatesItsExistingChildActionWhenTheTerrainCountIsCovered() {
+        IKwdFile kwd = APTagAllOfTriggerFixtures.tagAllOf((short) 1,
+                TriggerGeneric.ComparisonType.GREATER_THAN, 500, true);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
+        fixture.setTerrain(1, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(1, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTerrain(2, 2, APTagAllOfTriggerFixtures.UNTAGGABLE_TERRAIN_ID);
+        fixture.setTagged(1, 1, (short) 1, true);
+        ActionPointTriggerControl control = fixture.control();
+
+        control.update(0.25f);
+        control.update(0.25f);
+        assertFalse(fixture.flags.containsKey((short) 2));
+
+        fixture.setTerrain(2, 1, APTagAllOfTriggerFixtures.TAGGABLE_TERRAIN_ID);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertFalse(fixture.flags.containsKey((short) 2));
+
+        fixture.setTagged(2, 1, (short) 1, true);
+        control.update(0.25f);
+        control.update(0.25f);
+        assertEquals(1, fixture.flags.get((short) 2));
+    }
 
     @ParameterizedTest
     @CsvSource({
@@ -608,6 +744,82 @@ class ActionPointTriggerControlTest {
         assertEquals(6, totalRecords, "Total retail AP_POSESSED_CREATURE_ENTERS records");
     }
 
+    @Test
+    void evaluatesAllFiveTagAllOfRecordsFromRetailCampaignMapsWhenAvailable() throws IOException {
+        String gameDirectory = System.getProperty("openkeeper.dk2.game", System.getenv("OPENKEEPER_DK2_GAME"));
+        Assumptions.assumeTrue(gameDirectory != null && !gameDirectory.isBlank(),
+                "Set OPENKEEPER_DK2_GAME to the retail DK2 install directory to run this integration test");
+
+        Map<String, Map<Integer, Integer>> expectedRecords = Map.of(
+                "level1", Map.of(259, 20, 155, 21),
+                "level2", Map.of(84, 3, 132, 5, 171, 6));
+        Map<String, Map<Integer, Integer>> expectedTaggableTiles = Map.of(
+                "level1", Map.of(20, 15, 21, 9),
+                "level2", Map.of(3, 1, 5, 15, 6, 9));
+        int totalRecords = 0;
+
+        for (Map.Entry<String, Map<Integer, Integer>> mapEntry : expectedRecords.entrySet()) {
+            Path mapFile = Path.of(gameDirectory, "Data", "Editor", "Maps", mapEntry.getKey() + ".kwd");
+            Assumptions.assumeTrue(Files.isRegularFile(mapFile), "Missing stock map " + mapFile);
+            IKwdFile kwd = KwdFile.load(gameDirectory, mapFile);
+            int width = kwd.getMap().getWidth();
+            int height = kwd.getMap().getHeight();
+            Map<Integer, Integer> foundRecords = new HashMap<>();
+
+            for (Thing.ActionPoint thing : kwd.getThings(Thing.ActionPoint.class)) {
+                if (thing.getTriggerId() == 0) {
+                    continue;
+                }
+                ActionPoint ap = new ActionPoint(thing);
+                TriggerGenericData tree = new TriggerLoader(kwd).load(thing.getTriggerId());
+                List<TriggerGenericData> tagAllOfTriggers = new ArrayList<>();
+                collectTagAllOfTriggers(tree, tagAllOfTriggers);
+
+                for (TriggerGenericData trigger : tagAllOfTriggers) {
+                    totalRecords++;
+                    foundRecords.put(trigger.getId(), (int) thing.getId());
+                    assertEquals((short) 3, trigger.getUserData("playerId", short.class).shortValue(),
+                            mapEntry.getKey() + " trigger " + trigger.getId() + " player");
+
+                    Fixture fixture = new Fixture(kwd, ap, width, height);
+                    fixture.copyTerrainFrom(kwd);
+                    int taggableCount = 0;
+                    int firstTaggableX = -1;
+                    int firstTaggableY = -1;
+                    for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+                        for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                            var tile = kwd.getMap().getTile(x, y);
+                            Terrain terrain = kwd.getTerrain(tile.getTerrainId());
+                            assertTrue(terrain != null, mapEntry.getKey() + " missing terrain at " + x + "," + y);
+                            if (terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                                taggableCount++;
+                                if (firstTaggableX < 0) {
+                                    firstTaggableX = x;
+                                    firstTaggableY = y;
+                                }
+                                fixture.setTagged(x, y, (short) 3, true);
+                            }
+                        }
+                    }
+                    assertEquals(expectedTaggableTiles.get(mapEntry.getKey()).get((int) thing.getId()), taggableCount,
+                            mapEntry.getKey() + " action point " + thing.getId() + " taggable terrain count");
+
+                    ActionPointTriggerControl control = fixture.control(thing.getTriggerId());
+                    assertTrue(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId()
+                            + " with all player tasks present");
+                    fixture.setTagged(firstTaggableX, firstTaggableY, (short) 3, false);
+                    assertFalse(control.isActive(trigger), mapEntry.getKey() + " trigger " + trigger.getId()
+                            + " after removing one task");
+                }
+            }
+
+            assertEquals(mapEntry.getValue(), foundRecords,
+                    "Stock AP_TAG_ALL_OF trigger/action-point references in " + mapEntry.getKey());
+        }
+
+        assertEquals(5, totalRecords, "Total retail AP_TAG_ALL_OF records");
+    }
+
     private static void collectPossessedCreatureTriggers(TriggerGenericData trigger, List<TriggerGenericData> result) {
         if (trigger.getType() == TriggerGeneric.TargetType.AP_POSESSED_CREATURE_ENTERS) {
             result.add(trigger);
@@ -626,6 +838,17 @@ class ActionPointTriggerControlTest {
         for (var child : trigger.getChildren()) {
             if (child instanceof TriggerGenericData generic) {
                 collectCongregateTriggers(generic, result);
+            }
+        }
+    }
+
+    private static void collectTagAllOfTriggers(TriggerGenericData trigger, List<TriggerGenericData> result) {
+        if (trigger.getType() == TriggerGeneric.TargetType.AP_TAG_ALL_OF) {
+            result.add(trigger);
+        }
+        for (var child : trigger.getChildren()) {
+            if (child instanceof TriggerGenericData generic) {
+                collectTagAllOfTriggers(generic, result);
             }
         }
     }
@@ -649,6 +872,9 @@ class ActionPointTriggerControlTest {
 
         private final IKwdFile kwd;
         private final ActionPoint ap;
+        private final int width;
+        private final int height;
+        private final MapTileState[][] mapTiles;
         private final SpatialLookup spatialLookup = new SpatialLookup();
         private final Map<Short, Integer> flags = new HashMap<>();
         private final Map<Short, EntityId> possessedCreatures = new HashMap<>();
@@ -672,20 +898,26 @@ class ActionPointTriggerControlTest {
         private Fixture(IKwdFile kwd, ActionPoint ap, int width, int height) {
             this.kwd = kwd;
             this.ap = ap;
+            this.width = width;
+            this.height = height;
+            mapTiles = new MapTileState[width][height];
 
             IMapDataInformation mapData = (IMapDataInformation) Proxy.newProxyInstance(
                     IMapDataInformation.class.getClassLoader(), new Class<?>[]{IMapDataInformation.class},
                     (proxy, method, args) -> switch (method.getName()) {
                         case "getWidth" -> width;
                         case "getHeight" -> height;
+                        case "getTile" -> mapTile(((Number) args[0]).intValue(), ((Number) args[1]).intValue());
                         default -> throw new UnsupportedOperationException(method.getName());
                     });
             mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
                     new Class<?>[]{IMapController.class}, (proxy, method, args) -> {
-                        if (method.getName().equals("getMapData")) {
-                            return mapData;
-                        }
-                        throw new UnsupportedOperationException(method.getName());
+                        return switch (method.getName()) {
+                            case "getMapData" -> mapData;
+                            case "getTerrain" -> kwd.getTerrain(
+                                    ((IMapTileInformation) args[0]).getTerrainId());
+                            default -> throw new UnsupportedOperationException(method.getName());
+                        };
                     });
             levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                     new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> switch (method.getName()) {
@@ -698,6 +930,42 @@ class ActionPointTriggerControlTest {
                         }
                         default -> throw new UnsupportedOperationException(method.getName());
                     });
+        }
+
+        private IMapTileInformation mapTile(int x, int y) {
+            if (x < 0 || y < 0 || x >= width || y >= height) {
+                return null;
+            }
+            MapTileState state = mapTiles[x][y];
+            if (state == null) {
+                state = new MapTileState(x, y);
+                mapTiles[x][y] = state;
+            }
+            return state.tile;
+        }
+
+        private MapTileState mapTileState(int x, int y) {
+            mapTile(x, y);
+            return mapTiles[x][y];
+        }
+
+        private void setTerrain(int x, int y, short terrainId) {
+            mapTileState(x, y).terrainId = terrainId;
+        }
+
+        private void setTagged(int x, int y, short playerId, boolean tagged) {
+            mapTileState(x, y).selected.put(playerId, tagged);
+        }
+
+        private void copyTerrainFrom(IKwdFile source) {
+            for (int x = 0; x < width; x++) {
+                for (int y = 0; y < height; y++) {
+                    var sourceTile = source.getMap().getTile(x, y);
+                    if (sourceTile != null) {
+                        setTerrain(x, y, sourceTile.getTerrainId());
+                    }
+                }
+            }
         }
 
         private Occupant addCreature(short ownerId, short creatureId, int x, int y) {
@@ -769,6 +1037,26 @@ class ActionPointTriggerControlTest {
             ActionPointTriggerControl control = control();
             TriggerGenericData root = new TriggerLoader(kwd).load(1);
             return control.isActive((TriggerGenericData) root.getChild(0));
+        }
+    }
+
+    private static final class MapTileState {
+
+        private final Map<Short, Boolean> selected = new HashMap<>();
+        private final IMapTileInformation tile;
+        private short terrainId;
+
+        private MapTileState(int x, int y) {
+            tile = (IMapTileInformation) Proxy.newProxyInstance(
+                    IMapTileInformation.class.getClassLoader(), new Class<?>[]{IMapTileInformation.class},
+                    (proxy, method, args) -> switch (method.getName()) {
+                        case "getX" -> x;
+                        case "getY" -> y;
+                        case "getLocation" -> new Point(x, y);
+                        case "getTerrainId" -> terrainId;
+                        case "isSelected" -> selected.getOrDefault(((Number) args[0]).shortValue(), false);
+                        default -> defaultValue(method.getReturnType());
+                    });
         }
     }
 
