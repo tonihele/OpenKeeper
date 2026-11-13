@@ -238,6 +238,7 @@ public final class KmfModelLoader implements AssetLoader {
             index++;
         }
 
+        KmfModelMarkers.addStatic(node, sourceMesh);
         return node;
     }
 
@@ -468,6 +469,7 @@ public final class KmfModelLoader implements AssetLoader {
         composer.addAnimClip(animation);
         node.addControl(composer);
         // we could also do setCurrentAction here but it wouldn't get serialized
+        KmfModelMarkers.addAnimated(node, anim);
 
         return node;
     }
