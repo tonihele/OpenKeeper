@@ -56,11 +56,12 @@ public final class PlayerHandControl {
      * Adds an entity to the front of the queue
      *
      * @param entity the entity to add to the queue
+     * @param gameTime the current game time
      * @throws IllegalStateException if the queue is already full
      * @throws NullPointerException this queue doesn't accept {@code null}
      * elements
      */
-    public void push(EntityId entity) throws IllegalStateException {
+    public void push(EntityId entity, double gameTime) throws IllegalStateException {
 
         // Don't allow to push if full
         if (isFull()) {
@@ -82,7 +83,7 @@ public final class PlayerHandControl {
             viewType = ViewType.OBJECT;
             id = objectComponent.objectId;
         }
-        entityData.setComponent(entity, new InHand(maxCount - count, keeper.getId(), viewType, id));
+        entityData.setComponent(entity, new InHand(maxCount - count, keeper.getId(), viewType, id, gameTime));
     }
 
     /**

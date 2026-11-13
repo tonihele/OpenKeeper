@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -48,6 +49,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
     private static final Logger logger = System.getLogger(CreatureMoodSystem.class.getName());
     private static final short LAIR_ROOM_ID = 2;
     private static final int LOG_COUNTER_INTERVAL = 1000;
+    private static final int SECONDS_IN_HAND_BEFORE_ANGER = 20;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -85,6 +87,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             if (creature == null) {
                 continue;
             }
+            mood = applyInHandAnger(entity, mood, creature, tpf);
 
             int unhappyThreshold = CreatureMood.toRuntimeThreshold(
                     creature.getAttributes().getUnhappyThreshold());
@@ -153,6 +156,29 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
     static CreatureMood recoverInLair(CreatureMood mood, int angerChange) {
         return mood.add(CreatureMood.REASON_OTHER, angerChange);
+    }
+
+    /**
+     * DKII changes the shared "other" anger of a creature held in the hand for
+     * over 20 seconds once every game second. The 20 seconds are fixed, the
+     * level's TIME_IN_HAND_BEFORE_CREATURES_BECOME_ANGRY_SECONDS isn't read.
+     * Most creatures calm down in the hand, a few get angrier.
+     */
+    private CreatureMood applyInHandAnger(Entity entity, CreatureMood mood, Creature creature, float tpf) {
+        InHand inHand = entityData.getComponent(entity.getId(), InHand.class);
+        double gameTime = gameTimer.getGameTime();
+        if (inHand == null || gameTime - inHand.startTime <= SECONDS_IN_HAND_BEFORE_ANGER
+                || Math.floor(gameTime) == Math.floor(gameTime - tpf)) {
+            return mood;
+        }
+
+        CreatureMood updatedMood = mood.add(CreatureMood.REASON_OTHER,
+                CreatureMood.toRuntimeValue(creature.getAttributes().getAngerInHand()));
+        if (updatedMood.other == mood.other) {
+            return mood;
+        }
+        entityData.setComponent(entity.getId(), updatedMood);
+        return updatedMood;
     }
 
     private static String stateName(int state) {

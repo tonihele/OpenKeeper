@@ -70,7 +70,7 @@ class MinimapMarkerPainterTest {
         painter.update();
         assertTrue(paintsAnything());
 
-        entityData.setComponent(creature, new InHand(0, VIEWER_ID, ViewType.CREATURE, (short) 1));
+        entityData.setComponent(creature, new InHand(0, VIEWER_ID, ViewType.CREATURE, (short) 1, 0));
         painter.update();
         assertFalse(paintsAnything());
 
