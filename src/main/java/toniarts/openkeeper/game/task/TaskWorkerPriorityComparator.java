@@ -39,6 +39,18 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             return result;
         }
 
+        // A digging or claiming worker carries on with the closest work of the same kind, however far
+        result = Boolean.compare(o2.sameWork(), o1.sameWork());
+        if (result != 0) {
+            return result;
+        }
+        if (o1.sameWork()) {
+            result = Integer.compare(o1.points(), o2.points());
+            if (result != 0) {
+                return result;
+            }
+        }
+
         // Walls are only reinforced once there is nothing else to do, the floor is claimed first
         result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
         if (result != 0) {

@@ -24,6 +24,8 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The order in which unemployed workers take tasks
@@ -98,6 +100,79 @@ class WorkerTaskOrderTest {
         assertEquals(Integer.MAX_VALUE, TaskManager.getDropRing(task(TaskType.CARRY_GOLD_TO_TREASURY, null), drop));
     }
 
+    @Test
+    void claimingImpCarriesOnWithTheClosestClaim() {
+
+        // The imp just claimed a tile: it carries on claiming, although digging is closer and worth more
+        TaskManager.TaskWorkerPriority nextClaim = sameWorkPair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 12);
+
+        assertEquals(List.of(nextClaim, dig), sorted(dig, nextClaim));
+    }
+
+    @Test
+    void carryingOnTakesTheClosestHoweverFarAndWhoeverWorksThere() {
+
+        // As in the original, the closest of the same kind of work, not a free one further away
+        TaskManager.TaskWorkerPriority takenNearClaim = sameWorkPair(TaskType.CLAIM_TILE, 1, 102);
+        TaskManager.TaskWorkerPriority freeFarClaim = sameWorkPair(TaskType.CLAIM_TILE, 0, 140);
+
+        assertEquals(List.of(takenNearClaim, freeFarClaim), sorted(freeFarClaim, takenNearClaim));
+    }
+
+    @Test
+    void diggingImpCarriesOnDigging() {
+
+        // The imp just dug a tile, another marked tile is 20 tiles away: it digs on, although there is
+        // floor to claim right next to it and gold to carry
+        TaskManager.TaskWorkerPriority nextDig = sameWorkPair(TaskType.DIG_TILE, 0, 30);
+        TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 0, 5);
+
+        assertEquals(nextDig, sorted(claim, gold, nextDig).getFirst());
+    }
+
+    @Test
+    void dropAreaStillComesFirst() {
+        TaskManager.TaskWorkerPriority nextClaim = sameWorkPair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority claimNextToDrop = pair(TaskType.CLAIM_TILE, 0, 103, 1);
+
+        assertEquals(List.of(claimNextToDrop, nextClaim), sorted(nextClaim, claimNextToDrop));
+    }
+
+    @Test
+    void claimingRoomsIsClaimingToo() {
+        assertTrue(TaskManager.isClaiming(task(TaskType.CLAIM_TILE, null)));
+        assertTrue(TaskManager.isClaiming(task(TaskType.CLAIM_ROOM, null)));
+        assertFalse(TaskManager.isClaiming(task(TaskType.CLAIM_WALL, null)));
+        assertTrue(TaskManager.isDigging(task(TaskType.DIG_TILE, null)));
+        assertFalse(TaskManager.isDigging(task(TaskType.CLAIM_TILE, null)));
+    }
+
+    @Test
+    void onlyFreeDiggingTheImpCanReachCountsAsMoreDigging() {
+
+        // A digging imp with gold only digs on if there is a free dig task it can reach, otherwise it brings
+        // its gold home first
+        assertTrue(TaskManager.hasMoreDigging(List.of(digTask(false, true)), null));
+        assertFalse(TaskManager.hasMoreDigging(List.of(digTask(true, true), digTask(false, false)), null));
+        assertFalse(TaskManager.hasMoreDigging(List.of(task(TaskType.CLAIM_TILE, null)), null));
+    }
+
+    private static Task digTask(boolean full, boolean reachable) {
+        return (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                (proxy, method, args) -> switch (method.getName()) {
+            case "getTaskType" ->
+                TaskType.DIG_TILE;
+            case "isFull" ->
+                full;
+            case "canAssign" ->
+                reachable;
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+    }
+
     private static List<TaskManager.TaskWorkerPriority> sorted(TaskManager.TaskWorkerPriority... pairs) {
         List<TaskManager.TaskWorkerPriority> result = new ArrayList<>(List.of(pairs));
         result.sort(new TaskWorkerPriorityComparator());
@@ -109,7 +184,14 @@ class WorkerTaskOrderTest {
     }
 
     private static TaskManager.TaskWorkerPriority pair(TaskType taskType, int assignees, int points, int dropRing) {
-        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, dropRing, null);
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, dropRing, false, null);
+    }
+
+    /**
+     * A task of the same kind as the worker's work, digging on or claiming on
+     */
+    private static TaskManager.TaskWorkerPriority sameWorkPair(TaskType taskType, int assignees, int points) {
+        return new TaskManager.TaskWorkerPriority(task(taskType, assignees, points, null), null, points, Integer.MAX_VALUE, true, null);
     }
 
     private static Task task(TaskType taskType, Point location) {
