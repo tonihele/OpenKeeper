@@ -16,14 +16,19 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
+import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -37,7 +42,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger;
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.Map;
+import java.util.Set;
 
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
@@ -67,6 +74,7 @@ public final class ShotsController implements IShotsController {
     private final ICreaturesController creaturesController;
     private final GameEventService gameEventService;
     private final Map<Shot.ProcessType, IShotProcessor> processors;
+    private final Set<Shot.ProcessType> unprocessedTypes = EnumSet.noneOf(Shot.ProcessType.class);
 
     public ShotsController(IKwdFile kwdFile, EntityData entityData, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, IGameTimer gameTimer,
             IGameController gameController, IMapController mapController, ILevelInfo levelInfo, IObjectsController objectsController, ICreaturesController creaturesController,
@@ -131,6 +139,64 @@ public final class ShotsController implements IShotsController {
         Position targetPosition = target != null ? entityData.getComponent(target, Position.class) : null;
         if (targetPosition != null) {
             gameEventService.emitAt(GameEventType.SHOT_HIT, ThingFlag.SHOT, shot.getShotId(), target, targetPosition.position);
+        }
+    }
+
+    @Override
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
+            EntityId shooter, float maxRange) {
+        Shot shot = kwdFile.getShotById(shotTypeId);
+        Vector3f targetPosition = getAimPoint(target);
+        if (!ShotFlightRules.isFlying(shot) || targetPosition == null) {
+            return false;
+        }
+
+        Vector3f velocity = ShotFlightRules.aim(position, targetPosition, shot.getSpeed());
+        int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+        EntityId entity = entityData.createEntity();
+        entityData.setComponents(entity,
+                new Position(FastMath.atan2(velocity.x, velocity.z), new Vector3f(position)),
+                new ShotViewState(shotTypeId, velocity.mult(ticksPerSecond)),
+                new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
+                        shot.getHealth()));
+
+        return true;
+    }
+
+    /**
+     * Shots are aimed at the middle of a creature, half its height above its
+     * feet (0x4A7FD0)
+     *
+     * @param target the target
+     * @return the spot to aim at, {@code null} if the target isn't in the
+     * world
+     */
+    private Vector3f getAimPoint(EntityId target) {
+        Vector3f position = EntityController.getPosition(entityData, target);
+        CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+        if (position == null || creatureComponent == null) {
+            return position;
+        }
+
+        return position.add(0, creatureComponent.height / 2, 0);
+    }
+
+    @Override
+    public void hit(EntityId shotEntity, EntityId thing) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+        Shot shot = kwdFile.getShotById(flight.shotId);
+
+        // The shot's data 1 is its damage (0x4AC420)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+            EntityController.setDamage(entityData, thing, flight.shotData1);
+        }
+
+        IShotProcessor processor = processors.get(shot.getProcessType());
+        if (processor != null) {
+            processor.process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
+                    EntityController.getPosition(entityData, shotEntity), thing));
+        } else if (shot.getProcessType() != Shot.ProcessType.NONE && unprocessedTypes.add(shot.getProcessType())) {
+            logger.log(Logger.Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
         }
     }
 
