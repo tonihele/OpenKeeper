@@ -128,6 +128,16 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     void increaseLevelOfCreatures(short playerId, int levelIncrease);
 
     /**
+     * Counts the player's living creatures straight from the entities, so a creature spawned earlier on
+     * this same tick already counts
+     *
+     * @param playerId whose creatures to count
+     * @param creatureId the creature type to count, or 0 for all of them except the imps
+     * @return the number of creatures
+     */
+    int getCreatureCount(short playerId, short creatureId);
+
+    /**
      * Turns an existing creature into another creature
      *
      * @param entityId the existing entity to turn
