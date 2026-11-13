@@ -176,7 +176,9 @@ public final class GameLoopManager {
     }
 
     public void stop() {
-        loops.forEach(GameLoop::stop);
+
+        // The game logic last: stopping it tears down what the animation and steering loops still use
+        loops.reversed().forEach(GameLoop::stop);
         loops.clear();
     }
 
