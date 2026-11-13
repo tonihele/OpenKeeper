@@ -60,4 +60,15 @@ public final class GameTimer {
     public float getTime() {
         return time;
     }
+
+    /**
+     * Sets the timer back to a saved time
+     *
+     * @param time the time in seconds
+     * @param active is the timer running
+     */
+    public void set(float time, boolean active) {
+        this.time = time;
+        this.active = active;
+    }
 }

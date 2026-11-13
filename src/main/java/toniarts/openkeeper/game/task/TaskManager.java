@@ -198,7 +198,6 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Listen to rescue/capture missions
         unconsciousEntities = entityData.getEntities(CreatureComponent.class, Health.class, Owner.class, Unconscious.class);
-        processAddedUnconsciousEntities(unconsciousEntities);
 
         // Listen to corpse robbing missions
         corpseEntities = entityData.getEntities(CreatureComponent.class, Death.class);
@@ -217,6 +216,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     @Override
     public void start() {
 
+        // The creatures that are unconscious already, in a loaded game. Their controllers are made once the game is
+        // set up, otherwise they would be left without this task manager
+        processAddedUnconsciousEntities(unconsciousEntities);
     }
 
     @Override

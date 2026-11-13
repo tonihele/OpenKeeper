@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.actionpoint;
 
 import com.jme3.util.SafeArrayList;
+import java.util.List;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -43,6 +44,15 @@ public final class ActionPointTriggerLogicController implements IGameLogicUpdata
                 triggers.add(new ActionPointTriggerControl(gameController, levelInfo, gameTimer, mapController, creaturesController, actionPoint.getTriggerId(), actionPoint, entityPositionLookup));
             }
         }
+    }
+
+    /**
+     * Get the action point trigger controls
+     *
+     * @return the trigger controls
+     */
+    public List<ActionPointTriggerControl> getTriggerControls() {
+        return triggers;
     }
 
     @Override

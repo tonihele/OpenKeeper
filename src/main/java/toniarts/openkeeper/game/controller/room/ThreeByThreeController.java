@@ -38,8 +38,10 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
         this.gameTimer = gameTimer;
-        // Start the first attraction cooldown when the Portal is created.
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        // Start the first attraction cooldown when the Portal is created. A loaded Portal carries on with its cooldown.
+        if (entityData.getComponent(entityId, CreatureGenerator.class) == null) {
+            entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        }
     }
 
     @Override

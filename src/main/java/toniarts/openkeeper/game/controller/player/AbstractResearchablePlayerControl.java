@@ -40,6 +40,15 @@ public abstract class AbstractResearchablePlayerControl<K extends IIndexable & C
 
     public AbstractResearchablePlayerControl(Keeper keeper, List<V> availabilitiesList, Collection<K> types) {
         super(keeper, availabilitiesList, types);
+
+        // A loaded player has the availabilities already
+        for (V researchableEntity : availabilitiesList) {
+            for (K type : typesAvailable) {
+                if (type.getId() == researchableEntity.getId()) {
+                    put(type, researchableEntity);
+                }
+            }
+        }
     }
 
     @Override

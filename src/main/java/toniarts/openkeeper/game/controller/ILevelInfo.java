@@ -32,6 +32,16 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 public interface ILevelInfo {
 
     /**
+     * Number of the level script flags
+     */
+    int FLAG_COUNT = 128;
+
+    /**
+     * Number of the level script timers
+     */
+    int TIMER_COUNT = 16;
+
+    /**
      * Get the level raw data file
      *
      * @return the KWD
