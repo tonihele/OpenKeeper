@@ -1231,7 +1231,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         PlayerHandControl playerHandControl = playerControllers.get(playerId).getHandControl();
         IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
         Terrain terrain = mapTile != null ? mapController.getTerrain(mapTile) : null;
-        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)) {
+        if (playerHandControl.peek().equals(entity) && canDropEntity(entity, playerId, entityData, mapTile, terrain)
+                && !isDropBlocked(entity, tile)) {
             playerHandControl.pop();
             Vector3f dropPosition = new Vector3f(coordinates.x, 0, coordinates.y);
             gameEventService.emit(GameEventType.DROPPED, entity, dropPosition);
@@ -1432,6 +1433,19 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
         }
         return null;
+    }
+
+    private boolean isDropBlocked(EntityId entity, Point tile) {
+        Set<Point> doorTiles = Set.of();
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+            if (doorComponent != null && !doorComponent.blueprint) {
+                doorTiles = Set.of(tile);
+            }
+        }
+        CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
+        return DropValidator.isBlocked(kwdFile, mapController.getMapData(), doorTiles, tile,
+                creatureComponent != null && !creatureComponent.worker);
     }
 
     private static boolean canDropEntity(EntityId entityId, short playerId, EntityData entityData, IMapTileInformation tile, Terrain terrain) {
