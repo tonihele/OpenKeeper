@@ -208,8 +208,8 @@ public class TriggerControl extends Control {
                 short playerId = trigger.getUserData("playerId", short.class);
                 short level = trigger.getUserData("level", short.class);
                 EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
-                Point p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
+                Point p = new Point(trigger.getUserData("posX", int.class),
+                        trigger.getUserData("posY", int.class));
                 // TODO: flags!
                 creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
                 break;
