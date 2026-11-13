@@ -47,5 +47,6 @@ public enum TaskType {
     GUARD,
     GAMBLE,
     FETCH_TRAP_CRATE,
-    DELIVER_TRAP_CRATE
+    DELIVER_TRAP_CRATE,
+    COLLECT_PAY
 }

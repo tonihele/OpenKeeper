@@ -273,6 +273,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goGambling();
 
     /**
+     * Sends the creature to collect the pay it is owed, if it is owed any and
+     * it is time to try. A try that finds no gold to collect is counted
+     *
+     * @return true if the creature is on its way to a gold room
+     */
+    public boolean goToCollectPay();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree

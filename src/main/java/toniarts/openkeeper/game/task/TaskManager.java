@@ -87,6 +87,7 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.CollectPay;
 import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
@@ -960,6 +961,38 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             tasksByIds.put(task.getId(), task);
             return true;
         }
+        return false;
+    }
+
+    @Override
+    public boolean assignCollectPayTask(ICreatureController creature) {
+        Point currentPosition = creature.getCreatureCoordinates();
+
+        // The gold rooms that hold gold, nearest first
+        List<IRoomController> rooms = new ArrayList<>(mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId()));
+        rooms.removeIf(room -> room.getObjectControl(ObjectType.GOLD).getCurrentCapacity() <= 0);
+        Map<IRoomController, Integer> distances = new HashMap<>();
+        for (IRoomController room : rooms) {
+            distances.put(room, getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])));
+        }
+        rooms.sort(Comparator.comparingInt(distances::get));
+        for (IRoomController room : rooms) {
+            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+            if (coordinates.isEmpty()) {
+                continue;
+            }
+
+            Point target = Utils.getRandomItem(coordinates);
+            if (target.equals(currentPosition) || navigationService.findPath(currentPosition, target, creature) != null) {
+                Task task = new CollectPay(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController, entityData);
+                task.assign(creature, true);
+                tasksByIds.put(task.getId(), task);
+
+                return true;
+            }
+        }
+
         return false;
     }
 
