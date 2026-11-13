@@ -33,15 +33,26 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ManufactureTest {
 
     private static final int TICKS_PER_SECOND = 4;
-    private static final int TROLL = 60;
+    private static final int BILE_DEMON = 12; // 50 a second in the data, divided by the 4 ticks a second
 
     @Test
-    void creatureWorksOnceASecond() {
+    void creatureWorksOnEveryTick() {
+
+        // A minute of logic ticks
+        assertEquals(60 * TICKS_PER_SECOND * BILE_DEMON, manufactureFor(60 * TICKS_PER_SECOND));
+    }
+
+    @Test
+    void firstTickAlreadyManufactures() {
+        assertEquals(BILE_DEMON, manufactureFor(1));
+    }
+
+    private static int manufactureFor(int ticks) {
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
         manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
         ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
-                    case "getManufacturePerSecond" -> TROLL;
+                    case "getManufacturePerTick" -> BILE_DEMON;
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     default -> throw new UnsupportedOperationException(method.getName());
@@ -49,14 +60,10 @@ class ManufactureTest {
         Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, null, null, manufactureControl, null);
         task.assign(creature, false);
 
-        // A minute of logic ticks
-        float taskDuration = 0;
-        for (int tick = 0; tick < 60 * TICKS_PER_SECOND; tick++) {
-            taskDuration += 1.0f / TICKS_PER_SECOND;
-            task.executeTask(creature, taskDuration);
+        for (int tick = 1; tick <= ticks; tick++) {
+            task.executeTask(creature, (float) tick / TICKS_PER_SECOND);
         }
-
-        assertEquals(60 * TROLL, manufactureControl.getProgress());
+        return manufactureControl.getProgress();
     }
 
     @Test
