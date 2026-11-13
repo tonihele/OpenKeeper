@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
@@ -86,7 +87,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = Creature.AnimationType.WALK;
+                targetState = getMovementAnimation(entityId, state);
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
@@ -112,6 +113,18 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetState));
             }
         }
+    }
+
+    private Creature.AnimationType getMovementAnimation(EntityId entityId, CreatureViewState state) {
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        if (mobile != null && mobile.running) {
+            Creature creature = kwdFile.getCreature(state.creatureId);
+            ArtResource run = creature == null ? null : creature.getAnimation(Creature.AnimationType.RUN);
+            if (run != null && run.getType() != ArtResource.ArtResourceType.NONE) {
+                return Creature.AnimationType.RUN;
+            }
+        }
+        return Creature.AnimationType.WALK;
     }
 
     /**
