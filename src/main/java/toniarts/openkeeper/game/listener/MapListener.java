@@ -56,6 +56,18 @@ public interface MapListener {
     public void onTilesReveal(List<Point> points, boolean explore, short keeperId);
 
     /**
+     * The Sight of Evil keeper spell: an area should be revealed through the
+     * fog of war for a while
+     *
+     * @param centre the cast tile
+     * @param radius the radius of the revealed area, in tiles
+     * @param durationTicks how long the area stays revealed, in game ticks
+     * @param keeperId the keeper ID whose fog of war is affected
+     */
+    @Asynchronous
+    public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId);
+
+    /**
      * The {@code REMOVE_FOW} cheat: fog of war should be disabled (everything revealed)
      *
      * @param keeperId the keeper ID whose fog of war is affected
