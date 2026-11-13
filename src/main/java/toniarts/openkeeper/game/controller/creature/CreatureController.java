@@ -626,22 +626,31 @@ public final class CreatureController extends EntityController implements ICreat
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
                 || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)) {
 
-            // Pick a new target
-            // TODO: is there any preference? Now just take the nearest
+            // Pick a new target, the nearest enemy already attacking us comes first
             // TODO: creatures only now
             EntityId nearestEnemy = null;
             float nearestDistance = Float.MAX_VALUE;
+            EntityId nearestAttacker = null;
+            float nearestAttackerDistance = Float.MAX_VALUE;
             for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
                 if (creaturesController.isValidEntity(entity)
                         && isEnemy(entity)
                         && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                        && hasRoomForAttacker(entity)
                         && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                     float distance = getDistanceToCreature(entity);
                     if (distance < nearestDistance) {
                         nearestDistance = distance;
                         nearestEnemy = entity;
                     }
+                    if (distance < nearestAttackerDistance && isAttacking(entity, entityId)) {
+                        nearestAttackerDistance = distance;
+                        nearestAttacker = entity;
+                    }
                 }
+            }
+            if (nearestAttacker != null) {
+                nearestEnemy = nearestAttacker;
             }
             if (nearestEnemy != null) {
                 attackTargetController = creaturesController.createController(nearestEnemy);
@@ -708,6 +717,30 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isAtTopCombatPitLevel(EntityId entity) {
         CreatureExperience creatureExperience = entityData.getComponent(entity, CreatureExperience.class);
         return creatureExperience != null && creatureExperience.level >= (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue();
+    }
+
+    private boolean isAttacking(EntityId attacker, EntityId target) {
+        AttackTarget attackTarget = entityData.getComponent(attacker, AttackTarget.class);
+        return attackTarget != null && target.equals(attackTarget.entityId);
+    }
+
+    /**
+     * Checks that the target can take one more attacker, we may already be one
+     * of them
+     *
+     * @param target the creature we would like to attack
+     * @return true if we can join the fight against the target
+     */
+    private boolean hasRoomForAttacker(EntityId target) {
+        int attackers = 0;
+        for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", target), AttackTarget.class)) {
+            if (attacker.equals(entityId)) {
+                return true;
+            }
+            attackers++;
+        }
+
+        return attackers < CombatRules.MAX_MELEE_ATTACKERS;
     }
 
     private boolean hasPathToEntity(EntityId entity) {
@@ -823,7 +856,8 @@ public final class CreatureController extends EntityController implements ICreat
         if (isInRange(creatureMeleeAttack.range, attackTarget)) {
             if (isAttackRecharged(creatureMeleeAttack)) {
                 stateMachine.changeState(CreatureState.MELEE_ATTACK);
-                hitWithMelee(attackTarget, creatureMeleeAttack, getCombatPitDamage(attackTarget, creatureMeleeAttack.damage));
+                hitWithMelee(attackTarget, creatureMeleeAttack, getMeleeDamageTaken(attackTarget,
+                        getCombatPitDamage(attackTarget, creatureMeleeAttack.damage)));
             }
         } else {
             Optional<CreatureSpell> attack = getPreferredAttackSpell(attackTarget);
@@ -850,6 +884,30 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
+     * Gets the damage our melee hit does to the target
+     *
+     * @param attackTarget the target we hit
+     * @param damage the damage of our melee attack
+     * @return the damage the target takes
+     */
+    private int getMeleeDamageTaken(EntityId attackTarget, int damage) {
+        CreatureComponent targetCreature = entityData.getComponent(attackTarget, CreatureComponent.class);
+        if (targetCreature != null && !CombatRules.canBeHurtBy(creature.getFlags(),
+                levelInfo.getLevelData().getCreature(targetCreature.creatureId).getFlags())) {
+            return 0;
+        }
+
+        // Only creatures take the bonus for a hit from behind, doors and objects are hit as they are (0x498E30)
+        Position targetPosition = entityData.getComponent(attackTarget, Position.class);
+        Vector3f ourPosition = getPosition();
+        if (targetCreature != null && targetPosition != null && ourPosition != null) {
+            damage = CombatRules.addRearAttackBonus(damage, ourPosition, targetPosition.position, targetPosition.rotation);
+        }
+
+        return damage;
+    }
+
+    /**
      * Hits the target with our melee attack, which then needs to recharge
      *
      * @param attackTarget the target we hit
@@ -858,7 +916,9 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private void hitWithMelee(EntityId attackTarget, CreatureMeleeAttack creatureMeleeAttack, int damage) {
         entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
-        setDamage(attackTarget, damage);
+        if (damage > 0) {
+            setDamage(attackTarget, damage);
+        }
         gameEventService.emitAt(GameEventType.MELEE_HIT, ThingFlag.CREATURE, creature.getCreatureId(), attackTarget, getPosition());
     }
 
