@@ -68,8 +68,8 @@ MaterialDef DK Terrain Lighting {
     }
 
     Technique {
-        VertexShader GLSL150: Shaders/DkLighting/Vertex.vert
-        FragmentShader GLSL150: Shaders/DkLighting/Vertex.frag
+        VertexShader GLSL310 GLSL300 GLSL150: Shaders/DkLighting/Vertex.vert
+        FragmentShader GLSL310 GLSL300 GLSL150: Shaders/DkLighting/Vertex.frag
 
         WorldParameters {
             WorldViewProjectionMatrix

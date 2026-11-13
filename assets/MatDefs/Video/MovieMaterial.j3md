@@ -15,8 +15,8 @@ MaterialDef MovieMaterial {
     }
 
     Technique {
-        VertexShader GLSL100:   Shaders/Video/MovieMaterial.vert
-        FragmentShader GLSL100: Shaders/Video/MovieMaterial.frag
+        VertexShader GLSL310 GLSL300 GLSL150 GLSL100:   Shaders/Video/MovieMaterial.vert
+        FragmentShader GLSL310 GLSL300 GLSL150 GLSL100: Shaders/Video/MovieMaterial.frag
 
         WorldParameters {
             WorldViewProjectionMatrix

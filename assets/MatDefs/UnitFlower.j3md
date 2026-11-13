@@ -19,8 +19,8 @@ MaterialDef UnitFlower {
     }
 
     Technique {
-        VertexShader GLSL150 GLSL100:   Shaders/UnitFlower.vert
-        FragmentShader GLSL150 GLSL100: Shaders/UnitFlower.frag
+        VertexShader GLSL310 GLSL300 GLSL150 GLSL100:   Shaders/UnitFlower.vert
+        FragmentShader GLSL310 GLSL300 GLSL150 GLSL100: Shaders/UnitFlower.frag
 
         WorldParameters {
             WorldViewProjectionMatrix

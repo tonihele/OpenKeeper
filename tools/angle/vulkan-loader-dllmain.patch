@@ -1,0 +1,43 @@
+diff --git a/third_party/vulkan-loader/src/loader/loader_windows.c b/third_party/vulkan-loader/src/loader/loader_windows.c
+index 310a905..7f6e9ca 100644
+--- a/third_party/vulkan-loader/src/loader/loader_windows.c
++++ b/third_party/vulkan-loader/src/loader/loader_windows.c
+@@ -95,7 +95,7 @@ void windows_initialization(void) {
+ #endif
+ }
+ 
+-BOOL WINAPI DllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved) {
++BOOL WINAPI VulkanLoaderDllMain(HINSTANCE hinst, DWORD reason, LPVOID reserved) {
+     (void)hinst;
+     switch (reason) {
+         case DLL_PROCESS_ATTACH:
+diff --git a/src/libGLESv2/global_state.cpp b/src/libGLESv2/global_state.cpp
+index 0a248ca..7a1e0bf 100644
+--- a/src/libGLESv2/global_state.cpp
++++ b/src/libGLESv2/global_state.cpp
+@@ -288,8 +288,15 @@ void WaitForDebugger(HINSTANCE instance) {}
+ #    endif  // defined(ANGLE_ENABLE_ASSERTS) && !defined(ANGLE_ENABLE_WINDOWS_UWP)
+ }  // namespace
+ 
+-extern "C" BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID)
++extern "C" BOOL WINAPI VulkanLoaderDllMain(HINSTANCE, DWORD, LPVOID);
++
++extern "C" BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID reserved)
+ {
++    if (reason != DLL_PROCESS_DETACH && !VulkanLoaderDllMain(instance, reason, reserved))
++    {
++        return FALSE;
++    }
++
+     switch (reason)
+     {
+         case DLL_PROCESS_ATTACH:
+@@ -308,7 +315,7 @@ extern "C" BOOL WINAPI DllMain(HINSTANCE instance, DWORD reason, LPVOID)
+ 
+         case DLL_PROCESS_DETACH:
+             egl::TerminateProcess();
+-            break;
++            return VulkanLoaderDllMain(instance, reason, reserved);
+     }
+ 
+     return TRUE;
