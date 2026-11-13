@@ -82,7 +82,7 @@ class ObjectDeathEffectTest {
                 MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, TrapFiringFixtures.miscVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 10),
                 MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, TrapFiringFixtures.miscVariable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, 0),
                 MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, TrapFiringFixtures.miscVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 0)),
-                null, levelInfo, List.of(), null, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
+                null, levelInfo, List.of(), null, () -> 0.0, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
         healthSystem.processTick(0.25f);
     }
 
