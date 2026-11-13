@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task;
 
+import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.base.DefaultEntityData;
@@ -31,10 +32,12 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -98,6 +101,74 @@ class WorkerTaskAssignmentTest {
         assertEquals(List.of(Boolean.TRUE), results);
         assertEquals(0, ((TestTask) Proxy.getInvocationHandler(unreachable)).assignees.get());
         assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
+    }
+
+    @Test
+    void onlyFourWorkersOfAPlayerLookForWorkOnATick() {
+
+        // DK II's idle imps (0x463DF0) send the fifth imp of a player looking for work on a tick off to wander
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            Task task = task(new Point(10 + i, 10), creature -> true);
+            tasks.add(task);
+            taskManager.addTask(PLAYER_ID, task);
+        }
+        Boolean[] results = new Boolean[6];
+        for (int i = 0; i < results.length; i++) {
+            int worker = i;
+            taskManager.addToUnemployedWorkerQueue(imp(new Point(i, 10)), gotWork -> results[worker] = gotWork);
+        }
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(true, true, true, true, false, false), List.of(results));
+        assertEquals(4, assignedCount(tasks));
+    }
+
+    @Test
+    void droppedWorkerLooksForWorkPastTheFourOfATick() {
+
+        // DK II's idle imp state (0x463DF0) lets a just dropped imp (+0x99) look without counting it
+        addLand(0, 20, 10);
+        TaskManager taskManager = taskManager();
+        List<Task> tasks = new ArrayList<>();
+        for (int i = 0; i < 10; i++) {
+            Task task = task(new Point(10 + i, 10), creature -> true);
+            tasks.add(task);
+            taskManager.addTask(PLAYER_ID, task);
+        }
+        Boolean[] results = new Boolean[6];
+        for (int i = 0; i < results.length; i++) {
+            int worker = i;
+            ICreatureController imp = imp(new Point(i, 10));
+            if (i == 4) {
+                entityData.setComponent(imp.getEntityId(), new DropArea(new Point(i, 10)));
+            }
+            taskManager.addToUnemployedWorkerQueue(imp, gotWork -> results[worker] = gotWork);
+        }
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(true, true, true, true, true, false), List.of(results));
+        assertEquals(5, assignedCount(tasks));
+    }
+
+    @Test
+    void workerThatIsNoLongerIdleDoesNotGetWork() {
+        TaskManager taskManager = taskManager();
+        Task task = task(new Point(5, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, task);
+        ICreatureController imp = imp(new Point(1, 10));
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp, results::add);
+        imp.getStateMachine().setInitialState(CreatureState.FIGHT);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(), results);
+        assertEquals(0, ((TestTask) Proxy.getInvocationHandler(task)).assignees.get());
     }
 
     @Test
@@ -212,10 +283,12 @@ class WorkerTaskAssignmentTest {
 
     private ICreatureController imp(Point location) {
         var entityId = entityData.createEntity();
+        var stateMachine = new DefaultStateMachine<ICreatureController, CreatureState>(null, CreatureState.IDLE);
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> location;
             case "getOwnerId" -> PLAYER_ID;
             case "getEntityId" -> entityId;
+            case "getStateMachine" -> stateMachine;
             default -> null;
         });
     }

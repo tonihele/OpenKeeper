@@ -49,6 +49,27 @@ class TileWorkTest {
     }
 
     @Test
+    void claimingGroundDropsTheFractionOfATick() {
+
+        // Measured in the original: a fresh imp adds 164 a tick to a Dirt Path, the claim rate of 825 at 4 ticks a second
+        assertEquals(164, TileWork.perTick(825 / 4, FRESH_IMP));
+        assertEquals(206, TileWork.perTick(825 / 4, TileWork.FULL_EFFICIENCY));
+        assertEquals(9, TileWork.perTick(50 / 4, FRESH_IMP)); // Reinforce wall
+
+        // The original's 80% is 0xCCC of 0x1000, just under, so the 5 a tick of repairing a wall comes to 3
+        assertEquals(3, TileWork.perTick(22 / 4, FRESH_IMP));
+    }
+
+    @Test
+    void attacksLandATicksWorth() {
+
+        // Measured in the original: an enemy's floor 28 a blow, a neutral room 4000 and an enemy's room 800
+        assertEquals(28, TileWork.perSwing(-140 / 4, FRESH_IMP));
+        assertEquals(4000, TileWork.perSwing(-20000 / 4, FRESH_IMP));
+        assertEquals(800, TileWork.perSwing(-4000 / 4, FRESH_IMP));
+    }
+
+    @Test
     void seamReleasesGoldInProportionLikeTheOriginal() {
 
         // The original: a quarter of the rate four times a second, 60 health a swing
