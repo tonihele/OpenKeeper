@@ -82,6 +82,7 @@ public class VisualEffect {
     private final short ownerId;
     private boolean infinite;
     private Spatial lightTarget;
+    private LightRules vertexLightingRules;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.
@@ -635,8 +636,10 @@ public class VisualEffect {
         // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
         // own position is set once at construction and never moves.
         LightRules lightRules = getLightRules();
-        if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
+        if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null
+                && vertexLightingRules != lightRules) {
             AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);
+            vertexLightingRules = lightRules;
         }
         lightMeshElements(lightRules);
 

@@ -95,6 +95,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
     private void playAnimation(DoorViewState viewState) {
         if (!getDataObject().getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
             AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager, !initialized);
+            configureVertexLighting(getSpatial());
             isAnimationPlaying = true;
         }
     }
@@ -185,6 +186,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
             lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName(), lockObject.getMeshResource());
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
+            configureVertexLighting(lockSpatial);
         }
     }
 }
