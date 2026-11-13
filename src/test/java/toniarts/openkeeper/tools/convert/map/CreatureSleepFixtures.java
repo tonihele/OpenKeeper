@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 /** Parser-package fixtures for native sleep-cycle integration tests. */
 public final class CreatureSleepFixtures {
@@ -39,6 +40,24 @@ public final class CreatureSleepFixtures {
         creature.getAttributes().setTimeSleep(timeSleep);
         creature.getAttributes().setUnhappyThreshold((short) 50);
         return creature;
+    }
+
+    public static void setShotDelay(Creature creature, float shotDelay) {
+        creature.setShotDelay(shotDelay);
+    }
+
+    public static void setSwing(Creature creature, Creature.AnimationType animation, int frames, int fps, int startFrames, int endFrames,
+            ArtResource.ArtResourceFlag... flags) {
+        ArtResource swing = new ArtResource();
+        swing.setType(ArtResource.ArtResourceType.ANIMATING_MESH);
+        EnumSet<ArtResource.ArtResourceFlag> swingFlags = EnumSet.of(ArtResource.ArtResourceFlag.HAS_START_ANIMATION, ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+        swingFlags.addAll(List.of(flags));
+        swing.setFlags(swingFlags);
+        swing.setData(ArtResource.KEY_FRAMES, frames);
+        swing.setData(ArtResource.KEY_FPS, fps);
+        swing.setData(ArtResource.KEY_START_AF, (short) startFrames);
+        swing.setData(ArtResource.KEY_END_AF, (short) endFrames);
+        creature.setAnimation(animation, swing);
     }
 
     public static Variable.MiscVariable variable(Variable.MiscVariable.MiscType type, int value) {

@@ -28,6 +28,11 @@ public final class CreatureMeleeAttack extends Attack {
     public int attackType;
     public int damage;
 
+    /**
+     * The swing plays the second melee animation
+     */
+    public boolean swipe;
+
     public CreatureMeleeAttack() {
         // For serialization
     }
@@ -50,6 +55,7 @@ public final class CreatureMeleeAttack extends Attack {
         this.attackType = creatureMeleeAttack.attackType;
         this.damage = creatureMeleeAttack.damage;
         this.attactStartTime = creatureMeleeAttack.attactStartTime;
+        this.swipe = creatureMeleeAttack.swipe;
     }
 
     public final Creature.AttackType getAttackType() {
