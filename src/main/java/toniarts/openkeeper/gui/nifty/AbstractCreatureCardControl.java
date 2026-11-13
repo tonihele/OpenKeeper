@@ -17,7 +17,13 @@
 package toniarts.openkeeper.gui.nifty;
 
 import com.jme3.util.SafeArrayList;
+import com.simsilica.es.Entity;
 import de.lessvoid.nifty.controls.AbstractController;
+import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 
 /**
  * Abstract base class for creature card UI components
@@ -27,7 +33,38 @@ import de.lessvoid.nifty.controls.AbstractController;
 public abstract class AbstractCreatureCardControl extends AbstractController {
 
     public enum CreatureUIState {
-        IDLE, BUSY, FIGHT, WORK, DEFENCE, HAPPY, UNHAPPY, ANGRY
+        IDLE, BUSY, FIGHT, WORK, DEFENCE, HAPPY, UNHAPPY, ANGRY;
+
+        /**
+         * Checks if the creature belongs to this category. IDLE, FIGHT and BUSY
+         * (everything else) are exclusive, WORK is the busy creatures that
+         * have a task. The moods follow the native anger state. DK II's own
+         * category boundaries are not known, and nothing tells defending from
+         * attacking, so DEFENCE matches no one.
+         *
+         * @param entity the creature, with {@link CreatureAi},
+         * {@link AttackTarget}, {@link TaskComponent} and {@link CreatureMood}
+         * if it has them
+         * @param unhappyThreshold the creature's runtime unhappy threshold
+         * @return {@code true} if the creature is in this category
+         */
+        public boolean matches(Entity entity, int unhappyThreshold) {
+            CreatureAi creatureAi = entity.get(CreatureAi.class);
+            boolean idle = creatureAi != null && creatureAi.getCreatureState() == CreatureState.IDLE;
+            boolean fight = !idle && entity.get(AttackTarget.class) != null;
+            CreatureMood mood = entity.get(CreatureMood.class);
+            int moodState = mood != null ? mood.getState(unhappyThreshold) : 0;
+            return switch (this) {
+                case IDLE -> idle;
+                case FIGHT -> fight;
+                case BUSY -> !idle && !fight;
+                case WORK -> !idle && !fight && entity.get(TaskComponent.class) != null;
+                case DEFENCE -> false;
+                case HAPPY -> moodState == 0;
+                case UNHAPPY -> moodState == 1;
+                case ANGRY -> moodState == 2;
+            };
+        }
     };
 
     private SafeArrayList<CreatureCardEventListener> listeners;
