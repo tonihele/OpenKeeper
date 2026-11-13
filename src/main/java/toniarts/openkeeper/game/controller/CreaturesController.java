@@ -230,8 +230,26 @@ public final class CreaturesController implements ICreaturesController {
         } else if (creature instanceof Thing.DeadBody deadBody) {
             ownerId = deadBody.getPlayerId();
         }
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+        EntityId entity = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+        if (isRoomDestroyer(creature)) {
+            CreatureComponent creatureComponent = new CreatureComponent(entityData.getComponent(entity, CreatureComponent.class));
+            creatureComponent.destroysRooms = true;
+            entityData.setComponent(entity, creatureComponent);
+        }
+        return entity;
+    }
+
+    /**
+     * Does the hero wreck the keepers' rooms on his way, i.e. has he the
+     * DESTROY_ROOMS flag
+     *
+     * @param creature the creature placed on the map or in a hero party
+     * @return true if the creature destroys rooms
+     */
+    static boolean isRoomDestroyer(Thing.Creature creature) {
+        return creature instanceof Thing.GoodCreature goodCreature && goodCreature.getFlags2() != null
+                && goodCreature.getFlags2().contains(Thing.Creature.CreatureFlag2.DESTROY_ROOMS);
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.gui.nifty.message;
 
+import com.jme3.math.Vector3f;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.builder.ControlBuilder;
 import de.lessvoid.nifty.controls.AbstractController;
@@ -26,6 +27,7 @@ import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.state.IPlayerScreenController;
 import toniarts.openkeeper.gui.nifty.NiftyUtils;
 import static toniarts.openkeeper.game.state.IPlayerScreenController.SCREEN_HUD_ID;
 
@@ -64,8 +66,16 @@ public final class MessageBoxControl extends AbstractController {
         return false;
     }
 
+    /**
+     * Zoom to the place the shown system message is about. The message stays
+     * open, like in the original.
+     */
     public void focusElement() {
-        // TODO
+        IPlayerScreenController screenController = getScreenController();
+        Vector3f position = getZoomPosition(systemMessage, screenController);
+        if (position != null) {
+            screenController.zoomToPosition(position);
+        }
     }
 
     public void dismissMessage() {
@@ -109,7 +119,8 @@ public final class MessageBoxControl extends AbstractController {
     }
 
     /**
-     * Shows a removeable system message
+     * Shows a removeable system message. If the message is about a place that
+     * still exists, a zoom to button is offered too.
      *
      * @param systemMessage The control of the system message
      * @param text
@@ -120,17 +131,20 @@ public final class MessageBoxControl extends AbstractController {
         this.showMessageBox(text);
         this.addButton(ButtonType.EXIT, "dismissMessage()");
         this.addButton(ButtonType.TICK, "closeMessage()");
+        if (getZoomPosition(systemMessage, getScreenController()) != null) {
+            this.addButton(ButtonType.GOTO, "focusElement()");
+        }
     }
 
-    /**
-     * TODO
-     * @param systemMessage
-     * @param text
-     */
-    public void showFocusMessage(final SystemMessageControl systemMessage, final String text) {
-        this.showSystemMessage(systemMessage, text);
+    private IPlayerScreenController getScreenController() {
+        return hud.getScreenController() instanceof IPlayerScreenController controller ? controller : null;
+    }
 
-        this.addButton(ButtonType.GOTO, "focusElement()");
+    private static Vector3f getZoomPosition(SystemMessageControl systemMessage, IPlayerScreenController screenController) {
+        if (systemMessage == null || systemMessage.getTarget() == null || screenController == null) {
+            return null;
+        }
+        return systemMessage.getTarget().resolve(screenController::getEntityPosition);
     }
 
     /**
