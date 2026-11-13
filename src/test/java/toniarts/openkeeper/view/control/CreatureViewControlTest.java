@@ -38,4 +38,18 @@ class CreatureViewControlTest {
         assertEquals("", control.getTooltip((short) 3));
     }
 
+    @Test
+    void creatureBeingRemovedIsControlledByNoPlayer() {
+        DefaultEntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponent(creature, new Owner((short) 3, (short) 3));
+        CreatureViewControl control = new CreatureViewControl(creature, entityData, new Creature(), null, null, new CreatureTextParser(null));
+
+        // The game logic removes the creature while it is still under the cursor
+        entityData.removeEntity(creature);
+        control.update(0);
+
+        assertEquals(-1, control.getControlId());
+    }
+
 }
