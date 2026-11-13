@@ -1256,6 +1256,11 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean isTimeToReEvaluate() {
 
         // See that we have been motionless for enough time, per state
+        // Neutral creatures idle only for one idle animation before they wander off again
+        if (!isClaimed()) {
+            return motionless >= getAnimationTime(creature, Creature.AnimationType.IDLE_1);
+        }
+
         // TODO: now just 5 seconds, it is the default for imps
         // DK II's pit fighter waits four seconds' worth of ticks on each spot (0x457CF0)
         return motionless >= (stateMachine.getCurrentState() == CreatureState.COMBAT_PIT ? 4f : 5f);
