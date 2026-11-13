@@ -63,7 +63,8 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
         this.playerControllers = playerControllers;
         this.entityPositionLookup = entityPositionLookup;
 
-        looseObjectEntities = entityData.getEntities(ObjectComponent.class, Position.class, Placeable.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        looseObjectEntities = entityData.getEntities(ObjectComponent.class, Placeable.class);
         looseObjectEntityIds = new SafeArrayList<>(EntityId.class);
         processAddedEntities(looseObjectEntities);
     }
@@ -96,7 +97,7 @@ public final class LooseObjectSystem implements IGameLogicUpdatable {
             }
 
             IMapTileInformation mapTile = entityPositionLookup.getEntityLocation(entityId);
-            if (mapTile == null) {
+            if (mapTile == null || entityData.getComponent(entityId, Position.class) == null) {
 
                 // No position yet, we get it next time
                 continue;

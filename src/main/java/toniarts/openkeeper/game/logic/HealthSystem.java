@@ -120,11 +120,12 @@ public final class HealthSystem extends GameTimeCounter {
 
         damageEntities = entityData.getEntities(Health.class, Damage.class);
 
-        // Have the position also here, since the player may move imprisoned entities between jails, kinda still imprisoned but not counting towards death at the time
-        imprisonedEntities = entityData.getEntities(CreatureImprisoned.class, Health.class, CreatureComponent.class, Position.class);
+        // Mind the position also here, since the player may move imprisoned entities between jails, kinda still imprisoned but not counting towards death at the time
+        // It is read when needed instead of being in the set, a set gets every change of its components, and Position changes with every step of every creature
+        imprisonedEntities = entityData.getEntities(CreatureImprisoned.class, Health.class, CreatureComponent.class);
 
-        // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
-        torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
+        // The same for the tortured entities the player moves between torture rooms
+        torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class);
 
         regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
         recuperatingEntities = entityData.getEntities(CreatureRecuperating.class, Health.class, CreatureComponent.class);
@@ -233,13 +234,14 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         // Tortured entities just die outright
-        if (torturedEntities.containsId(entityId)) {
+        boolean onMap = entityData.getComponent(entityId, Position.class) != null;
+        if (onMap && torturedEntities.containsId(entityId)) {
             processDeath(entityId);
             return;
         }
 
         // If there is enough capacity for skeletons, imprisoned enties will rise as skeletons
-        if (imprisonedEntities.containsId(entityId)) {
+        if (onMap && imprisonedEntities.containsId(entityId)) {
             Owner owner = entityData.getComponent(entityId, Owner.class);
             Short creatureId = getRoomCreatureId(entityId);
             if (creatureId != null && !damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
@@ -331,7 +333,7 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Imprisonment
         entity = imprisonedEntities.getEntity(entityId);
-        if (entity != null) {
+        if (entity != null && entityData.getComponent(entityId, Position.class) != null) {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
             if (elapsedTime - imprisoned.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
@@ -343,7 +345,7 @@ public final class HealthSystem extends GameTimeCounter {
 
         // Torture
         entity = torturedEntities.getEntity(entityId);
-        if (entity != null) {
+        if (entity != null && entityData.getComponent(entityId, Position.class) != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (elapsedTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();

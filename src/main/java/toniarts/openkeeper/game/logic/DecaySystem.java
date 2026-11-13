@@ -44,7 +44,8 @@ public final class DecaySystem extends GameTimeCounter {
         this.entityData = entityData;
         entityIds = new SafeArrayList<>(EntityId.class);
 
-        decayEntities = entityData.getEntities(Decay.class, Position.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        decayEntities = entityData.getEntities(Decay.class);
         processAddedEntities(decayEntities);
     }
 
@@ -61,7 +62,7 @@ public final class DecaySystem extends GameTimeCounter {
         // Decay stuff
         for (Entity entity : decayEntities) {
             Decay decay = entity.get(Decay.class);
-            if (timeElapsed - decay.startTime >= decay.duration) {
+            if (timeElapsed - decay.startTime >= decay.duration && entityData.getComponent(entity.getId(), Position.class) != null) {
                 // Decay
                 entityData.removeComponent(entity.getId(), Decay.class);
                 decay(entity.getId());

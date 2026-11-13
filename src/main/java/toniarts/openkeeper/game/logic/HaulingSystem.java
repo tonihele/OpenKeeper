@@ -36,7 +36,8 @@ public final class HaulingSystem implements IGameLogicUpdatable {
     public HaulingSystem(EntityData entityData) {
         this.entityData = entityData;
 
-        hauledEntities = entityData.getEntities(HauledBy.class, Position.class);
+        // Position is not in the set, a set gets every change of its components, and Position changes with every step of every creature
+        hauledEntities = entityData.getEntities(HauledBy.class);
     }
 
     @Override
@@ -48,7 +49,10 @@ public final class HaulingSystem implements IGameLogicUpdatable {
         // Process ticks
         for (Entity entity : hauledEntities) {
             HauledBy hauledBy = entity.get(HauledBy.class);
-            Position position = entity.get(Position.class);
+            Position position = entityData.getComponent(entity.getId(), Position.class);
+            if (position == null) {
+                continue;
+            }
             Position haulerPosition = entityData.getComponent(hauledBy.entityId, Position.class);
             if (haulerPosition == null) {
                 entityData.removeComponent(entity.getId(), HauledBy.class);
