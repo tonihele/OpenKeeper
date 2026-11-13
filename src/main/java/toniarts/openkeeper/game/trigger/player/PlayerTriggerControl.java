@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.game.trigger.TriggerActionData;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.game.trigger.TriggerGenericData;
+import toniarts.openkeeper.game.trigger.TriggerData;
 import toniarts.openkeeper.tools.convert.ConversionUtils;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
@@ -87,6 +88,41 @@ public class PlayerTriggerControl extends TriggerControl {
 
     public short getPlayerId() {
         return playerId;
+    }
+
+    /** Native breach events select matching root branches; the authored player filter is ignored. */
+    void onEnemyBreached() {
+        onBreach(TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED);
+    }
+
+    void onDungeonBreached() {
+        onBreach(TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED);
+    }
+
+    private void onBreach(TriggerGeneric.TargetType eventType) {
+        for (TriggerData child : root.getChildren().getArray()) {
+            if (child instanceof TriggerGenericData event
+                    && event.getType() == eventType) {
+                runBreachBranch(event);
+            }
+        }
+    }
+
+    private void runBreachBranch(TriggerGenericData branch) {
+        branch.subRepeatTimes();
+        for (TriggerData child : branch.getChildren().getArray()) {
+            if (child instanceof TriggerActionData action) {
+                doAction(action);
+                if (!branch.isRepeateable()) {
+                    branch.detachChild(action);
+                }
+            } else if (child instanceof TriggerGenericData condition && isActive(condition)) {
+                runBreachBranch(condition);
+            }
+        }
+        if (branch.getQuantity() == 0) {
+            branch.detachFromParent();
+        }
     }
 
     @Override

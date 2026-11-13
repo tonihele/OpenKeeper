@@ -50,6 +50,23 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         // TODO: get notified on new parties (a.k.a. parties re-spawned)
     }
 
+    /** Routes the event to the player whose tile work broke the wall. */
+    public void onEnemyBreached(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onEnemyBreached();
+            }
+        }
+    }
+
+    public void onDungeonBreached(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onDungeonBreached();
+            }
+        }
+    }
+
     @Override
     public void start() {
 
