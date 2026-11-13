@@ -104,8 +104,9 @@ public final class DoorsController implements IDoorsController {
     }
 
     private EntityId loadDoor(int x, int y, short doorId, short ownerId, Integer triggerId, boolean locked, boolean blueprint) {
+        Door door = kwdFile.getDoorById(doorId);
         EntityId entity = entityData.createEntity();
-        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint));
+        entityData.setComponent(entity, new DoorComponent(doorId, locked, blueprint, !blueprint && isSecret(door)));
         entityData.setComponent(entity, new Owner(ownerId, ownerId));
 
         // Move to the center of the tile
@@ -119,7 +120,6 @@ public final class DoorsController implements IDoorsController {
         entityData.setComponent(entity, new Position(rotation, pos));
 
         // Add additional components
-        Door door = kwdFile.getDoorById(doorId);
         if (door.getTrapTypeId() > 0) {
             entityData.setComponent(entity, new TrapComponent(door.getTrapTypeId()));
         }
@@ -155,6 +155,30 @@ public final class DoorsController implements IDoorsController {
     @Override
     public EntityId addDoorBlueprint(short doorId, Point tile, short ownerId) {
         return loadDoor(tile.x, tile.y, doorId, ownerId, null, false, true);
+    }
+
+    @Override
+    public void buildDoor(EntityId blueprint) {
+        DoorComponent doorComponent = entityData.getComponent(blueprint, DoorComponent.class);
+        if (doorComponent == null || !doorComponent.blueprint) {
+            return;
+        }
+
+        Door door = kwdFile.getDoorById(doorComponent.doorId);
+        setBuilt(blueprint, door);
+        entityData.setComponent(blueprint, new DoorComponent(doorComponent.doorId, doorComponent.locked, false, isSecret(door)));
+        DoorViewState viewState = entityData.getComponent(blueprint, DoorViewState.class);
+        if (viewState != null) {
+            entityData.setComponent(blueprint, new DoorViewState(viewState.doorId, viewState.locked, false, viewState.open));
+        }
+    }
+
+    /**
+     * A secret door is secret from the moment it is built, a blueprint isn't
+     * secret yet
+     */
+    private static boolean isSecret(Door door) {
+        return door.getFlags().contains(Door.DoorFlag.IS_SECRET);
     }
 
     @Override

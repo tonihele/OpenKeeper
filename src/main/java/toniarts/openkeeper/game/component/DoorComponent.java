@@ -29,18 +29,28 @@ public final class DoorComponent implements EntityComponent {
     public boolean locked;
     public boolean blueprint;
 
+    /**
+     * A built secret door that its enemies haven't discovered yet
+     */
+    public boolean secret;
+
     public DoorComponent() {
         // For serialization
     }
 
     public DoorComponent(short doorId, boolean locked, boolean blueprint) {
+        this(doorId, locked, blueprint, false);
+    }
+
+    public DoorComponent(short doorId, boolean locked, boolean blueprint, boolean secret) {
         this.doorId = doorId;
         this.locked = locked;
         this.blueprint = blueprint;
+        this.secret = secret;
     }
 
     @Override
     public String toString() {
-        return "DoorComponent{" + "doorId=" + doorId + ", locked=" + locked + ", blueprint=" + blueprint + '}';
+        return "DoorComponent{" + "doorId=" + doorId + ", locked=" + locked + ", blueprint=" + blueprint + ", secret=" + secret + '}';
     }
 }
