@@ -22,11 +22,13 @@ import java.lang.reflect.Proxy;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -55,7 +57,7 @@ public class PositionSystemSensingTest {
     @Test
     public void sensesWhatIsInWalkingRangeAroundTheWalls() {
         EntityId creature = createEntity(0, 0);
-        entityData.setComponent(creature, new Senses(4, 4));
+        entityData.setComponents(creature, new Senses(4, 4), new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID));
         EntityId atRange = createEntity(4, 0);
         createEntity(5, 0); // One tile too far
         EntityId aroundTheCorner = createEntity(1, 2);

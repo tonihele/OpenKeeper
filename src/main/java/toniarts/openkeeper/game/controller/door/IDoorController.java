@@ -27,4 +27,11 @@ public interface IDoorController extends IEntityController {
 
     public boolean isDestroyed();
 
+    /**
+     * Whether the door is a barricade. Creatures see over a barricade.
+     *
+     * @return true for a barricade
+     */
+    public boolean isBarricade();
+
 }
