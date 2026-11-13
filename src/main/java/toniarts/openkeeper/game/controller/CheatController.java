@@ -16,13 +16,20 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.state.CheatState;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -44,10 +51,12 @@ public final class CheatController implements ICheatController {
     private final IGameController gameController;
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
+    private final EntityData entityData;
 
-    public CheatController(IKwdFile kwdFile, IGameController gameController) {
+    public CheatController(IKwdFile kwdFile, IGameController gameController, EntityData entityData) {
         this.kwdFile = kwdFile;
         this.gameController = gameController;
+        this.entityData = entityData;
         this.gameWorldController = gameController.getGameWorldController();
         this.mapController = gameWorldController.getMapController();
     }
@@ -106,9 +115,28 @@ public final class CheatController implements ICheatController {
                 gameController.endGame(playerId, true);
                 break;
             }
+            case JACKPOT: {
+                hitJackpot(playerId);
+                break;
+            }
             default:
                 logger.log(Level.INFO, "Cheat {0} not implemented!", cheat);
         }
+    }
+
+    /**
+     * One of the keeper's gamblers hits the jackpot in the Casino
+     */
+    private void hitJackpot(short playerId) {
+        for (EntityId entityId : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, TaskComponent.class)) {
+            TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+            if (taskComponent.taskType == TaskType.GAMBLE && taskComponent.taskStarted
+                    && gameController.getTaskManager().getTaskById(taskComponent.taskId) instanceof Gamble gamble
+                    && gamble.hitJackpot(gameWorldController.getCreaturesController().createController(entityId))) {
+                return;
+            }
+        }
+        logger.log(Level.INFO, "No gambler of player {0} could hit the jackpot", playerId);
     }
 
     @Override
