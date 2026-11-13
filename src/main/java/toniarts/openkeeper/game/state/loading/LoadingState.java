@@ -61,6 +61,11 @@ public abstract class LoadingState extends AbstractAppState {
 
     public LoadingState(final Main app, String name) {
         this.app = app;
+
+        // Disable the cursor here, not in initialize(): that only runs on the next update, and the loading thread
+        // may already have finished and enqueued onLoadComplete(), which can show the cursor again before we hide it
+        app.getInputManager().setCursorVisible(false);
+
         loadingThread = new LoadingThread(name);
         loadingThread.start();
     }
@@ -74,9 +79,6 @@ public abstract class LoadingState extends AbstractAppState {
         this.stateManager = stateManager;
         inputManager = this.app.getInputManager();
         viewPort = this.app.getViewPort();
-
-        // Disable the cursor
-        inputManager.setCursorVisible(false);
 
         // Load up the title screen
         setupTitleScreen();
