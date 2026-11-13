@@ -302,6 +302,18 @@ class CreatureControllerTest {
     }
 
     @Test
+    void fallingLeavesThePreviousPositionAlone() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Position(0, new Vector3f(3, WorldUtils.FLOOR_HEIGHT + 1, 4)), new CreatureFall());
+            Position previous = f.data.getComponent(f.entity, Position.class);
+            f.fall.processTick(.25f);
+            // The other threads still read the position the creature had before the step
+            assertEquals(WorldUtils.FLOOR_HEIGHT + 1, previous.position.y);
+            assertEquals(WorldUtils.FLOOR_HEIGHT + .5f, f.data.getComponent(f.entity, Position.class).position.y);
+        }
+    }
+
+    @Test
     void manualRequestRejectsAnotherRoomRemovedBedOrNonSleeper() {
         for (int scenario = 0; scenario < 3; scenario++) {
             try (Fixture f = new Fixture(scenario == 2 ? 0 : 9)) {

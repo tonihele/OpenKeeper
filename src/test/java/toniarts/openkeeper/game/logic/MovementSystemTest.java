@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.badlogic.gdx.math.Vector2;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.util.ArrayList;
+import java.util.List;
+import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.Mobile;
@@ -28,6 +31,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.utils.Point;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -54,5 +58,28 @@ class MovementSystemTest {
         float facing = entityData.getComponent(creature, Position.class).rotation;
         double cos = (Math.sin(facing) * 1 + Math.cos(facing) * 2) / Math.sqrt(5);
         assertTrue(cos > Math.cos(0.2), "facing " + Math.toDegrees(Math.acos(cos)) + " degrees away");
+    }
+
+    /**
+     * The other threads still read the Position the creature had before the
+     * step, walking on must not move that one under them.
+     */
+    @Test
+    void walkingLeavesThePreviousPositionAlone() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Position(0, new Vector3f(15, 1, 23)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(17, 23), null, List.of(new Vector2(15, 23), new Vector2(17, 23))));
+        MovementSystem movementSystem = new MovementSystem(entityData);
+        Position previous = entityData.getComponent(creature, Position.class);
+
+        for (int frame = 0; frame < 30; frame++) {
+            movementSystem.processTick(1 / 60f);
+        }
+
+        assertEquals(new Vector3f(15, 1, 23), previous.position);
+        Vector3f position = entityData.getComponent(creature, Position.class).position;
+        assertTrue(position.x > 15, "not walking");
+        assertEquals(1, position.y);
     }
 }

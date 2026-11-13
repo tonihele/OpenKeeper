@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.logic;
 
 import com.badlogic.gdx.ai.steer.SteeringAcceleration;
 import com.badlogic.gdx.math.Vector2;
+import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -210,10 +211,10 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Position oldPosition = entityData.getComponent(entityId, Position.class);
         if (oldPosition != null) {
 
-            // Re-use the vector, the position might be already removed from another thread
-            oldPosition.position.x = steerableEntity.getPosition().x;
-            oldPosition.position.z = steerableEntity.getPosition().y;
-            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
+            // The position might be already removed from another thread. A new vector, the other threads
+            // are still reading the old position
+            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(),
+                    new Vector3f(steerableEntity.getPosition().x, oldPosition.position.y, steerableEntity.getPosition().y)));
         }
     }
 
