@@ -186,7 +186,7 @@ public class VisualEffect {
             case ADDITIVE_ALPHA:
             case SPRITE:
                 EffectGeometry g = new EffectGeometry("effect", resource.getFlags().contains(ArtResource.ArtResourceFlag.FLAT));
-                g.setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+                g.setFrames(AssetUtils.getArtResourceFrameCount(resource));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 g.setMaterial(material);
@@ -384,7 +384,7 @@ public class VisualEffect {
 
         Material material = AssetUtils.createParticleMaterial(resource, assetManager);
         emitter.setMaterial(material);
-        emitter.setImagesX(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+        emitter.setImagesX(AssetUtils.getArtResourceFrameCount(resource));
         emitter.setImagesY(1);
         emitter.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
         emitter.setInWorldSpace(false);
