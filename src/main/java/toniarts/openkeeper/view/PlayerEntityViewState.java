@@ -919,8 +919,16 @@ public class PlayerEntityViewState extends AbstractAppState {
      */
     private final class DoorModelContainer extends EntityContainer<Spatial> {
 
+        private boolean stopped = false;
+
         public DoorModelContainer(EntityData ed) {
             super(ed, Position.class, DoorViewState.class); // Stuff with position is on the map
+        }
+
+        @Override
+        public void stop() {
+            stopped = true;
+            super.stop();
         }
 
         @Override
@@ -941,6 +949,14 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+
+            // A door that goes, destroyed or sold, leaves its death effect, a blueprint just vanishes
+            DoorViewState viewState = e.get(DoorViewState.class);
+            if (!stopped && viewState != null && !viewState.blueprint) {
+                Door door = kwdFile.getDoorById(viewState.doorId);
+                stateManager.getState(EffectManagerState.class).load(nodeDoors, object.getWorldTranslation().clone(),
+                        door.getDeathEffectId(), false);
+            }
             removeModel(object, e);
             notifyTerrainOfDoor(e, false);
         }

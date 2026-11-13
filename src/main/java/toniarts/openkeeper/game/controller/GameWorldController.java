@@ -98,6 +98,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -570,9 +571,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
-        // A trap is sold on its own, one at a time and never together with rooms
+        // A trap or a door is sold on its own, one at a time and never together with rooms
         Point startTile = new Point((int) start.x, (int) start.y);
-        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+        if (startTile.equals(new Point((int) end.x, (int) end.y))
+                && (sellTrap(startTile, playerId) || sellDoor(startTile, playerId))) {
             return;
         }
 
@@ -611,6 +613,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return true;
         }
         return false;
+    }
+
+    private boolean sellDoor(Point tile, short playerId) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every door on the map
+        OptionalInt saleValue = doorsController.sellDoor(entityPositionLookup.getEntitiesInLocation(tile), playerId);
+        if (saleValue.isEmpty()) {
+            return false;
+        }
+
+        returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue.getAsInt())));
+        return true;
     }
 
     private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
@@ -1191,7 +1208,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Doors
         DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
         if (doorComponent != null && !doorComponent.blueprint) {
-            entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint));
+            entityData.setComponent(entity, new DoorComponent(doorComponent.doorId, !doorComponent.locked, doorComponent.blueprint, doorComponent.secret));
             DoorViewState doorViewState = entityData.getComponent(entity, DoorViewState.class);
             if (doorViewState != null) {
                 entityData.setComponent(entity, new DoorViewState(doorViewState.doorId, !doorComponent.locked, doorViewState.blueprint, !doorComponent.locked ? false : doorViewState.open));
@@ -1671,6 +1688,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         return creaturesController;
     }
 
+    @Override
     public IDoorsController getDoorsController() {
         return doorsController;
     }

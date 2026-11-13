@@ -150,7 +150,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
-        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
+        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class, Owner.class);
         constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class, Owner.class);
         constructionBlockingTiles.addAll(constructionBlockingObjects, this::isConstructionBlockingObject);
         constructionBlockingTiles.addAll(constructionBlockingDoors, entity -> true);
@@ -764,9 +764,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
 
-                // Started on a trap: sell just that one, a trap is never sold together with rooms
+                // Started on a trap or a door: sell just that one, they are never sold together with rooms
                 Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
-                if (hasSellableTrap(realStart)) {
+                if (hasSellableTrap(realStart) || hasSellableDoor(realStart)) {
                     Vector2f tile = WorldUtils.pointToVector2f(realStart);
                     gameClientState.getGameClientService().sell(tile, tile);
                 } else {
@@ -956,6 +956,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
     }
 
+    /**
+     * A keeper sells its own doors, built or blueprints
+     */
+    private boolean hasSellableDoor(Point tile) {
+        for (Entity door : constructionBlockingDoors) {
+            if (door.get(Owner.class).ownerId == player.getPlayerId()
+                    && WorldUtils.vectorToPoint(door.get(Position.class).position).equals(tile)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     private boolean isConstructionBlockingObject(Entity entity) {
         ObjectComponent objectComponent = entity.get(ObjectComponent.class);
         return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
@@ -1079,7 +1092,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 return getDropColor(point);
             }
             if (interactionState.getType() == Type.SELL) {
-                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId()) || hasSellableTrap(point)
+                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId())
+                        || hasSellableTrap(point) || hasSellableDoor(point)
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (interactionState.getType() == Type.TRAP) {

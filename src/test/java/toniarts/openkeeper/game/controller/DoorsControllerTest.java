@@ -21,8 +21,10 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -40,10 +42,12 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
@@ -59,6 +63,7 @@ class DoorsControllerTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Door woodenDoor = DoorFixtures.door((short) 1, 250, 800);
+    private final Door secretDoor = DoorFixtures.door((short) 5, 3000, Door.DoorFlag.IS_SECRET);
     private FakeMapData mapData;
     private DoorsController doorsController;
 
@@ -82,10 +87,15 @@ class DoorsControllerTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getThings" -> List.of();
-            case "getDoorById" -> woodenDoor;
+            case "getDoorById" -> ((Number) args[0]).shortValue() == secretDoor.getDoorId() ? secretDoor : woodenDoor;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        doorsController = new DoorsController(kwdFile, entityData, null, mapController, null, null);
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = Map.of(
+                Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST,
+                DoorFixtures.miscVariable(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST, 50),
+                Variable.MiscVariable.MiscType.DOOR_SELL_VALUE_PERCENTAGE_OF_COST,
+                DoorFixtures.miscVariable(Variable.MiscVariable.MiscType.DOOR_SELL_VALUE_PERCENTAGE_OF_COST, 75));
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, null, null);
     }
 
     @Test
@@ -124,6 +134,97 @@ class DoorsControllerTest {
         assertEquals(-FastMath.HALF_PI, entityData.getComponent(door, Position.class).rotation);
     }
 
+    @Test
+    void deliveredDoorIsBuilt() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        doorsController.buildDoor(door);
+
+        assertFalse(entityData.getComponent(door, DoorComponent.class).blueprint);
+        assertFalse(entityData.getComponent(door, DoorViewState.class).blueprint);
+        assertEquals(800, entityData.getComponent(door, Health.class).health);
+    }
+
+    @Test
+    void deliveredSecretDoorIsSecret() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(secretDoor.getDoorId(), TILE, PLAYER);
+        assertFalse(entityData.getComponent(door, DoorComponent.class).secret);
+
+        doorsController.buildDoor(door);
+
+        assertTrue(entityData.getComponent(door, DoorComponent.class).secret);
+    }
+
+    @Test
+    void deliveredDoorIsNotSecret() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        doorsController.buildDoor(door);
+
+        assertFalse(entityData.getComponent(door, DoorComponent.class).secret);
+    }
+
+    @Test
+    void builtDoorSellsForAShareOfItsCost() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        doorsController.buildDoor(door);
+
+        // The share is the one of the rooms, the door's own variable is not used
+        assertEquals(OptionalInt.of(125), doorsController.sellDoor(entitiesOn(TILE), PLAYER));
+        assertNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void blueprintSellsForTheSameShare() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        assertEquals(OptionalInt.of(125), doorsController.sellDoor(entitiesOn(TILE), PLAYER));
+        assertNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void doorOfAnotherKeeperIsNotSold() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        assertEquals(OptionalInt.empty(), doorsController.sellDoor(entitiesOn(TILE), ENEMY));
+        assertTrue(entityData.getComponent(door, DoorComponent.class) != null);
+    }
+
+    @Test
+    void nothingIsSoldWithoutADoor() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        assertEquals(OptionalInt.empty(), doorsController.sellDoor(entitiesOn(new Point(2, 1)), PLAYER));
+        assertTrue(entityData.getComponent(door, DoorComponent.class) != null);
+    }
+
+    @Test
+    void builtDoorIsNotBuiltAgain() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        doorsController.buildDoor(door);
+        entityData.setComponent(door, new Health(1, 800));
+
+        doorsController.buildDoor(door);
+
+        assertEquals(1, entityData.getComponent(door, Health.class).health);
+    }
+
     private void setTile(Point point, short terrainId, short ownerId) {
         FakeMapTile tile = mapData.getTile(point.x, point.y);
         tile.terrainId = terrainId;
@@ -132,6 +233,16 @@ class DoorsControllerTest {
 
     private static Terrain terrain(short terrainId, Terrain.TerrainFlag... flags) {
         return TerrainFixtures.terrain(terrainId, TerrainFixtures.flags(flags), 0, 1, 1, terrainId);
+    }
+
+    private List<EntityId> entitiesOn(Point tile) {
+        List<EntityId> result = new ArrayList<>();
+        for (EntityId entity : entityData.findEntities(null, Position.class)) {
+            if (WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position).equals(tile)) {
+                result.add(entity);
+            }
+        }
+        return result;
     }
 
 }
