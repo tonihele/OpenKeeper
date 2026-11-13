@@ -30,10 +30,12 @@ import com.jme3.network.service.rpc.RpcHostedService;
 import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
+import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -63,6 +65,7 @@ import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.GraveyardDecompose;
 import toniarts.openkeeper.game.component.HauledBy;
@@ -91,6 +94,7 @@ import toniarts.openkeeper.game.component.Regeneration;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.Senses;
+import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Spellbook;
@@ -100,8 +104,10 @@ import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
@@ -182,10 +188,12 @@ public final class NetworkServer {
             Serializer.registerClass(GameEvent.ThingFlag.class, new EnumSerializer());
 
             // Our entity components
+            Serializer.registerClass(Alarm.class, new FieldSerializer());
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
             Serializer.registerClass(Casino.class, new FieldSerializer());
+            Serializer.registerClass(CastShot.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
@@ -217,6 +225,7 @@ public final class NetworkServer {
             Serializer.registerClass(Fearless.class, new FieldSerializer());
             Serializer.registerClass(FollowTarget.class, new FieldSerializer());
             Serializer.registerClass(Food.class, new FieldSerializer());
+            Serializer.registerClass(Frozen.class, new FieldSerializer());
             Serializer.registerClass(Gold.class, new FieldSerializer());
             Serializer.registerClass(GraveyardDecompose.class, new FieldSerializer());
             Serializer.registerClass(HauledBy.class, new FieldSerializer());
@@ -246,6 +255,7 @@ public final class NetworkServer {
             Serializer.registerClass(Storage.class, new FieldSerializer());
             Serializer.registerClass(Stored.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());
+            Serializer.registerClass(ShotFlight.class, new FieldSerializer());
             Serializer.registerClass(ShotViewState.class, new FieldSerializer());
             Serializer.registerClass(Slapped.class, new FieldSerializer());
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
@@ -253,8 +263,10 @@ public final class NetworkServer {
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());
             Serializer.registerClass(Threat.class, new FieldSerializer());
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());
+            Serializer.registerClass(TrapFiring.class, new FieldSerializer());
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
+            Serializer.registerClass(TriggerWave.class, new FieldSerializer());
             Serializer.registerClass(Unconscious.class, new FieldSerializer());
         }
     }
