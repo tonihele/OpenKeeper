@@ -26,8 +26,17 @@ import com.simsilica.es.EntityComponent;
  */
 public final class CreatureFall implements EntityComponent {
 
+    /**
+     * A conjured creature doesn't land stunned like a creature dropped from the hand
+     */
+    public boolean conjured;
+
     public CreatureFall() {
         // For serialization
+    }
+
+    public CreatureFall(boolean conjured) {
+        this.conjured = conjured;
     }
 
 }
