@@ -27,6 +27,8 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class ThreeByThreeControllerTest {
 
@@ -69,6 +71,39 @@ class ThreeByThreeControllerTest {
 
         assertEquals(105, first.getLastSpawnTime());
         assertEquals(100, second.getLastSpawnTime());
+    }
+
+    @Test
+    void ownCreatureDroppedOnTheMiddleLeavesTheDungeon() {
+        assertTrue(portal().isLeavingDungeon(new Point(1, 1), (short) 3, false));
+    }
+
+    @Test
+    void creatureDroppedBesideTheMiddleStays() {
+        ThreeByThreeController portal = portal();
+
+        assertFalse(portal.isLeavingDungeon(new Point(0, 0), (short) 3, false));
+        assertFalse(portal.isLeavingDungeon(new Point(1, 0), (short) 3, false));
+        assertFalse(portal.isLeavingDungeon(new Point(2, 1), (short) 3, false));
+    }
+
+    @Test
+    void impDroppedOnTheMiddleStays() {
+        assertFalse(portal().isLeavingDungeon(new Point(1, 1), (short) 3, true));
+    }
+
+    @Test
+    void creatureOfAnotherKeeperStays() {
+        assertFalse(portal().isLeavingDungeon(new Point(1, 1), (short) 4, false));
+    }
+
+    @Test
+    void capturedPortalSendsTheNewOwnersCreaturesAway() {
+        ThreeByThreeController portal = portal();
+        portal.captured((short) 4);
+
+        assertTrue(portal.isLeavingDungeon(new Point(1, 1), (short) 4, false));
+        assertFalse(portal.isLeavingDungeon(new Point(1, 1), (short) 3, false));
     }
 
     private ThreeByThreeController portal() {
