@@ -45,5 +45,7 @@ public enum TaskType {
     MANUFACTURE,
     PRAY,
     GUARD,
-    GAMBLE
+    GAMBLE,
+    FETCH_TRAP_CRATE,
+    DELIVER_TRAP_CRATE
 }
