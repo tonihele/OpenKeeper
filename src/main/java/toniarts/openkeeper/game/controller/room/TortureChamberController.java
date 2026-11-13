@@ -19,13 +19,16 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -55,7 +58,7 @@ public final class TortureChamberController extends NormalRoomController {
     public void construct() {
         super.construct();
 
-        addObjectControl(new RoomTortureeControl(kwdFile, this, entityData, gameTimer) {
+        RoomTortureeControl control = addObjectControl(new RoomTortureeControl(kwdFile, this, entityData, gameTimer) {
 
             @Override
             protected int getNumberOfAccessibleTiles() {
@@ -64,6 +67,20 @@ public final class TortureChamberController extends NormalRoomController {
                 return getCoordinates().size();
             }
         });
+
+        // Extending the room builds the furniture again, the victims need the new devices
+        control.refreshDevices();
+
+        // Like in DK II, the torture wheels spin all the time, on the floor and on the walls
+        List<EntityId> furnitures = new ArrayList<>(getFloorFurniture());
+        furnitures.addAll(getWallFurniture());
+        for (EntityId furniture : furnitures) {
+            ObjectViewState viewState = entityData.getComponent(furniture, ObjectViewState.class);
+            if (viewState != null && viewState.objectId == OBJECT_TORTURE_WHEEL_ID) {
+                entityData.setComponent(furniture, new ObjectViewState(viewState.objectId,
+                        GameObject.State.TORTURE_WHEEL_SPIN, viewState.animState, viewState.visible));
+            }
+        }
     }
 
     /**
