@@ -16,11 +16,44 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityId;
+
 /**
  * Signifies that a room is an entrance for creatures
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface ICreatureEntrance extends IEntityGenerator {
+
+    /**
+     * Get the number of creatures that came in through this entrance since it
+     * was built or claimed. The original lengthens the Portal's generation
+     * interval with it.
+     *
+     * @return the number of creatures that came in
+     */
+    default int getCreaturesEntered() {
+        return 0;
+    }
+
+    /**
+     * Notifies that a creature came in through this entrance outside its own
+     * generation, like one a level script generates. The creature counts,
+     * but the generation clock is not restarted.
+     *
+     * @param enteredEntityId the creature that came in
+     */
+    default void onCreatureEntered(EntityId enteredEntityId) {
+    }
+
+    /**
+     * Notifies that the entrance's generation time came but no creature came
+     * in, because attraction is closed, the portal limit is reached or no
+     * creature is attracted. The original restarts the clock anyway.
+     *
+     * @param time the time of the generation check
+     */
+    default void onGenerationSkipped(double time) {
+    }
 
 }
