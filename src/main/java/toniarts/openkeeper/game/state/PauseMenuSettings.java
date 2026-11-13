@@ -37,6 +37,9 @@ import de.lessvoid.nifty.screen.Screen;
 import org.bushe.swing.event.EventTopicSubscriber;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.AudioOutput;
+import toniarts.openkeeper.game.sound.AudioOutputMode;
+import de.lessvoid.nifty.controls.Label;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
@@ -205,6 +208,14 @@ final class PauseMenuSettings {
         addSlider(parent, "${menu.1459}", "musicVolume", "musicEnabled", 0f, 1f, 0.01f);
         addSlider(parent, "${menu.1458}", "sfxVolume", "sfxEnabled", 0f, 1f, 0.01f);
 
+        addDropDown(parent, "Spatial audio", "audioOutputMode", "220px");
+        DropDown<AudioOutputMode> output = find("audioOutputMode", DropDown.class);
+        output.addAllItems(java.util.Arrays.asList(AudioOutputMode.values()));
+        output.selectItem(AudioOutputMode.fromSetting(Main.getUserSettings().getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
+        new LabelBuilder("audioOutputStatus", AudioOutput.getStatus().applied() ? "" : AudioOutput.getStatus().message()) {{
+            style(LABEL_STYLE); width("100%"); wrap(true);
+        }}.build(parent);
+
         Settings settings = Main.getUserSettings();
         find("masterVolume", Slider.class).setValue(settings.getFloat(Settings.Setting.MASTER_VOLUME));
         find("voiceVolume", Slider.class).setValue(settings.getFloat(Settings.Setting.VOICE_VOLUME));
@@ -228,6 +239,12 @@ final class PauseMenuSettings {
         settings.setSetting(Settings.Setting.MUSIC_ENABLED, find("musicEnabled", CheckBox.class).isChecked());
         settings.setSetting(Settings.Setting.SFX_ENABLED, find("sfxEnabled", CheckBox.class).isChecked());
 
+        DropDown<AudioOutputMode> output = find("audioOutputMode", DropDown.class);
+        AudioOutputMode mode = output.getSelection();
+        if (mode == null) mode = AudioOutputMode.AUTO;
+        settings.setSetting(Settings.Setting.AUDIO_OUTPUT_MODE, mode.name());
+        AudioOutput.Result result = AudioOutput.apply(mode);
+        find("audioOutputStatus", Label.class).setText(result.applied() ? "" : result.message());
         Main.setupNiftySound(nifty);
         save();
     }

@@ -18,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class SoundEngineTest {
 
+    private static final int TEST_RANGE_TILES = 12;
     private static final int EVENT = 0x1C5;
     private static final int LOOP_EVENT = 0x200;
     private static final int DEFERRED_EVENT = 0x300;
@@ -76,6 +77,52 @@ class SoundEngineTest {
         assertEquals(4.0f, backends.get(0).spec.z());
         assertEquals(5.0f, voiceOf(handle).getDistanceToListener(), 0.001f);
         engine.stop(handle);
+    }
+
+    @Test
+    void groupRangeIsConvertedBeforeAdmissionAndBackendCreation() {
+        category = category(20.0f);
+        engine.setThrottleEnabled(false);
+        assertEquals(SoundEngine.NO_HANDLE, engine.play(category, EVENT, new Point(11, 0)));
+        int handle = engine.play(category, EVENT, new Point(10, 0));
+        engine.tick();
+        assertTrue(engine.isPlaying(handle));
+        assertEquals(1.0f, backends.get(0).spec.refDistance());
+        assertEquals(10.0f, backends.get(0).spec.maxDistance());
+        assertEquals(0.5f, backends.get(0).spec.rolloffFactor());
+    }
+
+    @Test
+    void largeGroupRangeIsNotClippedToTwelveTiles() {
+        category = category(100.0f);
+        int handle = engine.play(category, EVENT, new Point(30, 0));
+        engine.tick();
+        assertTrue(engine.isPlaying(handle));
+        assertEquals(50.0f, backends.get(0).spec.maxDistance());
+    }
+
+    @Test
+    void chainedClipsKeepTheirOwnRangeAndFollowTheSource() {
+        SoundEventGroup initial = group(20);
+        SoundEventGroup next = new SoundEventGroup(100, 100, 0, 0, 1, 1,
+                0, 0, 0, 0, 100, 6, initial.getSamples(), List.of());
+        SoundEventGroup zeroWeight = new SoundEventGroup(100, 100, 0, 0, 1, 1,
+                0, 0, 0, 0, 0, 20, initial.getSamples(), List.of());
+        SoundEvent event = new SoundEvent(EVENT, 100, EnumSet.of(SoundEventFlag.REPEATING),
+                List.of(zeroWeight, next));
+        category = new SoundCategory("TEST", 0b11, Map.of(EVENT, event));
+        int handle = engine.play(category, EVENT, new Point(0, 0));
+        engine.tick();
+        SoundVoice voice = voiceOf(handle);
+        voice.setChainNextAt(0);
+        voice.setChainDelay(1);
+        engine.tick();
+        assertEquals(2, backends.size());
+        assertEquals(10, backends.get(0).spec.maxDistance());
+        assertEquals(3, backends.get(1).spec.maxDistance());
+        engine.move(handle, new Point(1, 0));
+        assertEquals(1, backends.get(0).x);
+        assertEquals(1, backends.get(1).x);
     }
 
     @Test
@@ -188,7 +235,7 @@ class SoundEngineTest {
         assertEquals(SoundEngine.NO_HANDLE, engine.play(category, DEFERRED_EVENT, distant()),
                 "a deferred sound is dropped beyond the audible distance");
 
-        int handle = engine.play(category, DEFERRED_EVENT, new Point(SoundEngine.MAX_ELIGIBLE_DISTANCE, 0));
+        int handle = engine.play(category, DEFERRED_EVENT, new Point(TEST_RANGE_TILES, 0));
         assertNotEquals(SoundEngine.NO_HANDLE, handle, "a deferred sound is accepted within the distance");
         engine.stop(handle);
     }
@@ -240,7 +287,7 @@ class SoundEngineTest {
     }
 
     private static Point distant() {
-        return new Point(SoundEngine.MAX_ELIGIBLE_DISTANCE + 10, 0);
+        return new Point(TEST_RANGE_TILES + 10, 0);
     }
 
     private SoundVoice voiceOf(int handle) {
@@ -252,19 +299,23 @@ class SoundEngineTest {
     }
 
     private static SoundCategory category() {
+        return category(24.0f);
+    }
+
+    private static SoundCategory category(float maximum) {
         Map<Integer, SoundEvent> events = new HashMap<>();
-        events.put(EVENT, new SoundEvent(EVENT, 100, EnumSet.noneOf(SoundEventFlag.class), List.of(group())));
-        events.put(LOOP_EVENT, new SoundEvent(LOOP_EVENT, 100, EnumSet.of(SoundEventFlag.REPEATING, SoundEventFlag.LOOP_EACH), List.of(group())));
-        events.put(DEFERRED_EVENT, new SoundEvent(DEFERRED_EVENT, 100, EnumSet.of(SoundEventFlag.DEFERRED), List.of(group())));
+        events.put(EVENT, new SoundEvent(EVENT, 100, EnumSet.noneOf(SoundEventFlag.class), List.of(group(maximum))));
+        events.put(LOOP_EVENT, new SoundEvent(LOOP_EVENT, 100, EnumSet.of(SoundEventFlag.REPEATING, SoundEventFlag.LOOP_EACH), List.of(group(maximum))));
+        events.put(DEFERRED_EVENT, new SoundEvent(DEFERRED_EVENT, 100, EnumSet.of(SoundEventFlag.DEFERRED), List.of(group(maximum))));
         // channel 0 is the master channel, channel 1 the music channel
         return new SoundCategory("TEST", 0b11, events);
     }
 
-    private static SoundEventGroup group() {
+    private static SoundEventGroup group(float maximum) {
         SoundArchive archive = new SoundArchive("Global" + File.separator + "Test", EnumSet.of(BankFlag.RESIDENT), null,
                 List.of("clip1.mp2"));
         SoundSample sample = new SoundSample(1, 100, 1000, 0, archive);
-        return new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0.0f, List.of(sample), List.of());
+        return new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 100, maximum, List.of(sample), List.of());
     }
 
     /**
@@ -275,6 +326,7 @@ class SoundEngineTest {
         private final AudioSpec spec;
         private Status status = Status.STOPPED;
         private float gain;
+        private float x;
         private boolean played;
 
         RecordingBackend(AudioSpec spec) {
@@ -305,6 +357,11 @@ class SoundEngineTest {
         @Override
         public void setGain(float gain) {
             this.gain = gain;
+        }
+
+        @Override
+        public void setPosition(float x, float y, float z) {
+            this.x = x;
         }
 
         @Override
