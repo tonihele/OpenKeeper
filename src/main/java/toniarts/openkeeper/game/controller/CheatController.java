@@ -116,4 +116,14 @@ public final class CheatController implements ICheatController {
         gameWorldController.getCreaturesController().spawnCreatures(creatureId, playerId, level, amount);
     }
 
+    @Override
+    public void addGold(int amount, short playerId) {
+        gameWorldController.addGold(playerId, amount);
+    }
+
+    @Override
+    public void addMana(int amount, short playerId) {
+        gameController.getPlayerController(playerId).getManaControl().addMana(amount);
+    }
+
 }

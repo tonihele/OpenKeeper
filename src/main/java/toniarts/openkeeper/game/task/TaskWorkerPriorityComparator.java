@@ -26,19 +26,22 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
     @Override
     public int compare(TaskManager.TaskWorkerPriority o1, TaskManager.TaskWorkerPriority o2) {
 
+        // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
+        // work order (DKII.EXE 0x463DF0)
+        int result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
+        if (result != 0) {
+            return result;
+        }
+
         // Walls are only reinforced once there is nothing else to do, the floor is claimed first
-        int result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
+        result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
         if (result != 0) {
             return result;
         }
 
-        // Fill in jobs that have no workers first
-        result = Integer.compare(o1.task().getAssigneeCount(), o2.task().getAssigneeCount());
-        if (result != 0) {
-            return result;
-        }
-
-        // Closest creature gets the job
+        // Closest creature gets the job, whether or not someone already works on it. The original's imp scans rings of
+        // tiles outwards for work (DKII.EXE 0x468D10) and takes over a job held by another imp only when it is closer
+        // (0x46AB50, 0x46AEA0)
         result = Integer.compare(o1.points(), o2.points());
         if (result != 0) {
             return result;
@@ -46,6 +49,10 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
 
         // If the same, compare by date added
         return o1.task().getTaskCreated().compareTo(o2.task().getTaskCreated());
+    }
+
+    private static boolean isArmingTrap(Task task) {
+        return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
     }
 
     private static boolean isClaimWall(Task task) {

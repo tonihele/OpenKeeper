@@ -76,6 +76,22 @@ public class TriggerControl extends Control {
         trigger = root;
     }
 
+    /**
+     * Looks up an action point of the level. A level can refer to an action
+     * point that doesn't exist (user made levels), that is logged as an error
+     * and the caller is expected to skip whatever it was going to do.
+     *
+     * @param id the action point ID
+     * @return the action point, or {@code null} if the level doesn't have it
+     */
+    protected ActionPoint getActionPoint(int id) {
+        ActionPoint ap = levelInfo.getActionPoint(id);
+        if (ap == null) {
+            logger.log(Level.ERROR, "Trigger {0} refers to action point {1}, but the level doesn't have it!", trigger.getId(), id);
+        }
+        return ap;
+    }
+
     @Override
     protected void updateControl(float tpf) {
         TriggerGenericData next = null;
@@ -192,8 +208,8 @@ public class TriggerControl extends Control {
                 short playerId = trigger.getUserData("playerId", short.class);
                 short level = trigger.getUserData("level", short.class);
                 EnumSet<Creature.CreatureFlag> flags = ConversionUtils.parseFlagValue(trigger.getUserData("flag", short.class), Creature.CreatureFlag.class);
-                Point p = new Point(trigger.getUserData("posX", int.class) - 1,
-                        trigger.getUserData("posY", int.class) - 1);
+                Point p = new Point(trigger.getUserData("posX", int.class),
+                        trigger.getUserData("posY", int.class));
                 // TODO: flags!
                 creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(p), ICreaturesController.SpawnType.PLACE);
                 break;
@@ -261,10 +277,12 @@ public class TriggerControl extends Control {
                 break;
 
             case CREATE_HERO_PARTY:
-                ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
-                short partyId = trigger.getUserData("partyId", short.class);
-                PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
-                creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
+                ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+                if (ap != null) {
+                    short partyId = trigger.getUserData("partyId", short.class);
+                    PartyType partyType = ConversionUtils.parseEnum(trigger.getUserData("type", short.class), PartyType.class);
+                    creaturesController.spawnHeroParty(partyId, partyType, WorldUtils.ActionPointToVector2f(ap));
+                }
                 break;
 
             case SET_ALLIANCE:
@@ -290,6 +308,16 @@ public class TriggerControl extends Control {
                 // TODO this
                 p = new Point(trigger.getUserData("posX", int.class) - 1,
                         trigger.getUserData("posY", int.class) - 1);
+                break;
+
+            case SET_MUSIC_LEVEL:
+                // Not implemented in the reference DKII executable either.
+                break;
+
+            case TOGGLE_EFFECT_GENERATOR:
+                short generatorId = trigger.getUserData("generatorId", short.class);
+                available = trigger.getUserData("available", short.class) == 1;
+                gameController.setEffectGeneratorEnabled(generatorId, available);
                 break;
 
             case SET_CREATURE_MOODS:
