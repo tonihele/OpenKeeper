@@ -26,8 +26,14 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
     @Override
     public int compare(TaskManager.TaskWorkerPriority o1, TaskManager.TaskWorkerPriority o2) {
 
+        // A dropped worker first takes the closest work around the drop, whatever it is
+        int result = Integer.compare(o1.dropRing(), o2.dropRing());
+        if (result != 0) {
+            return result;
+        }
+
         // Walls are only reinforced once there is nothing else to do, the floor is claimed first
-        int result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
+        result = Boolean.compare(isClaimWall(o1.task()), isClaimWall(o2.task()));
         if (result != 0) {
             return result;
         }
