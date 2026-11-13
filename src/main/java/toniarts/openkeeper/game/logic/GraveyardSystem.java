@@ -29,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.GraveyardDecompose;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -72,7 +73,6 @@ public final class GraveyardSystem implements IGameLogicUpdatable {
     private final EntitySet storedCorpses;
     private final EntitySet livingCreatures;
     private final Map<EntityId, StoredCorpse> corpses = new HashMap<>();
-    private final Map<EntityId, Integer> decomposeValues = new HashMap<>();
 
     public GraveyardSystem(EntityData entityData, IKwdFile kwdFile,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -136,11 +136,13 @@ public final class GraveyardSystem implements IGameLogicUpdatable {
     }
 
     private void corpseDecomposed(IRoomController room, int decomposeValue) {
-        int value = decomposeValues.merge(room.getEntityId(), Math.max(0, decomposeValue), Integer::sum);
+        GraveyardDecompose gathered = entityData.getComponent(room.getEntityId(), GraveyardDecompose.class);
+        int value = (gathered != null ? gathered.value : 0) + Math.max(0, decomposeValue);
         if (value >= decomposeValueNeededForVampire && !isVampireLimitReached(room.getOwnerId())) {
-            decomposeValues.put(room.getEntityId(), 0);
+            value = 0;
             raiseVampire(room);
         }
+        entityData.setComponent(room.getEntityId(), new GraveyardDecompose(value));
     }
 
     private boolean isVampireLimitReached(short playerId) {
@@ -190,7 +192,6 @@ public final class GraveyardSystem implements IGameLogicUpdatable {
         storedCorpses.release();
         livingCreatures.release();
         corpses.clear();
-        decomposeValues.clear();
     }
 
     private record StoredCorpse(EntityId room, int decomposeValue) {

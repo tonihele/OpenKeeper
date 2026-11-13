@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.GraveyardDecompose;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -88,6 +89,7 @@ class GraveyardSystemTest {
         decompose(first);
         assertTrue(spawned.isEmpty());
         assertTrue(playerEvents.isEmpty());
+        assertEquals(600, gathered());
 
         decompose(second);
         assertEquals(1, spawned.size());
@@ -98,6 +100,7 @@ class GraveyardSystemTest {
         assertEquals(WorldUtils.pointToVector2f(CRYPT_LOCATION), spawned.get(0)[3]);
         assertEquals(ICreaturesController.SpawnType.PLACE, spawned.get(0)[4]);
 
+        assertEquals(0, gathered());
         // The decomposition count starts again from zero
         decompose(third);
         assertEquals(1, spawned.size());
@@ -144,6 +147,7 @@ class GraveyardSystemTest {
         decompose(first);
         assertTrue(spawned.isEmpty());
 
+        assertEquals(1000, gathered());
         // The value is kept, once there is room the next body raises the vampire
         entityData.removeComponent(vampire, Health.class);
         decompose(second);
@@ -159,6 +163,11 @@ class GraveyardSystemTest {
 
         assertEquals(0, storage.getCurrentCapacity());
         assertTrue(storage.getItems(new Point(1, 1)) == null || storage.getItems(new Point(1, 1)).isEmpty());
+    }
+
+    private int gathered() {
+        GraveyardDecompose component = entityData.getComponent(graveyardEntity, GraveyardDecompose.class);
+        return component != null ? component.value : 0;
     }
 
     private void decompose(EntityId corpse) {
