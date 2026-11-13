@@ -27,6 +27,7 @@ import java.lang.System.Logger.Level;
 import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.Queue;
+import java.util.function.BooleanSupplier;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.GlobalCategory;
@@ -252,7 +253,16 @@ public final class SoundState extends AbstractPauseAwareState {
         attachSpeech(SoundCategory.SPEECH_MENTOR, speechId, listener);
     }
 
+    /** Queue an optional reminder without interrupting speech; discard it once it is no longer relevant. */
+    public void attachTimedMentorSpeech(MentorType type, BooleanSupplier isRelevant) {
+        attachSpeech(SoundCategory.SPEECH_MENTOR, type.getId(), null, isRelevant);
+    }
+
     private void attachSpeech(String soundCategory, int speechId, ISpeechListener listener) {
+        attachSpeech(soundCategory, speechId, listener, () -> true);
+    }
+
+    private void attachSpeech(String soundCategory, int speechId, ISpeechListener listener, BooleanSupplier isRelevant) {
         if (!Main.getUserSettings().getBoolean(Settings.Setting.VOICE_ENABLED)) {
             return;
         }
@@ -262,7 +272,7 @@ public final class SoundState extends AbstractPauseAwareState {
             return;
         }
 
-        speechQueue.add(new Speech(soundCategory, speechId, listener));
+        speechQueue.add(new Speech(soundCategory, speechId, listener, isRelevant));
     }
 
     private void playSpeech(Speech speech) {
@@ -303,7 +313,10 @@ public final class SoundState extends AbstractPauseAwareState {
         if (!speechQueue.isEmpty()) {
             if (speechHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(speechHandle)) {
                 speechHandle = SoundEngine.NO_HANDLE;
-                playSpeech(speechQueue.poll());
+                Speech next = pollRelevantSpeech(speechQueue);
+                if (next != null) {
+                    playSpeech(next);
+                }
             }
         }
 
@@ -366,11 +379,17 @@ public final class SoundState extends AbstractPauseAwareState {
         }
     }
 
-    /**
-         * Simple wrapper for a speech to play
-         */
-    private record Speech(String soundCategory, int speechId, ISpeechListener listener) {
+    /** A queued speech with an optional relevance check before playback. */
+    record Speech(String soundCategory, int speechId, ISpeechListener listener, BooleanSupplier isRelevant) {
+    }
 
+    static Speech pollRelevantSpeech(Queue<Speech> queue) {
+        for (Speech speech; (speech = queue.poll()) != null;) {
+            if (speech.isRelevant().getAsBoolean()) {
+                return speech;
+            }
+        }
+        return null;
     }
 
     /**
