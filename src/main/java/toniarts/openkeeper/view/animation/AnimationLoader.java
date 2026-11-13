@@ -273,6 +273,15 @@ public final class AnimationLoader {
             // Signal that the main animation cycle is done
             animationControl.onAnimationCycleDone();
 
+            // An indicator stays where its animation took it
+            if (animationControl.isHoldLastFrame()) {
+
+                // The pose stays where the animation left it while the composer is off, and the next animation
+                // turns its composer on again
+                composer.setEnabled(false);
+                return;
+            }
+
             // See if we need to stop
             if (animationControl.isStopAnimation() || loopMode == LoopMode.DontLoop) {
 

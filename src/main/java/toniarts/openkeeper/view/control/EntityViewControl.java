@@ -171,7 +171,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     @Override
     public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
         Interaction interaction = entity.get(Interaction.class);
-        return DropValidator.canDrop(interaction, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
+        return DropValidator.canDrop(interaction, false, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override

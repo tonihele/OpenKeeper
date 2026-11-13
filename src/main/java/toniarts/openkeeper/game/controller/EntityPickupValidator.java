@@ -53,6 +53,21 @@ public final class EntityPickupValidator {
     }
 
     /**
+     * The same as {@link #isValidOwner(ObjectComponent, Owner, short)}, but any
+     * player may pick up a Hero Toolbox creature of My Pet Dungeon, like
+     * DKII.EXE 0x48E6A0 lets anyone pick up a creature with the tool flag.
+     *
+     * @param object object metadata, or {@code null} for a non-object entity
+     * @param owner entity owner
+     * @param playerId player attempting the pickup
+     * @param tool whether the entity is a Hero Toolbox creature
+     * @return {@code true} when the owner permits pickup
+     */
+    public static boolean isValidOwner(ObjectComponent object, Owner owner, short playerId, boolean tool) {
+        return tool || isValidOwner(object, owner, playerId);
+    }
+
+    /**
      * Checks object-specific restrictions for the entity's current location.
      * Gold, specials and objects without an owner follow the Dungeon Keeper II
      * own-land rule: they can only be picked up from a tile the picking player
