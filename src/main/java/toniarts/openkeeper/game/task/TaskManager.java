@@ -748,9 +748,14 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         AbstractObjectiveTask task = null;
         switch (objective) {
             case SEND_TO_ACTION_POINT: {
+
+                // Past his last waypoint the creature has no action point left to go to
+                if (creature.getObjectiveTargetActionPointId() == 0) {
+                    break;
+                }
                 ActionPoint actionPoint = levelInfo.getActionPoint(creature.getObjectiveTargetActionPointId());
                 if (actionPoint != null) {
-                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature.getOwnerId());
+                    task = new SendToActionPoint(navigationService, mapController, actionPoint, creature);
                 } else {
                     logger.log(Level.ERROR, "Creature is sent to action point {0}, but the level doesn't have it!", creature.getObjectiveTargetActionPointId());
                 }
