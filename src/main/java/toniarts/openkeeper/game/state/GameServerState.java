@@ -176,7 +176,7 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void run() {
             // Create the central game controller
-            game = new GameLoopManager(kwdFile, gameService, players);
+            game = new GameLoopManager(kwdFile, gameService, players, campaign);
 
             gameWorldController = game.getGameController().getGameWorldController();
             mapController = gameWorldController.getMapController();

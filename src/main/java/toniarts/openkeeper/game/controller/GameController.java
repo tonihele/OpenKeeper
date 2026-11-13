@@ -57,6 +57,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.SortedMap;
 import java.util.TreeMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * The game controller, runs the game simulation itself
@@ -68,6 +69,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private static final Logger logger = System.getLogger(GameController.class.getName());
 
     private final LevelInfo levelInfo;
+    private final boolean campaign;
 
     private final Map<Short, IPlayerController> playerControllers = HashMap.newHashMap(6);
     private final Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings;
@@ -84,7 +86,7 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
     private PositionSystem positionSystem;
     private GameEventService gameEventService;
 
-    private GameResult gameResult = null;
+    private volatile GameResult gameResult = null;
     private TaskManager taskManager;
 
     /**
@@ -92,15 +94,17 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
      *
      * @param level the level to load
      * @param players player participating in this game, can be {@code null}
+     * @param campaign whether this is a campaign level
      * @param entityData
      * @param gameSettings
      * @param playerService
      */
-    public GameController(IKwdFile level, List<Keeper> players, EntityData entityData,
+    public GameController(IKwdFile level, List<Keeper> players, boolean campaign, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             PlayerService playerService) {
 
         levelInfo = new LevelInfo(level);
+        this.campaign = campaign;
         this.entityData = entityData;
         this.gameSettings = gameSettings;
         this.playerService = playerService;
@@ -290,6 +294,14 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
 
         controllers.stream().forEach(controller -> controller.processTick(tpf));
+
+        // The Horned Reaper comes for the Portal Gem of a won campaign level, on the logic loop. He is only sent once
+        GameResult result = gameResult;
+        if (campaign && result != null && Boolean.TRUE.equals(result.getData(GameResult.ResultType.LEVEL_WON))) {
+            new ReaperSummoner(levelInfo.getLevelData(), entityData, gameTimer, gameWorldController.getCreaturesController())
+                    .sendForPortalGem(result.<Short>getData(GameResult.ResultType.WINNER), gameWorldController.getObjectsController(),
+                            navigationService, gameWorldController.getMapController(), ThreadLocalRandom.current());
+        }
     }
 
     private void updateTimeLimit(float tpf) {
@@ -344,9 +356,13 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
 
         // Determine what happens to the game & players
-        gameResult = new GameResult();
-        gameResult.setData(GameResult.ResultType.LEVEL_WON, win);
-        gameResult.setData(GameResult.ResultType.TIME_TAKEN, gameTimer.getGameTime());
+        GameResult result = new GameResult();
+        result.setData(GameResult.ResultType.LEVEL_WON, win);
+        result.setData(GameResult.ResultType.TIME_TAKEN, gameTimer.getGameTime());
+        if (win) {
+            result.setData(GameResult.ResultType.WINNER, playerId);
+        }
+        gameResult = result;
 
         // Enable the end game state on the player (client)
         playerService.endGame(win, playerId);
