@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -455,7 +456,7 @@ public final class CreaturesController implements ICreaturesController {
 
             // See if tortured or imprisoned
             // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+            if (room instanceof PrisonController prison && prison.isCageTile(location)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;
