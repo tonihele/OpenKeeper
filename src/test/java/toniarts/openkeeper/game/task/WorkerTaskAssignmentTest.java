@@ -17,7 +17,9 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
@@ -31,11 +33,18 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -159,6 +168,26 @@ class WorkerTaskAssignmentTest {
         assertEquals(1, ((TestTask) Proxy.getInvocationHandler(wall)).assignees.get());
     }
 
+    @Test
+    void rescueOfACreatureThatIsGoneIsNotHandedOut() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        EntityId knockedOut = entityData.createEntity();
+        entityData.setComponents(knockedOut, new CreatureComponent(), new Health(0, 100), new Owner(PLAYER_ID, PLAYER_ID),
+                new Unconscious(0), new Position(0, new Vector3f(5, 0, 10)));
+        taskManager.processTick(0.25f);
+
+        // Nobody came, it died and its body is gone. The rescue has no place to go to anymore
+        entityData.removeEntity(knockedOut);
+        taskManager.processTick(0.25f);
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.FALSE), results);
+    }
+
     private void addLand(int fromX, int toX, int y) {
         for (int x = fromX; x <= toX; x++) {
             land.add(new Point(x, y));
@@ -195,7 +224,11 @@ class WorkerTaskAssignmentTest {
         });
         IGameWorldController gameWorldController = stub(IGameWorldController.class, (name, args) -> null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> null);
-        return new TaskManager(entityData, gameWorldController, mapController, null, null, navigationService, List.of(player), levelInfo, null, Map.of());
+        ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {
+            case "createController" -> knockedOutCreature((EntityId) args[0]);
+            default -> null;
+        });
+        return new TaskManager(entityData, gameWorldController, mapController, null, creaturesController, navigationService, List.of(player), levelInfo, null, Map.of());
     }
 
     private static IMapTileInformation tile(Point location) {
@@ -215,6 +248,15 @@ class WorkerTaskAssignmentTest {
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> location;
             case "getOwnerId" -> PLAYER_ID;
+            case "getEntityId" -> entityId;
+            default -> null;
+        });
+    }
+
+    private ICreatureController knockedOutCreature(EntityId entityId) {
+        return stub(ICreatureController.class, (name, args) -> switch (name) {
+            case "getPosition" -> EntityController.getPosition(entityData, entityId);
+            case "isUnconscious" -> entityData.getComponent(entityId, Unconscious.class) != null;
             case "getEntityId" -> entityId;
             default -> null;
         });

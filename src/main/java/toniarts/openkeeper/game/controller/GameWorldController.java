@@ -1498,7 +1498,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return true;
         }
 
-        return false;
+        // Like in DK II, the hand can't touch a creature that was just dropped and is still falling (0x48E6A0).
+        // The fall is moved by the animation loop, so its position is not ours to take away either
+        return entityData.getComponent(entityId, CreatureFall.class) != null;
     }
 
     @Override

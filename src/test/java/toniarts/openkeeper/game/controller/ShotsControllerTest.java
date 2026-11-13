@@ -28,6 +28,8 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.tools.convert.map.GameObject;
+import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -47,6 +49,7 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 1;
     private static final short CREATE_OBJECT_ID = 2;
+    private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short PLAYER_ID = 3;
 
@@ -61,7 +64,11 @@ class ShotsControllerTest {
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
-                (proxy, method, args) -> method.getName().equals("getShotById") ? shotsById.get((Short) args[0]) : null);
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getShotById" -> shotsById.get((Short) args[0]);
+                    case "getObject" -> (int) args[0] == GOLD_OBJECT_ID ? GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD) : null;
+                    default -> null;
+                });
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class},
                 (proxy, method, args) -> {
                     if (method.getName().equals("loadObject")) {
@@ -122,6 +129,21 @@ class ShotsControllerTest {
         assertEquals((short) 7, loadedObjects.get(0)[0]);
         assertEquals(PLAYER_ID, loadedObjects.get(0)[1]);
         assertEquals(position, loadedObjects.get(0)[2]);
+    }
+
+    @Test
+    void goldObjectShotCreatesAPileOfTheShotsAmount() {
+
+        // Create Gold: object 1 (Gold), the second value is the amount of gold
+        shotsController.createShot(CREATE_OBJECT_ID, GOLD_OBJECT_ID, 1000, PLAYER_ID, new Vector3f(4.2f, 0f, 7.4f), null, null);
+
+        assertEquals(1, loadedObjects.size());
+        Object[] args = loadedObjects.get(0);
+        assertEquals(GOLD_OBJECT_ID, args[0]);
+        assertEquals(PLAYER_ID, args[1]);
+        assertEquals(4, args[2]);
+        assertEquals(7, args[3]);
+        assertEquals(1000, args[4]);
     }
 
     @Test

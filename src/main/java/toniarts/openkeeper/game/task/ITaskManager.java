@@ -123,4 +123,12 @@ public interface ITaskManager {
      */
     void processUnemployedWorkerQueue();
 
+    /**
+     * Adds a task to the player's task queue
+     *
+     * @param playerId the player
+     * @param task the task
+     */
+    void addTask(short playerId, Task task);
+
 }
