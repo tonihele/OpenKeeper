@@ -123,6 +123,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private boolean initHud = false;
     private String cinematicText;
     private EntityData entityData;
+    private EntitySet battles;
+    private int battleIndex = -1;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
     private int lastImpCount = -1;
@@ -155,6 +157,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
+            if (battles != null && battles.applyChanges()) {
+                showBattleButton();
+            }
             updateCallToArms();
             lastUpdate = 0;
         }
@@ -165,6 +170,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
             creatureCardManager = null;
+        }
+        if (battles != null) {
+            battles.release();
+            battles = null;
         }
         if (callToArmsBanners != null) {
             callToArmsBanners.release();
@@ -545,6 +554,47 @@ public final class PlayerScreenController implements IPlayerScreenController {
         String result = Utils.getMainTextResourceBundle().getString(bundleId);
 
         return state.getTooltipText(result);
+    }
+
+    /**
+     * Battle tab right click: zoom to the next battle of our creatures. Each
+     * click moves on to the next battle.
+     */
+    public void zoomToBattle() {
+        List<Entity> playerBattles = getPlayerBattles();
+        if (!playerBattles.isEmpty()) {
+            battleIndex = (battleIndex + 1) % playerBattles.size();
+            zoomToPosition(playerBattles.get(battleIndex).get(Battle.class).position);
+        }
+    }
+
+    private List<Entity> getPlayerBattles() {
+        short playerId = state.getPlayer().getId();
+        List<Entity> playerBattles = new ArrayList<>();
+        for (Entity battle : battles) {
+            if (battle.get(Battle.class).playerIds.contains(playerId)) {
+                playerBattles.add(battle);
+            }
+        }
+        playerBattles.sort(Comparator.comparing(Entity::getId));
+        return playerBattles;
+    }
+
+    /**
+     * The Battle tab, the flashing crossed blades, shows while our creatures
+     * fight. DK II flies an icon to the tab with two sounds when the first of
+     * our creatures joins a battle, we just play the sounds.
+     */
+    private void showBattleButton() {
+        Element battleButton = nifty.getScreen(SCREEN_HUD_ID).findElementById("battleButton");
+        boolean visible = !getPlayerBattles().isEmpty();
+        if (battleButton != null && battleButton.isVisible() != visible) {
+            battleButton.setVisible(visible);
+            if (visible) {
+                playSound(GlobalCategory.GUI_BUTTON_TAB_NEW_COMBAT, String.valueOf(GlobalType.GUI_BUTTON_TABSLAB.getId()));
+                playSound(GlobalCategory.GUI_BUTTON_TAB_NEW_COMBAT, String.valueOf(GlobalType.GUI_BUTTON_SPINNING.getId()));
+            }
+        }
     }
 
     /**
@@ -997,6 +1047,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
+        battles = entityData.getEntities(Battle.class);
+        showBattleButton();
         callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
                 CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
         // Rooms
