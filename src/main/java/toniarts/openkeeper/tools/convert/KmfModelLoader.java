@@ -54,11 +54,13 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
+import toniarts.openkeeper.animation.PoseTrackEvaluator;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.kmf.Grop;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
@@ -82,10 +84,25 @@ public final class KmfModelLoader implements AssetLoader {
     // there's 1 kmf per animation so we only use 1 dummy JME animation clip
     public static final String DUMMY_ANIM_CLIP_NAME = "dummyAnimClipName";
     private static final Logger logger = System.getLogger(KmfModelLoader.class.getName());
+    private final PoseTrackEvaluator poseTrackEvaluator;
 
     /* Some textures are broken */
     private final static Map<String, String> textureFixes = Map.of("Goblinbak", "GoblinBack", "Goblin2", "GoblinFront");
     private static String dkIIFolder;
+
+    /** Creates a loader using the standard CPU pose evaluator. */
+    public KmfModelLoader() {
+        this(PoseTrackEvaluator.standard());
+    }
+
+    /**
+     * Creates a loader with a replaceable KMF pose evaluator.
+     *
+     * @param poseTrackEvaluator evaluator shared by the tracks created by this loader
+     */
+    public KmfModelLoader(PoseTrackEvaluator poseTrackEvaluator) {
+        this.poseTrackEvaluator = Objects.requireNonNull(poseTrackEvaluator, "poseTrackEvaluator");
+    }
 
     /**
      * If the material has multiple texture options, the material is named
@@ -453,7 +470,7 @@ public final class KmfModelLoader implements AssetLoader {
             Geometry geom = createGeometry(subMeshIndex, anim.getName(), mesh, materials, subMesh.getMaterialIndex());
 
             // Create a pose track for this mesh
-            var poseTrack = new PoseTrack(geom, times, poseFrames.toArray(new PoseFrame[0]));
+            var poseTrack = new PoseTrack(geom, times, poseFrames.toArray(new PoseFrame[0]), poseTrackEvaluator);
             poseTracks.add(poseTrack);
 
             //Attach the geometry to the node
