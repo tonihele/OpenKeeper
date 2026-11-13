@@ -91,5 +91,26 @@ public enum GameEventType {
      * The mentor's verdict on a sacrifice, only the temple's owner gets this. The subject id is the speech id of the
      * recipe, or 1 when no recipe matched.
      */
-    SACRIFICE_SPEECH
+    SACRIFICE_SPEECH,
+    // The Casino
+    /**
+     * A gambler became the big winner, the place is the winner's
+     */
+    CASINO_JACKPOT,
+    /**
+     * A gambler became the big winner, only its keeper gets this
+     */
+    CASINO_JACKPOT_ANNOUNCED,
+    /**
+     * A Casino went into disco mode, the subject is the room and the place its centre
+     */
+    CASINO_DISCO_START,
+    /**
+     * The disco of a Casino is over, the subject is the room and the place its centre
+     */
+    CASINO_DISCO_END,
+    /**
+     * Fireworks go off over a tile of a Casino that is in disco mode
+     */
+    CASINO_FIREWORKS
 }

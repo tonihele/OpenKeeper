@@ -17,8 +17,8 @@
 package toniarts.openkeeper.tools.convert.map;
 
 /**
- * Builds level variable fixtures for the casino tests. Lives in
- * {@code Variable}'s own package because its setters are {@code protected}
+ * Builds level variable and creature fixtures for the casino tests. Lives in
+ * the data classes' own package because their setters are {@code protected}
  * (parser-only).
  */
 public final class CasinoVariableFixtures {
@@ -31,6 +31,27 @@ public final class CasinoVariableFixtures {
         variable.setVariableId(type);
         variable.setValue(value);
         return variable;
+    }
+
+    /**
+     * A creature with the given animations, each lasting a second
+     *
+     * @param creatureId the creature id
+     * @param animations the animation slots that are filled
+     * @return the creature
+     */
+    public static Creature creatureWithAnimations(short creatureId, Creature.AnimationType... animations) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        for (Creature.AnimationType animation : animations) {
+            ArtResource resource = new ArtResource();
+            resource.setName("Test-" + animation);
+            resource.setType(ArtResource.ArtResourceType.ANIMATING_MESH);
+            resource.setData(ArtResource.KEY_FRAMES, 30);
+            resource.setData(ArtResource.KEY_FPS, 30);
+            creature.setAnimation(animation, resource);
+        }
+        return creature;
     }
 
 }
