@@ -307,12 +307,15 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onTilesChange(List<Point> updatedTiles) {
-        fogOfWarController.onTileOwnerChanged(updatedTiles);
+
+        // We are called from the game logic (or network) thread, the fog of
+        // war belongs to the render thread
+        app.enqueue(() -> fogOfWarController.onTileOwnerChanged(updatedTiles));
     }
 
     @Override
     public void onBuild(short keeperId, List<Point> tiles) {
-        fogOfWarController.onRoomBuilt(keeperId, tiles);
+        app.enqueue(() -> fogOfWarController.onRoomBuilt(keeperId, tiles));
     }
 
     @Override
@@ -329,17 +332,17 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onFogOfWarDisabled(short keeperId) {
-        fogOfWarController.disableFogOfWar();
+        app.enqueue(() -> fogOfWarController.disableFogOfWar());
     }
 
     @Override
     public void onFogOfWarReset(short keeperId) {
-        fogOfWarController.resetToLevelStart();
+        app.enqueue(() -> fogOfWarController.resetToLevelStart());
     }
 
     @Override
     public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
-        fogOfWarController.revealActionPointTiles(points, explore);
+        app.enqueue(() -> fogOfWarController.revealActionPointTiles(points, explore));
     }
 
     public IMapInformation getMapInformation() {
