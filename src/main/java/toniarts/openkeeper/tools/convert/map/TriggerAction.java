@@ -64,7 +64,7 @@ public final class TriggerAction extends Trigger {
         FOLLOW_CAMERA_PATH(31),
         COLLAPSE_HERO_GATE(32),
         ALTER_SPEED(33),
-        SET_MUSIC_LEVEL(34), // text like X
+        SET_MUSIC_LEVEL(34), // Not implemented in the reference DKII executable either.
         REMOVE_FROM_MAP(35),
         SET_FIGHT_FLAG(36),
         SET_PORTAL_STATUS(37),

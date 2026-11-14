@@ -113,6 +113,14 @@ class GameEventTest {
     }
 
     @Test
+    void mentorTellsOfAVampireRisenInTheGraveyard() {
+        GameEvent event = new GameEvent(GameEventType.GRAVEYARD_VAMPIRE_RISEN, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
     void slappedObjectSquawksOnItsOwnCategory() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getObject") ? SoundFixtures.object("OBJECT_CHICKEN") : null);
@@ -132,6 +140,15 @@ class GameEventTest {
         List<GameEventSounds.Sound> sounds = GameEventSounds.getSounds(event, null);
 
         assertEquals(List.of(new GameEventSounds.Sound(GlobalCategory.HAND, ThingSounds.SLAP, null)), sounds);
+    }
+
+    @Test
+    void sacrificeSpeechIsTheMentorsTempleSpeech() {
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 1, null, 0, null, null), null));
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.TEMPL019.getId(), null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 20, null, 0, null, null), null));
+        assertTrue(GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 47, null, 0, null, null), null).isEmpty());
     }
 
     @Test
