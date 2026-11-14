@@ -1830,12 +1830,12 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
         if (attacking) {
-            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, true, gameTimer.getGameTime()));
+            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, true, gameTimer.getGameTime(), possessed.followerCount));
         } else if (possessed.isAttackPending()) {
 
             // A click shorter than a logic tick still gets its one swing
             double pressTime = hasSwungSince(possessed.attackPressTime) ? Double.NaN : possessed.attackPressTime;
-            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, false, pressTime));
+            entityData.setComponent(entityId, new Possessed(possessed.manaDrain, possessed.manaCheckTime, false, pressTime, possessed.followerCount));
         }
     }
 

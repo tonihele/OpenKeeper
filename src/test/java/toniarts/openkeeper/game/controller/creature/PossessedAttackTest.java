@@ -244,6 +244,20 @@ class PossessedAttackTest {
     }
 
     @Test
+    void attacksPreserveFollowerCountAndANewPossessionResetsIt() {
+        CreatureController controller = createController();
+        entityData.setComponent(us, new Possessed(0, 0, false, Double.NaN, 5));
+        controller.setPossessedAttack(true);
+        assertEquals(5, entityData.getComponent(us, Possessed.class).followerCount);
+        controller.setPossessedAttack(false);
+        assertEquals(5, entityData.getComponent(us, Possessed.class).followerCount);
+        controller.setPossession(false);
+        assertNull(entityData.getComponent(us, Possessed.class));
+        controller.setPossession(true);
+        assertEquals(0, entityData.getComponent(us, Possessed.class).followerCount);
+    }
+
+    @Test
     void possessedWorkerDigsTheTileItFaces() {
         makeWorker();
         terrain.put(new Point(6, 5), DIRT);

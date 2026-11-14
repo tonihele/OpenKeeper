@@ -145,6 +145,14 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
     EntityId getPossessedCreature(short playerId);
 
     /**
+     * Reads the current possession's recruited follower count, excluding its
+     * leader and authored party members. Grouping gameplay supplies the count.
+     *
+     * @return follower count, or -1 outside possession (distinct from zero)
+     */
+    int getPossessionFollowerCount(short playerId);
+
+    /**
      * Counts living, fully angry non-worker creatures belonging to a player.
      *
      * @param playerId owning player, rather than a captor

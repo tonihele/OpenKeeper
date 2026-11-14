@@ -22,6 +22,12 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerManaControl;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.tools.convert.map.TempleFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Owner;
@@ -51,6 +57,10 @@ class PossessedSystemTest {
     }
 
     private PossessedSystem system(Runnable onSwing) {
+        return system(onSwing, List.of());
+    }
+
+    private PossessedSystem system(Runnable onSwing, List<IPlayerController> players) {
         ICreatureController controller = stub(ICreatureController.class, name -> {
             if ("setPossession".equals(name)) {
                 releases++;
@@ -69,7 +79,7 @@ class PossessedSystemTest {
                     }
                     return null;
                 });
-        return new PossessedSystem(List.of(), entityData, game, creatures);
+        return new PossessedSystem(players, entityData, game, creatures);
     }
 
     private EntityId possessed(boolean attackHeld, double attackPressTime) {
@@ -86,6 +96,34 @@ class PossessedSystemTest {
 
         assertEquals(1, swings);
         assertFalse(entityData.getComponent(creature, Possessed.class).isAttackPending());
+    }
+
+    @Test
+    void consumingReleasedAttackPreservesFollowerCount() {
+        EntityId creature = possessed(false, 1);
+        entityData.setComponent(creature, new Possessed(0, 0, false, 1, 5));
+        system(() -> { }).processTick(0.1f);
+        assertEquals(5, entityData.getComponent(creature, Possessed.class).followerCount);
+        assertFalse(entityData.getComponent(creature, Possessed.class).isAttackPending());
+    }
+
+    @Test
+    void manaRefreshPreservesFollowerCount() {
+        EntityId creature = possessed(false, Double.NaN);
+        entityData.setComponent(creature, new Possessed(0, 0, false, Double.NaN, 5));
+        Keeper keeper = new Keeper(false, (short) 2);
+        var mana = new PlayerManaControl(keeper, Map.of(MiscType.MAXIMUM_MANA_THRESHOLD,
+                TempleFixtures.miscVariable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000)));
+        mana.addMana(100);
+        IPlayerController player = stub(IPlayerController.class, name -> switch (name) {
+            case "getKeeper" -> keeper;
+            case "getManaControl" -> mana;
+            default -> null;
+        });
+        system(() -> { }, List.of(player)).processTick(1f);
+        assertEquals(1, entityData.getComponent(creature, Possessed.class).manaCheckTime);
+        assertEquals(5, entityData.getComponent(creature, Possessed.class).followerCount);
+        assertEquals(0, releases);
     }
 
     @Test

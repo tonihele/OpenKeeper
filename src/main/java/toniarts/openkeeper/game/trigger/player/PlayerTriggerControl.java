@@ -261,7 +261,13 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_SLAPS:
                 return false;
             case PLAYER_CREATURES_GROUPED:
-                return false;
+                target = creaturesController.getPossessionFollowerCount(playerId);
+                if (target < 0) {
+                    return false;
+                }
+                // Native uses the literal threshold, ignoring flag/player operands.
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_CREATURES_DYING:
                 return false;
 

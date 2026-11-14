@@ -33,6 +33,13 @@ public final class Possessed implements EntityComponent {
     public double manaCheckTime;
 
     /**
+     * Followers recruited by this possession, excluding the leader. Grouping
+     * gameplay must maintain this count on recruitment, release and follower
+     * loss. A new possession starts at zero; authored parties do not count.
+     */
+    public int followerCount;
+
+    /**
      * Attack intent of the possessing keeper. The swing itself happens on the
      * game logic thread. Whether the attack button is still held down.
      */
@@ -54,10 +61,16 @@ public final class Possessed implements EntityComponent {
     }
 
     public Possessed(int manaDrain, double manaCheckTime, boolean attackHeld, double attackPressTime) {
+        this(manaDrain, manaCheckTime, attackHeld, attackPressTime, 0);
+    }
+
+    public Possessed(int manaDrain, double manaCheckTime, boolean attackHeld,
+            double attackPressTime, int followerCount) {
         this.manaDrain = manaDrain;
         this.manaCheckTime = manaCheckTime;
         this.attackHeld = attackHeld;
         this.attackPressTime = attackPressTime;
+        this.followerCount = followerCount;
     }
 
     public boolean isAttackPending() {

@@ -772,6 +772,13 @@ public final class CreaturesController implements ICreaturesController {
         }
     }
 
+    @Override
+    public int getPossessionFollowerCount(short playerId) {
+        EntityId leader = getPossessedCreature(playerId);
+        Possessed possessed = leader == null ? null : entityData.getComponent(leader, Possessed.class);
+        return possessed == null ? -1 : possessed.followerCount;
+    }
+
     public void healCreatures(short playerId) {
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
         for (Entity entity : entities) {

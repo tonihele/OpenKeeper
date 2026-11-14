@@ -92,7 +92,7 @@ public final class PossessedSystem extends GameTimeCounter {
                 // Keep the attack that the session thread may have written meanwhile
                 Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
                 if (live != null) {
-                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime));
+                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime, live.followerCount));
                 }
             }
         }
@@ -112,7 +112,7 @@ public final class PossessedSystem extends GameTimeCounter {
             // The session thread may have written a new press meanwhile, so only remove the very same released press
             Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
             if (!attack.attackHeld && live == attack) {
-                entityData.setComponent(entity.getId(), new Possessed(attack.manaDrain, attack.manaCheckTime, false, Double.NaN));
+                entityData.setComponent(entity.getId(), new Possessed(attack.manaDrain, attack.manaCheckTime, false, Double.NaN, attack.followerCount));
             }
         }
     }
