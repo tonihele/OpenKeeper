@@ -261,7 +261,14 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_SLAPS:
                 return false;
             case PLAYER_CREATURES_GROUPED:
-                return false;
+
+                // Only a possessed creature has a group, and it is compared to a value only
+                target = creaturesController.getPossessedGroupSize(playerId);
+                if (target < 0) {
+                    return false;
+                }
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_CREATURES_DYING:
                 return false;
 
