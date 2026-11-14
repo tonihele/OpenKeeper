@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
@@ -611,6 +612,11 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            EventBus.publish(ClientEvents.GENERATED_EFFECT, new GeneratedEffect(effectId, position, yaw));
+        }
+
+        @Override
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
@@ -622,11 +628,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                // The speech is played from the queue, the HUD might not be there (yet / anymore)
-                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
-                if (systemMessageState != null) {
-                    systemMessageState.addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
-                }
+                SystemMessageState.addMessageIfAttached(stateManager, SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);
                 }

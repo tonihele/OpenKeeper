@@ -58,6 +58,20 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
     public EntityId addRoomSpellBook(short ownerId, int x, int y, ResearchableEntity researchableEntity);
 
     /**
+     * Adds a manufactured crate to a room
+     *
+     * @param crateObjectId the crate object, e.g. the trap's
+     * {@code manufCrateObjectId}
+     * @param ownerId the owner
+     * @param x the tile x
+     * @param y the tile y
+     * @param type what the crate holds, a trap or a door
+     * @param typeId the trap or door
+     * @return the crate entity
+     */
+    public EntityId addRoomCrate(short crateObjectId, short ownerId, int x, int y, ResearchableType type, short typeId);
+
+    /**
      * Spawns an chicken in specified position. Yes, chickens are object. And an
      * egg is actually spawned.
      *
@@ -66,6 +80,14 @@ public interface IObjectsController extends IEntityWrapper<IObjectController> {
      * @return return the entity ID for the generated chicken
      */
     public EntityId spawnChicken(short ownerId, Vector3f pos);
+
+    /**
+     * Knocks away the player's Call to Arms banner, like a slap. Only a banner
+     * that is up on the map, not one in the hand or still rising
+     *
+     * @param playerId the player
+     */
+    public void cancelCallToArms(short playerId);
 
     /**
      * Spawns an freerange chicken in specified position.
