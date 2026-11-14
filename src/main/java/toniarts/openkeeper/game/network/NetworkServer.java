@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureTypeAttraction;
+import toniarts.openkeeper.game.component.CreatureTypePenalty;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
@@ -192,6 +193,7 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
+            Serializer.registerClass(CreatureTypePenalty.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
             Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
             Serializer.registerClass(Portal.class, new FieldSerializer());

@@ -18,9 +18,14 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureTypePenalty;
 import toniarts.openkeeper.game.component.LeavingDungeon;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 
 /**
@@ -46,9 +51,28 @@ public final class CreatureLeaveSystem implements IGameLogicUpdatable {
 
         for (Entity entity : leavingEntities) {
             if (entityData.getComponent(entity.getId(), CreatureFall.class) == null) {
+                penaliseType(entity.getId());
                 creaturesController.leaveDungeon(entity.getId());
             }
         }
+    }
+
+    /**
+     * Like in DK II, the Portals of the keeper shun the creature type that
+     * left for a while
+     */
+    private void penaliseType(EntityId creature) {
+        short playerId = entityData.getComponent(creature, Owner.class).ownerId;
+        short creatureId = entityData.getComponent(creature, CreatureComponent.class).creatureId;
+        EntityId penalty = null;
+        for (EntityId entityId : entityData.findEntities(new FieldFilter<>(CreatureTypePenalty.class, "playerId", playerId),
+                CreatureTypePenalty.class)) {
+            if (entityData.getComponent(entityId, CreatureTypePenalty.class).creatureId == creatureId) {
+                penalty = entityId;
+            }
+        }
+        entityData.setComponent(penalty != null ? penalty : entityData.createEntity(),
+                new CreatureTypePenalty(playerId, creatureId, PortalCreatureChoice.PENALTY_GENERATIONS));
     }
 
     @Override

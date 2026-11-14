@@ -31,6 +31,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 import java.util.random.RandomGenerator;
 import toniarts.openkeeper.game.component.CreatureTypeAttraction;
+import toniarts.openkeeper.game.component.CreatureTypePenalty;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -52,6 +53,8 @@ import toniarts.openkeeper.utils.Point;
  * </ul>
  * A type the keeper can attract for the first time during the level is
  * favoured: 200 times on the next generation, then 9 times, 8 times and so on.
+ * A type that left the dungeon is shunned: it can't come on the next
+ * generation, then its weight is divided by 9, by 8 and so on.
  * Nothing comes while the keeper lacks Lair space for the creatures it has.
  * <br>
  * In skirmish and multiplayer games a secret room layout calls in its unique
@@ -74,6 +77,12 @@ public final class PortalCreatureChoice {
     private static final short GOBLIN_BED_OBJECT_ID = 22;
     private static final int FAVOURED_GENERATIONS = 10;
     private static final double FIRST_GENERATION_FAVOUR = 200;
+
+    /**
+     * For how many generations the Portals hold it against a creature type
+     * that one of its kind left the dungeon
+     */
+    public static final int PENALTY_GENERATIONS = 10;
 
     /**
      * The secret room layouts of the unique creatures, in the order the
@@ -285,9 +294,24 @@ public final class PortalCreatureChoice {
             }
         }
 
+        // And the penalty
+        for (EntityId entityId : findPenalties(player.getKeeper().getId())) {
+            CreatureTypePenalty penalty = entityData.getComponent(entityId, CreatureTypePenalty.class);
+            if (penalty.penalty > 1) {
+                entityData.setComponent(entityId, new CreatureTypePenalty(penalty.playerId, penalty.creatureId, penalty.penalty - 1));
+            } else {
+                entityData.removeEntity(entityId);
+            }
+        }
+
         double total = 0;
         for (double weight : weights.values()) {
             total += weight;
+        }
+        if (total == 0) {
+
+            // Only shunned types could come
+            return null;
         }
         return pick(weights, random.nextDouble() * total);
     }
@@ -314,7 +338,8 @@ public final class PortalCreatureChoice {
             EntityId attraction = getAttraction(player.getKeeper().getId(), creature.getCreatureId());
             int generations = attraction != null ? entityData.getComponent(attraction, CreatureTypeAttraction.class).favour : 0;
             double multiplier = generations == FAVOURED_GENERATIONS ? FIRST_GENERATION_FAVOUR : Math.max(1, generations);
-            weights.put(creature, getWeight(creature, player) * multiplier);
+            weights.put(creature, getWeight(creature, player) * multiplier
+                    / getPenaltyDivisor(player.getKeeper().getId(), creature.getCreatureId()));
         }
         return weights;
     }
@@ -341,6 +366,26 @@ public final class PortalCreatureChoice {
             }
         }
         return null;
+    }
+
+    /**
+     * Get what the weight of a creature type is divided by since one of its
+     * kind left the dungeon. On the first generation the type can't come at
+     * all, it stays a candidate with no weight.
+     */
+    private double getPenaltyDivisor(short playerId, short creatureId) {
+        for (EntityId entityId : findPenalties(playerId)) {
+            CreatureTypePenalty penalty = entityData.getComponent(entityId, CreatureTypePenalty.class);
+            if (penalty.creatureId == creatureId) {
+                return penalty.penalty == PENALTY_GENERATIONS ? Double.POSITIVE_INFINITY : penalty.penalty;
+            }
+        }
+        return 1;
+    }
+
+    private Set<EntityId> findPenalties(short playerId) {
+        return entityData.findEntities(new FieldFilter<>(CreatureTypePenalty.class, "playerId", playerId),
+                CreatureTypePenalty.class);
     }
 
     private Set<EntityId> findAttractions(short playerId) {

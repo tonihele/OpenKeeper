@@ -24,7 +24,9 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.LeavingDungeon;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -50,6 +52,7 @@ class LeaveTest {
     void setUp() {
         entityData = new DefaultEntityData();
         entity = entityData.createEntity();
+        entityData.setComponents(entity, new CreatureComponent(), new Owner(PLAYER_ID, PLAYER_ID));
         creature = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getEntityId" -> entity;
