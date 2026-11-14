@@ -100,8 +100,6 @@ public final class GameLoopManager {
         final ITaskManager taskManager = gameController.getTaskManager();
         final GameEventService gameEventService = gameController.getGameEventService();
 
-        final var creaturesController = gameWorldController.getCreaturesController();
-
         // Game logic
         final GameLogicManager gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
@@ -114,11 +112,10 @@ public final class GameLoopManager {
                 new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
-                        gameController.getGameTimer(), gameSettings, creaturesController::isCreatureMoodsEnabled),
+                        gameController.getGameTimer(), gameSettings),
                 new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
-                        playerControllers.values(), gameWorldController, gameSettings, creaturesController::isCreatureMoodsEnabled),
-                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
-                        creaturesController::isCreatureMoodsEnabled),
+                        playerControllers.values(), gameWorldController, gameSettings),
+                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),

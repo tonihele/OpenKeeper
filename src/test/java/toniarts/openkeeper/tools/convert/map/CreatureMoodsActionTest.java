@@ -81,10 +81,31 @@ class CreatureMoodsActionTest {
         EntityId id = entity(KEEPER);
         CreatureMood before = mood(id);
         action(0);
-        assertSame(before, mood(id));
-        CreaturesController fresh = new CreaturesController(kwd, data, Map.of(), () -> time, null, null, null);
+        assertCountersEqual(before, mood(id));
+        CreaturesController fresh = new CreaturesController(kwd, new DefaultEntityData(), Map.of(), () -> time, null, null, null);
         assertTrue(fresh.isCreatureMoodsEnabled());
         assertFalse(creatures.isCreatureMoodsEnabled());
+    }
+
+    @Test
+    void scriptFreezeGuardsEveryMutationWithoutChangingAnyCounter() {
+        EntityId id = entity(KEEPER);
+        action(0);
+        CreatureMood frozen = mood(id);
+        assertTrue(frozen.frozen);
+        for (int reason = 0; reason < 6; reason++) {
+            assertSame(frozen, frozen.add(reason, 100));
+            assertSame(frozen, frozen.add(reason, -100));
+            assertSame(frozen, frozen.clear(reason));
+        }
+        assertSame(frozen, frozen.clearAll());
+        assertSame(frozen, frozen.maximize());
+        action(0);
+        assertSame(frozen, mood(id));
+        action(1);
+        assertFalse(mood(id).frozen);
+        assertCountersEqual(frozen, mood(id));
+        assertEquals(frozen.other + 100, mood(id).add(CreatureMood.REASON_OTHER, 100).other);
     }
 
     @Test
@@ -96,8 +117,8 @@ class CreatureMoodsActionTest {
         action(0);
         creatures.makeCreaturesHappy(KEEPER);
         creatures.angerEnemyCreatures(KEEPER);
-        assertSame(ownBefore, mood(own));
-        assertSame(enemyBefore, mood(enemy));
+        assertCountersEqual(ownBefore, mood(own));
+        assertCountersEqual(enemyBefore, mood(enemy));
         action(1);
         creatures.makeCreaturesHappy(KEEPER);
         creatures.angerEnemyCreatures(KEEPER);
@@ -121,13 +142,12 @@ class CreatureMoodsActionTest {
         });
         CreatureMoodSystem system = new CreatureMoodSystem(data, kwd, List.of(player), () -> time,
                 Map.of(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
-                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -10)),
-                creatures::isCreatureMoodsEnabled);
+                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -10)));
         try {
             CreatureMood before = mood(id);
             action(0);
             for (int i = 0; i < 10; i++) system.processTick(0.25f);
-            assertSame(before, mood(id));
+            assertCountersEqual(before, mood(id));
             action(1);
             system.processTick(0.25f);
             assertEquals(before.noLair + 10, mood(id).noLair);
@@ -146,15 +166,14 @@ class CreatureMoodsActionTest {
         CreatureMood before = mood(id);
         CreatureMoodSystem system = new CreatureMoodSystem(data, kwd, List.of(), () -> time,
                 Map.of(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
-                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -10)),
-                creatures::isCreatureMoodsEnabled);
+                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -10)));
         try {
             action(0);
             for (int i = 1; i <= 4; i++) {
                 time = i;
                 system.processTick(0.25f);
             }
-            assertSame(before, mood(id));
+            assertCountersEqual(before, mood(id));
             assertEquals(4, data.getComponent(id, CreatureRecuperating.class).moodCheckTime);
             action(1);
             time = 5;
@@ -179,14 +198,13 @@ class CreatureMoodsActionTest {
         });
         SlapSystem system = new SlapSystem(data, kwd, List.of(player),
                 Map.of(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,
-                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS, 10)),
-                creatures::isCreatureMoodsEnabled);
+                        CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS, 10)));
         try {
             CreatureMood before = mood(id);
             action(0);
             data.setComponent(id, new Slapped(0));
             system.processTick(0.25f);
-            assertSame(before, mood(id));
+            assertCountersEqual(before, mood(id));
             assertNotNull(data.getComponent(id, Damage.class));
             assertEquals(110, data.getComponent(id, CreatureEfficiency.class).efficiencyPercentage);
             action(1);
@@ -195,6 +213,12 @@ class CreatureMoodsActionTest {
             assertEquals(before.other + 100, mood(id).other);
         } finally {
             system.stop();
+        }
+    }
+
+    private static void assertCountersEqual(CreatureMood expected, CreatureMood actual) {
+        for (int reason = 0; reason < 6; reason++) {
+            assertEquals(expected.get(reason), actual.get(reason));
         }
     }
 

@@ -161,6 +161,19 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public void setCreatureMoodsEnabled(boolean enabled) {
         creatureMoodsEnabled = enabled;
+        // Apply synchronously so later actions in the same tick see the new switch.
+        EntitySet moods = entityData.getEntities(CreatureMood.class);
+        try {
+            for (Entity entity : moods) {
+                CreatureMood current = entity.get(CreatureMood.class);
+                CreatureMood updated = current.withFrozen(!enabled);
+                if (updated != current) {
+                    entityData.setComponent(entity.getId(), updated);
+                }
+            }
+        } finally {
+            moods.release();
+        }
     }
 
     private void loadCreatures() {
@@ -330,7 +343,7 @@ public final class CreaturesController implements ICreaturesController {
         entityData.setComponent(entity, new CreatureEfficiency(80));
 
         // Native DKII creatures start with all six anger reasons clear
-        entityData.setComponent(entity, new CreatureMood());
+        entityData.setComponent(entity, new CreatureMood().withFrozen(!creatureMoodsEnabled));
 
         // Position
         // FIXME: no floor height
@@ -799,12 +812,13 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
     public void makeCreaturesHappy(short playerId) {
-        if (!creatureMoodsEnabled) {
-            return;
-        }
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureMood.class);
-        for (Entity entity : entities) {
-            entityData.setComponent(entity.getId(), new CreatureMood());
+        try {
+            for (Entity entity : entities) {
+                entityData.setComponent(entity.getId(), entity.get(CreatureMood.class).clearAll());
+            }
+        } finally {
+            entities.release();
         }
     }
 
@@ -826,16 +840,16 @@ public final class CreaturesController implements ICreaturesController {
     
     @Override
     public void angerEnemyCreatures(short playerId) {
-        if (!creatureMoodsEnabled) {
-            return;
-        }
         EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);
-        for (Entity entity : entities) {
-            if (entity.get(Owner.class).ownerId == playerId) {
-                continue;
+        try {
+            for (Entity entity : entities) {
+                if (entity.get(Owner.class).ownerId == playerId) {
+                    continue;
+                }
+                entityData.setComponent(entity.getId(), entity.get(CreatureMood.class).maximize());
             }
-            entityData.setComponent(entity.getId(), new CreatureMood(CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER,
-                    CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER));
+        } finally {
+            entities.release();
         }
     }
 
