@@ -103,6 +103,25 @@ class DoorsControllerTest {
     }
 
     @Test
+    void newlyPlacedBlueprintCountsWithoutHealth() {
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        assertNull(entityData.getComponent(door, Health.class));
+
+        assertEquals(1, doorsController.getDoorCount(PLAYER, (short) 0, IDoorsController.DoorCountMode.ALL));
+        assertEquals(1, doorsController.getDoorCount(PLAYER, woodenDoor.getDoorId(), IDoorsController.DoorCountMode.ALL));
+        assertEquals(1, doorsController.getDoorCount(PLAYER, (short) 0, IDoorsController.DoorCountMode.BLUEPRINTS));
+        assertEquals(0, doorsController.getDoorCount(PLAYER, (short) 0, IDoorsController.DoorCountMode.BUILT));
+        assertEquals(0, doorsController.getDoorCount(PLAYER, (short) 2, IDoorsController.DoorCountMode.ALL));
+        assertEquals(0, doorsController.getDoorCount(ENEMY, (short) 0, IDoorsController.DoorCountMode.ALL));
+
+        entityData.setComponent(door, new Owner(ENEMY, ENEMY));
+        assertEquals(0, doorsController.getDoorCount(PLAYER, (short) 0, IDoorsController.DoorCountMode.BLUEPRINTS));
+        assertEquals(1, doorsController.getDoorCount(ENEMY, (short) 0, IDoorsController.DoorCountMode.BLUEPRINTS));
+        entityData.removeEntity(door);
+        assertEquals(0, doorsController.getDoorCount(ENEMY, (short) 0, IDoorsController.DoorCountMode.ALL));
+    }
+
+    @Test
     void doorBetweenWallsEastAndWestIsNotTurned() {
         setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
         setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);

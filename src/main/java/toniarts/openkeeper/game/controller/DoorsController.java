@@ -91,8 +91,9 @@ public final class DoorsController implements IDoorsController {
 
     @Override
     public int getDoorCount(short playerId, short doorId, DoorCountMode mode) {
+        // Blueprints have no Health until built; ownership and DoorComponent define the roster.
         EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
-                Owner.class, DoorComponent.class, Health.class);
+                Owner.class, DoorComponent.class);
         try {
             int count = 0;
             for (Entity entity : entities) {

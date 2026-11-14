@@ -119,7 +119,7 @@ class PlayerDoorsTriggerTest {
             assertFalse(f.fires());
             f.data.setComponent(id, new Owner((short) 3, (short) 4));
             assertTrue(f.fires());
-            f.data.removeComponent(id, Health.class);
+            f.data.removeComponent(id, DoorComponent.class);
             assertFalse(f.fires());
             EntityId second = f.door((short) 2, (short) 3, false);
             assertTrue(f.fires());
@@ -129,12 +129,12 @@ class PlayerDoorsTriggerTest {
     }
 
     @Test
-    void objectsTrapsAndDoorsWithoutRosterHealthDoNotCount() throws IOException {
+    void objectsTrapsAndDoorsWithoutOwnersDoNotCount() throws IOException {
         try (Fixture f = new Fixture(ComparisonType.EQUAL_TO, 0, (short) 0, (short) 1)) {
             f.data.setComponents(f.data.createEntity(), new ObjectComponent(), new Owner((short) 3, (short) 3), new Health(10,10));
             f.data.setComponents(f.data.createEntity(), new TrapComponent((short) 1), new Owner((short) 3, (short) 3), new Health(10,10));
             EntityId removed = f.door((short) 1, (short) 3, false);
-            f.data.removeComponent(removed, Health.class);
+            f.data.removeComponent(removed, Owner.class);
             assertTrue(f.fires());
         }
     }
@@ -233,7 +233,10 @@ class PlayerDoorsTriggerTest {
         }
         EntityId door(short type, short owner, boolean blueprint) {
             EntityId id = data.createEntity();
-            data.setComponents(id, new DoorComponent(type,false,blueprint), new Owner(owner,owner), new Health(10,10));
+            data.setComponents(id, new DoorComponent(type,false,blueprint), new Owner(owner,owner));
+            if (!blueprint) {
+                data.setComponent(id, new Health(10,10));
+            }
             return id;
         }
         void populateFourDoors() {
