@@ -35,6 +35,8 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -58,11 +60,15 @@ class KeeperDefeatSystemTest {
     private static final short RIVAL = Player.KEEPER2_ID;
     private static final short OTHER_RIVAL = Player.KEEPER3_ID;
     private static final short PORTAL_GEM = 28;
+    private static final int HEART_GOLD = 2000;
+    private static final int HEART_CAPACITY = 16000;
+    private static final int TREASURY_CAPACITY = 27000;
 
     private EntityData entityData;
     private Map<Short, Keeper> keepers;
     private Map<Short, Keeper> players;
     private Map<Short, EntityId> hearts;
+    private Map<Short, IPlayerController> playerControllers;
     private List<String> endings;
     private List<Point> ruinedHearts;
     private List<String> createdObjects;
@@ -74,6 +80,7 @@ class KeeperDefeatSystemTest {
         keepers = new HashMap<>();
         players = new HashMap<>();
         hearts = new HashMap<>();
+        playerControllers = new HashMap<>();
         endings = new ArrayList<>();
         ruinedHearts = new ArrayList<>();
         createdObjects = new ArrayList<>();
@@ -157,6 +164,18 @@ class KeeperDefeatSystemTest {
         system.processTick(0.25f);
 
         assertEquals(List.of(heartTile(RIVAL)), ruinedHearts);
+    }
+
+    @Test
+    void goldInTheRuinedHeartIsNoLongerTheKeepers() {
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+
+        entityData.removeEntity(hearts.get(RIVAL));
+        system.processTick(0.25f);
+
+        // Only the gold in the treasury is left, and only the treasury stores gold
+        assertEquals(3000, keepers.get(RIVAL).getGold());
+        assertEquals(TREASURY_CAPACITY, playerControllers.get(RIVAL).getGoldControl().getGoldMax());
     }
 
     @Test
@@ -249,6 +268,11 @@ class KeeperDefeatSystemTest {
             keepers.put(keeperId, keeper);
             players.put(keeperId, keeper);
 
+            PlayerGoldControl goldControl = new PlayerGoldControl(keeper);
+            goldControl.setGoldMax(HEART_CAPACITY + TREASURY_CAPACITY);
+            goldControl.addGold(HEART_GOLD + 3000);
+            playerControllers.put(keeperId, stub(IPlayerController.class, (name, args) -> "getGoldControl".equals(name) ? goldControl : null));
+
             EntityId heart = entityData.createEntity();
             entityData.setComponents(heart,
                     new ObjectComponent(FiveByFiveRotatedController.OBJECT_HEART_ID, null),
@@ -268,7 +292,7 @@ class KeeperDefeatSystemTest {
             if ("endGame".equals(name)) {
                 endings.add(args[0] + ((Boolean) args[1] ? " won" : " lost"));
             }
-            return null;
+            return "getPlayerControllers".equals(name) ? playerControllers : null;
         });
         IMapController mapController = stub(IMapController.class, (name, args) -> "getRoomControllerByCoordinates".equals(name)
                 ? heartRoom((Point) args[0]) : null);
@@ -285,6 +309,8 @@ class KeeperDefeatSystemTest {
     private IRoomController heartRoom(Point tile) {
         return stub(IRoomController.class, (name, args) -> switch (name) {
             case "isDungeonHeart" -> true;
+            case "getUsedCapacity" -> HEART_GOLD;
+            case "getMaxCapacity" -> HEART_CAPACITY;
             case "destroy" -> {
                 ruinedHearts.add(tile);
                 yield null;
