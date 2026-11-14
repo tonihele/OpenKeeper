@@ -16,13 +16,17 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.component.Armour;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -51,6 +55,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVUNERABLE
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_SPEED;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 
 /**
@@ -108,6 +113,18 @@ public final class ShotsController implements IShotsController {
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        // Haste and Slow: the first value is the new speed as a percentage of the current one, the second how many
+        // seconds it lasts. The speed stays between a quarter of the creature's own and a tile a game tick, and a
+        // speed change that is still running is left as it is
+        result.put(MODIFY_SPEED, request -> {
+            Mobile mobile = entityData.getComponent(request.target(), Mobile.class);
+            CreatureComponent creature = entityData.getComponent(request.target(), CreatureComponent.class);
+            if (mobile != null && creature != null && entityData.getComponent(request.target(), SpeedChange.class) == null) {
+                float speed = FastMath.clamp(mobile.maxSpeed * request.shotData1() / 100, creature.speed / 4, kwdFile.getGameLevel().getTicksPerSec());
+                entityData.setComponents(request.target(), new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, speed),
+                        new SpeedChange(gameTimer.getGameTime() + request.shotData2()));
+            }
+        });
         // Cast Armour: the first value is how long the armour lasts, in game ticks
         result.put(MODIFY_ARMOUR, request -> entityData.setComponent(request.target(),
                 new Armour(gameTimer.getGameTime() + (double) request.shotData1() / kwdFile.getGameLevel().getTicksPerSec())));

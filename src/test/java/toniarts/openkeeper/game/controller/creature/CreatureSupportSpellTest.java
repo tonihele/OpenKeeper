@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IShotsController;
@@ -173,7 +174,7 @@ class CreatureSupportSpellTest {
     void spellsWithoutAnEffectYetAreNotCast() {
         createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
 
-        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE).castSupportSpell());
+        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.NONE).castSupportSpell());
     }
 
     @Test
@@ -229,6 +230,19 @@ class CreatureSupportSpellTest {
         gameTime = 30;
         controller.processTick(0.25f);
         assertNull(entityData.getComponent(us, Invisible.class));
+    }
+
+    @Test
+    void castsHasteOnABadlyHurtFriendWhoseSpeedIsNotChanged() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(friend, shots.get(0)[5]);
+
+        entityData.setComponent(friend, new SpeedChange(30));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
     }
 
     @Test

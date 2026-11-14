@@ -64,6 +64,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
@@ -971,8 +972,10 @@ public final class CreatureController extends EntityController implements ICreat
                 isFighting(entity) && entityData.getComponent(entity, Invulnerable.class) == null;
             case INVISIBLE ->
                 isFighting(entity) && !isInvisible(entity);
+            case HASTE ->
+                entityData.getComponent(entity, SpeedChange.class) == null;
             default ->
-                false; // TODO: haste has no effect yet
+                false;
         };
     }
 

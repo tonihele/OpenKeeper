@@ -27,8 +27,10 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
@@ -54,6 +56,7 @@ class ShotsControllerTest {
     private static final short HEAL_ID = 1;
     private static final short HEAL_INSTANT_ID = 53;
     private static final short ARMOUR_ID = 9;
+    private static final short SPEED_ID = 6;
     private static final short INVULNERABLE_ID = 7;
     private static final short INVISIBLE_ID = 22;
     private static final short CREATE_OBJECT_ID = 2;
@@ -71,6 +74,7 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
         addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
+        addShot(SPEED_ID, Shot.ProcessType.MODIFY_SPEED);
         addShot(INVULNERABLE_ID, Shot.ProcessType.INVUNERABLE);
         addShot(INVISIBLE_ID, Shot.ProcessType.INVISIBLE);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
@@ -172,6 +176,36 @@ class ShotsControllerTest {
     }
 
     @Test
+    void hasteSpeedsTheCreatureUpForItsSecondValueInSeconds() {
+        EntityId creature = createCreature(1f);
+
+        // Haste Creature: 150 % for 15 seconds
+        shotsController.createShot(SPEED_ID, 150, 15, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(1.5f, entityData.getComponent(creature, Mobile.class).maxSpeed);
+        assertEquals(15.0, entityData.getComponent(creature, SpeedChange.class).endTime);
+
+        // A speed change that is still running is left as it is
+        shotsController.createShot(SPEED_ID, 20, 30, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(1.5f, entityData.getComponent(creature, Mobile.class).maxSpeed);
+        assertEquals(15.0, entityData.getComponent(creature, SpeedChange.class).endTime);
+    }
+
+    @Test
+    void speedStaysBetweenAQuarterAndATileATick() {
+        EntityId slowed = createCreature(1f);
+        EntityId hasted = createCreature(3f);
+
+        // Slow: 20 % for 15 seconds
+        shotsController.createShot(SPEED_ID, 20, 15, PLAYER_ID, new Vector3f(), slowed, null);
+        shotsController.createShot(SPEED_ID, 150, 15, PLAYER_ID, new Vector3f(), hasted, null);
+
+        assertEquals(0.25f, entityData.getComponent(slowed, Mobile.class).maxSpeed);
+        assertEquals(4f, entityData.getComponent(hasted, Mobile.class).maxSpeed);
+    }
+
+    @Test
     void objectShotCreatesTheObjectForThePlayer() {
         Vector3f position = new Vector3f(1.5f, 1f, 2.5f);
 
@@ -208,6 +242,14 @@ class ShotsControllerTest {
 
     private void addShot(short shotId, Shot.ProcessType processType) {
         shotsById.put(shotId, ShotFixtures.shot(shotId, processType, 0, EnumSet.noneOf(Shot.ShotProcessFlag.class)));
+    }
+
+    private EntityId createCreature(float speed) {
+        EntityId creature = createCreature();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.speed = speed;
+        entityData.setComponents(creature, creatureComponent, new Mobile(false, false, false, speed));
+        return creature;
     }
 
     private EntityId createCreature() {
