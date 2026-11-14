@@ -30,10 +30,13 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -161,7 +164,14 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
         IRoomController room = mapController.getRoomControllerByCoordinates(keeper.getDungeonHeartLocation());
         if (room != null && room.isDungeonHeart()) {
-            room.destroy();
+
+            // The ruined heart no longer stores gold, what it held is no longer the keeper's
+            synchronized (GameWorldController.GOLD_LOCK) {
+                PlayerGoldControl goldControl = gameController.getPlayerControllers().get(keeper.getId()).getGoldControl();
+                goldControl.subGold(room.getUsedCapacity(ObjectType.GOLD));
+                goldControl.setGoldMax(goldControl.getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
+                room.destroy();
+            }
         }
     }
 
