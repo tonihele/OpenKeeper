@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ShotsControllerTest {
 
     private static final short HEAL_ID = 1;
+    private static final short HEAL_INSTANT_ID = 53;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
@@ -61,6 +62,7 @@ class ShotsControllerTest {
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
+        shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
@@ -117,6 +119,17 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_ID, 50, 0, PLAYER_ID, new Vector3f(), creature, null);
 
         assertEquals(-50, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void creatureHealLandsThroughItsDeathShot() {
+        EntityId creature = createCreature();
+        EntityId warlock = createCreature();
+
+        // Warlock Heal Creature: an instant shot on own creatures that dies into Modify Health with the spell's value
+        shotsController.createShot(HEAL_INSTANT_ID, 3000, 0, PLAYER_ID, new Vector3f(), creature, warlock);
+
+        assertEquals(-3000, entityData.getComponent(creature, Damage.class).damage);
     }
 
     @Test

@@ -57,6 +57,29 @@ public final class ShotFixtures {
         return shot(INFERNO_ID, Shot.ProcessType.INFERNO, 30, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
     }
 
+    /**
+     * Shot 53, Heal Instant Shot, as it ships in the original data: it is cast
+     * on own creatures and dies into the given shot
+     */
+    public static Shot healInstantShot(short shotId, short deathShotId) {
+        Shot shot = shot(shotId, Shot.ProcessType.INSTANTANEOUS_HIT, 1, EnumSet.of(Shot.ShotProcessFlag.CONSTANT));
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setDeathShotId(deathShotId);
+        return shot;
+    }
+
+    public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
+            short shotTypeId, int shotData1) {
+        CreatureSpell creatureSpell = new CreatureSpell();
+        creatureSpell.setCreatureSpellId(creatureSpellId);
+        creatureSpell.setName("Creature spell " + creatureSpellId);
+        creatureSpell.setFlags(flags);
+        creatureSpell.setAlternativeShot(alternativeShot);
+        creatureSpell.setShotTypeId(shotTypeId);
+        creatureSpell.setShotData1(shotData1);
+        return creatureSpell;
+    }
+
     public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {
         Creature creature = new Creature();
         creature.setCreatureId(creatureId);

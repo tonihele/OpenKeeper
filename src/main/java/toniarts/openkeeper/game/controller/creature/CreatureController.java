@@ -863,6 +863,106 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
+    @Override
+    public boolean castSupportSpell() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return false;
+        }
+
+        // Of the spells for our own creatures, the last one that is ready gets its go
+        EntityId spellEntity = null;
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            if (isAttackRecharged(spell) && levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId).getFlags().contains(CreatureSpellFlag.CREATURE)) {
+                spellEntity = creatureSpellEntity;
+            }
+        }
+        if (spellEntity == null) {
+            return false;
+        }
+
+        CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+        toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+        EntityId target = getSupportSpellTarget(spell, creatureSpell);
+        if (target == null) {
+            return false;
+        }
+
+        entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+        stateMachine.changeState(CreatureState.CAST_SPELL);
+        shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), target, entityId);
+
+        return true;
+    }
+
+    /**
+     * Gets the creature to cast a spell for our own creatures on. A spell for
+     * the caster itself needs the caster to fight. The others go to the nearest
+     * of our fighters in the spell's range that has less than a quarter of its
+     * health left, and that can be the caster too
+     *
+     * @param spell the spell we have
+     * @param creatureSpell the spell's data
+     * @return the creature to cast on, or {@code null} if nobody needs it
+     */
+    private EntityId getSupportSpellTarget(CreatureSpell spell, toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        if (creatureSpell.getFlags().contains(CreatureSpellFlag.CAST_ON_SELF)) {
+            return isFighting(entityId) && isSupportSpellNeeded(entityId, creatureSpell) ? entityId : null;
+        }
+        if (isSupportSpellTarget(entityId, creatureSpell)) {
+            return entityId;
+        }
+
+        EntityId nearestTarget = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            float distance = getDistanceToCreature(entity);
+            if (distance < nearestDistance && distance <= spell.range && isSupportSpellTarget(entity, creatureSpell)) {
+                nearestDistance = distance;
+                nearestTarget = entity;
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    private boolean isSupportSpellTarget(EntityId entity, toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        Health health = entityData.getComponent(entity, Health.class);
+        Owner owner = entityData.getComponent(entity, Owner.class);
+
+        return health != null && owner != null && owner.ownerId == getOwnerId() && health.health < health.maxHealth / 4
+                && isFighting(entity) && !isIncapacitated(entity) && !isCaptive(entity) && isSupportSpellNeeded(entity, creatureSpell);
+    }
+
+    private boolean isFighting(EntityId entity) {
+        CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
+        if (creatureAi == null) {
+            return false;
+        }
+        CreatureState state = creatureAi.getCreatureState();
+
+        return state == CreatureState.FIGHT || state == CreatureState.MELEE_ATTACK || state == CreatureState.CAST_SPELL;
+    }
+
+    /**
+     * The spell's own condition on the creature it would be cast on
+     *
+     * @param entity the creature to cast on
+     * @param creatureSpell the spell's data
+     * @return true if the spell is of use to the creature
+     */
+    private boolean isSupportSpellNeeded(EntityId entity, toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        Health health = entityData.getComponent(entity, Health.class);
+
+        return switch (creatureSpell.getAlternativeShot()) {
+            case HEAL ->
+                health != null && health.health < health.maxHealth / 2;
+            default ->
+                false; // TODO: haste, armour, invulnerability and invisibility have no effect yet
+        };
+    }
+
     /**
      * Hits the target with our melee attack, which then needs to recharge
      *

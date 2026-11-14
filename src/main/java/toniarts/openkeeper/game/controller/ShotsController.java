@@ -42,6 +42,7 @@ import java.util.Map;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INSTANTANEOUS_HIT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
@@ -102,6 +103,12 @@ public final class ShotsController implements IShotsController {
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
+        // The shot is at its target at once and dies there, its death shot goes on with the same values
+        result.put(INSTANTANEOUS_HIT, request -> {
+            if (request.shot().getDeathShotId() != 0) {
+                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(), request.position(), request.target(), null);
+            }
+        });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
 
         return result;
@@ -111,12 +118,13 @@ public final class ShotsController implements IShotsController {
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter) {
 
         // Creature attacks still apply their damage themselves, see CreatureController#executeAttack. Processing
-        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type)
-        if (shooter != null) {
+        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type).
+        // What a creature casts on its own side is no attack and is processed here
+        Shot shot = kwdFile.getShotById(shotTypeId);
+        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES) {
             return;
         }
 
-        Shot shot = kwdFile.getShotById(shotTypeId);
         IShotProcessor processor = processors.get(shot.getProcessType());
         notifyShotHit(shot, target);
         if (processor == null) {
