@@ -26,6 +26,10 @@ public enum GameEventType {
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
     /**
+     * A creature turned on its keeper, only that keeper gets this
+     */
+    CREATURE_REBELLED,
+    /**
      * A Vampire rose in a Graveyard, only the keeper of the Graveyard gets this
      */
     GRAVEYARD_VAMPIRE_RISEN,

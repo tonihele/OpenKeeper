@@ -48,6 +48,7 @@ public enum TaskType {
     GAMBLE,
     SULK,
     LEAVE,
+    REBEL,
     FETCH_CORPSE,
     CARRY_CORPSE_TO_GRAVEYARD,
     FETCH_TRAP_CRATE,

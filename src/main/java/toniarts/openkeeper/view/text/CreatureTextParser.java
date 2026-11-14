@@ -230,6 +230,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case LEAVE -> {
                 return Utils.getMainTextResourceBundle().getString("2649");
             }
+            case REBEL -> {
+                return Utils.getMainTextResourceBundle().getString("2657");
+            }
             default -> {
                 return "";
             }

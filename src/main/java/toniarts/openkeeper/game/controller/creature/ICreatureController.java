@@ -359,4 +359,10 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void convertCreature(short playerId);
 
+    /**
+     * Turns on the keeper. Like in DK II, the creature joins the heroes and
+     * goes after the keeper it served
+     */
+    public void rebel();
+
 }
