@@ -469,7 +469,7 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         // Like in DK II, discontent comes before the jobs the creature likes
-        if (findUnhappyJob()) {
+        if (findMoodJob()) {
             workResult.accept(true);
             return;
         }
@@ -495,29 +495,49 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Like in DK II, an unhappy or angry creature takes a job from its unhappy
-     * list: the job a roll of 100 lands on, or else the first job on the list
-     * that it can start. Once it got one, the list rests for a while
+     * Like in DK II, an angry creature takes a job from its angry list, and an
+     * unhappy creature, or an angry one that got none, from its unhappy list.
+     * Once a list gave a job, it rests for a while
      *
      * @return true if the creature got a job
      */
-    private boolean findUnhappyJob() {
+    private boolean findMoodJob() {
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
-        Creature.JobPreference[] unhappyJobs = creature.getUnhappyJobs();
-        if (mood == null || unhappyJobs == null || mood.getState(
-                CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold())) == 0) {
+        int state = mood == null ? 0 : mood.getState(
+                CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold()));
+        if (state == 0) {
             return false;
         }
         double gameTime = gameTimer.getGameTime();
         CreatureMoodJob moodJob = entityData.getComponent(entityId, CreatureMoodJob.class);
-        if (moodJob != null && gameTime - moodJob.unhappyJobTime < MOOD_JOB_INTERVAL_SECONDS) {
+        if (moodJob == null) {
+            moodJob = new CreatureMoodJob(Double.NEGATIVE_INFINITY, Double.NEGATIVE_INFINITY);
+        }
+        if (state == 2 && gameTime - moodJob.angryJobTime >= MOOD_JOB_INTERVAL_SECONDS
+                && assignMoodJob(creature.getAngryJobs())) {
+            entityData.setComponent(entityId, new CreatureMoodJob(moodJob.unhappyJobTime, gameTime));
+            return true;
+        }
+        if (gameTime - moodJob.unhappyJobTime >= MOOD_JOB_INTERVAL_SECONDS
+                && assignMoodJob(creature.getUnhappyJobs())) {
+            entityData.setComponent(entityId, new CreatureMoodJob(gameTime, moodJob.angryJobTime));
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * Starts the job a roll of 100 lands on, or else the first job on the list
+     * that the creature can start
+     */
+    private boolean assignMoodJob(Creature.JobPreference[] moodJobs) {
+        if (moodJobs == null) {
             return false;
         }
-
-        List<Creature.JobPreference> jobs = new ArrayList<>(List.of(unhappyJobs));
+        List<Creature.JobPreference> jobs = new ArrayList<>(List.of(moodJobs));
         int roll = FastMath.rand.nextInt(100);
         int chance = 0;
-        for (Creature.JobPreference job : unhappyJobs) {
+        for (Creature.JobPreference job : moodJobs) {
             chance += job.getChance();
             if (roll <= chance) {
                 jobs.addFirst(job);
@@ -526,7 +546,6 @@ public final class CreatureController extends EntityController implements ICreat
         }
         for (Creature.JobPreference job : jobs) {
             if (taskManager.assignTask(this, job.getJobType())) {
-                entityData.setComponent(entityId, new CreatureMoodJob(gameTime));
                 return true;
             }
         }

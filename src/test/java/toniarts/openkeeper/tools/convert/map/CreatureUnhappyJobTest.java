@@ -38,11 +38,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * Like in DK II, an unhappy or angry creature takes a job from its unhappy
- * list before the jobs it likes, at most once every five seconds.
+ * list before the jobs it likes, at most once every five seconds. An angry
+ * creature tries its angry list first, which has a five seconds of its own.
  */
 class CreatureUnhappyJobTest {
 
     private static final int UNHAPPY = 50 * 32767 / 100;
+    private static final int ANGRY = 32768;
 
     private EntityData entityData;
     private EntityId entityId;
@@ -59,12 +61,14 @@ class CreatureUnhappyJobTest {
         entityData.setComponent(entityId, new CreatureComponent());
         entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, UNHAPPY, 0));
         gameTime = 100;
-        availableJobs = Set.of(Creature.JobType.RESEARCH, Creature.JobType.SULK, Creature.JobType.DRINK);
+        availableJobs = Set.of(Creature.JobType.RESEARCH, Creature.JobType.SULK, Creature.JobType.DRINK,
+                Creature.JobType.LEAVE);
         assignedJobs = new ArrayList<>();
 
         Creature warlock = new Creature();
         warlock.setHappyJobs(new Creature.JobPreference[]{job(Creature.JobType.RESEARCH, 100)});
         warlock.setUnhappyJobs(new Creature.JobPreference[]{job(Creature.JobType.SULK, 100), job(Creature.JobType.DRINK, 0)});
+        warlock.setAngryJobs(new Creature.JobPreference[]{job(Creature.JobType.LEAVE, 100)});
         warlock.getAttributes().setUnhappyThreshold((short) 50);
 
         ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(ITaskManager.class.getClassLoader(),
@@ -89,13 +93,55 @@ class CreatureUnhappyJobTest {
     }
 
     @Test
-    void angryCreatureTakesItsUnhappyJobToo() {
-        entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, 40000, 0));
+    void angryCreatureTakesItsAngryJob() {
+        entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, ANGRY, 0));
+
+        controller.findWork(foundWork -> {
+        });
+
+        assertEquals(List.of(Creature.JobType.LEAVE), assignedJobs);
+        assertEquals(100, entityData.getComponent(entityId, CreatureMoodJob.class).angryJobTime);
+    }
+
+    @Test
+    void creatureJustShortOfAngryKeepsToItsUnhappyJob() {
+        entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, ANGRY - 1, 0));
 
         controller.findWork(foundWork -> {
         });
 
         assertEquals(List.of(Creature.JobType.SULK), assignedJobs);
+    }
+
+    @Test
+    void angryCreatureWithNoAngryJobToStartTakesItsUnhappyJob() {
+        entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, ANGRY, 0));
+        availableJobs = Set.of(Creature.JobType.RESEARCH, Creature.JobType.SULK);
+
+        controller.findWork(foundWork -> {
+        });
+
+        assertEquals(List.of(Creature.JobType.SULK), assignedJobs);
+    }
+
+    @Test
+    void angryJobsAreFiveSecondsApart() {
+        entityData.setComponent(entityId, new CreatureMood(0, 0, 0, 0, ANGRY, 0));
+
+        controller.findWork(foundWork -> {
+        });
+        gameTime = 104;
+        controller.findWork(foundWork -> {
+        });
+        gameTime = 104.5;
+        controller.findWork(foundWork -> {
+        });
+        gameTime = 105;
+        controller.findWork(foundWork -> {
+        });
+
+        assertEquals(List.of(Creature.JobType.LEAVE, Creature.JobType.SULK, Creature.JobType.RESEARCH,
+                Creature.JobType.LEAVE), assignedJobs);
     }
 
     @Test
