@@ -68,10 +68,8 @@ public final class GraveyardController extends NormalRoomController {
             @Override
             protected Collection<Point> getCoordinates() {
                 Collection<Point> coordinates = super.getCoordinates();
-                coordinates.removeAll(cryptTiles);
-
                 // Bodies lie only on the tiles surrounded by the graveyard, like in DK II
-                coordinates.removeIf(p -> !isCryptTile(map, List.of(), p.x - start.x, p.y - start.y));
+                coordinates.removeIf(p -> cryptTiles.contains(p) || !isCryptTile(map, List.of(), p.x - start.x, p.y - start.y));
                 return coordinates;
             }
 
