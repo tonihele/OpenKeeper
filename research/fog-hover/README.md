@@ -29,4 +29,6 @@ java -cp 'build/install/OpenKeeper/lib/*' research/fog-hover/FogHoverHintRenderP
 
 The probe uses the production Nifty controls, styling and jME batch renderer. It verifies the 1.5-second delay, actual hint rendering, coexistence with HUD hints, cancellation, re-entry and cleanup. It writes `/tmp/fog-hover-visible.png` for visual inspection.
 
-`installDist` and the GPU probe passed. The full test suite is blocked before execution by an existing `PortalSpawnCooldownTest.java:107` constructor mismatch. Live inspection on level 1 confirmed “Mist” in both the header and cursor popup; the user reviewed the result.
+Current validation after merging master through `65026186`: Java 25 `./gradlew build installDist --offline --no-configuration-cache --console=plain` passed, including **890 tests passed, 4 skipped, zero failures**. The earlier `PortalSpawnCooldownTest` constructor mismatch is resolved on master.
+
+The standalone GPU probe was rerun successfully: 1.5-second delay, rendered text, HUD coexistence, cancellation, re-entry and cleanup. The merge retains master's cursor-icon update and the unexplored-tile eligibility check. Earlier live inspection on level 1 confirmed “Mist” in both the header and cursor popup; the user reviewed that result. No new full gameplay session or native trace was run for this merge.
