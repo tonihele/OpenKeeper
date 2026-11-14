@@ -23,6 +23,7 @@ import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
@@ -231,8 +232,8 @@ public class EntityController implements IEntityController {
 
     /**
      * Scales the damage a creature takes by what it is doing. DK II counts in
-     * 128ths: a possessed creature takes half, and one that lies stunned or is
-     * getting up takes double. Healing is never scaled
+     * 128ths: a possessed or armoured creature takes half, and one that lies
+     * stunned or is getting up takes double. Healing is never scaled
      *
      * @param entityData the entity data
      * @param entityId the entity that is hit
@@ -245,8 +246,8 @@ public class EntityController implements IEntityController {
         }
         int multiplier = 128;
 
-        // A possessed creature has no AI
-        if (entityData.getComponent(entityId, Possessed.class) != null) {
+        // A possessed creature has no AI. Armour on a possessed creature adds nothing
+        if (entityData.getComponent(entityId, Possessed.class) != null || entityData.getComponent(entityId, Armour.class) != null) {
             multiplier -= 64;
         }
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);

@@ -26,6 +26,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
@@ -958,8 +959,10 @@ public final class CreatureController extends EntityController implements ICreat
         return switch (creatureSpell.getAlternativeShot()) {
             case HEAL ->
                 health != null && health.health < health.maxHealth / 2;
+            case ARMOUR ->
+                isFighting(entity) && entityData.getComponent(entity, Armour.class) == null;
             default ->
-                false; // TODO: haste, armour, invulnerability and invisibility have no effect yet
+                false; // TODO: haste, invulnerability and invisibility have no effect yet
         };
     }
 
@@ -1319,6 +1322,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void processTick(float tpf) {
+        Armour armour = entityData.getComponent(entityId, Armour.class);
+        if (armour != null && armour.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Armour.class);
+        }
+
         // A manual drop can already carry its target in AI, but no state may
         // enter or advance until the fall system has finished landing.
         if (entityData.getComponent(entityId, CreatureFall.class) != null) {

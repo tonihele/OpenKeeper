@@ -22,12 +22,14 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -49,6 +51,7 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 1;
     private static final short HEAL_INSTANT_ID = 53;
+    private static final short ARMOUR_ID = 9;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
@@ -63,11 +66,13 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
+        addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
+                    case "getGameLevel" -> CreatureSleepFixtures.level(4);
                     case "getObject" -> (int) args[0] == GOLD_OBJECT_ID ? GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD) : null;
                     default -> null;
                 });
@@ -130,6 +135,16 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_INSTANT_ID, 3000, 0, PLAYER_ID, new Vector3f(), creature, warlock);
 
         assertEquals(-3000, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void armourShotLastsItsFirstValueInTicks() {
+        EntityId creature = createCreature();
+
+        // Cast Armour: 80 ticks, which is 20 seconds at 4 ticks a second
+        shotsController.createShot(ARMOUR_ID, 80, 50, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(20.0, entityData.getComponent(creature, Armour.class).endTime);
     }
 
     @Test

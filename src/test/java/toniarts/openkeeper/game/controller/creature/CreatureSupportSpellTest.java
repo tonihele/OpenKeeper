@@ -28,9 +28,11 @@ import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Health;
@@ -168,7 +170,33 @@ class CreatureSupportSpellTest {
     void spellsWithoutAnEffectYetAreNotCast() {
         createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
 
-        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.ARMOUR).castSupportSpell());
+        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE).castSupportSpell());
+    }
+
+    @Test
+    void castsArmourOnABadlyHurtFriendWithoutArmour() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.ARMOUR);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(friend, shots.get(0)[5]);
+
+        entityData.setComponent(friend, new Armour(30));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void armourWearsOff() {
+        entityData.setComponents(us, new Armour(15), new CreatureFall());
+        CreatureController controller = createController();
+
+        controller.processTick(0.25f);
+        assertEquals(15, entityData.getComponent(us, Armour.class).endTime);
+
+        gameTime = 15;
+        controller.processTick(0.25f);
+        assertNull(entityData.getComponent(us, Armour.class));
     }
 
     private EntityId createFighter(short ownerId, Vector3f position, int health) {
