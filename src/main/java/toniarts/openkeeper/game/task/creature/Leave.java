@@ -29,8 +29,8 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Leaves the dungeon. Like in DK II, the creature walks to a portal and is
- * gone for good once it gets there
+ * Leaves the dungeon. Like in DK II, the creature walks to a portal, steps
+ * into the middle of it and is gone for good
  */
 public final class Leave extends AbstractTileTask {
 
@@ -53,6 +53,15 @@ public final class Leave extends AbstractTileTask {
     @Override
     public Vector2f getTarget(ICreatureController creature) {
         return WorldUtils.pointToVector2f(getTaskLocation());
+    }
+
+    @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+
+        // Like in DK II (0x45A000), the creature goes a quarter of a tile into the middle of the portal, on its own side
+        Vector2f middle = getTarget(creature);
+        boolean fromNorth = creature.getPosition().z < middle.y;
+        return new Vector2f(middle.x, middle.y + (fromNorth ? -0.25f : 0.25f));
     }
 
     @Override

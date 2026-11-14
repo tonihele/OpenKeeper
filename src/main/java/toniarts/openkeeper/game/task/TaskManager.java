@@ -1002,11 +1002,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 continue;
             }
 
-            // The middle of the portal is a hole, the creature goes in from the tile beside it
             Point center = portal.getEntranceCoordinate();
             int distance = WorldUtils.calculateDistance(creature.getCreatureCoordinates(), center);
-            Leave leave = new Leave(navigationService, mapController, new Point(center.x, center.y - 1),
-                    creature.getOwnerId(), portal, entityData);
+            Leave leave = new Leave(navigationService, mapController, center, creature.getOwnerId(), portal, entityData);
             if (distance < nearest && leave.isReachable(creature)) {
                 task = leave;
                 nearest = distance;
