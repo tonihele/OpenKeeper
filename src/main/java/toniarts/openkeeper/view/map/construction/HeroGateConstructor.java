@@ -23,7 +23,7 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
-import toniarts.openkeeper.view.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection;
 
 /**
  *

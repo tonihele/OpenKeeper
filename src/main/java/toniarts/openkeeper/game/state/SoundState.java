@@ -244,7 +244,12 @@ public final class SoundState extends AbstractPauseAwareState {
      * @param listener can be {@code null}, allows you to listen when the speech starts playing
      */
     public void attachMentorSpeech(MentorType type, ISpeechListener listener) {
-        attachSpeech(SoundCategory.SPEECH_MENTOR, type.getId(), listener);
+        attachMentorSpeech(type.getId(), listener);
+    }
+
+    /** Queues a general mentor recording, respecting the voice setting. */
+    public void attachMentorSpeech(int speechId, ISpeechListener listener) {
+        attachSpeech(SoundCategory.SPEECH_MENTOR, speechId, listener);
     }
 
     private void attachSpeech(String soundCategory, int speechId, ISpeechListener listener) {

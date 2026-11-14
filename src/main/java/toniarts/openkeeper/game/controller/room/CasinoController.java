@@ -19,7 +19,11 @@ package toniarts.openkeeper.game.controller.room;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Casino.PayOut;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.storage.RoomGamblerControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -29,14 +33,47 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class CasinoController extends NormalRoomController {
 
+    private final IGameTimer gameTimer;
+
     public CasinoController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
-            RoomInstance roomInstance, IObjectsController objectsController) {
-        super(entityId, entityData, kwdFile, roomInstance, objectsController);
+            RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
+        super(entityId, entityData, kwdFile, roomInstance, objectsController, ObjectType.GAMBLER);
+
+        this.gameTimer = gameTimer;
+
+        if (getEntityComponent(Casino.class) == null) {
+            setPayOut(PayOut.SMILES);
+        }
+    }
+
+    @Override
+    public void construct() {
+        super.construct();
+
+        addObjectControl(new RoomGamblerControl(kwdFile, this, entityData, gameTimer));
     }
 
     @Override
     protected RoomObjectLayout getRoomObjectLayout() {
         return RoomObjectLayout.ALLOW_DIAGONAL_NEIGHBOUR_ONLY;
+    }
+
+    /**
+     * Gets how the casino pays out
+     *
+     * @return the pay out setting
+     */
+    public PayOut getPayOut() {
+        return getEntityComponent(Casino.class).payOut;
+    }
+
+    /**
+     * Sets how the casino pays out
+     *
+     * @param payOut the pay out setting
+     */
+    public void setPayOut(PayOut payOut) {
+        entityData.setComponent(entityId, new Casino(payOut));
     }
 
 }
