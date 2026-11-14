@@ -30,6 +30,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ManufactureProgress;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -502,6 +503,13 @@ public final class GameClientService extends AbstractClientService
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onResearchStatusChanged(keeperId, researchableEntity);
+            }
+        }
+
+        @Override
+        public void onManufactureProgressChanged(short keeperId, ManufactureProgress progress) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onManufactureProgressChanged(keeperId, progress);
             }
         }
 

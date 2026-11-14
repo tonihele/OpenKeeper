@@ -75,7 +75,7 @@ public final class PlayerController implements IPlayerController {
             manaControl = new PlayerManaControl(keeper, gameSettings);
             handControl = new PlayerHandControl(keeper, (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_NUMBER_OF_THINGS_IN_HAND).getValue(), entityData);
             researchControl = new PlayerResearchControl(keeper, kwdFile);
-            manufactureControl = new PlayerManufactureControl();
+            manufactureControl = new PlayerManufactureControl(keeper.getId());
         } else {
             manaControl = null;
             handControl = null;
@@ -111,6 +111,9 @@ public final class PlayerController implements IPlayerController {
             researchControl.addListener((PlayerResearchableEntityListener) listener);
             researchControl.addListener((PlayerSpellListener) listener);
         }
+        if (manufactureControl != null) {
+            manufactureControl.addListener(listener);
+        }
     }
 
     @Override
@@ -134,6 +137,9 @@ public final class PlayerController implements IPlayerController {
         if (researchControl != null) {
             researchControl.removeListener((PlayerResearchableEntityListener) listener);
             researchControl.removeListener((PlayerSpellListener) listener);
+        }
+        if (manufactureControl != null) {
+            manufactureControl.removeListener(listener);
         }
     }
 

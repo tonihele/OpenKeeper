@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ManufactureProgress;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.event.ClientEvents;
@@ -740,6 +741,15 @@ public final class GameClientState extends AbstractPauseAwareState {
             setResearchableEntity(keeperId, researchableEntity, () -> {
                 playerState.onResearchStatusChanged(keeperId, researchableEntity);
                 });
+        }
+
+        @Override
+        public void onManufactureProgressChanged(short keeperId, ManufactureProgress progress) {
+            app.enqueue(() -> {
+                if (playerState != null) {
+                    playerState.onManufactureProgressChanged(keeperId, progress);
+                }
+            });
         }
 
         private List<ResearchableEntity> getResearchableEntitiesList(Keeper keeper, ResearchableEntity researchableEntity) {

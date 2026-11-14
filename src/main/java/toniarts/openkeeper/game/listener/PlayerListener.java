@@ -23,6 +23,7 @@ package toniarts.openkeeper.game.listener;
  */
 public interface PlayerListener extends PlayerSpellListener, PlayerGoldListener,
         PlayerManaListener, PlayerActionListener, PlayerRoomListener,
-        PlayerDoorListener, PlayerTrapListener, PlayerResearchableEntityListener {
+        PlayerDoorListener, PlayerTrapListener, PlayerResearchableEntityListener,
+        PlayerManufactureListener {
 
 }

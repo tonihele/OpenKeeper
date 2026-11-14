@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
+import toniarts.openkeeper.game.data.ManufactureProgress;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -122,6 +123,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
+    private ResearchEffectControl manufactureProgressEffect;
+    private ManufactureProgress manufactureProgress = ManufactureProgress.IDLE;
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
@@ -179,6 +182,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         state = null;
         entityData = null;
         screen = null;
+        manufactureProgressEffect = null;
     }
 
     /**
@@ -929,6 +933,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private void initHudItems(AssetManager assetManager, EntityData entityData) {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
 
+        manufactureProgressEffect = createProgressEffect(hud.findElementById("tab-workshop"), RESEARCH_COLOR, null);
+        manufactureProgressEffect.setProgress(manufactureProgress.fraction());
+
         // Stretch the background image (height-wise) on the background image panel
         try {
             BufferedImage img = AssetUtils.readImageFromAsset(assetManager.locateAsset(new AssetKey("Textures/GUI/Windows/Panel-BG.png")));
@@ -1197,13 +1204,25 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     private void setResearchEffect(final ResearchableEntity researchableEntity, final Element element) {
         if (!researchableEntity.isDiscovered()) {
-            ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
-                {
-                    parameter("color", Integer.toString(RESEARCH_COLOR.getRGB()));
-                    parameter("image", "");
-                }
-            }.build(element).getControl(ResearchEffectControl.class);
-            researchControl.initJme(state.app);
+            createProgressEffect(element, RESEARCH_COLOR, null);
+        }
+    }
+
+    private ResearchEffectControl createProgressEffect(Element element, java.awt.Color color, String image) {
+        ResearchEffectControl control = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
+            {
+                parameter("color", color == null ? "" : Integer.toString(color.getRGB()));
+                parameter("image", image == null ? "" : image);
+            }
+        }.build(element).getControl(ResearchEffectControl.class);
+        control.initJme(state.app);
+        return control;
+    }
+
+    public void updateManufactureProgress(ManufactureProgress progress) {
+        manufactureProgress = Objects.requireNonNull(progress);
+        if (manufactureProgressEffect != null) {
+            manufactureProgressEffect.setProgress(progress.fraction());
         }
     }
 
@@ -1217,13 +1236,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
-                ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
-                    {
-                        parameter("color", spell.isDiscovered() ? "" : Integer.toString(RESEARCH_COLOR.getRGB()));
-                        parameter("image", spell.isDiscovered() ? AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/Gold_Frame.png") : "");
-                    }
-                }.build(element).getControl(ResearchEffectControl.class);
-                researchControl.initJme(state.app);
+                createProgressEffect(element, spell.isDiscovered() ? null : RESEARCH_COLOR,
+                        spell.isDiscovered() ? AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER
+                                + File.separator + "GUI/Icons/Gold_Frame.png") : null);
             }
         }
         unaffordableSpells.clear();
