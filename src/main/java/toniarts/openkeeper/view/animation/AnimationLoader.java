@@ -225,6 +225,17 @@ public final class AnimationLoader {
         setAnimSpeeds((Node) spatial, 0.0f);
     }
 
+    /** Holds the first frame of the current animation until it is replaced or resumed. */
+    public static void resetAndPauseAnimations(Spatial spatial) {
+        for (Spatial child : ((Node) spatial).getChildren()) {
+            AnimComposer composer = child.getControl(AnimComposer.class);
+            if (composer != null) {
+                composer.setTime(0);
+                composer.setGlobalSpeed(0);
+            }
+        }
+    }
+
     private static void setAnimSpeeds(Node node, float speed) {
         for (Spatial child : node.getChildren()) {
             var animComposer = child.getControl(AnimComposer.class);

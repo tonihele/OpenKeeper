@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
 import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
+import toniarts.openkeeper.game.logic.WorkshopViewSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
@@ -143,6 +144,7 @@ public final class GameLoopManager {
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
+                new WorkshopViewSystem(entityData),
                 new DoorViewSystem(entityData, positionSystem),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
