@@ -1,0 +1,85 @@
+/*
+ * Copyright (C) 2014-2019 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.tools.convert.map;
+
+import java.util.List;
+
+/**
+ * Builds computer players for tests, the setters are protected
+ */
+public final class AiFixtures {
+
+    private AiFixtures() {
+    }
+
+    /**
+     * A computer player that takes one action a tick, builds rooms next to
+     * the rooms they go well with and may build on the whole map
+     *
+     * @param maximumImps the most imps it creates
+     * @param tilesPerImp the owned tiles it wants for each imp
+     * @param roomSize the size of its rooms in tiles
+     * @param tilesBetweenRooms the gap it leaves between rooms
+     * @param openness how many percent of the tiles around a room may be open
+     * @param mineGoldBelow the gold it wants to have before it stops mining
+     * @param buildOrder the rooms it builds, in order
+     * @return the computer player settings
+     */
+    public static AI ai(int maximumImps, int tilesPerImp, int roomSize, int tilesBetweenRooms, int openness,
+            int mineGoldBelow, List<Short> buildOrder) {
+        AI ai = new AI();
+        ai.setSpeed((short) 1);
+        ai.setMaximumNumberOfImps((short) maximumImps);
+        ai.setImpsToTilesRatio(tilesPerImp);
+        ai.setDefaultSize((short) roomSize);
+        ai.setTilesLeftBetweenRooms((short) tilesBetweenRooms);
+        ai.setOpenness((short) openness);
+        ai.setMineGoldUntilGoldHeldIsGreaterThan(mineGoldBelow);
+        ai.setBuildOrder(buildOrder);
+        ai.setDistanceBetweenRoomsThatShouldBeCloseMan(AI.Distance.CLOSE);
+        ai.setBuildAreaEndX(Short.MAX_VALUE);
+        ai.setBuildAreaEndY(Short.MAX_VALUE);
+        return ai;
+    }
+
+    /**
+     * Limits where the computer player may build
+     *
+     * @param ai the computer player settings
+     * @param endX the last column of the build area
+     * @return the same settings
+     */
+    public static AI withBuildAreaEndX(AI ai, int endX) {
+        ai.setBuildAreaEndX(endX);
+        return ai;
+    }
+
+    /**
+     * A keeper the level gives to the computer
+     *
+     * @param playerId the player id
+     * @param ai the computer player settings
+     * @return the player
+     */
+    public static Player player(short playerId, AI ai) {
+        Player player = new Player();
+        player.setPlayerId(playerId);
+        player.setAi(true);
+        player.setAiAttributes(ai);
+        return player;
+    }
+}
