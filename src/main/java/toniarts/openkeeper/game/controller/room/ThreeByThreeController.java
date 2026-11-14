@@ -33,14 +33,15 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
     private final IGameTimer gameTimer;
-    private double lastPreparationTime = -1;
 
     public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
         this.gameTimer = gameTimer;
-        // Start the first attraction cooldown when the Portal is created.
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        // Start a new Portal clock, preserving existing state when rebuilding its controller.
+        if (entityData.getComponent(entityId, CreatureGenerator.class) == null) {
+            entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        }
     }
 
     @Override
@@ -63,8 +64,9 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public void onSpawn(double time, EntityId spawnedEntityId) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
         entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time,
-                getGeneratedCount() + 1));
+                generator.generatedCount + 1, generator.lastPreparationTime));
     }
 
     @Override
@@ -74,23 +76,25 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public boolean onPrepareSpawn(double preparationTime) {
-        if (lastPreparationTime == preparationTime) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        if (generator.lastPreparationTime == preparationTime) {
             return false;
         }
-        lastPreparationTime = preparationTime;
+        entityData.setComponent(entityId, new CreatureGenerator(generator.entrance, generator.lastSpawnTime,
+                generator.generatedCount, preparationTime));
         return true;
     }
 
     @Override
     public void onGenerationCycle(double time) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
         entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), time,
-                getGeneratedCount()));
+                generator.generatedCount, generator.lastPreparationTime));
     }
 
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
         entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
-        lastPreparationTime = -1;
     }
 }

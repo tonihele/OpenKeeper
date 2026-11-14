@@ -18,6 +18,10 @@ package toniarts.openkeeper.tools.convert.map;
 
 import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.EntityId;
+import com.jme3.network.serializing.Serializer;
+import com.jme3.network.serializing.serializers.FieldSerializer;
+import java.nio.ByteBuffer;
+import toniarts.openkeeper.game.component.CreatureGenerator;
 import toniarts.openkeeper.game.event.GameEventType;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -46,6 +50,8 @@ import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 
 /** Tests live spawn decisions; this package also permits parser-only fixture setters. */
@@ -179,6 +185,47 @@ class PortalSpawnCooldownTest {
         f.portal.captured((short) 3);
         f.tick(15);
         assertEquals(3, f.preparations.size());
+    }
+
+    @Test
+    void restoredGeneratorDoesNotReplayPreparationWhenControllerIsRebuilt() throws Exception {
+        Fixture f = new Fixture(0);
+        f.tick(18);
+        f.tick(16);
+        CreatureGenerator saved = f.entities.getComponent(f.portalId, CreatureGenerator.class);
+        // Initialize the base registry before constructing a FieldSerializer.
+        Serializer.initialize();
+        Serializer.registerClass(Point.class, new FieldSerializer());
+        Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
+        ByteBuffer buffer = ByteBuffer.allocate(256);
+        Serializer.writeClassAndObject(buffer, saved);
+        buffer.flip();
+        CreatureGenerator restored = (CreatureGenerator) Serializer.readClassAndObject(buffer);
+
+        // Reconstruct with restored entity state, as opposed to a new Portal clock.
+        DefaultEntityData loadedEntities = new DefaultEntityData();
+        EntityId loadedId = loadedEntities.createEntity();
+        loadedEntities.setComponent(loadedId, restored);
+        ThreeByThreeController loaded = new ThreeByThreeController(loadedId, loadedEntities,
+                f.level, f.portal.getRoomInstance(), null, f.timer);
+        assertEquals(18, loaded.getLastSpawnTime());
+        assertEquals(1, loaded.getGeneratedCount());
+        assertEquals(new Point(5, 5), loaded.getEntranceCoordinate());
+        assertFalse(loaded.onPrepareSpawn(34), "A restored cycle must not replay its build-up");
+
+        loaded.onGenerationCycle(37);
+        assertEquals(34, loadedEntities.getComponent(loadedId, CreatureGenerator.class).lastPreparationTime);
+        loaded.onSpawn(37, loadedEntities.createEntity());
+        assertEquals(2, loaded.getGeneratedCount());
+        assertEquals(37, loaded.getLastSpawnTime());
+        assertFalse(loaded.onPrepareSpawn(34), "Clock and count updates must preserve the marker");
+        assertTrue(loaded.onPrepareSpawn(56), "The next cycle can prepare normally");
+        assertFalse(loaded.onPrepareSpawn(56));
+        loaded.captured((short) 3);
+        assertEquals(-1, loadedEntities.getComponent(loadedId, CreatureGenerator.class).lastPreparationTime);
+        assertEquals(0, loaded.getGeneratedCount());
+        assertEquals(34, loaded.getLastSpawnTime());
+        assertTrue(loaded.onPrepareSpawn(56), "Capture starts a fresh preparation history");
     }
 
     @Test
