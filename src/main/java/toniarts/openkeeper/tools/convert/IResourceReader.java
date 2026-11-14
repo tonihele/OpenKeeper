@@ -30,15 +30,26 @@ public interface IResourceReader extends Closeable {
     byte[] read(int length) throws IOException;
 
     /**
-     * Reads a chunk of wanted size, wrapped into a IResourceChunkReader
-     * 
-     * @param size the size of chunk to read, the resulting chunk might be smaller if data is not available
-     * @return returns null if end of file reached
-     * @throws IOException 
+     * Reads up to the requested number of bytes into a chunk. Short underlying
+     * reads are retried; a partial chunk is returned only when the input reaches
+     * end of file.
+     *
+     * @param size maximum number of bytes to read; must be non-negative
+     * @return {@code null} when end of file is reached before any bytes are read
+     *     for a positive size; a zero-size request returns an empty chunk
+     * @throws IOException if reading fails
+     * @throws IllegalArgumentException if size is negative
      */
     IResourceChunkReader readChunk(int size) throws IOException;
 
     IResourceChunkReader readAll() throws IOException;
 
+    /**
+     * Skips exactly the requested number of bytes.
+     *
+     * @param size number of bytes to skip; must be non-negative
+     * @throws IOException if the input ends before all bytes can be skipped
+     * @throws IllegalArgumentException if size is negative
+     */
     void skipBytes(int size) throws IOException;
 }
