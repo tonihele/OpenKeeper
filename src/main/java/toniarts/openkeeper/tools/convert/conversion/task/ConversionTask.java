@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert.conversion.task;
 import java.util.ArrayList;
 import java.util.List;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
+import toniarts.openkeeper.utils.PathUtils;
 
 /**
  * Base class for conversion tasks
@@ -36,7 +37,7 @@ public abstract class ConversionTask implements IConversionTask {
     private final List<IConversionTaskUpdate> listeners = new ArrayList<>();
 
     public ConversionTask(String dungeonKeeperFolder, String destination, boolean overwriteData) {
-        this.dungeonKeeperFolder = dungeonKeeperFolder;
+        this.dungeonKeeperFolder = PathUtils.fixFilePath(dungeonKeeperFolder);
         this.destination = destination;
         this.overwriteData = overwriteData;
     }
