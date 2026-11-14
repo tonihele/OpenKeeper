@@ -57,13 +57,14 @@ public final class BufferedResourceReader implements IResourceReader {
     
     @Override
     public IResourceChunkReader readChunk(int size) throws IOException {
+        ResourceReaderSupport.checkLength(size);
         byte[] bytes = new byte[size];
-        int read = input.read(bytes);
-        if(read == -1) {
+        int read = ResourceReaderSupport.readUpTo(input, bytes);
+        if (size > 0 && read == 0) {
             return null;
         }
-        
-        ByteBuffer buffer = ByteBuffer.wrap(bytes, 0, read);
+
+        ByteBuffer buffer = ByteBuffer.wrap(bytes, 0, read).slice();
         buffer.order(ByteOrder.LITTLE_ENDIAN);
 
         return new ResourceChunkReader(buffer);
@@ -85,14 +86,9 @@ public final class BufferedResourceReader implements IResourceReader {
 
     @Override
     public byte[] read(int length) throws IOException {
+        ResourceReaderSupport.checkLength(length);
         byte[] bytes = new byte[length];
-
-        int result = input.read(bytes);
-        if (result != length) {
-            String message = "Error reading byte array. Expect %s bytes and %s given";
-            throw new IOException(String.format(message, length, result));
-        }
-
+        ResourceReaderSupport.readFully(input, bytes);
         return bytes;
     }
 
@@ -107,6 +103,6 @@ public final class BufferedResourceReader implements IResourceReader {
 
     @Override
     public void skipBytes(int size) throws IOException {
-        input.skip(size);
+        ResourceReaderSupport.skipFully(input, size);
     }
 }

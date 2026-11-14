@@ -38,9 +38,11 @@ public final class ResourceChunkReader implements IResourceChunkReader {
     private static final Logger logger = System.getLogger(ResourceChunkReader.class.getName());
 
     private final ByteBuffer buffer;
+    private final int length;
 
     public ResourceChunkReader(ByteBuffer buffer) {
         this.buffer = buffer;
+        this.length = buffer.remaining();
     }
 
     @Override
@@ -50,7 +52,7 @@ public final class ResourceChunkReader implements IResourceChunkReader {
 
     @Override
     public int length() {
-        return buffer.capacity();
+        return length;
     }
 
     @Override
