@@ -35,7 +35,9 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -197,6 +199,35 @@ class CreatureSupportSpellTest {
         gameTime = 15;
         controller.processTick(0.25f);
         assertNull(entityData.getComponent(us, Armour.class));
+    }
+
+    @Test
+    void castsInvulnerableOnABadlyHurtFriendWithoutIt() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.INVULNERABLE);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(friend, shots.get(0)[5]);
+
+        entityData.setComponent(friend, new Invulnerable(30));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void hitsDoAnInvulnerableCreatureNoHarmUntilItWearsOff() {
+        EntityId enemy = createFighter(Player.KEEPER2_ID, new Vector3f(5, 0, 6), 1000);
+        entityData.setComponents(enemy, new Invulnerable(15), new CreatureFall());
+        CreatureController controller = createController();
+
+        controller.setDamage(enemy, 100);
+        assertNull(entityData.getComponent(enemy, Damage.class));
+
+        gameTime = 15;
+        new CreatureController(enemy, entityData, new Creature(), null, null, stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? gameTime : null),
+                new HashMap<>(), null, null, null, null, null, null, null).processTick(0.25f);
+        controller.setDamage(enemy, 100);
+        assertEquals(100, entityData.getComponent(enemy, Damage.class).damage);
     }
 
     private EntityId createFighter(short ownerId, Vector3f position, int health) {

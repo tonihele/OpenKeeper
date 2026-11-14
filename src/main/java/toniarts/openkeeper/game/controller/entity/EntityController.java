@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -221,7 +222,11 @@ public class EntityController implements IEntityController {
 
     @Override
     public void setDamage(EntityId entityId, int damageAmount) {
-        setDamage(entityData, entityId, damageAmount);
+
+        // Our hits and shots do an invulnerable creature no harm
+        if (damageAmount <= 0 || entityData.getComponent(entityId, Invulnerable.class) == null) {
+            setDamage(entityData, entityId, damageAmount);
+        }
     }
 
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
