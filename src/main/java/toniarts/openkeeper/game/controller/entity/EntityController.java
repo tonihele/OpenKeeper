@@ -23,6 +23,7 @@ import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
@@ -32,9 +33,11 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -133,10 +136,9 @@ public class EntityController implements IEntityController {
         Gold gold = entityData.getComponent(entityId, Gold.class);
         if (gold != null && gold.gold > 0) {
             Position position = entityData.getComponent(entityId, Position.class);
-            Owner owner = entityData.getComponent(entityId, Owner.class);
             Point point = WorldUtils.vectorToPoint(position.position);
             // TODO: some central place, we need to add more than one pile if it exceeds the max
-            objectsController.addLooseGold(owner.ownerId, point.x, point.y, gold.gold, gold.maxGold);
+            objectsController.addLooseGold(point.x, point.y, gold.gold, gold.maxGold);
             entityData.removeComponent(entityId, Gold.class);
         }
 
@@ -224,7 +226,37 @@ public class EntityController implements IEntityController {
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
         Damage damage = entityData.getComponent(entityId, Damage.class);
         int damageTotal = damage != null ? damage.damage : 0;
-        entityData.setComponent(entityId, new Damage(damageTotal + damageAmount));
+        entityData.setComponent(entityId, new Damage(damageTotal + scaleDamage(entityData, entityId, damageAmount)));
+    }
+
+    /**
+     * Scales the damage a creature takes by what it is doing. DK II counts in
+     * 128ths: a possessed creature takes half, and one that lies stunned or is
+     * getting up takes double. Healing is never scaled
+     *
+     * @param entityData the entity data
+     * @param entityId the entity that is hit
+     * @param damageAmount the damage dealt
+     * @return the damage taken
+     */
+    private static int scaleDamage(EntityData entityData, EntityId entityId, int damageAmount) {
+        if (damageAmount <= 0) {
+            return damageAmount;
+        }
+        int multiplier = 128;
+
+        // A possessed creature has no AI
+        if (entityData.getComponent(entityId, Possessed.class) != null) {
+            multiplier -= 64;
+        }
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        if (creatureAi != null) {
+            CreatureState state = creatureAi.getCreatureState();
+            if (state == CreatureState.STUNNED || state == CreatureState.FALLEN || state == CreatureState.GETTING_UP) {
+                multiplier += 128;
+            }
+        }
+        return (int) Math.min(Integer.MAX_VALUE, (long) damageAmount * multiplier / 128);
     }
 
     @Override
