@@ -169,6 +169,88 @@ class WorkerTaskAssignmentTest {
     }
 
     @Test
+    void taskWithoutLocationDoesNotAbortOtherAssignments() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        Task taskWithoutLocation = task(null, creature -> true);
+        Task reachable = task(new Point(5, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, taskWithoutLocation);
+        taskManager.addTask(PLAYER_ID, reachable);
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.TRUE), results);
+        assertEquals(0, ((TestTask) Proxy.getInvocationHandler(taskWithoutLocation)).assignees.get());
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
+    }
+
+    @Test
+    void workerWithoutOwnerDoesNotAbortOtherAssignments() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        Task reachable = task(new Point(5, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, reachable);
+        AtomicInteger ownerlessResults = new AtomicInteger();
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10), false), gotWork -> {
+            assertEquals(Boolean.FALSE, gotWork);
+            ownerlessResults.incrementAndGet();
+        });
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(2, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(1, ownerlessResults.get(), "The invalid queued worker is completed and discarded");
+        assertEquals(List.of(Boolean.TRUE), results);
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
+    }
+
+    @Test
+    void workerQueuedByAResultCallbackIsProcessedOnTheNextPass() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        Task task = task(new Point(5, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, task);
+        List<Boolean> results = new ArrayList<>();
+        ICreatureController nextWorker = imp(new Point(2, 10));
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10)), gotWork -> {
+            results.add(gotWork);
+            if (results.size() == 1) {
+                taskManager.addToUnemployedWorkerQueue(nextWorker, results::add);
+            }
+        });
+
+        taskManager.processUnemployedWorkerQueue();
+        assertEquals(List.of(Boolean.TRUE), results);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.TRUE, Boolean.TRUE), results);
+        assertEquals(2, ((TestTask) Proxy.getInvocationHandler(task)).assignees.get());
+    }
+
+    @Test
+    void workerWithoutLocationDoesNotAbortOtherAssignments() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        Task reachable = task(new Point(5, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, reachable);
+        List<Boolean> invalidWorkerResults = new ArrayList<>();
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(null), invalidWorkerResults::add);
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.FALSE), invalidWorkerResults);
+        assertEquals(List.of(Boolean.TRUE), results);
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
+    }
+
+    @Test
     void rescueOfACreatureThatIsGoneIsNotHandedOut() {
         addLand(0, 7, 10);
         TaskManager taskManager = taskManager();
@@ -244,10 +326,20 @@ class WorkerTaskAssignmentTest {
     }
 
     private ICreatureController imp(Point location) {
+        return imp(location, true);
+    }
+
+    private ICreatureController imp(Point location, boolean hasOwner) {
         var entityId = entityData.createEntity();
+        if (hasOwner) {
+            entityData.setComponent(entityId, new Owner(PLAYER_ID, PLAYER_ID));
+        }
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> location;
-            case "getOwnerId" -> PLAYER_ID;
+            case "getOwnerId" -> {
+                Owner owner = entityData.getComponent(entityId, Owner.class);
+                yield owner == null ? null : Short.valueOf(owner.ownerId);
+            }
             case "getEntityId" -> entityId;
             default -> null;
         });

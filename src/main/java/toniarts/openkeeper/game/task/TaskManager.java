@@ -1050,15 +1050,35 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return;
         }
 
-        unemployedCreatures
-                .entrySet()
-                .stream()
-                .collect(Collectors.groupingBy((creature) -> creature.getKey().getOwnerId()))
-                .entrySet()
-                .forEach((creaturesByOwnerId) -> {
-                    processUnemployedWorkers(taskQueues.getOrDefault(creaturesByOwnerId.getKey(), Collections.emptySet()), creaturesByOwnerId.getValue());
-                });
+        // Process a snapshot so callbacks can safely queue another worker for a later pass.
+        Map<ICreatureController, Consumer<Boolean>> queuedWorkers = new LinkedHashMap<>(unemployedCreatures);
         unemployedCreatures.clear();
+
+        Map<Short, List<Entry<ICreatureController, Consumer<Boolean>>>> workersByOwnerId = groupUnemployedWorkersByOwner(queuedWorkers);
+        workersByOwnerId.forEach((ownerId, workers) ->
+                processUnemployedWorkers(taskQueues.getOrDefault(ownerId, Collections.emptySet()), workers));
+    }
+
+    private Map<Short, List<Entry<ICreatureController, Consumer<Boolean>>>> groupUnemployedWorkersByOwner(
+            Map<ICreatureController, Consumer<Boolean>> queuedWorkers) {
+        Map<Short, List<Entry<ICreatureController, Consumer<Boolean>>>> workersByOwnerId = new HashMap<>();
+        for (Entry<ICreatureController, Consumer<Boolean>> worker : queuedWorkers.entrySet()) {
+            ICreatureController creature = worker.getKey();
+            Owner owner = entityData.getComponent(creature.getEntityId(), Owner.class);
+            if (owner == null) {
+                reportUnassignedWorker(creature, worker.getValue(), "without an owner component");
+                continue;
+            }
+
+            workersByOwnerId.computeIfAbsent(owner.ownerId, id -> new ArrayList<>()).add(worker);
+        }
+
+        return workersByOwnerId;
+    }
+
+    private void reportUnassignedWorker(ICreatureController creature, Consumer<Boolean> workResult, String reason) {
+        logger.log(Level.DEBUG, "Skipping worker {0} {1} during task assignment", new Object[]{creature.getEntityId(), reason});
+        workResult.accept(Boolean.FALSE);
     }
 
     private void processUnemployedWorkers(Set<Task> tasks, List<Entry<ICreatureController, Consumer<Boolean>>> workers) {
@@ -1069,24 +1089,36 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         // Process each available task for each available worker
         List<TaskWorkerPriority> priorizedTasks = new LinkedList<>();
-        for (Entry<ICreatureController, Consumer<Boolean>> workerEntry : unemployedWorkers.entrySet()) {
+        Set<Task> tasksWithoutLocation = new HashSet<>();
+        Iterator<Entry<ICreatureController, Consumer<Boolean>>> workerIterator = unemployedWorkers.entrySet().iterator();
+        while (workerIterator.hasNext()) {
+            Entry<ICreatureController, Consumer<Boolean>> workerEntry = workerIterator.next();
             ICreatureController creature = workerEntry.getKey();
             Consumer<Boolean> workResult = workerEntry.getValue();
             final Point currentLocation = creature.getCreatureCoordinates();
+            if (currentLocation == null) {
+                reportUnassignedWorker(creature, workResult, "without a map location");
+                workerIterator.remove();
+                continue;
+            }
             Set<Point> reachableArea = getReachableArea(creature, currentLocation);
 
             // Give points by distance and priority. The distance is to the task's own tile: finding the spot to work from, and
             // whether it can be reached, takes path finding, which canAssign() does only for the tasks being handed out (#671)
             for (Task task : taskQueue) {
+                Point taskLocation = getTaskLocationForAssignment(task, tasksWithoutLocation);
+                if (taskLocation == null) {
+                    continue;
+                }
 
                 // A task is worked on its tile or next to it. One out of the worker's reach would cost a path search that
                 // goes through all of the worker's land before it fails
-                if (Arrays.stream(WorldUtils.getSurroundingTiles(mapController.getMapData(), task.getTaskLocation(), false))
+                if (Arrays.stream(WorldUtils.getSurroundingTiles(mapController.getMapData(), taskLocation, false))
                         .noneMatch(reachableArea::contains)) {
                     continue;
                 }
 
-                int points = WorldUtils.calculateDistance(currentLocation, task.getTaskLocation()) + task.getPriority();
+                int points = WorldUtils.calculateDistance(currentLocation, taskLocation) + task.getPriority();
                 priorizedTasks.add(new TaskWorkerPriority(task, creature, points, workResult));
             }
         }
@@ -1124,6 +1156,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         unemployedWorkers.forEach((t, u) -> {
             u.accept(Boolean.FALSE);
         });
+    }
+
+    private Point getTaskLocationForAssignment(Task task, Set<Task> tasksWithoutLocation) {
+        Point taskLocation = task.getTaskLocation();
+        if (taskLocation == null && tasksWithoutLocation.add(task)) {
+            logger.log(Level.DEBUG, "Skipping task {0} targeting entity {1} without a location during worker assignment",
+                    new Object[]{task.getId(), task.getTaskTarget()});
+        }
+        return taskLocation;
     }
 
     /**
