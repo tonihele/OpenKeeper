@@ -94,6 +94,7 @@ import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Sulk;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
 import toniarts.openkeeper.game.task.objective.KillCreatures;
@@ -962,6 +963,22 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
+            }
+            case SULK: {
+
+                // Like in DK II, only a creature that sleeps and has a lair it can get to sulks
+                if (!creature.hasLair() || creature.getCreature().getAttributes().getTimeSleep() <= 0) {
+                    return false;
+                }
+                Sulk task = new Sulk(navigationService, mapController, creature, entityData, gameSettings);
+                if (!task.isReachable(creature)) {
+                    return false;
+                }
+                if (assign) {
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
             }
             default:
                 return false;

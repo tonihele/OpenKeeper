@@ -204,6 +204,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 return Creature.AnimationType.RESEARCHING;
             case PRAY:
                 return Creature.AnimationType.PRAYING;
+            case SULK:
+                return Creature.AnimationType.ANGRY;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }

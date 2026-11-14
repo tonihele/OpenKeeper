@@ -224,6 +224,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case PRAY -> {
                 return Utils.getMainTextResourceBundle().getString("2632");
             }
+            case SULK -> {
+                return Utils.getMainTextResourceBundle().getString("2673");
+            }
             default -> {
                 return "";
             }

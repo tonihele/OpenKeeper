@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureMoodJob;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpell;
@@ -130,6 +131,7 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+    private static final int MOOD_JOB_INTERVAL_SECONDS = 5;
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -466,6 +468,12 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // Like in DK II, discontent comes before the jobs the creature likes
+        if (findUnhappyJob()) {
+            workResult.accept(true);
+            return;
+        }
+
         // See that is there a prefered job for us
         // FIXME: moods
         List<Creature.JobPreference> jobs = new ArrayList<>();
@@ -484,6 +492,45 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         workResult.accept(false);
+    }
+
+    /**
+     * Like in DK II, an unhappy or angry creature takes a job from its unhappy
+     * list: the job a roll of 100 lands on, or else the first job on the list
+     * that it can start. Once it got one, the list rests for a while
+     *
+     * @return true if the creature got a job
+     */
+    private boolean findUnhappyJob() {
+        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
+        Creature.JobPreference[] unhappyJobs = creature.getUnhappyJobs();
+        if (mood == null || unhappyJobs == null || mood.getState(
+                CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold())) == 0) {
+            return false;
+        }
+        double gameTime = gameTimer.getGameTime();
+        CreatureMoodJob moodJob = entityData.getComponent(entityId, CreatureMoodJob.class);
+        if (moodJob != null && gameTime - moodJob.unhappyJobTime < MOOD_JOB_INTERVAL_SECONDS) {
+            return false;
+        }
+
+        List<Creature.JobPreference> jobs = new ArrayList<>(List.of(unhappyJobs));
+        int roll = FastMath.rand.nextInt(100);
+        int chance = 0;
+        for (Creature.JobPreference job : unhappyJobs) {
+            chance += job.getChance();
+            if (roll <= chance) {
+                jobs.addFirst(job);
+                break;
+            }
+        }
+        for (Creature.JobPreference job : jobs) {
+            if (taskManager.assignTask(this, job.getJobType())) {
+                entityData.setComponent(entityId, new CreatureMoodJob(gameTime));
+                return true;
+            }
+        }
+        return false;
     }
 
     private static Creature.JobPreference chooseOnWeight(List<Creature.JobPreference> items) {
