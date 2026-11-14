@@ -492,13 +492,18 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.direction = (keeperAi.direction + Utils.getRandom().nextInt(3) - 1) & 3;
         }
 
-        // Next to the room it goes well with, or next to any room
+        // Next to a room it goes well with, or next to any room
         keeperAi.current = null;
         Short idealNeighbour = IDEAL_NEIGHBOURS.get(keeperAi.roomId);
         if (ai.getDistanceBetweenRoomsThatShouldBeCloseMan() == AI.Distance.CLOSE && idealNeighbour != null) {
-            Set<IRoomController> neighbours = playerController.getRoomControl().getRoomControllers().get(kwdFile.getRoomById(idealNeighbour));
-            if (neighbours != null && !neighbours.isEmpty()) {
-                keeperAi.current = neighbours.iterator().next().getRoomInstance().getCenter();
+            List<IRoomController> neighbours = new ArrayList<>();
+            for (IRoomController neighbour : playerController.getRoomControl().getRoomControllers().getOrDefault(kwdFile.getRoomById(idealNeighbour), Set.of())) {
+                if (!neighbour.getRoomInstance().isDestroyed()) {
+                    neighbours.add(neighbour);
+                }
+            }
+            if (!neighbours.isEmpty()) {
+                keeperAi.current = Utils.getRandomItem(neighbours).getRoomInstance().getCenter();
             }
         }
         if (keeperAi.current == null) {
