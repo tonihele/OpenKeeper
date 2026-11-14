@@ -122,7 +122,16 @@ public final class TriggerGeneric extends Trigger {
         GUI_BUTTON_PRESSED(53), // GUI
         CREATURE_HUNGER_SATED(54), // Event, This creature is
         CREATURE_PICKS_UP_PORTAL_GEM(55), // Event, This creature is
-        PLAYER_DUNGEON_BREACHED(56), // Event, This player's...
+        /**
+         * Fires for the wall's owner when another player's tile work destroys
+         * a solid, ownable, penetrable wall and changes its terrain type.
+         * Delivered before PLAYER_ENEMY_BREACHED and terrain replacement.
+         * Matching root branches run synchronously, ignore the authored
+         * other-player selector, and are never latched by ordinary polling.
+         * Level1 uses this event (trigger 80, Player 3).
+         * The separate creature wall-attack source remains outside this path.
+         */
+        PLAYER_DUNGEON_BREACHED(56),
         /**
          * Fires for the player whose tile work destroys another owner's solid,
          * ownable wall and replaces its terrain type. Partial damage, breaking
@@ -136,6 +145,7 @@ public final class TriggerGeneric extends Trigger {
          * this is an event, not a persistent record of a past breach. DKII's
          * dispatcher ignores the authored other-player filter for this event.
          * <p>
+         * Pressure uses this event (trigger 3, Player 3).
          * This covers DKII's tile-damage event source. A separate native wall
          * attack caller emits additional events with different player routing;
          * OpenKeeper's missing creature wall-attack path does not reproduce it.

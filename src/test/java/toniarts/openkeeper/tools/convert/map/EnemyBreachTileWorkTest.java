@@ -20,6 +20,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
@@ -35,6 +36,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.*;
 import static toniarts.openkeeper.tools.convert.map.TriggerGeneric.TargetType.PLAYER_ENEMY_BREACHED;
+import static toniarts.openkeeper.tools.convert.map.TriggerGeneric.TargetType.PLAYER_DUNGEON_BREACHED;
 import static toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
 class EnemyBreachTileWorkTest {
@@ -45,19 +47,34 @@ class EnemyBreachTileWorkTest {
     private static final Point POINT = new Point(0, 0);
 
     @Test
-    void finalHitDispatchesToAttackerBeforeTerrainReplacement() {
+    void finalHitDispatchesOwnerThenAttackerBeforeTerrainReplacement() {
         try (Fixture f = new Fixture(OWNER, TerrainFixtures.flags(SOLID, OWNABLE), FLOOR)) {
             f.hit();
-            assertTrue(f.events.isEmpty());
+            f.assertNoEvents();
             assertEquals(5, f.tileHealth());
             f.hit();
             assertEquals(List.of(ATTACKER), f.events);
             assertEquals(1, f.flags[0]);
-            assertEquals(0, f.flags[1]);
+            assertEquals(1, f.flags[1]);
+            assertEquals(List.of(OWNER), f.dungeonEvents);
+            assertEquals(List.of("owner", "attacker"), f.order);
             assertEquals(FLOOR, f.map.getMapData().getTile(POINT).getTerrainId());
             assertEquals(Player.NEUTRAL_PLAYER_ID, f.map.getMapData().getTile(POINT).getOwnerId());
             f.scripts.processTick(.25f);
             assertEquals(1, f.flags[0]);
+            assertEquals(1, f.flags[1]);
+        }
+    }
+
+    @Test
+    void attackerNestedConditionSeesChangesMadeByTheOwnerEvent() {
+        try (Fixture f = new Fixture(OWNER, TerrainFixtures.flags(SOLID, OWNABLE), FLOOR, true)) {
+            f.hit();
+            f.assertNoEvents();
+            f.hit();
+            assertEquals(List.of("owner", "attacker"), f.order);
+            assertEquals(1, f.flags[1], "Owner branch sets the flag first");
+            assertEquals(1, f.flags[0], "Attacker's nested condition sees the updated flag");
         }
     }
 
@@ -68,6 +85,7 @@ class EnemyBreachTileWorkTest {
             f.hit();
             f.hit();
             assertEquals(expected ? List.of(ATTACKER) : List.of(), f.events);
+            assertEquals(expected ? List.of(owner) : List.of(), f.dungeonEvents);
         }
     }
 
@@ -76,7 +94,7 @@ class EnemyBreachTileWorkTest {
         try (Fixture f = new Fixture(Player.NEUTRAL_PLAYER_ID, TerrainFixtures.flags(SOLID), FLOOR)) {
             f.hit();
             f.hit();
-            assertTrue(f.events.isEmpty());
+            f.assertNoEvents();
         }
     }
 
@@ -85,7 +103,7 @@ class EnemyBreachTileWorkTest {
         try (Fixture f = new Fixture(OWNER, TerrainFixtures.flags(OWNABLE), FLOOR)) {
             f.hit();
             f.hit();
-            assertTrue(f.events.isEmpty());
+            f.assertNoEvents();
         }
     }
 
@@ -94,7 +112,7 @@ class EnemyBreachTileWorkTest {
         try (Fixture f = new Fixture(OWNER, TerrainFixtures.flags(SOLID, OWNABLE), WALL)) {
             f.hit();
             f.hit();
-            assertTrue(f.events.isEmpty());
+            f.assertNoEvents();
         }
     }
 
@@ -103,7 +121,7 @@ class EnemyBreachTileWorkTest {
         try (Fixture f = new Fixture(OWNER, TerrainFixtures.flags(SOLID, OWNABLE, IMPENETRABLE), FLOOR)) {
             f.hit();
             f.hit();
-            assertTrue(f.events.isEmpty());
+            f.assertNoEvents();
         }
     }
 
@@ -121,17 +139,26 @@ class EnemyBreachTileWorkTest {
             f.hit();
             assertEquals(List.of(ATTACKER, ATTACKER), f.events);
             assertEquals(2, f.flags[0]);
+            assertEquals(2, f.flags[1]);
+            assertEquals(List.of(OWNER, OWNER), f.dungeonEvents);
         }
     }
 
     private static final class Fixture implements AutoCloseable {
         final DefaultEntityData data = new DefaultEntityData();
         final List<Short> events = new ArrayList<>();
+        final List<Short> dungeonEvents = new ArrayList<>();
+        final List<String> order = new ArrayList<>();
         final int[] flags = new int[2];
         final MapController map;
         final PlayerTriggerLogicController scripts;
 
         Fixture(short owner, java.util.EnumSet<Terrain.TerrainFlag> terrainFlags, short destroyedType) {
+            this(owner, terrainFlags, destroyedType, false);
+        }
+
+        Fixture(short owner, java.util.EnumSet<Terrain.TerrainFlag> terrainFlags, short destroyedType,
+                boolean requireOwnerFlag) {
             Terrain wall = TerrainFixtures.terrain(WALL, terrainFlags, 0, 10, 10, WALL);
             wall.setDestroyedTypeTerrainId(destroyedType);
             Terrain floor = TerrainFixtures.terrain(FLOOR, TerrainFixtures.flags(), 0, 10, 10, FLOOR);
@@ -144,11 +171,15 @@ class EnemyBreachTileWorkTest {
             Map<Short, Keeper> keepers = Map.of(ATTACKER, new Keeper(false, ATTACKER), OWNER, new Keeper(false, OWNER),
                     Player.GOOD_PLAYER_ID, new Keeper(false, Player.GOOD_PLAYER_ID),
                     Player.NEUTRAL_PLAYER_ID, new Keeper(false, Player.NEUTRAL_PLAYER_ID));
-            Map<Integer, Trigger> records = Map.of(
+            Map<Integer, Trigger> records = new HashMap<>(Map.of(
                     1, PlayerBreachFixtures.condition(1, PLAYER_ENEMY_BREACHED, -1, 0, 255),
                     -1, PlayerBreachFixtures.action(-1, 0, 0),
-                    2, PlayerBreachFixtures.condition(2, PLAYER_ENEMY_BREACHED, -2, 0, 255),
-                    -2, PlayerBreachFixtures.action(-2, 1, 0));
+                    2, PlayerBreachFixtures.condition(2, PLAYER_DUNGEON_BREACHED, -2, 0, 255),
+                    -2, PlayerBreachFixtures.action(-2, 1, 0)));
+            if (requireOwnerFlag) {
+                records.put(1, PlayerBreachFixtures.condition(1, PLAYER_ENEMY_BREACHED, 3, 0, 255));
+                records.put(3, PlayerBreachFixtures.condition(3, TriggerGeneric.TargetType.FLAG, -1, 0, 255));
+            }
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getMap" -> rawMap;
                 case "getTerrain" -> (short) args[0] == WALL ? wall : floor;
@@ -173,14 +204,29 @@ class EnemyBreachTileWorkTest {
                 settings.put(type, CreatureSleepFixtures.variable(type, 5));
             }
             map = new MapController(kwd, null, settings, null, data, level,
-                    proxy(GameEventService.class, (method, args) -> null), this::onBreach);
+                    proxy(GameEventService.class, (method, args) -> null), this::onBreach, this::onDungeonBreach);
         }
 
         private void onBreach(short player) {
             events.add(player);
+            order.add("attacker");
             assertEquals(WALL, map.getMapData().getTile(POINT).getTerrainId());
             assertEquals(0, tileHealth());
             scripts.onEnemyBreached(player);
+        }
+
+        private void onDungeonBreach(short player) {
+            dungeonEvents.add(player);
+            order.add("owner");
+            assertEquals(WALL, map.getMapData().getTile(POINT).getTerrainId());
+            assertEquals(player, map.getMapData().getTile(POINT).getOwnerId());
+            assertEquals(0, tileHealth());
+            scripts.onDungeonBreached(player);
+        }
+
+        void assertNoEvents() {
+            assertTrue(events.isEmpty());
+            assertTrue(dungeonEvents.isEmpty());
         }
 
         int tileHealth() { return map.getMapData().getTile(POINT).getHealth(); }

@@ -76,6 +76,7 @@ public final class MapController extends Container implements IMapController {
     private final ILevelInfo levelInfo;
     private final GameEventService gameEventService;
     private final Consumer<Short> enemyBreachListener;
+    private final Consumer<Short> dungeonBreachListener;
 
     private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
@@ -102,6 +103,15 @@ public final class MapController extends Container implements IMapController {
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
             GameEventService gameEventService, Consumer<Short> enemyBreachListener) {
+        this(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo,
+                gameEventService, enemyBreachListener, playerId -> { });
+    }
+
+    public MapController(IKwdFile kwdFile, IObjectsController objectsController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            IGameTimer gameTimer, EntityData entityData, ILevelInfo levelInfo,
+            GameEventService gameEventService, Consumer<Short> enemyBreachListener,
+            Consumer<Short> dungeonBreachListener) {
 
         this.kwdFile = kwdFile;
         this.objectsController = objectsController;
@@ -113,6 +123,7 @@ public final class MapController extends Container implements IMapController {
         this.levelInfo = levelInfo;
         this.gameEventService = gameEventService;
         this.enemyBreachListener = enemyBreachListener;
+        this.dungeonBreachListener = dungeonBreachListener;
 
         // Load rooms
         loadRooms();
@@ -557,6 +568,8 @@ public final class MapController extends Container implements IMapController {
                     && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
                     && tile.getOwnerId() != playerId
                     && terrain.getDestroyedTypeTerrainId() != terrain.getTerrainId()) {
+                // DKII emits 56 to the owner before 57 to the worker, before replacement.
+                dungeonBreachListener.accept(tile.getOwnerId());
                 enemyBreachListener.accept(playerId);
             }
 

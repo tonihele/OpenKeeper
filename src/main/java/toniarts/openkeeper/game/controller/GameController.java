@@ -120,6 +120,13 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         }
     }
 
+    @Override
+    public void onDungeonBreached(short playerId) {
+        if (playerTriggers != null) {
+            playerTriggers.onDungeonBreached(playerId);
+        }
+    }
+
     public void createNewGame() {
         levelInfo.load();
         // The players

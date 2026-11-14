@@ -19,7 +19,8 @@ package toniarts.openkeeper.game.trigger.player;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
 import java.util.Map;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.provider.EnumSource;
+import toniarts.openkeeper.tools.convert.map.TriggerGeneric.TargetType;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -32,98 +33,106 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class PlayerEnemyBreachedTriggerTest {
 
-    @Test
-    void deliversToTheBreachingPlayersRootAndIgnoresNativeUnusedFilters() {
-        Fixture f = new Fixture(255);
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void deliversToTheBreachingPlayersRootAndIgnoresNativeUnusedFilters(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
         // The authored other-player selector is 255; DKII does not inspect it.
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         assertEquals(1, f.flags[0]);
         assertEquals(0, f.flags[2]);
-        f.scripts.onEnemyBreached((short) 4);
+        f.dispatch((short) 4);
         assertEquals(1, f.flags[0]);
         assertEquals(1, f.flags[2]);
     }
 
-    @Test
-    void ordinaryTicksNeverTreatTheBreachAsAHistoricalFlag() {
-        Fixture f = new Fixture(255);
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void ordinaryTicksNeverTreatTheBreachAsAHistoricalFlag(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
         f.ticks(12);
         assertEquals(0, f.flags[0]);
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         f.ticks(12);
         assertEquals(1, f.flags[0]);
     }
 
     @ParameterizedTest
-    @CsvSource({"1,1", "2,2", "255,3"})
-    void eachActualEventUsesTheExistingRepeatLimit(int repeat, int expected) {
-        Fixture f = new Fixture(repeat);
+    @CsvSource({"PLAYER_ENEMY_BREACHED,1,1", "PLAYER_ENEMY_BREACHED,2,2", "PLAYER_ENEMY_BREACHED,255,3",
+        "PLAYER_DUNGEON_BREACHED,1,1", "PLAYER_DUNGEON_BREACHED,2,2", "PLAYER_DUNGEON_BREACHED,255,3"})
+    void eachActualEventUsesTheExistingRepeatLimit(TargetType eventType, int repeat, int expected) {
+        Fixture f = new Fixture(repeat, eventType);
         for (int i = 0; i < 3; i++) {
-            f.scripts.onEnemyBreached((short) 3);
+            f.dispatch((short) 3);
         }
         assertEquals(expected, f.flags[0]);
     }
 
-    @Test
-    void failedNestedConditionsAreNotLatchedForLaterTicks() {
-        Fixture f = new Fixture(255);
-        f.records.put(1, PlayerBreachFixtures.condition(1, PLAYER_ENEMY_BREACHED, 2, 0, 255));
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void failedNestedConditionsAreNotLatchedForLaterTicks(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
+        f.records.put(1, PlayerBreachFixtures.condition(1, eventType, 2, 0, 255));
         f.records.put(2, PlayerBreachFixtures.condition(2, FLAG, -1, 0, 255));
         f.bind();
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         assertEquals(0, f.flags[0]);
         f.flags[1] = 1;
         f.ticks(12);
         assertEquals(0, f.flags[0]);
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         assertEquals(1, f.flags[0]);
     }
 
-    @Test
-    void nestedBreachEventsAreNotOrdinaryConditions() {
-        Fixture f = new Fixture(255);
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void nestedBreachEventsAreNotOrdinaryConditions(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
         f.records.put(1, PlayerBreachFixtures.condition(1, FLAG, 2, 0, 255));
-        f.records.put(2, PlayerBreachFixtures.condition(2, PLAYER_ENEMY_BREACHED, -1, 0, 255));
+        f.records.put(2, PlayerBreachFixtures.condition(2, eventType, -1, 0, 255));
         f.bind();
         f.flags[1] = 1;
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         f.ticks(12);
         assertEquals(0, f.flags[0]);
     }
 
-    @Test
-    void allMatchingRootsRunOnOneBreach() {
-        Fixture f = new Fixture(255);
-        f.records.put(1, PlayerBreachFixtures.condition(1, PLAYER_ENEMY_BREACHED, -1, 2, 255));
-        f.records.put(2, PlayerBreachFixtures.condition(2, PLAYER_ENEMY_BREACHED, -2, 0, 255));
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void allMatchingRootsRunOnOneBreach(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
+        f.records.put(1, PlayerBreachFixtures.condition(1, eventType, -1, 2, 255));
+        f.records.put(2, PlayerBreachFixtures.condition(2, eventType, -2, 0, 255));
         f.records.put(-2, PlayerBreachFixtures.action(-2, 1, 0));
         f.bind();
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         assertEquals(1, f.flags[0]);
         assertEquals(1, f.flags[1]);
     }
 
-    @Test
-    void childActionsAndConditionsRunInScriptOrder() {
-        Fixture f = new Fixture(255);
-        f.records.put(1, PlayerBreachFixtures.condition(1, PLAYER_ENEMY_BREACHED, -2, 0, 255));
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void childActionsAndConditionsRunInScriptOrder(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
+        f.records.put(1, PlayerBreachFixtures.condition(1, eventType, -2, 0, 255));
         f.records.put(-2, PlayerBreachFixtures.action(-2, 1, 2));
         f.records.put(2, PlayerBreachFixtures.condition(2, FLAG, -1, 0, 255));
         f.bind();
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         assertEquals(1, f.flags[0]);
     }
 
-    @Test
-    void dispatchPreservesAPendingOrdinaryBranch() {
-        Fixture f = new Fixture(255);
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void dispatchPreservesAPendingOrdinaryBranch(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
         f.records.put(1, PlayerBreachFixtures.condition(1, FLAG, -2, 2, 255));
         f.records.put(-2, PlayerBreachFixtures.action(-2, 1, 0));
-        f.records.put(2, PlayerBreachFixtures.condition(2, PLAYER_ENEMY_BREACHED, -1, 0, 255));
+        f.records.put(2, PlayerBreachFixtures.condition(2, eventType, -1, 0, 255));
         f.bind();
         f.flags[1] = 1;
         f.ticks(1); // Select the ordinary branch, leaving its action pending.
-        f.scripts.onEnemyBreached((short) 3);
+        f.dispatch((short) 3);
         assertEquals(1, f.flags[0]);
         assertEquals(1, f.flags[1]);
         f.ticks(1);
@@ -131,13 +140,26 @@ class PlayerEnemyBreachedTriggerTest {
         assertEquals(1, f.flags[0]);
     }
 
-    @Test
-    void otherEventTypesAndPlayersWithoutScriptsAreIgnored() {
-        Fixture f = new Fixture(255);
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void otherEventTypesAndPlayersWithoutScriptsAreIgnored(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
         f.records.put(1, PlayerBreachFixtures.condition(1, PLAYER_CREATURE_SACKED, -1, 0, 255));
         f.bind();
-        f.scripts.onEnemyBreached((short) 3);
-        f.scripts.onEnemyBreached((short) 7);
+        f.dispatch((short) 3);
+        f.dispatch((short) 7);
+        assertEquals(0, f.flags[0]);
+    }
+
+    @ParameterizedTest
+    @EnumSource(value = TargetType.class, names = {"PLAYER_ENEMY_BREACHED", "PLAYER_DUNGEON_BREACHED"})
+    void theOtherBreachEventDoesNotTriggerThisRoot(TargetType eventType) {
+        Fixture f = new Fixture(255, eventType);
+        if (eventType == PLAYER_ENEMY_BREACHED) {
+            f.scripts.onDungeonBreached((short) 3);
+        } else {
+            f.scripts.onEnemyBreached((short) 3);
+        }
         assertEquals(0, f.flags[0]);
     }
 
@@ -148,10 +170,13 @@ class PlayerEnemyBreachedTriggerTest {
         final ILevelInfo level;
         PlayerTriggerLogicController scripts;
 
-        Fixture(int repeat) {
-            records.put(1, PlayerBreachFixtures.condition(1, PLAYER_ENEMY_BREACHED, -1, 0, repeat));
+        final TargetType eventType;
+
+        Fixture(int repeat, TargetType eventType) {
+            this.eventType = eventType;
+            records.put(1, PlayerBreachFixtures.condition(1, eventType, -1, 0, repeat));
             records.put(-1, PlayerBreachFixtures.action(-1, 0, 0));
-            records.put(4, PlayerBreachFixtures.condition(4, PLAYER_ENEMY_BREACHED, -4, 0, 255));
+            records.put(4, PlayerBreachFixtures.condition(4, eventType, -4, 0, 255));
             records.put(-4, PlayerBreachFixtures.action(-4, 2, 0));
             kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getTriggers" -> records;
@@ -172,6 +197,14 @@ class PlayerEnemyBreachedTriggerTest {
 
         void bind() {
             scripts = new PlayerTriggerLogicController(null, level, null, null, null, null);
+        }
+
+        void dispatch(short playerId) {
+            if (eventType == PLAYER_ENEMY_BREACHED) {
+                scripts.onEnemyBreached(playerId);
+            } else {
+                scripts.onDungeonBreached(playerId);
+            }
         }
 
         void ticks(int count) {

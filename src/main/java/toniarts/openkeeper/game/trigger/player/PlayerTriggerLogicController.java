@@ -59,6 +59,15 @@ public final class PlayerTriggerLogicController implements IGameLogicUpdatable {
         }
     }
 
+    /** Routes the event to the player whose wall was breached. */
+    public void onDungeonBreached(short playerId) {
+        for (PlayerTriggerControl control : playerTriggerControls.getArray()) {
+            if (control.getPlayerId() == playerId) {
+                control.onDungeonBreached();
+            }
+        }
+    }
+
     @Override
     public void start() {
 
