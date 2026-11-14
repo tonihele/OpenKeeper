@@ -17,15 +17,11 @@
 package toniarts.openkeeper.tools.convert.wad;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
@@ -48,8 +44,6 @@ import toniarts.openkeeper.utils.PathUtils;
  */
 public final class WadFile {
 
-    private static final Logger logger = System.getLogger(WadFile.class.getName());
-    
     private final Path file;
     private final SequencedMap<String, WadFileEntry> wadFileEntries;
     private static final String WAD_HEADER_IDENTIFIER = "DWFB";
@@ -185,19 +179,18 @@ public final class WadFile {
      */
     private Path extractFileData(String fileName, String destination, ISeekableResourceReader rawWad) {
 
-        // See that the destination is formatted correctly and create it if it does not exist
-        Path destinationFile = Paths.get(destination, fileName);
-
+        Path destinationFile;
         try {
+            destinationFile = WadEntryPathResolver.resolve(Path.of(destination), fileName);
             Files.createDirectories(destinationFile.getParent());
         } catch (IOException e) {
-            throw new RuntimeException("Failed to create destination folder to " + destinationFile + "!", e);
+            throw new RuntimeException("Failed to resolve destination for " + fileName + "!", e);
         }
 
         // Write to the file
         try (OutputStream out = Files.newOutputStream(destinationFile);
                 BufferedOutputStream bout = new BufferedOutputStream(out)) {
-            getFileData(fileName, rawWad).writeTo(bout);
+            bout.write(getFileData(fileName, rawWad));
         } catch (IOException e) {
             throw new RuntimeException("Failed to write to " + destinationFile + "!", e);
         }
@@ -231,37 +224,24 @@ public final class WadFile {
      * @param rawWad the opened WAD file
      * @return the file data
      */
-    private ByteArrayOutputStream getFileData(String fileName, ISeekableResourceReader rawWad) {
-        ByteArrayOutputStream result = null;
-
-        // Get the file
+    private byte[] getFileData(String fileName, ISeekableResourceReader rawWad) throws IOException {
         WadFileEntry fileEntry = wadFileEntries.get(fileName);
         if (fileEntry == null) {
-            throw new RuntimeException("File " + fileName + " not found from the WAD archive!");
+            throw new IOException("File " + fileName + " not found in the WAD archive");
         }
 
-        try {
+        rawWad.seek(fileEntry.getOffset());
+        byte[] compressedData = rawWad.read(fileEntry.getCompressedSize());
+        byte[] data = fileEntry.isCompressed()
+                ? WadDecompressor.decompress(compressedData, fileName)
+                : compressedData;
 
-            // Seek to the file we want and read it
-            rawWad.seek(fileEntry.getOffset());
-            byte[] bytes = rawWad.read(fileEntry.getCompressedSize());
-
-            result = new ByteArrayOutputStream();
-
-            // See if the file is compressed
-            if (fileEntry.isCompressed()) {
-                result.write(decompressFileData(bytes, fileName));
-            } else {
-                result.write(bytes);
-            }
-
-        } catch (Exception e) {
-
-            // Fug
-            throw new RuntimeException("Failed to read the WAD file!", e);
+        // Some compressed DK2 entries leave the archive-table output size at zero.
+        if (fileEntry.getSize() > 0 && data.length != fileEntry.getSize()) {
+            throw new IOException("WAD entry " + fileName + " declared " + fileEntry.getSize()
+                    + " uncompressed bytes but produced " + data.length);
         }
-
-        return result;
+        return data;
     }
 
     /**
@@ -274,7 +254,7 @@ public final class WadFile {
 
         // Open the WAD for extraction
         try (ISeekableResourceReader rawWad = new FileResourceReader(file)) {
-            return getFileData(fileName, rawWad).toByteArray();
+            return getFileData(fileName, rawWad);
         } catch (Exception e) {
 
             // Fug
@@ -282,105 +262,5 @@ public final class WadFile {
         }
     }
 
-    /**
-     * Some file entries in the WAD are compressed (type 4?), this decompresses the file data
-     *
-     * @param bytes the compressed bytes
-     * @param fileName just for logging
-     * @return the decompressed bytes
-     */
-    private byte[] decompressFileData(byte[] src, String fileName) {
-        int i = 0, j = 0;
-        if ((src[i++] & 1) != 0) {
-            i += 3;
-        }
-        i++; // <<skip second byte
-        // <decompressed size packed into 3 bytes
 
-        int decsize = (ConversionUtils.toUnsignedByte(src[i]) << 16) + (ConversionUtils.toUnsignedByte(src[i + 1]) << 8) + ConversionUtils.toUnsignedByte(src[i + 2]);
-        byte[] dest = new byte[decsize];
-        i += 3;
-        byte flag; // The flag byte read at the beginning of each main loop iteration
-        int counter; // Counter for all loops
-        boolean finished = false;
-        while (!finished) {
-            if (i >= src.length) {
-                break;
-            }
-            flag = src[i++]; // Get flag byte
-            if ((ConversionUtils.toUnsignedByte(flag) & 0x80) == 0) {
-                byte tmp = src[i++];
-                counter = ConversionUtils.toUnsignedByte(flag) & 3; // mod 4
-                while (counter-- != 0) // Copy literally
-                {
-                    dest[j] = src[i++];
-                    j++;
-                }
-                int k = j; // Get the destbuf position
-                k -= (ConversionUtils.toUnsignedByte(flag) & 0x60) << 3;
-                k -= ConversionUtils.toUnsignedByte(tmp);
-                k--;
-
-                counter = ((ConversionUtils.toUnsignedByte(flag) >> 2) & 7) + 2;
-                do {
-                    dest[j] = dest[k++];
-                    j++;
-                } while (counter-- != 0); // Correct decrement
-            } else if ((ConversionUtils.toUnsignedByte(flag) & 0x40) == 0) {
-                byte tmp = src[i++];
-                byte tmp2 = src[i++];
-                counter = (ConversionUtils.toUnsignedByte(tmp)) >> 6;
-                while (counter-- != 0) // Copy literally
-                {
-                    dest[j] = src[i++];
-                    j++;
-                }
-                int k = j;
-                k -= (ConversionUtils.toUnsignedByte(tmp) & 0x3F) << 8;
-                k -= ConversionUtils.toUnsignedByte(tmp2);
-                k--;
-                counter = (ConversionUtils.toUnsignedByte(flag) & 0x3F) + 3;
-                do {
-                    dest[j] = dest[k++];
-                    j++;
-                } while (counter-- != 0); // Correct postfix decrement
-            } else if ((ConversionUtils.toUnsignedByte(flag) & 0x20) == 0) {
-                byte localtemp = src[i++];
-                byte tmp2 = src[i++];
-                byte tmp3 = src[i++];
-                counter = ConversionUtils.toUnsignedByte(flag) & 3;
-                while (counter-- != 0) // Copy literally
-                {
-                    dest[j] = src[i++];
-                    j++;
-                }
-                int k = j;
-                k -= (ConversionUtils.toUnsignedByte(flag) & 0x10) << 12;
-                k -= ConversionUtils.toUnsignedByte(localtemp) << 8;
-                k -= ConversionUtils.toUnsignedByte(tmp2);
-                k--;
-                counter = ConversionUtils.toUnsignedByte(tmp3) + ((ConversionUtils.toUnsignedByte(flag) & 0x0C) << 6) + 4;
-                do {
-                    dest[j] = dest[k++];
-                    j++;
-                } while (counter-- != 0); // Correct
-            } else {
-                counter = (ConversionUtils.toUnsignedByte(flag) & 0x1F) * 4 + 4;
-                if (ConversionUtils.toUnsignedByte(Integer.valueOf(counter).byteValue()) > 0x70) {
-                    finished = true;
-
-                    // Crepare to copy the last bytes
-                    counter = ConversionUtils.toUnsignedByte(flag) & 3;
-                }
-                while (counter-- != 0) { // Copy literally
-                    dest[j] = src[i++];
-                    j++;
-                }
-            }
-        } // Of while()
-        if (!finished) {
-            logger.log(Level.WARNING, "File {0} might not be successfully extracted!", fileName);
-        }
-        return dest;
-    }
 }
