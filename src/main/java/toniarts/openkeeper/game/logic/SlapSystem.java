@@ -30,9 +30,11 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -50,10 +52,17 @@ import toniarts.openkeeper.utils.GameTimeCounter;
 public final class SlapSystem extends GameTimeCounter {
 
     private final static int EFFICIENCY_BONUS = 10;
+    /**
+     * A slap makes the creature 50 % faster for 100 seconds. DKII.EXE has both
+     * numbers in its code, it doesn't read SLAP_SPEED_UP_DURATION_SECONDS
+     */
+    private final static int SLAP_SPEED_UP_PERCENTAGE = 150;
+    private final static int SLAP_SPEED_UP_SECONDS = 100;
 
     private final IKwdFile kwdFile;
     private final EntitySet creatureEntities;
     private final EntitySet objectEntities;
+    private final EntitySet speedChangeEntities;
     private final EntityData entityData;
     private final int maxSlapDuration;
     private final Map<Short, PlayerStatsControl> statControls;
@@ -71,6 +80,7 @@ public final class SlapSystem extends GameTimeCounter {
 
         creatureEntities = entityData.getEntities(Slapped.class, CreatureComponent.class, Owner.class);
         objectEntities = entityData.getEntities(Slapped.class, ObjectComponent.class, Interaction.class);
+        speedChangeEntities = entityData.getEntities(SpeedChange.class, Mobile.class, CreatureComponent.class);
         processAddedCreatureEntities(creatureEntities);
         processAddedObjectEntities(objectEntities);
     }
@@ -98,6 +108,8 @@ public final class SlapSystem extends GameTimeCounter {
                 entityData.removeComponent(entry.getKey(), Slapped.class);
             }
         }
+
+        processSpeedChanges();
     }
 
     private void processAddedCreatureEntities(Set<Entity> entities) {
@@ -169,7 +181,27 @@ public final class SlapSystem extends GameTimeCounter {
             entityData.setComponent(entity.getId(), updatedSleep);
         }
 
+        // Speed up, unless the speed is already changed (DKII.EXE 0x48B8A0)
+        Mobile mobile = entityData.getComponent(entity.getId(), Mobile.class);
+        if (mobile != null && entityData.getComponent(entity.getId(), SpeedChange.class) == null) {
+            entityData.setComponent(entity.getId(), new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava,
+                    mobile.maxSpeed * SLAP_SPEED_UP_PERCENTAGE / 100));
+            entityData.setComponent(entity.getId(), new SpeedChange(entity.get(Slapped.class).startTime + SLAP_SPEED_UP_SECONDS));
+        }
+
         // TODO: Apply the force
+    }
+
+    private void processSpeedChanges() {
+        speedChangeEntities.applyChanges();
+        for (Entity entity : speedChangeEntities) {
+            if (timeElapsed >= entity.get(SpeedChange.class).endTime) {
+                Mobile mobile = entity.get(Mobile.class);
+                entityData.setComponent(entity.getId(), new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava,
+                        entity.get(CreatureComponent.class).speed));
+                entityData.removeComponent(entity.getId(), SpeedChange.class);
+            }
+        }
     }
 
     /**
@@ -232,6 +264,7 @@ public final class SlapSystem extends GameTimeCounter {
     public void stop() {
         creatureEntities.release();
         objectEntities.release();
+        speedChangeEntities.release();
         slapStartTimesByEntityId.clear();
     }
 

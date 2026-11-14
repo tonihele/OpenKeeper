@@ -16,15 +16,36 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
+import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedChange;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class SlapSystemTest {
+
+    private static final short KEEPER = 3;
 
     @Test
     void slapWhileSleepingRemovesOneAuthoredUnitAndPreservesBed() {
@@ -65,5 +86,68 @@ class SlapSystemTest {
 
         assertSame(sleep, SlapSystem.applySleepingSlap(
                 sleep, CreatureState.IDLE, 9, 4));
+    }
+
+    @Test
+    void slapSpeedsTheCreatureUpByHalfForAHundredSeconds() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = slappedCreature(entityData, 2f);
+        SlapSystem slapSystem = slapSystem(entityData);
+
+        assertEquals(3f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
+
+        slapSystem.processTick(99f);
+        assertEquals(3f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
+
+        slapSystem.processTick(1f);
+        assertEquals(2f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
+        assertNull(entityData.getComponent(creature, SpeedChange.class));
+    }
+
+    @Test
+    void slapDuringTheSpeedUpNeitherAddsToItNorExtendsIt() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = slappedCreature(entityData, 2f);
+        SlapSystem slapSystem = slapSystem(entityData);
+
+        slapSystem.processTick(10f);
+        entityData.setComponent(creature, new Slapped(10));
+        slapSystem.processTick(0.25f);
+        assertEquals(3f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
+
+        slapSystem.processTick(89.75f);
+        assertEquals(2f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
+    }
+
+    private static EntityId slappedCreature(EntityData entityData, float speed) {
+        EntityId entity = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = 7;
+        creatureComponent.speed = speed;
+        entityData.setComponents(entity, creatureComponent, new Owner(KEEPER, KEEPER),
+                new Mobile(false, false, false, speed), new Slapped(0));
+        return entity;
+    }
+
+    private static SlapSystem slapSystem(EntityData entityData) {
+        IKwdFile kwdFile = proxy(IKwdFile.class, name -> switch (name) {
+            case "getCreature" -> new Creature();
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            default -> null;
+        });
+        IPlayerController player = proxy(IPlayerController.class, name -> switch (name) {
+            case "getKeeper" -> new Keeper(false, KEEPER);
+            case "getStatsControl" -> new PlayerStatsControl();
+            default -> null;
+        });
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings = Map.of(
+                Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,
+                CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS, 60));
+        return new SlapSystem(entityData, kwdFile, List.of(player), settings);
+    }
+
+    private static <T> T proxy(Class<T> type, Function<String, Object> handler) {
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type},
+                (proxy, method, args) -> handler.apply(method.getName())));
     }
 }
