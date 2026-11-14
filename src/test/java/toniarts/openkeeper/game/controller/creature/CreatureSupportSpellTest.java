@@ -37,6 +37,7 @@ import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -212,6 +213,22 @@ class CreatureSupportSpellTest {
         entityData.setComponent(friend, new Invulnerable(30));
         gameTime += RECHARGE;
         assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void turnsInvisibleInAFightUntilItWearsOff() {
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(us, shots.get(0)[5]);
+
+        entityData.setComponents(us, new Invisible(30), new CreatureFall(), new CreatureAi(0, CreatureState.FIGHT, (short) 1));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+
+        gameTime = 30;
+        controller.processTick(0.25f);
+        assertNull(entityData.getComponent(us, Invisible.class));
     }
 
     @Test
