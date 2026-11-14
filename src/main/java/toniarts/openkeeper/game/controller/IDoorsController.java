@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.door.IDoorController;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * Handles doors
@@ -29,5 +31,16 @@ public interface IDoorsController extends IEntityWrapper<IDoorController> {
 
     /** Counts placed owned doors in the roster; type zero selects all types. */
     int getDoorCount(short playerId, short doorId, DoorCountMode mode);
+
+    /**
+     * Places a door blueprint. The door isn't built, it waits for its crate
+     * from the workshop
+     *
+     * @param doorId the door
+     * @param tile the tile to place it on
+     * @param ownerId the owning keeper
+     * @return the door entity
+     */
+    public EntityId addDoorBlueprint(short doorId, Point tile, short ownerId);
 
 }
