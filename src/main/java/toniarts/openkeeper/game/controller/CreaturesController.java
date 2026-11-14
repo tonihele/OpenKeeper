@@ -872,8 +872,11 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
     public int getPossessedGroupSize(short playerId) {
-        for (EntityId possessed : entityData.findEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class)) {
-            return entityData.findEntities(new FieldFilter<>(FollowTarget.class, "entityId", possessed), FollowTarget.class).size();
+        for (EntityId possessed : entityData.findEntities(null, Possessed.class)) {
+            Owner owner = entityData.getComponent(possessed, Owner.class);
+            if (owner != null && owner.ownerId == playerId) {
+                return entityData.findEntities(new FieldFilter<>(FollowTarget.class, "entityId", possessed), FollowTarget.class).size();
+            }
         }
         return -1;
     }
