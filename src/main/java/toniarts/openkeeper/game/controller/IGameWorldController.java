@@ -20,6 +20,7 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -72,6 +73,20 @@ public interface IGameWorldController {
     void removeListener(PlayerActionListener listener);
 
     /**
+     * If you want to get notified when a player activates a special
+     *
+     * @param listener the listener
+     */
+    void addSpecialListener(SpecialListener listener);
+
+    /**
+     * Stop listening to special activations
+     *
+     * @param listener the listener
+     */
+    void removeSpecialListener(SpecialListener listener);
+
+    /**
      * Substract gold from player
      *
      * @param amount the amount to try to substract
@@ -79,6 +94,17 @@ public interface IGameWorldController {
      * @return amount of money that could not be substracted from the player
      */
     int substractGold(int amount, short playerId);
+
+    /**
+     * Substract gold from the player's treasury at the given point, a thief
+     * stealing from it for example
+     *
+     * @param amount the amount to try to substract
+     * @param playerId the player id
+     * @param p a tile of the treasury
+     * @return amount of money that could not be substracted from the player
+     */
+    int substractGold(int amount, short playerId, Point p);
 
     /**
      * Get a map controller
@@ -161,6 +187,13 @@ public interface IGameWorldController {
      * @return objects controller
      */
     public IObjectsController getObjectsController();
+
+    /**
+     * Get the traps controller
+     *
+     * @return traps controller
+     */
+    public ITrapsController getTrapsController();
 
     /**
      * Get the shots controller

@@ -36,6 +36,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -107,17 +108,9 @@ public final class TrapsController implements ITrapsController {
         pos.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
-        Trap trap = kwdFile.getTrapById(trapId);
-
         // Health and threat
         if (!blueprint) {
-            entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
-            entityData.setComponent(entity, new Threat(trap.getThreat()));
-
-            // Regeneration
-            if (trap.getHealthGain() > 0) {
-                entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
-            }
+            setArmed(entity, kwdFile.getTrapById(trapId));
         }
 
         // Add some interaction properties
@@ -127,6 +120,32 @@ public final class TrapsController implements ITrapsController {
         entityData.setComponent(entity, new TrapViewState(trapId, blueprint));
 
         return entity;
+    }
+
+    private void setArmed(EntityId entity, Trap trap) {
+        entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
+        entityData.setComponent(entity, new Threat(trap.getThreat()));
+
+        // Regeneration
+        if (trap.getHealthGain() > 0) {
+            entityData.setComponent(entity, new Regeneration(trap.getHealthGain(), null));
+        }
+    }
+
+    @Override
+    public void armTrap(EntityId blueprint) {
+        TrapViewState viewState = entityData.getComponent(blueprint, TrapViewState.class);
+        if (viewState == null || !viewState.blueprint) {
+            return;
+        }
+
+        setArmed(blueprint, kwdFile.getTrapById(viewState.trapId));
+        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false));
+    }
+
+    @Override
+    public EntityId addTrapBlueprint(short trapId, Point tile, short ownerId) {
+        return loadTrap(tile.x, tile.y, trapId, ownerId, true);
     }
 
     @Override
