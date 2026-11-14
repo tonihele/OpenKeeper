@@ -195,7 +195,8 @@ public final class TrapsController implements ITrapsController {
         }
 
         setArmed(blueprint, kwdFile.getTrapById(viewState.trapId));
-        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false));
+        entityData.setComponents(blueprint, new TrapComponent(viewState.trapId, false),
+                new TrapViewState(viewState.trapId, false));
     }
 
     @Override

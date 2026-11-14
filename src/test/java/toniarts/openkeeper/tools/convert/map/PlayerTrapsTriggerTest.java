@@ -115,9 +115,9 @@ class PlayerTrapsTriggerTest {
     @Test
     void blueprintCompletionOwnershipAndRemovalChangeTheLiveCount() throws IOException {
         try (Fixture f = new Fixture(ComparisonType.GREATER_OR_EQUAL_TO, 1, (short) 1, (short) 17)) {
-            EntityId id = f.trap((short) 1, (short) 3, true);
+            EntityId id = f.traps.addTrapBlueprint((short) 1, new Point(0,0), (short) 3);
             assertFalse(f.fires());
-            f.data.setComponents(id, new TrapComponent((short) 1, false), new Health(10,10));
+            f.traps.armTrap(id);
             assertTrue(f.fires());
             f.data.setComponent(id, new Owner((short) 4, (short) 3));
             assertFalse(f.fires());
@@ -167,6 +167,32 @@ class PlayerTrapsTriggerTest {
             assertTrue(f.fires());
             f.data.setComponent(id, new Death(0));
             assertFalse(f.fires());
+        }
+    }
+
+    @ParameterizedTest
+    @CsvSource({"1,true,true", "9,true,false", "17,false,true", "25,true,false"})
+    void realTrapArmingUpdatesParsedCountsAndBothComponents(short flags,
+            boolean blueprintMatches, boolean builtMatches) throws IOException {
+        try (Fixture f = new Fixture(ComparisonType.GREATER_OR_EQUAL_TO, 1, (short) 1, flags)) {
+            f.typeOne.setHealth(100);
+            EntityId id = f.traps.addTrapBlueprint((short) 1, new Point(0,0), (short) 3);
+            assertTrue(f.data.getComponent(id, TrapComponent.class).blueprint);
+            assertTrue(f.data.getComponent(id, TrapViewState.class).blueprint);
+            assertNull(f.data.getComponent(id, Health.class));
+            assertEquals(blueprintMatches, f.fires());
+
+            f.traps.armTrap(id);
+
+            assertEquals(builtMatches, f.fires());
+            assertFalse(f.data.getComponent(id, TrapComponent.class).blueprint);
+            assertFalse(f.data.getComponent(id, TrapViewState.class).blueprint);
+            assertEquals(100, f.data.getComponent(id, Health.class).health);
+            f.data.setComponent(id, new Health(25,100));
+            f.traps.armTrap(id);
+            assertEquals(25, f.data.getComponent(id, Health.class).health,
+                    "Repeated delivery must not reset a built trap's health");
+            assertEquals(builtMatches, f.fires());
         }
     }
 
@@ -275,9 +301,9 @@ class PlayerTrapsTriggerTest {
     void levelThreeModesIgnoreTheSentryTrapSelector(short flags, boolean blueprintMatches,
             boolean builtMatches) throws IOException {
         try (Fixture f = new Fixture(ComparisonType.GREATER_OR_EQUAL_TO, 1, (short) 3, flags)) {
-            EntityId id = f.trap((short) 1, (short) 3, true);
+            EntityId id = f.traps.addTrapBlueprint((short) 1, new Point(0,0), (short) 3);
             assertEquals(blueprintMatches, f.fires());
-            f.data.setComponents(id, new TrapComponent((short) 1, false), new Health(10,10));
+            f.traps.armTrap(id);
             assertEquals(builtMatches, f.fires());
         }
     }
