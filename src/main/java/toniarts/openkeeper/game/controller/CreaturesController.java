@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -715,6 +716,12 @@ public final class CreaturesController implements ICreaturesController {
 
     @Override
     public void leaveDungeon(EntityId entityId) {
+
+        // The mentor tells the keeper which creature type left, like DK II (0x45A0D0, message 0x14)
+        gameController.getGameEventService().emitToPlayer(GameEventType.CREATURE_LEFT, GameEvent.ThingFlag.CREATURE,
+                entityData.getComponent(entityId, CreatureComponent.class).creatureId,
+                entityData.getComponent(entityId, Owner.class).ownerId);
+
         // Like in DK II, the creature takes the gold it carries with it
         entityData.removeComponent(entityId, Gold.class);
         createController(entityId).removePossession();
