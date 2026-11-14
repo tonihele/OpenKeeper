@@ -37,7 +37,7 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
 
     private ProgressIndicatorPicture picture;
     private boolean initialized = false;
-    private float research = 0;
+    private float progress = 0;
     private Color color;
     private String image;
 
@@ -65,7 +65,7 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
     public void initJme(SimpleApplication app) {
         super.initJme(app);
 
-        picture = new ProgressIndicatorPicture("ResearchIndicator");
+        picture = new ProgressIndicatorPicture("ProgressIndicator");
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
@@ -79,13 +79,30 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
         }
     }
 
-    public void setResearch(float research) {
-        this.research = research;
+    @Override
+    public void onStartScreen() {
+        super.onStartScreen();
+        if (initialized && picture.getParent() == null) {
+            getApp().getGuiNode().attachChild(picture);
+        }
+    }
 
-        if (!initialized && research > 0) {
+    public void setResearch(float research) {
+        setProgress(research);
+    }
+
+    /**
+     * Sets the visible fraction of the progress indicator.
+     *
+     * @param progress progress fraction, clamped to the range zero through one
+     */
+    public void setProgress(float progress) {
+        this.progress = Math.max(0, Math.min(1, progress));
+
+        if (!initialized && this.progress > 0) {
             initialize();
-        } else {
-            picture.setProgress(getApp().getAssetManager(), research);
+        } else if (initialized) {
+            picture.setProgress(getApp().getAssetManager(), this.progress);
         }
     }
 
@@ -97,7 +114,7 @@ public final class ResearchEffectControl extends AbstractNiftyJmeControl {
         picture.setHeight(getControlHeight());
         picture.setWidth(getControlWidth());
         picture.setPosition(getControlX(), getControlY());
-        picture.setProgress(assetManager, research);
+        picture.setProgress(assetManager, progress);
 
         // Set the color or the picture
         if (image != null) {
