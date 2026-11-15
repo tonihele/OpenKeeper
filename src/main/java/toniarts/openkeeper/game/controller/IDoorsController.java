@@ -38,4 +38,12 @@ public interface IDoorsController extends IEntityWrapper<IDoorController> {
      */
     public EntityId addDoorBlueprint(short doorId, Point tile, short ownerId);
 
+    /**
+     * Builds the door of a blueprint when its crate is delivered
+     *
+     * @param blueprint the blueprint, nothing happens if it is not a blueprint
+     * (anymore)
+     */
+    public void buildDoor(EntityId blueprint);
+
 }
