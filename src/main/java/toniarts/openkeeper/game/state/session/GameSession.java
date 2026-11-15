@@ -123,6 +123,12 @@ public interface GameSession {
     public void getGold(int amount);
 
     /**
+     * Take down the player's Call to Arms banner
+     */
+    @Asynchronous
+    public void cancelCallToArms();
+
+    /**
      * Signals that any UI transition has ended
      */
     @Asynchronous
@@ -164,6 +170,22 @@ public interface GameSession {
     public void triggerSpawnCreatureCheat(short creatureId, int level, int amount);
 
     /**
+     * Trigger a cheat that adds gold to the player
+     *
+     * @param amount how much gold to add
+     */
+    @Asynchronous
+    public void triggerAddGoldCheat(int amount);
+
+    /**
+     * Trigger a cheat that adds mana to the player
+     *
+     * @param amount how much mana to add
+     */
+    @Asynchronous
+    public void triggerAddManaCheat(int amount);
+
+    /**
      * Steer the currently possessed creature
      *
      * @param direction normalized movement direction on the map plane, zero
@@ -173,6 +195,15 @@ public interface GameSession {
      */
     @Asynchronous
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+
+    /**
+     * Start or stop attacking with the currently possessed creature. While the
+     * attack is held, the creature swings whenever its attack has recharged.
+     *
+     * @param attacking whether the attack button is held down
+     */
+    @Asynchronous
+    public void setPossessedAttack(boolean attacking);
 
     /**
      * Stop possessing the currently possessed creature
