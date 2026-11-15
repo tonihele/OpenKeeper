@@ -30,11 +30,13 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static toniarts.openkeeper.tools.convert.map.RoomFixtures.room;
 
 /**
  * The roulette tables of the Casino get their wheels as in the original
@@ -89,4 +91,39 @@ class CasinoControllerTest {
         });
     }
 
+    @Test
+    void roomWithOneTableTakesTwoGamblers() {
+        CasinoController room = buildCasino(3);
+
+        assertEquals(1, room.getFurnitureCount());
+        assertEquals(2, room.getMaxCapacity(ObjectType.GAMBLER));
+    }
+
+    @Test
+    void roomWithoutFurnitureTakesNoGamblers() {
+        CasinoController room = buildCasino(2);
+
+        assertEquals(0, room.getFurnitureCount());
+        assertEquals(0, room.getMaxCapacity(ObjectType.GAMBLER));
+    }
+
+    private static CasinoController buildCasino(int size) {
+        EntityData entityData = new DefaultEntityData();
+        IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
+                IObjectsController.class.getClassLoader(),
+                new Class<?>[]{IObjectsController.class},
+                (proxy, method, args) -> method.getName().equals("loadObject") ? entityData.createEntity() : null);
+
+        // Casino objects in DK II: Roulette Table, Barrel, Bar Table and Alcove Barrels
+        RoomInstance roomInstance = new RoomInstance(room((short) 15, List.of((short) 87, (short) 59, (short) 67, (short) 68, (short) 0, (short) 0)));
+        for (int x = 1; x <= size; x++) {
+            for (int y = 1; y <= size; y++) {
+                roomInstance.addCoordinate(new Point(x, y));
+            }
+        }
+
+        CasinoController room = new CasinoController(entityData.createEntity(), entityData, null, roomInstance, objectsController, null);
+        room.construct();
+        return room;
+    }
 }
