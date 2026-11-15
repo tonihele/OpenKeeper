@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
+import java.util.concurrent.CopyOnWriteArrayList;
+import toniarts.openkeeper.game.data.ManufactureProgress;
+import toniarts.openkeeper.game.listener.PlayerManufactureListener;
 import toniarts.openkeeper.tools.convert.map.Trap;
 
 /**
@@ -25,8 +28,18 @@ import toniarts.openkeeper.tools.convert.map.Trap;
  */
 public final class PlayerManufactureControl {
 
+    private final short keeperId;
+    private final CopyOnWriteArrayList<PlayerManufactureListener> listeners = new CopyOnWriteArrayList<>();
     private int progress = 0;
     private Trap trapToManufacture;
+
+    public PlayerManufactureControl() {
+        this((short) 0);
+    }
+
+    public PlayerManufactureControl(short keeperId) {
+        this.keeperId = keeperId;
+    }
 
     /**
      * Adds manufacture points to the item in production
@@ -39,8 +52,10 @@ public final class PlayerManufactureControl {
         progress += points;
         if (progress >= required) {
             progress = 0;
+            notifyProgressChanged(required);
             return true;
         }
+        notifyProgressChanged(required);
         return false;
     }
 
@@ -69,7 +84,28 @@ public final class PlayerManufactureControl {
      * its crate
      */
     public void setTrapToManufacture(Trap trapToManufacture) {
+        if (this.trapToManufacture == trapToManufacture) {
+            return;
+        }
         this.trapToManufacture = trapToManufacture;
+        notifyProgressChanged(trapToManufacture != null ? trapToManufacture.getManufToBuild() : 0);
+    }
+
+    public void addListener(PlayerManufactureListener listener) {
+        listeners.addIfAbsent(listener);
+    }
+
+    public void removeListener(PlayerManufactureListener listener) {
+        listeners.remove(listener);
+    }
+
+    private void notifyProgressChanged(int required) {
+        ManufactureProgress status = required > 0
+                ? new ManufactureProgress(progress, required)
+                : ManufactureProgress.IDLE;
+        for (PlayerManufactureListener listener : listeners) {
+            listener.onManufactureProgressChanged(keeperId, status);
+        }
     }
 
 }

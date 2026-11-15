@@ -16,7 +16,11 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.data.ManufactureProgress;
+import toniarts.openkeeper.game.listener.PlayerManufactureListener;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -57,6 +61,30 @@ class PlayerManufactureControlTest {
         }
 
         assertEquals(14, seconds);
+    }
+
+    @Test
+    void publishesProgressForTheConfiguredKeeperAndCanRemoveListener() {
+        short keeperId = 3;
+        PlayerManufactureControl control = new PlayerManufactureControl(keeperId);
+        List<ManufactureProgress> updates = new ArrayList<>();
+        List<Short> keeperIds = new ArrayList<>();
+        PlayerManufactureListener listener = (updatedKeeperId, progress) -> {
+            keeperIds.add(updatedKeeperId);
+            updates.add(progress);
+        };
+        control.addListener(listener);
+
+        assertFalse(control.manufacture(TROLL, SENTRY_TRAP));
+        assertEquals(List.of(keeperId), keeperIds);
+        assertEquals(new ManufactureProgress(TROLL, SENTRY_TRAP), updates.get(0));
+
+        assertTrue(control.manufacture(SENTRY_TRAP - TROLL, SENTRY_TRAP));
+        assertEquals(new ManufactureProgress(0, SENTRY_TRAP), updates.get(1));
+
+        control.removeListener(listener);
+        assertFalse(control.manufacture(TROLL, SENTRY_TRAP));
+        assertEquals(2, updates.size());
     }
 
 }

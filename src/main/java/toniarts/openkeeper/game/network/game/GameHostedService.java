@@ -32,6 +32,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ManufactureProgress;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.NetworkConstants;
@@ -409,6 +410,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
         for (GameSessionImpl gameSession : players.values()) {
             gameSession.onResearchStatusChanged(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onManufactureProgressChanged(short keeperId, ManufactureProgress progress) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onManufactureProgressChanged(keeperId, progress);
         }
     }
 
@@ -833,6 +841,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
             getCallback().onResearchStatusChanged(keeperId, researchableEntity);
+        }
+
+        @Override
+        public void onManufactureProgressChanged(short keeperId, ManufactureProgress progress) {
+            getCallback().onManufactureProgressChanged(keeperId, progress);
         }
 
         @Override

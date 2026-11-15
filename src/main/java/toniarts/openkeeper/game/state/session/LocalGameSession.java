@@ -18,6 +18,7 @@ import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ManufactureProgress;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.CheatState;
@@ -540,6 +541,13 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onResearchStatusChanged(keeperId, researchableEntity);
+        }
+    }
+
+    @Override
+    public void onManufactureProgressChanged(short keeperId, ManufactureProgress progress) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onManufactureProgressChanged(keeperId, progress);
         }
     }
 

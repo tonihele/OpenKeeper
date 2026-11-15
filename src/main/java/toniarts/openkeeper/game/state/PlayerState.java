@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ManufactureProgress;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.PlayerListener;
@@ -669,6 +670,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
         screen.updateEntityResearch(researchableEntity);
+    }
+
+    @Override
+    public void onManufactureProgressChanged(short keeperId, ManufactureProgress progress) {
+        if (keeperId == playerId) {
+            screen.updateManufactureProgress(progress);
+        }
     }
 
     /**
