@@ -64,8 +64,10 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.battleSpell;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAttackResponse;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBattleSpells;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
@@ -108,6 +110,8 @@ class KeeperAiSystemTest {
     private static final short GUARD_ROOM = 9;
     private static final short PRISON = 11;
     private static final short HORNY = 9;
+    private static final short THUNDERBOLT = 6;
+    private static final short HEAL = 10;
     private static final int ROOM_COST = 10;
     private static final Point HEART = new Point(3, 6);
     private static final int NORTH = 0;
@@ -162,6 +166,9 @@ class KeeperAiSystemTest {
     private int callToArmsCancels;
     private final Map<EntityId, Point> dropped = new HashMap<>();
     private final List<IRoomController> neutralRooms = new ArrayList<>();
+    private final KeeperSpell thunderbolt = battleSpell(THUNDERBOLT, 100, KeeperSpell.KeeperSpellFlag.ATTACKING);
+    private final KeeperSpell heal = battleSpell(HEAL, 100, KeeperSpell.KeeperSpellFlag.DEFENSIVE);
+    private final Map<Short, EntityId> battleCasts = new HashMap<>();
 
     @Test
     void digsToANeutralPortalNearItsRoomsWhenThereIsNoRoomToBuild() {
@@ -323,6 +330,55 @@ class KeeperAiSystemTest {
         assertTrue(dropped.isEmpty());
         assertEquals(1, impSpells.size());
         assertNull(entityData.getComponent(stunned, KeeperAiDropped.class));
+    }
+
+    @Test
+    void healsAHurtCreatureNearAFightWhenItDefends() {
+        KeeperAiSystem system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 4, 0), 1000);
+        spellControl.setTypeAvailable(heal, true, true);
+        spellControl.setTypeAvailable(thunderbolt, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 60, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        createCreature(PLAYER_ID, new Point(12, 9), 10, 100, CreatureState.IDLE);
+        EntityId hurt = createCreature(PLAYER_ID, new Point(4, 4), 49, 100, CreatureState.IDLE);
+
+        system.processTick(0.25f);
+
+        // Not the fighter with more than half its health, nor the one far from the fight
+        assertEquals(Map.of(HEAL, hurt), battleCasts);
+    }
+
+    @Test
+    void strikesAnEnemyNearAFightWhenItAttacksAndTheSpellMakesItsRoll() {
+        KeeperAiSystem system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 0, 4), 1000);
+        spellControl.setTypeAvailable(heal, true, true);
+        spellControl.setTypeAvailable(thunderbolt, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 40, 100, CreatureState.FIGHT);
+        EntityId enemy = createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+        createCreature(ENEMY_ID, new Point(12, 9), 100, 100, CreatureState.IDLE);
+
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(THUNDERBOLT, enemy), battleCasts);
+    }
+
+    @Test
+    void castsNoSpellInAFightWhenToldNotToOrWhenTheSpellIsTooCheapForIt() {
+        KeeperAiSystem system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 4, 0, 4), 1000);
+        spellControl.setTypeAvailable(thunderbolt, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 40, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+
+        system.processTick(0.25f);
+        assertTrue(battleCasts.isEmpty());
+
+        // The die of a spell of 100 mana has two sides, that is never the 4 it wants
+        entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
+        system = createSystem(withBattleSpells(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 0, 0), 1000);
+        spellControl.setTypeAvailable(thunderbolt, true, true);
+        system.processTick(0.25f);
+        assertTrue(battleCasts.isEmpty());
     }
 
     @Test
@@ -888,7 +944,7 @@ class KeeperAiSystemTest {
                 MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         handControl = new PlayerHandControl(keeper, 8, entityData);
-        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms));
+        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal));
         Keeper enemyKeeper = new Keeper(false, ENEMY_ID);
         enemyKeeper.setPlayer(new Player());
         PlayerRoomControl enemyRoomControl = new PlayerRoomControl(enemyKeeper, new ArrayList<>(rooms.values()));
@@ -924,7 +980,7 @@ class KeeperAiSystemTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getGameLevel" -> gameLevel(4);
-            case "getKeeperSpells" -> List.of(createImp);
+            case "getKeeperSpells" -> List.of(createImp, heal, thunderbolt);
             case "getCreature" -> ((Number) args[0]).shortValue() == HORNY
                     ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
             case "getRooms" -> new ArrayList<>(rooms.values());
@@ -943,6 +999,11 @@ class KeeperAiSystemTest {
                             return objectsController;
                         }
                         case "castKeeperSpell" -> {
+                            if ((short) args[0] == HEAL || (short) args[0] == THUNDERBOLT) {
+                                battleCasts.put((short) args[0], (EntityId) args[1]);
+                                keeper.setMana(keeper.getMana() - 100);
+                                return null;
+                            }
                             boolean imp = (short) args[0] == createImp.getKeeperSpellId();
                             (imp ? impSpells : callToArmsCasts).add((Point) args[2]);
                             keeper.setMana(keeper.getMana() - (imp ? createImp : callToArms).getManaCost());
