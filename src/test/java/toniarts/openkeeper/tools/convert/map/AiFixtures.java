@@ -69,6 +69,18 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets when the computer player pulls a hurt creature out
+     *
+     * @param ai the computer player settings
+     * @param percentage the health below which a creature is carried away
+     * @return the same settings
+     */
+    public static AI withRetreatHealth(AI ai, int percentage) {
+        ai.setIfCreatureHealthIsPercentageAndNotInOwnRoomMoveToLairOrTemple((short) percentage);
+        return ai;
+    }
+
+    /**
      * A keeper the level gives to the computer
      *
      * @param playerId the player id
