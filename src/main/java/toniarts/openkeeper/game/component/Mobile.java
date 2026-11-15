@@ -29,16 +29,23 @@ public final class Mobile implements EntityComponent {
     public boolean canWalkOnWater;
     public boolean canWalkOnLava;
     public float maxSpeed;
+    /** Current walk/run mode, also used to select the navigation animation. */
+    public boolean running;
 
     public Mobile() {
         // For serialization
     }
 
     public Mobile(boolean canFly, boolean canWalkOnWater, boolean canWalkOnLava, float maxSpeed) {
+        this(canFly, canWalkOnWater, canWalkOnLava, maxSpeed, false);
+    }
+
+    public Mobile(boolean canFly, boolean canWalkOnWater, boolean canWalkOnLava, float maxSpeed, boolean running) {
         this.canFly = canFly;
         this.canWalkOnWater = canWalkOnWater;
         this.canWalkOnLava = canWalkOnLava;
         this.maxSpeed = maxSpeed;
+        this.running = running;
     }
 
 }
