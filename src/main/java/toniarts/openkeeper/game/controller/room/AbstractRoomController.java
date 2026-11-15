@@ -56,7 +56,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      */
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE, MANUFACTURER, CRATE, WORSHIPPER, GUARD, GAMBLER;
+        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE, MANUFACTURER, CRATE, WORSHIPPER, GUARD, GAMBLER, CORPSE;
 
     };
 
@@ -318,6 +318,19 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         control.destroy();
         existingControl.updateMaxCapacity();
         return (T) existingControl;
+    }
+
+    /**
+     * The room no longer stores this type of objects. The control is
+     * destroyed, which leaves the stored objects on the floor.
+     *
+     * @param objectType the type of objects
+     */
+    protected final void removeObjectControl(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.remove(objectType);
+        if (control != null) {
+            control.destroy();
+        }
     }
 
     @Override

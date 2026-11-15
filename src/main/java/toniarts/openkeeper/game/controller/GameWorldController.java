@@ -20,7 +20,6 @@ import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
-import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
@@ -100,7 +99,6 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 /**
@@ -367,7 +365,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         RoomPlacementValidator.Result placement = RoomPlacementValidator.validate(
-                kwdFile, mapController, getConstructionBlockingTiles(), start, end,
+                kwdFile, mapController, this::isConstructionBlocked, start, end,
                 playerId, roomId, player.getGold());
         if (!placement.isValid()) {
             return;
@@ -466,30 +464,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
     }
 
-    private Set<Point> getConstructionBlockingTiles() {
-        Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingPositions(blockedTiles, ObjectComponent.class, this::isConstructionBlockingObject);
-        addConstructionBlockingPositions(blockedTiles, DoorComponent.class, entityId -> true);
-        addConstructionBlockingPositions(blockedTiles, TrapComponent.class, entityId -> true);
-        return blockedTiles;
-    }
-
-    private boolean isConstructionBlockingObject(EntityId entityId) {
-        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
-        return RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId));
-    }
-
-    private void addConstructionBlockingPositions(Set<Point> blockedTiles,
-            Class<? extends EntityComponent> componentType, Predicate<EntityId> isBlocking) {
-        for (EntityId entityId : entityData.findEntities(null, componentType, Position.class)) {
-            if (!isBlocking.test(entityId)) {
-                continue;
-            }
-            Position position = entityData.getComponent(entityId, Position.class);
-            if (position != null) {
-                blockedTiles.add(WorldUtils.vectorToPoint(position.position));
+    /**
+     * Whether a door, a trap or an obstacle stands on the tile. Only the
+     * entities on the tile are looked at, not every one on the map
+     *
+     * @param tile the tile to build on
+     * @return true if the tile can't be built on
+     */
+    private boolean isConstructionBlocked(Point tile) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Entity entity = entityData.getEntity(entityId, ObjectComponent.class, DoorComponent.class, TrapComponent.class);
+            ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+            if (entity.get(DoorComponent.class) != null || entity.get(TrapComponent.class) != null
+                    || (objectComponent != null && RoomPlacementValidator.isConstructionBlockingObject(kwdFile.getObject(objectComponent.objectId)))) {
+                return true;
             }
         }
+        return false;
     }
 
     private boolean payForRoom(int plotCount, Room room, short playerId) {
@@ -1422,7 +1413,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      * @param tile the tile to search
      * @return the gold pile, {@code null} if there is none
      */
-    static EntityId findLooseGoldPile(EntityData entityData, IEntityPositionLookup entityPositionLookup, Point tile) {
+    public static EntityId findLooseGoldPile(EntityData entityData, IEntityPositionLookup entityPositionLookup, Point tile) {
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
             ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
             if (objectComponent != null && objectComponent.objectType == ObjectType.GOLD
@@ -1556,7 +1547,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     public void placeDoor(short doorId, Point tile, short playerId) {
         Door door = kwdFile.getDoorById(doorId);
         if (door == null) {
-            logger.log(Level.WARNING, "Invalid door ID for door placement received, was: {0}", door);
+            logger.log(Level.WARNING, "Invalid door ID for door placement received, was: {0}", doorId);
             return;
         }
 
@@ -1572,7 +1563,37 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
+        ResearchableEntity researchableEntity = playerControllers.get(playerId).getDoorControl().getTypes().get(door);
+        if (researchableEntity == null || !researchableEntity.isDiscovered()) {
+            logger.log(Level.WARNING, "Player door is not available", playerId);
+            return;
+        }
+
         // Validate
+        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, player.getGold())
+                != DoorPlacementValidator.Failure.NONE) {
+            return;
+        }
+
+        if (!payForDoor(door, playerId)) {
+            return;
+        }
+
+        // The blueprint, the workshop manufactures the door for it
+        doorsController.addDoorBlueprint(doorId, tile, playerId);
+    }
+
+    private boolean payForDoor(Door door, short playerId) {
+        // Keep shared gold operations atomic until player actions are processed by the game loop.
+        // skipcq: JAVA-E1061
+        synchronized (GOLD_LOCK) {
+            int cost = door.getGoldCost();
+            if (cost > players.get(playerId).getGold()) {
+                return false;
+            }
+            substractGold(cost, playerId);
+            return true;
+        }
     }
 
     @Override
@@ -1632,7 +1653,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      * The tile if a trap or a door already stands on it. Only the entities on
      * the tile are looked at, not every trap and door on the map
      *
-     * @param tile the tile to place a trap on
+     * @param tile the tile to place a trap or a door on
      * @return the tile if it is taken, otherwise nothing
      */
     private Set<Point> getTrapBlockingTiles(Point tile) {

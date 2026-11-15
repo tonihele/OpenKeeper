@@ -103,6 +103,7 @@ import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.objective.StealGold;
 import toniarts.openkeeper.game.task.worker.ArmTrapTask;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
+import toniarts.openkeeper.game.task.worker.CarryCorpseToGraveyardTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.CarryObjectToStorageTask;
@@ -111,6 +112,7 @@ import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
 import toniarts.openkeeper.game.task.worker.DeliverTrapCrateTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
+import toniarts.openkeeper.game.task.worker.FetchCorpseTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
@@ -406,7 +408,18 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void processAddedCorpseEntities(Set<Entity> entities) {
-        // TODO:
+
+        // Add graveyard missions, only the creatures that leave a body behind
+        for (Entity entity : entities) {
+            Creature creature = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId);
+            if (creature == null || !creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)
+                    || entityData.getComponent(entity.getId(), Position.class) == null) {
+                continue;
+            }
+            for (Short playerId : taskQueues.keySet()) {
+                addTask(playerId, new FetchCorpseTask(navigationService, mapController, entityData, this, entity.getId(), playerId));
+            }
+        }
     }
 
     private void processDeletedCorpseEntities(Set<Entity> entities) {
@@ -709,7 +722,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!room.isFullCapacity()) {
+            if (!room.getObjectControl(objectType).isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -790,6 +803,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
+            }
+            case CORPSE -> {
+                return new CarryCorpseToGraveyardTask(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, targetEntity);
             }
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
