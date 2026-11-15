@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -49,6 +50,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -288,8 +290,20 @@ class GambleTest {
             }
             throw new UnsupportedOperationException(method.getName());
         });
-        return new Gamble(null, null, new Point(5, 5), KEEPER, room, null, entityData, gameWorldController, objectsController,
-                gameSettings, () -> payOut, fixedRandom(jackpotRoll));
+        IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> {
+            if ("getEntitiesInLocation".equals(method.getName())) {
+                List<EntityId> entities = new ArrayList<>();
+                for (EntityId entityId : entityData.findEntities(null, Position.class)) {
+                    if (args[0].equals(WorldUtils.vectorToPoint(entityData.getComponent(entityId, Position.class).position))) {
+                        entities.add(entityId);
+                    }
+                }
+                return entities;
+            }
+            throw new UnsupportedOperationException(method.getName());
+        });
+        return new Gamble(null, null, entityPositionLookup, new Point(5, 5), KEEPER, room, null, entityData, gameWorldController,
+                objectsController, gameSettings, () -> payOut, fixedRandom(jackpotRoll));
     }
 
     private ICreatureController creature() {
