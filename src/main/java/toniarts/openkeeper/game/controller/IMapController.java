@@ -159,6 +159,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
     void alterTerrain(Point pos, short terrainId, short playerId);
 
     /**
+     * Hands a whole room, with what it holds, over to another player, as
+     * when it is claimed
+     *
+     * @param room the room
+     * @param playerId the new owner
+     */
+    void transferRoom(IRoomController room, short playerId);
+
+    /**
      * Set specified tiles flashing for certain period of time
      *
      * @param points the points to flash
