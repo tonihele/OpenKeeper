@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiDropped;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -63,10 +65,12 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerDoorControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
+import toniarts.openkeeper.game.controller.player.PlayerTrapControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -87,9 +91,12 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withPrisonerFate;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withSightOfEvil;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withTraps;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import static toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures.variable;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -101,6 +108,8 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import static toniarts.openkeeper.tools.convert.map.RoomFixtures.room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag;
+import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
@@ -127,6 +136,7 @@ class KeeperAiSystemTest {
     private static final short LIBRARY = 6;
     private static final short TRAINING_ROOM = 7;
     private static final short GUARD_ROOM = 9;
+    private static final short WORKSHOP = 10;
     private static final short PRISON = 11;
     private static final short TORTURE_CHAMBER = 12;
     private static final short TEMPLE = 13;
@@ -174,6 +184,7 @@ class KeeperAiSystemTest {
             Map.entry(DUNGEON_HEART, room(DUNGEON_HEART, 0, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(GUARD_ROOM, room(GUARD_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
             Map.entry(LIBRARY, room(LIBRARY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(WORKSHOP, room(WORKSHOP, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(TRAINING_ROOM, room(TRAINING_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(TORTURE_CHAMBER, room(TORTURE_CHAMBER, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(TEMPLE, room(TEMPLE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
@@ -193,6 +204,11 @@ class KeeperAiSystemTest {
     private final KeeperSpell callToArms = keeperSpell(CALL_TO_ARMS, 200, 0, (short) 0, 0);
     private final KeeperSpell sightOfEvil = keeperSpell(SIGHT_OF_EVIL, 100, 0, (short) 0, 0);
     private final List<Point> sightOfEvilCasts = new ArrayList<>();
+    private final Trap sentry = TrapFixtures.trap((short) 3, 100);
+    private final Door woodenDoor = DoorFixtures.door((short) 1, 100);
+    private final Map<Point, String> placed = new HashMap<>();
+    private PlayerTrapControl trapControl;
+    private PlayerDoorControl doorControl;
     private final List<Point> callToArmsCasts = new ArrayList<>();
     private int callToArmsCancels;
     private final Map<EntityId, Point> dropped = new HashMap<>();
@@ -934,6 +950,36 @@ class KeeperAiSystemTest {
         }
     }
 
+    @Test
+    void placesTrapsAndDoorsInTheCorridorsOnTheEdgeOfABoxRoundItsRooms() {
+        for (int y = 1; y < 10; y++) {
+            map[y][8] = '.';
+        }
+        KeeperAiSystem system = createSystem(withTraps(ai(0, 0, 9, 1, 50, 0, List.of()), 100, 0, 2), 1000000);
+        trapControl.setTypeAvailable(sentry, true, true);
+        for (int tick = 0; tick < 3000; tick++) {
+            system.processTick(0.25f);
+        }
+
+        // Not without a Workshop
+        assertTrue(placed.isEmpty());
+
+        roomControl.onBuild(createRoom(WORKSHOP, HEART));
+        for (int tick = 0; tick < 3000 && placed.size() < 3; tick++) {
+            system.processTick(0.25f);
+        }
+
+        // Only in the corridor, three tiles apart, and traps when it prefers them
+        assertEquals(3, placed.size());
+        for (Point tile : placed.keySet()) {
+            assertEquals(8, tile.x);
+            assertEquals("placeTrap", placed.get(tile));
+            for (Point other : placed.keySet()) {
+                assertTrue(tile == other || Math.abs(tile.y - other.y) >= 3);
+            }
+        }
+    }
+
     private EntityId createPrisoner(Point tile) {
         EntityId prisoner = createCreature(ENEMY_ID, tile, 100, 100, CreatureState.IMPRISONED);
         entityData.setComponents(prisoner, new Owner(ENEMY_ID, PLAYER_ID), new CreatureImprisoned(0, 0));
@@ -1396,6 +1442,8 @@ class KeeperAiSystemTest {
                 MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         handControl = new PlayerHandControl(keeper, 8, entityData);
+        trapControl = new PlayerTrapControl(keeper, List.of(sentry));
+        doorControl = new PlayerDoorControl(keeper, List.of(woodenDoor));
         spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal, sightOfEvil));
         Keeper enemyKeeper = new Keeper(false, ENEMY_ID);
         enemyKeeper.setPlayer(new Player());
@@ -1427,6 +1475,8 @@ class KeeperAiSystemTest {
             case "getManaControl" -> manaControl;
             case "getHandControl" -> handControl;
             case "getSpellControl" -> spellControl;
+            case "getTrapControl" -> trapControl;
+            case "getDoorControl" -> doorControl;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -1437,6 +1487,8 @@ class KeeperAiSystemTest {
                     : ((Number) args[0]).shortValue() == HORNY
                     ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
             case "getRooms" -> new ArrayList<>(rooms.values());
+            case "getTraps" -> List.of(sentry);
+            case "getDoors" -> List.of(woodenDoor);
             case "getVariables" -> variables;
             case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
             case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms
@@ -1485,6 +1537,14 @@ class KeeperAiSystemTest {
                             handControl.push((EntityId) args[0]);
                         case "interact" ->
                             slapped.add((EntityId) args[0]);
+                        case "placeTrap", "placeDoor" -> {
+                            Point tile = (Point) args[1];
+                            placed.put(tile, method.getName());
+                            keeper.setGold(keeper.getGold() - 100);
+                            entityData.setComponents(entityData.createEntity(), "placeTrap".equals(method.getName())
+                                    ? new TrapComponent((short) args[0]) : new DoorComponent((short) args[0], false, true),
+                                    new Owner(PLAYER_ID, PLAYER_ID), new Position(0, WorldUtils.pointToVector3f(tile.x, tile.y)));
+                        }
                         case "drop" -> {
                             dropped.put(handControl.pop(), (Point) args[1]);
                             entityData.setComponent((EntityId) args[0], new Position(0, new Vector3f(((Vector2f) args[2]).x, 0, ((Vector2f) args[2]).y)));
