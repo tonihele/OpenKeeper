@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -28,12 +29,14 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -101,10 +104,11 @@ class CreatureCallToArmsFightTest {
 
     private CreatureController controller() {
         EntityId enemy = entityData.createEntity();
-        entityData.setComponents(enemy, new Health(100, 100), new Owner(ENEMY_KEEPER, ENEMY_KEEPER));
+        entityData.setComponents(enemy, new Health(100, 100), new Owner(ENEMY_KEEPER, ENEMY_KEEPER),
+                new Position(0, new Vector3f(30 * WorldUtils.TILE_WIDTH, WorldUtils.FLOOR_HEIGHT, WorldUtils.TILE_WIDTH)));
         entityData.setComponents(creature, new CreatureComponent(), new Health(100, 100), new Owner(KEEPER, KEEPER),
                 new Position(0, new Vector3f(WorldUtils.TILE_WIDTH, WorldUtils.FLOOR_HEIGHT, WorldUtils.TILE_WIDTH)),
-                new Fearless(), new AttackTarget(enemy));
+                new Fearless(), new AttackTarget(enemy), new CreatureMeleeAttack(0, 100, 1, 1.5f));
 
         Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
         settings.put(MiscType.CALL_TO_ARMS_FIGHT_DISTANCE_TILES,
@@ -112,7 +116,8 @@ class CreatureCallToArmsFightTest {
         ICreaturesController creaturesController = proxy(ICreaturesController.class, "createController",
                 proxy(ICreatureController.class, null, null));
         IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, "getSensedEntities", Set.of());
-        return new CreatureController(creature, entityData, CreatureSleepFixtures.sleeper(9), null, null, () -> 0,
+        return new CreatureController(creature, entityData, CreatureSleepFixtures.sleeper(9),
+                proxy(INavigationService.class, "findPath", new DefaultGraphPath<>()), null, () -> 0,
                 settings, creaturesController, lookup, null, null, null, null, null);
     }
 
