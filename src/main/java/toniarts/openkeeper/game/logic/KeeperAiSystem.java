@@ -195,8 +195,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         for (Entity entity : keeperAis) {
             KeeperAi keeperAi = new KeeperAi(entity.get(KeeperAi.class));
             IPlayerController playerController = playerControllers.get(keeperAi.playerId);
-            if (playerController == null || !ais.containsKey(keeperAi.playerId) || playerController.getKeeper().isDestroyed()
-                    || playerController.getRoomControl().getDungeonHeart() == null) {
+
+            // A keeper without its Dungeon Heart is out of the game, DK II stops its computer player then
+            IRoomController heart = playerController != null ? playerController.getRoomControl().getDungeonHeart() : null;
+            if (heart == null || !ais.containsKey(keeperAi.playerId) || playerController.getKeeper().isDestroyed()
+                    || heart.getRoomInstance().isDestroyed()) {
                 continue;
             }
 
