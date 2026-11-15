@@ -85,7 +85,7 @@ class KeeperSpellCastValidatorTest {
     }
 
     private boolean isValidCast(EntityId target) {
-        return KeeperSpellCastValidator.isValidCast(thunderbolt, kwdFile, mapInformation, ownTile, player, entityData, target);
+        return KeeperSpellCastValidator.isValidCast(thunderbolt, kwdFile, mapInformation, ownTile, player, entityData, target, thunderbolt.getManaCost());
     }
 
     private EntityId createThing(short ownerId, boolean creature) {
