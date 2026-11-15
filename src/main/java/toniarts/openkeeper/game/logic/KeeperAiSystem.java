@@ -251,6 +251,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = 0;
         }
 
+        // Its creatures are called to arms against an enemy it invades
+        if (actions > 0 && invasions.callToArms(keeperAi, playerControllers, ai)) {
+            actions--;
+        }
+
         // DK II reads the level a level's computer player trains its creatures to before the level's rules, as 0
         int creatureLevel = playerController.getKeeper().isAi() ? ai.getMinLevelForCreatures() : 0;
         if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai, creatureLevel)) {
