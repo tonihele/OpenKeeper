@@ -178,7 +178,7 @@ final class KeeperAiBattles {
      * The creatures of a player that are on the map and in its power,
      * always in the same order
      */
-    private List<Entity> getCreatures(short playerId) {
+    List<Entity> getCreatures(short playerId) {
         List<Entity> owned = new ArrayList<>();
         for (Entity entity : creatures) {
             Owner owner = entity.get(Owner.class);
@@ -409,7 +409,7 @@ final class KeeperAiBattles {
     /**
      * The threat of the creatures of a player around a place
      */
-    private int getThreat(short playerId, Vector3f position, int tiles) {
+    int getThreat(short playerId, Vector3f position, int tiles) {
         int threat = 0;
         for (Entity creature : getCreatures(playerId)) {
             Threat creatureThreat = entityData.getComponent(creature.getId(), Threat.class);
@@ -421,7 +421,7 @@ final class KeeperAiBattles {
         return threat;
     }
 
-    private static boolean isWithin(Vector3f position, Vector3f centre, int tiles) {
+    static boolean isWithin(Vector3f position, Vector3f centre, int tiles) {
         float dx = (position.x - centre.x) / WorldUtils.TILE_WIDTH;
         float dy = (position.z - centre.z) / WorldUtils.TILE_WIDTH;
 
@@ -669,7 +669,7 @@ final class KeeperAiBattles {
      * The player's tile nearest to a place that is not solid, no further
      * than some tiles along either axis
      */
-    private Point getNearestOwnOpenTile(short playerId, Point place, int tiles) {
+    Point getNearestOwnOpenTile(short playerId, Point place, int tiles) {
         Point nearest = null;
         int nearestDistance = Integer.MAX_VALUE;
         for (int y = place.y - tiles; y <= place.y + tiles; y++) {
