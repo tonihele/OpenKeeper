@@ -48,6 +48,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
@@ -119,6 +120,11 @@ public final class ShotsController implements IShotsController {
             if (creature != null && entityData.getComponent(request.target(), Frozen.class) == null
                     && !kwdFile.getCreature(creature.creatureId).getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
                 entityData.setComponent(request.target(), new Frozen(gameTimer.getGameTime(), request.shotData1()));
+            }
+        });
+        result.put(CHICKEN, request -> {
+            if (request.target() != null && creaturesController.isValidEntity(request.target())) {
+                creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));

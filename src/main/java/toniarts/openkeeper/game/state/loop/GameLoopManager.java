@@ -62,6 +62,7 @@ import toniarts.openkeeper.game.logic.PossessedMovementSystem;
 import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
+import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -129,7 +130,7 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameEventService),
                 new InfernoSystem(entityData, positionSystem, levelInfo.getLevelData()),
                 new CreatureTorturingSystem(entityData, gameWorldController.getCreaturesController(),
-                        gameWorldController.getMapController()),
+                        gameWorldController.getMapController(), gameEventService, gameSettings),
                 new KeeperDefeatSystem(entityData, levelInfo, gameController, gameWorldController.getMapController(),
                         gameWorldController.getObjectsController(), players != null && !players.isEmpty()),
                 new DeathSystem(entityData, gameSettings, positionSystem),
@@ -152,12 +153,12 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
+                new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
                 new TrapSystem(entityData, level, gameController.getGameTimer(),
                         solidTilesBlockSight(gameWorldController.getMapController()), positionSystem, playerControllers,
-                        new TrapEffects(entityData, level, gameController.getGameTimer()), gameWorldController.getShotsController(),
-                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND)),
+                        new TrapEffects(entityData, level, gameController.getGameTimer()), gameWorldController.getShotsController()),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
