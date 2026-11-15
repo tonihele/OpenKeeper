@@ -655,7 +655,8 @@ public final class CreatureController extends EntityController implements ICreat
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         ICreatureController attackTargetController = null;
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)) {
+                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)
+                || isUnreachable(attackTarget.entityId)) {
 
             // Pick a new target, the nearest enemy already attacking us comes first
             // TODO: creatures only now
@@ -756,6 +757,20 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isAtTopCombatPitLevel(EntityId entity) {
         CreatureExperience creatureExperience = entityData.getComponent(entity, CreatureExperience.class);
         return creatureExperience != null && creatureExperience.level >= (int) gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue();
+    }
+
+    /**
+     * Tells if a target is out of reach with no way to it. DK II's fight
+     * state picks a target again whenever its target is out of reach, and only
+     * one it can walk to (0x45F030, 0x45CB00), so such a target is dropped.
+     * One already walked to has a way to it.
+     *
+     * @param entity the target
+     * @return true if it can't be hit nor walked to
+     */
+    private boolean isUnreachable(EntityId entity) {
+        return entityData.getComponent(entityId, Navigation.class) == null && !isWithinAttackDistance(entity)
+                && !hasPathToEntity(entity);
     }
 
     private boolean isAttacking(EntityId attacker, EntityId target) {
