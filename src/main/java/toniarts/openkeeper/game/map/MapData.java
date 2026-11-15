@@ -23,12 +23,15 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.data.Keeper;
+import static toniarts.openkeeper.game.map.MapTileController.BRIDGE_MANA_GAIN;
 import static toniarts.openkeeper.game.map.MapTileController.setAttributesFromTerrain;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Tile;
 
@@ -81,6 +84,12 @@ public final class MapData implements IMapData {
 
         // Set attributes
         setAttributesFromTerrain(entityData, entityId, mapTileComponent, terrain);
+
+        // A bridge of the level gives its owner mana like a built one
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                && !kwdFile.getRoomByTerrain(terrain.getTerrainId()).getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+            entityData.setComponent(entityId, new Mana(BRIDGE_MANA_GAIN));
+        }
 
         return new MapTileController(entityId, entityData);
     }

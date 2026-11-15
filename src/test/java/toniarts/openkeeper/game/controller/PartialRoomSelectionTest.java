@@ -70,13 +70,13 @@ class PartialRoomSelectionTest {
         buildableTiles.add(new Point(0, 0));
 
         RoomPlacementValidator.Result result = RoomPlacementValidator.validate(kwdFile, mapInformation,
-                Set.of(new Point(0, 0)), new Vector2f(0, 0), new Vector2f(0, 0), PLAYER_ID, ROOM_ID, 1000);
+                Set.of(new Point(0, 0))::contains, new Vector2f(0, 0), new Vector2f(0, 0), PLAYER_ID, ROOM_ID, 1000);
 
         assertEquals(RoomPlacementValidator.Failure.BLOCKED_BY_ENTITY, result.failure());
     }
 
     private RoomPlacementValidator.Result validate(Set<Point> blockedTiles, int gold) {
-        return RoomPlacementValidator.validate(kwdFile, mapInformation, blockedTiles,
+        return RoomPlacementValidator.validate(kwdFile, mapInformation, blockedTiles::contains,
                 new Vector2f(0, 0), new Vector2f(2, 2), PLAYER_ID, ROOM_ID, gold);
     }
 
