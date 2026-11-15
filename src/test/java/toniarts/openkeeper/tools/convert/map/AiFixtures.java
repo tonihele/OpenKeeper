@@ -172,6 +172,22 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets how the computer player places traps and doors
+     *
+     * @param ai the computer player settings
+     * @param chance the percentage of looks that place something
+     * @param doorPreference 0 traps only to 4 doors only
+     * @param trapStyle 0 aggressive to 4 defensive
+     * @return the same settings
+     */
+    public static AI withTraps(AI ai, int chance, int doorPreference, int trapStyle) {
+        ai.setChanceOfLookingToUseTrapsAndDoors((short) chance);
+        ai.setDoorTrapPreference((short) doorPreference);
+        ai.setTrapUseStyle((short) trapStyle);
+        return ai;
+    }
+
+    /**
      * Sets where the computer player casts Sight of Evil
      *
      * @param ai the computer player settings
