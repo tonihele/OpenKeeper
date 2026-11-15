@@ -533,7 +533,7 @@ class TrapSystemTest {
     private void tick() {
         if (trapSystem == null) {
             trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, this::isWall, positionLookup(),
-                    playerControllers(), effects(), shotsController(), 1);
+                    playerControllers(), effects(), shotsController());
         }
         trapSystem.processTick(0.25f);
     }
@@ -645,6 +645,9 @@ class TrapSystemTest {
                 traps.get((Integer) args[0]);
             case "getCreature" ->
                 creatures.get((Short) args[0]);
+            case "getVariables" ->
+                Map.of(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND,
+                        TrapFiringFixtures.miscVariable(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND, 1));
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });

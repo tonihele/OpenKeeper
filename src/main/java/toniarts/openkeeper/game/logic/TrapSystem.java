@@ -47,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -122,12 +123,10 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * @param playerControllers the players, for their mana and enemies
      * @param trapEffects applies the shots that hit at once
      * @param shotsController fires the shots that fly
-     * @param triggerSpeed how fast, in tiles per second, a Trigger Trap's wave
-     * spreads
      */
     public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IBlocksSight blocksSight,
             IEntityPositionLookup entityPositionLookup, Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects,
-            IShotsController shotsController, float triggerSpeed) {
+            IShotsController shotsController) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
@@ -136,7 +135,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
         this.playerControllers = playerControllers;
         this.trapEffects = trapEffects;
         this.shotsController = shotsController;
-        this.triggerSpeed = triggerSpeed;
+        triggerSpeed = kwdFile.getVariables().get(
+                Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND).getValue();
 
         trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class, Health.class);
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
