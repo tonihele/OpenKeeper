@@ -17,9 +17,7 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.Vector3f;
-import com.simsilica.es.Entity;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -32,13 +30,13 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.EffectTrigger;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -67,6 +65,7 @@ class ShotSystemTest {
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
+    private final List<Object[]> effects = new ArrayList<>();
     private ShotSystem shotSystem;
 
     @BeforeEach
@@ -102,7 +101,16 @@ class ShotSystemTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
 
-        shotSystem = new ShotSystem(entityData, kwdFile, () -> 0.0, shotsController, positionLookup, mapInformation, Map.of());
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("emitEffect")) {
+                        effects.add(args);
+                        return null;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
+
+        shotSystem = new ShotSystem(entityData, kwdFile, gameEventService, shotsController, positionLookup, mapInformation, Map.of());
     }
 
     @AfterEach
@@ -177,12 +185,9 @@ class ShotSystemTest {
 
         shotSystem.processTick(0.25f);
 
-        EntitySet effects = entityData.getEntities(EffectTrigger.class, Position.class);
         assertEquals(1, effects.size());
-        Entity effect = effects.iterator().next();
-        assertEquals(ShotFixtures.FIREBALL_HIT_EFFECT_ID, effect.get(EffectTrigger.class).effectId);
-        assertEquals(new Vector3f(1.8f, 1.3f, 1), effect.get(Position.class).position);
-        effects.release();
+        assertEquals(ShotFixtures.FIREBALL_HIT_EFFECT_ID, effects.get(0)[0]);
+        assertEquals(new Vector3f(1.8f, 1.3f, 1), effects.get(0)[1]);
     }
 
     @Test
@@ -192,9 +197,7 @@ class ShotSystemTest {
 
         shotSystem.processTick(0.25f);
 
-        EntitySet effects = entityData.getEntities(EffectTrigger.class);
         assertTrue(effects.isEmpty());
-        effects.release();
     }
 
     @Test
