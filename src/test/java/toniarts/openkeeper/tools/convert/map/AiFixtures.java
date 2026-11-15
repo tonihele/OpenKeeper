@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.EnumSet;
 import java.util.List;
 
 /**
@@ -99,6 +100,40 @@ public final class AiFixtures {
         ai.setPullCreaturesFromFightIfOutnumberedAndUnableToDropReinforcements(pullOut);
         ai.setAttemptToImprisonPercentageOfEnemyCreatures((short) imprisonPercentage);
         return ai;
+    }
+
+    /**
+     * Sets how the computer player uses its spells in a fight
+     *
+     * @param ai the computer player settings
+     * @param use how seldom it casts: 0 always, 4 never
+     * @param style how often it defends rather than attacks: 0 never, 4
+     * always
+     * @param power how dear a spell it takes: 4 any
+     * @return the same settings
+     */
+    public static AI withBattleSpells(AI ai, int use, int style, int power) {
+        ai.setUseSpellsInBattle((short) use);
+        ai.setSpellStyle((short) style);
+        ai.setSpellsPowerPreference((short) power);
+        return ai;
+    }
+
+    /**
+     * A keeper spell for a fight
+     *
+     * @param keeperSpellId the spell id
+     * @param manaCost what it costs to cast
+     * @param flag whether it attacks or defends
+     * @return the spell
+     */
+    public static KeeperSpell battleSpell(short keeperSpellId, int manaCost, KeeperSpell.KeeperSpellFlag flag) {
+        KeeperSpell keeperSpell = new KeeperSpell();
+        keeperSpell.setKeeperSpellId(keeperSpellId);
+        keeperSpell.setName("Spell " + keeperSpellId);
+        keeperSpell.setManaCost(manaCost);
+        keeperSpell.setFlags(EnumSet.of(flag));
+        return keeperSpell;
     }
 
     /**
