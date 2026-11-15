@@ -45,6 +45,11 @@ public final class ObjectController extends EntityController implements IObjectC
     }
 
     @Override
+    public short getObjectId() {
+        return entityData.getComponent(entityId, ObjectComponent.class).objectId;
+    }
+
+    @Override
     public int getPickUpPriority() {
         return object.getPickUpPriority();
     }
