@@ -178,6 +178,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void addGold(int amount);
 
+    /**
+     * The keeper pays the creature by hand, by dropping gold on it. The
+     * creature keeps half of the gold, up to what it can carry, and the rest
+     * is gone. However little it got, it is owed nothing more
+     *
+     * @param amount the gold dropped on the creature
+     */
+    public void takePay(int amount);
+
     public int getObjectiveTargetActionPointId();
 
     public void setObjectiveTargetActionPointId(int actionPointId);
@@ -284,6 +293,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goGambling();
 
     /**
+     * Sends the creature to collect the pay it is owed, if it is owed any and
+     * it is time to try. A try that finds no gold to collect is counted
+     *
+     * @return true if the creature is on its way to a gold room
+     */
+    public boolean goToCollectPay();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree
@@ -294,6 +311,29 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Marks that we have eaten a single ration of food
      */
     public void sate();
+
+    /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
 
     /**
      * Makes the creature hungry
