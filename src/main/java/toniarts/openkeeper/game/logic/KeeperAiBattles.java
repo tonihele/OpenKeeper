@@ -116,20 +116,6 @@ final class KeeperAiBattles {
     private static final int ATTACK_DROP_TILES = 5;
 
     /**
-     * The room a creature is dropped in for each of the jobs it may like
-     */
-    private static final Map<Creature.JobType, Short> JOB_ROOMS = Map.of(
-            Creature.JobType.SLEEP, ROOM_LAIR,
-            Creature.JobType.EAT, (short) 4,
-            Creature.JobType.RESEARCH, (short) 6,
-            Creature.JobType.TRAIN, (short) 7,
-            Creature.JobType.MANUFACTURE, (short) 10,
-            Creature.JobType.GUARD, (short) 9,
-            Creature.JobType.TORTURE, (short) 12,
-            Creature.JobType.PRAY, (short) 13,
-            Creature.JobType.DRINK, (short) 15);
-
-    /**
      * DK II's rolls for a spell in a fight: a 4 sided die against the
      * settings, a step in the die of the spell for each 2499 mana it
      * costs, and 75 in 100 to look on for another target
@@ -685,44 +671,6 @@ final class KeeperAiBattles {
         }
 
         return nearest;
-    }
-
-    /**
-     * Puts down what is on top of its hand, which is there when a drop did
-     * not go through. A creature goes to the first room for one of the
-     * jobs it likes that the computer player has, anything else and a
-     * creature without such a room goes to the Dungeon Heart.
-     *
-     * @param keeperAi the computer player
-     * @param playerController its player
-     * @return true if there was something in the hand, that takes the turn
-     */
-    boolean emptyHand(KeeperAi keeperAi, IPlayerController playerController) {
-        EntityId held = playerController.getHandControl().peek();
-        if (held == null) {
-            return false;
-        }
-
-        Point tile = playerController.getKeeper().getDungeonHeartLocation();
-        String reason = "its hand was not empty";
-        CreatureComponent creatureComponent = entityData.getComponent(held, CreatureComponent.class);
-        Creature.JobPreference[] jobs = creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId).getHappyJobs() : null;
-        if (jobs != null) {
-            for (Creature.JobPreference job : jobs) {
-                Short roomId = JOB_ROOMS.get(job.getJobType());
-                Set<IRoomController> rooms = roomId != null
-                        ? playerController.getRoomControl().getRoomControllers().getOrDefault(kwdFile.getRoomById(roomId), Set.of()) : Set.of();
-                if (!rooms.isEmpty()) {
-                    tile = rooms.iterator().next().getRoomInstance().getCenter();
-                    reason = "its hand was not empty, the creature likes to " + job.getJobType().name().toLowerCase() + " there";
-                    break;
-                }
-            }
-        }
-        decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
-        gameWorldController.drop(held, tile, WorldUtils.pointToVector2f(tile), null, keeperAi.playerId);
-
-        return true;
     }
 
     boolean isLeftAlone(Entity creature) {
