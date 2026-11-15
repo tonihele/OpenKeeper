@@ -961,7 +961,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        entityData.removeEntity(entity);
+        // Also frees the room storage slot, if the special was stored in a room
+        objectsController.createController(entity).remove();
         return true;
     }
 
@@ -1584,7 +1585,22 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Validate. The workers get more expensive the more of them there are
         int manaCost = KeeperSpellCost.getManaCost(keeperSpell, playerControllers.get(playerId).getCreatureControl().getImpCount(),
                 (int) gameSettings.get(Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD).getValue());
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapController, mapTile, player, entityData, target, manaCost)) {
+        Creature targetCreature = null;
+        Short targetOwner = null;
+        boolean targetChicken = false;
+        if (target != null) {
+            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
+            if (creatureComponent != null) {
+                targetCreature = kwdFile.getCreature(creatureComponent.creatureId);
+            }
+            Owner ownerComponent = entityData.getComponent(target, Owner.class);
+            if (ownerComponent != null) {
+                targetOwner = ownerComponent.controlId;
+            }
+            CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
+            targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+        }
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)) {
             return;
         }
 
