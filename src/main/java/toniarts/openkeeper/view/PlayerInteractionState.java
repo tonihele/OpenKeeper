@@ -932,8 +932,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Set<Point> occupiedTiles = new HashSet<>();
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        boolean hasWorkshop = gameClientState.getRoomsInformation()
+                .getRoomCount(player.getPlayerId(), TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
         return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
-                kwdFile.getTrapById(interactionState.getItemId()),
+                kwdFile.getTrapById(interactionState.getItemId()), hasWorkshop,
                 gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
     }
 
