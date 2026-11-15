@@ -55,8 +55,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * plays through the same actions a human player has: it tags tiles, builds
  * rooms and casts spells.<br>
  * So far it creates imps, mines gold, picks the rooms to build, has their
- * sites dug out and builds them, digs to neutral Portals, and pulls hurt
- * creatures out of fights.<br>
+ * sites dug out and builds them, digs to neutral Portals, fights, invades,
+ * trains its creatures, puts idle ones to work, slaps them and sees to its
+ * prisoners.<br>
  * With the decision log on it writes a line for everything it decides: the
  * game tick, the player, the task it is on, what it does, where, and why.
  * The lines are there to be compared with DK II tick by tick.
@@ -303,6 +304,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         // Idle creatures get a slap now and then
         if (actions > 0) {
             actions = creatures.slapIdleCreatures(keeperAi, actions);
+        }
+
+        // A prisoner meets its fate
+        if (actions > 0) {
+            actions = creatures.seeToPrisoners(keeperAi, playerController, ai, actions);
         }
 
         while (actions > 0) {
