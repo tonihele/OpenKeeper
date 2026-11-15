@@ -17,12 +17,14 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
@@ -49,6 +51,9 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     private boolean initialized = false;
     private int loopHandle = SoundEngine.NO_HANDLE;
+    private final EntityData entityData;
+    private final HauledObjectPositionProvider hauledObjectPositionProvider;
+    private Vector3f hauledObjectPosition;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
     private final boolean uniqueCreatureBed;
 
@@ -66,7 +71,17 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
             IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed) {
+        this(entityId, entityData, data, state, assetManager, textParser, mapData, uniqueCreatureBed,
+                EntityDataHauledObjectPositionProvider.INSTANCE);
+    }
+
+    public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
+            AssetManager assetManager, EntityTextParser<GameObject> textParser,
+            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed,
+            HauledObjectPositionProvider hauledObjectPositionProvider) {
         super(entityId, entityData, data, state, assetManager, textParser);
+        this.entityData = entityData;
+        this.hauledObjectPositionProvider = Objects.requireNonNull(hauledObjectPositionProvider);
         this.mapData = mapData;
         this.uniqueCreatureBed = uniqueCreatureBed;
     }
@@ -76,7 +91,32 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(ObjectComponent.class);
         components.add(Position.class);
+        components.add(HauledBy.class);
         return components;
+    }
+
+    @Override
+    protected void controlUpdate(float tpf) {
+        super.controlUpdate(tpf);
+
+        HauledBy hauledBy = getEntity().get(HauledBy.class);
+        if (hauledBy == null) {
+            return;
+        }
+
+        Position objectPosition = getEntity().get(Position.class);
+        if (objectPosition == null) {
+            return;
+        }
+
+        if (hauledObjectPosition == null) {
+            hauledObjectPosition = new Vector3f();
+        }
+
+        if (hauledObjectPositionProvider.updateFollowPosition(entityData, hauledBy.entityId,
+                objectPosition, hauledObjectPosition)) {
+            getSpatial().setLocalTranslation(hauledObjectPosition);
+        }
     }
 
     @Override
