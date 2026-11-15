@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 public final class ShotFixtures {
 
@@ -110,6 +111,20 @@ public final class ShotFixtures {
         creatureSpell.setShotTypeId(shotTypeId);
         creatureSpell.setShotData1(shotData1);
         return creatureSpell;
+    }
+
+    /**
+     * A creature with one spell, whose shot leaves the given time into a cast
+     * that lasts a second
+     */
+    public static Creature caster(short creatureSpellId, float shotDelay) {
+        Creature creature = CasinoVariableFixtures.creatureWithAnimations((short) 1, Creature.AnimationType.CAST_SPELL);
+        Creature.Spell spell = new Creature.Spell();
+        spell.setCreatureSpellId(creatureSpellId);
+        spell.setShotDelay(shotDelay);
+        spell.setShotOffset(0, 0, 0);
+        creature.setSpells(List.of(spell));
+        return creature;
     }
 
     public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {

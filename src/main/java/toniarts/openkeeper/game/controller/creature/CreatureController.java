@@ -972,7 +972,10 @@ public final class CreatureController extends EntityController implements ICreat
 
         entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
         stateMachine.changeState(CreatureState.CAST_SPELL);
-        shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), target, entityId);
+
+        // Cast like an attack spell, the shot leaves after the spell's shot delay (0x45F030, 0x498870)
+        entityData.setComponent(entityId, new CastShot(spell.creatureSpellId, target, spell.range,
+                gameTimer.getGameTime() + getShotDelay(spell.creatureSpellId)));
 
         return true;
     }
@@ -1060,8 +1063,10 @@ public final class CreatureController extends EntityController implements ICreat
             shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
 
             // TODO: Of course not like that, the shot is created and it does what it does
-            // Set the damage
-            setDamage(castShot.target, creatureSpell.getShotData1());
+            // Set the damage, a spell for our own creatures does them none
+            if (!creatureSpell.getFlags().contains(CreatureSpellFlag.CREATURE)) {
+                setDamage(castShot.target, creatureSpell.getShotData1());
+            }
         }
     }
 
