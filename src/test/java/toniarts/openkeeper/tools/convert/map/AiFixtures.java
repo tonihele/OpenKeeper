@@ -61,6 +61,20 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets what the computer player does about a room that needs more space
+     *
+     * @param ai the computer player settings
+     * @param policy whether it grows the room, builds another or does nothing
+     * @param biggerLair whether a claimed Portal makes it want a bigger Lair
+     * @return the same settings
+     */
+    public static AI withMoreSpace(AI ai, AI.RoomExpandPolicy policy, boolean biggerLair) {
+        ai.setWhenMoreSpaceInRoomRequired(policy);
+        ai.setBuildBiggerLairAfterClaimingPortal(biggerLair);
+        return ai;
+    }
+
+    /**
      * Limits where the computer player may build
      *
      * @param ai the computer player settings

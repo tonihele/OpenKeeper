@@ -141,6 +141,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             ROOM_GUARD_ROOM, ROOM_STONE_BRIDGE, ROOM_HERO_STONE_BRIDGE);
 
     /**
+     * The rooms whose lack of space DK II tells its computer player about
+     */
+    private static final short[] ROOMS_TO_GROW = {ROOM_TREASURY, ROOM_LAIR, ROOM_PRISON, ROOM_GRAVEYARD};
+
+    /**
      * The room DK II's computer player likes to have each room next to
      */
     private static final Map<Short, Short> IDEAL_NEIGHBOURS = Map.ofEntries(
@@ -220,7 +225,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     : keeper.getPlayer().getAiAttributes();
             ais.put(keeper.getId(), ai);
             if (keeperAis.stream().noneMatch(entity -> entity.get(KeeperAi.class).playerId == keeper.getId())) {
-                entityData.setComponent(entityData.createEntity(), new KeeperAi(keeper.getId()));
+                KeeperAi keeperAi = new KeeperAi(keeper.getId());
+                keeperAi.portals = countPortals(playerController);
+                entityData.setComponent(entityData.createEntity(), keeperAi);
 
                 // A computer player type comes with some mana to start with
                 if (keeper.isAi()) {
@@ -753,18 +760,21 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     private String planRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         keeperAi.roomId = 0;
+        wantMoreSpace(keeperAi, playerController, ai);
         if (!keeperAi.roomWanted) {
             Room wanted = getNextRoom(playerController, ai);
             keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId() : ROOM_PORTAL;
             keeperAi.roomWanted = true;
         }
         short roomId = keeperAi.wantedRoomId;
+        boolean expand = keeperAi.wantedRoomExpand;
+        keeperAi.wantedRoomExpand = false;
         if (roomId == ROOM_PORTAL) {
             keeperAi.roomWanted = false;
         } else {
             keeperAi.wantedRoomId = ROOM_PORTAL;
         }
-        if (digToNeutralRoom(keeperAi, playerController, ai, roomId)) {
+        if (!expand && digToNeutralRoom(keeperAi, playerController, ai, roomId)) {
             return null;
         }
 
@@ -780,6 +790,21 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
 
         keeperAi.roomId = room.getRoomId();
+
+        // Its first room of the kind grows where it can, without a path to dig. If it can't, another one is built
+        if (expand) {
+            for (IRoomController own : playerController.getRoomControl().getRoomControllers().getOrDefault(room, Set.of())) {
+                KeeperAiRoomSiteFinder.RoomSite site = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai).expand(own.getRoomInstance());
+                if (site != null) {
+                    keeperAi.corner = site.corner();
+                    keeperAi.oppositeCorner = site.oppositeCorner();
+                    setTask(keeperAi, KeeperAi.Task.TAG_ROOM, site.corner(), "room " + roomId + " needs more space, it grows to "
+                            + site.corner().x + "," + site.corner().y + " to " + site.oppositeCorner().x + "," + site.oppositeCorner().y);
+                    return null;
+                }
+                break;
+            }
+        }
         keeperAi.direction = getPreferredDirection(keeperAi.roomId, playerController.getKeeper());
         if (!isCoreRoom(keeperAi.roomId)) {
             keeperAi.direction = (keeperAi.direction + Utils.getRandom().nextInt(3) - 1) & 3;
@@ -805,6 +830,56 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         setTask(keeperAi, KeeperAi.Task.FIND_ROOM_SITE, keeperAi.current, "room " + keeperAi.roomId + " is next, looking " + DIRECTIONS[keeperAi.direction]);
 
         return null;
+    }
+
+    /**
+     * Lines a room up to be planned next when it needs more space: the Lair
+     * when a Portal was claimed, and a Treasury, Lair, Prison or Graveyard
+     * that is full. By its settings the room is grown or another one is
+     * built. DK II's computer player is told by the messages a player gets;
+     * here it looks at the rooms itself
+     */
+    private void wantMoreSpace(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+        AI.RoomExpandPolicy policy = ai.getWhenMoreSpaceInRoomRequired();
+        if (policy == null || policy == AI.RoomExpandPolicy.IGNORE || keeperAi.roomWanted && keeperAi.wantedRoomId != ROOM_PORTAL) {
+            return;
+        }
+
+        int portals = countPortals(playerController);
+        short roomId = portals > keeperAi.portals && ai.isBuildBiggerLairAfterClaimingPortal() ? ROOM_LAIR : 0;
+        keeperAi.portals = portals;
+        for (int i = 0; i < ROOMS_TO_GROW.length && roomId == 0; i++) {
+
+            // Gems never run out, so a full Treasury is left as it is while gems are mined
+            if (ROOMS_TO_GROW[i] == ROOM_TREASURY && getTaggedGold(keeperAi.playerId).stream().anyMatch(tile
+                    -> mapController.getTerrain(mapController.getMapData().getTile(tile)).getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE))) {
+                continue;
+            }
+            for (IRoomController room : playerController.getRoomControl().getRoomControllers().getOrDefault(kwdFile.getRoomById(ROOMS_TO_GROW[i]), Set.of())) {
+                if (!room.getRoomInstance().isDestroyed() && room.isFullCapacity()) {
+                    roomId = ROOMS_TO_GROW[i];
+                }
+            }
+        }
+        Room room = kwdFile.getRoomById(roomId);
+        ResearchableEntity availability = room != null ? playerController.getRoomControl().getTypes().get(room) : null;
+        if (availability != null && availability.isDiscovered()) {
+            keeperAi.wantedRoomId = roomId;
+            keeperAi.wantedRoomExpand = policy == AI.RoomExpandPolicy.EXPAND_EXISTING;
+            keeperAi.roomWanted = true;
+        }
+    }
+
+    private int countPortals(IPlayerController playerController) {
+        int portals = 0;
+        for (short roomId : new short[]{ROOM_PORTAL, ROOM_HERO_PORTAL}) {
+            Room room = kwdFile.getRoomById(roomId);
+            if (room != null) {
+                portals += playerController.getRoomControl().getTypeCount(room);
+            }
+        }
+
+        return portals;
     }
 
     /**

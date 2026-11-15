@@ -91,6 +91,17 @@ public final class KeeperAi implements EntityComponent {
     public boolean roomWanted;
 
     /**
+     * Whether the room it plans next is to be grown rather than built anew
+     */
+    public boolean wantedRoomExpand;
+
+    /**
+     * How many Portals it had when it last looked, a new one may ask for a
+     * bigger Lair
+     */
+    public int portals;
+
+    /**
      * The direction the room site is looked for in
      */
     public int direction;
@@ -189,6 +200,8 @@ public final class KeeperAi implements EntityComponent {
         this.roomId = keeperAi.roomId;
         this.wantedRoomId = keeperAi.wantedRoomId;
         this.roomWanted = keeperAi.roomWanted;
+        this.wantedRoomExpand = keeperAi.wantedRoomExpand;
+        this.portals = keeperAi.portals;
         this.direction = keeperAi.direction;
         this.current = keeperAi.current;
         this.target = keeperAi.target;

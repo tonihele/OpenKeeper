@@ -92,6 +92,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withPrisonerFate;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withSightOfEvil;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withMoreSpace;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withTraps;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
@@ -223,6 +224,7 @@ class KeeperAiSystemTest {
     private final Map<Short, EntityId> battleCasts = new HashMap<>();
     private PlayerRoomControl enemyRoomControl;
     private boolean reachable;
+    private final Set<Short> fullRooms = new HashSet<>();
 
     @Test
     void digsToANeutralPortalNearItsRoomsWhenThereIsNoRoomToBuild() {
@@ -1466,6 +1468,69 @@ class KeeperAiSystemTest {
         assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 9, 1, 30, 0, List.of())).find(HEART, EAST, 9));
     }
 
+    @Test
+    void growsAFullRoomOnEverySideThatHasRockBehindIt() {
+        KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.EXPAND_EXISTING, false), 1000);
+        roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
+        roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
+        fullRooms.add(LAIR);
+
+        system.processTick(0.25f);
+
+        // North of it the rock is only one tile deep, so it grows south, west and east
+        assertEquals(KeeperAi.Task.TAG_ROOM, getKeeperAi().task);
+        assertEquals(LAIR, getKeeperAi().roomId);
+        assertEquals(new Point(8, 2), getKeeperAi().corner);
+        assertEquals(new Point(12, 5), getKeeperAi().oppositeCorner);
+
+        // The whole box is tagged and the new tiles are built on as they are dug out and claimed
+        for (int tick = 0; tick < 100 && built.size() < 11; tick++) {
+            system.processTick(0.25f);
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
+        assertEquals(11, built.size());
+        assertTrue(built.contains(new Point(8, 2)) && built.contains(new Point(12, 5)) && !built.contains(new Point(10, 3)));
+    }
+
+    @Test
+    void buildsAnotherRoomOrNoneForAFullRoomByItsSettings() {
+        AI ai = withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.IGNORE, false);
+        KeeperAiSystem system = createSystem(ai, 1000);
+        roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
+        roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
+        fullRooms.add(LAIR);
+
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        withMoreSpace(ai, AI.RoomExpandPolicy.CREATE_NEW, false);
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+        assertEquals(LAIR, getKeeperAi().roomId);
+    }
+
+    @Test
+    void wantsABiggerLairWhenItHasClaimedAPortal() {
+        KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(LAIR)), AI.RoomExpandPolicy.EXPAND_EXISTING, true), 1000);
+        roomControl.setTypeAvailable(rooms.get(LAIR), true, true);
+        roomControl.onBuild(createRoom(LAIR, new Point(9, 2), new Point(11, 4)));
+
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        roomControl.onBuild(createRoom(PORTAL, new Point(13, 8)));
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.TAG_ROOM, getKeeperAi().task);
+        assertEquals(LAIR, getKeeperAi().roomId);
+    }
+
     private KeeperAi getKeeperAi() {
         return entityData.getComponent(entityData.findEntity(null, KeeperAi.class), KeeperAi.class);
     }
@@ -1620,14 +1685,26 @@ class KeeperAiSystemTest {
     }
 
     private IRoomController createRoom(short roomId, Point centre) {
+        return createRoom(roomId, centre, centre);
+    }
+
+    private IRoomController createRoom(short roomId, Point corner, Point oppositeCorner) {
         RoomInstance roomInstance = new RoomInstance(rooms.get(roomId));
-        roomInstance.addCoordinate(centre);
+        for (int x = corner.x; x <= oppositeCorner.x; x++) {
+            for (int y = corner.y; y <= oppositeCorner.y; y++) {
+                roomInstance.addCoordinate(new Point(x, y));
+                if (!corner.equals(oppositeCorner)) {
+                    map[y][x] = 'H';
+                }
+            }
+        }
 
         return (IRoomController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getRoom" -> rooms.get(roomId);
             case "isDungeonHeart" -> roomId == DUNGEON_HEART;
             case "getRoomInstance" -> roomInstance;
+            case "isFullCapacity" -> fullRooms.contains(roomId);
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
             default -> throw new UnsupportedOperationException(method.getName());
