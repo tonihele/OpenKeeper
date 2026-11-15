@@ -68,7 +68,10 @@ public final class TrapEffects implements ITrapEffects {
 
     /**
      * How long, in seconds, an alarm lasts. No new alarm is raised for the
-     * player meanwhile
+     * player meanwhile. Not in the level or trap data: it is the 50 seconds of
+     * message 0x2f ("Enemy creatures are rampaging through your Dungeon") in
+     * DKII.EXE's message table, which the Alarm Trap's shot handler (0x4AE120)
+     * queues through the message queue (0x4C4600)
      */
     private static final double ALARM_DURATION = 50;
 
