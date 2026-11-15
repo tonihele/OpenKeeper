@@ -90,6 +90,8 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.CollectPay;
+import toniarts.openkeeper.game.task.creature.CollectWinnings;
 import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
@@ -1019,6 +1021,38 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     @Override
+    public boolean assignCollectPayTask(ICreatureController creature) {
+        Point currentPosition = creature.getCreatureCoordinates();
+
+        // The gold rooms that hold gold, nearest first
+        List<IRoomController> rooms = new ArrayList<>(mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId()));
+        rooms.removeIf(room -> room.getObjectControl(ObjectType.GOLD).getCurrentCapacity() <= 0);
+        Map<IRoomController, Integer> distances = new HashMap<>();
+        for (IRoomController room : rooms) {
+            distances.put(room, getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])));
+        }
+        rooms.sort(Comparator.comparingInt(distances::get));
+        for (IRoomController room : rooms) {
+            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+            if (coordinates.isEmpty()) {
+                continue;
+            }
+
+            Point target = Utils.getRandomItem(coordinates);
+            if (target.equals(currentPosition) || navigationService.findPath(currentPosition, target, creature) != null) {
+                Task task = new CollectPay(navigationService, mapController, target, creature.getOwnerId(), room, gameWorldController, entityData);
+                task.assign(creature, true);
+                tasksByIds.put(task.getId(), task);
+
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean assignEatTask(ICreatureController creature) {
 
         // The creatures in the original don't seem to make anykind of reservations on the food items, I've seen them "fight over food", first come first serve
@@ -1042,10 +1076,39 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
 
         // Pick closest we can actually access
+        Set<Point> reachableArea = null;
         for (EntityId food : foods) {
             Point target = entityPositionLookup.getEntityLocation(food).getLocation();
-            if (target == creature.getCreatureCoordinates() || navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null) {
+            if (target == creature.getCreatureCoordinates() || ((reachableArea == null || reachableArea.contains(target))
+                    && navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null)) {
                 GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
+                task.assign(creature, true);
+                tasksByIds.put(task.getId(), task);
+                return true;
+            }
+
+            // A search that fails goes through all of the creature's land first. Not again for each food out of its reach
+            if (reachableArea == null) {
+                reachableArea = getReachableArea(creature, creature.getCreatureCoordinates());
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean assignCollectWinningsTask(ICreatureController creature) {
+
+        // The keeper's gold is in the Treasuries and the Dungeon Heart, go to the nearest one we can reach
+        Point currentLocation = creature.getCreatureCoordinates();
+        List<IRoomController> rooms = mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId());
+        rooms.sort(Comparator.comparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
+        for (IRoomController room : rooms) {
+            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+            Point target = Utils.getRandomItem(coordinates);
+            if (target != null && (target.equals(currentLocation) || navigationService.findPath(currentLocation, target, creature) != null)) {
+                CollectWinnings task = new CollectWinnings(navigationService, mapController, target, creature.getOwnerId(), room, entityData, gameWorldController);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
                 return true;

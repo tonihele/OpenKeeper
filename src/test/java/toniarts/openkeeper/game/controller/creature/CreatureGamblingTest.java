@@ -27,6 +27,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
@@ -71,6 +72,15 @@ class CreatureGamblingTest {
     void workersAndHeroesDoNotGamble() {
         assertFalse(creature(Player.KEEPER1_ID, true, 500).goGambling());
         assertFalse(creature(Player.GOOD_PLAYER_ID, false, 500).goGambling());
+        assertEquals(0, drinkAssignments);
+    }
+
+    @Test
+    void bigWinnerDoesNotGoGamblingAgain() {
+        ICreatureController creature = creature(Player.KEEPER1_ID, false, 500);
+        entityData.setComponent(creature.getEntityId(), new CasinoBigWinner(240, 1000, 0));
+
+        assertFalse(creature.goGambling());
         assertEquals(0, drinkAssignments);
     }
 
