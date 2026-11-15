@@ -20,18 +20,23 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.EnumSet;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.FakeMapInformation;
 import toniarts.openkeeper.game.map.FakeMapTile;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFlagFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,9 +49,12 @@ class KeeperSpellCastValidatorTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final FakeMapInformation mapInformation = new FakeMapInformation(new FakeMapData(4, 4), Map.of());
+    private final Creature creature = CreatureFlagFixtures.creature((short) 1, EnumSet.noneOf(Creature.CreatureFlag.class));
     private final IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
-            (proxy, method, args) -> method.getName().equals("getCreature") ? new Creature() : null);
+            (proxy, method, args) -> method.getName().equals("getCreature") ? creature : null);
     private final KeeperSpell thunderbolt = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ENEMY_CREATURES, 6000);
+    private final KeeperSpell chicken = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ALL_CREATURES, 0);
+    private final KeeperSpell possession = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.POSESSION, 0);
     private final Keeper player = new Keeper(false, PLAYER_ID);
     private final FakeMapTile ownTile;
 
@@ -106,8 +114,36 @@ class KeeperSpellCastValidatorTest {
         assertTrue(KeeperSpellCastValidator.isRecharged(thunderbolt, entityData, PLAYER_ID, 10));
     }
 
+    @Test
+    void chickenCanBeCastOnAnyCreatureButNeutralOnes() {
+        assertTrue(isValidCast(chicken, createThing(ENEMY_ID, true)));
+        assertTrue(isValidCast(chicken, createThing(PLAYER_ID, true)));
+        assertFalse(isValidCast(chicken, createThing(Player.NEUTRAL_PLAYER_ID, true)));
+    }
+
+    @Test
+    void chickenCannotBePossessed() {
+        EntityId ownCreature = createThing(PLAYER_ID, true);
+        assertTrue(isValidCast(possession, ownCreature));
+
+        entityData.setComponent(ownCreature, new CreatureAi(100, CreatureState.CHICKEN, (short) 1, null, 60));
+
+        assertFalse(isValidCast(possession, ownCreature));
+    }
+
+    @Test
+    void clientChecksTheChickenRuleFromWhatItShows() {
+        assertFalse(KeeperSpellCastValidator.isValidCast(chicken, mapInformation, ownTile, player, creature, Player.NEUTRAL_PLAYER_ID, false, 0));
+        assertTrue(KeeperSpellCastValidator.isValidCast(possession, mapInformation, ownTile, player, creature, PLAYER_ID, false, 0));
+        assertFalse(KeeperSpellCastValidator.isValidCast(possession, mapInformation, ownTile, player, creature, PLAYER_ID, true, 0));
+    }
+
     private boolean isValidCast(EntityId target) {
-        return KeeperSpellCastValidator.isValidCast(thunderbolt, kwdFile, mapInformation, ownTile, player, entityData, target, thunderbolt.getManaCost());
+        return isValidCast(thunderbolt, target);
+    }
+
+    private boolean isValidCast(KeeperSpell keeperSpell, EntityId target) {
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, ownTile, player, entityData, target, keeperSpell.getManaCost());
     }
 
     private EntityId createThing(short ownerId, boolean creature) {
