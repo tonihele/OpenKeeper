@@ -1962,7 +1962,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // Only the duties that fatigue interrupts too, not what the creature has to see through
         Task task = getAssignedTask();
-        return task != null && (task.getTaskType() == TaskType.TRAIN || task.getTaskType() == TaskType.RESEARCH)
+        return task != null && (task.getTaskType() == TaskType.TRAIN || task.getTaskType() == TaskType.RESEARCH
+                || task.getTaskType() == TaskType.COLLECT_PAY)
                 && goGambling();
     }
 
