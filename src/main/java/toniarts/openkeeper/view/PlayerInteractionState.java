@@ -953,7 +953,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
         return DoorPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
                 kwdFile.getDoorById(interactionState.getItemId()),
-                gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
+                stateManager.getState(PlayerState.class).getGold()) == DoorPlacementValidator.Failure.NONE;
     }
 
     private boolean isConstructionBlockingObject(Entity entity) {
