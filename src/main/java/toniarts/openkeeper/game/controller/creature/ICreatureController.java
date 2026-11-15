@@ -114,6 +114,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void executeAttack(EntityId attackTarget);
 
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
+
     public void navigateToAttackTarget(EntityId attackTarget);
 
     public ICreatureController getFollowTarget();
@@ -172,6 +183,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void fireEvent(GameEventType type, Point location);
 
     public void addGold(int amount);
+
+    /**
+     * The keeper pays the creature by hand, by dropping gold on it. The
+     * creature keeps half of the gold, up to what it can carry, and the rest
+     * is gone. However little it got, it is owed nothing more
+     *
+     * @param amount the gold dropped on the creature
+     */
+    public void takePay(int amount);
 
     public int getObjectiveTargetActionPointId();
 
@@ -296,10 +316,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void makeHungry();
 
     /**
-     * Get the research points the creature makes on each game tick in the
-     * library
+     * Get the research points the creature makes on this game tick in the
+     * library. A slapped creature makes extra points on the first tick of
+     * every second.
      *
-     * @return research points per tick
+     * @return research points of this tick
      */
     public int getResearchPerTick();
 
@@ -326,6 +347,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if recuperating
      */
     public boolean isRecuperating();
+
+    /**
+     * Turns the creature into a chicken for a while, as by the Chicken spell.
+     * Creatures immune to the spell stay as they are
+     *
+     * @param duration how long, in seconds
+     */
+    public void turnIntoChicken(double duration);
 
     /**
      * Sets creature possession on/off
