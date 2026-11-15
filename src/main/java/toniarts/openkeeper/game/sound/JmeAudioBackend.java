@@ -67,7 +67,7 @@ public final class JmeAudioBackend implements AudioBackend {
 
         node.setLooping(spec.looping());
         node.setPositional(spec.positional());
-        node.setPitch(spec.pitch());
+        node.setPitch(Math.max(AudioSpec.MIN_PITCH, Math.min(AudioSpec.MAX_PITCH, spec.pitch())));
         node.setVolume(clampVolume(spec.gain()));
         if (spec.positional()) {
             node.setLocalTranslation(spec.x(), sourceHeight.get(), spec.z());
@@ -116,7 +116,7 @@ public final class JmeAudioBackend implements AudioBackend {
 
     @Override
     public void setPitch(float pitch) {
-        node.setPitch(Math.max(0.01f, pitch));
+        node.setPitch(Math.max(AudioSpec.MIN_PITCH, Math.min(AudioSpec.MAX_PITCH, pitch)));
     }
 
     @Override
