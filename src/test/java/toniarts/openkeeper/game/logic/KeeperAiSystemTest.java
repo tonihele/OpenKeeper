@@ -913,6 +913,66 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void callsItsCreaturesToArmsAtTheEnemyHeartOnceTheyCanWalkThereAndDropsHalfItsThreat() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1,
+                AI.CallToArmsUsagePolicy.AT_HEART_WITH_CREATURES, 0), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(8, 6)));
+        KeeperAiEnemy invaded = new KeeperAiEnemy(PLAYER_ID, ENEMY_ID, 0);
+        invaded.invaded = true;
+        entityData.setComponent(entityData.createEntity(), invaded);
+        createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(1, 8), 100, 100, CreatureState.IDLE);
+
+        system.processTick(0.25f);
+
+        assertTrue(callToArmsCasts.isEmpty());
+
+        reachable = true;
+        system.processTick(0.25f);
+
+        // On a corner of the enemy's heart
+        assertEquals(1, callToArmsCasts.size());
+        assertEquals(2, Math.abs(callToArmsCasts.getFirst().x - 8));
+        assertEquals(2, Math.abs(callToArmsCasts.getFirst().y - 6));
+        assertTrue(getKeeperAi().callToArms);
+
+        // Its land near the flag gets half of its threat of 200
+        assertEquals(1, getKeeperAi().attacks);
+        assertEquals(100, getKeeperAi().attackNeeds[0]);
+    }
+
+    @Test
+    void movesTheFlagOnTowardsTheEnemyHeartOnceItsCreaturesHaveCome() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1,
+                AI.CallToArmsUsagePolicy.TOWARDS_HEART, 0), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(13, 6)));
+        KeeperAiEnemy invaded = new KeeperAiEnemy(PLAYER_ID, ENEMY_ID, 0);
+        invaded.invaded = true;
+        entityData.setComponent(entityData.createEntity(), invaded);
+        createCreature(PLAYER_ID, new Point(4, 4), 100, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(4, 8), 100, 100, CreatureState.IDLE);
+        reachable = true;
+        system.processTick(0.25f);
+        EntityId entityId = entityData.findEntity(null, KeeperAi.class);
+        KeeperAi keeperAi = new KeeperAi(entityData.getComponent(entityId, KeeperAi.class));
+        keeperAi.callToArms = true;
+        keeperAi.callToArmsTile = new Point(5, 6);
+        keeperAi.callToArmsTicks = 100;
+        keeperAi.rallyTile = new Point(5, 6);
+        entityData.setComponent(entityId, keeperAi);
+
+        system.processTick(0.25f);
+
+        // Both creatures are near the flag, so it goes 2 tiles on
+        assertEquals(1, callToArmsCasts.size());
+        Point moved = callToArmsCasts.getFirst();
+        assertEquals(2, Math.abs(moved.x - 5) + Math.abs(moved.y - 6));
+        assertEquals(moved, getKeeperAi().rallyTile);
+    }
+
+    @Test
     void doesNothingOnceItsDungeonHeartIsGone() {
         KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
         creatureControl.onCreatureAdded(new EntityId(1), imp);

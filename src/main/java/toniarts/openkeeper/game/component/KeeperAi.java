@@ -167,6 +167,11 @@ public final class KeeperAi implements EntityComponent {
      */
     public short invasionTargetId;
 
+    /**
+     * Where it calls its creatures to arms on the way to an enemy
+     */
+    public Point rallyTile;
+
     public KeeperAi() {
         // For serialization
     }
@@ -201,6 +206,7 @@ public final class KeeperAi implements EntityComponent {
         this.attackerId = keeperAi.attackerId;
         this.attackLookTicks = keeperAi.attackLookTicks;
         this.invasionTargetId = keeperAi.invasionTargetId;
+        this.rallyTile = keeperAi.rallyTile;
     }
 
 }
