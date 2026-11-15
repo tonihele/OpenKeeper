@@ -27,10 +27,10 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
-import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -48,7 +48,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
-    private final IGameTimer gameTimer;
+    private final GameEventService gameEventService;
     private final IShotsController shotsController;
     private final IEntityPositionLookup entityPositionLookup;
     private final IMapInformation<?> mapInformation;
@@ -56,12 +56,12 @@ public final class ShotSystem implements IGameLogicUpdatable {
     private final EntitySet shots;
     private final Vector3f halfway = new Vector3f();
 
-    public ShotSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IShotsController shotsController,
+    public ShotSystem(EntityData entityData, IKwdFile kwdFile, GameEventService gameEventService, IShotsController shotsController,
             IEntityPositionLookup entityPositionLookup, IMapInformation<?> mapInformation,
             Map<Short, IPlayerController> playerControllers) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
-        this.gameTimer = gameTimer;
+        this.gameEventService = gameEventService;
         this.shotsController = shotsController;
         this.entityPositionLookup = entityPositionLookup;
         this.mapInformation = mapInformation;
@@ -160,14 +160,16 @@ public final class ShotSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Sets off the shot's effect where it is, the shot's hit or its death
-     * (0x4ABD60, 0x4AB180)
+     * Tells the clients to play the shot's effect where it is, the shot's hit
+     * or its death (0x4ABD60, 0x4AB180)
      *
      * @param effectId the effect, 0 for none
      * @param position where to play it
      */
     private void triggerEffect(int effectId, Vector3f position) {
-        EffectTriggers.trigger(entityData, effectId, position, gameTimer.getGameTime());
+        if (effectId != 0) {
+            gameEventService.emitEffect(effectId, position, 0);
+        }
     }
 
     private boolean isSolid(Vector3f position) {
