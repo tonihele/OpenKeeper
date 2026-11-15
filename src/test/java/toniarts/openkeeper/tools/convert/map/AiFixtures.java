@@ -137,6 +137,26 @@ public final class AiFixtures {
     }
 
     /**
+     * A creature that likes some jobs
+     *
+     * @param creatureId the creature id
+     * @param jobTypes the jobs it likes when it is happy, in order
+     * @return the creature
+     */
+    public static Creature creatureWithJobs(short creatureId, Creature.JobType... jobTypes) {
+        Creature creature = new Creature();
+        creature.setCreatureId(creatureId);
+        creature.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
+        Creature.JobPreference[] jobs = new Creature.JobPreference[jobTypes.length];
+        for (int i = 0; i < jobTypes.length; i++) {
+            jobs[i] = new Creature.JobPreference();
+            jobs[i].setJobType(jobTypes[i]);
+        }
+        creature.setHappyJobs(jobs);
+        return creature;
+    }
+
+    /**
      * Sets when the computer player pulls a hurt creature out
      *
      * @param ai the computer player settings
