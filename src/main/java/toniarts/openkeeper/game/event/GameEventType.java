@@ -26,6 +26,10 @@ public enum GameEventType {
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
     /**
+     * A Vampire rose in a Graveyard, only the keeper of the Graveyard gets this
+     */
+    GRAVEYARD_VAMPIRE_RISEN,
+    /**
      * The creature took damage. Not restarted while the previous one of the same creature still goes on.
      */
     CREATURE_HURT,
@@ -76,5 +80,20 @@ public enum GameEventType {
     ROOM_SOLD,
     /** A completed room capture, delivered only to its new owner. */
     ROOM_CAPTURED,
-    TERRAIN_DESTROYED
+    TERRAIN_DESTROYED,
+
+    // Temple
+    /**
+     * A creature was dropped into the pool, the subject is the creature type
+     */
+    CREATURE_SACRIFICED,
+    /**
+     * The sacrifices completed a recipe, the subject is the room, at the reward's tile
+     */
+    SACRIFICE_REWARD,
+    /**
+     * The mentor's verdict on a sacrifice, only the temple's owner gets this. The subject id is the speech id of the
+     * recipe, or 1 when no recipe matched.
+     */
+    SACRIFICE_SPEECH
 }
