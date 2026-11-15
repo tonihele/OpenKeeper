@@ -57,7 +57,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * So far it creates imps, mines gold, picks the rooms to build, has their
  * sites dug out and builds them, digs to neutral Portals, fights, invades,
  * trains its creatures, puts idle ones to work, slaps them, sees to its
- * prisoners and looks round with Sight of Evil.<br>
+ * prisoners, places traps and doors and looks round with Sight of
+ * Evil.<br>
  * With the decision log on it writes a line for everything it decides: the
  * game tick, the player, the task it is on, what it does, where, and why.
  * The lines are there to be compared with DK II tick by tick.
@@ -81,6 +82,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * DK II looks at its army and the training on half of the ticks
      */
     private static final int TRAINING_CHANCE_PERCENTAGE = 50;
+
+    /**
+     * DK II looks to place traps and doors on a tenth of the ticks
+     */
+    private static final int TRAPS_CHANCE_PERCENTAGE = 10;
     private static final int CREATE_IMP_DISTANCE_FROM_HEART = 2;
     private static final short SPELL_SIGHT_OF_EVIL = 1;
 
@@ -161,6 +167,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final KeeperAiBattles battles;
     private final KeeperAiInvasions invasions;
     private final KeeperAiCreatures creatures;
+    private final KeeperAiTraps traps;
     private final EntitySet keeperAis;
 
     /**
@@ -185,6 +192,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, this::log);
         invasions = new KeeperAiInvasions(entityData, kwdFile, gameWorldController, navigationService, battles, this::log);
         creatures = new KeeperAiCreatures(entityData, kwdFile, gameWorldController, battles, invasions, this::log);
+        traps = new KeeperAiTraps(entityData, kwdFile, gameWorldController, this::log);
 
         // The keepers the level or the game setup gives to the computer, a loaded game has them already
         keeperAis = entityData.getEntities(KeeperAi.class);
@@ -283,6 +291,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (Utils.getRandom().nextInt(100) < TRAINING_CHANCE_PERCENTAGE && actions > 0
                 && !invasions.isArmyReady(keeperAi.playerId, ai, creatureLevel)) {
             actions = creatures.dropIntoTraining(keeperAi, playerController, creatureLevel, actions);
+        }
+
+        // On a tenth of the ticks it sees to traps and doors
+        if (actions > 0 && Utils.getRandom().nextInt(100) < TRAPS_CHANCE_PERCENTAGE) {
+            actions = traps.placeTrapsAndDoors(keeperAi, playerController, ai, actions);
         }
 
         // In a fight it sees to the fight, otherwise to its imps
@@ -1102,6 +1115,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     public void stop() {
         keeperAis.release();
         battles.release();
+        traps.release();
     }
 
 }
