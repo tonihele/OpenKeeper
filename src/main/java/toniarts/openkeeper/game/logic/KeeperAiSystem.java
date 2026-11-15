@@ -20,11 +20,14 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -49,9 +52,14 @@ import toniarts.openkeeper.utils.WorldUtils;
  * rooms and casts spells.<br>
  * So far it creates imps, mines gold, picks the rooms to build, has their
  * sites dug out and builds them. It doesn't claim portals, fight or look
- * after its creatures yet.
+ * after its creatures yet.<br>
+ * With the decision log on it writes a line for everything it decides: the
+ * game tick, the player, the task it is on, what it does, where, and why.
+ * The lines are there to be compared with DK II tick by tick.
  */
 public final class KeeperAiSystem implements IGameLogicUpdatable {
+
+    private static final Logger logger = System.getLogger(KeeperAiSystem.class.getName());
 
     /**
      * DK II gives up on a task after 1680 game ticks, at 4 ticks a second
@@ -112,15 +120,33 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             Map.entry(ROOM_CASINO, ROOM_TREASURY),
             Map.entry(ROOM_COMBAT_PIT, ROOM_PRISON));
 
+    /**
+     * The directions of a room site search, for the decision log
+     */
+    private static final String[] DIRECTIONS = {"north", "west", "south", "east"};
+
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final Map<Short, IPlayerController> playerControllers;
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
+    private final IGameTimer gameTimer;
+    private final boolean logDecisions;
     private final EntitySet keeperAis;
 
+    /**
+     * @param entityData the entities, the computer players keep their state
+     * there
+     * @param kwdFile the level
+     * @param playerControllers all the players by id
+     * @param gameWorldController the player actions
+     * @param gameTimer the game time, for the decision log
+     * @param logDecisions whether to log what the computer players decide
+     */
     public KeeperAiSystem(EntityData entityData, IKwdFile kwdFile, Map<Short, IPlayerController> playerControllers,
-            IGameWorldController gameWorldController) {
+            IGameWorldController gameWorldController, IGameTimer gameTimer, boolean logDecisions) {
+        this.gameTimer = gameTimer;
+        this.logDecisions = logDecisions;
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.playerControllers = playerControllers;
@@ -162,7 +188,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         // A task that takes too long is dropped
         keeperAi.taskTicks++;
         if (keeperAi.taskTicks > TASK_TIME_OUT_SECONDS * ticksPerSecond) {
-            setTask(keeperAi, KeeperAi.Task.PLAN);
+            setTask(keeperAi, KeeperAi.Task.PLAN, "the task took too long");
             keeperAi.nextTask = KeeperAi.Task.PLAN;
         }
 
@@ -170,11 +196,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (keeperAi.untagTicks > 0) {
             keeperAi.untagTicks--;
             if (keeperAi.untagTicks == 0) {
+                log(keeperAi, "untag gold", null, "no dig order for a while");
                 untagGold(keeperAi.playerId);
             }
         }
 
-        if (actions > 0 && createImp(playerController, ai)) {
+        if (actions > 0 && createImp(keeperAi, playerController, ai)) {
             actions--;
         }
 
@@ -196,7 +223,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 case FINISH -> {
                     mineGoldIfLow(keeperAi, playerController, ai);
                     if (keeperAi.task == KeeperAi.Task.FINISH) {
-                        setTask(keeperAi, KeeperAi.Task.PLAN);
+                        setTask(keeperAi, KeeperAi.Task.PLAN, "done");
                     }
                     yield actions - 1;
                 }
@@ -204,7 +231,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
                     // From the nearest room
                     keeperAi.current = getNearestRoom(playerController, keeperAi.target).getRoomInstance().getCenter();
-                    setTask(keeperAi, KeeperAi.Task.DIG_PATH);
+                    setTask(keeperAi, KeeperAi.Task.DIG_PATH, "from the nearest room at " + keeperAi.current.x + "," + keeperAi.current.y);
                     keeperAi.nextTask = KeeperAi.Task.TAG_GOLD;
                     yield actions - 1;
                 }
@@ -216,9 +243,30 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
     }
 
-    private static void setTask(KeeperAi keeperAi, KeeperAi.Task task) {
+    private void setTask(KeeperAi keeperAi, KeeperAi.Task task, String reason) {
+        setTask(keeperAi, task, keeperAi.target, reason);
+    }
+
+    private void setTask(KeeperAi keeperAi, KeeperAi.Task task, Point target, String reason) {
+        log(keeperAi, "next " + task, target, reason);
         keeperAi.task = task;
         keeperAi.taskTicks = 0;
+    }
+
+    /**
+     * Writes a line to the decision log, if it is on
+     *
+     * @param keeperAi the computer player, with the task it is on
+     * @param decision what it does
+     * @param target the tile it does it to, if any
+     * @param reason why
+     */
+    private void log(KeeperAi keeperAi, String decision, Point target, String reason) {
+        if (logDecisions) {
+            logger.log(Level.INFO, String.format("AI tick %d player %d %s: %s%s (%s)",
+                    Math.round(gameTimer.getGameTime() * kwdFile.getGameLevel().getTicksPerSec()), keeperAi.playerId,
+                    keeperAi.task, decision, target != null ? " at " + target.x + "," + target.y : "", reason));
+        }
     }
 
     /**
@@ -227,7 +275,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      *
      * @return true if the spell was cast
      */
-    private boolean createImp(IPlayerController playerController, AI ai) {
+    private boolean createImp(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         Keeper keeper = playerController.getKeeper();
         int imps = playerController.getCreatureControl().getImpCount();
 
@@ -258,7 +306,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         gameWorldController.castKeeperSpell(createImp.getKeeperSpellId(), null, tile, WorldUtils.pointToVector2f(tile), keeper.getId());
 
         // The cast has its own rules, the mana tells if it went through
-        return keeper.getMana() < mana;
+        if (keeper.getMana() < mana) {
+            log(keeperAi, "cast Create Imp", tile, imps + " imps, fewer than its land and its limit allow");
+            return true;
+        }
+
+        return false;
     }
 
     private int countOwnedTiles(short playerId) {
@@ -309,8 +362,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
         Point gold = findGold(playerController);
         if (gold != null) {
-            setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD);
             keeperAi.target = gold;
+            setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD, "low on gold with " + playerController.getKeeper().getGold());
             keeperAi.goldTiles = 0;
         }
     }
@@ -455,11 +508,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
             Point tile = new Point(x, y);
             if (hasGold(x, y) && mapController.isTaggable(tile)) {
-                tag(keeperAi, tile, tile, ticksPerSecond);
+                tag(keeperAi, tile, tile, ticksPerSecond, "gold");
             }
             keeperAi.goldTiles++;
             if (keeperAi.goldTiles == GOLD_TILES_TO_TAG) {
-                setTask(keeperAi, KeeperAi.Task.PLAN);
+                setTask(keeperAi, KeeperAi.Task.PLAN, "looked at all the tiles around the gold");
             }
         }
 
@@ -485,7 +538,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             return;
         }
 
-        setTask(keeperAi, KeeperAi.Task.FIND_ROOM_SITE);
         keeperAi.roomId = room.getRoomId();
         keeperAi.direction = getPreferredDirection(keeperAi.roomId, playerController.getKeeper());
         if (!isCoreRoom(keeperAi.roomId)) {
@@ -509,6 +561,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (keeperAi.current == null) {
             keeperAi.current = getRandomRoomLocation(playerController);
         }
+        setTask(keeperAi, KeeperAi.Task.FIND_ROOM_SITE, keeperAi.current, "room " + keeperAi.roomId + " is next, looking " + DIRECTIONS[keeperAi.direction]);
     }
 
     /**
@@ -583,11 +636,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (site != null) {
 
             // First the path to the site
-            setTask(keeperAi, KeeperAi.Task.DIG_PATH);
-            keeperAi.nextTask = KeeperAi.Task.TAG_ROOM;
             keeperAi.target = site.entrance();
             keeperAi.corner = site.corner();
             keeperAi.oppositeCorner = site.oppositeCorner();
+            setTask(keeperAi, KeeperAi.Task.DIG_PATH, "site for room " + keeperAi.roomId + " from " + site.corner().x + "," + site.corner().y
+                    + " to " + site.oppositeCorner().x + "," + site.oppositeCorner().y + ", " + DIRECTIONS[keeperAi.direction] + " of " + keeperAi.current.x + "," + keeperAi.current.y);
+            keeperAi.nextTask = KeeperAi.Task.TAG_ROOM;
             return actions - 1;
         }
 
@@ -602,7 +656,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.direction = preferred;
             keeperAi.current = getRandomRoomLocation(playerController);
         } else {
-            setTask(keeperAi, KeeperAi.Task.PLAN);
+            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId);
         }
 
         return 0;
@@ -617,7 +671,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         // No paths out of the build area
         if (keeperAi.target.x < ai.getBuildAreaStartX() || keeperAi.target.x > ai.getBuildAreaEndX()
                 || keeperAi.target.y < ai.getBuildAreaStartY() || keeperAi.target.y > ai.getBuildAreaEndY()) {
-            setTask(keeperAi, KeeperAi.Task.FINISH);
+            setTask(keeperAi, KeeperAi.Task.FINISH, "the path leads out of the build area");
             keeperAi.nextTask = KeeperAi.Task.FINISH;
             return 0;
         }
@@ -625,7 +679,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         while (actions > 0) {
             actions--;
             if (keeperAi.current.equals(keeperAi.target)) {
-                finishPath(keeperAi);
+                finishPath(keeperAi, "the path is dug");
                 return actions;
             }
 
@@ -634,12 +688,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) || terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
                 Room bridge = getBridge(playerController, terrain);
                 if (bridge == null) {
-                    finishPath(keeperAi);
+                    finishPath(keeperAi, "no bridge to cross with");
                     return actions;
                 }
                 if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, bridge.getRoomId())) {
                     Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                     gameWorldController.build(position, position, keeperAi.playerId, bridge.getRoomId());
+                    log(keeperAi, "build room " + bridge.getRoomId(), keeperAi.current, "the path crosses water or lava");
                     if (mapController.getRoomControllerByCoordinates(keeperAi.current) != null) {
                         stepOnPath(keeperAi);
                     }
@@ -647,15 +702,15 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             } else if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                 stepOnPath(keeperAi);
             } else if (!tile.isSelected(keeperAi.playerId)) {
-                tag(keeperAi, keeperAi.current, keeperAi.current, ticksPerSecond);
+                tag(keeperAi, keeperAi.current, keeperAi.current, ticksPerSecond, "next tile of the path");
             }
         }
 
         return 0;
     }
 
-    private static void finishPath(KeeperAi keeperAi) {
-        setTask(keeperAi, keeperAi.nextTask);
+    private void finishPath(KeeperAi keeperAi, String reason) {
+        setTask(keeperAi, keeperAi.nextTask, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;
     }
 
@@ -691,15 +746,16 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         return null;
     }
 
-    private void tag(KeeperAi keeperAi, Point from, Point to, int ticksPerSecond) {
+    private void tag(KeeperAi keeperAi, Point from, Point to, int ticksPerSecond, String reason) {
+        log(keeperAi, from.equals(to) ? "tag" : "tag to " + to.x + "," + to.y, from, reason);
         mapController.selectTiles(new Vector2f(Math.min(from.x, to.x), Math.min(from.y, to.y)),
                 new Vector2f(Math.max(from.x, to.x), Math.max(from.y, to.y)), true, keeperAi.playerId);
         keeperAi.untagTicks = UNTAG_GOLD_SECONDS * ticksPerSecond;
     }
 
     private int tagRoom(KeeperAi keeperAi, int ticksPerSecond, int actions) {
-        tag(keeperAi, keeperAi.corner, keeperAi.oppositeCorner, ticksPerSecond);
-        setTask(keeperAi, KeeperAi.Task.BUILD_ROOM);
+        tag(keeperAi, keeperAi.corner, keeperAi.oppositeCorner, ticksPerSecond, "the site of room " + keeperAi.roomId);
+        setTask(keeperAi, KeeperAi.Task.BUILD_ROOM, "the site is tagged");
         keeperAi.current = keeperAi.corner;
 
         return actions - 1;
@@ -715,6 +771,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, keeperAi.roomId)) {
                 Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                 gameWorldController.build(position, position, keeperAi.playerId, keeperAi.roomId);
+                log(keeperAi, "build room " + keeperAi.roomId, keeperAi.current, "the tile is dug out and claimed");
                 return actions;
             }
 
@@ -723,14 +780,14 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
                 // Not ours yet, see that it is still tagged
                 if (!tile.isSelected(keeperAi.playerId) && mapController.isTaggable(keeperAi.current)) {
-                    tag(keeperAi, keeperAi.current, keeperAi.current, ticksPerSecond);
+                    tag(keeperAi, keeperAi.current, keeperAi.current, ticksPerSecond, "a tile of the site lost its tag");
                 }
             } else if (keeperAi.current.x != keeperAi.oppositeCorner.x) {
                 keeperAi.current = new Point(keeperAi.current.x + Integer.signum(keeperAi.oppositeCorner.x - keeperAi.corner.x), keeperAi.current.y);
             } else if (keeperAi.current.y != keeperAi.oppositeCorner.y) {
                 keeperAi.current = new Point(keeperAi.corner.x, keeperAi.current.y + Integer.signum(keeperAi.oppositeCorner.y - keeperAi.corner.y));
             } else {
-                setTask(keeperAi, KeeperAi.Task.FINISH);
+                setTask(keeperAi, KeeperAi.Task.FINISH, "room " + keeperAi.roomId + " is built");
                 return 0;
             }
         }

@@ -26,6 +26,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.logging.Handler;
+import java.util.logging.LogRecord;
+import java.util.logging.Logger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -113,6 +116,80 @@ class KeeperAiSystemTest {
     private Keeper keeper;
     private PlayerRoomControl roomControl;
     private PlayerCreatureControl creatureControl;
+    private double gameTime;
+    private boolean logDecisions;
+
+    @Test
+    void logsWhatItDecidesWithTheTickAndTheReasonWhenTheLogIsOn() {
+        List<String> lines = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                lines.add(logRecord.getMessage());
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        Logger logger = Logger.getLogger(KeeperAiSystem.class.getName());
+        logger.addHandler(handler);
+        try {
+            logDecisions = true;
+            gameTime = 30;
+            KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of(TREASURY)), 1000);
+            roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+            creatureControl.onCreatureAdded(new EntityId(1), imp);
+            system.processTick(0.25f);
+
+            // The second imp, at 4 ticks a second
+            assertEquals(1, lines.size());
+            assertTrue(lines.getFirst().matches("AI tick 120 player 3 PLAN: cast Create Imp at \\d+,\\d+ \\(1 imps, .*\\)"), lines.getFirst());
+
+            creatureControl.onCreatureAdded(new EntityId(2), imp);
+            system.processTick(0.25f);
+
+            assertEquals(2, lines.size());
+            assertEquals("AI tick 120 player 3 PLAN: next FIND_ROOM_SITE at 3,6 (room 1 is next, looking west)", lines.getLast());
+        } finally {
+            logger.removeHandler(handler);
+        }
+    }
+
+    @Test
+    void logsNothingWhenTheLogIsOff() {
+        List<LogRecord> records = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                records.add(logRecord);
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        Logger logger = Logger.getLogger(KeeperAiSystem.class.getName());
+        logger.addHandler(handler);
+        try {
+            KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of(TREASURY)), 1000);
+            creatureControl.onCreatureAdded(new EntityId(1), imp);
+            system.processTick(0.25f);
+
+            assertEquals(1, impSpells.size());
+            assertTrue(records.isEmpty());
+        } finally {
+            logger.removeHandler(handler);
+        }
+    }
 
     @Test
     void createsAnImpOnACornerOfTheHeartWhenItsLandAllowsMore() {
@@ -294,7 +371,7 @@ class KeeperAiSystemTest {
                     return null;
                 });
 
-        return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController), gameWorldController);
+        return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController), gameWorldController, () -> gameTime, logDecisions);
     }
 
     private IRoomController createRoom(short roomId, Point centre) {
