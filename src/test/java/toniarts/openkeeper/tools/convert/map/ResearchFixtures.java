@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 
@@ -35,6 +36,12 @@ public final class ResearchFixtures {
         door.setDoorId(id);
         door.setName("Door " + id);
         door.setResearchTime(researchTime);
+        return door;
+    }
+
+    public static Door door(short id, int researchTime, EnumSet<Door.DoorFlag> flags) {
+        Door door = door(id, researchTime);
+        door.setFlags(flags);
         return door;
     }
 
