@@ -59,6 +59,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.controller.room.storage.RoomGoldControl;
@@ -1287,7 +1288,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             Owner owner = entityData.getComponent(entity, Owner.class);
             boolean imp = entityData.getComponent(entity, CreatureComponent.class).creatureId == kwdFile.getImp().getCreatureId();
             CreatureState captiveState = getCaptiveState(roomController, owner.ownerId, imp);
-            if (captiveState == CreatureState.IMPRISONED) {
+            // Like in DK II, the Prison holds prisoners only inside its cage, around it the creature is just dropped
+            if (captiveState == CreatureState.IMPRISONED && roomController instanceof PrisonController prison && prison.isCageTile(tile)) {
                 roomController.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entity, tile);
                 creatureState = CreatureState.IMPRISONED;
                 imprison = true;
