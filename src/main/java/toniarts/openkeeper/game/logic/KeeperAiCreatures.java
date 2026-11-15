@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -47,7 +48,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * How the computer player looks after its creatures away from the fights:
  * it drops them where they train, makes room for creatures that research
- * and puts idle creatures to work. It uses the hand like a human player
+ * puts idle creatures to work and slaps idle ones. It uses the hand like a human player
  * does.
  */
 final class KeeperAiCreatures {
@@ -81,6 +82,13 @@ final class KeeperAiCreatures {
      * DK II picks idle creatures up to put them to work on one tick in ten
      */
     private static final int PICK_UP_IDLE_CHANCE_PERCENTAGE = 10;
+
+    /**
+     * DK II slaps an idle creature on one tick in a hundred, when it has more
+     * than half its health
+     */
+    private static final int SLAP_CHANCE = 100;
+    private static final int SLAP_HEALTH_PERCENTAGE = 50;
 
     /**
      * DK II sends a creature to the Combat Pit when it has more than three
@@ -311,6 +319,32 @@ final class KeeperAiCreatures {
             }
             if (actions == 0 || playerController.getHandControl().isFull()) {
                 break;
+            }
+        }
+
+        return actions;
+    }
+
+    /**
+     * Slaps its idle creatures, each one with more than half its health and
+     * not still quick from a slap has one chance in a hundred. Each slap
+     * takes an action.
+     *
+     * @param keeperAi the computer player
+     * @param actions the actions it has left
+     * @return the actions it has left after this
+     */
+    int slapIdleCreatures(KeeperAi keeperAi, int actions) {
+        for (Entity creature : battles.getCreatures(keeperAi.playerId)) {
+            if (actions == 0) {
+                break;
+            }
+            Health health = creature.get(Health.class);
+            if (isIdle(creature) && health.health > health.maxHealth * SLAP_HEALTH_PERCENTAGE / 100
+                    && entityData.getComponent(creature.getId(), Slapped.class) == null && Utils.getRandom().nextInt(SLAP_CHANCE) == 0) {
+                decisionLog.log(keeperAi, "slap creature " + creature.getId().getId(), null, "idle");
+                gameWorldController.interact(creature.getId(), keeperAi.playerId);
+                actions--;
             }
         }
 

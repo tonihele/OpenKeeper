@@ -300,6 +300,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = creatures.pickUpIdleCreatures(keeperAi, playerController, ai, creatureLevel, actions);
         }
 
+        // Idle creatures get a slap now and then
+        if (actions > 0) {
+            actions = creatures.slapIdleCreatures(keeperAi, actions);
+        }
+
         while (actions > 0) {
             actions = switch (keeperAi.task) {
                 case PLAN -> {
