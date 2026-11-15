@@ -76,7 +76,7 @@ class UsedSpecialStorageTest {
     private IObjectController controller(EntityId special) {
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> null);
-        return new ObjectController(special, entityData, null, objectsController, mapController());
+        return new ObjectController(special, entityData, null, objectsController, mapController(), null, 0);
     }
 
     private IMapController mapController() {
