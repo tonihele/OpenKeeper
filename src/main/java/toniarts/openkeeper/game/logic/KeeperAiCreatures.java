@@ -18,8 +18,10 @@ package toniarts.openkeeper.game.logic;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
@@ -28,26 +30,33 @@ import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * How the computer player looks after its creatures away from the fights:
- * it drops them where they train. It uses the hand like a human player does.
+ * it drops them where they train, makes room for creatures that research
+ * and puts idle creatures to work. It uses the hand like a human player
+ * does.
  */
 final class KeeperAiCreatures {
 
     private static final short ROOM_PORTAL = 3;
     private static final short ROOM_LIBRARY = 6;
     private static final short ROOM_TRAINING_ROOM = 7;
+    private static final short ROOM_WORKSHOP = 10;
+    private static final short ROOM_TORTURE_CHAMBER = 12;
     private static final short ROOM_COMBAT_PIT = 16;
     private static final short ROOM_HERO_PORTAL = 25;
 
@@ -56,6 +65,22 @@ final class KeeperAiCreatures {
      * than this
      */
     private static final int RESEARCHERS_WANTED = 2;
+
+    /**
+     * The room for each job DK II's computer player puts a creature to (the
+     * table at 0x6ED490). It never picks a creature up for torture, but
+     * puts one down in the Torture Chamber
+     */
+    private static final Map<Creature.JobType, Short> JOB_ROOMS = Map.of(
+            Creature.JobType.RESEARCH, ROOM_LIBRARY,
+            Creature.JobType.TRAIN, ROOM_TRAINING_ROOM,
+            Creature.JobType.MANUFACTURE, ROOM_WORKSHOP,
+            Creature.JobType.TORTURE, ROOM_TORTURE_CHAMBER);
+
+    /**
+     * DK II picks idle creatures up to put them to work on one tick in ten
+     */
+    private static final int PICK_UP_IDLE_CHANCE_PERCENTAGE = 10;
 
     /**
      * DK II sends a creature to the Combat Pit when it has more than three
@@ -75,6 +100,8 @@ final class KeeperAiCreatures {
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
+    private final IGameWorldController gameWorldController;
+    private final KeeperAiInvasions invasions;
     private final KeeperAiBattles battles;
     private final KeeperAiBattles.DecisionLog decisionLog;
 
@@ -89,9 +116,12 @@ final class KeeperAiCreatures {
     private final int firstPortalCapacity;
     private final int additionalPortalCapacity;
 
-    KeeperAiCreatures(EntityData entityData, IKwdFile kwdFile, KeeperAiBattles battles, KeeperAiBattles.DecisionLog decisionLog) {
+    KeeperAiCreatures(EntityData entityData, IKwdFile kwdFile, IGameWorldController gameWorldController, KeeperAiBattles battles,
+            KeeperAiInvasions invasions, KeeperAiBattles.DecisionLog decisionLog) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameWorldController = gameWorldController;
+        this.invasions = invasions;
         this.battles = battles;
         this.decisionLog = decisionLog;
         trainingRoomMaxLevel = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue();
@@ -200,6 +230,122 @@ final class KeeperAiCreatures {
         decisionLog.log(keeperAi, "carry creature " + weakest.getId().getId() + " to its Portal", tile,
                 "its Portals are full and it has " + researchers + " creatures that research");
         battles.carry(weakest.getId(), tile, playerController);
+    }
+
+    /**
+     * Puts down what is on top of its hand, which is there when it picked a
+     * creature up to put it to work, or when a drop did not go through. A
+     * creature goes to the first room for one of the jobs it likes that the
+     * computer player has, anything else and a creature without such a room
+     * goes to the Dungeon Heart.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     * @return true if there was something in the hand, that takes the turn
+     */
+    boolean emptyHand(KeeperAi keeperAi, IPlayerController playerController) {
+        EntityId held = playerController.getHandControl().peek();
+        if (held == null) {
+            return false;
+        }
+
+        Point tile = playerController.getKeeper().getDungeonHeartLocation();
+        String reason = "its hand was not empty";
+        CreatureComponent creatureComponent = entityData.getComponent(held, CreatureComponent.class);
+        Creature.JobPreference[] jobs = creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId).getHappyJobs() : null;
+        if (jobs != null) {
+            for (Creature.JobPreference job : jobs) {
+                Short roomId = JOB_ROOMS.get(job.getJobType());
+                IRoomController room = roomId != null ? getRoom(playerController, roomId) : null;
+                if (room != null) {
+                    tile = room.getRoomInstance().getCenter();
+                    reason = "the creature likes to " + job.getJobType().name().toLowerCase() + " there";
+                    break;
+                }
+            }
+        }
+        decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
+        gameWorldController.drop(held, tile, WorldUtils.pointToVector2f(tile), null, keeperAi.playerId);
+
+        return true;
+    }
+
+    /**
+     * On one tick in ten it picks up idle creatures to put them to work, as
+     * long as its hand has room: a creature that likes a job it has the room
+     * for, and the job is wanted. Research while a spell is still to
+     * research, training while its army is not ready, manufacture always.
+     * The next turns put them down in the room. Each creature picked up
+     * takes an action.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     * @param ai its settings
+     * @param creatureLevel the level it wants its creatures at
+     * @param actions the actions it has left
+     * @return the actions it has left after this
+     */
+    int pickUpIdleCreatures(KeeperAi keeperAi, IPlayerController playerController, AI ai, int creatureLevel, int actions) {
+        if (Utils.getRandom().nextInt(100) >= PICK_UP_IDLE_CHANCE_PERCENTAGE || actions == 0 || playerController.getHandControl().isFull()) {
+            return actions;
+        }
+
+        for (Entity creature : battles.getCreatures(keeperAi.playerId)) {
+            Creature.JobPreference[] jobs = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getHappyJobs();
+            if (!isIdle(creature) || battles.isLeftAlone(creature) || jobs == null) {
+                continue;
+            }
+            for (Creature.JobPreference job : jobs) {
+                Short roomId = JOB_ROOMS.get(job.getJobType());
+                if (roomId == null || getRoom(playerController, roomId) == null
+                        || !isJobWanted(job.getJobType(), keeperAi, playerController, ai, creatureLevel)) {
+                    continue;
+                }
+                gameWorldController.pickUp(creature.getId(), keeperAi.playerId);
+                if (creature.getId().equals(playerController.getHandControl().peek())) {
+                    decisionLog.log(keeperAi, "pick up creature " + creature.getId().getId(), null,
+                            "idle, it likes to " + job.getJobType().name().toLowerCase());
+                    actions--;
+                    break;
+                }
+            }
+            if (actions == 0 || playerController.getHandControl().isFull()) {
+                break;
+            }
+        }
+
+        return actions;
+    }
+
+    /**
+     * Whether a job is wanted. Looking at the research also makes room for a
+     * creature that researches, as in DK II
+     */
+    private boolean isJobWanted(Creature.JobType jobType, KeeperAi keeperAi, IPlayerController playerController, AI ai, int creatureLevel) {
+        return switch (jobType) {
+            case RESEARCH -> {
+                boolean research = invasions.hasSpellsToResearch(playerController);
+                if (research) {
+                    makeRoomForResearcher(keeperAi, playerController);
+                }
+                yield research;
+            }
+            case TRAIN ->
+                !invasions.isArmyReady(keeperAi.playerId, ai, creatureLevel);
+            case MANUFACTURE ->
+                true;
+            default ->
+                false;
+        };
+    }
+
+    /**
+     * A creature with nothing to do. DK II counts a fleeing fighter in too
+     */
+    private static boolean isIdle(Entity creature) {
+        CreatureState state = creature.get(CreatureAi.class).getCreatureState();
+
+        return state == CreatureState.IDLE || (state == CreatureState.FLEE && !creature.get(CreatureComponent.class).worker);
     }
 
     private int getPortalCapacity(IPlayerController playerController) {

@@ -409,8 +409,8 @@ class KeeperAiSystemTest {
     @Test
     void dropsACreatureLeftInItsHandInTheRoomForAJobItLikes() {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
-        roomControl.onBuild(createRoom(LAIR, new Point(2, 4)));
         roomControl.onBuild(createRoom(HATCHERY, new Point(4, 8)));
+        roomControl.onBuild(createRoom(LIBRARY, new Point(2, 4)));
         EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = EATER;
@@ -419,8 +419,8 @@ class KeeperAiSystemTest {
 
         system.processTick(0.25f);
 
-        // It would rather research, but there is no Library
-        assertEquals(Map.of(creature, new Point(4, 8)), dropped);
+        // DK II's computer player takes no creature to the Hatchery
+        assertEquals(Map.of(creature, new Point(2, 4)), dropped);
     }
 
     @Test
@@ -820,6 +820,31 @@ class KeeperAiSystemTest {
         system.processTick(0.25f);
 
         assertTrue(dropped.isEmpty());
+    }
+
+    @Test
+    void picksUpAnIdleCreatureToResearchWhileThereIsResearchToDo() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        spellControl.setTypeAvailable(heal, true, true);
+        EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = EATER;
+        entityData.setComponent(creature, creatureComponent);
+        for (int tick = 0; tick < 200; tick++) {
+            system.processTick(0.25f);
+        }
+
+        // Nothing to research
+        assertTrue(handControl.isEmpty());
+        assertTrue(dropped.isEmpty());
+
+        spellControl.setTypeAvailable(thunderbolt, true, false);
+        for (int tick = 0; tick < 200 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(Map.of(creature, new Point(1, 4)), dropped);
     }
 
     private EntityId createCreature(short playerId, Point tile, int health, int maxHealth, CreatureState state) {

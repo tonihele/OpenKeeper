@@ -175,7 +175,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         this.mapController = gameWorldController.getMapController();
         battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, this::log);
         invasions = new KeeperAiInvasions(entityData, kwdFile, gameWorldController, navigationService, battles, this::log);
-        creatures = new KeeperAiCreatures(entityData, kwdFile, battles, this::log);
+        creatures = new KeeperAiCreatures(entityData, kwdFile, gameWorldController, battles, invasions, this::log);
 
         // The keepers the level or the game setup gives to the computer, a loaded game has them already
         keeperAis = entityData.getEntities(KeeperAi.class);
@@ -293,10 +293,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 creatures.makeRoomForResearcher(keeperAi, playerController);
             }
 
-            // What a failed drop left in its hand is put down
-            if (battles.emptyHand(keeperAi, playerController)) {
+            // What is in its hand is put down, and now and then idle creatures are picked up to be put to work
+            if (creatures.emptyHand(keeperAi, playerController)) {
                 actions--;
             }
+            actions = creatures.pickUpIdleCreatures(keeperAi, playerController, ai, creatureLevel, actions);
         }
 
         while (actions > 0) {
