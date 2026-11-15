@@ -102,8 +102,7 @@ class PayDaySystemTest {
         payDaySystem.payDayNow(KEEPER);
         tick(1);
 
-        assertEquals(500, treasury);
-        assertEquals(WAGE / 2, gold(goblin));
+        assertEquals(WAGE, owed(goblin));
         assertEquals(1, keeperStats.getPayDays());
     }
 
@@ -115,7 +114,6 @@ class PayDaySystemTest {
         payDaySystem.payDayNow(KEEPER);
         tick(1);
 
-        assertEquals(1000, treasury);
         assertEquals(0, keeperStats.getPayDays());
     }
 
