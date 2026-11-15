@@ -34,6 +34,10 @@ public enum GameEventType {
      */
     CREATURE_HURT,
     CREATURE_DIE,
+    /**
+     * A prisoner died and rose as a Skeleton, only the keeper of the Prison gets this
+     */
+    PRISON_SKELETON_RISEN,
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**

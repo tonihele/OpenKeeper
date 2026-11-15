@@ -143,6 +143,14 @@ class GameEventTest {
     }
 
     @Test
+    void mentorTellsOfAPrisonerRisenAsASkeleton() {
+        GameEvent event = new GameEvent(GameEventType.PRISON_SKELETON_RISEN, null, 0, null, 0, null, null);
+
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null)),
+                GameEventSounds.getSounds(event, null));
+    }
+
+    @Test
     void sacrificeSpeechIsTheMentorsTempleSpeech() {
         assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null)),
                 GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 1, null, 0, null, null), null));

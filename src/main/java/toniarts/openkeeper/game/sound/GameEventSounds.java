@@ -78,6 +78,8 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_HIT, event.position);
             case CREATURE_DIE ->
                 add(sounds, subject, ThingSounds.CREATURE_DIE, event.position);
+            case PRISON_SKELETON_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null);
             case CREATURE_CLAIM_TILE ->
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
