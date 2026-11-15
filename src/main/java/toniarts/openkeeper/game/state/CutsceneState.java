@@ -19,14 +19,14 @@ package toniarts.openkeeper.game.state;
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
-import com.jme3.audio.AudioData;
-import com.jme3.audio.AudioNode;
-import com.jme3.audio.AudioSource;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.sound.MentorType;
+import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundEngine;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.MainMenuScreenController.Cutscene;
-import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.video.MovieState;
 
@@ -39,8 +39,6 @@ import static toniarts.openkeeper.Main.getDkIIFolder;
  * debriefing screen).
  */
 public final class CutsceneState extends AbstractAppState {
-
-    private static final String CUTSCENE_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/misc%03d.mp2";
 
     /**
      * How long to keep showing the movie name after the speech has finished, so the player has time
@@ -55,7 +53,7 @@ public final class CutsceneState extends AbstractAppState {
 
     private Main app;
     private AppStateManager stateManager;
-    private AudioNode speechNode;
+    private int speechHandle = SoundEngine.NO_HANDLE;
     private boolean speechFinished = false;
     private float readingDelay = 0f;
     private boolean moviePlaying = false;
@@ -77,13 +75,14 @@ public final class CutsceneState extends AbstractAppState {
         this.app.getInputManager().setCursorVisible(false);
 
         if (cutscene.getSpeechId() != null && !cutscene.getSpeechId().isEmpty()) {
-            String speechFile = AssetUtils.getCanonicalAssetKey(
-                    String.format(CUTSCENE_SPEECH_URL, Integer.parseInt(cutscene.getSpeechId())));
-            speechNode = new AudioNode(app.getAssetManager(), speechFile, AudioData.DataType.Buffer);
-            speechNode.setLooping(false);
-            speechNode.setPositional(false);
-            speechNode.setDirectional(false);
-            speechNode.play();
+            // The speech id is the number of the miscNNN file, not the sound event id
+            MentorType speech = MentorType.forMisc(Integer.parseInt(cutscene.getSpeechId()));
+            if (speech != null) {
+                speechHandle = SoundManager.playSound(SoundCategory.SPEECH_MENTOR, speech);
+            }
+            if (speechHandle == SoundEngine.NO_HANDLE) {
+                speechFinished = true;
+            }
         }
     }
 
@@ -93,13 +92,13 @@ public final class CutsceneState extends AbstractAppState {
             return;
         }
 
-        if (speechNode == null) {
+        if (speechHandle == SoundEngine.NO_HANDLE) {
             playMovie();
             return;
         }
 
         if (!speechFinished) {
-            if (speechNode.getStatus() == AudioSource.Status.Stopped) {
+            if (!SoundManager.isPlaying(speechHandle)) {
                 speechFinished = true;
             }
             return;
@@ -146,8 +145,9 @@ public final class CutsceneState extends AbstractAppState {
 
     @Override
     public void cleanup() {
-        if (speechNode != null) {
-            speechNode.stop();
+        if (speechHandle != SoundEngine.NO_HANDLE) {
+            SoundManager.stopSound(speechHandle);
+            speechHandle = SoundEngine.NO_HANDLE;
         }
         super.cleanup();
     }

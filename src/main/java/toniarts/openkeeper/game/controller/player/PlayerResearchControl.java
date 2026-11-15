@@ -18,11 +18,13 @@ package toniarts.openkeeper.game.controller.player;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.listener.PlayerResearchableEntityListener;
-import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Variable.ResearchOrder;
 
 /**
  * Manages player research
@@ -57,48 +59,28 @@ public final class PlayerResearchControl {
         return keeper.getCurrentResearch() != null;
     }
 
-    private static boolean research(ResearchableEntity researchableEntity, int researchTime, Integer upgradeResearchTime, int researchAmount) {
+    private static boolean research(ResearchableEntity researchableEntity, int researchPoints, int researchAmount) {
         researchableEntity.setResearch(researchableEntity.getResearch() + researchAmount);
-        if (researchableEntity.isDiscovered() && researchableEntity.isUpgradedable() && researchableEntity.getResearch() >= upgradeResearchTime) {
-            //spell.setUpgraded(true); - added with delay by the spellbook actually materializing
-            researchableEntity.setResearch(0);
-            return true;
-        } else if (!researchableEntity.isDiscovered() && researchableEntity.getResearch() >= researchTime) {
-            //spell.setDiscovered(true); - added with delay by the spellbook actually materializing
-            researchableEntity.setResearch(0);
+        if (researchableEntity.getResearch() >= researchPoints) {
+            // The discovery or the upgrade is added with delay by the spellbook actually materializing,
+            // the progress is reset then, see completeResearch
             return true;
         }
         return false;
     }
 
     /**
-     * Researches current item
+     * Researches current item. A completed item stays the current one, and the
+     * points keep piling up, until {@link #completeResearch()} is called (the original
+     * only completes it once the book has found room), so this keeps returning
+     * it until then.
      *
      * @param researchAmount the research amount
      * @return returns the type if it is researched completely
      */
     public ResearchableEntity research(int researchAmount) {
         ResearchableEntity researchableEntity = keeper.getCurrentResearch();
-        boolean advanceToNext = false;
-        switch (researchableEntity.getResearchableType()) {
-            case DOOR: {
-                advanceToNext = research(researchableEntity, kwdFile.getDoorById(researchableEntity.getId()).getResearchTime(), null, researchAmount);
-                break;
-            }
-            case TRAP: {
-                advanceToNext = research(researchableEntity, kwdFile.getTrapById(researchableEntity.getId()).getResearchTime(), null, researchAmount);
-                break;
-            }
-            case ROOM: {
-                advanceToNext = research(researchableEntity, kwdFile.getRoomById(researchableEntity.getId()).getResearchTime(), null, researchAmount);
-                break;
-            }
-            case SPELL: {
-                KeeperSpell keeperSpell = kwdFile.getKeeperSpellById(researchableEntity.getId());
-                advanceToNext = research(researchableEntity, keeperSpell.getResearchTime(), keeperSpell.getBonusRTime(), researchAmount);
-                break;
-            }
-        }
+        boolean advanceToNext = research(researchableEntity, getResearchPoints(kwdFile, researchableEntity), researchAmount);
 
         if (!advanceToNext) {
             if (researchListeners != null) {
@@ -109,51 +91,99 @@ public final class PlayerResearchControl {
         }
 
         // If research complete, return the entity
-        if (advanceToNext) {
-            setNextResearchTarget();
-            return researchableEntity;
+        return advanceToNext ? researchableEntity : null;
+    }
+
+    /**
+     * Finishes the current research once its result has been stored: resets
+     * the progress and moves on to the next target
+     */
+    public void completeResearch() {
+        keeper.getCurrentResearch().setResearch(0);
+        setNextResearchTarget();
+    }
+
+    /**
+     * Get the research points it takes to discover or upgrade the given
+     * entity. Like in DK II, they come from the research order, the research
+     * times of the rooms, doors, traps and spells are not used
+     *
+     * @param kwdFile the level
+     * @param researchableEntity the entity
+     * @return the research points, {@link Integer#MAX_VALUE} if the entity is
+     * not in the research order and so can't be researched
+     */
+    public static int getResearchPoints(IKwdFile kwdFile, ResearchableEntity researchableEntity) {
+        for (ResearchOrder researchOrder : kwdFile.getResearchOrder()) {
+            if (researchOrder.getTypeId() == researchableEntity.getId()
+                    && getResearchableType(researchOrder) == researchableEntity.getResearchableType()) {
+                return researchOrder.getResearchPoints();
+            }
         }
-        return null;
+        return Integer.MAX_VALUE;
+    }
+
+    private static ResearchableType getResearchableType(ResearchOrder researchOrder) {
+        if (researchOrder.getType() == null) {
+            return null;
+        }
+        return switch (researchOrder.getType()) {
+            case ROOM ->
+                ResearchableType.ROOM;
+            case DOOR ->
+                ResearchableType.DOOR;
+            case TRAP ->
+                ResearchableType.TRAP;
+            case SPELL ->
+                ResearchableType.SPELL;
+        };
     }
 
     private void setNextResearchTarget() {
 
-        /**
-         * Here is the order in which we research:
-         *
-         * Spells discover no upgrade<br>
-         * Doors<br>
-         * Traps<br>
-         * Rooms<br>
-         * Spells upgrade
-         */
-        ResearchableEntity nextToUpgrade = null;
-        ResearchableEntity nextToReseach = null;
-
-        // Process all in order
+        // Like DK II, go through the research order and research everything
+        // that can be discovered first, and only then upgrade the spells, in
+        // the same order. What is not in the research order is not researched
         // Always check that it is not the current one, because they'll status will be updated with delay
-        List<ResearchableEntity> researchables = new ArrayList<>(keeper.getAvailableSpells().size() + keeper.getAvailableDoors().size() + keeper.getAvailableTraps().size() + keeper.getAvailableRooms().size());
-        researchables.addAll(keeper.getAvailableSpells());
-        researchables.addAll(keeper.getAvailableDoors());
-        researchables.addAll(keeper.getAvailableTraps());
-        researchables.addAll(keeper.getAvailableRooms());
-        for (ResearchableEntity researchableEntity : researchables) {
-            if (!isEntityDiscovered(researchableEntity) && nextToReseach == null) {
-                nextToReseach = researchableEntity;
-            } else if (researchableEntity.isUpgradedable() && isEntityDiscovered(researchableEntity) && !isEntityUpgraded(researchableEntity) && nextToUpgrade == null) {
-                nextToUpgrade = researchableEntity;
-            }
+        ResearchableEntity nextToReseach = findInResearchOrder(researchableEntity -> !isEntityDiscovered(researchableEntity));
+        if (nextToReseach == null) {
+            nextToReseach = findInResearchOrder(researchableEntity -> researchableEntity.isUpgradedable()
+                    && isEntityDiscovered(researchableEntity) && !isEntityUpgraded(researchableEntity));
+        }
+        keeper.setCurrentResearch(nextToReseach);
+    }
 
-            // Always prioritize discovering new over upgrading
-            // See if we found a match
-            if (nextToReseach != null) {
-                keeper.setCurrentResearch(nextToReseach);
-                return;
+    private ResearchableEntity findInResearchOrder(Predicate<ResearchableEntity> condition) {
+        for (ResearchOrder researchOrder : kwdFile.getResearchOrder()) {
+            ResearchableEntity researchableEntity = getAvailableEntity(researchOrder);
+            if (researchableEntity != null && condition.test(researchableEntity)) {
+                return researchableEntity;
             }
         }
+        return null;
+    }
 
-        // See if anything to upgrade
-        keeper.setCurrentResearch(nextToUpgrade);
+    private ResearchableEntity getAvailableEntity(ResearchOrder researchOrder) {
+        ResearchableType researchableType = getResearchableType(researchOrder);
+        if (researchableType == null) {
+            return null;
+        }
+        List<ResearchableEntity> availableEntities = switch (researchableType) {
+            case ROOM ->
+                keeper.getAvailableRooms();
+            case DOOR ->
+                keeper.getAvailableDoors();
+            case TRAP ->
+                keeper.getAvailableTraps();
+            case SPELL ->
+                keeper.getAvailableSpells();
+        };
+        for (ResearchableEntity researchableEntity : availableEntities) {
+            if (researchableEntity.getId() == researchOrder.getTypeId()) {
+                return researchableEntity;
+            }
+        }
+        return null;
     }
 
     private boolean isEntityDiscovered(ResearchableEntity researchableEntity) {

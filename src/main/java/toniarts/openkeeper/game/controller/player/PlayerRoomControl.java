@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.player;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
@@ -41,6 +42,7 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
     private boolean portalsOpen = true;
     private final Map<Room, Set<IRoomController>> roomControllers = new HashMap<>();
     private IRoomController dungeonHeart;
+    private final Set<Room> availableWhenOwned = new HashSet<>();
 
     public PlayerRoomControl(Keeper keeper, List<Room> rooms) {
         super(keeper, keeper.getAvailableRooms(), rooms);
@@ -60,6 +62,14 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
     @Override
     public boolean setTypeAvailable(Room type, boolean available, boolean discovered) {
 
+        // A set availability replaces the owners only rule
+        availableWhenOwned.remove(type);
+
+        return setRoomTypeAvailable(type, available, discovered);
+    }
+
+    private boolean setRoomTypeAvailable(Room type, boolean available, boolean discovered) {
+
         // Skip non-buildables, I don't know what purpose they serve
         if (!type.getFlags().contains(Room.RoomFlag.BUILDABLE)) {
             return false;
@@ -68,6 +78,25 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
         boolean result = super.setTypeAvailable(type, available, discovered);
 
         return result;
+    }
+
+    /**
+     * Make a room type available only while the player has a room of the
+     * type, e.g. one he captured. This is the level's fourth availability
+     * value, DK II's room panel shows such a room only when the player owns
+     * one
+     *
+     * @param type the room type
+     */
+    public void setTypeAvailableWhenOwned(Room type) {
+        availableWhenOwned.add(type);
+        updateAvailableWhenOwned(type);
+    }
+
+    private void updateAvailableWhenOwned(Room type) {
+        if (availableWhenOwned.contains(type)) {
+            setRoomTypeAvailable(type, getTypeCount(type) > 0, true);
+        }
     }
 
     @Override
@@ -85,6 +114,7 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
             dungeonHeart = room;
             keeper.setDungeonHeartLocation(room.getRoomInstance().getCenter());
         }
+        updateAvailableWhenOwned(room.getRoom());
     }
 
     @Override
@@ -106,6 +136,7 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
             roomSet.remove(room);
             roomCount--;
         }
+        updateAvailableWhenOwned(room.getRoom());
     }
 
     /**
