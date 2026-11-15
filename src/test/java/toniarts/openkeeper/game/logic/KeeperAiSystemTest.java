@@ -65,6 +65,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import static toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures.variable;
@@ -97,6 +98,7 @@ class KeeperAiSystemTest {
     private static final short CALL_TO_ARMS = 3;
     private static final short TREASURY = 1;
     private static final short LAIR = 2;
+    private static final short PORTAL = 3;
     private static final short HATCHERY = 4;
     private static final short DUNGEON_HEART = 5;
     private static final short GUARD_ROOM = 9;
@@ -123,7 +125,8 @@ class KeeperAiSystemTest {
             '#', terrain((short) 2, flags(TerrainFlag.SOLID, TerrainFlag.TAGGABLE), 0, 0, 0, (short) 0),
             'G', terrain((short) 3, flags(TerrainFlag.SOLID, TerrainFlag.TAGGABLE), 100, 0, 0, (short) 0),
             '.', terrain((short) 4, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0),
-            'H', terrain((short) 5, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0));
+            'H', terrain((short) 5, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0),
+            'P', terrain((short) 6, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0));
     private final Set<Point> tagged = new HashSet<>();
     private final List<Point> built = new ArrayList<>();
     private final List<Point> impSpells = new ArrayList<>();
@@ -131,6 +134,7 @@ class KeeperAiSystemTest {
     private final Map<Short, Room> rooms = Map.of(
             TREASURY, room(TREASURY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
             LAIR, room(LAIR, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
+            PORTAL, room(PORTAL, 0, Room.RoomFlag.PLACEABLE_ON_LAND),
             HATCHERY, room(HATCHERY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
             DUNGEON_HEART, room(DUNGEON_HEART, 0, Room.RoomFlag.PLACEABLE_ON_LAND),
             GUARD_ROOM, room(GUARD_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE));
@@ -150,6 +154,129 @@ class KeeperAiSystemTest {
     private final List<Point> callToArmsCasts = new ArrayList<>();
     private int callToArmsCancels;
     private final Map<EntityId, Point> dropped = new HashMap<>();
+    private final List<IRoomController> neutralRooms = new ArrayList<>();
+
+    @Test
+    void digsToANeutralPortalNearItsRoomsWhenThereIsNoRoomToBuild() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        createNeutralPortal(new Point(10, 3));
+
+        Set<Point> dug = new HashSet<>();
+        for (int tick = 0; tick < 100 && (tick == 0 || getKeeperAi().task == KeeperAi.Task.DIG_PATH); tick++) {
+            system.processTick(0.25f);
+            if (tick == 0) {
+                assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+                assertEquals(new Point(10, 3), getKeeperAi().target);
+            }
+
+            // The imps dig out and claim what is tagged
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            dug.addAll(tagged);
+            tagged.clear();
+        }
+
+        // From the heart to the portal, and that is all
+        assertEquals(Set.of(new Point(6, 6), new Point(7, 6), new Point(7, 5), new Point(8, 5), new Point(8, 4), new Point(9, 4), new Point(9, 3)), dug);
+        assertEquals(KeeperAi.Task.FINISH, getKeeperAi().task);
+    }
+
+    @Test
+    void plansAPortalAfterEachRoomSoARoomWithoutASiteDoesNotKeepItFromThePortal() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+        createNeutralPortal(new Point(10, 3));
+
+        system.processTick(0.25f);
+        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+        assertEquals(TREASURY, getKeeperAi().roomId);
+
+        // The search for a site gave up
+        planAgain();
+        system.processTick(0.25f);
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(new Point(10, 3), getKeeperAi().target);
+
+        planAgain();
+        system.processTick(0.25f);
+        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+        assertEquals(TREASURY, getKeeperAi().roomId);
+    }
+
+    @Test
+    void digsToAPortalFarFromItsRoomsOnlyFromLandItHasNearThePortal() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 5, 1), 1000);
+        createNeutralPortal(new Point(10, 3));
+
+        system.processTick(0.25f);
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        // Land of its own two tiles from the portal
+        map[3][8] = '.';
+        system.processTick(0.25f);
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(new Point(8, 3), getKeeperAi().current);
+    }
+
+    @Test
+    void leavesAPortalOutsideItsBuildAreaAlone() {
+        KeeperAiSystem system = createSystem(withBuildAreaEndX(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 9), 1000);
+        createNeutralPortal(new Point(10, 3));
+
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+    }
+
+    @Test
+    void digsAPathRoundRockThatCanNotBeDug() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        createNeutralPortal(new Point(10, 6));
+        map[5][8] = 'X';
+        map[6][8] = 'X';
+        map[7][8] = 'X';
+
+        Set<Point> dug = new HashSet<>();
+        for (int tick = 0; tick < 100 && (tick == 0 || getKeeperAi().task == KeeperAi.Task.DIG_PATH); tick++) {
+            system.processTick(0.25f);
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            dug.addAll(tagged);
+            tagged.clear();
+        }
+
+        assertEquals(Set.of(new Point(6, 6), new Point(7, 6), new Point(7, 7), new Point(7, 8), new Point(8, 8), new Point(9, 8), new Point(9, 7), new Point(9, 6)), dug);
+        assertEquals(new Point(10, 6), getKeeperAi().current);
+    }
+
+    @Test
+    void givesUpAPathToAPlaceWalledInByRockThatCanNotBeDug() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        createNeutralPortal(new Point(10, 6));
+        for (int y = 1; y < 10; y++) {
+            map[y][8] = 'X';
+        }
+
+        for (int tick = 0; tick < 20; tick++) {
+            system.processTick(0.25f);
+            assertTrue(tagged.isEmpty());
+        }
+    }
+
+    private void createNeutralPortal(Point centre) {
+        IRoomController portal = createRoom(PORTAL, centre);
+        portal.getRoomInstance().setOwnerId(Player.NEUTRAL_PLAYER_ID);
+        neutralRooms.add(portal);
+        map[centre.y][centre.x] = 'P';
+    }
+
+    private void planAgain() {
+        KeeperAi keeperAi = new KeeperAi(getKeeperAi());
+        keeperAi.task = KeeperAi.Task.PLAN;
+        entityData.setComponent(entityData.findEntity(null, KeeperAi.class), keeperAi);
+    }
 
     @Test
     void carriesACreatureThatIsBadlyHurtInAFightToTheLair() {
@@ -732,6 +859,9 @@ class KeeperAiSystemTest {
                         }
                         case "getTerrain" -> {
                             return getTerrain(((IMapTileController) args[0]).getLocation());
+                        }
+                        case "getRoomControllers" -> {
+                            return neutralRooms;
                         }
                         case "getRoomControllerByCoordinates" -> {
                             Point p = (Point) args[0];

@@ -84,6 +84,13 @@ public final class KeeperAi implements EntityComponent {
     public short roomId;
 
     /**
+     * The room it plans next, when one is picked. DK II picks a room and
+     * lines the Portal up for the plan after it
+     */
+    public short wantedRoomId;
+    public boolean roomWanted;
+
+    /**
      * The direction the room site is looked for in
      */
     public int direction;
@@ -140,6 +147,8 @@ public final class KeeperAi implements EntityComponent {
         this.taskTicks = keeperAi.taskTicks;
         this.untagTicks = keeperAi.untagTicks;
         this.roomId = keeperAi.roomId;
+        this.wantedRoomId = keeperAi.wantedRoomId;
+        this.roomWanted = keeperAi.roomWanted;
         this.direction = keeperAi.direction;
         this.current = keeperAi.current;
         this.target = keeperAi.target;
