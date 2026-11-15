@@ -47,16 +47,17 @@ class CasinoControllerTest {
     void everyRouletteTableGetsTwoWheelsThatGoWithTheRoom() {
         RoomInstance roomInstance = new RoomInstance(RoomFixtures.room((short) 15,
                 List.of((short) 87, (short) 59, (short) 67, (short) 68, (short) 0, (short) 0)));
-        for (int x = 5; x <= 7; x++) {
-            for (int y = 5; y <= 7; y++) {
+        for (int x = 5; x <= 9; x++) {
+            for (int y = 5; y <= 9; y++) {
                 roomInstance.addCoordinate(new Point(x, y));
             }
         }
         CasinoController casino = new CasinoController(entityData.createEntity(), entityData, null, roomInstance,
                 objectsController(), null);
 
+        // The tables stand on (6, 6) and (8, 6), the pay out adjuster takes the place of the first one
         casino.construct();
-        assertEquals(Set.of(new Vector3f(6, 1, 6 + 2000f / 4096), new Vector3f(6, 1, 6 - 2000f / 4096)), wheels());
+        assertEquals(Set.of(new Vector3f(8, 1, 6 + 2000f / 4096), new Vector3f(8, 1, 6 - 2000f / 4096)), wheels());
 
         // Built again, as when the room grows
         casino.construct();

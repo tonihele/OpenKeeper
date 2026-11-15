@@ -21,6 +21,8 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.Collections;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.Casino.PayOut;
@@ -110,12 +112,42 @@ class CasinoPayOutAdjusterTest {
     }
 
     @Test
+    void wheelsStandOnlyOnTheTables() {
+        CasinoController casino = buildCasino(5);
+        assertTwoWheelsOnEveryTable();
+
+        // Built again, as when the room grows
+        casino.construct();
+        assertTwoWheelsOnEveryTable();
+    }
+
+    @Test
     void soldCasinoTakesItsAdjusterAlong() {
         CasinoController casino = buildCasino(5);
 
         casino.remove();
 
         assertNull(findObject(PAY_OUT_ADJUSTER));
+    }
+
+    private void assertTwoWheelsOnEveryTable() {
+
+        // The adjuster took the place of the table on (2, 2), its wheels must not stay behind
+        List<Point> tables = getTiles(ROULETTE_TABLE);
+        List<Point> wheels = getTiles(CasinoController.ROULETTE_WHEEL_OBJECT_ID);
+        assertEquals(4, tables.size());
+        assertEquals(2 * tables.size(), wheels.size());
+        for (Point table : tables) {
+            assertEquals(2, Collections.frequency(wheels, table));
+        }
+        assertFalse(wheels.contains(getTile(findObject(PAY_OUT_ADJUSTER))));
+    }
+
+    private List<Point> getTiles(short objectId) {
+        return entityData.getEntities(ObjectComponent.class, Position.class).stream()
+                .filter(entity -> entity.get(ObjectComponent.class).objectId == objectId)
+                .map(entity -> WorldUtils.vectorToPoint(entity.get(Position.class).position))
+                .toList();
     }
 
     private EntityId findObject(short objectId) {

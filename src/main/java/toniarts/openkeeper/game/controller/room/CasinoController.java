@@ -141,22 +141,9 @@ public final class CasinoController extends NormalRoomController {
         removePayOutAdjuster();
         super.constructObjects();
 
-        // As in the original (0x4EDFC0), every roulette table gets two roulette wheels, one at each end.
-        // The gamblers spin them.
-
-        for (EntityId furniture : floorFurniture) {
-            ObjectComponent object = entityData.getComponent(furniture, ObjectComponent.class);
-            if (object != null && object.objectId == ROULETTE_TABLE_OBJECT_ID) {
-                Vector3f table = entityData.getComponent(furniture, Position.class).position;
-                rouletteWheels.add(objectsController.loadObject(ROULETTE_WHEEL_OBJECT_ID, (short) 0,
-                        table.add(0, 0, ROULETTE_WHEEL_OFFSET), 0));
-                rouletteWheels.add(objectsController.loadObject(ROULETTE_WHEEL_OBJECT_ID, (short) 0,
-                        table.add(0, 0, -ROULETTE_WHEEL_OFFSET), 0));
-            }
-        }
-
         // Like in DK II, the pay out adjuster takes the place of the first piece of furniture that has no
-        // furniture in the row above it
+        // furniture in the row above it (0x4D6ED0). It is placed before the roulette wheels, as DK II
+        // puts no furniture on its tile (0x4EDFC0), so a table it replaces leaves no wheels behind
         Map<Point, EntityId> furnitureByTile = new HashMap<>();
         for (EntityId piece : floorFurniture) {
             Position position = entityData.getComponent(piece, Position.class);
@@ -173,7 +160,21 @@ public final class CasinoController extends NormalRoomController {
                 entityData.removeEntity(piece);
                 payOutAdjuster = objectsController.loadObject(OBJECT_PAY_OUT_ADJUSTER_ID, roomInstance.getOwnerId(), p.x, p.y);
                 showPayOut();
-                return;
+                break;
+            }
+        }
+
+        // As in the original (0x4EDFC0), every roulette table gets two roulette wheels, one at each end.
+        // The gamblers spin them.
+
+        for (EntityId furniture : floorFurniture) {
+            ObjectComponent object = entityData.getComponent(furniture, ObjectComponent.class);
+            if (object != null && object.objectId == ROULETTE_TABLE_OBJECT_ID) {
+                Vector3f table = entityData.getComponent(furniture, Position.class).position;
+                rouletteWheels.add(objectsController.loadObject(ROULETTE_WHEEL_OBJECT_ID, (short) 0,
+                        table.add(0, 0, ROULETTE_WHEEL_OFFSET), 0));
+                rouletteWheels.add(objectsController.loadObject(ROULETTE_WHEEL_OBJECT_ID, (short) 0,
+                        table.add(0, 0, -ROULETTE_WHEEL_OFFSET), 0));
             }
         }
     }
