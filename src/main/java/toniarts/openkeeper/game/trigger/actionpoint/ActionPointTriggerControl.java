@@ -17,14 +17,18 @@
 package toniarts.openkeeper.game.trigger.actionpoint;
 
 
+import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.HashSet;
+import java.util.Set;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -43,6 +47,10 @@ public final class ActionPointTriggerControl extends TriggerControl {
 
     private final ActionPoint ap;
     private final IEntityPositionLookup entityPositionLookup;
+    private final boolean actionPointWithinMap;
+    private boolean invalidActionPointWarningLogged;
+    private final Set<Integer> warnedCongregateInTriggers = new HashSet<>();
+    private final Set<Integer> warnedPossessedCreatureTriggers = new HashSet<>();
 
     public ActionPointTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer,
             final IMapController mapController, final ICreaturesController creaturesController, int triggerId, ActionPoint ap,
@@ -50,6 +58,7 @@ public final class ActionPointTriggerControl extends TriggerControl {
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId);
         this.ap = ap;
         this.entityPositionLookup = entityPositionLookup;
+        this.actionPointWithinMap = isActionPointWithinMap(ap, mapController);
     }
 
     @Override
@@ -58,51 +67,17 @@ public final class ActionPointTriggerControl extends TriggerControl {
 
         int target = 0;
         int value = 0;
+        short playerId;
+        short targetId;
+        short type;
 
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case AP_CONGREGATE_IN:
-                short playerId = trigger.getUserData("playerId", short.class);
-                short targetId = trigger.getUserData("targetId", short.class);
-                value = trigger.getUserData("value", int.class);
-                short type = trigger.getUserData("targetType", short.class);
-                switch (type) {
-                    case 0:
-                    case 3: // Creature
-                        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                                for (ICreatureController creature : entityPositionLookup.getEntityTypesInLocation(x, y, ICreatureController.class)) {
-                                    if ((playerId == 0 || creature.getOwnerId() == playerId) && (targetId == 0 || creature.getCreature().getCreatureId() == targetId)) {
-                                        target++;
-                                    }
-                                }
-                            }
-                        }
-                        break;
-                    case 6: // Object
-                        break;
-                    default:
-                        logger.log(Level.WARNING, "AP_CONGREGATE_IN unknown targetType {0}", type);
-                        break;
-                }
-                return false;
+                return isCongregateInActive(trigger);
 
             case AP_POSESSED_CREATURE_ENTERS:
-                playerId = trigger.getUserData("playerId", short.class);
-                targetId = trigger.getUserData("targetId", short.class);
-                value = trigger.getUserData("value", int.class);
-                type = trigger.getUserData("targetType", short.class);
-                switch (type) {
-                    //case 0:
-                    case 3: // Creature
-                        break;
-                    case 6: // Object. Chicken
-                        break;
-                    default:
-                        logger.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS unknown targetType");
-                        break;
-                }
-                return false;
+                return isPossessedCreatureInActionPointActive(trigger);
 
             case AP_CLAIM_PART_OF:
                 playerId = trigger.getUserData("playerId", short.class);
@@ -189,5 +164,177 @@ public final class ActionPointTriggerControl extends TriggerControl {
         }
 
         return result;
+    }
+
+    private boolean isCongregateInActive(TriggerGenericData trigger) {
+        if (!actionPointWithinMap) {
+            if (!invalidActionPointWarningLogged) {
+                logger.log(Level.WARNING, "AP_CONGREGATE_IN trigger {0} has an invalid action point rectangle", trigger.getId());
+                invalidActionPointWarningLogged = true;
+            }
+            return false;
+        }
+
+        Short playerIdValue = trigger.getUserData("playerId", short.class);
+        Short targetIdValue = trigger.getUserData("targetId", short.class);
+        Short typeValue = trigger.getUserData("targetType", short.class);
+        Integer valueValue = trigger.getUserData("value", int.class);
+        if (playerIdValue == null || targetIdValue == null || typeValue == null || valueValue == null) {
+            warnInvalidCongregateIn(trigger, "missing required parameters");
+            return false;
+        }
+
+        short playerId = playerIdValue;
+        short targetId = targetIdValue;
+        short type = typeValue;
+        int value = valueValue;
+
+        int target = switch (type) {
+            // Stock maps use both zero and three for creature counts. In either
+            // case a targetId of zero means any creature type.
+            case 0, 3 -> countCreatures(playerId, targetId);
+            case 6 -> countObjects(playerId, targetId);
+            default -> {
+                warnInvalidCongregateIn(trigger, "unknown targetType " + type);
+                yield -1;
+            }
+        };
+        if (target < 0) {
+            return false;
+        }
+
+        TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
+        if (comparisonType == null || comparisonType == TriggerGeneric.ComparisonType.NONE) {
+            return false;
+        }
+
+        return compare(target, comparisonType, value);
+    }
+
+    private boolean isPossessedCreatureInActionPointActive(TriggerGenericData trigger) {
+        if (!actionPointWithinMap) {
+            warnInvalidPossessedCreatureTrigger(trigger, "invalid action point rectangle");
+            return false;
+        }
+
+        Short playerIdValue = trigger.getUserData("playerId", short.class);
+        Short targetIdValue = trigger.getUserData("targetId", short.class);
+        Short typeValue = trigger.getUserData("targetType", short.class);
+        if (playerIdValue == null || targetIdValue == null || typeValue == null) {
+            warnInvalidPossessedCreatureTrigger(trigger, "missing required parameters");
+            return false;
+        }
+
+        short playerId = playerIdValue;
+        short targetId = targetIdValue;
+        short type = typeValue;
+        if (type == 6) {
+            // Do not equate OpenKeeper's InHand state with DK2's object Possessed flag without evidence.
+            warnInvalidPossessedCreatureTrigger(trigger, "possessed-object selector is unsupported");
+            return false;
+        }
+
+        if (creaturesController == null) {
+            warnInvalidPossessedCreatureTrigger(trigger, "creature service is unavailable");
+            return false;
+        }
+
+        if (playerId == 0) {
+            var players = levelInfo == null ? null : levelInfo.getPlayers();
+            if (players == null) {
+                warnInvalidPossessedCreatureTrigger(trigger, "player list is unavailable for an any-player selector");
+                return false;
+            }
+            for (short ownerId : players.keySet()) {
+                if (isPossessedCreatureInActionPoint(ownerId, targetId)) {
+                    return true;
+                }
+            }
+            return false;
+        }
+        return isPossessedCreatureInActionPoint(playerId, targetId);
+    }
+
+    private boolean isPossessedCreatureInActionPoint(short playerId, short targetId) {
+        // DK2 type 70 is an existence condition over the action-point rectangle, not an edge counter.
+        EntityId entityId = creaturesController.getPossessedCreature(playerId);
+        if (entityId == null || !creaturesController.isValidEntity(entityId)) {
+            return false;
+        }
+
+        ICreatureController creature = creaturesController.createController(entityId);
+        if (creature == null) {
+            return false;
+        }
+        var creatureDefinition = creature.getCreature();
+        if (creatureDefinition == null || creature.getPosition() == null
+                || (targetId != 0 && creatureDefinition.getCreatureId() != targetId)) {
+            return false;
+        }
+
+        // Read the creature's current tile directly. The position-system tile cache is refreshed
+        // after action-point triggers in GameController.processTick().
+        IMapTileInformation tile = creature.getTile();
+        if (tile == null || tile.getX() < ap.getStart().x || tile.getX() > ap.getEnd().x
+                || tile.getY() < ap.getStart().y || tile.getY() > ap.getEnd().y) {
+            return false;
+        }
+        return true;
+    }
+
+    private void warnInvalidPossessedCreatureTrigger(TriggerGenericData trigger, String reason) {
+        if (warnedPossessedCreatureTriggers.add(trigger.getId())) {
+            logger.log(Level.WARNING, "AP_POSESSED_CREATURE_ENTERS trigger {0}: {1}", new Object[]{trigger.getId(), reason});
+        }
+    }
+
+    private void warnInvalidCongregateIn(TriggerGenericData trigger, String reason) {
+        if (warnedCongregateInTriggers.add(trigger.getId())) {
+            logger.log(Level.WARNING, "AP_CONGREGATE_IN trigger {0}: {1}", new Object[]{trigger.getId(), reason});
+        }
+    }
+
+    private int countCreatures(short playerId, short targetId) {
+        int count = 0;
+        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                for (ICreatureController creature : entityPositionLookup.getEntityTypesInLocation(x, y, ICreatureController.class)) {
+                    if ((playerId == 0 || creature.getOwnerId() == playerId)
+                            && (targetId == 0 || creature.getCreature().getCreatureId() == targetId)) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private int countObjects(short playerId, short targetId) {
+        int count = 0;
+        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                for (IObjectController object : entityPositionLookup.getEntityTypesInLocation(x, y, IObjectController.class)) {
+                    if ((playerId == 0 || object.getOwnerId() == playerId)
+                            && (targetId == 0 || object.getObjectId() == targetId)) {
+                        count++;
+                    }
+                }
+            }
+        }
+        return count;
+    }
+
+    private static boolean isActionPointWithinMap(ActionPoint ap, IMapController mapController) {
+        if (ap == null || mapController == null) {
+            return false;
+        }
+
+        IMapDataInformation map = mapController.getMapData();
+        if (map == null) {
+            return false;
+        }
+        return ap.getStart().x >= 0 && ap.getStart().y >= 0
+                && ap.getEnd().x >= ap.getStart().x && ap.getEnd().y >= ap.getStart().y
+                && ap.getEnd().x < map.getWidth() && ap.getEnd().y < map.getHeight();
     }
 }
