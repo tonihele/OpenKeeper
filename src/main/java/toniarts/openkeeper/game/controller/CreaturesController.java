@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileController;
@@ -478,7 +479,7 @@ public final class CreaturesController implements ICreaturesController {
 
             // See if tortured or imprisoned
             // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+            if (room instanceof PrisonController prison && prison.isCageTile(location)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;
@@ -603,7 +604,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
         creatureExperience.experiencePerTickTraining = getPointsPerTick(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
         creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
-        creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
+        creatureComponent.manufacturePerTick = getPointsPerTick(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
         creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
         creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));
