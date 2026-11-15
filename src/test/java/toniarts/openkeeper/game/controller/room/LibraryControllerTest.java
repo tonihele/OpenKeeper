@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.utils.Point;
@@ -51,7 +54,14 @@ class LibraryControllerTest {
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
                 IObjectsController.class.getClassLoader(),
                 new Class<?>[]{IObjectsController.class},
-                (proxy, method, args) -> method.getName().equals("loadObject") ? entityData.createEntity() : null);
+                (proxy, method, args) -> {
+                    if (!method.getName().equals("loadObject")) {
+                        return null;
+                    }
+                    EntityId entity = entityData.createEntity();
+                    entityData.setComponent(entity, new Position(0, new Vector3f(0, 0, 0)));
+                    return entity;
+                });
 
         // Library objects in DK II: Book Case on the floor, Library Book
         RoomInstance roomInstance = new RoomInstance(roomWithObjects((short) 6, (short) 64, (short) 0, (short) 0, (short) 58, (short) 0, (short) 0));
