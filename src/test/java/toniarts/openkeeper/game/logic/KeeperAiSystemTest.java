@@ -784,6 +784,44 @@ class KeeperAiSystemTest {
         assertEquals(Map.of(fit, new Point(5, 4)), dropped);
     }
 
+    @Test
+    void dropsACreatureOnItsFullPortalToMakeRoomForOneThatResearches() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        roomControl.onBuild(createRoom(PORTAL, new Point(5, 4)));
+        spellControl.setTypeAvailable(heal, true, false);
+        EntityId researcher = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = EATER;
+        entityData.setComponent(researcher, creatureComponent);
+        EntityId other = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        creatureControl.onCreatureAdded(researcher, creatureWithJobs(EATER, Creature.JobType.RESEARCH));
+        system.processTick(0.25f);
+
+        // There is room for one more
+        assertTrue(dropped.isEmpty());
+
+        creatureControl.onCreatureAdded(other, CombatExperienceFixtures.creature((short) 0));
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(other, new Point(5, 4)), dropped);
+    }
+
+    @Test
+    void makesNoRoomForAResearcherWithNothingToResearch() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LIBRARY, new Point(1, 4)));
+        roomControl.onBuild(createRoom(PORTAL, new Point(5, 4)));
+        spellControl.setTypeAvailable(heal, true, true);
+        EntityId one = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        EntityId other = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        creatureControl.onCreatureAdded(one, CombatExperienceFixtures.creature((short) 0));
+        creatureControl.onCreatureAdded(other, CombatExperienceFixtures.creature((short) 0));
+        system.processTick(0.25f);
+
+        assertTrue(dropped.isEmpty());
+    }
+
     private EntityId createCreature(short playerId, Point tile, int health, int maxHealth, CreatureState state) {
         EntityId entityId = entityData.createEntity();
         entityData.setComponents(entityId, new CreatureComponent(), new Owner(playerId, playerId), new Health(health, maxHealth),
@@ -1234,6 +1272,8 @@ class KeeperAiSystemTest {
         Map<MiscType, Variable.MiscVariable> variables = Map.of(
                 MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL, variable(MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL, 8),
                 MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, variable(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, 4),
+                MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, variable(MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, 2),
+                MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, variable(MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 1),
                 MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         handControl = new PlayerHandControl(keeper, 8, entityData);

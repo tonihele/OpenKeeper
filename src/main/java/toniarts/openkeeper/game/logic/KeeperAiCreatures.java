@@ -33,6 +33,7 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
@@ -44,8 +45,17 @@ import toniarts.openkeeper.utils.Utils;
  */
 final class KeeperAiCreatures {
 
+    private static final short ROOM_PORTAL = 3;
+    private static final short ROOM_LIBRARY = 6;
     private static final short ROOM_TRAINING_ROOM = 7;
     private static final short ROOM_COMBAT_PIT = 16;
+    private static final short ROOM_HERO_PORTAL = 25;
+
+    /**
+     * DK II makes room for a creature that researches while it has fewer
+     * than this
+     */
+    private static final int RESEARCHERS_WANTED = 2;
 
     /**
      * DK II sends a creature to the Combat Pit when it has more than three
@@ -73,12 +83,20 @@ final class KeeperAiCreatures {
      */
     private final int trainingRoomMaxLevel;
 
+    /**
+     * The creatures the first Portal and each one after it take
+     */
+    private final int firstPortalCapacity;
+    private final int additionalPortalCapacity;
+
     KeeperAiCreatures(EntityData entityData, IKwdFile kwdFile, KeeperAiBattles battles, KeeperAiBattles.DecisionLog decisionLog) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.battles = battles;
         this.decisionLog = decisionLog;
         trainingRoomMaxLevel = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue();
+        firstPortalCapacity = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL).getValue();
+        additionalPortalCapacity = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL).getValue();
     }
 
     /**
@@ -137,6 +155,74 @@ final class KeeperAiCreatures {
         }
 
         return actions;
+    }
+
+    /**
+     * While a spell is still to research and it has a Library, but fewer
+     * than two creatures that like to research, it drops its weakest other
+     * creature on its Portal when its Portals take no more creatures, to
+     * make room for one that researches. It takes no action.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     */
+    void makeRoomForResearcher(KeeperAi keeperAi, IPlayerController playerController) {
+        if (getRoom(playerController, ROOM_LIBRARY) == null) {
+            return;
+        }
+
+        int researchers = 0;
+        Entity weakest = null;
+        int weakestThreat = Integer.MAX_VALUE;
+        for (Entity creature : battles.getCreatures(keeperAi.playerId)) {
+            if (creature.get(CreatureComponent.class).worker) {
+                continue;
+            }
+            Creature type = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId);
+            if (likesJob(type, Creature.JobType.RESEARCH)) {
+                researchers++;
+            } else if (type.getAttributes().getThreat() <= weakestThreat) {
+                weakest = creature;
+                weakestThreat = type.getAttributes().getThreat();
+            }
+        }
+        IRoomController portal = getRoom(playerController, ROOM_PORTAL);
+        if (portal == null) {
+            portal = getRoom(playerController, ROOM_HERO_PORTAL);
+        }
+        if (researchers >= RESEARCHERS_WANTED || weakest == null || portal == null
+                || playerController.getCreatureControl().getTypeCount() < getPortalCapacity(playerController)
+                || battles.isLeftAlone(weakest) || KeeperAiBattles.HELPLESS.contains(weakest.get(CreatureAi.class).getCreatureState())) {
+            return;
+        }
+
+        Point tile = portal.getRoomInstance().getCenter();
+        decisionLog.log(keeperAi, "carry creature " + weakest.getId().getId() + " to its Portal", tile,
+                "its Portals are full and it has " + researchers + " creatures that research");
+        battles.carry(weakest.getId(), tile, playerController);
+    }
+
+    private int getPortalCapacity(IPlayerController playerController) {
+        int portals = 0;
+        for (short roomId : new short[]{ROOM_PORTAL, ROOM_HERO_PORTAL}) {
+            for (IRoomController room : playerController.getRoomControl().getRoomControllers().getOrDefault(kwdFile.getRoomById(roomId), Set.of())) {
+                portals += room.getRoomInstance().isDestroyed() ? 0 : 1;
+            }
+        }
+
+        return portals == 0 ? 0 : firstPortalCapacity + (portals - 1) * additionalPortalCapacity;
+    }
+
+    private static boolean likesJob(Creature creature, Creature.JobType jobType) {
+        if (creature.getHappyJobs() != null) {
+            for (Creature.JobPreference job : creature.getHappyJobs()) {
+                if (job.getJobType() == jobType) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     /**
