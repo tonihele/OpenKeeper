@@ -141,6 +141,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * the lobby, otherwise the ones the level gives it
      */
     private final Map<Short, AI> ais = new HashMap<>();
+    private final KeeperAiBattles battles;
     private final EntitySet keeperAis;
 
     /**
@@ -161,6 +162,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         this.playerControllers = playerControllers;
         this.gameWorldController = gameWorldController;
         this.mapController = gameWorldController.getMapController();
+        battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, this::log);
 
         // The keepers the level or the game setup gives to the computer, a loaded game has them already
         keeperAis = entityData.getEntities(KeeperAi.class);
@@ -188,6 +190,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     @Override
     public void processTick(float tpf) {
         keeperAis.applyChanges();
+        battles.applyChanges();
         for (Entity entity : keeperAis) {
             KeeperAi keeperAi = new KeeperAi(entity.get(KeeperAi.class));
             IPlayerController playerController = playerControllers.get(keeperAi.playerId);
@@ -220,6 +223,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 log(keeperAi, "untag gold", null, "no dig order for a while");
                 untagGold(keeperAi.playerId);
             }
+        }
+
+        // DK II reads the level a level's computer player trains its creatures to before the level's rules, as 0
+        if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai,
+                playerController.getKeeper().isAi() ? ai.getMinLevelForCreatures() : 0)) {
+            actions--;
         }
 
         if (actions > 0 && createImp(keeperAi, playerController, ai)) {
@@ -822,6 +831,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         keeperAis.release();
+        battles.release();
     }
 
 }
