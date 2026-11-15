@@ -80,6 +80,10 @@ public class RoomTextParser {
                 return Integer.toString(roomOwner.getMana());
             case DUNGEON_HEART_MAX_MANA:
                 return Integer.toString(roomOwner.getMaxMana());
+            case ATTRACTED_CREATURE_COUNT:
+                return Integer.toString(roomOwner.getAttractedCreatures());
+            case PORTAL_CREATURE_CAPACITY:
+                return Integer.toString(roomOwner.getPortalCreatureCapacity());
             default:
                 return TextUtils.getUnsupportedParameterMessage(parameter, getClass());
         }
