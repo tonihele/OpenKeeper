@@ -86,13 +86,20 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
         ResearchableEntity researchableEntity = researchControl.research(creature.getResearchPerTick());
         if (researchableEntity != null) {
 
+            // Wait if the room filled up meanwhile, the research stays complete
+            if (getRoom().getObjectControl(getRoomObjectType()).isFullCapacity()) {
+                return;
+            }
+
             // Create a spell book
             EntityId entityId = objectsController.addRoomSpellBook((short) 0, getTaskLocation().x, getTaskLocation().y, researchableEntity);
             entityId = (EntityId) getRoomObjectControl().addItem(entityId, null);
             if (entityId != null) {
 
-                // Failed add, wut
+                // No room, the research stays complete and the book is tried again later
                 objectsController.createController(entityId).remove();
+            } else {
+                researchControl.completeResearch();
             }
         }
     }
