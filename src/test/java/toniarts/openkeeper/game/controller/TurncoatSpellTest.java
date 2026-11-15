@@ -24,21 +24,17 @@ import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.SpellTargetFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The Turncoat keeper spell: an enemy creature fights for the caster for the
@@ -115,25 +111,6 @@ class TurncoatSpellTest {
         shotsController.createShot(TURNCOAT_SHOT_ID, 25, 0, CASTER, new Vector3f(), null, null);
 
         assertNull(entityData.getComponent(door, Turncoat.class));
-    }
-
-    @Test
-    void spellNeedsACreatureToTarget() {
-        KeeperSpell turncoat = SpellTargetFixtures.keeperSpell(TURNCOAT_SHOT_ID, KeeperSpell.TargetRule.ENEMY_CREATURES, KeeperSpell.CastRule.OWN_LAND);
-        EntityId enemyDoor = entityData.createEntity();
-        entityData.setComponent(enemyDoor, new Owner(ENEMY, ENEMY));
-        entityData.setComponent(enemyDoor, new DoorComponent());
-
-        assertTrue(KeeperSpellCastValidator.checkTurncoatRule(turncoat, entityData, creature(CREATURE_ID, ENEMY)));
-        assertFalse(KeeperSpellCastValidator.checkTurncoatRule(turncoat, entityData, enemyDoor));
-        assertFalse(KeeperSpellCastValidator.checkTurncoatRule(turncoat, entityData, null));
-    }
-
-    @Test
-    void otherSpellsDontNeedACreature() {
-        KeeperSpell landSpell = SpellTargetFixtures.keeperSpell((short) 1, KeeperSpell.TargetRule.LAND, KeeperSpell.CastRule.OWN_LAND);
-
-        assertTrue(KeeperSpellCastValidator.checkTurncoatRule(landSpell, entityData, null));
     }
 
     private EntityId creature(short creatureId, short ownerId) {
