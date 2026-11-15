@@ -274,9 +274,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         // Objects have solid obstacle property, but that in my opinion doesn't block the whole tile
         // More of a physics thingie that...
-        // So only doors here now...
-        DoorComponent doorComponent = entityData.getComponent(id, DoorComponent.class);
-        return doorComponent != null && !doorComponent.blueprint;
+        // So only doors here now... Also the door blueprints, the door is built where it stands, and
+        // whether it blocks is checked when asked
+        return entityData.getComponent(id, DoorComponent.class) != null;
     }
 
     @Override
@@ -298,7 +298,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         for (EntityId entityId : entityIds) {
             DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
-            if (doorComponent == null) {
+            if (doorComponent == null || doorComponent.blueprint) {
                 continue;
             }
 
@@ -329,7 +329,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // TODO: Every creature has hearing & vision 4, so I can just cheat this in, but should fix eventually
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
-                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), sensedEntities);
+                addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), null, sensedEntities);
             }
 
             // Remove us, the caller
@@ -339,18 +339,54 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
-    private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
-        if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                || range-- < 0) {
-            return;
+    @Override
+    public boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        IMapTileInformation tile = getEntityLocation(entityId);
+        if (senses == null || owner == null || tile == null) {
+            return false;
         }
 
-        sensedEntities.addAll(getEntitiesInLocation(tile));
+        // Sense again, but stop at the doors that block us
+        Set<EntityId> sensedEntities = new HashSet<>();
+        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, sensedEntities);
 
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, sensedEntities);
+        return !sensedEntities.contains(sensedEntityId);
+    }
+
+    /**
+     * Adds the entities around the tile to the sensed ones
+     *
+     * @param startTile the tile to sense from
+     * @param range how many tiles further to sense
+     * @param playerId the player whose blocking doors stop the senses,
+     * {@code null} to sense through all doors
+     * @param sensedEntities the sensed entities
+     */
+    private void addSensedEntities(IMapTileInformation startTile, int range, Short playerId, Set<EntityId> sensedEntities) {
+
+        // Go out one step at a time, so each tile is looked at only once
+        Set<IMapTileInformation> visitedTiles = new HashSet<>();
+        List<IMapTileInformation> tiles = List.of(startTile);
+        for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
+            List<IMapTileInformation> nextTiles = new ArrayList<>();
+            for (IMapTileInformation tile : tiles) {
+                if (tile == null || !visitedTiles.add(tile)
+                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
+                        || (playerId != null && isTileBlocked(tile, playerId))) {
+                    continue;
+                }
+
+                sensedEntities.addAll(entitiesByMapTile[tile.getX()][tile.getY()]);
+
+                nextTiles.add(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1));
+            }
+            tiles = nextTiles;
+        }
     }
 
 }
