@@ -117,6 +117,22 @@ public final class KeeperAi implements EntityComponent {
     public Point target;
 
     /**
+     * Whether the path being dug follows the edge of rock that can't be
+     * dug, with the rock on its left hand or on its right, and the way it
+     * is heading: 0 north, 1 east, 2 south, 3 west
+     */
+    public boolean wallFollowing;
+    public boolean wallOnLeft;
+    public int wallHeading;
+
+    /**
+     * Where the path met the rock, and the tile behind the rock where it
+     * goes straight on again
+     */
+    public Point wallStart;
+    public Point wallExit;
+
+    /**
      * The room site, from its first tile to the opposite corner
      */
     public Point corner;
@@ -212,6 +228,11 @@ public final class KeeperAi implements EntityComponent {
         this.direction = keeperAi.direction;
         this.current = keeperAi.current;
         this.target = keeperAi.target;
+        this.wallFollowing = keeperAi.wallFollowing;
+        this.wallOnLeft = keeperAi.wallOnLeft;
+        this.wallHeading = keeperAi.wallHeading;
+        this.wallStart = keeperAi.wallStart;
+        this.wallExit = keeperAi.wallExit;
         this.corner = keeperAi.corner;
         this.oppositeCorner = keeperAi.oppositeCorner;
         this.goldTiles = keeperAi.goldTiles;
