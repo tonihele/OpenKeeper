@@ -740,6 +740,38 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
+    }, CHICKEN {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            entity.navigateToRandomPoint();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Back to our old self
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(IDLE);
+                return;
+            }
+
+            // Just peck about
+            if (entity.isStopped()) {
+                entity.navigateToRandomPoint();
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
     }, GO_TO_SLEEP {
 
         @Override
