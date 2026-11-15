@@ -33,6 +33,7 @@ import java.util.Set;
 import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -132,6 +133,7 @@ class KeeperAiSystemTest {
     private static final short ENEMY_ID = 4;
     private static final short SIGHT_OF_EVIL = 1;
     private static final short CALL_TO_ARMS = 3;
+    private static final short CREATE_GOLD = 13;
     private static final short TREASURY = 1;
     private static final short LAIR = 2;
     private static final short PORTAL = 3;
@@ -208,6 +210,8 @@ class KeeperAiSystemTest {
     private final KeeperSpell callToArms = keeperSpell(CALL_TO_ARMS, 200, 0, (short) 0, 0);
     private final KeeperSpell sightOfEvil = keeperSpell(SIGHT_OF_EVIL, 100, 0, (short) 0, 0);
     private final List<Point> sightOfEvilCasts = new ArrayList<>();
+    private final KeeperSpell createGold = keeperSpell(CREATE_GOLD, 100, 0, (short) 0, 0);
+    private final List<Point> createGoldCasts = new ArrayList<>();
     private final Trap sentry = TrapFixtures.trap((short) 3, 100);
     private final Door woodenDoor = DoorFixtures.door((short) 1, 100);
     private final Map<Point, String> placed = new HashMap<>();
@@ -1387,10 +1391,52 @@ class KeeperAiSystemTest {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 9 * ROOM_COST - 1);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
 
+        // The first time it only looks where the gold is
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+        assertEquals(new Point(10, 6), getKeeperAi().goldDeposits[0]);
+
+        // The plan in between is for a Portal
+        system.processTick(0.25f);
         system.processTick(0.25f);
 
         assertEquals(KeeperAi.Task.GO_TO_GOLD, getKeeperAi().task);
         assertEquals(new Point(10, 6), getKeeperAi().target);
+    }
+
+    @Test
+    void headsForTheSeamOfItsLastLookAndKeepsTheNearestSeamsForTheNextTime() {
+        map[2][13] = 'G';
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        system.processTick(0.25f);
+
+        assertArrayEquals(new Point[]{new Point(10, 6), new Point(13, 2), null, null}, getKeeperAi().goldDeposits);
+
+        // The near seam is gone by the time it needs gold, it still goes there and learns of it then
+        map[6][10] = '#';
+        map[6][11] = '#';
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.GO_TO_GOLD, getKeeperAi().task);
+        assertEquals(new Point(10, 6), getKeeperAi().target);
+        assertArrayEquals(new Point[]{new Point(13, 2), null, null, null}, getKeeperAi().goldDeposits);
+    }
+
+    @Test
+    void makesItsOwnGoldWhenItKnowsOfNoSeamAndHasTheSpell() {
+        map[6][10] = '#';
+        map[6][11] = '#';
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        system.processTick(0.25f);
+
+        assertTrue(createGoldCasts.isEmpty());
+
+        spellControl.setTypeAvailable(createGold, true, true);
+        system.processTick(0.25f);
+
+        assertEquals(List.of(new Point(HEART.x + 1, HEART.y + 1)), createGoldCasts);
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
     }
 
     @Test
@@ -1551,7 +1597,7 @@ class KeeperAiSystemTest {
         handControl = new PlayerHandControl(keeper, 8, entityData);
         trapControl = new PlayerTrapControl(keeper, List.of(sentry));
         doorControl = new PlayerDoorControl(keeper, List.of(woodenDoor));
-        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal, sightOfEvil));
+        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal, sightOfEvil, createGold));
         Keeper enemyKeeper = new Keeper(false, ENEMY_ID);
         enemyKeeper.setPlayer(new Player());
         enemyRoomControl = new PlayerRoomControl(enemyKeeper, new ArrayList<>(rooms.values()));
@@ -1601,7 +1647,8 @@ class KeeperAiSystemTest {
             case "getVariables" -> variables;
             case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
             case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms
-                    : ((Number) args[0]).shortValue() == SIGHT_OF_EVIL ? sightOfEvil : null;
+                    : ((Number) args[0]).shortValue() == SIGHT_OF_EVIL ? sightOfEvil
+                    : ((Number) args[0]).shortValue() == CREATE_GOLD ? createGold : null;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         ICreatureController creatureController = (ICreatureController) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -1628,8 +1675,8 @@ class KeeperAiSystemTest {
                             return creaturesController;
                         }
                         case "castKeeperSpell" -> {
-                            if ((short) args[0] == SIGHT_OF_EVIL) {
-                                sightOfEvilCasts.add((Point) args[2]);
+                            if ((short) args[0] == SIGHT_OF_EVIL || (short) args[0] == CREATE_GOLD) {
+                                ((short) args[0] == SIGHT_OF_EVIL ? sightOfEvilCasts : createGoldCasts).add((Point) args[2]);
                                 keeper.setMana(keeper.getMana() - 100);
                                 return null;
                             }

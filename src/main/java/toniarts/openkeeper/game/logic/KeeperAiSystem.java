@@ -93,6 +93,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int TRAPS_CHANCE_PERCENTAGE = 10;
     private static final int CREATE_IMP_DISTANCE_FROM_HEART = 2;
     private static final short SPELL_SIGHT_OF_EVIL = 1;
+    private static final short SPELL_CREATE_GOLD = 13;
 
     /**
      * The specials DK II's computer player uses: all but Kill Creatures,
@@ -578,36 +579,61 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     private void mineGoldIfLow(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
-        if (playerController.getKeeper().getGold() < ai.getMineGoldUntilGoldHeldIsGreaterThan()) {
-            mineGold(keeperAi, playerController);
+        if (playerController.getKeeper().getGold() < ai.getMineGoldUntilGoldHeldIsGreaterThan()
+                && !mineGold(keeperAi, playerController) && getTaggedGold(keeperAi.playerId).isEmpty()) {
+
+            // No seam it knows of, it makes its own gold by the Dungeon Heart when it has the spell
+            Keeper keeper = playerController.getKeeper();
+            KeeperSpell createGold = kwdFile.getKeeperSpellById(SPELL_CREATE_GOLD);
+            ResearchableEntity availability = createGold != null ? playerController.getSpellControl().getTypes().get(createGold) : null;
+            if (availability != null && availability.isDiscovered()) {
+                Point tile = new Point(keeper.getDungeonHeartLocation().x + 1, keeper.getDungeonHeartLocation().y + 1);
+                int mana = keeper.getMana();
+                gameWorldController.castKeeperSpell(SPELL_CREATE_GOLD, null, tile, WorldUtils.pointToVector2f(tile), keeper.getId());
+                if (keeper.getMana() < mana) {
+                    log(keeperAi, "cast Create Gold", tile, "low on gold with " + keeper.getGold() + " and no seam to mine");
+                }
+            }
         }
     }
 
     /**
-     * Heads for the nearest gold, unless there is gold tagged already
+     * Heads for the nearest gold seam it found the last time it looked,
+     * unless there is gold tagged already, and looks for the seams again
+     * for the next time. So what it heads for is one look old, as in DK II
+     *
+     * @return true if it heads for gold
      */
-    private void mineGold(KeeperAi keeperAi, IPlayerController playerController) {
+    private boolean mineGold(KeeperAi keeperAi, IPlayerController playerController) {
         if (!getTaggedGold(keeperAi.playerId).isEmpty()) {
-            return;
+            return false;
         }
-        Point gold = findGold(playerController);
+        Point gold = keeperAi.goldDeposits[0];
+        keeperAi.goldDeposits = findGold(playerController);
         if (gold != null) {
             keeperAi.target = gold;
-            setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD, "low on gold with " + playerController.getKeeper().getGold());
+            setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD, "low on gold with " + playerController.getKeeper().getGold()
+                    + ", the nearest seam of its last look, the next look has "
+                    + (keeperAi.goldDeposits[0] != null ? keeperAi.goldDeposits[0].x + "," + keeperAi.goldDeposits[0].y : "none"));
             keeperAi.goldTiles = 0;
         }
+
+        return gold != null;
     }
 
     /**
-     * Groups the gold of the whole map into seams and takes the middle of
-     * the seam that is nearest to one of the player's rooms
+     * Groups the gold of the whole map into seams and takes the middles of
+     * the four seams that are nearest to one of the player's rooms
+     *
+     * @return the middles, the nearest first, {@code null} where there are
+     * fewer seams
      */
-    private Point findGold(IPlayerController playerController) {
+    private Point[] findGold(IPlayerController playerController) {
         int width = mapController.getMapData().getWidth();
         int height = mapController.getMapData().getHeight();
         boolean[][] seen = new boolean[width][height];
-        Point nearest = null;
-        int nearestDistance = Integer.MAX_VALUE;
+        Point[] nearest = new Point[4];
+        int[] distances = new int[nearest.length];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 if (seen[x][y] || !hasGold(x, y)) {
@@ -639,9 +665,14 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     continue;
                 }
                 int distance = getDistance(getNearestRoom(playerController, middle).getRoomInstance().getCenter(), middle);
-                if (distance < nearestDistance) {
-                    nearest = middle;
-                    nearestDistance = distance;
+                for (int i = 0; i < nearest.length; i++) {
+                    if (nearest[i] == null || distance < distances[i]) {
+                        System.arraycopy(nearest, i, nearest, i + 1, nearest.length - 1 - i);
+                        System.arraycopy(distances, i, distances, i + 1, nearest.length - 1 - i);
+                        nearest[i] = middle;
+                        distances[i] = distance;
+                        break;
+                    }
                 }
             }
         }
