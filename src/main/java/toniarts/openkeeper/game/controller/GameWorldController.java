@@ -1639,8 +1639,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
-        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, player.getGold())
-                != TrapPlacementValidator.Failure.NONE) {
+        boolean hasWorkshop = playerControllers.get(playerId).getRoomControl()
+                .getTypeCount(kwdFile.getRoomById(TrapPlacementValidator.WORKSHOP_ROOM_ID)) > 0;
+        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, hasWorkshop,
+                player.getGold()) != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 
