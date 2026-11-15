@@ -132,6 +132,35 @@ public final class KeeperAi implements EntityComponent {
      */
     public int cannotAttackTicks;
 
+    /**
+     * The attacks it still has to answer, up to three, as a ring: how many,
+     * and which one is first
+     */
+    public int attacks;
+    public int firstAttack;
+
+    /**
+     * For each attack the threat it still wants to drop there, or when
+     * below zero the threat it still wants to carry away from there
+     */
+    public int[] attackNeeds = new int[3];
+
+    /**
+     * For each attack the tile it drops its creatures on, or the tile it
+     * carries them away from
+     */
+    public Point[] attackTiles = new Point[3];
+
+    /**
+     * The player that attacked it last, 0 for none
+     */
+    public short attackerId;
+
+    /**
+     * Game ticks until it looks for a new attack on it
+     */
+    public int attackLookTicks;
+
     public KeeperAi() {
         // For serialization
     }
@@ -159,6 +188,12 @@ public final class KeeperAi implements EntityComponent {
         this.callToArmsTile = keeperAi.callToArmsTile;
         this.callToArmsTicks = keeperAi.callToArmsTicks;
         this.cannotAttackTicks = keeperAi.cannotAttackTicks;
+        this.attacks = keeperAi.attacks;
+        this.firstAttack = keeperAi.firstAttack;
+        this.attackNeeds = keeperAi.attackNeeds.clone();
+        this.attackTiles = keeperAi.attackTiles.clone();
+        this.attackerId = keeperAi.attackerId;
+        this.attackLookTicks = keeperAi.attackLookTicks;
     }
 
 }

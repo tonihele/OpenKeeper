@@ -43,6 +43,8 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.component.KeeperAiDropped;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
@@ -63,10 +65,12 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAttackResponse;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
+import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import static toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures.variable;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -102,6 +106,8 @@ class KeeperAiSystemTest {
     private static final short HATCHERY = 4;
     private static final short DUNGEON_HEART = 5;
     private static final short GUARD_ROOM = 9;
+    private static final short PRISON = 11;
+    private static final short HORNY = 9;
     private static final int ROOM_COST = 10;
     private static final Point HEART = new Point(3, 6);
     private static final int NORTH = 0;
@@ -135,6 +141,7 @@ class KeeperAiSystemTest {
             TREASURY, room(TREASURY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
             LAIR, room(LAIR, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
             PORTAL, room(PORTAL, 0, Room.RoomFlag.PLACEABLE_ON_LAND),
+            PRISON, room(PRISON, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND),
             HATCHERY, room(HATCHERY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
             DUNGEON_HEART, room(DUNGEON_HEART, 0, Room.RoomFlag.PLACEABLE_ON_LAND),
             GUARD_ROOM, room(GUARD_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE));
@@ -263,6 +270,137 @@ class KeeperAiSystemTest {
             system.processTick(0.25f);
             assertTrue(tagged.isEmpty());
         }
+    }
+
+    @Test
+    void dropsRestedFightersOnAnAttackUntilTheirThreatMakesUpWhatItNeeds() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT)));
+        createCreature(ENEMY_ID, new Point(8, 4), 100, 100, CreatureState.IDLE);
+        EntityId horny = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        CreatureComponent hornyComponent = new CreatureComponent();
+        hornyComponent.creatureId = HORNY;
+        entityData.setComponent(horny, hornyComponent);
+        EntityId worker = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        CreatureComponent workerComponent = new CreatureComponent();
+        workerComponent.worker = true;
+        entityData.setComponent(worker, workerComponent);
+        createCreature(PLAYER_ID, new Point(12, 8), 50, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.SLEEPING);
+        EntityId first = createCreature(PLAYER_ID, new Point(12, 8), 51, 100, CreatureState.IDLE);
+        EntityId second = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.WORK);
+        EntityId third = createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+
+        // 175 % of the enemy's 200 less its own 100 near the fight, and the first one is dropped at once
+        system.processTick(0.25f);
+        assertEquals(1, getKeeperAi().attacks);
+        assertEquals(150, getKeeperAi().attackNeeds[0]);
+        assertEquals(ENEMY_ID, getKeeperAi().attackerId);
+        for (int tick = 0; tick < 10; tick++) {
+            system.processTick(0.25f);
+        }
+
+        // The sleeper counts as rested and goes first, then the next two
+        assertEquals(3, dropped.size());
+        assertEquals(new Point(5, 4), dropped.get(first));
+        assertTrue(dropped.containsKey(second) || dropped.containsKey(third));
+        assertTrue(!dropped.containsKey(horny) && !dropped.containsKey(worker) && !dropped.containsKey(fighter));
+        assertEquals(0, getKeeperAi().attacks);
+    }
+
+    @Test
+    void leavesItsCreaturesInAnEnemyPrisonAlone() {
+        KeeperAiSystem system = createSystem(withRetreatHealth(ai(4, 10, 9, 1, 50, 0, List.of()), 20), 1000);
+        EntityId prisoner = createCreature(PLAYER_ID, new Point(8, 3), 5, 100, CreatureState.IMPRISONED);
+        entityData.setComponent(prisoner, new Owner(PLAYER_ID, ENEMY_ID));
+        EntityId stunned = createCreature(PLAYER_ID, new Point(8, 3), 5, 100, CreatureState.STUNNED);
+
+        system.processTick(0.25f);
+
+        // The turn went to an imp
+        assertTrue(dropped.isEmpty());
+        assertEquals(1, impSpells.size());
+        assertNull(entityData.getComponent(stunned, KeeperAiDropped.class));
+    }
+
+    @Test
+    void anAttackToAnswerTakesTheWholeTurn() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(4, 10, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.WORK);
+        createCreature(PLAYER_ID, new Point(12, 8), 100, 100, CreatureState.IDLE);
+        entityData.setComponent(createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT), new AttackTarget(fighter));
+
+        system.processTick(0.25f);
+
+        assertEquals(1, dropped.size());
+        assertTrue(impSpells.isEmpty());
+    }
+
+    @Test
+    void carriesItsCreaturesHomeFromAFightItIsLosingAwayFromItsLand() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, true, 0), 1000);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(12, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(13, 3), 100, 100, CreatureState.FIGHT)));
+        createCreature(ENEMY_ID, new Point(13, 4), 100, 100, CreatureState.FIGHT);
+        EntityId near = createCreature(PLAYER_ID, new Point(10, 3), 100, 100, CreatureState.IDLE);
+        EntityId far = createCreature(PLAYER_ID, new Point(12, 9), 100, 100, CreatureState.IDLE);
+
+        system.processTick(0.25f);
+        assertEquals(-100, getKeeperAi().attackNeeds[0]);
+        for (int tick = 0; tick < 10; tick++) {
+            system.processTick(0.25f);
+        }
+
+        // Every creature it has within 5 tiles of the fight, the others stay
+        assertEquals(Map.of(fighter, HEART, near, HEART), dropped);
+        assertTrue(!dropped.containsKey(far));
+        assertEquals(0, getKeeperAi().attacks);
+    }
+
+    @Test
+    void leavesAFightAwayFromItsLandAloneWhenItIsNotOutnumberedOrDoesNotPullOut() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 100, true, 0), 1000);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(12, 3), 100, 100, CreatureState.FIGHT);
+        EntityId enemy = createCreature(ENEMY_ID, new Point(13, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+
+        system.processTick(0.25f);
+        assertEquals(0, getKeeperAi().attacks);
+
+        // Outnumbered now, but told not to pull out
+        entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
+        system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 175, false, 0), 1000);
+        system.processTick(0.25f);
+        assertEquals(0, getKeeperAi().attacks);
+        assertTrue(dropped.isEmpty());
+    }
+
+    @Test
+    void decidesOnAnAttackForEachEnemyCreatureWhetherToTakeItPrisonerWhenItHasAPrison() {
+        KeeperAiSystem system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 0, false, 0), 1000);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(5, 4), 100, 100, CreatureState.FIGHT);
+        EntityId enemy = createCreature(ENEMY_ID, new Point(6, 4), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+
+        // No Prison, no decision
+        system.processTick(0.25f);
+        assertNull(entityData.getComponent(enemy, KeeperAiNoPrisoner.class));
+
+        // It never takes prisoners
+        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        for (int tick = 0; tick < 41; tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(1 << PLAYER_ID, entityData.getComponent(enemy, KeeperAiNoPrisoner.class).players);
+
+        // It always takes prisoners
+        entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
+        system = createSystem(withAttackResponse(ai(0, 0, 9, 1, 50, 0, List.of()), 0, false, 100), 1000);
+        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        system.processTick(0.25f);
+        assertEquals(0, entityData.getComponent(enemy, KeeperAiNoPrisoner.class).players);
     }
 
     private void createNeutralPortal(Point centre) {
@@ -787,6 +925,8 @@ class KeeperAiSystemTest {
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getGameLevel" -> gameLevel(4);
             case "getKeeperSpells" -> List.of(createImp);
+            case "getCreature" -> ((Number) args[0]).shortValue() == HORNY
+                    ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getVariables" -> variables;
             case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
