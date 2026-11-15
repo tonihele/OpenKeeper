@@ -24,10 +24,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -66,6 +71,28 @@ class MapRoomContainerTest {
         entityData.removeComponent(other, DungeonHeart.class);
         container.update();
         assertFalse(container.getRoomInformation(other).isDungeonHeart());
+    }
+
+    @Test
+    void dungeonHeartHealthIsTheHeartObjectsHealth() {
+        EntityId heart = createRoom((short) 5);
+        entityData.setComponent(heart, new DungeonHeart());
+        EntityId other = createRoom((short) 1);
+        entityData.setComponent(other, new Health(50, 100));
+        EntityId heartObject = entityData.createEntity();
+        entityData.setComponents(heartObject,
+                new ObjectComponent(FiveByFiveRotatedController.OBJECT_HEART_ID, null),
+                new Position(0, WorldUtils.pointToVector3f(new Point(0, 0))),
+                new Health(87550, 100000));
+
+        container.start();
+
+        assertEquals(87, container.getRoomInformation(heart).getHealthPercent());
+        assertEquals(50, container.getRoomInformation(other).getHealthPercent());
+
+        entityData.setComponent(heartObject, new Health(40000, 100000));
+        container.update();
+        assertEquals(40, container.getRoomInformation(heart).getHealthPercent());
     }
 
     private EntityId createRoom(short roomId) {
