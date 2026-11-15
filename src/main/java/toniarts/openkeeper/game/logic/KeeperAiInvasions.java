@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -29,6 +30,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiEnemy;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -39,19 +41,24 @@ import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * How the computer player invades an enemy, DK II's 0x4FAEF0. When its army
- * is ready it picks an enemy and digs tunnels up to the enemy's land, as
- * many as its settings say. Then it breaks through them, one a turn.
+ * How the computer player invades an enemy, DK II's 0x4FAEF0, 0x4FECE0 and
+ * 0x4FE9C0. When its army is ready it picks an enemy and digs tunnels up to
+ * the enemy's land, as many as its settings say. Then it breaks through
+ * them, one a turn. Once a creature can walk to the enemy's Dungeon Heart it
+ * calls its creatures to arms there, or step by step on the way there.
  */
 final class KeeperAiInvasions {
 
+    private static final short SPELL_CALL_TO_ARMS = 3;
     private static final short ROOM_DUNGEON_HEART = 5;
 
     /**
@@ -66,6 +73,24 @@ final class KeeperAiInvasions {
     private static final int ROOM_DEFENCE_TILES = 5;
 
     /**
+     * The flag goes on a corner of the enemy's Dungeon Heart, 2 tiles from
+     * its centre on both axes
+     */
+    private static final int RALLY_FROM_HEART = 2;
+
+    /**
+     * On the way to the enemy the flag moves 2 tiles on once 4 in 5 of the
+     * creatures are within 10 tiles of it
+     */
+    private static final int RALLY_GATHER_TILES = 10;
+    private static final int RALLY_STEP_TILES = 2;
+
+    /**
+     * Creatures to the flag are dropped within 5 tiles of it
+     */
+    private static final int RALLY_DROP_TILES = 5;
+
+    /**
      * DK II keeps 4 bits of the number of tunnels to dig at the same time
      */
     private static final int TUNNELS_MASK = 0xf;
@@ -74,6 +99,7 @@ final class KeeperAiInvasions {
     private final IKwdFile kwdFile;
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
+    private final INavigationService navigationService;
     private final KeeperAiBattles battles;
     private final KeeperAiBattles.DecisionLog decisionLog;
 
@@ -83,6 +109,7 @@ final class KeeperAiInvasions {
         this.kwdFile = kwdFile;
         this.gameWorldController = gameWorldController;
         this.mapController = gameWorldController.getMapController();
+        this.navigationService = navigationService;
         this.battles = battles;
         this.decisionLog = decisionLog;
     }
@@ -214,6 +241,11 @@ final class KeeperAiInvasions {
         startDig(keeperAi, start, target, "a tunnel to room " + breachRoom.getRoomInstance().getRoom().getRoomId()
                 + " of player " + keeperAiEnemy.enemyId + ", " + keeperAiEnemy.tunnelsLeft + " more to dig");
         keeperAi.invasionTargetId = keeperAiEnemy.enemyId;
+
+        // On the way to the enemy the first call to arms is at the room the last tunnel starts from
+        if (ai.getUseCallToArms() == AI.CallToArmsUsagePolicy.TOWARDS_HEART && keeperAiEnemy.tunnelsLeft == 0 && !keeperAi.callToArms) {
+            keeperAi.rallyTile = start;
+        }
     }
 
     /**
@@ -292,6 +324,138 @@ final class KeeperAiInvasions {
         keeperAi.invasionTargetId = 0;
 
         return true;
+    }
+
+    /**
+     * Calls its creatures to arms against an enemy it has set out against,
+     * once a creature can walk to that enemy's Dungeon Heart. Not while it
+     * answers an attack or waits after one. With its settings it also drops
+     * half its threat near the flag, if it has land there.
+     *
+     * @param keeperAi the computer player
+     * @param playerControllers all the players
+     * @param ai its settings
+     * @return true if it spent its action
+     */
+    boolean callToArms(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai) {
+        AI.CallToArmsUsagePolicy policy = ai.getUseCallToArms();
+        if (keeperAi.attacks > 0 || (keeperAi.callToArms && policy != AI.CallToArmsUsagePolicy.TOWARDS_HEART)
+                || keeperAi.cannotAttackTicks > 0) {
+            return false;
+        }
+        Point rally = getRallyTile(keeperAi, playerControllers, policy);
+        if (rally == null) {
+            return false;
+        }
+
+        IPlayerController playerController = playerControllers.get(keeperAi.playerId);
+        KeeperSpell callToArms = kwdFile.getKeeperSpellById(SPELL_CALL_TO_ARMS);
+        if (callToArms == null || !playerController.getSpellControl().isAvailable(callToArms)) {
+            return true;
+        }
+        int mana = playerController.getKeeper().getMana();
+        gameWorldController.castKeeperSpell(SPELL_CALL_TO_ARMS, null, rally, WorldUtils.pointToVector2f(rally), keeperAi.playerId);
+
+        // The cast has its own rules, the mana tells if it went through
+        if (playerController.getKeeper().getMana() >= mana) {
+            return true;
+        }
+        decisionLog.log(keeperAi, "cast Call to Arms", rally, "on the way to an enemy it invades, " + policy);
+        keeperAi.callToArms = true;
+        keeperAi.callToArmsTile = rally;
+        keeperAi.callToArmsTicks = ai.getRemoveCallToArmsAfterSeconds();
+        keeperAi.rallyTile = rally;
+        if (policy == AI.CallToArmsUsagePolicy.AT_HEART_WITH_CREATURES && keeperAi.attacks < keeperAi.attackNeeds.length) {
+            Point drop = battles.getNearestOwnOpenTile(keeperAi.playerId, rally, RALLY_DROP_TILES);
+            if (drop != null) {
+                int need = getThreat(keeperAi.playerId) / 2;
+                int attack = (keeperAi.firstAttack + keeperAi.attacks) % keeperAi.attackNeeds.length;
+                decisionLog.log(keeperAi, "drop a threat of " + need + " at the flag", drop, "half of its threat");
+                keeperAi.attackNeeds[attack] = need;
+                keeperAi.attackTiles[attack] = drop;
+                keeperAi.attacks++;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Where to call the creatures to arms: a corner of the Dungeon Heart of
+     * the first enemy it invades that a creature can walk to. On the way
+     * there the flag starts at its own room and moves 2 tiles on each time
+     * enough of its creatures have come.
+     */
+    private Point getRallyTile(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI.CallToArmsUsagePolicy policy) {
+        List<Entity> creatures = battles.getCreatures(keeperAi.playerId);
+        for (EntityId entityId : entityData.findEntities(new FieldFilter<>(KeeperAiEnemy.class, "playerId", keeperAi.playerId), KeeperAiEnemy.class)) {
+            KeeperAiEnemy keeperAiEnemy = entityData.getComponent(entityId, KeeperAiEnemy.class);
+            if (!keeperAiEnemy.invaded) {
+                continue;
+            }
+            IPlayerController enemy = playerControllers.get(keeperAiEnemy.enemyId);
+            if (enemy == null || enemy.getKeeper().isDestroyed()) {
+                KeeperAiEnemy gone = new KeeperAiEnemy(keeperAiEnemy);
+                gone.invaded = false;
+                entityData.setComponent(entityId, gone);
+                continue;
+            }
+            IRoomController heart = enemy.getRoomControl().getDungeonHeart();
+            Entity walker = getWalker(creatures);
+            if (heart == null || heart.getRoomInstance().isDestroyed() || walker == null) {
+                continue;
+            }
+
+            Point centre = heart.getRoomInstance().getCenter();
+            Point corner = new Point(centre.x + (Utils.getRandom().nextBoolean() ? -RALLY_FROM_HEART : RALLY_FROM_HEART),
+                    centre.y + (Utils.getRandom().nextBoolean() ? -RALLY_FROM_HEART : RALLY_FROM_HEART));
+            Point from = WorldUtils.vectorToPoint(walker.get(Position.class).position);
+            var navigable = gameWorldController.getCreaturesController().createController(walker.getId());
+            if (navigationService.findPath(from, corner, navigable) == null) {
+                continue;
+            }
+            if (policy != AI.CallToArmsUsagePolicy.TOWARDS_HEART) {
+                return corner;
+            }
+            if (!keeperAi.callToArms) {
+                return keeperAi.rallyTile;
+            }
+
+            // Most of its creatures have to be at the flag before it moves on
+            int fighters = 0;
+            int near = 0;
+            for (Entity creature : creatures) {
+                if (!creature.get(CreatureComponent.class).worker) {
+                    fighters++;
+                    if (keeperAi.rallyTile != null && KeeperAiBattles.isWithin(creature.get(Position.class).position,
+                            WorldUtils.pointToVector3f(keeperAi.rallyTile), RALLY_GATHER_TILES)) {
+                        near++;
+                    }
+                }
+            }
+            GraphPath<IMapTileInformation> path = keeperAi.rallyTile != null
+                    ? navigationService.findPath(keeperAi.rallyTile, corner, navigable) : null;
+            if (path != null && path.getCount() > 0 && fighters <= near * 5 / 4) {
+                return path.get(Math.min(RALLY_STEP_TILES, path.getCount() - 1)).getLocation();
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * The creature DK II asks the way with: the first one that can't walk
+     * on both water and lava, otherwise the first one
+     */
+    private Entity getWalker(List<Entity> creatures) {
+        for (Entity creature : creatures) {
+            Set<Creature.CreatureFlag> flags = kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getFlags();
+            if (!flags.contains(Creature.CreatureFlag.CAN_WALK_ON_WATER) || !flags.contains(Creature.CreatureFlag.CAN_WALK_ON_LAVA)) {
+                return creature;
+            }
+        }
+
+        return creatures.isEmpty() ? null : creatures.getFirst();
     }
 
     /**
