@@ -75,6 +75,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     private static final int UNTAG_GOLD_SECONDS = 60;
     private static final int NOTHING_TO_DO_LOG_SECONDS = 60;
+
+    /**
+     * DK II looks at its army and the training on half of the ticks
+     */
+    private static final int TRAINING_CHANCE_PERCENTAGE = 50;
     private static final int CREATE_IMP_DISTANCE_FROM_HEART = 2;
 
     /**
@@ -146,6 +151,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final Map<Short, AI> ais = new HashMap<>();
     private final KeeperAiBattles battles;
     private final KeeperAiInvasions invasions;
+    private final KeeperAiCreatures creatures;
     private final EntitySet keeperAis;
 
     /**
@@ -169,6 +175,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         this.mapController = gameWorldController.getMapController();
         battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, this::log);
         invasions = new KeeperAiInvasions(entityData, kwdFile, gameWorldController, navigationService, battles, this::log);
+        creatures = new KeeperAiCreatures(entityData, kwdFile, battles, this::log);
 
         // The keepers the level or the game setup gives to the computer, a loaded game has them already
         keeperAis = entityData.getEntities(KeeperAi.class);
@@ -261,6 +268,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         int creatureLevel = playerController.getKeeper().isAi() ? ai.getMinLevelForCreatures() : 0;
         if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai, creatureLevel)) {
             actions--;
+        }
+
+        // On half of the ticks, while its army is not ready, it drops creatures where they train
+        if (Utils.getRandom().nextInt(100) < TRAINING_CHANCE_PERCENTAGE && actions > 0
+                && !invasions.isArmyReady(keeperAi.playerId, ai, creatureLevel)) {
+            actions = creatures.dropIntoTraining(keeperAi, playerController, creatureLevel, actions);
         }
 
         // In a fight it sees to the fight, otherwise to its imps
