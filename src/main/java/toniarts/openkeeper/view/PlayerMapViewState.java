@@ -283,12 +283,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         mapTileContainer.update();
         fogOfWarController.update(tpf);
 
-        // The level music is turned down as much as the loudest disco is heard
-        SoundState soundState = stateManager.getState(SoundState.class);
-        if (soundState != null) {
-            soundState.setMusicVolumeFactor(1f - gameEventSoundPlayer.updateDiscoMusic() / 100f);
-        }
-
         // Lighting: pick up live settings changes, advance modulators
         // (pulse/fade/flicker) and re-upload the terrain materials they
         // touched
@@ -297,6 +291,11 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
         mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
         mapLoader.getLightRules().update(tpf, app.getCamera());
+        // The level music is turned down as much as the loudest disco is heard
+        SoundState soundState = stateManager.getState(SoundState.class);
+        if (soundState != null) {
+            soundState.setMusicVolumeFactor(1f - gameEventSoundPlayer.updateDiscoMusic() / 100f);
+        }
     }
 
     public MapViewController getMapLoader() {

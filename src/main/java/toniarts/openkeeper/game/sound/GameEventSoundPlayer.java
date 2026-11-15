@@ -32,8 +32,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.IntConsumer;
 import java.util.function.Predicate;
+import java.util.function.IntConsumer;
 
 /**
  * Plays the sounds of the {@link GameEvent}s published on the {@link EventBus}.
@@ -55,7 +55,7 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     private final Predicate<Point> explored;
 
     /**
-     * @param mentorSpeech plays the mentor speech of the given id
+     * @param mentorSpeech queues a mentor speech by its id
      * @param explored tells if the player has explored the tile, the disco is not heard from the fog
      */
     public GameEventSoundPlayer(IKwdFile kwdFile, IntConsumer mentorSpeech, Predicate<Point> explored) {
