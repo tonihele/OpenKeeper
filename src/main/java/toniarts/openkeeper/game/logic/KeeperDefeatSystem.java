@@ -23,6 +23,7 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -40,13 +41,16 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
 
 /**
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
- * he is marked destroyed, loses the game and his heart room is left in ruins.
+ * he is marked destroyed, loses the game, his heart room is left in ruins and
+ * his land goes back to nobody.
  * In a skirmish or multiplayer game the last keeper standing wins. In the
  * campaign, a level can have the last enemy heart leave a Portal Gem.
  */
@@ -129,6 +133,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
         ruinHeartRoom(keeper);
+        abandonLand(keeper.getId());
         if (!isAi(keeper)) {
             gameController.endGame(keeper.getId(), false);
         }
@@ -172,6 +177,38 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
                 goldControl.setGoldMax(goldControl.getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
                 room.destroy();
             }
+        }
+    }
+
+    /**
+     * Nobody holds the land of a defeated keeper. His rooms, all but the ruined
+     * heart, become neutral and his other tiles lose their claim, a reinforced
+     * wall turning back into rock and a claimed path into a dirt path
+     *
+     * @param keeperId the defeated keeper
+     */
+    private void abandonLand(short keeperId) {
+        Set<IRoomController> rooms = new HashSet<>();
+        for (IMapTileController tile : mapController.getMapData()) {
+            if (tile.getOwnerId() != keeperId) {
+                continue;
+            }
+
+            IRoomController room = mapController.getRoomControllerByCoordinates(tile.getLocation());
+            if (room != null) {
+                if (!room.isDungeonHeart()) {
+                    rooms.add(room);
+                }
+                continue;
+            }
+
+            Terrain terrain = mapController.getTerrain(tile);
+            short terrainId = terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) ? terrain.getDestroyedTypeTerrainId() : terrain.getTerrainId();
+            mapController.alterTerrain(tile.getLocation(), terrainId, Player.NEUTRAL_PLAYER_ID);
+        }
+
+        for (IRoomController room : rooms) {
+            mapController.transferRoom(room, Player.NEUTRAL_PLAYER_ID);
         }
     }
 
