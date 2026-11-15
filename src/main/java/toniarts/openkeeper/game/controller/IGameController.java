@@ -79,6 +79,9 @@ public interface IGameController {
 
     GameEventService getGameEventService();
 
+    /** Enables or disables a map effect generator, leaving unknown IDs unchanged. */
+    void setEffectGeneratorEnabled(short generatorId, boolean enabled);
+
     /**
      * Set player possession mode on/off
      *
