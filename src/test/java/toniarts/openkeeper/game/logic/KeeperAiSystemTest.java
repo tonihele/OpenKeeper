@@ -34,6 +34,7 @@ import java.util.logging.Handler;
 import java.util.logging.LogRecord;
 import java.util.logging.Logger;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -85,6 +86,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withPrisonerFate;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withSightOfEvil;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -115,6 +117,7 @@ class KeeperAiSystemTest {
 
     private static final short PLAYER_ID = 3;
     private static final short ENEMY_ID = 4;
+    private static final short SIGHT_OF_EVIL = 1;
     private static final short CALL_TO_ARMS = 3;
     private static final short TREASURY = 1;
     private static final short LAIR = 2;
@@ -188,6 +191,8 @@ class KeeperAiSystemTest {
     private PlayerHandControl handControl;
     private PlayerSpellControl spellControl;
     private final KeeperSpell callToArms = keeperSpell(CALL_TO_ARMS, 200, 0, (short) 0, 0);
+    private final KeeperSpell sightOfEvil = keeperSpell(SIGHT_OF_EVIL, 100, 0, (short) 0, 0);
+    private final List<Point> sightOfEvilCasts = new ArrayList<>();
     private final List<Point> callToArmsCasts = new ArrayList<>();
     private int callToArmsCancels;
     private final Map<EntityId, Point> dropped = new HashMap<>();
@@ -904,6 +909,31 @@ class KeeperAiSystemTest {
         assertEquals(Map.of(prisoner, new Point(5, 4)), dropped);
     }
 
+    @Test
+    void castsSightOfEvilOnEnemyLandNowAndThenOnceItHasTheSpell() {
+        for (int y = 1; y < 10; y++) {
+            for (int x = 7; x < 15; x++) {
+                map[y][x] = 'E';
+            }
+        }
+        KeeperAiSystem system = createSystem(withSightOfEvil(ai(0, 0, 9, 1, 50, 0, List.of()), AI.SightOfEvilUsagePolicy.ENEMY_LAND), 1000);
+        for (int tick = 0; tick < 200; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(sightOfEvilCasts.isEmpty());
+
+        spellControl.setTypeAvailable(sightOfEvil, true, true);
+        for (int tick = 0; tick < 200; tick++) {
+            system.processTick(0.25f);
+            keeper.setMana(1000);
+        }
+
+        assertFalse(sightOfEvilCasts.isEmpty());
+        for (Point tile : sightOfEvilCasts) {
+            assertEquals('E', map[tile.y][tile.x]);
+        }
+    }
+
     private EntityId createPrisoner(Point tile) {
         EntityId prisoner = createCreature(ENEMY_ID, tile, 100, 100, CreatureState.IMPRISONED);
         entityData.setComponents(prisoner, new Owner(ENEMY_ID, PLAYER_ID), new CreatureImprisoned(0, 0));
@@ -1366,7 +1396,7 @@ class KeeperAiSystemTest {
                 MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         handControl = new PlayerHandControl(keeper, 8, entityData);
-        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal));
+        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal, sightOfEvil));
         Keeper enemyKeeper = new Keeper(false, ENEMY_ID);
         enemyKeeper.setPlayer(new Player());
         enemyRoomControl = new PlayerRoomControl(enemyKeeper, new ArrayList<>(rooms.values()));
@@ -1409,7 +1439,8 @@ class KeeperAiSystemTest {
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getVariables" -> variables;
             case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
-            case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms : null;
+            case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms
+                    : ((Number) args[0]).shortValue() == SIGHT_OF_EVIL ? sightOfEvil : null;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         ICreatureController creatureController = (ICreatureController) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -1436,6 +1467,11 @@ class KeeperAiSystemTest {
                             return creaturesController;
                         }
                         case "castKeeperSpell" -> {
+                            if ((short) args[0] == SIGHT_OF_EVIL) {
+                                sightOfEvilCasts.add((Point) args[2]);
+                                keeper.setMana(keeper.getMana() - 100);
+                                return null;
+                            }
                             if ((short) args[0] == HEAL || (short) args[0] == THUNDERBOLT) {
                                 battleCasts.put((short) args[0], (EntityId) args[1]);
                                 keeper.setMana(keeper.getMana() - 100);
