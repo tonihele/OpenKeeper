@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
@@ -245,6 +246,9 @@ public final class HealthSystem extends GameTimeCounter {
             Short creatureId = getRoomCreatureId(entityId);
             if (creatureId != null && !damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
                 creaturesController.turnCreatureIntoAnother(entityId, owner.controlId, creatureId);
+
+                // The mentor tells the keeper of the Prison, like DK II (CRoom_sub_4E30F0, message 0x41)
+                gameEventService.emitToPlayer(GameEventType.PRISON_SKELETON_RISEN, owner.controlId);
                 return;
             }
             processDeath(entityId);
@@ -297,6 +301,9 @@ public final class HealthSystem extends GameTimeCounter {
 
     private void processUnconscious(EntityId entityId, Health health) {
         entityData.removeComponent(entityId, AttackTarget.class);
+
+        // A knocked out pit fighter is out of the fight and waits to be carried to its lair
+        entityData.removeComponent(entityId, CombatPitFighter.class);
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
@@ -345,7 +352,7 @@ public final class HealthSystem extends GameTimeCounter {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
             if (elapsedTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1, tortured.device));
                 delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be
