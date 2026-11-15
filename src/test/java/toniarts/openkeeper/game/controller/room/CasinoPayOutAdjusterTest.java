@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -142,7 +143,7 @@ class CasinoPayOutAdjusterTest {
                     entityData.setComponents(entityId,
                             new ObjectComponent((short) args[0], null),
                             new ObjectViewState((short) args[0], null, GameObjectAnimState.MESH_RESOURCE, true),
-                            new Position(0, WorldUtils.pointToVector3f((int) args[2], (int) args[3])));
+                            new Position(0, args[2] instanceof Vector3f vector ? vector : WorldUtils.pointToVector3f((int) args[2], (int) args[3])));
                     return entityId;
                 });
 
