@@ -106,7 +106,7 @@ public final class GameLoopManager {
         final GameEventService gameEventService = gameController.getGameEventService();
 
         payDaySystem = new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
-                playerControllers.values(), gameWorldController, gameSettings);
+                playerControllers.values(), gameSettings);
 
         // Game logic
         final GameLogicManager gameLogicThread = new GameLogicManager(

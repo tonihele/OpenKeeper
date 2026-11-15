@@ -24,15 +24,12 @@ import toniarts.openkeeper.game.event.ClientEvents;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.utils.Point;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.Predicate;
 import java.util.function.IntConsumer;
 
 /**
@@ -42,57 +39,13 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
 
     private static final Logger logger = System.getLogger(GameEventSoundPlayer.class.getName());
 
-    private static final int DISCO_FADE_TILES = 45;
-
     private final IKwdFile kwdFile;
     private final IntConsumer mentorSpeech;
     private final Map<ExclusiveKey, Integer> exclusiveSounds = new HashMap<>();
 
-    /**
-     * The disco music of each Casino that is in disco mode, by the Casino's centre
-     */
-    private final Map<Point, Integer> discoMusic = new ConcurrentHashMap<>();
-    private final Predicate<Point> explored;
-
-    /**
-     * @param mentorSpeech queues a mentor speech by its id
-     * @param explored tells if the player has explored the tile, the disco is not heard from the fog
-     */
-    public GameEventSoundPlayer(IKwdFile kwdFile, IntConsumer mentorSpeech, Predicate<Point> explored) {
+    public GameEventSoundPlayer(IKwdFile kwdFile, IntConsumer mentorSpeech) {
         this.kwdFile = kwdFile;
         this.mentorSpeech = mentorSpeech;
-        this.explored = explored;
-    }
-
-    /**
-     * Sets the volume of the disco music the closer the camera is to the Casino, as in DK II: it fades out over
-     * {@link #DISCO_FADE_TILES} tiles of the larger of the x and y distances. Call this every frame.
-     *
-     * @return the loudest disco volume 0-100, the level music is turned down by as much
-     */
-    public int updateDiscoMusic() {
-        SoundEngine engine = SoundManager.getEngine();
-        int loudest = 0;
-        if (engine == null) {
-            return loudest;
-        }
-        for (var disco : discoMusic.entrySet()) {
-            SoundVoice voice = engine.getVoice(disco.getValue());
-            if (voice == null) {
-                discoMusic.remove(disco.getKey());
-                continue;
-            }
-            Point centre = disco.getKey();
-            Point listener = engine.getListener();
-            int volume = 0;
-            if (listener != null && explored.test(centre)) {
-                int distance = Math.min(DISCO_FADE_TILES, Math.max(Math.abs(listener.x - centre.x), Math.abs(listener.y - centre.y)));
-                volume = 100 - 100 * distance / DISCO_FADE_TILES;
-            }
-            voice.setVolume(volume);
-            loudest = Math.max(loudest, volume);
-        }
-        return loudest;
     }
 
     public void register() {
@@ -102,19 +55,14 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     public void unregister() {
         EventBus.removeListener(ClientEvents.GAME_EVENT, this);
         exclusiveSounds.clear();
-        discoMusic.values().forEach(SoundManager::stopSound);
-        discoMusic.clear();
     }
 
     @Override
     public void newEvent(EventType<GameEvent> type, GameEvent event) {
         exclusiveSounds.values().removeIf(handle -> !SoundManager.isPlaying(handle));
 
-        if (event.type == GameEventType.CASINO_DISCO_END) {
-            Integer music = discoMusic.remove(event.position);
-            if (music != null) {
-                SoundManager.stopSound(music);
-            }
+        if (event.type == GameEventType.CASINO_DISCO_START) {
+            return; // The disco music is played by the DiscoViewState
         }
 
         ExclusiveKey key = null;
@@ -144,9 +92,6 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
             }
             if (key != null && handle != SoundEngine.NO_HANDLE) {
                 exclusiveSounds.put(key, handle);
-            }
-            if (event.type == GameEventType.CASINO_DISCO_START && handle != SoundEngine.NO_HANDLE) {
-                discoMusic.put(event.position, handle);
             }
         }
     }
