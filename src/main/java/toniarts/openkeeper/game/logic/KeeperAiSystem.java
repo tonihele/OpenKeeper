@@ -56,8 +56,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * rooms and casts spells.<br>
  * So far it creates imps, mines gold, picks the rooms to build, has their
  * sites dug out and builds them, digs to neutral Portals, fights, invades,
- * trains its creatures, puts idle ones to work, slaps them and sees to its
- * prisoners.<br>
+ * trains its creatures, puts idle ones to work, slaps them, sees to its
+ * prisoners and looks round with Sight of Evil.<br>
  * With the decision log on it writes a line for everything it decides: the
  * game tick, the player, the task it is on, what it does, where, and why.
  * The lines are there to be compared with DK II tick by tick.
@@ -82,6 +82,14 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     private static final int TRAINING_CHANCE_PERCENTAGE = 50;
     private static final int CREATE_IMP_DISTANCE_FROM_HEART = 2;
+    private static final short SPELL_SIGHT_OF_EVIL = 1;
+
+    /**
+     * DK II looks at a random tile each tick and casts Sight of Evil on it
+     * with 2 chances in a hundred, or on enemy land with 20
+     */
+    private static final int SIGHT_OF_EVIL_RANDOM_PERCENTAGE = 2;
+    private static final int SIGHT_OF_EVIL_ENEMY_LAND_PERCENTAGE = 20;
 
     /**
      * DK II tags the gold in a 7 x 7 tile spiral
@@ -311,6 +319,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions = creatures.seeToPrisoners(keeperAi, playerController, ai, actions);
         }
 
+        // It has a look round with Sight of Evil
+        if (actions > 0 && castSightOfEvil(keeperAi, playerController, ai)) {
+            actions--;
+        }
+
         while (actions > 0) {
             actions = switch (keeperAi.task) {
                 case PLAN -> {
@@ -428,6 +441,43 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         // The cast has its own rules, the mana tells if it went through
         if (keeper.getMana() < mana) {
             log(keeperAi, "cast Create Imp", tile, imps + " imps, fewer than its land and its limit allow");
+            return true;
+        }
+
+        return false;
+    }
+
+    /**
+     * Casts Sight of Evil on a random tile of the map, now and then, or more
+     * often on enemy land, by its settings
+     *
+     * @return true if the spell was cast
+     */
+    private boolean castSightOfEvil(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+        AI.SightOfEvilUsagePolicy policy = ai.getUseSightOfEvil();
+        if (policy == null || policy == AI.SightOfEvilUsagePolicy.NONE) {
+            return false;
+        }
+
+        Keeper keeper = playerController.getKeeper();
+        Point tile = new Point(Utils.getRandom().nextInt(mapController.getMapData().getWidth()),
+                Utils.getRandom().nextInt(mapController.getMapData().getHeight()));
+        short ownerId = mapController.getMapData().getTile(tile).getOwnerId();
+        if (policy == AI.SightOfEvilUsagePolicy.RANDOM ? Utils.getRandom().nextInt(100) >= SIGHT_OF_EVIL_RANDOM_PERCENTAGE
+                : Utils.getRandom().nextInt(100) >= SIGHT_OF_EVIL_ENEMY_LAND_PERCENTAGE || ownerId < Player.GOOD_PLAYER_ID || !keeper.isEnemy(ownerId)) {
+            return false;
+        }
+        KeeperSpell sightOfEvil = kwdFile.getKeeperSpellById(SPELL_SIGHT_OF_EVIL);
+        ResearchableEntity availability = sightOfEvil != null ? playerController.getSpellControl().getTypes().get(sightOfEvil) : null;
+        if (availability == null || !availability.isDiscovered()) {
+            return false;
+        }
+
+        // The cast has its own rules, the mana tells if it went through
+        int mana = keeper.getMana();
+        gameWorldController.castKeeperSpell(SPELL_SIGHT_OF_EVIL, null, tile, WorldUtils.pointToVector2f(tile), keeper.getId());
+        if (keeper.getMana() < mana) {
+            log(keeperAi, "cast Sight of Evil", tile, policy == AI.SightOfEvilUsagePolicy.RANDOM ? "a random look" : "enemy land");
             return true;
         }
 

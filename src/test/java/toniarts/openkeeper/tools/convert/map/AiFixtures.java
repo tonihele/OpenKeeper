@@ -172,6 +172,18 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets where the computer player casts Sight of Evil
+     *
+     * @param ai the computer player settings
+     * @param policy where it casts it
+     * @return the same settings
+     */
+    public static AI withSightOfEvil(AI ai, AI.SightOfEvilUsagePolicy policy) {
+        ai.setUseSightOfEvil(policy);
+        return ai;
+    }
+
+    /**
      * Sets what the computer player does with an enemy prisoner
      *
      * @param ai the computer player settings
