@@ -189,27 +189,6 @@ public final class DoorsController implements IDoorsController {
         }
     }
 
-    @Override
-    public OptionalInt sellDoor(Collection<EntityId> entitiesOnTile, short playerId) {
-        for (EntityId entity : entitiesOnTile) {
-            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
-            Owner owner = entityData.getComponent(entity, Owner.class);
-            if (doorComponent == null || owner == null || owner.ownerId != playerId) {
-                continue;
-            }
-
-            // A blueprint returns the same as a built door. The share is the one of the rooms, the original doesn't
-            // use DOOR_SELL_VALUE_PERCENTAGE_OF_COST
-            Door door = kwdFile.getDoorById(doorComponent.doorId);
-            int sellValuePercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue();
-            entityData.removeEntity(entity);
-
-            return OptionalInt.of(door.getGoldCost() * sellValuePercentage / 100);
-        }
-
-        return OptionalInt.empty();
-    }
-
     /**
      * A door, built or a blueprint, stands only on a tile of its keeper. A
      * door that is not a barricade also needs the two walls it was turned to
@@ -233,6 +212,27 @@ public final class DoorsController implements IDoorsController {
             return DoorPlacementValidator.isBetweenWallsNorthAndSouth(mapController, tile.x, tile.y);
         }
         return DoorPlacementValidator.isBetweenWallsEastAndWest(mapController, tile.x, tile.y);
+    }
+
+    @Override
+    public OptionalInt sellDoor(Collection<EntityId> entitiesOnTile, short playerId) {
+        for (EntityId entity : entitiesOnTile) {
+            DoorComponent doorComponent = entityData.getComponent(entity, DoorComponent.class);
+            Owner owner = entityData.getComponent(entity, Owner.class);
+            if (doorComponent == null || owner == null || owner.ownerId != playerId) {
+                continue;
+            }
+
+            // A blueprint returns the same as a built door. The share is the one of the rooms, the original doesn't
+            // use DOOR_SELL_VALUE_PERCENTAGE_OF_COST
+            Door door = kwdFile.getDoorById(doorComponent.doorId);
+            int sellValuePercentage = (int) gameSettings.get(Variable.MiscVariable.MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST).getValue();
+            entityData.removeEntity(entity);
+
+            return OptionalInt.of(door.getGoldCost() * sellValuePercentage / 100);
+        }
+
+        return OptionalInt.empty();
     }
 
     @Override
