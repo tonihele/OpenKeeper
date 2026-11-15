@@ -83,6 +83,25 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets how the computer player answers an attack
+     *
+     * @param ai the computer player settings
+     * @param threatPercentage the threat it wants at the attack, in percent
+     * of the enemy's
+     * @param pullOut whether it carries its creatures out of a fight it is
+     * losing away from its land
+     * @param imprisonPercentage how many percent of the enemy creatures it
+     * means to take prisoner
+     * @return the same settings
+     */
+    public static AI withAttackResponse(AI ai, int threatPercentage, boolean pullOut, int imprisonPercentage) {
+        ai.setThreatValueOfDroppedCreaturesIsPercentageOfEnemyThreatValue((short) threatPercentage);
+        ai.setPullCreaturesFromFightIfOutnumberedAndUnableToDropReinforcements(pullOut);
+        ai.setAttemptToImprisonPercentageOfEnemyCreatures((short) imprisonPercentage);
+        return ai;
+    }
+
+    /**
      * Sets when the computer player pulls a hurt creature out
      *
      * @param ai the computer player settings
