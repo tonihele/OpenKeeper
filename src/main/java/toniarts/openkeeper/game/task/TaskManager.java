@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -35,14 +36,18 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Food;
@@ -53,6 +58,8 @@ import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -60,13 +67,16 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.TrapDeliveries;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.RoomListener;
@@ -77,21 +87,31 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Guard;
+import toniarts.openkeeper.game.task.creature.Manufacture;
+import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
+import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
+import toniarts.openkeeper.game.task.objective.StealGold;
+import toniarts.openkeeper.game.task.worker.ArmTrapTask;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
+import toniarts.openkeeper.game.task.worker.CarryCorpseToGraveyardTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.CarryObjectToStorageTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
+import toniarts.openkeeper.game.task.worker.DeliverTrapCrateTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
+import toniarts.openkeeper.game.task.worker.FetchCorpseTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
@@ -126,12 +146,18 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final EntitySet unconsciousEntities;
     private final EntitySet corpseEntities;
     private final EntitySet freeObjectEntities;
+    private final EntitySet trapBlueprintEntities;
+    private final EntitySet trapCrateEntities;
+    private final Map<EntityId, ArmTrapTask> armTrapTasks = new HashMap<>();
+    private boolean armTrapTasksScanned = false;
     private final Map<Short, Set<Task>> taskQueues;
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
+    private final Map<EntityId, ICreatureController> creaturesByEntities = new HashMap<>();
     private final Map<Short, IPlayerController> playerControllers;
     private final Map<IRoomController, Map<Point, AbstractCapacityCriticalRoomTask>> roomTasks = new HashMap<>();
     private final Map<ICreatureController, Consumer<Boolean>> unemployedCreatures = new HashMap<>();
+    private final Set<ICreatureController> escapedThieves = new HashSet<>();
     private final TaskWorkerPriorityComparator taskWorkerPriorityComparator = new TaskWorkerPriorityComparator();
 
     public TaskManager(EntityData entityData, IGameWorldController gameWorldController, IMapController mapController,
@@ -183,6 +209,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Listen to object picking up missions
         freeObjectEntities = entityData.getEntities(ObjectComponent.class, Position.class, Placeable.class);
         processAddedFreeObjectEntities(freeObjectEntities);
+
+        // Listen to trap blueprints and crates, workers bring the crates to the blueprints. Not the crate positions,
+        // they change all the time while a crate is carried
+        trapBlueprintEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class);
+        trapCrateEntities = entityData.getEntities(Crate.class, Owner.class);
     }
 
     @Override
@@ -196,10 +227,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         unconsciousEntities.release();
         corpseEntities.release();
         freeObjectEntities.release();
+        trapBlueprintEntities.release();
+        trapCrateEntities.release();
     }
 
     @Override
     public void processTick(float tpf) {
+        removeEscapedThieves();
         if (taskEntities.applyChanges()) {
             processDeletedTasks(taskEntities.getRemovedEntities());
             processAddedTasks(taskEntities.getAddedEntities());
@@ -217,21 +251,95 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             processDeletedFreeObjectEntities(freeObjectEntities.getRemovedEntities());
             processAddedFreeObjectEntities(freeObjectEntities.getAddedEntities());
         }
+        boolean blueprintsChanged = trapBlueprintEntities.applyChanges();
+        if (trapCrateEntities.applyChanges() || blueprintsChanged || !armTrapTasksScanned) {
+            updateArmTrapTasks();
+            armTrapTasksScanned = true;
+        }
+    }
+
+    /**
+     * Drops the arm trap tasks that are done or can't be done anymore and
+     * gives the blueprints waiting for a crate a delivery, if there is one
+     */
+    private void updateArmTrapTasks() {
+        Iterator<ArmTrapTask> iter = armTrapTasks.values().iterator();
+        while (iter.hasNext()) {
+            ArmTrapTask task = iter.next();
+            if (task.isRemovable()) {
+                iter.remove();
+                for (Set<Task> tasks : taskQueues.values()) {
+                    tasks.remove(task);
+                }
+            }
+        }
+        for (Set<Task> tasks : taskQueues.values()) {
+            tasks.removeIf(task -> task instanceof DeliverTrapCrateTask && task.isRemovable());
+        }
+
+        Map<EntityId, EntityId> underWay = HashMap.newHashMap(armTrapTasks.size());
+        for (ArmTrapTask task : armTrapTasks.values()) {
+            underWay.put(task.getBlueprint(), task.getCrate());
+        }
+        for (Short playerId : taskQueues.keySet()) {
+
+            // The blueprints in the order they were placed
+            List<Entity> placed = new ArrayList<>();
+            for (Entity entity : trapBlueprintEntities) {
+                if (entity.get(TrapViewState.class).blueprint && entity.get(Owner.class).ownerId == playerId) {
+                    placed.add(entity);
+                }
+            }
+            placed.sort(Comparator.comparingLong(entity -> entity.getId().getId()));
+            SequencedMap<EntityId, Short> blueprints = new LinkedHashMap<>();
+            for (Entity entity : placed) {
+                blueprints.put(entity.getId(), entity.get(TrapComponent.class).trapId);
+            }
+
+            Map<EntityId, Short> crates = new LinkedHashMap<>();
+            for (Entity entity : trapCrateEntities) {
+                Crate crate = entity.get(Crate.class);
+                if (crate.type == ResearchableType.TRAP && entity.get(Owner.class).ownerId == playerId) {
+                    crates.put(entity.getId(), crate.typeId);
+                }
+            }
+
+            for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(blueprints, crates, underWay).entrySet()) {
+                Point tile = WorldUtils.vectorToPoint(trapBlueprintEntities.getEntity(delivery.getKey()).get(Position.class).position);
+                ArmTrapTask task = new ArmTrapTask(this, navigationService, mapController, entityData, gameWorldController.getTrapsController(),
+                        objectsController, delivery.getKey(), tile, delivery.getValue(), playerId);
+                armTrapTasks.put(delivery.getKey(), task);
+                addTask(playerId, task);
+            }
+        }
     }
 
     private void processAddedTasks(Set<Entity> entities) {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             tasksIdsByEntities.put(entity.getId(), taskId);
+            trackCreature(entity.getId());
+        }
+    }
+
+    /**
+     * Remembers the creature that has a task. When it is killed its entity is
+     * removed outright and a controller can't be made of it anymore, but the
+     * task still needs to let go of it
+     */
+    private void trackCreature(EntityId entityId) {
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            creaturesByEntities.put(entityId, creaturesController.createController(entityId));
         }
     }
 
     private void processDeletedTasks(Set<Entity> entities) {
         for (Entity entity : entities) {
             Long taskId = tasksIdsByEntities.remove(entity.getId());
+            ICreatureController creature = creaturesByEntities.remove(entity.getId());
             Task task = tasksByIds.get(taskId);
-            if (task != null) {
-                task.unassign(creaturesController.createController(entity.getId()));
+            if (task != null && creature != null) {
+                task.unassign(creature);
                 if (task.getAssigneeCount() == 0 && task.isRemovable()) {
                     //tasksByIds.remove(taskId);
                 }
@@ -243,13 +351,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         for (Entity entity : entities) {
             long taskId = entity.get(TaskComponent.class).taskId;
             Long oldTaskId = tasksIdsByEntities.put(entity.getId(), taskId);
+            trackCreature(entity.getId());
+            ICreatureController creature = creaturesByEntities.get(entity.getId());
             if (oldTaskId == null || taskId == oldTaskId) {
                 continue;
             }
 
             Task task = tasksByIds.get(oldTaskId);
-            if (task != null) {
-                task.unassign(creaturesController.createController(entity.getId()));
+            if (task != null && creature != null) {
+                task.unassign(creature);
                 if (task.getAssigneeCount() == 0 && task.isRemovable()) {
                     //tasksByIds.remove(taskId);
                 }
@@ -286,11 +396,29 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void processDeletedUnconsciousEntities(Set<Entity> entities) {
-        // TODO:
+
+        // The creature got up, was locked up or died, there is nobody to rescue or capture anymore
+        for (Entity entity : entities) {
+            for (Set<Task> tasks : taskQueues.values()) {
+                tasks.removeIf(task -> (task instanceof RescueCreatureTask || task instanceof CaptureEnemyCreatureTask)
+                        && entity.getId().equals(task.getTaskTarget()));
+            }
+        }
     }
 
     private void processAddedCorpseEntities(Set<Entity> entities) {
-        // TODO:
+
+        // Add graveyard missions, only the creatures that leave a body behind
+        for (Entity entity : entities) {
+            Creature creature = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId);
+            if (creature == null || !creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)
+                    || entityData.getComponent(entity.getId(), Position.class) == null) {
+                continue;
+            }
+            for (Short playerId : taskQueues.keySet()) {
+                addTask(playerId, new FetchCorpseTask(navigationService, mapController, entityData, this, entity.getId(), playerId));
+            }
+        }
     }
 
     private void processDeletedCorpseEntities(Set<Entity> entities) {
@@ -548,6 +676,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
+    @Override
     public void addTask(short playerId, Task task) {
         Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
@@ -592,7 +721,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!room.isFullCapacity()) {
+            if (!room.getObjectControl(objectType).isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -671,11 +800,33 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case PRISONER -> {
                 return new CarryEnemyCreatureToPrison(navigationService, mapController, target, creature.getOwnerId(), room, this, creaturesController.createController(targetEntity));
             }
-            case SPECIAL, SPELL_BOOK -> {
+            case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
+            }
+            case CORPSE -> {
+                return new CarryCorpseToGraveyardTask(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, targetEntity);
             }
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
+            }
+            case MANUFACTURER -> {
+                return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
+            }
+            case WORSHIPPER -> {
+                return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
+            }
+            case GUARD -> {
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                        (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        FastMath.rand);
+            }
+            case GAMBLER -> {
+                return new Gamble(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
+                        gameWorldController, objectsController, gameSettings,
+                        room instanceof CasinoController casino ? casino::getPayOut : () -> Casino.PayOut.SMILES,
+                        FastMath.rand);
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
@@ -718,6 +869,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 break;
             }
+            case KILL_CREATURES: {
+                task = KillCreatures.create(navigationService, mapController, levelInfo, creature,
+                        getCreatures(creature.getObjectiveTargetPlayerId()));
+                break;
+            }
+            case STEAL_GOLD: {
+                task = new StealGold(navigationService, mapController, gameWorldController, entityData, creature, escapedThieves::add);
+                break;
+            }
             default: {
 
                 // The other objectives don't give the creature a task of its own
@@ -732,6 +892,41 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             return true;
         }
         return false;
+    }
+
+    private List<ICreatureController> getCreatures(short playerId) {
+        IPlayerController playerController = playerControllers.get(playerId);
+        if (playerController == null) {
+            return Collections.emptyList();
+        }
+
+        List<ICreatureController> creatures = new ArrayList<>();
+        for (Set<EntityId> creatureEntities : playerController.getCreatureControl().getAllCreatures().values()) {
+            for (EntityId entityId : creatureEntities) {
+
+                // A creature removed this tick is still listed until the player creature system catches up
+                if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+                    creatures.add(creaturesController.createController(entityId));
+                }
+            }
+        }
+
+        return creatures;
+    }
+
+    /**
+     * Thieves that got away with their loot leave the level. Not done while
+     * the thief is busy with his own task
+     */
+    private void removeEscapedThieves() {
+        for (ICreatureController thief : escapedThieves) {
+
+            // Done with the task here, the thief won't be around to be told later
+            thief.unassingCurrentTask();
+            tasksIdsByEntities.remove(thief.getEntityId());
+            thief.remove();
+        }
+        escapedThieves.clear();
     }
 
     private AbstractTask getObjectTask(IObjectController gameObject, short playerId) {
@@ -755,6 +950,18 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
             case TRAIN: {
                 return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+            }
+            case MANUFACTURE: {
+                return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
+            }
+            case PRAY: {
+                return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
+            }
+            case GUARD: {
+                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
+            }
+            case DRINK: {
+                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
             default:
                 return false;
