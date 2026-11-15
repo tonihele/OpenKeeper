@@ -516,7 +516,6 @@ class CreatureControllerTest {
             });
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
                 case "getTaskById" -> tasks.get((Long) args[0]);
-                case "addToUnemployedWorkerQueue" -> null;
                 case "isTaskAvailable" -> false;
                 case "assignSleepTask" -> {
                     sleepAssignments++;
