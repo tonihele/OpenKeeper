@@ -690,6 +690,15 @@ final class KeeperAiBattles {
         return nearest;
     }
 
+    /**
+     * Leaves a creature it carries alone for a while, from now
+     *
+     * @param creature the creature
+     */
+    void leaveAlone(EntityId creature) {
+        entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
+    }
+
     boolean isLeftAlone(Entity creature) {
         KeeperAiDropped dropped = entityData.getComponent(creature.getId(), KeeperAiDropped.class);
 
@@ -705,7 +714,7 @@ final class KeeperAiBattles {
      */
     boolean carry(EntityId creature, Point tile, IPlayerController playerController) {
         short playerId = playerController.getKeeper().getId();
-        entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
+        leaveAlone(creature);
         gameWorldController.pickUp(creature, playerId);
         if (!creature.equals(playerController.getHandControl().peek())) {
             return false;

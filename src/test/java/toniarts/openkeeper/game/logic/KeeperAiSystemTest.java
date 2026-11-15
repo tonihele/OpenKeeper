@@ -870,6 +870,19 @@ class KeeperAiSystemTest {
         }
 
         assertEquals(Map.of(creature, new Point(1, 4)), dropped);
+
+        // Still idle, but just dropped
+        dropped.clear();
+        for (int tick = 0; tick < 200; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(dropped.isEmpty());
+
+        gameTime = 75;
+        for (int tick = 0; tick < 200 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(Map.of(creature, new Point(1, 4)), dropped);
     }
 
     @Test
