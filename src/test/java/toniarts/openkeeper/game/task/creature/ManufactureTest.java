@@ -19,10 +19,13 @@ package toniarts.openkeeper.game.task.creature;
 import com.jme3.math.Vector2f;
 import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.utils.Point;
 
@@ -49,7 +52,9 @@ class ManufactureTest {
 
     private static int manufactureFor(int ticks) {
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
-        manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
+        Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
+        manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
+                trap.getManufCrateObjectId()));
         ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getManufacturePerTick" -> BILE_DEMON;
@@ -92,8 +97,10 @@ class ManufactureTest {
                     case "getObjectControl" -> crates;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
+        Trap trap = TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE);
         PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
-        manufactureControl.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
+        manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
+                trap.getManufCrateObjectId()));
         return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, null);
     }
 
