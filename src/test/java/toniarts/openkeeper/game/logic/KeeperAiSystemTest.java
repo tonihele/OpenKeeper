@@ -839,6 +839,23 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void doesNothingOnceItsDungeonHeartIsGone() {
+        KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
+        creatureControl.onCreatureAdded(new EntityId(1), imp);
+        roomControl.getDungeonHeart().getRoomInstance().setDestroyed(true);
+
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+
+        roomControl.getDungeonHeart().getRoomInstance().setDestroyed(false);
+        keeper.setDestroyed((short) 0);
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+    }
+
+    @Test
     void createsNoImpWhenItsLandAllowsNoMore() {
         KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
         creatureControl.onCreatureAdded(new EntityId(1), imp);
