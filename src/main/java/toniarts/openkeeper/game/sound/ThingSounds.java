@@ -42,6 +42,7 @@ public final class ThingSounds {
     public static final int CREATURE_ANGRY = 0xCC;
     public static final int CREATURE_EAT = 0xCD;
     public static final int CREATURE_SLEEP = 0xCE;
+    public static final int CREATURE_TORTURED = 0xCF; // on the Torture Wheel
     public static final int CREATURE_RESEARCH = 0xD1;
     public static final int CREATURE_MANUFACTURE = 0xD2;
     public static final int CREATURE_TRAIN = 0xD3;
@@ -60,6 +61,7 @@ public final class ThingSounds {
     public static final int CREATURE_DIG = 0x334;
     public static final int CREATURE_CLAIM = 0x10A; // claiming a tile, 0x109 sounds like digging
     public static final int CREATURE_REINFORCE = 0x33D; // reinforcing a wall, 0x10C is the repair
+    public static final int CREATURE_ELECTROCUTED = 0x156; // on the Electric Chair
 
     // Hand
     public static final int TAG = 0xEC;
@@ -78,6 +80,9 @@ public final class ThingSounds {
     public static final int ROOM_WORKSHOP_STEAM = 0x2E9;
     public static final int ROOM_LIBRARY_PAPER = 0x2FD;
     public static final int ROOM_HEART_BEAT = 0x150;
+    public static final int ROOM_CASINO_DISCO_MUSIC = 0x316;
+    public static final int ROOM_CASINO_DISCO_OVER = 0x33E; // the needle comes off the record
+    public static final int FIREWORKS = 0x344; // in the global effects bank
     public static final String CATEGORY_WORKSHOP = "ROOM_WORKSHOP";
     public static final String CATEGORY_LIBRARY = "ROOM_LIBRARY";
     public static final String CATEGORY_DUNGEON_HEART = "ROOM_DUNGEON_HEART";
@@ -102,6 +107,7 @@ public final class ThingSounds {
     public static final int DESTROYED = 0xF4;
     public static final int ROOM_EVENT = 0xF5;
     public static final int MANUFACTURED = 0x10F;
+    public static final int ELECTRIC_CHAIR_ZAP = 0xFB;
 
     private ThingSounds() {
         // Static helper
