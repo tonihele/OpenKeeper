@@ -1418,6 +1418,33 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void hasASiteDugForARoomItIsStillResearchingAndBuildsNothingOnIt() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY, LAIR)), 0);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+        roomControl.onBuild(createRoom(TREASURY, new Point(1, 4)));
+        roomControl.setTypeAvailable(rooms.get(LAIR), true, false);
+
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+        assertEquals(229, getKeeperAi().roomId);
+
+        Set<Point> dug = new HashSet<>();
+        for (int tick = 0; tick < 100 && getKeeperAi().task != KeeperAi.Task.PLAN; tick++) {
+            system.processTick(0.25f);
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            dug.addAll(tagged);
+            tagged.clear();
+        }
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+        assertTrue(dug.size() >= 9);
+        assertTrue(built.isEmpty());
+    }
+
+    @Test
     void headsForTheGoldWhenTheRoomCostsTooMuch() {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 9 * ROOM_COST - 1);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
