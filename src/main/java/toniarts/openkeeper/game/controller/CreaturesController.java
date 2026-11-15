@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -78,6 +79,7 @@ import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -207,10 +209,12 @@ public final class CreaturesController implements ICreaturesController {
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
         boolean diesInstantly = false;
+        EnumSet<Thing.Creature.CreatureFlag> flags = null;
         if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
             level = goodCreature.getLevel();
+            flags = goodCreature.getFlags();
             ownerId = Player.GOOD_PLAYER_ID;
             objective = goodCreature.getObjective();
             objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
@@ -221,17 +225,22 @@ public final class CreaturesController implements ICreaturesController {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
             level = neutralCreature.getLevel();
+            flags = neutralCreature.getFlags();
             ownerId = Player.NEUTRAL_PLAYER_ID;
         } else if (creature instanceof Thing.KeeperCreature keeperCreature) {
             triggerId = keeperCreature.getTriggerId();
             healthPercentage = keeperCreature.getInitialHealth();
             level = keeperCreature.getLevel();
+            flags = keeperCreature.getFlags();
             ownerId = keeperCreature.getPlayerId();
         } else if (creature instanceof Thing.DeadBody deadBody) {
             ownerId = deadBody.getPlayerId();
         }
+
+        // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
+        SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
-                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+                triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
     }
 
     @Override
@@ -295,6 +304,7 @@ public final class CreaturesController implements ICreaturesController {
 
         // Set every attribute by the level of the created creature
         setAttributesByLevel(creatureComponent, creatureExperience, healthComponent, goldComponent, sensesComponent, threatComponent, creatureMeleeAttack, regeneration);
+        goldComponent.gold = getStartingGold(money, goldComponent.maxGold);
         setSpells(entity, creature, level);
 
         entityData.setComponent(entity, creatureComponent);
@@ -340,6 +350,21 @@ public final class CreaturesController implements ICreaturesController {
         return entity;
     }
 
+    /**
+     * The gold a new creature carries. Only a creature placed in the editor
+     * carries any: its gold held percentage of its max gold held, like in the
+     * original (0x520180, 0x520460, 0x5208B0). Everything else starts with
+     * none (0x4872A0 clears it), the "initial gold held" attribute of the
+     * creature record is never read
+     *
+     * @param goldHeldPercent the gold held of the placed creature, in percent
+     * @param maxGold the most gold the creature can carry on its level
+     * @return the gold the creature starts with
+     */
+    static int getStartingGold(int goldHeldPercent, int maxGold) {
+        return (int) (goldHeldPercent * 0.01 * maxGold);
+    }
+
     private void setFlagDrivenComponents(EntityId entity, Creature creature) {
 
         // Fearless
@@ -365,6 +390,9 @@ public final class CreaturesController implements ICreaturesController {
                 creatureState = CreatureState.ENTERING_DUNGEON;
             }
             case PLACE -> {
+                creatureState = CreatureState.IDLE;
+            }
+            case DROP -> {
                 creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
             }
             case CONJURE -> {
@@ -445,9 +473,15 @@ public final class CreaturesController implements ICreaturesController {
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
-                room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
-                entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
-                return CreatureState.TORTURED;
+                RoomTortureeControl torturees = room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
+                EntityId device = torturees.addItem(entityId, location);
+                if (device != null) {
+                    Position devicePosition = entityData.getComponent(device, Position.class);
+                    entityData.setComponent(entityId, new Position(devicePosition.rotation,
+                            new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
+                    entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime(), device));
+                    return CreatureState.TORTURED;
+                }
             }
         }
         return CreatureState.IDLE;
@@ -505,8 +539,10 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.level = level;
         creatureExperience.experience = experience;
 
-        // Update stats
+        // Update stats, the gold carried stays
+        int carriedGold = gold.gold;
         setAttributesByLevel(creatureComponent, creatureExperience, health, gold, senses, threat, creatureMeleeAttack, regeneration);
+        gold.gold = carriedGold;
         setSpells(entityId, kwdFile.getCreature(creatureComponent.creatureId), level);
 
         // Set the new components to the entity
@@ -541,7 +577,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
         creatureExperience.experiencePerTickTraining = getPointsPerTick(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
         creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
-        creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
+        creatureComponent.manufacturePerTick = getPointsPerTick(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
         creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
         creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));
@@ -824,7 +860,7 @@ public final class CreaturesController implements ICreaturesController {
         // Get the spells the creature should have
         Map<Short, toniarts.openkeeper.tools.convert.map.CreatureSpell> availableSpells = creature.getSpells()
                 .stream()
-                .filter((spell) -> spell.getLevelAvailable() >= level)
+                .filter((spell) -> spell.isAvailableAt(level))
                 .collect(Collectors.toMap((spell) -> spell.getCreatureSpellId(), (spell) -> kwdFile.getCreatureSpellById(spell.getCreatureSpellId())));
         List<EntityId> creatureSpellIds = new ArrayList<>(availableSpells.size());
         boolean spellsChanged = false;
