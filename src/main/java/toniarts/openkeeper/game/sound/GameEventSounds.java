@@ -142,7 +142,7 @@ public final class GameEventSounds {
             case CASINO_FIREWORKS ->
                 add(sounds, GlobalCategory.EFFECTS, ThingSounds.FIREWORKS, event.position);
             case CASINO_DISCO_START ->
-                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_MUSIC, null); // Looped, GameEventSoundPlayer sets its volume
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_MUSIC, null); // Looped, DiscoViewState plays it and sets its volume
             case CASINO_JACKPOT -> {
                 // The effect is the view's
             }
