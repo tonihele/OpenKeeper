@@ -28,6 +28,7 @@ import toniarts.openkeeper.tools.convert.map.ResearchOrderFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.ResearchOrder;
 import toniarts.openkeeper.tools.convert.map.Variable.ResearchOrder.ResearchOrderType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -57,10 +58,12 @@ class ResearchOrderTest {
         assertSame(spellB, keeper.getCurrentResearch());
 
         assertSame(spellB, researchControl.research(1000));
+        researchControl.completeResearch();
         assertSame(door, keeper.getCurrentResearch());
         spellB.setDiscovered(true); // The spellbook materializes
 
         assertSame(door, researchControl.research(1000));
+        researchControl.completeResearch();
         assertSame(spellA, keeper.getCurrentResearch());
     }
 
@@ -78,6 +81,31 @@ class ResearchOrderTest {
     }
 
     @Test
+    void finishedResearchIsKeptUntilCompleted() {
+        Keeper keeper = new Keeper(false, (short) 3);
+        PlayerSpell spellA = addSpell(keeper, SPELL_A, false);
+        PlayerSpell spellB = addSpell(keeper, SPELL_B, false);
+
+        PlayerResearchControl researchControl = researchControl(keeper,
+                step(ResearchOrderType.SPELL, SPELL_A), step(ResearchOrderType.SPELL, SPELL_B));
+        researchControl.initialize();
+
+        assertNull(researchControl.research(999));
+        assertSame(spellA, researchControl.research(1));
+        assertEquals(1000, spellA.getResearch());
+
+        // The book could not be stored: still the same item, nothing lost, tried again next time
+        assertSame(spellA, keeper.getCurrentResearch());
+        assertSame(spellA, researchControl.research(1));
+        assertEquals(1001, spellA.getResearch());
+
+        // Stored: now the progress is reset and the next item is researched
+        researchControl.completeResearch();
+        assertEquals(0, spellA.getResearch());
+        assertSame(spellB, keeper.getCurrentResearch());
+    }
+
+    @Test
     void upgradesComeAfterAllTheDiscoveries() {
         Keeper keeper = new Keeper(false, (short) 3);
         PlayerSpell spellA = addSpell(keeper, SPELL_A, true);
@@ -90,6 +118,7 @@ class ResearchOrderTest {
         assertSame(door, keeper.getCurrentResearch());
 
         researchControl.research(1000);
+        researchControl.completeResearch();
         assertSame(spellA, keeper.getCurrentResearch());
     }
 
