@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -825,6 +826,15 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     public IFogOfWarInformation getFogOfWarInformation() {
         return fogOfWarInformation;
+    }
+
+    /**
+     * Get the rooms information, e.g. the number of rooms a player has
+     *
+     * @return the rooms information
+     */
+    public IRoomsInformation<?> getRoomsInformation() {
+        return playerMapViewState.getRoomsInformation();
     }
 
     public MinimapPanelState getMinimapPanelState() {
