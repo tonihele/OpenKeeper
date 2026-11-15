@@ -20,22 +20,21 @@ import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Manufacture traps for the keeper's blueprints in the workshop. The
- * finished trap is a crate in the workshop.
+ * Manufacture traps and doors for the keeper's blueprints in the workshop. The
+ * finished trap or door is a crate in the workshop.
  */
 public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
@@ -57,7 +56,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         // The workshop is there and has room for another crate, without a creature only that is asked
         return super.isValid(creature)
                 && (creature == null || creature.getManufacturePerSecond() > 0)
-                && manufactureControl.getTrapToManufacture() != null;
+                && manufactureControl.getOrder() != null;
     }
 
     @Override
@@ -103,14 +102,14 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         }
         setExecutionDuration(creature, getExecutionDuration(creature) + 1.0f);
 
-        Trap trap = manufactureControl.getTrapToManufacture();
-        if (trap == null || !manufactureControl.manufacture(creature.getManufacturePerSecond(), trap.getManufToBuild())) {
+        ManufactureOrders.Order order = manufactureControl.getOrder();
+        if (order == null || !manufactureControl.manufacture(creature.getManufacturePerSecond(), order.manufToBuild())) {
             return;
         }
 
-        // The trap is done, put its crate into the workshop
-        EntityId crate = objectsController.addRoomCrate(trap.getManufCrateObjectId(), playerId, getTaskLocation().x, getTaskLocation().y,
-                ResearchableType.TRAP, trap.getTrapId());
+        // The trap or door is done, put its crate into the workshop
+        EntityId crate = objectsController.addRoomCrate(order.crateObjectId(), playerId, getTaskLocation().x, getTaskLocation().y,
+                order.type(), order.typeId());
         if (getRoomObjectControl().addItem(crate, null) != null) {
 
             // No room for it after all

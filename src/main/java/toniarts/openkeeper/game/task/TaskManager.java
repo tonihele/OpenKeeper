@@ -45,11 +45,14 @@ import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -101,6 +104,7 @@ import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.objective.StealGold;
 import toniarts.openkeeper.game.task.worker.ArmTrapTask;
+import toniarts.openkeeper.game.task.worker.BuildDoorTask;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
 import toniarts.openkeeper.game.task.worker.CarryCorpseToGraveyardTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
@@ -109,6 +113,7 @@ import toniarts.openkeeper.game.task.worker.CarryObjectToStorageTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
+import toniarts.openkeeper.game.task.worker.DeliverDoorCrateTask;
 import toniarts.openkeeper.game.task.worker.DeliverTrapCrateTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
 import toniarts.openkeeper.game.task.worker.FetchCorpseTask;
@@ -147,9 +152,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final EntitySet corpseEntities;
     private final EntitySet freeObjectEntities;
     private final EntitySet trapBlueprintEntities;
-    private final EntitySet trapCrateEntities;
-    private final Map<EntityId, ArmTrapTask> armTrapTasks = new HashMap<>();
-    private boolean armTrapTasksScanned = false;
+    private final EntitySet doorBlueprintEntities;
+    private final EntitySet crateEntities;
+    private final Map<EntityId, Task> fetchCrateTasks = new HashMap<>();
+    private boolean crateDeliveryTasksScanned = false;
     private final Map<Short, Set<Task>> taskQueues;
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
@@ -210,10 +216,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         freeObjectEntities = entityData.getEntities(ObjectComponent.class, Position.class, Placeable.class);
         processAddedFreeObjectEntities(freeObjectEntities);
 
-        // Listen to trap blueprints and crates, workers bring the crates to the blueprints. Not the crate positions,
-        // they change all the time while a crate is carried
+        // Listen to trap and door blueprints and crates, workers bring the crates to the blueprints. Not the crate
+        // positions, they change all the time while a crate is carried
         trapBlueprintEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class);
-        trapCrateEntities = entityData.getEntities(Crate.class, Owner.class);
+        doorBlueprintEntities = entityData.getEntities(DoorComponent.class, Owner.class, Position.class);
+        crateEntities = entityData.getEntities(Crate.class, Owner.class);
     }
 
     @Override
@@ -228,7 +235,8 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         corpseEntities.release();
         freeObjectEntities.release();
         trapBlueprintEntities.release();
-        trapCrateEntities.release();
+        doorBlueprintEntities.release();
+        crateEntities.release();
     }
 
     @Override
@@ -251,21 +259,23 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             processDeletedFreeObjectEntities(freeObjectEntities.getRemovedEntities());
             processAddedFreeObjectEntities(freeObjectEntities.getAddedEntities());
         }
-        boolean blueprintsChanged = trapBlueprintEntities.applyChanges();
-        if (trapCrateEntities.applyChanges() || blueprintsChanged || !armTrapTasksScanned) {
-            updateArmTrapTasks();
-            armTrapTasksScanned = true;
+        boolean trapBlueprintsChanged = trapBlueprintEntities.applyChanges();
+        boolean doorBlueprintsChanged = doorBlueprintEntities.applyChanges();
+        if (crateEntities.applyChanges() || trapBlueprintsChanged || doorBlueprintsChanged || !crateDeliveryTasksScanned) {
+            updateCrateDeliveryTasks();
+            crateDeliveryTasksScanned = true;
         }
     }
 
     /**
-     * Drops the arm trap tasks that are done or can't be done anymore and
-     * gives the blueprints waiting for a crate a delivery, if there is one
+     * Drops the crate delivery tasks that are done or can't be done anymore
+     * and gives the trap and door blueprints waiting for a crate a delivery,
+     * if there is one
      */
-    private void updateArmTrapTasks() {
-        Iterator<ArmTrapTask> iter = armTrapTasks.values().iterator();
+    private void updateCrateDeliveryTasks() {
+        Iterator<Task> iter = fetchCrateTasks.values().iterator();
         while (iter.hasNext()) {
-            ArmTrapTask task = iter.next();
+            Task task = iter.next();
             if (task.isRemovable()) {
                 iter.remove();
                 for (Set<Task> tasks : taskQueues.values()) {
@@ -274,44 +284,73 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
         }
         for (Set<Task> tasks : taskQueues.values()) {
-            tasks.removeIf(task -> task instanceof DeliverTrapCrateTask && task.isRemovable());
+            tasks.removeIf(task -> (task instanceof DeliverTrapCrateTask || task instanceof DeliverDoorCrateTask) && task.isRemovable());
         }
 
-        Map<EntityId, EntityId> underWay = HashMap.newHashMap(armTrapTasks.size());
-        for (ArmTrapTask task : armTrapTasks.values()) {
-            underWay.put(task.getBlueprint(), task.getCrate());
+        // The fetch tasks by blueprint, their target is the crate
+        Map<EntityId, EntityId> underWay = HashMap.newHashMap(fetchCrateTasks.size());
+        for (Entry<EntityId, Task> task : fetchCrateTasks.entrySet()) {
+            underWay.put(task.getKey(), task.getValue().getTaskTarget());
         }
         for (Short playerId : taskQueues.keySet()) {
-
-            // The blueprints in the order they were placed
-            List<Entity> placed = new ArrayList<>();
-            for (Entity entity : trapBlueprintEntities) {
-                if (entity.get(TrapViewState.class).blueprint && entity.get(Owner.class).ownerId == playerId) {
-                    placed.add(entity);
-                }
-            }
-            placed.sort(Comparator.comparingLong(entity -> entity.getId().getId()));
-            SequencedMap<EntityId, Short> blueprints = new LinkedHashMap<>();
-            for (Entity entity : placed) {
-                blueprints.put(entity.getId(), entity.get(TrapComponent.class).trapId);
-            }
-
-            Map<EntityId, Short> crates = new LinkedHashMap<>();
-            for (Entity entity : trapCrateEntities) {
-                Crate crate = entity.get(Crate.class);
-                if (crate.type == ResearchableType.TRAP && entity.get(Owner.class).ownerId == playerId) {
-                    crates.put(entity.getId(), crate.typeId);
-                }
-            }
-
-            for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(blueprints, crates, underWay).entrySet()) {
+            SequencedMap<EntityId, Short> trapBlueprints = getBlueprints(trapBlueprintEntities, playerId,
+                    entity -> entity.get(TrapViewState.class).blueprint, entity -> entity.get(TrapComponent.class).trapId);
+            for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(trapBlueprints, getCrates(ResearchableType.TRAP, playerId),
+                    underWay).entrySet()) {
                 Point tile = WorldUtils.vectorToPoint(trapBlueprintEntities.getEntity(delivery.getKey()).get(Position.class).position);
                 ArmTrapTask task = new ArmTrapTask(this, navigationService, mapController, entityData, gameWorldController.getTrapsController(),
                         objectsController, delivery.getKey(), tile, delivery.getValue(), playerId);
-                armTrapTasks.put(delivery.getKey(), task);
+                fetchCrateTasks.put(delivery.getKey(), task);
+                addTask(playerId, task);
+            }
+
+            SequencedMap<EntityId, Short> doorBlueprints = getBlueprints(doorBlueprintEntities, playerId,
+                    entity -> entity.get(DoorComponent.class).blueprint, entity -> entity.get(DoorComponent.class).doorId);
+            for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(doorBlueprints, getCrates(ResearchableType.DOOR, playerId),
+                    underWay).entrySet()) {
+                Point tile = WorldUtils.vectorToPoint(doorBlueprintEntities.getEntity(delivery.getKey()).get(Position.class).position);
+                BuildDoorTask task = new BuildDoorTask(this, navigationService, mapController, entityData, gameWorldController.getDoorsController(),
+                        objectsController, delivery.getKey(), tile, delivery.getValue(), playerId);
+                fetchCrateTasks.put(delivery.getKey(), task);
                 addTask(playerId, task);
             }
         }
+    }
+
+    /**
+     * The keeper's blueprints in the order they were placed
+     *
+     * @param entities the traps or the doors
+     * @param playerId the keeper
+     * @param isBlueprint whether the trap or door is still a blueprint
+     * @param typeId the trap or door id
+     * @return the blueprints and their trap or door ids
+     */
+    private static SequencedMap<EntityId, Short> getBlueprints(EntitySet entities, short playerId, Predicate<Entity> isBlueprint,
+            Function<Entity, Short> typeId) {
+        List<Entity> placed = new ArrayList<>();
+        for (Entity entity : entities) {
+            if (isBlueprint.test(entity) && entity.get(Owner.class).ownerId == playerId) {
+                placed.add(entity);
+            }
+        }
+        placed.sort(Comparator.comparingLong(entity -> entity.getId().getId()));
+        SequencedMap<EntityId, Short> blueprints = new LinkedHashMap<>();
+        for (Entity entity : placed) {
+            blueprints.put(entity.getId(), typeId.apply(entity));
+        }
+        return blueprints;
+    }
+
+    private Map<EntityId, Short> getCrates(ResearchableType type, short playerId) {
+        Map<EntityId, Short> crates = new LinkedHashMap<>();
+        for (Entity entity : crateEntities) {
+            Crate crate = entity.get(Crate.class);
+            if (crate.type == type && entity.get(Owner.class).ownerId == playerId) {
+                crates.put(entity.getId(), crate.typeId);
+            }
+        }
+        return crates;
     }
 
     private void processAddedTasks(Set<Entity> entities) {
