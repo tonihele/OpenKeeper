@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiDropped;
+import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
@@ -46,11 +47,14 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -69,6 +73,7 @@ final class KeeperAiBattles {
     }
 
     private static final short ROOM_LAIR = 2;
+    private static final short ROOM_PRISON = 11;
     private static final short SPELL_CALL_TO_ARMS = 3;
 
     /**
@@ -94,6 +99,27 @@ final class KeeperAiBattles {
      */
     private static final int PIT_FIGHTER_RETREAT_HEALTH_PERCENTAGE = 50;
     private static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
+
+    /**
+     * The states the hand leaves a creature alone in
+     */
+    private static final Set<CreatureState> HELPLESS = Set.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON, CreatureState.PICKED_UP,
+            CreatureState.UNCONSCIOUS, CreatureState.STUNNED, CreatureState.IMPRISONED, CreatureState.TORTURED, CreatureState.DRAGGED,
+            CreatureState.FALLEN, CreatureState.GETTING_UP, CreatureState.COMBAT_PIT);
+
+    /**
+     * DK II counts the enemy threat 10 tiles around an attack, its own 4
+     * tiles around it, and drops on or carries from 5 tiles around it
+     */
+    private static final int ATTACK_ENEMY_THREAT_TILES = 10;
+    private static final int ATTACK_OWN_THREAT_TILES = 4;
+    private static final int ATTACK_DROP_TILES = 5;
+
+    /**
+     * DK II weighs an attack up when the message of it comes in. Without
+     * the messages the computer player looks for itself, this often
+     */
+    private static final int LOOK_FOR_ATTACK_EVERY_SECONDS = 10;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -126,13 +152,14 @@ final class KeeperAiBattles {
     }
 
     /**
-     * The creatures of a player that are on the map, always in the same
-     * order
+     * The creatures of a player that are on the map and in its power,
+     * always in the same order
      */
     private List<Entity> getCreatures(short playerId) {
         List<Entity> owned = new ArrayList<>();
         for (Entity entity : creatures) {
-            if (entity.get(Owner.class).ownerId == playerId && entityData.getComponent(entity.getId(), InHand.class) == null) {
+            Owner owner = entity.get(Owner.class);
+            if (owner.ownerId == playerId && owner.controlId == playerId && entityData.getComponent(entity.getId(), InHand.class) == null) {
                 owned.add(entity);
             }
         }
@@ -324,7 +351,7 @@ final class KeeperAiBattles {
                 } else if (experience != null && experience.level >= creatureLevel) {
                     reason = "a Combat Pit fighter at level " + experience.level;
                 }
-            } else if (health.health < retreatHealth * health.maxHealth / 100) {
+            } else if (health.health < retreatHealth * health.maxHealth / 100 && !HELPLESS.contains(creature.get(CreatureAi.class).getCreatureState())) {
                 if (isFighting(creature)) {
                     reason = "fighting below " + retreatHealth + " % health";
                 } else if (!isLeftAlone(creature) && creature.get(CreatureAi.class).getCreatureState() != CreatureState.SLEEPING
@@ -351,6 +378,207 @@ final class KeeperAiBattles {
         return false;
     }
 
+    /**
+     * Looks for an attack on the computer player, every few seconds: one of
+     * its creatures in a fight, or an enemy creature that goes for something
+     * of its own. It weighs the attack up and queues it to be answered
+     *
+     * @param keeperAi the computer player
+     * @param playerControllers all the players
+     * @param ai its settings
+     * @param ticksPerSecond the game ticks in a second
+     */
+    void lookForAttack(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, int ticksPerSecond) {
+        if (keeperAi.attackLookTicks > 0 || keeperAi.attacks >= keeperAi.attackNeeds.length) {
+            return;
+        }
+
+        Keeper keeper = playerControllers.get(keeperAi.playerId).getKeeper();
+        Point place = null;
+        for (Entity creature : getCreatures(keeperAi.playerId)) {
+            if (isFighting(creature)) {
+                place = WorldUtils.vectorToPoint(creature.get(Position.class).position);
+                break;
+            }
+        }
+        for (IPlayerController enemy : playerControllers.values()) {
+            if (place != null || !keeper.isEnemy(enemy.getKeeper().getId())) {
+                continue;
+            }
+            for (Entity creature : getCreatures(enemy.getKeeper().getId())) {
+                AttackTarget attackTarget = entityData.getComponent(creature.getId(), AttackTarget.class);
+                Owner owner = attackTarget != null ? entityData.getComponent(attackTarget.entityId, Owner.class) : null;
+                if (owner != null && owner.ownerId == keeperAi.playerId) {
+                    place = WorldUtils.vectorToPoint(creature.get(Position.class).position);
+                    break;
+                }
+            }
+        }
+        if (place != null) {
+            keeperAi.attackLookTicks = LOOK_FOR_ATTACK_EVERY_SECONDS * ticksPerSecond;
+            weighUpAttack(keeperAi, playerControllers, ai, place);
+        }
+    }
+
+    /**
+     * Weighs an attack up, like DK II does for an attack message. With a
+     * Prison it first decides anew for each enemy creature whether to take
+     * it prisoner. Then it sets the enemy threat within 10 tiles against
+     * the threat it has within 4 tiles. Where it has land within 5 tiles it
+     * queues the threat it still needs there. Where it has none, and it is
+     * outnumbered, it queues its own threat to be carried away, if its
+     * settings say so.
+     *
+     * @param keeperAi the computer player
+     * @param playerControllers all the players
+     * @param ai its settings
+     * @param place the tile of the attack
+     */
+    void weighUpAttack(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai, Point place) {
+        IPlayerController playerController = playerControllers.get(keeperAi.playerId);
+        Keeper keeper = playerController.getKeeper();
+        boolean prison = playerController.getRoomControl().getTypeCount(kwdFile.getRoomById(ROOM_PRISON)) > 0;
+        Vector3f position = WorldUtils.pointToVector3f(place);
+        int enemyThreat = 0;
+        int ownThreat = 0;
+        for (IPlayerController other : playerControllers.values()) {
+            short otherId = other.getKeeper().getId();
+            if (keeper.isEnemy(otherId)) {
+                if (prison) {
+                    for (Entity creature : getCreatures(otherId)) {
+                        KeeperAiNoPrisoner noPrisoner = entityData.getComponent(creature.getId(), KeeperAiNoPrisoner.class);
+                        int players = noPrisoner != null ? noPrisoner.players : 0;
+                        boolean imprison = Utils.getRandom().nextInt(100) < ai.getAttemptToImprisonPercentageOfEnemyCreatures();
+                        entityData.setComponent(creature.getId(), new KeeperAiNoPrisoner(
+                                imprison ? players & ~(1 << keeperAi.playerId) : players | 1 << keeperAi.playerId));
+                    }
+                }
+                int threat = getThreat(otherId, position, ATTACK_ENEMY_THREAT_TILES);
+                enemyThreat += threat;
+                if (threat > 0) {
+                    keeperAi.attackerId = otherId;
+                }
+            }
+            if (keeper.isAlly(otherId)) {
+                ownThreat += getThreat(otherId, position, ATTACK_OWN_THREAT_TILES);
+            }
+        }
+
+        int need = ai.getThreatValueOfDroppedCreaturesIsPercentageOfEnemyThreatValue() * enemyThreat / 100 - ownThreat;
+        Point dropTile = getNearestOwnOpenTile(keeperAi.playerId, place, ATTACK_DROP_TILES);
+        String reason = "enemy threat " + enemyThreat + ", own threat " + ownThreat;
+        int attack = (keeperAi.firstAttack + keeperAi.attacks) % keeperAi.attackNeeds.length;
+        if (dropTile != null && need >= 0) {
+            decisionLog.log(keeperAi, "answer an attack with a threat of " + need, dropTile, reason);
+            keeperAi.attackNeeds[attack] = need;
+            keeperAi.attackTiles[attack] = dropTile;
+            keeperAi.attacks++;
+        } else if (dropTile == null && need > 0 && ai.isPullCreaturesFromFightIfOutnumberedAndUnableToDropReinforcements()) {
+            decisionLog.log(keeperAi, "pull a threat of " + ownThreat + " out of a fight", place, reason + ", none of its land near");
+            keeperAi.attackNeeds[attack] = -ownThreat;
+            keeperAi.attackTiles[attack] = place;
+            keeperAi.attacks++;
+        }
+    }
+
+    /**
+     * Answers the first attack in the queue, with one creature a turn. It
+     * drops fighters that are not busy and have more than half their health
+     * on the attack until their threat makes up what it needs there. Or it
+     * carries its creatures within 5 tiles of the attack to the Dungeon
+     * Heart, until it has carried away what it had there.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     * @return true if there was an attack to answer, that takes the turn
+     */
+    boolean respondToAttack(KeeperAi keeperAi, IPlayerController playerController) {
+        if (keeperAi.attacks == 0) {
+            return false;
+        }
+
+        int attack = keeperAi.firstAttack;
+        boolean retreat = keeperAi.attackNeeds[attack] < 0;
+        Vector3f position = WorldUtils.pointToVector3f(keeperAi.attackTiles[attack]);
+        Entity picked = null;
+        for (Entity creature : getCreatures(keeperAi.playerId)) {
+            CreatureState state = creature.get(CreatureAi.class).getCreatureState();
+            Health health = creature.get(Health.class);
+            if (!kwdFile.getCreature(creature.get(CreatureComponent.class).creatureId).getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                    && !HELPLESS.contains(state) && !isLeftAlone(creature)
+                    && (retreat ? isWithin(creature.get(Position.class).position, position, ATTACK_DROP_TILES)
+                            : !creature.get(CreatureComponent.class).worker && health.health * 2 > health.maxHealth
+                            && !FIGHTING.contains(state) && state != CreatureState.FLEE)) {
+                picked = creature;
+                break;
+            }
+        }
+        if (picked == null) {
+            decisionLog.log(keeperAi, "attack answered", keeperAi.attackTiles[attack], "no creature left to " + (retreat ? "carry away" : "drop"));
+            endAttack(keeperAi);
+            return true;
+        }
+
+        Threat creatureThreat = entityData.getComponent(picked.getId(), Threat.class);
+        int threat = creatureThreat != null ? creatureThreat.threat : 0;
+        if (retreat) {
+            Point heart = playerController.getKeeper().getDungeonHeartLocation();
+            decisionLog.log(keeperAi, "carry creature " + picked.getId().getId() + " to the Dungeon Heart", heart, "outnumbered in a fight away from its land");
+            carry(picked.getId(), heart, playerController);
+            keeperAi.attackNeeds[attack] += threat;
+            if (keeperAi.attackNeeds[attack] >= 0) {
+                endAttack(keeperAi);
+            }
+        } else {
+
+            // On its own land, the nearest there is when the land was lost
+            if (mapController.getMapData().getTile(keeperAi.attackTiles[attack]).getOwnerId() != keeperAi.playerId) {
+                keeperAi.attackTiles[attack] = getNearestOwnOpenTile(keeperAi.playerId, keeperAi.attackTiles[attack],
+                        Math.max(mapController.getMapData().getWidth(), mapController.getMapData().getHeight()));
+            }
+            if (keeperAi.attackTiles[attack] != null) {
+                decisionLog.log(keeperAi, "drop creature " + picked.getId().getId() + " on an attack", keeperAi.attackTiles[attack],
+                        "its threat of " + threat + " of the " + keeperAi.attackNeeds[attack] + " still needed");
+                carry(picked.getId(), keeperAi.attackTiles[attack], playerController);
+            }
+            keeperAi.attackNeeds[attack] -= threat;
+            if (keeperAi.attackNeeds[attack] < 1 || keeperAi.attackTiles[attack] == null) {
+                endAttack(keeperAi);
+            }
+        }
+
+        return true;
+    }
+
+    private static void endAttack(KeeperAi keeperAi) {
+        keeperAi.attackNeeds[keeperAi.firstAttack] = 0;
+        keeperAi.attackTiles[keeperAi.firstAttack] = null;
+        keeperAi.firstAttack = (keeperAi.firstAttack + 1) % keeperAi.attackNeeds.length;
+        keeperAi.attacks--;
+    }
+
+    /**
+     * The player's tile nearest to a place that is not solid, no further
+     * than some tiles along either axis
+     */
+    private Point getNearestOwnOpenTile(short playerId, Point place, int tiles) {
+        Point nearest = null;
+        int nearestDistance = Integer.MAX_VALUE;
+        for (int y = place.y - tiles; y <= place.y + tiles; y++) {
+            for (int x = place.x - tiles; x <= place.x + tiles; x++) {
+                Point p = new Point(x, y);
+                IMapTileInformation tile = mapController.getMapData().getTile(p);
+                int distance = (x - place.x) * (x - place.x) + (y - place.y) * (y - place.y);
+                if (tile != null && distance < nearestDistance && tile.getOwnerId() == playerId && !mapController.isSolid(p)) {
+                    nearest = p;
+                    nearestDistance = distance;
+                }
+            }
+        }
+
+        return nearest;
+    }
+
     private boolean isLeftAlone(Entity creature) {
         KeeperAiDropped dropped = entityData.getComponent(creature.getId(), KeeperAiDropped.class);
 
@@ -358,18 +586,20 @@ final class KeeperAiBattles {
     }
 
     /**
-     * Picks a creature up and drops it on a tile, with the hand
+     * Picks a creature up and drops it on a tile, with the hand. The
+     * creature is left alone for a while after that, also when the hand
+     * could not take it
      *
      * @return true if the creature was dropped
      */
     private boolean carry(EntityId creature, Point tile, IPlayerController playerController) {
         short playerId = playerController.getKeeper().getId();
+        entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
         gameWorldController.pickUp(creature, playerId);
         if (!creature.equals(playerController.getHandControl().peek())) {
             return false;
         }
         gameWorldController.drop(creature, tile, WorldUtils.pointToVector2f(tile), null, playerId);
-        entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
 
         return !creature.equals(playerController.getHandControl().peek());
     }
