@@ -54,6 +54,8 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.controller.DoorPlacementValidator;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
 import toniarts.openkeeper.game.controller.TrapPlacementValidator;
@@ -78,6 +80,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
+import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
@@ -112,6 +115,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final EntitySet constructionBlockingObjects;
     private final EntitySet constructionBlockingDoors;
     private final EntitySet constructionBlockingTraps;
+    private final ConstructionBlockingTiles constructionBlockingTiles = new ConstructionBlockingTiles();
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
@@ -150,6 +154,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
         constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
         constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class, Owner.class);
+        constructionBlockingTiles.addAll(constructionBlockingObjects, this::isConstructionBlockingObject);
+        constructionBlockingTiles.addAll(constructionBlockingDoors, entity -> true);
+        constructionBlockingTiles.addAll(constructionBlockingTraps, entity -> true);
         this.mapInformation = mapInformation;
         this.textParser = textParser;
 
@@ -237,9 +244,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return;
         }
 
-        constructionBlockingObjects.applyChanges();
-        constructionBlockingDoors.applyChanges();
-        constructionBlockingTraps.applyChanges();
+        if (constructionBlockingObjects.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingObjects, this::isConstructionBlockingObject);
+        }
+        if (constructionBlockingDoors.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingDoors, entity -> true);
+        }
+        if (constructionBlockingTraps.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingTraps, entity -> true);
+        }
 
         selectionHandler.update(mousePosition);
         cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
@@ -423,9 +436,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return Utils.getMainTextResourceBundle().getString("2471");
         }
 
-        // Override dungeon heart JELLY text
+        // Override dungeon heart JELLY text and the portal text, DK II ignores the stored ids
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        String bundleKey = kwdFile.getDungeonHeart() == room ? "2579" : Integer.toString(room.getTooltipStringId());
+        String bundleKey = Integer.toString(room.getTooltipStringId());
+        if (kwdFile.getDungeonHeart() == room) {
+            bundleKey = "2579";
+        } else if (kwdFile.getPortal() == room) {
+            bundleKey = "2790";
+        }
 
         return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey),
                 tile.getRoomId(), gameClientState.getPlayer(tile.getOwnerId()));
@@ -696,7 +714,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
                 }
             } else if (interactionState.getType() == Type.DOOR) {
-                //TODO put door
+                Point p = selectionHandler.getPointedTileIndex();
+                if (isDoorPlacementValid(p)) {
+                    gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(), p);
+                }
             } else if (interactionState.getType() == Type.NONE
                     && interactiveControl != null && !keeperHandState.isFull()
                     && interactiveControl.isPickable(player.getPlayerId())) {
@@ -743,7 +764,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // until exploration reveals whether that's really true.
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
             } else if (interactionState.getType() == Type.ROOM
-                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    && RoomPlacementValidator.validate(kwdFile, mapInformation, constructionBlockingTiles,
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
                             gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
@@ -772,7 +793,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                    if (!isDropBlocked(entityViewControl, p)
+                            && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
                         // Show the hand letting go of it, the updateCursor() call below picks it up
@@ -911,23 +933,18 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
-    }
-
-    private Set<Point> getConstructionBlockingTiles() {
-        Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects, this::isConstructionBlockingObject);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors, entity -> true);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps, entity -> true);
-        return blockedTiles;
+        boolean chicken = object instanceof CreatureViewControl creatureControl && creatureControl.isChicken();
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, manaCost);
     }
 
     private boolean isTrapPlacementValid(Point tile) {
         Set<Point> occupiedTiles = new HashSet<>();
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        boolean hasWorkshop = gameClientState.getRoomsInformation()
+                .getRoomCount(player.getPlayerId(), TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
         return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
-                kwdFile.getTrapById(interactionState.getItemId()),
+                kwdFile.getTrapById(interactionState.getItemId()), hasWorkshop,
                 gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
     }
 
@@ -939,6 +956,22 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
         }
         return false;
+    }
+
+    private boolean isDropBlocked(IEntityViewControl item, Point tile) {
+        Set<Point> doorTiles = new HashSet<>();
+        addConstructionBlockingTiles(doorTiles, constructionBlockingDoors, door -> !door.get(DoorComponent.class).blueprint);
+        return DropValidator.isBlocked(kwdFile, mapInformation.getMapData(), doorTiles, tile,
+                item.getDataObject() instanceof Creature creature && !creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER));
+    }
+
+    private boolean isDoorPlacementValid(Point tile) {
+        Set<Point> occupiedTiles = new HashSet<>();
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        return DoorPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
+                kwdFile.getDoorById(interactionState.getItemId()),
+                gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
     }
 
     private boolean isConstructionBlockingObject(Entity entity) {
@@ -1070,6 +1103,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.TRAP) {
                 return isTrapPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
+            if (interactionState.getType() == Type.DOOR) {
+                return isDoorPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
             if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;
             }
@@ -1078,7 +1114,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private ColorIndicator getDropColor(Point point) {
             IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
-            if (tile == null) {
+            if (tile == null || isDropBlocked(keeperHandState.getItem(), point)) {
                 return ColorIndicator.RED;
             }
             IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(
@@ -1109,7 +1145,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         private long getRoomCost() {
             SelectionArea area = getSelectionArea();
             RoomPlacementValidator.Result result = RoomPlacementValidator.validate(kwdFile, mapInformation,
-                    getConstructionBlockingTiles(), area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
+                    constructionBlockingTiles, area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
                     (short) interactionState.getItemId(), Integer.MAX_VALUE);
             if (!result.isValid()) {
                 return 0;

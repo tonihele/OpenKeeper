@@ -204,7 +204,7 @@ public final class AmbienceState extends AbstractPauseAwareState {
         if (floor == null || floor.getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             return false;
         }
-        for (Point wall : TorchPlacement.getTorchWallCandidates(p.x, p.y)) {
+        for (Point wall : TorchPlacement.getTorchWallCandidates(p.x, p.y, mapViewState.getMapLoader().getRoomInstance(p))) {
             Terrain wallTerrain = getExploredTerrain(data, fogOfWar, wall.x, wall.y);
             if (wallTerrain == null || !wallTerrain.getFlags().contains(Terrain.TerrainFlag.TORCH)) {
                 continue;
