@@ -28,14 +28,17 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -150,6 +153,32 @@ class CombatPitFightTest {
         createController(us).executeAttack(other);
 
         assertEquals(30, entityData.getComponent(other, Damage.class).damage);
+    }
+
+    @Test
+    void beatingTheOpponentCheersTheVictorUpOnce() {
+        gameSettings.put(MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR, CombatPitFixtures.pitVariable(MiscType.MODIFY_ANGER_OF_COMBAT_PIT_VICTOR, -16400));
+        EntityId us = createFighter(KEEPER, 1, 5, pit);
+        EntityId beaten = createFighter(ENEMY, 1, 6, pit);
+        entityData.setComponents(us, new AttackTarget(beaten), new CreatureMood(0, 0, 0, 0, 0, 20000));
+        entityData.setComponent(beaten, new Unconscious(10.0));
+
+        assertNull(createController(us).getAttackTarget());
+        assertEquals(3600, entityData.getComponent(us, CreatureMood.class).other);
+
+        createController(us).getAttackTarget();
+        assertEquals(3600, entityData.getComponent(us, CreatureMood.class).other);
+    }
+
+    @Test
+    void opponentLeavingThePitIsNoWin() {
+        EntityId us = createFighter(KEEPER, 1, 5, pit);
+        EntityId gone = createFighter(ENEMY, 1, 6, null);
+        entityData.setComponents(us, new AttackTarget(gone), new CreatureMood(0, 0, 0, 0, 0, 20000));
+        entityData.setComponent(gone, new Unconscious(10.0));
+
+        assertNull(createController(us).getAttackTarget());
+        assertEquals(20000, entityData.getComponent(us, CreatureMood.class).other);
     }
 
     /**
