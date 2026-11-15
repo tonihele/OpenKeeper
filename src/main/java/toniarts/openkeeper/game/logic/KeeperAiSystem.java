@@ -260,6 +260,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             actions--;
         }
 
+        // What a failed drop left in its hand is put down, more or less often by its settings
+        AI.MoveToResearchPolicy handPolicy = ai.getLikelyhoodToMovingCreaturesToLibraryForResearching();
+        if (actions > 0 && (handPolicy == null || handPolicy.ordinal() <= Utils.getRandom().nextInt(AI.MoveToResearchPolicy.values().length))
+                && battles.emptyHand(keeperAi, playerController)) {
+            actions--;
+        }
+
         while (actions > 0) {
             actions = switch (keeperAi.task) {
                 case PLAN -> {
