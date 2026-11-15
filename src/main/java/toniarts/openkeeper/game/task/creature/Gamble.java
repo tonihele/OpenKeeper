@@ -27,11 +27,11 @@ import java.util.random.RandomGenerator;
 import toniarts.openkeeper.game.component.Casino.PayOut;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.ObjectComponent;
-import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -40,7 +40,6 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
@@ -209,18 +208,15 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
     }
 
     private void spinRouletteWheel() {
-        List<EntityId> wheels = new ArrayList<>(2);
-        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(getTaskLocation())) {
-            ObjectComponent object = entityData.getComponent(entityId, ObjectComponent.class);
-            if (object != null && object.objectId == CasinoController.ROULETTE_WHEEL_OBJECT_ID) {
-                wheels.add(entityId);
+        List<IObjectController> wheels = new ArrayList<>(2);
+        for (IObjectController object : entityPositionLookup.getEntityTypesInLocation(getTaskLocation(), IObjectController.class)) {
+            ObjectComponent objectComponent = entityData.getComponent(object.getEntityId(), ObjectComponent.class);
+            if (objectComponent != null && objectComponent.objectId == CasinoController.ROULETTE_WHEEL_OBJECT_ID) {
+                wheels.add(object);
             }
         }
         if (!wheels.isEmpty()) {
-            EntityId wheel = wheels.get(random.nextInt(wheels.size()));
-            ObjectViewState viewState = entityData.getComponent(wheel, ObjectViewState.class);
-            entityData.setComponent(wheel, new ObjectViewState(viewState.objectId, GameObject.State.SPINNING,
-                    viewState.animState, viewState.visible));
+            wheels.get(random.nextInt(wheels.size())).spin();
         }
     }
 

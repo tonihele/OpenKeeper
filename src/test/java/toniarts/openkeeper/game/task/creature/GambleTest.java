@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
@@ -72,6 +73,7 @@ class GambleTest {
     private final Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
     private final List<Integer> keeperPayments = new ArrayList<>();
     private final List<int[]> goldPiles = new ArrayList<>();
+    private final List<EntityId> spun = new ArrayList<>();
     private int keeperGold = 5000;
     private EntityId creatureId;
     private ICreatureController creature;
@@ -243,7 +245,21 @@ class GambleTest {
     }
 
     private boolean isSpinning(EntityId wheel) {
-        return entityData.getComponent(wheel, ObjectViewState.class).state == GameObject.State.SPINNING;
+        return spun.contains(wheel);
+    }
+
+    private IObjectController objectController(EntityId entityId) {
+        return (IObjectController) Proxy.newProxyInstance(IObjectController.class.getClassLoader(), new Class<?>[]{IObjectController.class}, (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "getEntityId":
+                    return entityId;
+                case "spin":
+                    spun.add(entityId);
+                    return null;
+                default:
+                    throw new UnsupportedOperationException(method.getName());
+            }
+        });
     }
 
     private Gamble gamble(PayOut payOut, int jackpotRoll) {
@@ -291,14 +307,14 @@ class GambleTest {
             throw new UnsupportedOperationException(method.getName());
         });
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> {
-            if ("getEntitiesInLocation".equals(method.getName())) {
-                List<EntityId> entities = new ArrayList<>();
+            if ("getEntityTypesInLocation".equals(method.getName())) {
+                List<IObjectController> objects = new ArrayList<>();
                 for (EntityId entityId : entityData.findEntities(null, Position.class)) {
                     if (args[0].equals(WorldUtils.vectorToPoint(entityData.getComponent(entityId, Position.class).position))) {
-                        entities.add(entityId);
+                        objects.add(objectController(entityId));
                     }
                 }
-                return entities;
+                return objects;
             }
             throw new UnsupportedOperationException(method.getName());
         });

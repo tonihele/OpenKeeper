@@ -19,7 +19,6 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
-import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Spin;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -28,8 +27,8 @@ import toniarts.openkeeper.tools.convert.map.GameObject;
 /**
  * Stops the objects that spin, like the roulette wheels of the Casino. In the
  * original a spin (object state 18, 0x4A13F0) slows down and stops after 21
- * game ticks, and then the object goes back to state 0 (0x49EED0). A new spin
- * while the object still spins starts over.
+ * game ticks, and then the object goes back to state 0 (0x49EED0). The object
+ * controller starts the spin, this only watches the objects that spin.
  */
 public final class SpinSystem implements IGameLogicUpdatable {
 
@@ -40,31 +39,21 @@ public final class SpinSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IGameTimer gameTimer;
-    private final double spinDuration;
     private final EntitySet spinningObjects;
 
-    public SpinSystem(EntityData entityData, IGameTimer gameTimer, int ticksPerSecond) {
+    public SpinSystem(EntityData entityData, IGameTimer gameTimer) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
-        spinDuration = (double) SPIN_TICKS / ticksPerSecond;
-        spinningObjects = entityData.getEntities(new FieldFilter<>(ObjectViewState.class, "state", GameObject.State.SPINNING),
-                ObjectViewState.class);
+        spinningObjects = entityData.getEntities(Spin.class, ObjectViewState.class);
     }
 
     @Override
     public void processTick(float tpf) {
         double gameTime = gameTimer.getGameTime();
-        if (spinningObjects.applyChanges()) {
-            for (Entity entity : spinningObjects.getChangedEntities()) {
-                entityData.setComponent(entity.getId(), new Spin(gameTime + spinDuration));
-            }
-        }
+        spinningObjects.applyChanges();
 
         for (Entity entity : spinningObjects) {
-            Spin spin = entityData.getComponent(entity.getId(), Spin.class);
-            if (spin == null) {
-                entityData.setComponent(entity.getId(), new Spin(gameTime + spinDuration));
-            } else if (spin.endTime <= gameTime) {
+            if (entity.get(Spin.class).endTime <= gameTime) {
                 ObjectViewState viewState = entity.get(ObjectViewState.class);
                 entityData.removeComponent(entity.getId(), Spin.class);
                 entityData.setComponent(entity.getId(), new ObjectViewState(viewState.objectId, GameObject.State.NONE,

@@ -35,13 +35,13 @@ class SpinSystemTest {
     private static final int TICKS_PER_SECOND = 4;
 
     private final EntityData entityData = new DefaultEntityData();
-    private final SpinSystem spinSystem = new SpinSystem(entityData, this::getGameTime, TICKS_PER_SECOND);
+    private final SpinSystem spinSystem = new SpinSystem(entityData, this::getGameTime);
     private int ticks;
 
     @Test
     void theWheelGoesBackToItsNormalStateWhenTheSpinStops() {
         EntityId wheel = entityData.createEntity();
-        setState(wheel, GameObject.State.SPINNING);
+        spin(wheel);
 
         tick(SpinSystem.SPIN_TICKS);
         assertEquals(GameObject.State.SPINNING, getState(wheel));
@@ -54,15 +54,25 @@ class SpinSystemTest {
     @Test
     void aNewSpinStartsOver() {
         EntityId wheel = entityData.createEntity();
-        setState(wheel, GameObject.State.SPINNING);
+        spin(wheel);
         tick(16);
 
-        setState(wheel, GameObject.State.SPINNING);
+        spin(wheel);
         tick(SpinSystem.SPIN_TICKS);
         assertEquals(GameObject.State.SPINNING, getState(wheel));
 
         tick(1);
         assertEquals(GameObject.State.NONE, getState(wheel));
+    }
+
+    @Test
+    void anObjectThatDoesNotSpinIsLeftAlone() {
+        EntityId wheel = entityData.createEntity();
+        setState(wheel, GameObject.State.SPINNING);
+
+        tick(SpinSystem.SPIN_TICKS + 1);
+        assertEquals(GameObject.State.SPINNING, getState(wheel));
+        assertNull(entityData.getComponent(wheel, Spin.class));
     }
 
     private void tick(int count) {
@@ -74,6 +84,11 @@ class SpinSystemTest {
 
     private double getGameTime() {
         return (double) ticks / TICKS_PER_SECOND;
+    }
+
+    private void spin(EntityId wheel) {
+        setState(wheel, GameObject.State.SPINNING);
+        entityData.setComponent(wheel, new Spin(getGameTime() + (double) SpinSystem.SPIN_TICKS / TICKS_PER_SECOND));
     }
 
     private void setState(EntityId wheel, GameObject.State state) {
