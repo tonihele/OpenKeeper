@@ -128,6 +128,13 @@ public final class KeeperAi implements EntityComponent {
     public int goldTiles;
 
     /**
+     * The middles of the gold seams nearest to its rooms when it last
+     * looked, the nearest first. DK II heads for the seam of its last look
+     * and then looks again
+     */
+    public Point[] goldDeposits = new Point[4];
+
+    /**
      * Whether its Call to Arms flag is up, and where
      */
     public boolean callToArms;
@@ -208,6 +215,7 @@ public final class KeeperAi implements EntityComponent {
         this.corner = keeperAi.corner;
         this.oppositeCorner = keeperAi.oppositeCorner;
         this.goldTiles = keeperAi.goldTiles;
+        this.goldDeposits = keeperAi.goldDeposits.clone();
         this.callToArms = keeperAi.callToArms;
         this.callToArmsTile = keeperAi.callToArmsTile;
         this.callToArmsTicks = keeperAi.callToArmsTicks;
