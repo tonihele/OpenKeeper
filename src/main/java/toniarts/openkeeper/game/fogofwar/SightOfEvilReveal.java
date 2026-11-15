@@ -26,12 +26,14 @@ package toniarts.openkeeper.game.fogofwar;
 public final class SightOfEvilReveal {
 
     /**
-     * Largest radius of the revealed square, in tiles
+     * Largest radius of the revealed square, in tiles (a constant of the
+     * DKII.EXE renderer, 0x448580)
      */
     public static final int MAX_RADIUS = 7;
 
     /**
-     * Full radius of the revealed disc, in 1/256 tiles
+     * Full radius of the revealed disc, in 1/256 tiles. A constant of the
+     * DKII.EXE renderer, not in the level data (0x441B00)
      */
     private static final int DISC_RADIUS = 5 * 256;
 
@@ -42,7 +44,8 @@ public final class SightOfEvilReveal {
     private static final int FADE = 2;
 
     /**
-     * Game ticks the disc spends at its full size
+     * Game ticks the disc spends at its full size (DKII.EXE renderer,
+     * 0x441510)
      */
     private static final int FULL_SIZE_TICKS = 16;
 
