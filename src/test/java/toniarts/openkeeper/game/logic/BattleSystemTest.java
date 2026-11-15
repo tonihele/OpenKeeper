@@ -24,6 +24,7 @@ import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.Battle;
+import toniarts.openkeeper.game.component.BattleMember;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BattleSystemTest {
@@ -77,6 +79,39 @@ class BattleSystemTest {
         battleSystem.processTick(0.25f);
 
         assertEquals(2, getBattles().size());
+    }
+
+    @Test
+    void creatureThatStartsFightingLaterJoinsTheBattle() {
+        EntityId imp = addCreature(KEEPER_ID, 10, 10);
+        EntityId dwarf = addCreature(HERO_ID, 12, 10);
+        fight(imp, dwarf);
+        battleSystem.processTick(0.25f);
+
+        gameTime = 1;
+        fight(dwarf, imp);
+        battleSystem.processTick(0.25f);
+
+        EntityId battle = getBattle();
+        BattleMember member = entityData.getComponent(dwarf, BattleMember.class);
+        assertEquals(battle, member.battleId);
+        assertEquals(5, member.leaveTime);
+        assertEquals(Set.of(KEEPER_ID, HERO_ID), entityData.getComponent(battle, Battle.class).playerIds);
+        assertEquals(new Vector3f(11, 0, 10), entityData.getComponent(battle, Battle.class).position);
+    }
+
+    @Test
+    void nearestBattleTakesTheCreatureWhenAllEightAreTaken() {
+        EntityId hero = addCreature(HERO_ID, 0, 0);
+        for (int i = 0; i < 8; i++) {
+            fight(addCreature(KEEPER_ID, i * 10, 0), hero);
+        }
+        battleSystem.processTick(0.25f);
+
+        fight(addCreature(KEEPER_ID, 100, 0), hero);
+        battleSystem.processTick(0.25f);
+
+        assertEquals(8, getBattles().size());
     }
 
     @Test
@@ -129,6 +164,7 @@ class BattleSystemTest {
         entityData.removeComponent(imp, CreatureAi.class);
         battleSystem.processTick(0.25f);
 
+        assertNull(entityData.getComponent(imp, BattleMember.class));
         assertTrue(getBattles().isEmpty());
     }
 
