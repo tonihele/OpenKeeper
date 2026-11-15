@@ -961,7 +961,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
-        entityData.removeEntity(entity);
+        // Also frees the room storage slot, if the special was stored in a room
+        objectsController.createController(entity).remove();
         return true;
     }
 
