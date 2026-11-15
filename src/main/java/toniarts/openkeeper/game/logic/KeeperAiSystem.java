@@ -54,8 +54,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * plays through the same actions a human player has: it tags tiles, builds
  * rooms and casts spells.<br>
  * So far it creates imps, mines gold, picks the rooms to build, has their
- * sites dug out and builds them. It doesn't claim portals, fight or look
- * after its creatures yet.<br>
+ * sites dug out and builds them, digs to neutral Portals, and pulls hurt
+ * creatures out of fights.<br>
  * With the decision log on it writes a line for everything it decides: the
  * game tick, the player, the task it is on, what it does, where, and why.
  * The lines are there to be compared with DK II tick by tick.
@@ -98,6 +98,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final short ROOM_COMBAT_PIT = 16;
     private static final short ROOM_STONE_BRIDGE = 17;
     private static final short ROOM_HERO_STONE_BRIDGE = 22;
+    private static final short ROOM_HERO_PORTAL = 25;
     private static final short LAST_ROOM = 26;
 
     /**
@@ -563,12 +564,29 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * Picks the next room to build and where to start looking for a place
-     * for it
+     * for it. Every other plan is for a Portal: after each room it picks,
+     * and when there is no room to pick, it looks for a neutral Portal to
+     * dig to. A neutral room of the kind it wants is dug to as well, rather
+     * than built
      */
     private void planRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         keeperAi.roomId = 0;
-        Room room = getNextRoom(playerController, ai);
+        if (!keeperAi.roomWanted) {
+            Room wanted = getNextRoom(playerController, ai);
+            keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId() : ROOM_PORTAL;
+            keeperAi.roomWanted = true;
+        }
+        short roomId = keeperAi.wantedRoomId;
+        if (roomId == ROOM_PORTAL) {
+            keeperAi.roomWanted = false;
+        } else {
+            keeperAi.wantedRoomId = ROOM_PORTAL;
+        }
+        if (digToNeutralRoom(keeperAi, playerController, ai, roomId)) {
+            return;
+        }
 
+        Room room = roomId == ROOM_PORTAL ? null : kwdFile.getRoomById(roomId);
         if (room == null || ai.getDefaultSize() < 1) {
             keeperAi.taskTicks = 0;
             return;
@@ -604,6 +622,69 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.current = getRandomRoomLocation(playerController);
         }
         setTask(keeperAi, KeeperAi.Task.FIND_ROOM_SITE, keeperAi.current, "room " + keeperAi.roomId + " is next, looking " + DIRECTIONS[keeperAi.direction]);
+    }
+
+    /**
+     * Has a path dug to the nearest neutral room of a kind, so that the
+     * imps claim it. A Portal has to be near one of the computer player's
+     * rooms, any other room near its Dungeon Heart, or else some of its
+     * land has to lie on the edge of a square around the room
+     *
+     * @return true if it digs to a room
+     */
+    private boolean digToNeutralRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, short roomId) {
+        boolean portal = roomId == ROOM_PORTAL || roomId == ROOM_HERO_PORTAL;
+        Point heart = playerController.getKeeper().getDungeonHeartLocation();
+        Point target = null;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            short id = room.getRoomInstance().getRoom().getRoomId();
+            Point centre = room.getRoomInstance().getCenter();
+            if (room.getRoomInstance().getOwnerId() == Player.NEUTRAL_PLAYER_ID && !room.getRoomInstance().isDestroyed()
+                    && (portal ? id == ROOM_PORTAL || id == ROOM_HERO_PORTAL : id == roomId)
+                    && (target == null || getDistance(heart, centre) < getDistance(heart, target))) {
+                target = centre;
+            }
+        }
+        if (target == null || target.x < ai.getBuildAreaStartX() || target.x > ai.getBuildAreaEndX()
+                || target.y < ai.getBuildAreaStartY() || target.y > ai.getBuildAreaEndY()) {
+            return false;
+        }
+
+        Point start = getNearestRoom(playerController, target).getRoomInstance().getCenter();
+        int range = ai.getDigToNeutralRoomsWithinTilesOfHeart();
+        if (portal ? getDistance(start, target) > range * range : getDistance(heart, target) >= range * range) {
+            start = getNearestOwnTileAround(keeperAi.playerId, target, ai.getDigToNeutralRoomsWithinTilesOfClaimedArea() + 1);
+            if (start == null) {
+                return false;
+            }
+        }
+
+        keeperAi.roomId = roomId;
+        keeperAi.current = start;
+        setTask(keeperAi, KeeperAi.Task.DIG_PATH, target, "a neutral room " + roomId + " to claim, from " + start.x + "," + start.y);
+        keeperAi.target = target;
+        keeperAi.nextTask = KeeperAi.Task.FINISH;
+
+        return true;
+    }
+
+    /**
+     * The player's tile nearest to a place, of the tiles on the edge of a
+     * square around the place
+     */
+    private Point getNearestOwnTileAround(short playerId, Point centre, int distance) {
+        Point nearest = null;
+        for (int x = centre.x - distance; x <= centre.x + distance; x++) {
+            for (int y = centre.y - distance; y <= centre.y + distance; y++) {
+                IMapTileInformation tile = mapController.getMapData().getTile(x, y);
+                if (Math.max(Math.abs(x - centre.x), Math.abs(y - centre.y)) == distance && tile != null && tile.getOwnerId() == playerId
+                        && (nearest == null || getDistance(tile.getLocation(), centre) < getDistance(nearest, centre))) {
+                    nearest = tile.getLocation();
+                }
+            }
+        }
+
+        return nearest;
     }
 
     /**
@@ -737,12 +818,16 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                     gameWorldController.build(position, position, keeperAi.playerId, bridge.getRoomId());
                     log(keeperAi, "build room " + bridge.getRoomId(), keeperAi.current, "the path crosses water or lava");
-                    if (mapController.getRoomControllerByCoordinates(keeperAi.current) != null) {
-                        stepOnPath(keeperAi);
+                    if (mapController.getRoomControllerByCoordinates(keeperAi.current) != null && !stepOnPath(keeperAi)) {
+                        finishPath(keeperAi, "no way on from here");
+                        return actions;
                     }
                 }
             } else if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
-                stepOnPath(keeperAi);
+                if (!stepOnPath(keeperAi)) {
+                    finishPath(keeperAi, "no way on from here");
+                    return actions;
+                }
             } else if (!tile.isSelected(keeperAi.playerId)) {
                 tag(keeperAi, keeperAi.current, keeperAi.current, ticksPerSecond, "next tile of the path");
             }
@@ -757,16 +842,50 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * One tile closer to the target, along the longer way first
+     * One tile closer to the target, along the longer way first. Rock that
+     * can't be dug is walked round the shortest way
+     *
+     * @return false if there is no way to the target
      */
-    private static void stepOnPath(KeeperAi keeperAi) {
+    private boolean stepOnPath(KeeperAi keeperAi) {
+        int width = mapController.getMapData().getWidth();
+        int height = mapController.getMapData().getHeight();
+
+        // How far each tile is from the target, as far out as the tile the path is on
+        int[][] distances = new int[width][height];
+        List<Point> open = new ArrayList<>();
+        open.add(keeperAi.target);
+        distances[keeperAi.target.x][keeperAi.target.y] = 1;
+        for (int i = 0; i < open.size() && distances[keeperAi.current.x][keeperAi.current.y] == 0; i++) {
+            Point p = open.get(i);
+            for (Point neighbour : new Point[]{new Point(p.x - 1, p.y), new Point(p.x + 1, p.y), new Point(p.x, p.y - 1), new Point(p.x, p.y + 1)}) {
+                IMapTileInformation tile = mapController.getMapData().getTile(neighbour);
+                if (tile == null || distances[neighbour.x][neighbour.y] != 0) {
+                    continue;
+                }
+                Set<Terrain.TerrainFlag> flags = mapController.getTerrain(tile).getFlags();
+                if (neighbour.equals(keeperAi.current) || !flags.contains(Terrain.TerrainFlag.SOLID) || flags.contains(Terrain.TerrainFlag.TAGGABLE)) {
+                    distances[neighbour.x][neighbour.y] = distances[p.x][p.y] + 1;
+                    open.add(neighbour);
+                }
+            }
+        }
+
+        int distance = distances[keeperAi.current.x][keeperAi.current.y];
         int dx = keeperAi.target.x - keeperAi.current.x;
         int dy = keeperAi.target.y - keeperAi.current.y;
-        if (Math.abs(dx) > Math.abs(dy)) {
-            keeperAi.current = new Point(keeperAi.current.x + Integer.signum(dx), keeperAi.current.y);
-        } else {
-            keeperAi.current = new Point(keeperAi.current.x, keeperAi.current.y + Integer.signum(dy));
+        Point alongX = new Point(keeperAi.current.x + (dx < 0 ? -1 : 1), keeperAi.current.y);
+        Point alongY = new Point(keeperAi.current.x, keeperAi.current.y + (dy < 0 ? -1 : 1));
+        boolean xFirst = Math.abs(dx) > Math.abs(dy);
+        for (Point next : new Point[]{xFirst ? alongX : alongY, xFirst ? alongY : alongX,
+            new Point(2 * keeperAi.current.x - alongX.x, keeperAi.current.y), new Point(keeperAi.current.x, 2 * keeperAi.current.y - alongY.y)}) {
+            if (distance > 1 && next.x >= 0 && next.y >= 0 && next.x < width && next.y < height && distances[next.x][next.y] == distance - 1) {
+                keeperAi.current = next;
+                return true;
+            }
         }
+
+        return false;
     }
 
     /**
