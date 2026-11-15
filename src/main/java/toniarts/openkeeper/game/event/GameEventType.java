@@ -26,10 +26,18 @@ public enum GameEventType {
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
     /**
+     * A Vampire rose in a Graveyard, only the keeper of the Graveyard gets this
+     */
+    GRAVEYARD_VAMPIRE_RISEN,
+    /**
      * The creature took damage. Not restarted while the previous one of the same creature still goes on.
      */
     CREATURE_HURT,
     CREATURE_DIE,
+    /**
+     * A prisoner died and rose as a Skeleton, only the keeper of the Prison gets this
+     */
+    PRISON_SKELETON_RISEN,
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**
@@ -69,6 +77,25 @@ public enum GameEventType {
      * gets this
      */
     CALL_TO_ARMS_UNREACHABLE,
+
+    // The Torture Chamber
+    /**
+     * A victim on the Electric Chair gets a shock, the subject is the chair and the target the victim
+     */
+    TORTURE_ELECTROCUTED,
+    /**
+     * A victim on the Torture Wheel, sent on every tick. Not restarted while the previous one of the same victim
+     * still goes on.
+     */
+    TORTURE_WHEEL,
+    /**
+     * A victim joined the keeper that tortured it, only that keeper gets this
+     */
+    TORTURE_CONVERTED,
+    /**
+     * A creature joined the enemy that tortured it, only the keeper it left gets this
+     */
+    TORTURE_CONVERTED_BY_ENEMY,
 
     // Rooms and terrain, the subject is the room or the terrain
     ROOM_TILES_LAID,
