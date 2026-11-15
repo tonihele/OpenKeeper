@@ -33,11 +33,17 @@ public final class TrapPlacementValidator {
     public enum Failure {
         NONE,
         INVALID_TRAP,
+        NO_WORKSHOP,
         OUT_OF_BOUNDS,
         INVALID_TERRAIN,
         OCCUPIED,
         NOT_ENOUGH_GOLD
     }
+
+    /**
+     * The Workshop room type, a keeper can't place a trap without one
+     */
+    public static final short WORKSHOP_ROOM_ID = 10;
 
     private TrapPlacementValidator() {
         // Nope
@@ -46,20 +52,26 @@ public final class TrapPlacementValidator {
     /**
      * A trap goes on the keeper's own claimed floor, outside of rooms, on a
      * tile that has no trap or door yet. Placing it costs the trap's gold
-     * cost.
+     * cost. As in DKII.EXE (the click handler at 0x4075E0 and the cursor check
+     * at 0x40B4F0) the keeper also needs a Workshop of his own.
      *
      * @param mapInformation the map
      * @param occupiedTiles tiles that already have a trap or a door
      * @param tile the tile to place the trap on
      * @param playerId the placing keeper
      * @param trap the trap, {@code null} if the id was not valid
+     * @param hasWorkshop does the keeper have a Workshop
      * @param availableGold the keeper's gold
      * @return why the trap can't be placed, {@link Failure#NONE} if it can
      */
     public static Failure validate(IMapInformation<?> mapInformation, Set<Point> occupiedTiles, Point tile,
-            short playerId, Trap trap, int availableGold) {
+            short playerId, Trap trap, boolean hasWorkshop, int availableGold) {
         if (trap == null) {
             return Failure.INVALID_TRAP;
+        }
+
+        if (!hasWorkshop) {
+            return Failure.NO_WORKSHOP;
         }
 
         IMapTileInformation mapTile = tile != null ? mapInformation.getMapData().getTile(tile) : null;

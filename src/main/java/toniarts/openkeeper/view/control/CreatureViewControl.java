@@ -28,6 +28,7 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
@@ -56,6 +57,18 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private static final long IN_HAND_SOUND_INTERVAL_MS = 8000;
     private static final long DIG_SOUND_RETRY_MS = 250;
+    /**
+     * The skeletons DK II shows on the Electric Chair for the creatures that
+     * don't have their own, picked at random for each shock
+     */
+    private static final ArtResource[] ELECTROCUTE_SKELETONS = {
+        new ArtResource("Electrocute1", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute2", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute3", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute4", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute5", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute6", ArtResource.ArtResourceType.ANIMATING_MESH)
+    };
 
     private long nextInHandSound;
     private int researchSound = SoundEngine.NO_HANDLE;
@@ -133,7 +146,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private void playAnimation(Creature.AnimationType animation) {
-        AnimationLoader.playAnimation(getSpatial(), getDataObject().getAnimation(animation), assetManager);
+        AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager);
         if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
@@ -288,13 +301,30 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
-        return getDataObject().getAnimation(state);
+        ArtResource animation = getDataObject().getAnimation(state);
+        if (animation == null && state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
+            return ELECTROCUTE_SKELETONS[ThreadLocalRandom.current().nextInt(ELECTROCUTE_SKELETONS.length)];
+        }
+        return animation;
+    }
+
+    /**
+     * Whether the creature is a chicken, as by the Chicken spell
+     *
+     * @return true if the creature is a chicken
+     */
+    public boolean isChicken() {
+        CreatureAi creatureAi = getEntity().get(CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
     }
 
     private boolean isWorkAnimation() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
-            return creatureAi.getCreatureState() == CreatureState.WORK;
+            CreatureState state = creatureAi.getCreatureState();
+
+            // Dancing in the Casino and the jackpot celebration go on until the state changes
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
         }
         return false;
     }
