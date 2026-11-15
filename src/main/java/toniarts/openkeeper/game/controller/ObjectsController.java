@@ -301,7 +301,8 @@ public final class ObjectsController implements IObjectsController {
         if (objectComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a object!");
         }
-        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController());
+        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController(),
+                gameTimer, kwdFile.getGameLevel().getTicksPerSec());
     }
 
     @Override
