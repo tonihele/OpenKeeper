@@ -17,12 +17,14 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.FastMath;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
@@ -47,28 +49,56 @@ import toniarts.openkeeper.view.text.EntityTextParser;
  */
 public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
+    /**
+     * A spin in the original (object state 18, 0x4A13F0) turns the object by
+     * 1536 / (ticks + 3) - 64 of the 2048ths of a turn per game tick, so it
+     * slows down and stops after 21 ticks
+     */
+    private static final float SPIN_SPEED = 1536;
+    private static final float SPIN_SLOW_DOWN = 64;
+
     private boolean initialized = false;
     private int loopHandle = SoundEngine.NO_HANDLE;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
     private final boolean uniqueCreatureBed;
+    private final int ticksPerSecond;
+    private float spinTicks = -1;
+    private float spinDirection;
+    private float spinAngle;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
-        this(entityId, entityData, data, state, assetManager, textParser, null, false);
+        this(entityId, entityData, data, state, assetManager, textParser, null, false, 0);
     }
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
             IMapDataInformation<? extends IMapTileInformation> mapData) {
-        this(entityId, entityData, data, state, assetManager, textParser, mapData, false);
+        this(entityId, entityData, data, state, assetManager, textParser, mapData, false, 0);
     }
 
+    /**
+     * Creates the view control of an object
+     *
+     * @param entityId the object
+     * @param entityData the entity data
+     * @param data the object's data
+     * @param state the object's view state
+     * @param assetManager the asset manager
+     * @param textParser the tooltip parser
+     * @param mapData the map, for where the object can be picked up
+     * @param uniqueCreatureBed whether the object is the bed of a unique
+     * creature
+     * @param ticksPerSecond the game ticks per second of the level, for the
+     * spin, or 0 when the object doesn't spin
+     */
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
-            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed) {
+            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed, int ticksPerSecond) {
         super(entityId, entityData, data, state, assetManager, textParser);
         this.mapData = mapData;
         this.uniqueCreatureBed = uniqueCreatureBed;
+        this.ticksPerSecond = ticksPerSecond;
     }
 
     @Override
@@ -217,6 +247,35 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         if (!Objects.equals(currentState, targetState)) {
             playAnimation(state);
             currentState = targetState;
+
+            // Every spin starts over, one way or the other
+            if (state.state == GameObject.State.SPINNING && ticksPerSecond > 0) {
+                spinTicks = 0;
+                spinDirection = ThreadLocalRandom.current().nextBoolean() ? 1 : -1;
+            }
+        }
+    }
+
+    @Override
+    protected void controlUpdate(float tpf) {
+        super.controlUpdate(tpf);
+
+        if (spinTicks >= 0) {
+            float speed = SPIN_SPEED / ((int) spinTicks + 3) - SPIN_SLOW_DOWN;
+            if (speed > 0) {
+                float ticks = tpf * ticksPerSecond;
+                spinAngle = (spinAngle + spinDirection * speed * ticks * FastMath.TWO_PI / 2048) % FastMath.TWO_PI;
+                spinTicks += ticks;
+            } else {
+                spinTicks = -1;
+            }
+        }
+
+        // The spin turns the object from where it stands, an object that has just lost its place (sold, rebuilt)
+        // is left alone
+        Position position = spinAngle != 0 ? getEntity().get(Position.class) : null;
+        if (position != null) {
+            spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(0, position.rotation + spinAngle, 0));
         }
     }
 

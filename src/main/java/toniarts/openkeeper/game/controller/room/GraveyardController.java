@@ -35,9 +35,9 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * The Graveyard. Imps bring dead bodies here, one body per tile. The room has
- * a crypt for every ten tiles, each on a tile whose eight neighbours are all
- * graveyard and with no other crypt next to it. A crypt tile can't hold a
+ * The Graveyard. Imps bring dead bodies here, one body per tile whose eight
+ * neighbours are all graveyard. The room has a crypt for every ten tiles, each
+ * on such a tile and with no other crypt next to it. A crypt tile can't hold a
  * body.
  */
 public final class GraveyardController extends NormalRoomController {
@@ -68,7 +68,8 @@ public final class GraveyardController extends NormalRoomController {
             @Override
             protected Collection<Point> getCoordinates() {
                 Collection<Point> coordinates = super.getCoordinates();
-                coordinates.removeAll(cryptTiles);
+                // Bodies lie only on the tiles surrounded by the graveyard, like in DK II
+                coordinates.removeIf(p -> cryptTiles.contains(p) || !isCryptTile(map, List.of(), p.x - start.x, p.y - start.y));
                 return coordinates;
             }
 
