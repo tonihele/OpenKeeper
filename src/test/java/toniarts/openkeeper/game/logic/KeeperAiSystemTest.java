@@ -36,6 +36,7 @@ import java.util.logging.Logger;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
@@ -321,22 +322,52 @@ class KeeperAiSystemTest {
             tagged.clear();
         }
 
-        assertEquals(Set.of(new Point(6, 6), new Point(7, 6), new Point(7, 7), new Point(7, 8), new Point(8, 8), new Point(9, 8), new Point(9, 7), new Point(9, 6)), dug);
-        assertEquals(new Point(10, 6), getKeeperAi().current);
+        // Both ways round take as much digging, DK II then goes round with the rock on its right
+        assertEquals(Set.of(new Point(6, 6), new Point(7, 6), new Point(7, 5), new Point(7, 4), new Point(8, 4), new Point(9, 4), new Point(9, 5), new Point(9, 6)), dug);
+
+        // The Portal behind the last tile is open land, the path ends there
+        assertEquals(new Point(9, 6), getKeeperAi().current);
+        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
     }
 
     @Test
-    void givesUpAPathToAPlaceWalledInByRockThatCanNotBeDug() {
+    void digsNoPathWhereACreatureCanWalkAlready() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        createNeutralPortal(new Point(10, 6));
+        reachable = true;
+
+        system.processTick(0.25f);
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.FINISH, getKeeperAi().task);
+        assertEquals(new Point(10, 6), getKeeperAi().current);
+        assertTrue(tagged.isEmpty());
+    }
+
+    @Test
+    void followsRockThatWallsAPlaceInAllTheWayRoundAndThenGivesUp() {
         KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
         createNeutralPortal(new Point(10, 6));
         for (int y = 1; y < 10; y++) {
             map[y][8] = 'X';
         }
 
-        for (int tick = 0; tick < 20; tick++) {
+        Set<Point> dug = new HashSet<>();
+        for (int tick = 0; tick < 100 && (tick == 0 || getKeeperAi().task == KeeperAi.Task.DIG_PATH); tick++) {
             system.processTick(0.25f);
-            assertTrue(tagged.isEmpty());
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            dug.addAll(tagged);
+            tagged.clear();
         }
+
+        // Up along the rock, along the edge of the map and back to where it met the rock
+        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertTrue(dug.containsAll(Set.of(new Point(7, 5), new Point(7, 1), new Point(1, 1), new Point(1, 9), new Point(7, 9), new Point(7, 7))));
+        assertEquals(24, dug.size());
+        assertFalse(getKeeperAi().wallFollowing);
     }
 
     @Test
