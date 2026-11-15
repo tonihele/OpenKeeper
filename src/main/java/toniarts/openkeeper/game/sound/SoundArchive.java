@@ -50,12 +50,23 @@ public class SoundArchive {
     private final Set<BankFlag> flags;
     private final Path sdtFile;
     private final List<String> clipNames;
+    private final List<Integer> clipPcmBytes;
 
     public SoundArchive(String name, Set<BankFlag> flags, Path sdtFile, List<String> clipNames) {
+        this(name, flags, sdtFile, clipNames, List.of());
+    }
+
+    /**
+     * @param clipPcmBytes per clip, the length of the decoded clip as 16 bit
+     * PCM in bytes
+     */
+    public SoundArchive(String name, Set<BankFlag> flags, Path sdtFile, List<String> clipNames,
+            List<Integer> clipPcmBytes) {
         this.name = name;
         this.flags = flags;
         this.sdtFile = sdtFile;
         this.clipNames = clipNames;
+        this.clipPcmBytes = clipPcmBytes;
     }
 
     /**
@@ -77,6 +88,7 @@ public class SoundArchive {
 
     private static SoundArchive doLoad(String archiveName, Set<BankFlag> flags) {
         List<String> clipNames = new ArrayList<>();
+        List<Integer> clipPcmBytes = new ArrayList<>();
         Path sdt = findSdtFile(archiveName);
         if (sdt == null) {
             return new SoundArchive(archiveName, flags, null, clipNames);
@@ -85,11 +97,12 @@ public class SoundArchive {
             SdtFile sdtFile = new SdtFile(sdt);
             for (SdtFileEntry entry : sdtFile.getEntries()) {
                 clipNames.add(entry == null ? null : SdtFile.fixFileExtension(entry));
+                clipPcmBytes.add(entry == null ? 0 : entry.getnSamples());
             }
         } catch (Exception ex) {
             logger.log(Level.WARNING, () -> "Failed to read sound archive " + archiveName, ex);
         }
-        return new SoundArchive(archiveName, flags, sdt, clipNames);
+        return new SoundArchive(archiveName, flags, sdt, clipNames, clipPcmBytes);
     }
 
     private static Path findSdtFile(String archiveName) {
@@ -141,6 +154,22 @@ public class SoundArchive {
             return null;
         }
         return clipNames.get(index);
+    }
+
+    /**
+     * The MPEG data decodes into whole frames, a little more than the clip
+     * really is. Clips played back to back (the music segments) must be cut to
+     * this length to join seamlessly.
+     *
+     * @param clip 1-based clip index
+     * @return length of the decoded clip as 16 bit PCM in bytes, 0 if unknown
+     */
+    public int getClipPcmBytes(int clip) {
+        int index = clip - 1;
+        if (index < 0 || index >= clipPcmBytes.size()) {
+            return 0;
+        }
+        return clipPcmBytes.get(index);
     }
 
     /**
