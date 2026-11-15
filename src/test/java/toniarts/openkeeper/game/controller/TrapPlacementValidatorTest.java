@@ -106,7 +106,7 @@ class TrapPlacementValidatorTest {
     @Test
     void tileWithATrapOrDoorIsOccupied() {
         assertEquals(TrapPlacementValidator.Failure.OCCUPIED,
-                TrapPlacementValidator.validate(mapInformation, Set.of(TILE), TILE, PLAYER, SENTRY, 1000));
+                TrapPlacementValidator.validate(mapInformation, Set.of(TILE), TILE, PLAYER, SENTRY, true, 1000));
     }
 
     @Test
@@ -118,11 +118,25 @@ class TrapPlacementValidatorTest {
     @Test
     void unknownTrapIsNotValid() {
         assertEquals(TrapPlacementValidator.Failure.INVALID_TRAP,
-                TrapPlacementValidator.validate(mapInformation, Set.of(), TILE, PLAYER, null, 1000));
+                TrapPlacementValidator.validate(mapInformation, Set.of(), TILE, PLAYER, null, true, 1000));
+    }
+
+    @Test
+    void trapNeedsAWorkshop() {
+        assertEquals(TrapPlacementValidator.Failure.NO_WORKSHOP,
+                TrapPlacementValidator.validate(mapInformation, Set.of(), TILE, PLAYER, SENTRY, false, 1000));
+    }
+
+    @Test
+    void workshopIsAskedBeforeTheTileOrTheGold() {
+        setTile(TILE, DIRT_PATH, Player.NEUTRAL_PLAYER_ID);
+
+        assertEquals(TrapPlacementValidator.Failure.NO_WORKSHOP,
+                TrapPlacementValidator.validate(mapInformation, Set.of(), TILE, PLAYER, SENTRY, false, 0));
     }
 
     private TrapPlacementValidator.Failure validate(Point tile, int gold) {
-        return TrapPlacementValidator.validate(mapInformation, Set.of(), tile, PLAYER, SENTRY, gold);
+        return TrapPlacementValidator.validate(mapInformation, Set.of(), tile, PLAYER, SENTRY, true, gold);
     }
 
     private void setTile(Point point, short terrainId, short ownerId) {

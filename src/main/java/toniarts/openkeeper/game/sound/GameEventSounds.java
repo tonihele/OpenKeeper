@@ -72,10 +72,14 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_LEVEL_UP, event.position);
             case CREATURE_LAND ->
                 add(sounds, subject, ThingSounds.CREATURE_LAND, event.position);
+            case GRAVEYARD_VAMPIRE_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null);
             case CREATURE_HURT ->
                 add(sounds, subject, ThingSounds.CREATURE_HIT, event.position);
             case CREATURE_DIE ->
                 add(sounds, subject, ThingSounds.CREATURE_DIE, event.position);
+            case PRISON_SKELETON_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null);
             case CREATURE_CLAIM_TILE ->
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
@@ -117,6 +121,17 @@ public final class GameEventSounds {
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC006.getId(), null);
             case CALL_TO_ARMS_UNREACHABLE ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
+            case TORTURE_ELECTROCUTED -> {
+                add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
+                add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,
+                        event.position);
+            }
+            case TORTURE_WHEEL ->
+                add(sounds, subject, ThingSounds.CREATURE_TORTURED, event.position);
+            case TORTURE_CONVERTED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC004.getId(), null);
+            case TORTURE_CONVERTED_BY_ENEMY ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC006.getId(), null);
             case ROOM_TILES_LAID ->
                 add(sounds, subject, ThingSounds.ROOM_LAY_TILE, event.position);
             case ROOM_TILE_BUILT ->
