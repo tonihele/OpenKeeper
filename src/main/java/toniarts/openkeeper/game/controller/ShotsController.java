@@ -47,6 +47,7 @@ import java.util.EnumSet;
 import java.util.Map;
 import java.util.Set;
 
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DRAIN;
@@ -111,6 +112,11 @@ public final class ShotsController implements IShotsController {
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        result.put(CHICKEN, request -> {
+            if (request.target() != null && creaturesController.isValidEntity(request.target())) {
+                creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
+            }
+        });
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         // Drain: the first value is how much of the shooter's full health it takes off the target, as a percentage,
         // but no more than the target has left. The shooter gets it
