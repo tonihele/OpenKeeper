@@ -81,6 +81,28 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets when the computer player casts Call to Arms and lifts it again
+     *
+     * @param ai the computer player settings
+     * @param threat the enemy threat around a fighter above which it calls
+     * @param ticks the game ticks the flag stays up
+     * @param enemies the enemies that have to be near the flag to keep it
+     * @param tiles how near
+     * @param fighters the fighters it has to have to keep the flag
+     * @param waitSeconds the seconds before it calls again
+     * @return the same settings
+     */
+    public static AI withCallToArms(AI ai, int threat, int ticks, int enemies, int tiles, int fighters, int waitSeconds) {
+        ai.setPlaceCallToArmsWhereThreatValueIsGreaterThan(threat);
+        ai.setRemoveCallToArmsAfterSeconds(ticks);
+        ai.setRemoveCallToArmsIfLessThanEnemyCreatures((short) enemies);
+        ai.setRemoveCallToArmsIfLessThanEnemyCreaturesWithinTiles((short) tiles);
+        ai.setRemoveCallToArmsIfTotalCreaturesLessThan((short) fighters);
+        ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(waitSeconds);
+        return ai;
+    }
+
+    /**
      * A keeper the level gives to the computer
      *
      * @param playerId the player id

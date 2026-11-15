@@ -225,13 +225,27 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             }
         }
 
+        // The Call to Arms flag comes down after its time, and then there is no new one for a while
+        if (keeperAi.callToArmsTicks > 0) {
+            keeperAi.callToArmsTicks--;
+        }
+        if (keeperAi.cannotAttackTicks > 0) {
+            keeperAi.cannotAttackTicks--;
+        }
+        battles.liftCallToArms(keeperAi, playerControllers, ai, ticksPerSecond);
+
         // DK II reads the level a level's computer player trains its creatures to before the level's rules, as 0
         if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai,
                 playerController.getKeeper().isAi() ? ai.getMinLevelForCreatures() : 0)) {
             actions--;
         }
 
-        if (actions > 0 && createImp(keeperAi, playerController, ai)) {
+        // In a fight it sees to the fight, otherwise to its imps
+        if (battles.isFighting(keeperAi.playerId)) {
+            if (actions > 0 && battles.callToArms(keeperAi, playerController, ai, ticksPerSecond)) {
+                actions--;
+            }
+        } else if (actions > 0 && createImp(keeperAi, playerController, ai)) {
             actions--;
         }
 

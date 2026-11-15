@@ -109,6 +109,22 @@ public final class KeeperAi implements EntityComponent {
      */
     public int goldTiles;
 
+    /**
+     * Whether its Call to Arms flag is up, and where
+     */
+    public boolean callToArms;
+    public Point callToArmsTile;
+
+    /**
+     * Game ticks until the Call to Arms flag has been up for its time
+     */
+    public int callToArmsTicks;
+
+    /**
+     * Game ticks until it may call its creatures to arms again
+     */
+    public int cannotAttackTicks;
+
     public KeeperAi() {
         // For serialization
     }
@@ -130,6 +146,10 @@ public final class KeeperAi implements EntityComponent {
         this.corner = keeperAi.corner;
         this.oppositeCorner = keeperAi.oppositeCorner;
         this.goldTiles = keeperAi.goldTiles;
+        this.callToArms = keeperAi.callToArms;
+        this.callToArmsTile = keeperAi.callToArmsTile;
+        this.callToArmsTicks = keeperAi.callToArmsTicks;
+        this.cannotAttackTicks = keeperAi.cannotAttackTicks;
     }
 
 }

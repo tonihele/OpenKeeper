@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -54,6 +55,7 @@ import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -62,6 +64,7 @@ import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import static toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures.variable;
@@ -70,6 +73,7 @@ import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpellFixtures.keeperSpell;
 import static toniarts.openkeeper.tools.convert.map.PassiveExperienceFixtures.creature;
 import static toniarts.openkeeper.tools.convert.map.PayDayFixtures.gameLevel;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import static toniarts.openkeeper.tools.convert.map.RoomFixtures.room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -89,6 +93,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 class KeeperAiSystemTest {
 
     private static final short PLAYER_ID = 3;
+    private static final short ENEMY_ID = 4;
+    private static final short CALL_TO_ARMS = 3;
     private static final short TREASURY = 1;
     private static final short LAIR = 2;
     private static final short HATCHERY = 4;
@@ -139,6 +145,10 @@ class KeeperAiSystemTest {
     private boolean logDecisions;
     private AI.AIType lobbyType;
     private PlayerHandControl handControl;
+    private PlayerSpellControl spellControl;
+    private final KeeperSpell callToArms = keeperSpell(CALL_TO_ARMS, 200, 0, (short) 0, 0);
+    private final List<Point> callToArmsCasts = new ArrayList<>();
+    private int callToArmsCancels;
     private final Map<EntityId, Point> dropped = new HashMap<>();
 
     @Test
@@ -233,6 +243,124 @@ class KeeperAiSystemTest {
         system.processTick(0.25f);
 
         assertEquals(Map.of(fighter, HEART), dropped);
+    }
+
+    @Test
+    void castsCallToArmsOnAFighterThatFacesMoreThreatThanItTakesOnWithoutTheFlag() {
+        KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 150, 240, 1, 5, 1, 90), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
+        EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+
+        // One enemy is a threat of 100
+        gameTime = 10;
+        system.processTick(0.25f);
+
+        assertTrue(callToArmsCasts.isEmpty());
+
+        // Only every 10 seconds
+        createCreature(ENEMY_ID, new Point(8, 8), 100, 100, CreatureState.IDLE);
+        gameTime = 10.25f;
+        system.processTick(0.25f);
+
+        assertTrue(callToArmsCasts.isEmpty());
+
+        gameTime = 20;
+        system.processTick(0.25f);
+
+        assertEquals(List.of(new Point(8, 3)), callToArmsCasts);
+        assertTrue(getKeeperAi().callToArms);
+        assertEquals(240, getKeeperAi().callToArmsTicks);
+
+        // One flag at a time
+        gameTime = 30;
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCasts.size());
+        assertEquals(0, callToArmsCancels);
+    }
+
+    @Test
+    void liftsTheCallToArmsAfterItsTimeAndWaitsBeforeTheNext() {
+        KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 2, 1, 5, 1, 90), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        gameTime = 10;
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCasts.size());
+
+        system.processTick(0.25f);
+
+        assertEquals(0, callToArmsCancels);
+
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCancels);
+        assertEquals(360, getKeeperAi().cannotAttackTicks);
+
+        gameTime = 20;
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCasts.size());
+    }
+
+    @Test
+    void liftsTheCallToArmsWhenTheEnemiesAroundTheFlagAreGone() {
+        KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 240, 1, 5, 1, 90), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
+        EntityId enemy = createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(enemy));
+        gameTime = 10;
+        system.processTick(0.25f);
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCasts.size());
+        assertEquals(0, callToArmsCancels);
+
+        // 5 tiles away is out of range
+        entityData.setComponent(enemy, new Position(0, WorldUtils.pointToVector3f(13, 3)));
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCancels);
+    }
+
+    @Test
+    void liftsTheCallToArmsWhenItHasTooFewFightersLeft() {
+        KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 240, 1, 5, 2, 90), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+        EntityId second = createCreature(PLAYER_ID, new Point(3, 6), 100, 100, CreatureState.IDLE);
+        gameTime = 10;
+        system.processTick(0.25f);
+        system.processTick(0.25f);
+
+        assertEquals(0, callToArmsCancels);
+
+        entityData.removeEntity(second);
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCancels);
+    }
+
+    @Test
+    void createsNoImpsWhileItsCreaturesFight() {
+        KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
+        EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new AttackTarget(createCreature(ENEMY_ID, new Point(9, 3), 100, 100, CreatureState.FIGHT)));
+
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+
+        entityData.removeComponent(fighter, AttackTarget.class);
+        system.processTick(0.25f);
+
+        assertEquals(1, impSpells.size());
     }
 
     private EntityId createCreature(short playerId, Point tile, int health, int maxHealth, CreatureState state) {
@@ -495,6 +623,24 @@ class KeeperAiSystemTest {
                 MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         handControl = new PlayerHandControl(keeper, 8, entityData);
+        spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms));
+        Keeper enemyKeeper = new Keeper(false, ENEMY_ID);
+        enemyKeeper.setPlayer(new Player());
+        PlayerRoomControl enemyRoomControl = new PlayerRoomControl(enemyKeeper, new ArrayList<>(rooms.values()));
+        IPlayerController enemyController = (IPlayerController) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getKeeper" -> enemyKeeper;
+            case "getRoomControl" -> enemyRoomControl;
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> {
+                    if (!"cancelCallToArms".equals(method.getName())) {
+                        throw new UnsupportedOperationException(method.getName());
+                    }
+                    callToArmsCancels++;
+                    return null;
+                });
         keeper.setGold(gold);
         keeper.setMana(1000);
         roomControl = new PlayerRoomControl(keeper, new ArrayList<>(rooms.values()));
@@ -507,6 +653,7 @@ class KeeperAiSystemTest {
             case "getCreatureControl" -> creatureControl;
             case "getManaControl" -> manaControl;
             case "getHandControl" -> handControl;
+            case "getSpellControl" -> spellControl;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -516,6 +663,7 @@ class KeeperAiSystemTest {
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getVariables" -> variables;
             case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
+            case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms : null;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IGameWorldController gameWorldController = (IGameWorldController) Proxy.newProxyInstance(getClass().getClassLoader(),
@@ -524,9 +672,13 @@ class KeeperAiSystemTest {
                         case "getMapController" -> {
                             return mapController;
                         }
+                        case "getObjectsController" -> {
+                            return objectsController;
+                        }
                         case "castKeeperSpell" -> {
-                            impSpells.add((Point) args[2]);
-                            keeper.setMana(keeper.getMana() - createImp.getManaCost());
+                            boolean imp = (short) args[0] == createImp.getKeeperSpellId();
+                            (imp ? impSpells : callToArmsCasts).add((Point) args[2]);
+                            keeper.setMana(keeper.getMana() - (imp ? createImp : callToArms).getManaCost());
                         }
                         case "pickUp" ->
                             handControl.push((EntityId) args[0]);
@@ -544,7 +696,8 @@ class KeeperAiSystemTest {
                     return null;
                 });
 
-        return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController), gameWorldController, () -> gameTime, logDecisions);
+        return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController, ENEMY_ID, enemyController), gameWorldController,
+                () -> gameTime, logDecisions);
     }
 
     private IRoomController createRoom(short roomId, Point centre) {
