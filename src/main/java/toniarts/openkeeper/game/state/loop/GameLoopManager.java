@@ -166,7 +166,7 @@ public final class GameLoopManager {
                         entityData,
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
                         levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
-                        levelInfo.getLevelData().getGameLevel().getTicksPerSec()),
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService),
                 new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 

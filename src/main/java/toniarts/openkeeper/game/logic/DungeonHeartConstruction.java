@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -74,6 +75,7 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
 
     private final float velocity = 7f;
     private final EntityData entityData;
+    private final GameEventService gameEventService;
     private final Set<EntityId> dungeonHeartPlugs;
     private final Map<EntityId, Set<PlugPiece>> dungeonHeartPlugPieces;
     private final Map<EntityId, Set<EntityId>> dungeonHeartStairs;
@@ -96,9 +98,12 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
      * @param plugEffectId the plug's effect when it breaks apart
      * @param ticksPerSecond the game ticks per second, the static on the plug
      * is set off every tick
+     * @param gameEventService tells the clients to play the effects
      */
-    public DungeonHeartConstruction(EntityData entityData, float delay, int plugEffectId, int ticksPerSecond) {
+    public DungeonHeartConstruction(EntityData entityData, float delay, int plugEffectId, int ticksPerSecond,
+            GameEventService gameEventService) {
         this.entityData = entityData;
+        this.gameEventService = gameEventService;
         this.delay = delay;
         this.plugEffectId = plugEffectId;
         this.tickTime = 1.0 / ticksPerSecond;
@@ -185,7 +190,7 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
 
                 // Remove the plug, it breaks apart with its own effect
                 entityData.removeEntity(entityId);
-                EffectTriggers.trigger(entityData, plugEffectId, dungeonHeartPositions.get(entityId), timeElapsed);
+                gameEventService.emitEffect(plugEffectId, dungeonHeartPositions.get(entityId), 0);
             }
             plugsRemoved = true;
         }
@@ -240,7 +245,7 @@ public final class DungeonHeartConstruction extends GameTimeCounter {
 
     private void triggerAtHearts(int effectId) {
         for (Vector3f position : dungeonHeartPositions.values()) {
-            EffectTriggers.trigger(entityData, effectId, position, timeElapsed);
+            gameEventService.emitEffect(effectId, position, 0);
         }
     }
 
