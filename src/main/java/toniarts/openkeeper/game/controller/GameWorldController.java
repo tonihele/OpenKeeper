@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -72,6 +73,7 @@ import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.map.MapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -505,6 +507,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             IMapTileController tile = mapController.getMapData().getTile(p);
             tile.setOwnerId(playerId);
             tile.setTerrainId(room.getTerrainId());
+            if (!room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+
+                // A bridge tile gives its owner mana, a room keeps what the land under it gives (DKII.EXE 0x455B90)
+                entityData.setComponent(tile.getEntityId(), new Mana(MapTileController.BRIDGE_MANA_GAIN));
+            }
             if (room.getRoomId() == WOODEN_BRIDGE_ROOM_ID
                     && tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
                 double lifetime = gameSettings.get(Variable.MiscVariable.MiscType.WOOD_BRIDGE_LIFE_ON_LAVA_SECONDS).getValue();
@@ -640,10 +647,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         gameEventService.emit(GameEventType.ROOM_SOLD, ThingFlag.ROOM, room.getRoomId(), p);
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-        } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
         } else {
-            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+            removeBridge(tile);
         }
 
         int saleValue = (int) (room.getCost()
@@ -762,13 +767,24 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
             tile.setTerrainId(terrain.getDestroyedTypeTerrainId());
-        } else if (tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA) {
-            tile.setTerrainId(kwdFile.getMap().getLava().getTerrainId());
         } else {
-            tile.setTerrainId(kwdFile.getMap().getWater().getTerrainId());
+            removeBridge(tile);
         }
         updatableTiles.addAll(Arrays.asList(
                 WorldUtils.getSurroundingTiles(mapController.getMapData(), point, true)));
+    }
+
+    /**
+     * Gives a bridge tile back to the water or the lava under it, which gives
+     * its owner no mana anymore
+     *
+     * @param tile the bridge tile
+     */
+    private void removeBridge(IMapTileController tile) {
+        Terrain liquid = tile.getBridgeTerrainType() == Tile.BridgeTerrainType.LAVA
+                ? kwdFile.getMap().getLava() : kwdFile.getMap().getWater();
+        tile.setTerrainId(liquid.getTerrainId());
+        entityData.setComponent(tile.getEntityId(), new Mana(liquid.getManaGain()));
     }
 
     private List<Point> removeDestroyedRoomInstances(Set<EntityId> destroyedInstances,
