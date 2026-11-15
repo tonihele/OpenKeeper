@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -30,6 +31,8 @@ import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.listener.MapListener;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.FakeMapInformation;
 import toniarts.openkeeper.game.map.FakeMapTile;
@@ -44,6 +47,8 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
@@ -59,7 +64,9 @@ class DoorsControllerTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Door woodenDoor = DoorFixtures.door((short) 1, 250, 800);
+    private final Door barricade = DoorFixtures.door((short) 6, 400, Door.DoorFlag.IS_BARRICADE);
     private FakeMapData mapData;
+    private MapListener mapListener;
     private DoorsController doorsController;
 
     @BeforeEach
@@ -77,15 +84,29 @@ class DoorsControllerTest {
                 new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getMapData" -> mapData;
             case "getTerrain" -> mapInformation.getTerrain((IMapTileInformation) args[0]);
+            case "addListener" -> {
+                mapListener = (MapListener) args[0];
+                yield null;
+            }
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getThings" -> List.of();
-            case "getDoorById" -> woodenDoor;
+            case "getDoorById" -> ((Number) args[0]).shortValue() == barricade.getDoorId() ? barricade : woodenDoor;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        doorsController = new DoorsController(kwdFile, entityData, null, mapController, null, null);
+        IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
+                new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getEntitiesInLocation" -> entitiesOn((Point) args[0]);
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(),
+                new Class<?>[]{IGameController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getEntityLookupService" -> entityPositionLookup;
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        doorsController = new DoorsController(kwdFile, entityData, null, mapController, gameController, null);
     }
 
     @Test
@@ -122,6 +143,113 @@ class DoorsControllerTest {
         EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
 
         assertEquals(-FastMath.HALF_PI, entityData.getComponent(door, Position.class).rotation);
+    }
+
+    @Test
+    void deliveredDoorIsBuilt() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        doorsController.buildDoor(door);
+
+        assertFalse(entityData.getComponent(door, DoorComponent.class).blueprint);
+        assertFalse(entityData.getComponent(door, DoorViewState.class).blueprint);
+        assertEquals(800, entityData.getComponent(door, Health.class).health);
+    }
+
+    @Test
+    void builtDoorIsNotBuiltAgain() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        doorsController.buildDoor(door);
+        entityData.setComponent(door, new Health(1, 800));
+
+        doorsController.buildDoor(door);
+
+        assertEquals(1, entityData.getComponent(door, Health.class).health);
+    }
+
+    @Test
+    void doorFallsWhenOneOfItsWallsIsDugOut() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        doorsController.buildDoor(door);
+
+        changeTile(new Point(3, 2), CLAIMED_PATH, PLAYER);
+
+        assertNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void blueprintFallsWhenItsTileIsClaimedByAnother() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        changeTile(TILE, CLAIMED_PATH, ENEMY);
+
+        assertNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void doorStandsWhenItsWallIsClaimedByAnother() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        changeTile(new Point(1, 2), REINFORCED_WALL, ENEMY);
+
+        assertNotNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void onlyTheWallsTheDoorStandsBetweenHoldIt() {
+        setTile(new Point(2, 1), REINFORCED_WALL, PLAYER);
+        setTile(new Point(2, 3), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+
+        // Turned to stand between north and south, the walls east and west don't hold it
+        changeTile(new Point(2, 1), CLAIMED_PATH, PLAYER);
+
+        assertNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void barricadeNeedsNoWalls() {
+        EntityId door = doorsController.addDoorBlueprint(barricade.getDoorId(), TILE, PLAYER);
+
+        changeTile(new Point(3, 2), CLAIMED_PATH, PLAYER);
+
+        assertNotNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    @Test
+    void barricadeFallsWhenItsTileIsClaimedByAnother() {
+        EntityId door = doorsController.addDoorBlueprint(barricade.getDoorId(), TILE, PLAYER);
+
+        changeTile(TILE, CLAIMED_PATH, ENEMY);
+
+        assertNull(entityData.getComponent(door, DoorComponent.class));
+    }
+
+    private void changeTile(Point point, short terrainId, short ownerId) {
+        setTile(point, terrainId, ownerId);
+        mapListener.onTilesChange(List.of(point));
+    }
+
+    private List<EntityId> entitiesOn(Point tile) {
+        List<EntityId> result = new ArrayList<>();
+        for (EntityId entity : entityData.findEntities(null, Position.class)) {
+            if (WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position).equals(tile)) {
+                result.add(entity);
+            }
+        }
+        return result;
     }
 
     private void setTile(Point point, short terrainId, short ownerId) {
