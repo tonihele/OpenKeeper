@@ -26,10 +26,18 @@ public enum GameEventType {
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
     /**
+     * A Vampire rose in a Graveyard, only the keeper of the Graveyard gets this
+     */
+    GRAVEYARD_VAMPIRE_RISEN,
+    /**
      * The creature took damage. Not restarted while the previous one of the same creature still goes on.
      */
     CREATURE_HURT,
     CREATURE_DIE,
+    /**
+     * A prisoner died and rose as a Skeleton, only the keeper of the Prison gets this
+     */
+    PRISON_SKELETON_RISEN,
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**

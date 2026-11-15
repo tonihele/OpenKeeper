@@ -330,7 +330,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             // https://github.com/tonihele/OpenKeeper/issues/261
             if (tile != null) {
                 addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee),
-                        entityData.getComponent(id, Owner.class).ownerId, sensedEntities);
+                        entityData.getComponent(id, Owner.class).ownerId, true, sensedEntities);
             }
 
             // Remove us, the caller
@@ -338,6 +338,22 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
             return sensedEntities;
         });
+    }
+
+    @Override
+    public boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId) {
+        Senses senses = entityData.getComponent(entityId, Senses.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        IMapTileInformation tile = getEntityLocation(entityId);
+        if (senses == null || owner == null || tile == null) {
+            return false;
+        }
+
+        // Sense again, but stop at all the doors that block us, barricades too
+        Set<EntityId> sensedEntities = new HashSet<>();
+        addSensedEntities(tile, (int) Math.max(senses.distanceCanHear, senses.distanceCanSee), owner.ownerId, false, sensedEntities);
+
+        return !sensedEntities.contains(sensedEntityId);
     }
 
     private boolean isBarricade(IMapTileInformation tile) {
@@ -349,7 +365,18 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         return false;
     }
 
-    private void addSensedEntities(IMapTileInformation startTile, int range, short playerId, Set<EntityId> sensedEntities) {
+    /**
+     * Adds the entities around the tile to the sensed ones
+     *
+     * @param startTile the tile to sense from
+     * @param range how many tiles further to sense
+     * @param playerId the player whose blocking doors stop the senses
+     * @param overBarricades whether the senses go over a barricade that blocks
+     * the player
+     * @param sensedEntities the sensed entities
+     */
+    private void addSensedEntities(IMapTileInformation startTile, int range, short playerId, boolean overBarricades,
+            Set<EntityId> sensedEntities) {
 
         // Go out one step at a time, so each tile is looked at only once
         Set<IMapTileInformation> visitedTiles = new HashSet<>();
@@ -366,7 +393,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
                 // A door blocks the sight, as in DK II (0x4511A0), but creatures see over a barricade. The hearing
                 // follows the paths (0x45AFF0), so it only goes through a door the creature can walk through
-                if (isTileBlocked(tile.getX(), tile.getY(), playerId) && !isBarricade(tile)) {
+                if (isTileBlocked(tile, playerId) && !(overBarricades && isBarricade(tile))) {
                     continue;
                 }
 
