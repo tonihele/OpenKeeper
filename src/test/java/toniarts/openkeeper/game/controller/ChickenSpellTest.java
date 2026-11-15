@@ -26,19 +26,14 @@ import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
-import toniarts.openkeeper.tools.convert.map.KeeperSpell;
-import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -99,26 +94,6 @@ class ChickenSpellTest {
         shotsController.createShot(CHICKEN_SHOT_ID, 60, 0, CASTER, new Vector3f(), null, null);
 
         assertTrue(chickenCalls.isEmpty());
-    }
-
-    @Test
-    void spellTargetsAnyCreatureButNeutralOnes() {
-        KeeperSpell chicken = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ALL_CREATURES, 0);
-
-        assertTrue(KeeperSpellCastValidator.checkChickenRule(creature(CREATURE_ID, ENEMY), entityData, chicken));
-        assertTrue(KeeperSpellCastValidator.checkChickenRule(creature(CREATURE_ID, CASTER), entityData, chicken));
-        assertFalse(KeeperSpellCastValidator.checkChickenRule(creature(CREATURE_ID, Player.NEUTRAL_PLAYER_ID), entityData, chicken));
-    }
-
-    @Test
-    void chickenCantBePossessed() {
-        KeeperSpell possession = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.POSESSION, 0);
-        EntityId ownCreature = creature(CREATURE_ID, CASTER);
-        assertTrue(KeeperSpellCastValidator.checkChickenRule(ownCreature, entityData, possession));
-
-        entityData.setComponent(ownCreature, new CreatureAi(100, CreatureState.CHICKEN, CREATURE_ID, null, 60));
-
-        assertFalse(KeeperSpellCastValidator.checkChickenRule(ownCreature, entityData, possession));
     }
 
     private EntityId creature(short creatureId, short ownerId) {

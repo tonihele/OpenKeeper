@@ -308,6 +308,16 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         return animation;
     }
 
+    /**
+     * Whether the creature is a chicken, as by the Chicken spell
+     *
+     * @return true if the creature is a chicken
+     */
+    public boolean isChicken() {
+        CreatureAi creatureAi = getEntity().get(CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+    }
+
     private boolean isWorkAnimation() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
