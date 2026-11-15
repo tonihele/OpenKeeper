@@ -806,6 +806,38 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void logsWhyItPlansNothingWhenItStartsToAndNotOnEveryTick() {
+        List<String> lines = new ArrayList<>();
+        Handler handler = new Handler() {
+            @Override
+            public void publish(LogRecord logRecord) {
+                lines.add(logRecord.getMessage());
+            }
+
+            @Override
+            public void flush() {
+            }
+
+            @Override
+            public void close() {
+            }
+        };
+        Logger logger = Logger.getLogger(KeeperAiSystem.class.getName());
+        logger.addHandler(handler);
+        try {
+            logDecisions = true;
+            gameTime = 30;
+            KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+            system.processTick(0.25f);
+            system.processTick(0.25f);
+
+            assertEquals(List.of("AI tick 120 player 3 PLAN: nothing to do (no room left to build, no neutral Portal to dig to, 1000 gold, not ready to invade)"), lines);
+        } finally {
+            logger.removeHandler(handler);
+        }
+    }
+
+    @Test
     void logsNothingWhenTheLogIsOff() {
         List<LogRecord> records = new ArrayList<>();
         Handler handler = new Handler() {
@@ -940,6 +972,26 @@ class KeeperAiSystemTest {
         // Its land near the flag gets half of its threat of 200
         assertEquals(1, getKeeperAi().attacks);
         assertEquals(100, getKeeperAi().attackNeeds[0]);
+    }
+
+    @Test
+    void goesOnPlanningRoomsWhileItInvadesWithoutCallToArms() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 5, 1,
+                AI.CallToArmsUsagePolicy.AT_HEART_WITH_CREATURES, 0), 1000);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(8, 6)));
+        KeeperAiEnemy invaded = new KeeperAiEnemy(PLAYER_ID, ENEMY_ID, 0);
+        invaded.invaded = true;
+        entityData.setComponent(entityData.createEntity(), invaded);
+        createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.IDLE);
+        reachable = true;
+
+        system.processTick(0.25f);
+
+        // Call to Arms is still to be researched, so the turn goes to the next room
+        assertTrue(callToArmsCasts.isEmpty());
+        assertEquals(TREASURY, getKeeperAi().roomId);
+        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
     }
 
     @Test

@@ -74,6 +74,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * DK II lets the tagged gold go 240 game ticks after its last dig order
      */
     private static final int UNTAG_GOLD_SECONDS = 60;
+    private static final int NOTHING_TO_DO_LOG_SECONDS = 60;
     private static final int CREATE_IMP_DISTANCE_FROM_HEART = 2;
 
     /**
@@ -284,12 +285,23 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 case PLAN -> {
 
                     // An invasion first, else a room
-                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel,
-                            getNextRoom(playerController, ai) == null, ticksPerSecond)) {
-                        planRoom(keeperAi, playerController, ai);
+                    boolean allRoomsPlaced = getNextRoom(playerController, ai) == null;
+                    String nothingPlanned = null;
+                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel, allRoomsPlaced, ticksPerSecond)) {
+                        nothingPlanned = planRoom(keeperAi, playerController, ai);
                     }
                     if (keeperAi.task == KeeperAi.Task.PLAN) {
                         mineGoldIfLow(keeperAi, playerController, ai);
+                    }
+
+                    // Why it does nothing, when it starts to and then once a minute
+                    if (keeperAi.task == KeeperAi.Task.PLAN && nothingPlanned != null
+                            && keeperAi.taskTicks % (NOTHING_TO_DO_LOG_SECONDS * ticksPerSecond) == 1) {
+                        log(keeperAi, "nothing to do", null, (allRoomsPlaced ? "no room left to build, " : "") + nothingPlanned
+                                + ", " + playerController.getKeeper().getGold() + " gold, "
+                                + (keeperAi.callToArms ? "its Call to Arms is up"
+                                        : keeperAi.cannotAttackTicks > 0 ? keeperAi.cannotAttackTicks / ticksPerSecond + " s before it may attack again"
+                                        : "not ready to invade"));
                     }
                     yield actions - 1;
                 }
@@ -602,8 +614,10 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * and when there is no room to pick, it looks for a neutral Portal to
      * dig to. A neutral room of the kind it wants is dug to as well, rather
      * than built
+     *
+     * @return why it plans nothing, or null when it plans something
      */
-    private void planRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+    private String planRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         keeperAi.roomId = 0;
         if (!keeperAi.roomWanted) {
             Room wanted = getNextRoom(playerController, ai);
@@ -617,19 +631,18 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.wantedRoomId = ROOM_PORTAL;
         }
         if (digToNeutralRoom(keeperAi, playerController, ai, roomId)) {
-            return;
+            return null;
         }
 
         Room room = roomId == ROOM_PORTAL ? null : kwdFile.getRoomById(roomId);
         if (room == null || ai.getDefaultSize() < 1) {
-            keeperAi.taskTicks = 0;
-            return;
+            return roomId == ROOM_PORTAL ? "no neutral Portal to dig to" : "can't build room " + roomId;
         }
 
         // The room at its default size has to be affordable, otherwise mine gold first
         if (room.getCost() * ai.getDefaultSize() > playerController.getKeeper().getGold()) {
             mineGold(keeperAi, playerController);
-            return;
+            return "room " + roomId + " costs more than its gold and there is no gold to mine";
         }
 
         keeperAi.roomId = room.getRoomId();
@@ -656,6 +669,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.current = getRandomRoomLocation(playerController);
         }
         setTask(keeperAi, KeeperAi.Task.FIND_ROOM_SITE, keeperAi.current, "room " + keeperAi.roomId + " is next, looking " + DIRECTIONS[keeperAi.direction]);
+
+        return null;
     }
 
     /**
