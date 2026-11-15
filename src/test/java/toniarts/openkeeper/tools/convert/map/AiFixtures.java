@@ -172,6 +172,18 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets what the computer player does with an enemy prisoner
+     *
+     * @param ai the computer player settings
+     * @param fate the fate of the prisoner
+     * @return the same settings
+     */
+    public static AI withPrisonerFate(AI ai, AI.ImprisonedCreatureFatePolicy fate) {
+        ai.setFateOfImprisonedCreatures(fate);
+        return ai;
+    }
+
+    /**
      * Sets when the computer player invades and how it calls its creatures
      * to arms then
      *

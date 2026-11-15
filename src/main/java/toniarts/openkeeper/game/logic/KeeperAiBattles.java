@@ -178,6 +178,23 @@ final class KeeperAiBattles {
     }
 
     /**
+     * The creatures of other players that a player holds in its rooms, its
+     * prisoners, always in the same order
+     */
+    List<Entity> getPrisoners(short playerId) {
+        List<Entity> prisoners = new ArrayList<>();
+        for (Entity entity : creatures) {
+            Owner owner = entity.get(Owner.class);
+            if (owner.ownerId != playerId && owner.controlId == playerId && entityData.getComponent(entity.getId(), InHand.class) == null) {
+                prisoners.add(entity);
+            }
+        }
+        prisoners.sort(Comparator.comparingLong(entity -> entity.getId().getId()));
+
+        return prisoners;
+    }
+
+    /**
      * @param playerId the player
      * @return true if one of the player's creatures is in a fight
      */
