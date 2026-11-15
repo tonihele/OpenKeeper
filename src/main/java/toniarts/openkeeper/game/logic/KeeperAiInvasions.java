@@ -499,7 +499,7 @@ final class KeeperAiInvasions {
         return experience != null ? experience.level : 1;
     }
 
-    private boolean hasSpellsToResearch(IPlayerController playerController) {
+    boolean hasSpellsToResearch(IPlayerController playerController) {
         for (ResearchableEntity spell : playerController.getSpellControl().getTypes().values()) {
             if (!spell.isDiscovered()) {
                 return true;
