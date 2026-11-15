@@ -25,6 +25,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.InfernoArea;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -52,6 +53,7 @@ class InfernoShotProcessorTest {
         Entity fire = fires.iterator().next();
         assertEquals(ShotFixtures.INFERNO_ID, fire.get(ShotViewState.class).shotId);
         assertEquals(position, fire.get(Position.class).position);
+        assertEquals(PLAYER_ID, entityData.getComponent(fire.getId(), Owner.class).ownerId);
         InfernoArea area = fire.get(InfernoArea.class);
         assertEquals(1, area.radius);
         assertEquals(0, area.burns);

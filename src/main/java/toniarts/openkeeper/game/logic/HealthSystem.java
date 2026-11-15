@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureDeathCredit;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -171,6 +172,10 @@ public final class HealthSystem extends GameTimeCounter {
             if (health == null) {
                 continue;
             }
+            // Recovery cancels credit for a previous knockout.
+            if (health.health > 0) {
+                entityData.removeComponent(entityId, CreatureDeathCredit.class);
+            }
             delayAttacksWhenBadlyHurt(entityId, health, tpf);
 
             int healthChange = calculateHealthChange(entityId, health, timeElapsed, gameTime);
@@ -180,6 +185,11 @@ public final class HealthSystem extends GameTimeCounter {
 
             // Set new health or death
             if (health.health + healthChange <= 0) {
+                Entity damaged = damageEntities.getEntity(entityId);
+                Damage damage = damaged == null ? null : damaged.get(Damage.class);
+                if (damage != null && damage.damage > 0 && damage.playerId != null) {
+                    entityData.setComponent(entityId, new CreatureDeathCredit(damage.playerId));
+                }
                 processHealthDepleted(entityId, health);
             } else {
                 entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
@@ -222,6 +232,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            recordCreatureKill(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
         }
@@ -399,6 +410,7 @@ public final class HealthSystem extends GameTimeCounter {
     private void processDeath(EntityId entityId) {
         if (entityData.getComponent(entityId, Death.class) == null
                 && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            recordCreatureKill(entityId);
             gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
         }
         entityData.removeComponent(entityId, Health.class);
@@ -413,6 +425,19 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
         entityData.setComponent(entityId, new Death(timeElapsed));
+    }
+
+    private void recordCreatureKill(EntityId entityId) {
+        CreatureDeathCredit credit = entityData.getComponent(entityId, CreatureDeathCredit.class);
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (credit != null && creature != null && owner != null) {
+            IPlayerController killer = playerControllersById.get(credit.playerId);
+            if (killer != null) {
+                killer.getStatsControl().creatureKilled(credit.playerId, owner.ownerId, creature.worker);
+            }
+        }
+        entityData.removeComponent(entityId, CreatureDeathCredit.class);
     }
 
     private void processAddedEntities(Set<Entity> entities) {

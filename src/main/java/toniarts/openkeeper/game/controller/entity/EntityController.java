@@ -220,13 +220,20 @@ public class EntityController implements IEntityController {
 
     @Override
     public void setDamage(EntityId entityId, int damageAmount) {
-        setDamage(entityData, entityId, damageAmount);
+        Owner owner = entityData.getComponent(this.entityId, Owner.class);
+        setDamage(entityData, entityId, damageAmount, owner == null ? null : owner.ownerId);
     }
 
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount) {
+        setDamage(entityData, entityId, damageAmount, null);
+    }
+
+    /** Damage carries the firing player's identity even if its source later disappears. */
+    public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount, Short playerId) {
         Damage damage = entityData.getComponent(entityId, Damage.class);
         int damageTotal = damage != null ? damage.damage : 0;
-        entityData.setComponent(entityId, new Damage(damageTotal + scaleDamage(entityData, entityId, damageAmount)));
+        Short source = damageAmount > 0 ? playerId : (damage != null ? damage.playerId : null);
+        entityData.setComponent(entityId, new Damage(damageTotal + scaleDamage(entityData, entityId, damageAmount), source));
     }
 
     /**
