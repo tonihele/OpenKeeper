@@ -63,6 +63,9 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
         super.destroy();
 
         entityData.removeComponent(entityId, ImpGenerator.class);
+
+        // A ruined heart stores no gold, the gold in it is left on the floor as loose gold
+        removeObjectControl(ObjectType.GOLD);
     }
 
     @Override

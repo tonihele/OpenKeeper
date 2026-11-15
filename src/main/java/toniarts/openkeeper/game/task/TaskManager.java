@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -35,16 +36,23 @@ import java.util.Deque;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.TreeMap;
 import java.util.function.Consumer;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import toniarts.openkeeper.game.component.Casino;
+import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -53,6 +61,8 @@ import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -60,13 +70,16 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.TrapDeliveries;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.RoomListener;
@@ -77,9 +90,13 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.creature.ClaimLair;
+import toniarts.openkeeper.game.task.creature.CollectWinnings;
+import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
+import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Manufacture;
+import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -87,14 +104,20 @@ import toniarts.openkeeper.game.task.objective.KillCreatures;
 import toniarts.openkeeper.game.task.objective.KillPlayer;
 import toniarts.openkeeper.game.task.objective.SendToActionPoint;
 import toniarts.openkeeper.game.task.objective.StealGold;
+import toniarts.openkeeper.game.task.worker.ArmTrapTask;
+import toniarts.openkeeper.game.task.worker.BuildDoorTask;
 import toniarts.openkeeper.game.task.worker.CaptureEnemyCreatureTask;
+import toniarts.openkeeper.game.task.worker.CarryCorpseToGraveyardTask;
 import toniarts.openkeeper.game.task.worker.CarryEnemyCreatureToPrison;
 import toniarts.openkeeper.game.task.worker.CarryGoldToTreasuryTask;
 import toniarts.openkeeper.game.task.worker.CarryObjectToStorageTask;
 import toniarts.openkeeper.game.task.worker.ClaimRoomTask;
 import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.game.task.worker.ClaimWallTileTask;
+import toniarts.openkeeper.game.task.worker.DeliverDoorCrateTask;
+import toniarts.openkeeper.game.task.worker.DeliverTrapCrateTask;
 import toniarts.openkeeper.game.task.worker.DigTileTask;
+import toniarts.openkeeper.game.task.worker.FetchCorpseTask;
 import toniarts.openkeeper.game.task.worker.FetchObjectTask;
 import toniarts.openkeeper.game.task.worker.RepairWallTileTask;
 import toniarts.openkeeper.game.task.worker.RescueCreatureTask;
@@ -129,6 +152,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     private final EntitySet unconsciousEntities;
     private final EntitySet corpseEntities;
     private final EntitySet freeObjectEntities;
+    private final EntitySet trapBlueprintEntities;
+    private final EntitySet doorBlueprintEntities;
+    private final EntitySet crateEntities;
+    private final Map<EntityId, Task> fetchCrateTasks = new HashMap<>();
+    private boolean crateDeliveryTasksScanned = false;
     private final Map<Short, Set<Task>> taskQueues;
     private final Map<Long, Task> tasksByIds = new HashMap<>();
     private final Map<EntityId, Long> tasksIdsByEntities = new HashMap<>();
@@ -188,6 +216,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         // Listen to object picking up missions
         freeObjectEntities = entityData.getEntities(ObjectComponent.class, Position.class, Placeable.class);
         processAddedFreeObjectEntities(freeObjectEntities);
+
+        // Listen to trap and door blueprints and crates, workers bring the crates to the blueprints. Not the crate
+        // positions, they change all the time while a crate is carried
+        trapBlueprintEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class);
+        doorBlueprintEntities = entityData.getEntities(DoorComponent.class, Owner.class, Position.class);
+        crateEntities = entityData.getEntities(Crate.class, Owner.class);
     }
 
     @Override
@@ -201,6 +235,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         unconsciousEntities.release();
         corpseEntities.release();
         freeObjectEntities.release();
+        trapBlueprintEntities.release();
+        doorBlueprintEntities.release();
+        crateEntities.release();
     }
 
     @Override
@@ -223,6 +260,98 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             processDeletedFreeObjectEntities(freeObjectEntities.getRemovedEntities());
             processAddedFreeObjectEntities(freeObjectEntities.getAddedEntities());
         }
+        boolean trapBlueprintsChanged = trapBlueprintEntities.applyChanges();
+        boolean doorBlueprintsChanged = doorBlueprintEntities.applyChanges();
+        if (crateEntities.applyChanges() || trapBlueprintsChanged || doorBlueprintsChanged || !crateDeliveryTasksScanned) {
+            updateCrateDeliveryTasks();
+            crateDeliveryTasksScanned = true;
+        }
+    }
+
+    /**
+     * Drops the crate delivery tasks that are done or can't be done anymore
+     * and gives the trap and door blueprints waiting for a crate a delivery,
+     * if there is one
+     */
+    private void updateCrateDeliveryTasks() {
+        Iterator<Task> iter = fetchCrateTasks.values().iterator();
+        while (iter.hasNext()) {
+            Task task = iter.next();
+            if (task.isRemovable()) {
+                iter.remove();
+                for (Set<Task> tasks : taskQueues.values()) {
+                    tasks.remove(task);
+                }
+            }
+        }
+        for (Set<Task> tasks : taskQueues.values()) {
+            tasks.removeIf(task -> (task instanceof DeliverTrapCrateTask || task instanceof DeliverDoorCrateTask) && task.isRemovable());
+        }
+
+        // The fetch tasks by blueprint, their target is the crate
+        Map<EntityId, EntityId> underWay = HashMap.newHashMap(fetchCrateTasks.size());
+        for (Entry<EntityId, Task> task : fetchCrateTasks.entrySet()) {
+            underWay.put(task.getKey(), task.getValue().getTaskTarget());
+        }
+        for (Short playerId : taskQueues.keySet()) {
+            SequencedMap<EntityId, Short> trapBlueprints = getBlueprints(trapBlueprintEntities, playerId,
+                    entity -> entity.get(TrapViewState.class).blueprint, entity -> entity.get(TrapComponent.class).trapId);
+            for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(trapBlueprints, getCrates(ResearchableType.TRAP, playerId),
+                    underWay).entrySet()) {
+                Point tile = WorldUtils.vectorToPoint(trapBlueprintEntities.getEntity(delivery.getKey()).get(Position.class).position);
+                ArmTrapTask task = new ArmTrapTask(this, navigationService, mapController, entityData, gameWorldController.getTrapsController(),
+                        objectsController, delivery.getKey(), tile, delivery.getValue(), playerId);
+                fetchCrateTasks.put(delivery.getKey(), task);
+                addTask(playerId, task);
+            }
+
+            SequencedMap<EntityId, Short> doorBlueprints = getBlueprints(doorBlueprintEntities, playerId,
+                    entity -> entity.get(DoorComponent.class).blueprint, entity -> entity.get(DoorComponent.class).doorId);
+            for (Entry<EntityId, EntityId> delivery : TrapDeliveries.next(doorBlueprints, getCrates(ResearchableType.DOOR, playerId),
+                    underWay).entrySet()) {
+                Point tile = WorldUtils.vectorToPoint(doorBlueprintEntities.getEntity(delivery.getKey()).get(Position.class).position);
+                BuildDoorTask task = new BuildDoorTask(this, navigationService, mapController, entityData, gameWorldController.getDoorsController(),
+                        objectsController, delivery.getKey(), tile, delivery.getValue(), playerId);
+                fetchCrateTasks.put(delivery.getKey(), task);
+                addTask(playerId, task);
+            }
+        }
+    }
+
+    /**
+     * The keeper's blueprints in the order they were placed
+     *
+     * @param entities the traps or the doors
+     * @param playerId the keeper
+     * @param isBlueprint whether the trap or door is still a blueprint
+     * @param typeId the trap or door id
+     * @return the blueprints and their trap or door ids
+     */
+    private static SequencedMap<EntityId, Short> getBlueprints(EntitySet entities, short playerId, Predicate<Entity> isBlueprint,
+            Function<Entity, Short> typeId) {
+        List<Entity> placed = new ArrayList<>();
+        for (Entity entity : entities) {
+            if (isBlueprint.test(entity) && entity.get(Owner.class).ownerId == playerId) {
+                placed.add(entity);
+            }
+        }
+        placed.sort(Comparator.comparingLong(entity -> entity.getId().getId()));
+        SequencedMap<EntityId, Short> blueprints = new LinkedHashMap<>();
+        for (Entity entity : placed) {
+            blueprints.put(entity.getId(), typeId.apply(entity));
+        }
+        return blueprints;
+    }
+
+    private Map<EntityId, Short> getCrates(ResearchableType type, short playerId) {
+        Map<EntityId, Short> crates = new LinkedHashMap<>();
+        for (Entity entity : crateEntities) {
+            Crate crate = entity.get(Crate.class);
+            if (crate.type == type && entity.get(Owner.class).ownerId == playerId) {
+                crates.put(entity.getId(), crate.typeId);
+            }
+        }
+        return crates;
     }
 
     private void processAddedTasks(Set<Entity> entities) {
@@ -307,11 +436,29 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     private void processDeletedUnconsciousEntities(Set<Entity> entities) {
-        // TODO:
+
+        // The creature got up, was locked up or died, there is nobody to rescue or capture anymore
+        for (Entity entity : entities) {
+            for (Set<Task> tasks : taskQueues.values()) {
+                tasks.removeIf(task -> (task instanceof RescueCreatureTask || task instanceof CaptureEnemyCreatureTask)
+                        && entity.getId().equals(task.getTaskTarget()));
+            }
+        }
     }
 
     private void processAddedCorpseEntities(Set<Entity> entities) {
-        // TODO:
+
+        // Add graveyard missions, only the creatures that leave a body behind
+        for (Entity entity : entities) {
+            Creature creature = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId);
+            if (creature == null || !creature.getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY)
+                    || entityData.getComponent(entity.getId(), Position.class) == null) {
+                continue;
+            }
+            for (Short playerId : taskQueues.keySet()) {
+                addTask(playerId, new FetchCorpseTask(navigationService, mapController, entityData, this, entity.getId(), playerId));
+            }
+        }
     }
 
     private void processDeletedCorpseEntities(Set<Entity> entities) {
@@ -569,6 +716,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
+    @Override
     public void addTask(short playerId, Task task) {
         Set<Task> tasks = taskQueues.get(playerId);
         if (!tasks.contains(task)) {
@@ -613,7 +761,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         List<IRoomController> rooms = mapController.getRoomsByFunction(objectType, creature.getOwnerId());
         Map<Integer, IRoomController> distancesToRooms = new TreeMap<>();
         for (IRoomController room : rooms) {
-            if (!room.isFullCapacity()) {
+            if (!room.getObjectControl(objectType).isFullCapacity()) {
                 distancesToRooms.put(getShortestDistance(currentPosition, room.getRoomInstance().getCoordinates().toArray(new Point[0])), room
                 );
             }
@@ -695,12 +843,30 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case SPECIAL, SPELL_BOOK, CRATE -> {
                 return new CarryObjectToStorageTask(navigationService, mapController, target, creature.getOwnerId(), room, this, objectsController.createController(targetEntity));
             }
+            case CORPSE -> {
+                return new CarryCorpseToGraveyardTask(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, targetEntity);
+            }
             case TRAINEE -> {
                 return new Train(navigationService, mapController, target, creature.getOwnerId(), room, this, gameWorldController, gameSettings, playerControllers.get(creature.getOwnerId()));
             }
             case MANUFACTURER -> {
                 return new Manufacture(navigationService, mapController, target, creature.getOwnerId(), room, this,
                         playerControllers.get(creature.getOwnerId()).getManufactureControl(), objectsController);
+            }
+            case WORSHIPPER -> {
+                return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
+            }
+            case GUARD -> {
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                        (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
+                        FastMath.rand);
+            }
+            case GAMBLER -> {
+                return new Gamble(navigationService, mapController, entityPositionLookup, target, creature.getOwnerId(), room, this, entityData,
+                        gameWorldController, objectsController, gameSettings,
+                        room instanceof CasinoController casino ? casino::getPayOut : () -> Casino.PayOut.SMILES,
+                        FastMath.rand);
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);
@@ -828,6 +994,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case MANUFACTURE: {
                 return assignClosestRoomTask(creature, ObjectType.MANUFACTURER, null, assign);
             }
+            case PRAY: {
+                return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
+            }
+            case GUARD: {
+                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
+            }
+            case DRINK: {
+                return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
+            }
             default:
                 return false;
         }
@@ -868,10 +1043,39 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         });
 
         // Pick closest we can actually access
+        Set<Point> reachableArea = null;
         for (EntityId food : foods) {
             Point target = entityPositionLookup.getEntityLocation(food).getLocation();
-            if (target == creature.getCreatureCoordinates() || navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null) {
+            if (target == creature.getCreatureCoordinates() || ((reachableArea == null || reachableArea.contains(target))
+                    && navigationService.findPath(creature.getCreatureCoordinates(), target, creature) != null)) {
                 GoToEat task = new GoToEat(navigationService, mapController, entityPositionLookup, food, entityData, creature);
+                task.assign(creature, true);
+                tasksByIds.put(task.getId(), task);
+                return true;
+            }
+
+            // A search that fails goes through all of the creature's land first. Not again for each food out of its reach
+            if (reachableArea == null) {
+                reachableArea = getReachableArea(creature, creature.getCreatureCoordinates());
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean assignCollectWinningsTask(ICreatureController creature) {
+
+        // The keeper's gold is in the Treasuries and the Dungeon Heart, go to the nearest one we can reach
+        Point currentLocation = creature.getCreatureCoordinates();
+        List<IRoomController> rooms = mapController.getRoomsByFunction(ObjectType.GOLD, creature.getOwnerId());
+        rooms.sort(Comparator.comparing(room -> getShortestDistance(currentLocation, room.getRoomInstance().getCoordinates().toArray(new Point[0]))));
+        for (IRoomController room : rooms) {
+            List<Point> coordinates = new ArrayList<>(room.getRoomInstance().getCoordinates());
+            coordinates.removeIf(p -> !room.isTileAccessible(null, p));
+            Point target = Utils.getRandomItem(coordinates);
+            if (target != null && (target.equals(currentLocation) || navigationService.findPath(currentLocation, target, creature) != null)) {
+                CollectWinnings task = new CollectWinnings(navigationService, mapController, target, creature.getOwnerId(), room, entityData, gameWorldController);
                 task.assign(creature, true);
                 tasksByIds.put(task.getId(), task);
                 return true;
