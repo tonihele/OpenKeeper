@@ -41,7 +41,7 @@ class RoomCaptureSpeechTest {
     @Test
     void existingCallToArmsNarrationUsesTheSameQueue() {
         var queued = new ArrayList<Integer>();
-        var player = new GameEventSoundPlayer(null, queued::add);
+        var player = new GameEventSoundPlayer(null, queued::add, tile -> true);
         player.newEvent(ClientEvents.GAME_EVENT,
                 new GameEvent(GameEventType.CALL_TO_ARMS_UNREACHABLE, null, 0, null, 0, null, null));
         assertEquals(List.of((int) MentorType.MISC054.getId()), queued);
@@ -53,7 +53,7 @@ class RoomCaptureSpeechTest {
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) ->
                         method.getName().equals("getRoomById") ? SoundFixtures.room("ROOM_PORTAL") : null);
         var queued = new ArrayList<Integer>();
-        var player = new GameEventSoundPlayer(data, queued::add);
+        var player = new GameEventSoundPlayer(data, queued::add, tile -> true);
         player.newEvent(ClientEvents.GAME_EVENT,
                 new GameEvent(GameEventType.ROOM_CAPTURED, GameEvent.ThingFlag.ROOM, 42, null, 0, null, null));
         assertEquals(List.of(150), queued);
