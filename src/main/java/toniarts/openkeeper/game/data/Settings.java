@@ -177,6 +177,7 @@ public final class Settings {
         MULTIPLAYER_LAST_PORT(Integer.class, 7575, SettingCategory.MISCELLANEOUS),
         // Computer players
         COMPUTER_PLAYER(Boolean.class, true, SettingCategory.MISCELLANEOUS),
+        COMPUTER_PLAYER_LOG(Boolean.class, false, SettingCategory.MISCELLANEOUS),
         // Sound settings
         MASTER_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
         VOICE_VOLUME(Float.class, 1.0f, SettingCategory.SOUND),
