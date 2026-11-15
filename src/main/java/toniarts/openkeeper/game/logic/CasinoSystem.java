@@ -48,7 +48,7 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class CasinoSystem implements IGameLogicUpdatable {
 
     /**
-     * How long the disco lasts, as in DK II
+     * How long the disco lasts, as in DK II (DKII.EXE 0x4D6270)
      */
     private static final double DISCO_DURATION_SECONDS = 90;
 

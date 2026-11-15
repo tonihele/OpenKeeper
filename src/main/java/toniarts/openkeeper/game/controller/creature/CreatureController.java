@@ -133,7 +133,7 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
     /**
-     * How long the big winner of the Casino celebrates its jackpot, as in DK II
+     * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
