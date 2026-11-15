@@ -287,6 +287,9 @@ final class KeeperAiCreatures {
             }
         }
         decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
+        if (creatureComponent != null) {
+            battles.leaveAlone(held);
+        }
         gameWorldController.drop(held, tile, WorldUtils.pointToVector2f(tile), null, keeperAi.playerId);
 
         return true;
