@@ -44,6 +44,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag.OWNABLE;
@@ -122,6 +123,32 @@ class DoorsControllerTest {
         EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
 
         assertEquals(-FastMath.HALF_PI, entityData.getComponent(door, Position.class).rotation);
+    }
+
+    @Test
+    void deliveredDoorIsBuilt() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+
+        doorsController.buildDoor(door);
+
+        assertFalse(entityData.getComponent(door, DoorComponent.class).blueprint);
+        assertFalse(entityData.getComponent(door, DoorViewState.class).blueprint);
+        assertEquals(800, entityData.getComponent(door, Health.class).health);
+    }
+
+    @Test
+    void builtDoorIsNotBuiltAgain() {
+        setTile(new Point(1, 2), REINFORCED_WALL, PLAYER);
+        setTile(new Point(3, 2), REINFORCED_WALL, PLAYER);
+        EntityId door = doorsController.addDoorBlueprint(woodenDoor.getDoorId(), TILE, PLAYER);
+        doorsController.buildDoor(door);
+        entityData.setComponent(door, new Health(1, 800));
+
+        doorsController.buildDoor(door);
+
+        assertEquals(1, entityData.getComponent(door, Health.class).health);
     }
 
     private void setTile(Point point, short terrainId, short ownerId) {
