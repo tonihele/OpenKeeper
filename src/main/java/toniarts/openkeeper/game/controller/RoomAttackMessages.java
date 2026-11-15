@@ -16,8 +16,12 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import java.util.HashMap;
 import java.util.Map;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.AndFilter;
+import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.RoomMessageShown;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
@@ -67,22 +71,20 @@ public final class RoomAttackMessages {
 
     }
 
-    private record Shown(short playerId, Message message, short roomId) {
-
-    }
-
+    private final EntityData entityData;
     private final PlayerService playerService;
     private final IGameTimer gameTimer;
-    private final Map<Shown, Double> shownAt = new HashMap<>();
 
     /**
      * Create the room messages
      *
+     * @param entityData the entity data, keeps when each message was shown
      * @param playerService the players to tell, may be {@code null} when there
      * is nobody to tell
      * @param gameTimer the game time
      */
-    public RoomAttackMessages(PlayerService playerService, IGameTimer gameTimer) {
+    public RoomAttackMessages(EntityData entityData, PlayerService playerService, IGameTimer gameTimer) {
+        this.entityData = entityData;
         this.playerService = playerService;
         this.gameTimer = gameTimer;
     }
@@ -118,13 +120,18 @@ public final class RoomAttackMessages {
         if (playerService == null) {
             return;
         }
-        Shown shown = new Shown(ownerId, message, room.getRoomId());
         double now = gameTimer.getGameTime();
-        Double last = shownAt.get(shown);
-        if (last != null && now - last < message.duration) {
+        EntityId shown = entityData.findEntity(AndFilter.create(RoomMessageShown.class,
+                new FieldFilter<>(RoomMessageShown.class, "playerId", ownerId),
+                new FieldFilter<>(RoomMessageShown.class, "message", message.ordinal()),
+                new FieldFilter<>(RoomMessageShown.class, "roomId", room.getRoomId())), RoomMessageShown.class);
+        if (shown != null && now - entityData.getComponent(shown, RoomMessageShown.class).shownAt < message.duration) {
             return;
         }
-        shownAt.put(shown, now);
+        if (shown == null) {
+            shown = entityData.createEntity();
+        }
+        entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), room.getRoomId(), now));
         int speechId = message.speechIdsByRoom.getOrDefault((int) room.getRoomId(), message.defaultSpeechId);
         playerService.showMentorMessage(speechId, WorldUtils.pointToVector3f(tile), ownerId);
     }

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,7 +56,7 @@ class RoomAttackMessagesTest {
             });
     private final IGameTimer gameTimer = (IGameTimer) Proxy.newProxyInstance(IGameTimer.class.getClassLoader(),
             new Class<?>[]{IGameTimer.class}, (proxy, method, args) -> method.getName().equals("getGameTime") ? gameTime : null);
-    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(playerService, gameTimer);
+    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(new DefaultEntityData(), playerService, gameTimer);
     private final Room lair = room("Lair", 2);
     private final Room treasury = room("Treasury", 1);
 
@@ -137,7 +138,7 @@ class RoomAttackMessagesTest {
 
     @Test
     void worksWithoutPlayers() {
-        RoomAttackMessages withoutPlayers = new RoomAttackMessages(null, gameTimer);
+        RoomAttackMessages withoutPlayers = new RoomAttackMessages(new DefaultEntityData(), null, gameTimer);
 
         withoutPlayers.roomTileAttacked(KEEPER, lair, TILE);
         withoutPlayers.roomLost(KEEPER, lair, 1, 0, TILE);

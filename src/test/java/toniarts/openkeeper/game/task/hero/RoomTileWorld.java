@@ -23,6 +23,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.EnumMap;
 import java.util.List;
+import com.simsilica.es.base.DefaultEntityData;
 import java.util.Map;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -114,7 +115,7 @@ public final class RoomTileWorld {
         return defaultValue(proxy, method);
     });
     private final IGameTimer gameTimer = stub(IGameTimer.class, (proxy, method, args) -> method.getName().equals("getGameTime") ? gameTime : defaultValue(proxy, method));
-    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(playerService, gameTimer);
+    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(new DefaultEntityData(), playerService, gameTimer);
     @SuppressWarnings("unchecked")
     public final IGameWorldController gameWorldController = stub(IGameWorldController.class, (proxy, method, args) -> {
         if (method.getName().equals("destroyRoomTiles")) {
