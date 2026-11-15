@@ -23,6 +23,7 @@ import toniarts.openkeeper.tools.convert.map.Variable.CreatureStats;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.PlayerAlliance;
 import toniarts.openkeeper.tools.convert.map.Variable.ResearchOrder;
+import toniarts.openkeeper.tools.convert.map.Variable.Sacrifice;
 
 import java.util.Collection;
 import java.util.List;
@@ -228,6 +229,14 @@ public interface IKwdFile extends IKwdInfo {
     List<ResearchOrder> getResearchOrder();
 
     Set<PlayerAlliance> getPlayerAlliances();
+
+    /**
+     * Get the Temple's sacrifice recipes. The order matters, the first matching
+     * recipe wins
+     *
+     * @return the sacrifice recipes in the order they were read
+     */
+    List<Sacrifice> getSacrifices();
 
     /**
      * Get player specific creature pool
