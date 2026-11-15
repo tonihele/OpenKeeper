@@ -87,7 +87,8 @@ public final class GameConsole {
         RESET_FOW,
         SAVE_GAME,
         LOAD_GAME,
-        WIN_LEVEL;
+        WIN_LEVEL,
+        JACKPOT;
     };
 
     GameConsole(AppStateManager stateManager) {
@@ -175,6 +176,7 @@ public final class GameConsole {
                 case REMOVE_FOW:
                 case RESET_FOW:
                 case WIN_LEVEL:
+                case JACKPOT:
                     stateManager.getState(CheatState.class).executeCheat(CheatState.CheatType.valueOf(command));
                     break;
                 default:
