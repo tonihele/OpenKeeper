@@ -320,6 +320,19 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         return (T) existingControl;
     }
 
+    /**
+     * The room no longer stores this type of objects. The control is
+     * destroyed, which leaves the stored objects on the floor.
+     *
+     * @param objectType the type of objects
+     */
+    protected final void removeObjectControl(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.remove(objectType);
+        if (control != null) {
+            control.destroy();
+        }
+    }
+
     @Override
     public boolean hasObjectControl(ObjectType objectType) {
         return objectControls.containsKey(objectType);
