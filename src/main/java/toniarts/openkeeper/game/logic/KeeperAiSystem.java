@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.AiPresets;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -143,6 +144,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     private final Map<Short, AI> ais = new HashMap<>();
     private final KeeperAiBattles battles;
+    private final KeeperAiInvasions invasions;
     private final EntitySet keeperAis;
 
     /**
@@ -151,11 +153,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * @param kwdFile the level
      * @param playerControllers all the players by id
      * @param gameWorldController the player actions
+     * @param navigationService the ways creatures can walk
      * @param gameTimer the game time, for the decision log
      * @param logDecisions whether to log what the computer players decide
      */
     public KeeperAiSystem(EntityData entityData, IKwdFile kwdFile, Map<Short, IPlayerController> playerControllers,
-            IGameWorldController gameWorldController, IGameTimer gameTimer, boolean logDecisions) {
+            IGameWorldController gameWorldController, INavigationService navigationService, IGameTimer gameTimer, boolean logDecisions) {
         this.gameTimer = gameTimer;
         this.logDecisions = logDecisions;
         this.entityData = entityData;
@@ -164,6 +167,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         this.gameWorldController = gameWorldController;
         this.mapController = gameWorldController.getMapController();
         battles = new KeeperAiBattles(entityData, kwdFile, gameWorldController, gameTimer, this::log);
+        invasions = new KeeperAiInvasions(entityData, kwdFile, gameWorldController, navigationService, battles, this::log);
 
         // The keepers the level or the game setup gives to the computer, a loaded game has them already
         keeperAis = entityData.getEntities(KeeperAi.class);
@@ -248,8 +252,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
 
         // DK II reads the level a level's computer player trains its creatures to before the level's rules, as 0
-        if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai,
-                playerController.getKeeper().isAi() ? ai.getMinLevelForCreatures() : 0)) {
+        int creatureLevel = playerController.getKeeper().isAi() ? ai.getMinLevelForCreatures() : 0;
+        if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai, creatureLevel)) {
             actions--;
         }
 
@@ -273,7 +277,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         while (actions > 0) {
             actions = switch (keeperAi.task) {
                 case PLAN -> {
-                    planRoom(keeperAi, playerController, ai);
+
+                    // An invasion first, else a room
+                    if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel,
+                            getNextRoom(playerController, ai) == null, ticksPerSecond)) {
+                        planRoom(keeperAi, playerController, ai);
+                    }
                     if (keeperAi.task == KeeperAi.Task.PLAN) {
                         mineGoldIfLow(keeperAi, playerController, ai);
                     }
@@ -826,6 +835,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 return actions;
             }
 
+            // A tunnel to an enemy stops at the enemy's land, to break through later
+            if (keeperAi.invasionTargetId != 0 && invasions.stopTunnel(keeperAi, playerController.getKeeper())) {
+                finishPath(keeperAi, "the tunnel is dug up to the enemy's land");
+                return actions;
+            }
+
             IMapTileInformation tile = mapController.getMapData().getTile(keeperAi.current);
             Terrain terrain = mapController.getTerrain(tile);
             if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) || terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
@@ -857,6 +872,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     private void finishPath(KeeperAi keeperAi, String reason) {
+        keeperAi.invasionTargetId = 0;
         setTask(keeperAi, keeperAi.nextTask, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;
     }

@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.badlogic.gdx.ai.pfa.DefaultGraphPath;
+import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -44,15 +46,18 @@ import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiDropped;
+import toniarts.openkeeper.game.component.KeeperAiEnemy;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerHandControl;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
@@ -62,6 +67,8 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.battleSpell;
@@ -71,6 +78,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAttackRespons
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBattleSpells;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
@@ -138,7 +146,8 @@ class KeeperAiSystemTest {
             'G', terrain((short) 3, flags(TerrainFlag.SOLID, TerrainFlag.TAGGABLE), 100, 0, 0, (short) 0),
             '.', terrain((short) 4, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0),
             'H', terrain((short) 5, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0),
-            'P', terrain((short) 6, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0));
+            'P', terrain((short) 6, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0),
+            'E', terrain((short) 7, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0));
     private final Set<Point> tagged = new HashSet<>();
     private final List<Point> built = new ArrayList<>();
     private final List<Point> impSpells = new ArrayList<>();
@@ -171,6 +180,8 @@ class KeeperAiSystemTest {
     private final KeeperSpell thunderbolt = battleSpell(THUNDERBOLT, 100, KeeperSpell.KeeperSpellFlag.ATTACKING);
     private final KeeperSpell heal = battleSpell(HEAL, 100, KeeperSpell.KeeperSpellFlag.DEFENSIVE);
     private final Map<Short, EntityId> battleCasts = new HashMap<>();
+    private PlayerRoomControl enemyRoomControl;
+    private boolean reachable;
 
     @Test
     void digsToANeutralPortalNearItsRoomsWhenThereIsNoRoomToBuild() {
@@ -839,6 +850,69 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void digsATunnelToTheEnemyHeartOnceItHasMoreFightersThanItsSettingsAskFor() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50, AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(13, 6)));
+        createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.IDLE);
+
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        createCreature(PLAYER_ID, new Point(1, 8), 100, 100, CreatureState.IDLE);
+        system.processTick(0.25f);
+
+        // From its own heart to the enemy's, by the settings
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(HEART, getKeeperAi().current);
+        assertEquals(new Point(13, 6), getKeeperAi().target);
+        assertEquals(ENEMY_ID, getKeeperAi().invasionTargetId);
+
+        // DK II keeps 4 bits of the 50 tunnels, so 2, one of them dug now
+        assertEquals(1, getEnemy().tunnelsLeft);
+        assertTrue(getEnemy().invaded);
+    }
+
+    @Test
+    void stopsTheTunnelAtTheEnemysLandAndBreaksThroughWhenAllTunnelsAreDug() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 0, 1, AI.CallToArmsUsagePolicy.AT_HEART, 5), 1000);
+        for (int y = 4; y <= 8; y++) {
+            for (int x = 12; x <= 14; x++) {
+                map[y][x] = 'E';
+            }
+        }
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(13, 6)));
+        createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.IDLE);
+
+        for (int tick = 0; tick < 100 && (getEnemy() == null || getEnemy().breachTiles[0] == null); tick++) {
+            system.processTick(0.25f);
+
+            // The imps dig out what is tagged
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
+
+        // The tunnel stops next to the enemy's land, that tile is not dug
+        assertEquals(new Point(11, 6), getEnemy().breachTiles[0]);
+        assertEquals(new Point(13, 6), getEnemy().breachTargets[0]);
+        assertEquals('G', map[6][11]);
+        assertEquals(0, getKeeperAi().invasionTargetId);
+
+        // That was its only tunnel, so it breaks through and then waits
+        for (int tick = 0; tick < 10 && getEnemy().breachTiles[0] != null; tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(new Point(11, 6), getKeeperAi().current);
+        assertEquals(new Point(13, 6), getKeeperAi().target);
+        assertEquals(0, getKeeperAi().invasionTargetId);
+        assertEquals(5 * 4, getKeeperAi().cannotAttackTicks);
+    }
+
+    @Test
     void doesNothingOnceItsDungeonHeartIsGone() {
         KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
         creatureControl.onCreatureAdded(new EntityId(1), imp);
@@ -995,7 +1069,7 @@ class KeeperAiSystemTest {
         spellControl = new PlayerSpellControl(keeper, List.of(createImp, callToArms, thunderbolt, heal));
         Keeper enemyKeeper = new Keeper(false, ENEMY_ID);
         enemyKeeper.setPlayer(new Player());
-        PlayerRoomControl enemyRoomControl = new PlayerRoomControl(enemyKeeper, new ArrayList<>(rooms.values()));
+        enemyRoomControl = new PlayerRoomControl(enemyKeeper, new ArrayList<>(rooms.values()));
         IPlayerController enemyController = (IPlayerController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IPlayerController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getKeeper" -> enemyKeeper;
@@ -1038,6 +1112,17 @@ class KeeperAiSystemTest {
             case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms : null;
             default -> throw new UnsupportedOperationException(method.getName());
         });
+        ICreatureController creatureController = (ICreatureController) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> {
+                    throw new UnsupportedOperationException(method.getName());
+                });
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
+                    if (!"createController".equals(method.getName())) {
+                        throw new UnsupportedOperationException(method.getName());
+                    }
+                    return creatureController;
+                });
         IGameWorldController gameWorldController = (IGameWorldController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IGameWorldController.class}, (proxy, method, args) -> {
                     switch (method.getName()) {
@@ -1046,6 +1131,9 @@ class KeeperAiSystemTest {
                         }
                         case "getObjectsController" -> {
                             return objectsController;
+                        }
+                        case "getCreaturesController" -> {
+                            return creaturesController;
                         }
                         case "castKeeperSpell" -> {
                             if ((short) args[0] == HEAL || (short) args[0] == THUNDERBOLT) {
@@ -1073,8 +1161,16 @@ class KeeperAiSystemTest {
                     return null;
                 });
 
+        INavigationService navigationService = (INavigationService) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{INavigationService.class}, (proxy, method, args) -> {
+                    if (!"findPath".equals(method.getName())) {
+                        throw new UnsupportedOperationException(method.getName());
+                    }
+                    return findPath((Point) args[0], (Point) args[1]);
+                });
+
         return new KeeperAiSystem(entityData, kwdFile, Map.of(PLAYER_ID, playerController, ENEMY_ID, enemyController), gameWorldController,
-                () -> gameTime, logDecisions);
+                navigationService, () -> gameTime, logDecisions);
     }
 
     private IRoomController createRoom(short roomId, Point centre) {
@@ -1144,6 +1240,30 @@ class KeeperAiSystemTest {
                 });
     }
 
+    /**
+     * A way along x and then along y, when the way is open
+     */
+    private GraphPath<IMapTileInformation> findPath(Point from, Point to) {
+        if (!reachable) {
+            return null;
+        }
+        DefaultGraphPath<IMapTileInformation> path = new DefaultGraphPath<>();
+        Point p = from;
+        path.add(createTile(p));
+        while (!p.equals(to)) {
+            p = p.x != to.x ? new Point(p.x + Integer.signum(to.x - p.x), p.y) : new Point(p.x, p.y + Integer.signum(to.y - p.y));
+            path.add(createTile(p));
+        }
+
+        return path;
+    }
+
+    private KeeperAiEnemy getEnemy() {
+        EntityId entityId = entityData.findEntity(null, KeeperAiEnemy.class);
+
+        return entityId != null ? entityData.getComponent(entityId, KeeperAiEnemy.class) : null;
+    }
+
     private Terrain getTerrain(Point p) {
         return terrains.get(map[p.y][p.x]);
     }
@@ -1156,7 +1276,7 @@ class KeeperAiSystemTest {
         return (IMapTileController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IMapTileController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getLocation" -> p;
-            case "getOwnerId" -> map[p.y][p.x] == '.' || map[p.y][p.x] == 'H' ? PLAYER_ID : (short) 0;
+            case "getOwnerId" -> map[p.y][p.x] == '.' || map[p.y][p.x] == 'H' ? PLAYER_ID : map[p.y][p.x] == 'E' ? ENEMY_ID : (short) 0;
             case "getRoomId" -> map[p.y][p.x] == 'H' ? new EntityId(1) : null;
             case "isSelected" -> tagged.contains(p);
             default -> throw new UnsupportedOperationException(method.getName());
