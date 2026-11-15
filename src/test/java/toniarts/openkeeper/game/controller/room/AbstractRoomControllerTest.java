@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -54,6 +55,35 @@ class AbstractRoomControllerTest {
         room.remove();
 
         assertTrue(originalControl.destroyed);
+    }
+
+    @Test
+    void capturedRoomBelongsToItsNewOwner() {
+        EntityData entityData = new DefaultEntityData();
+        RoomInstance roomInstance = new RoomInstance(new Room());
+        roomInstance.setOwnerId((short) 1);
+        TestRoomController room = new TestRoomController(entityData.createEntity(), entityData, roomInstance);
+
+        room.captured((short) 3);
+
+        // The drop rules, the gold and the torture ask the room instance whose room it is
+        assertEquals(3, room.getOwnerId());
+        assertEquals(3, room.getRoomInstance().getOwnerId());
+    }
+
+    @Test
+    void removedControlIsDestroyedAndNoLongerStores() {
+        EntityData entityData = new DefaultEntityData();
+        RoomInstance roomInstance = new RoomInstance(new Room());
+        roomInstance.addCoordinate(new Point(1, 1));
+        TestRoomController room = new TestRoomController(entityData.createEntity(), entityData, roomInstance);
+        TrackingObjectControl goldControl = new TrackingObjectControl(ObjectType.GOLD);
+        room.register(goldControl);
+
+        room.removeObjectControl(ObjectType.GOLD);
+
+        assertTrue(goldControl.destroyed);
+        assertFalse(room.canStoreGold());
     }
 
     private static final class TestRoomController extends AbstractRoomController {
