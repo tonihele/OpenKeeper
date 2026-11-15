@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
+import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
 import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
@@ -118,7 +119,8 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameSettings),
                 new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
                         playerControllers.values(), gameWorldController, gameSettings),
-                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings),
+                new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
+                        gameWorldController.getObjectsController()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
@@ -144,13 +146,15 @@ public final class GameLoopManager {
                 new CallToArmsSystem(entityData, level, playerControllers.values(),
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
+                new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
+                        gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
-                new ShotSystem(entityData, level, gameController.getGameTimer(), gameWorldController.getShotsController(), positionSystem,
+                new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
                 (IGameLogicUpdatable) taskManager);
 

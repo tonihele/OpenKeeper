@@ -19,19 +19,23 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * An effect the game logic sets off where the entity is, like a shot hitting
- * a creature. The view plays it once, the entity decays shortly after.
+ * The creature hit the jackpot in the Casino. It has the time left to collect
+ * its winnings from the keeper. A keeper has only one big winner at a time.
  */
-public final class EffectTrigger implements EntityComponent {
+public final class CasinoBigWinner implements EntityComponent {
 
-    public int effectId;
+    public double timeLeft;
+    public int winnings;
+    public int slapCount;
 
-    public EffectTrigger() {
+    public CasinoBigWinner() {
         // For serialization
     }
 
-    public EffectTrigger(int effectId) {
-        this.effectId = effectId;
+    public CasinoBigWinner(double timeLeft, int winnings, int slapCount) {
+        this.timeLeft = timeLeft;
+        this.winnings = winnings;
+        this.slapCount = slapCount;
     }
 
 }
