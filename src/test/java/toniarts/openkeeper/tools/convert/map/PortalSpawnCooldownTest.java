@@ -16,9 +16,17 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalAttracted;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.controller.GameTimeController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
@@ -26,11 +34,14 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
+import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.LairController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.listener.RoomListener;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
 import toniarts.openkeeper.utils.Point;
 
@@ -98,7 +109,9 @@ class PortalSpawnCooldownTest {
                 throw new AssertionError(method);
             }
             spawned.add((Short) args[0]);
-            return entities.createEntity();
+            EntityId creature = entities.createEntity();
+            entities.setComponents(creature, new CreatureComponent(), new Owner((short) 3, (short) 3), new Health(100, 100));
+            return creature;
         });
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
                 new EnumMap<>(Variable.MiscVariable.MiscType.class);
@@ -130,6 +143,76 @@ class PortalSpawnCooldownTest {
         timer.processTick(0.25f);
         system.processTick(0.25f);
         assertEquals(List.of((short) 7), spawned);
+
+        // The server keeps the portal numbers of the keeper for the tooltip: the stubbed level answers the hero portal lookup with the Lair, so the Lair counts as the second portal
+        EntitySet limits = entities.getEntities(Owner.class, PortalCreatureLimit.class);
+        limits.applyChanges();
+        assertEquals(1, limits.size());
+        PortalCreatureLimit limit = limits.iterator().next().get(PortalCreatureLimit.class);
+        assertEquals(15, limit.capacity);
+        assertEquals(1, limit.attracted);
+
+        // A death changes the numbers too, without a spawn or a room change
+        EntityId goblinEntity = entities.findEntity(null, PortalAttracted.class);
+        entities.removeComponent(goblinEntity, Health.class);
+        entities.setComponent(goblinEntity, new Death(0));
+        system.processTick(0.25f);
+        limits.applyChanges();
+        assertEquals(0, limits.iterator().next().get(PortalCreatureLimit.class).attracted);
+    }
+
+    @Test
+    void keeperInTheGameGetsAFreeImp() {
+        assertEquals(1, freeImps(false));
+    }
+
+    @Test
+    void defeatedKeeperGetsNoFreeImp() {
+        assertEquals(0, freeImps(true));
+    }
+
+    private static int freeImps(boolean defeated) {
+        DefaultEntityData entities = new DefaultEntityData();
+        GameTimeController timer = new GameTimeController();
+        Keeper keeper = new Keeper(false, (short) 4);
+        if (defeated) {
+            keeper.setDestroyed((short) 0);
+        }
+        Creature imp = new Creature();
+        IPlayerController player = stub(IPlayerController.class, (method, args) -> switch (method) {
+            case "getKeeper" -> keeper;
+            case "getRoomControl" -> new PlayerRoomControl(keeper, List.of());
+            case "getCreatureControl" -> new PlayerCreatureControl(keeper, imp, List.of(imp));
+            default -> throw new AssertionError(method);
+        });
+        List<RoomListener> listeners = new ArrayList<>();
+        IMapController map = stub(IMapController.class, (method, args) -> listeners.add((RoomListener) args[1]));
+        List<Short> spawned = new ArrayList<>();
+        ICreaturesController spawner = stub(ICreaturesController.class, (method, args) -> {
+            spawned.add((Short) args[0]);
+            return entities.createEntity();
+        });
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
+                new EnumMap<>(Variable.MiscVariable.MiscType.class);
+        setting(settings, Variable.MiscVariable.MiscType.ENTRANCE_GENERATION_SPEED_SECONDS, 18);
+        setting(settings, Variable.MiscVariable.MiscType.MINIMUM_IMP_THRESHOLD, 4);
+        setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_BY_FIRST_PORTAL, 10);
+        setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
+        setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 5);
+        CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
+                stub(ILevelInfo.class, (method, args) -> stub(IKwdFile.class, (m, a) -> m.equals("getImp") ? imp : null)), map,
+                stub(GameEventService.class, (method, args) -> null));
+        listeners.get(0).onBuild(stub(ICreatureEntrance.class, (method, args) -> switch (method) {
+            case "isDungeonHeart" -> true;
+            case "isDestroyed" -> false;
+            case "getLastSpawnTime" -> 0.0;
+            case "getOwnerId" -> keeper.getId();
+            case "getEntranceCoordinate" -> new Point(1, 1);
+            default -> null;
+        }));
+        timer.processTick(6);
+        system.processTick(6);
+        return spawned.size();
     }
 
     private static void setting(Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings,

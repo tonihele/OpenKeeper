@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.WeakHashMap;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
@@ -222,6 +223,9 @@ public final class ObjectsController implements IObjectsController {
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
             entityData.setComponent(entity, new Food());
         }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_CRATE) && researchableType != null) {
+            entityData.setComponent(entity, new Crate(researchableType, researchTypeId));
+        }
         if (obj.getHp() > 0) {
             entityData.setComponent(entity, new Health(
                     objectId == OBJECT_HEART_ID ? (int) gameSettings.get(Variable.MiscVariable.MiscType.DUNGEON_HEART_OBJECT_HEALTH).getValue() : obj.getHp(),
@@ -283,12 +287,18 @@ public final class ObjectsController implements IObjectsController {
     }
 
     @Override
+    public EntityId addRoomCrate(short crateObjectId, short ownerId, int x, int y, ResearchableType type, short typeId) {
+        return loadObject(crateObjectId, ownerId, x, y, null, type, typeId);
+    }
+
+    @Override
     public IObjectController createController(EntityId entityId) {
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         if (objectComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a object!");
         }
-        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController());
+        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController(),
+                gameTimer, kwdFile.getGameLevel().getTicksPerSec());
     }
 
     @Override
@@ -371,6 +381,9 @@ public final class ObjectsController implements IObjectsController {
         }
         if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_FOOD)) {
             return AbstractRoomController.ObjectType.FOOD;
+        }
+        if (obj.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_CRATE)) {
+            return AbstractRoomController.ObjectType.CRATE;
         }
 
         return null;
