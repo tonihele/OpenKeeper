@@ -27,12 +27,15 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -152,12 +155,45 @@ public final class SlapSystem extends GameTimeCounter {
         if (moodChange != 0) {
             CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
             if (mood != null) {
-                entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_OTHER,
-                        CreatureMood.toRuntimeValue(moodChange)));
+                entityData.setComponent(entity.getId(), applySlapAnger(mood, moodChange));
             }
         }
 
+        // Native state 0x53 removes one quarter of the full runtime sleep debt.
+        CreatureAi creatureAi = entityData.getComponent(entity.getId(), CreatureAi.class);
+        CreatureSleep creatureSleep = entityData.getComponent(entity.getId(), CreatureSleep.class);
+        CreatureSleep updatedSleep = applySleepingSlap(creatureSleep,
+                creatureAi == null ? null : creatureAi.getCreatureState(),
+                creature.getAttributes().getTimeSleep(), kwdFile.getGameLevel().getTicksPerSec());
+        if (updatedSleep != creatureSleep) {
+            entityData.setComponent(entity.getId(), updatedSleep);
+        }
+
         // TODO: Apply the force
+    }
+
+    /**
+     * Applies the slap anger of a creature. Unlike the per second anger rates,
+     * the slap anger is a one-off delta and is applied as is, without the per
+     * tick conversion
+     *
+     * @param mood the current mood
+     * @param angerSlap the slap anger of the creature, signed
+     * @return updated mood
+     */
+    static CreatureMood applySlapAnger(CreatureMood mood, int angerSlap) {
+        return mood.add(CreatureMood.REASON_OTHER, angerSlap);
+    }
+
+    static CreatureSleep applySleepingSlap(CreatureSleep sleep, CreatureState state,
+            int authoredTimeSleep, int ticksPerSecond) {
+        if (sleep == null || state != CreatureState.SLEEPING || sleep.sleepNeed == 0) {
+            return sleep;
+        }
+        CreatureSleep updated = new CreatureSleep(sleep);
+        int reduction = CreatureSleep.toRuntimeSleepNeed(authoredTimeSleep, ticksPerSecond) / 4;
+        updated.sleepNeed = Math.max(0, sleep.sleepNeed - reduction);
+        return updated;
     }
 
     private void processDeletedEntities(Set<Entity> entities) {

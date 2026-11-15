@@ -45,6 +45,10 @@ public final class ObjectLoader implements ILoader<ObjectViewState> {
     public Spatial load(AssetManager assetManager, ObjectViewState object) {
         try {
             ArtResource artResource = kwdFile.getObject(object.objectId).getMeshResource();
+            if (artResource == null) {
+                // Some objects, like the Hero Gate Table, are only a light source and have no model
+                return null;
+            }
             Node nodeObject = (Node) AssetUtils.loadModel(assetManager, artResource.getName(), artResource);
             return nodeObject;
         } catch (Exception e) {

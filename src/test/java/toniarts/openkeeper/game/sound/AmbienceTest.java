@@ -64,6 +64,27 @@ class AmbienceTest {
     }
 
     @Test
+    void propertyLinkedLayerWaitsWhileNoLinkMatches() {
+        SoundArchive archive = new SoundArchive("Global" + File.separator + "Test", EnumSet.of(BankFlag.RESIDENT), null,
+                List.of("clip1.mp2"));
+        SoundLink link = new SoundLink(1, 0, 39);
+        SoundEventGroup group = new SoundEventGroup(100, 100, 0, 0, 0, 0, 0, 0, 0, 0, 100, 0.0f,
+                List.of(new SoundSample(1, 100, 4000, 0, archive)), List.of(link));
+        link.setTarget(group);
+        SoundCategory category = category("AMBIENCE", AmbienceBeds.LAYER_ONE, event(AmbienceBeds.LAYER_ONE,
+                EnumSet.of(SoundEventFlag.REPEATING, SoundEventFlag.SEGMENTED, SoundEventFlag.PROPERTY_LINKS), group));
+        int[] musicIntensity = {40};
+        AmbienceLayer layer = new AmbienceLayer(engine, category, AmbienceBeds.LAYER_ONE, null, () -> musicIntensity[0]);
+
+        layer.tick(1_000);
+        assertEquals(0, layer.getLiveCount(), "no link matches the louder music, nothing plays");
+
+        musicIntensity[0] = 20;
+        layer.tick(1_000 + 1000);
+        assertEquals(1, layer.getLiveCount(), "plays again once a link matches");
+    }
+
+    @Test
     void layerStopsItsVoices() {
         SoundCategory category = category("BED", AmbienceBeds.LAYER_ONE,
                 event(AmbienceBeds.LAYER_ONE, SEGMENTED_FLAGS, loud(100, 100, 4000)));
