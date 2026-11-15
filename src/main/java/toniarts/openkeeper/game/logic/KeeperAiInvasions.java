@@ -331,6 +331,11 @@ final class KeeperAiInvasions {
      * once a creature can walk to that enemy's Dungeon Heart. Not while it
      * answers an attack or waits after one. With its settings it also drops
      * half its threat near the flag, if it has land there.
+     * <br>
+     * DK II spends the turn here even when it doesn't have the spell yet, so
+     * a computer player that invades before it has researched Call to Arms
+     * does nothing else for as long as its creatures can walk to the enemy.
+     * Without the spell this one leaves the turn to the rest of the tick.
      *
      * @param keeperAi the computer player
      * @param playerControllers all the players
@@ -339,8 +344,10 @@ final class KeeperAiInvasions {
      */
     boolean callToArms(KeeperAi keeperAi, Map<Short, IPlayerController> playerControllers, AI ai) {
         AI.CallToArmsUsagePolicy policy = ai.getUseCallToArms();
+        IPlayerController playerController = playerControllers.get(keeperAi.playerId);
+        KeeperSpell callToArms = kwdFile.getKeeperSpellById(SPELL_CALL_TO_ARMS);
         if (keeperAi.attacks > 0 || (keeperAi.callToArms && policy != AI.CallToArmsUsagePolicy.TOWARDS_HEART)
-                || keeperAi.cannotAttackTicks > 0) {
+                || keeperAi.cannotAttackTicks > 0 || callToArms == null || !playerController.getSpellControl().isAvailable(callToArms)) {
             return false;
         }
         Point rally = getRallyTile(keeperAi, playerControllers, policy);
@@ -348,11 +355,6 @@ final class KeeperAiInvasions {
             return false;
         }
 
-        IPlayerController playerController = playerControllers.get(keeperAi.playerId);
-        KeeperSpell callToArms = kwdFile.getKeeperSpellById(SPELL_CALL_TO_ARMS);
-        if (callToArms == null || !playerController.getSpellControl().isAvailable(callToArms)) {
-            return true;
-        }
         int mana = playerController.getKeeper().getMana();
         gameWorldController.castKeeperSpell(SPELL_CALL_TO_ARMS, null, rally, WorldUtils.pointToVector2f(rally), keeperAi.playerId);
 
