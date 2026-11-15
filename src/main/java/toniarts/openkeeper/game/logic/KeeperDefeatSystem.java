@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -36,6 +37,7 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
@@ -49,8 +51,8 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
- * he is marked destroyed, loses the game, his heart room is left in ruins and
- * his land goes back to nobody.
+ * he is marked destroyed, loses the game, his heart room is left in ruins,
+ * his land goes back to nobody and his imps die.
  * In a skirmish or multiplayer game the last keeper standing wins. In the
  * campaign, a level can have the last enemy heart leave a Portal Gem.
  */
@@ -134,6 +136,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
         ruinHeartRoom(keeper);
         abandonLand(keeper.getId());
+        killImps(keeper.getId());
         if (!isAi(keeper)) {
             gameController.endGame(keeper.getId(), false);
         }
@@ -209,6 +212,20 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
         for (IRoomController room : rooms) {
             mapController.transferRoom(room, Player.NEUTRAL_PLAYER_ID);
+        }
+    }
+
+    /**
+     * The imps of a defeated keeper die, so that nobody claims his land back.
+     * DK II deals each of them damage equal to its health
+     *
+     * @param keeperId the defeated keeper
+     */
+    private void killImps(short keeperId) {
+        for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class, Health.class)) {
+            if (entityData.getComponent(creature, CreatureComponent.class).worker) {
+                EntityController.setDamage(entityData, creature, entityData.getComponent(creature, Health.class).health);
+            }
         }
     }
 

@@ -18,17 +18,15 @@ package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.CastRule.ANYWHERE;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.CastRule.ANY_LAND;
@@ -42,7 +40,6 @@ import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.LAND;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.NONE;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.OWN_CREATURES;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.POSESSION;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
 
@@ -55,48 +52,6 @@ public final class KeeperSpellCastValidator {
 
     private KeeperSpellCastValidator() {
         // Nope
-    }
-
-    /**
-     * Checks whether the player can cast the spell
-     *
-     * @param keeperSpell the spell
-     * @param kwdFile the level
-     * @param mapInformation the map
-     * @param mapTile the tile the spell is cast on
-     * @param player the casting player
-     * @param entityData the entities
-     * @param target the targeted entity, can be {@code null}
-     * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
-     * @return true if the cast is allowed
-     */
-    public static boolean isValidCast(
-            KeeperSpell keeperSpell,
-            IKwdFile kwdFile,
-            IMapInformation mapInformation,
-            IMapTileInformation mapTile,
-            Keeper player,
-            EntityData entityData,
-            EntityId target,
-            int manaCost) {
-        Creature creature = null;
-        Short owner = null;
-        boolean chicken = false;
-        if (target != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
-            if (creatureComponent != null) {
-                creature = kwdFile.getCreature(creatureComponent.creatureId);
-            }
-            Owner ownerComponent = entityData.getComponent(target, Owner.class);
-            if (ownerComponent != null) {
-                owner = ownerComponent.controlId;
-            }
-            CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
-            chicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
-        }
-
-        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, chicken, manaCost)
-                && checkReaperRule(keeperSpell, kwdFile, player, entityData);
     }
 
     /**
@@ -131,8 +86,8 @@ public final class KeeperSpellCastValidator {
     }
 
     /**
-     * Checks the cast with the target already known, the client knows it from
-     * what it shows and must not look it up from the entity data
+     * Checks the cast with the target already resolved. The validator runs on
+     * both the server and the client, so it must not read the entity data
      *
      * @param keeperSpell the spell
      * @param mapInformation the map
