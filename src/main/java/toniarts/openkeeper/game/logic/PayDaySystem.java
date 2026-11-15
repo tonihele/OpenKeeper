@@ -28,10 +28,8 @@ import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureTortured;
-import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IGameTimer;
-import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -50,35 +48,24 @@ import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
  * level, on top of what it is still owed. Prisoners and the tortured are left
  * out, and so is a creature that joined less than the pay day cut off time
  * before the pay day.</li>
- * <li>A creature that is owed collects it from the keeper's gold. It keeps
- * half of what it gets. When there is not enough gold it takes what there is
- * and tries again after the pay reevaluation delay. After two tries that got
- * nothing it waits for the next pay day.</li>
+ * <li>A creature that is owed walks to one of the keeper's gold rooms to
+ * collect it, see {@link toniarts.openkeeper.game.task.creature.CollectPay}.
+ * After two tries that got nothing it waits for the next pay day.</li>
  * <li>While a creature is owed anything, its anger for not being paid grows
  * every tick, by its anger for no pay. It goes away when the creature is paid
  * in full.</li>
  * </ul>
- * The creatures don't walk to the treasury to collect, they are paid where
- * they are.
  */
 public final class PayDaySystem implements IGameLogicUpdatable {
-
-    /**
-     * How many times a creature goes to collect its pay and gets nothing,
-     * before it waits for the next pay day
-     */
-    private static final int MAX_COLLECTION_ATTEMPTS = 2;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
-    private final IGameWorldController gameWorldController;
     private final Map<Short, IPlayerController> keepers = new HashMap<>();
     private final Map<Short, Double> nextPayDays = new HashMap<>();
     private final double timeBeforeFirstPayDay;
     private final double payDayFrequency;
     private final double payDayCutOffTime;
-    private final double payReevaluationDelay;
     private final EntitySet creatureEntities;
 
     /**
@@ -88,16 +75,13 @@ public final class PayDaySystem implements IGameLogicUpdatable {
      * @param kwdFile the level data, for the creatures' anger
      * @param gameTimer the game time
      * @param playerControllers the players, only the keepers have pay days
-     * @param gameWorldController takes the pay from the keepers' gold
      * @param gameSettings the level variables
      */
     public PayDaySystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer,
-            Collection<IPlayerController> playerControllers, IGameWorldController gameWorldController,
-            Map<MiscType, MiscVariable> gameSettings) {
+            Collection<IPlayerController> playerControllers, Map<MiscType, MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
-        this.gameWorldController = gameWorldController;
         for (IPlayerController playerController : playerControllers) {
             short playerId = playerController.getKeeper().getId();
             if (playerId >= Player.KEEPER1_ID) {
@@ -108,7 +92,6 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         payDayFrequency = gameSettings.get(MiscType.PAY_DAY_FREQUENCY_SECONDS).getValue();
         // Despite the name the cut off time is in ticks, like in DKII.EXE (0x4BE180 returns ticks)
         payDayCutOffTime = gameSettings.get(MiscType.PAY_DAY_CUT_OFF_TIME_SECONDS).getValue() / kwdFile.getGameLevel().getTicksPerSec();
-        payReevaluationDelay = gameSettings.get(MiscType.DELAY_BEFORE_PAY_REEVALUATION_SECONDS).getValue();
 
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class);
     }
@@ -131,7 +114,7 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         }
 
         for (Entity entity : creatureEntities) {
-            collectPay(entity, gameTime);
+            updateAnger(entity);
         }
     }
 
@@ -195,47 +178,22 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     }
 
     /**
-     * The creature collects what it is owed, if it is time to try, and is
-     * angry for what it didn't get
+     * A creature is angry for as long as it is owed pay
      */
-    private void collectPay(Entity entity, double gameTime) {
-        EntityId entityId = entity.getId();
-        CreaturePay pay = entityData.getComponent(entityId, CreaturePay.class);
-        if (pay == null || pay.unpaid <= 0) {
-            return;
-        }
-
-        int unpaid = pay.unpaid;
-        if (pay.attempts < MAX_COLLECTION_ATTEMPTS && gameTime >= pay.nextAttemptTime) {
-            unpaid = gameWorldController.substractGold(pay.unpaid, entity.get(Owner.class).ownerId);
-            int collected = pay.unpaid - unpaid;
-            setPay(entityId, unpaid, collected > 0 ? pay.attempts : pay.attempts + 1, gameTime + payReevaluationDelay);
-            keepGold(entityId, collected / 2);
-        }
-
-        updateAnger(entity, unpaid > 0);
-    }
-
-    /**
-     * The creature keeps half of its pay, up to what it can carry
-     */
-    private void keepGold(EntityId entityId, int amount) {
-        Gold gold = entityData.getComponent(entityId, Gold.class);
-        if (gold != null && amount > 0) {
-            entityData.setComponent(entityId, new Gold(Math.min(gold.gold + amount, gold.maxGold), gold.maxGold));
-        }
-    }
-
-    private void updateAnger(Entity entity, boolean unpaid) {
+    private void updateAnger(Entity entity) {
         CreatureMood mood = entityData.getComponent(entity.getId(), CreatureMood.class);
         if (mood == null) {
             return;
         }
 
-        if (!unpaid) {
-            entityData.setComponent(entity.getId(), mood.clear(CreatureMood.REASON_NO_PAY));
+        CreaturePay pay = entityData.getComponent(entity.getId(), CreaturePay.class);
+        if (pay == null || pay.unpaid <= 0) {
+            if (mood.noPay != 0) {
+                entityData.setComponent(entity.getId(), mood.clear(CreatureMood.REASON_NO_PAY));
+            }
             return;
         }
+
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         int anger = creature != null ? CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoPay()) : 0;
         if (anger != 0) {
