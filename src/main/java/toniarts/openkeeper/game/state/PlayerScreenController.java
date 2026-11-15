@@ -125,6 +125,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
+    private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
@@ -155,9 +156,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
-            if (screen != null && SCREEN_POSSESSION_ID.equals(screen.getScreenId())) {
-                updatePossessionHealth();
-            }
+            updatePossessionHealth();
             updateCallToArms();
             lastUpdate = 0;
         }
@@ -165,11 +164,30 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     /**
      * Sizes the possession HUD health bar by the possessed creature's health.
-     * Called from the render thread, like the rest of the screen update.
+     * The creature is watched for its health while the possession screen is
+     * up, and released when the possession ends. Called from the render
+     * thread, like the rest of the screen update.
      */
     private void updatePossessionHealth() {
-        EntityId target = state.stateManager.getState(PossessionInteractionState.class).getTarget();
-        Health health = target != null ? entityData.getComponent(target, Health.class) : null;
+        EntityId target = screen != null && SCREEN_POSSESSION_ID.equals(screen.getScreenId())
+                ? state.stateManager.getState(PossessionInteractionState.class).getTarget() : null;
+        if (possessedCreature != null && !possessedCreature.getId().equals(target)) {
+            possessedCreature.release();
+            possessedCreature = null;
+        }
+        if (target == null) {
+            return;
+        }
+
+        boolean watchStarted = possessedCreature == null;
+        if (watchStarted) {
+            possessedCreature = entityData.watchEntity(target, Health.class);
+        }
+        if (!possessedCreature.applyChanges() && !watchStarted) {
+            return;
+        }
+
+        Health health = possessedCreature.get(Health.class);
         Element bar = screen.findElementById("creature-health");
         if (health == null || bar == null || health.maxHealth <= 0) {
             return;
@@ -188,6 +206,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (callToArmsBanners != null) {
             callToArmsBanners.release();
             callToArmsBanners = null;
+        }
+        if (possessedCreature != null) {
+            possessedCreature.release();
+            possessedCreature = null;
         }
 
         // Remove the resource bundle so that we can actually put a new one here
