@@ -116,6 +116,15 @@ final class KeeperAiBattles {
     private static final int ATTACK_DROP_TILES = 5;
 
     /**
+     * DK II's rolls for a spell in a fight: a 4 sided die against the
+     * settings, a step in the die of the spell for each 2499 mana it
+     * costs, and 75 in 100 to look on for another target
+     */
+    private static final int BATTLE_SPELL_ROLL = 4;
+    private static final int BATTLE_SPELL_MANA_STEP = 2499;
+    private static final int BATTLE_SPELL_TARGET_ROLL = 75;
+
+    /**
      * DK II weighs an attack up when the message of it comes in. Without
      * the messages the computer player looks for itself, this often
      */
@@ -235,6 +244,91 @@ final class KeeperAiBattles {
         }
 
         return false;
+    }
+
+    /**
+     * Casts a spell for the first of its creatures in a fight that it
+     * means to help, DK II rolls for each. A defensive spell goes on one of
+     * its creatures within 5 tiles of the fighter that is down to less
+     * than half its health, an attacking spell on a creature of the
+     * opponent's keeper within 5 tiles. The settings say how often it
+     * casts, how often it defends rather than attacks, and how dear a
+     * spell it takes.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     * @param ai its settings
+     * @return true if a spell was cast
+     */
+    boolean castBattleSpell(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+        for (Entity fighter : getCreatures(keeperAi.playerId)) {
+            if (!isFighting(fighter) || ai.getUseSpellsInBattle() > Utils.getRandom().nextInt(BATTLE_SPELL_ROLL)) {
+                continue;
+            }
+
+            boolean defensive = Utils.getRandom().nextInt(BATTLE_SPELL_ROLL) < ai.getSpellStyle();
+            KeeperSpell spell = getBattleSpell(playerController, ai, defensive);
+            Owner opponent = entityData.getComponent(entityData.getComponent(fighter.getId(), AttackTarget.class).entityId, Owner.class);
+            if (spell == null || (!defensive && opponent == null)) {
+                return false;
+            }
+
+            // Any of them can be the one, the later ones more likely
+            Entity target = null;
+            for (Entity creature : getCreatures(defensive ? keeperAi.playerId : opponent.ownerId)) {
+                Health health = creature.get(Health.class);
+                if (isWithin(creature.get(Position.class).position, fighter.get(Position.class).position, ATTACK_DROP_TILES)
+                        && (!defensive || health.health < health.maxHealth / 2)) {
+                    target = creature;
+                    if (Utils.getRandom().nextInt(100) > BATTLE_SPELL_TARGET_ROLL) {
+                        break;
+                    }
+                }
+            }
+            if (target == null) {
+                return false;
+            }
+
+            Vector3f position = target.get(Position.class).position;
+            Point tile = WorldUtils.vectorToPoint(position);
+            int mana = playerController.getKeeper().getMana();
+            gameWorldController.castKeeperSpell(spell.getKeeperSpellId(), target.getId(), tile, new Vector2f(position.x, position.z), keeperAi.playerId);
+
+            // The cast has its own rules, the mana tells if it went through
+            if (playerController.getKeeper().getMana() < mana) {
+                decisionLog.log(keeperAi, "cast " + spell.getName() + " on creature " + target.getId().getId(), tile,
+                        (defensive ? "hurt" : "an enemy") + " near the fight of creature " + fighter.getId().getId());
+                return true;
+            }
+
+            return false;
+        }
+
+        return false;
+    }
+
+    /**
+     * The spell for a fight. Of the attacking spells the first one, by
+     * id, that makes its roll: the dearer the spell, the better its odds.
+     * Of the defensive spells also the last one when none makes its roll.
+     */
+    private KeeperSpell getBattleSpell(IPlayerController playerController, AI ai, boolean defensive) {
+        List<KeeperSpell> spells = new ArrayList<>(kwdFile.getKeeperSpells());
+        spells.sort(Comparator.comparingInt(KeeperSpell::getKeeperSpellId));
+        KeeperSpell last = null;
+        for (KeeperSpell spell : spells) {
+            if (spell.getFlags().contains(defensive ? KeeperSpell.KeeperSpellFlag.DEFENSIVE : KeeperSpell.KeeperSpellFlag.ATTACKING)
+                    && !spell.getFlags().contains(KeeperSpell.KeeperSpellFlag.DONT_CAST_ON_CREATURES)
+                    && playerController.getSpellControl().isAvailable(spell)) {
+                last = spell;
+                if (BATTLE_SPELL_ROLL - ai.getSpellsPowerPreference()
+                        <= Utils.getRandom().nextInt(spell.getManaCost() / BATTLE_SPELL_MANA_STEP + (defensive ? 1 : 2))) {
+                    return spell;
+                }
+            }
+        }
+
+        return defensive ? last : null;
     }
 
     /**
