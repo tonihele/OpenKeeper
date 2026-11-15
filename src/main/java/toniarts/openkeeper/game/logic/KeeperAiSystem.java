@@ -278,9 +278,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private boolean createImp(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
         Keeper keeper = playerController.getKeeper();
         int imps = playerController.getCreatureControl().getImpCount();
-
-        // The level file has the ratio in a byte, the rest of the value read is not part of it
-        int tilesPerImp = ai.getImpsToTilesRatio() & 0xFF;
+        int tilesPerImp = ai.getImpsToTilesRatio();
         if (imps >= ai.getMaximumNumberOfImps() || tilesPerImp == 0
                 || imps >= countOwnedTiles(keeper.getId()) / tilesPerImp) {
             return false;

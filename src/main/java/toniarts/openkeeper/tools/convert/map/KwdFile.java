@@ -631,8 +631,10 @@ public final class KwdFile implements IKwdFile, IKwdMap {
             ai.setMineGoldUntilGoldHeldIsGreaterThan(reader.readUnsignedShort());
             ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(reader.readUnsignedShort());
             ai.setStartingMana(reader.readUnsignedInteger());
-            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedShort());
-            ai.setImpsToTilesRatio(reader.readUnsignedShort());
+            ai.setExploreUpToTilesToFindSpecials(reader.readUnsignedByte());
+            reader.skipBytes(1); // Not part of the value, DK II reads one byte
+            ai.setImpsToTilesRatio(reader.readUnsignedByte());
+            reader.skipBytes(1); // The same
             ai.setBuildAreaStartX(reader.readUnsignedShort());
             ai.setBuildAreaStartY(reader.readUnsignedShort());
             ai.setBuildAreaEndX(reader.readUnsignedShort());
