@@ -29,6 +29,10 @@ public final class RoomEffect implements EntityComponent {
 
     public int effectId;
     public Point location;
+    /** Rotation around the Y axis, radians */
+    public float yaw;
+    /** Offset from the tile centre in tiles, on top of the effect's own placement */
+    public float offsetZ;
 
     public RoomEffect() {
         // For serialization
@@ -37,5 +41,11 @@ public final class RoomEffect implements EntityComponent {
     public RoomEffect(int effectId, Point location) {
         this.effectId = effectId;
         this.location = location;
+    }
+
+    public RoomEffect(int effectId, Point location, float yaw, float offsetZ) {
+        this(effectId, location);
+        this.yaw = yaw;
+        this.offsetZ = offsetZ;
     }
 }

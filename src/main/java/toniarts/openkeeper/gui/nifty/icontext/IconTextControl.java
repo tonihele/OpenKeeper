@@ -24,6 +24,7 @@ import de.lessvoid.nifty.effects.EffectEventId;
 import de.lessvoid.nifty.elements.Element;
 import de.lessvoid.nifty.input.NiftyInputEvent;
 import de.lessvoid.nifty.screen.Screen;
+import toniarts.openkeeper.gui.nifty.NiftyUtils;
 
 /**
  * A small class combining an image and a text, with on hover effect
@@ -31,6 +32,12 @@ import de.lessvoid.nifty.screen.Screen;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class IconTextControl implements Controller {
+
+    /**
+     * Optional, the sound that is played when the control is clicked
+     */
+    static final String PARAMETER_SOUND_CATEGORY = "soundCategory";
+    static final String PARAMETER_SOUND_EVENT = "soundEvent";
 
     private Nifty nifty;
     private Screen screen;
@@ -71,6 +78,15 @@ public final class IconTextControl implements Controller {
     public void startHover() {
         image.startEffect(EffectEventId.onCustom, null, "hover");
         text.startEffect(EffectEventId.onCustom, null, "hover");
+    }
+
+    public void click() {
+        String category = parameters.get(PARAMETER_SOUND_CATEGORY);
+        String event = parameters.get(PARAMETER_SOUND_EVENT);
+        if (category == null || category.isEmpty() || event == null || event.isEmpty()) {
+            return;
+        }
+        NiftyUtils.playSound(nifty, category, Integer.parseInt(event));
     }
 
     public void endHover() {

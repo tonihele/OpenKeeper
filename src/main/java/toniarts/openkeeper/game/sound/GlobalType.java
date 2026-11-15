@@ -251,6 +251,9 @@ public enum GlobalType implements IIndexable {
     FRONT_END_CKICK(778), // Global\GuiHD\FE3D CLICK ON T.mp2,
     FRONT_END_GLOW(783), // Global\FrontEndHD\GLOW 3 FX.mp2,
 
+    // for category OBJECT_FE_MAP
+    FRONT_END_MAP_ROCK_RISE(810), // Global\GuiHD\RockRise nl.mp2, the only event that points to the clip
+
     // for category EFFECTS
     EFFECTS_PUFF(827),
     EFFECTS_FIREWORKS(836),

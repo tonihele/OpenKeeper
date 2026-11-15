@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.utils.Point;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -48,6 +49,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void navigateToRandomPoint();
 
+    /**
+     * Walks to a random tile in the Combat Pit we fight in, off its edge
+     */
+    public void navigateToRandomPointInCombatPit();
+
     public IPartyController getParty();
 
     public StateMachine<ICreatureController, CreatureState> getStateMachine();
@@ -65,6 +71,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isNeedForSleep();
 
     public boolean goToSleep();
+
+    /**
+     * Handles the manual rest target after landing and getting up. Rest can be
+     * assigned without fatigue debt, provided the creature's bed is in that Lair.
+     *
+     * @return whether a sleep task was assigned
+     */
+    public boolean goToSleepAfterLairDrop();
 
     public void findWork(Consumer<Boolean> workResult);
 
@@ -94,6 +108,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void executeAttack(EntityId attackTarget);
 
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
+
     public void navigateToAttackTarget(EntityId attackTarget);
 
     public ICreatureController getFollowTarget();
@@ -113,6 +138,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isEnoughSleep();
 
     public boolean isIncapacitated();
+
+    /**
+     * Is the creature fighting in a Combat Pit
+     *
+     * @return true if dropped into a Combat Pit to fight
+     */
+    public boolean isCombatPitFighter();
 
     public boolean isTimeToReEvaluate();
 
@@ -136,7 +168,24 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public Creature getCreature();
 
+    /**
+     * Tells that something happened to the creature type, e.g. it claimed a tile
+     *
+     * @param type the event
+     * @param location the tile where it happened
+     */
+    public void fireEvent(GameEventType type, Point location);
+
     public void addGold(int amount);
+
+    /**
+     * The keeper pays the creature by hand, by dropping gold on it. The
+     * creature keeps half of the gold, up to what it can carry, and the rest
+     * is gone. However little it got, it is owed nothing more
+     *
+     * @param amount the gold dropped on the creature
+     */
+    public void takePay(int amount);
 
     public int getObjectiveTargetActionPointId();
 
@@ -178,6 +227,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sleep();
 
     /**
+     * Knocks the creature off its feet, it falls back and gets up again like
+     * after being dropped from the hand. Whatever it was doing is dropped. A
+     * creature already down stays down longer. Does nothing to a creature
+     * that is not on its own feet to begin with, i.e. in hand, falling,
+     * possessed or out cold.
+     */
+    public void knockDown();
+
+    /**
      * Set a target for us to follow
      *
      * @param target target to follow
@@ -185,6 +243,22 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void setFollowTarget(EntityId target);
 
     public boolean shouldNavigateToFollowTarget();
+
+    /**
+     * Sends us to a Call to Arms banner, if we can get there
+     *
+     * @param banner the banner
+     * @return true if we answered the call
+     */
+    public boolean answerCallToArms(EntityId banner);
+
+    /**
+     * Gathers at the Call to Arms banner we answered and fights what comes
+     * close to it
+     *
+     * @return false when the banner is gone or we can't get to it
+     */
+    public boolean heedCallToArms();
 
     public boolean isSlapped();
 
@@ -211,6 +285,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goToEat();
 
     /**
+     * Sends the creature to gamble in the Casino, if it wants to: a keeper's
+     * creature that holds more gold than the stake of the Casino's money mode
+     *
+     * @return {@code true} if the creature was given a place to gamble
+     */
+    public boolean goGambling();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree
@@ -223,16 +305,49 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sate();
 
     /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
+
+    /**
      * Makes the creature hungry
      */
     public void makeHungry();
 
     /**
-     * Get research per second attribute
+     * Get the research points the creature makes on this game tick in the
+     * library. A slapped creature makes extra points on the first tick of
+     * every second.
      *
-     * @return research per second
+     * @return research points of this tick
      */
-    public int getResearchPerSecond();
+    public int getResearchPerTick();
+
+    /**
+     * Get the manufacture points the creature makes on each game tick in the
+     * workshop
+     *
+     * @return manufacture points per tick
+     */
+    public int getManufacturePerTick();
 
     /**
      * Gives object to creature
@@ -251,6 +366,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isRecuperating();
 
     /**
+     * Turns the creature into a chicken for a while, as by the Chicken spell.
+     * Creatures immune to the spell stay as they are
+     *
+     * @param duration how long, in seconds
+     */
+    public void turnIntoChicken(double duration);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven
@@ -265,6 +388,22 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param speedMode one of {@link toniarts.openkeeper.game.component.PossessedMovement}'s speed constants
      */
     public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode);
+
+    /**
+     * Sets the attack intent for a possessed creature, as given by its keeper.
+     * The swings happen on the game logic thread, see
+     * {@link #executePossessedAttack()}.
+     *
+     * @param attacking whether the attack button is held down
+     */
+    public void setPossessedAttack(boolean attacking);
+
+    /**
+     * Swings the melee attack of a possessed creature, if it has recharged.
+     * Hits the nearest creature in front of it on the tiles around it, or if
+     * there is none, a worker digs the tile it is facing.
+     */
+    public void executePossessedAttack();
 
     /**
      * Converts creature to another player's bidding
