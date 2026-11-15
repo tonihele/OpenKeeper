@@ -96,6 +96,8 @@ class RoomTaskSharingTest {
                 maxCapacity;
             case "getCurrentCapacity" ->
                 0;
+            case "isFullCapacity" ->
+                false;
             default ->
                 null;
         });
