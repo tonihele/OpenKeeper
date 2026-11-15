@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.DoorPlacementValidator;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
 import toniarts.openkeeper.game.controller.TrapPlacementValidator;
@@ -79,6 +80,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
+import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
@@ -791,7 +793,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                    if (!isDropBlocked(entityViewControl, p)
+                            && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
                         // Show the hand letting go of it, the updateCursor() call below picks it up
@@ -930,7 +933,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
+        boolean chicken = object instanceof CreatureViewControl creatureControl && creatureControl.isChicken();
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, manaCost);
     }
 
     private boolean isTrapPlacementValid(Point tile) {
@@ -952,6 +956,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
         }
         return false;
+    }
+
+    private boolean isDropBlocked(IEntityViewControl item, Point tile) {
+        Set<Point> doorTiles = new HashSet<>();
+        addConstructionBlockingTiles(doorTiles, constructionBlockingDoors, door -> !door.get(DoorComponent.class).blueprint);
+        return DropValidator.isBlocked(kwdFile, mapInformation.getMapData(), doorTiles, tile,
+                item.getDataObject() instanceof Creature creature && !creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER));
     }
 
     private boolean isDoorPlacementValid(Point tile) {
@@ -1103,7 +1114,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private ColorIndicator getDropColor(Point point) {
             IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
-            if (tile == null) {
+            if (tile == null || isDropBlocked(keeperHandState.getItem(), point)) {
                 return ColorIndicator.RED;
             }
             IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(

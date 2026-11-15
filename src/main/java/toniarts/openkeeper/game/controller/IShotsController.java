@@ -41,4 +41,29 @@ public interface IShotsController {
      */
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter);
 
+    /**
+     * A creature fires a shot at its target. A shot that flies is sent on its
+     * way, it does what it does when it hits.
+     *
+     * @param shotTypeId shot type to fire
+     * @param shotData1 arbitrary value, interpreted per shot
+     * @param shotData2 arbitrary value, interpreted per shot
+     * @param playerId owner of the shot
+     * @param position where the shot starts
+     * @param target the creature aimed at
+     * @param shooter the creature firing the shot
+     * @param maxRange how far the creature's spell reaches, in tiles
+     * @return whether the shot flies, if not, it is up to the shooter
+     */
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
+            EntityId shooter, float maxRange);
+
+    /**
+     * A flying shot hit a thing
+     *
+     * @param shot the shot entity
+     * @param thing the thing hit
+     */
+    public void hit(EntityId shot, EntityId thing);
+
 }
