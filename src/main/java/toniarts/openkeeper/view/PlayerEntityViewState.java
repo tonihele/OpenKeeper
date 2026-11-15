@@ -531,7 +531,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
                         kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
                         textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed);
+                        uniqueCreatureBed, kwdFile.getGameLevel().getTicksPerSec());
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
