@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.AI;
@@ -145,6 +146,64 @@ public final class KeeperAiRoomSiteFinder {
         }
 
         return new RoomSite(entrance, new Point(x, y), new Point(x + stepX * (width - 1), y + stepY * (height - 1)));
+    }
+
+    /**
+     * Grows a room by a row of tiles on each side that has the room for it.
+     * As in DK II the room is taken as the box between its tile nearest to
+     * the map's corner and its tile furthest from it, and the last tile of
+     * each side is not looked at
+     *
+     * @param room the room to grow
+     * @return the box of the grown room, or {@code null} if no side can grow
+     */
+    public RoomSite expand(RoomInstance room) {
+        Point min = room.getCoordinates().getFirst();
+        Point max = min;
+        for (Point p : room.getCoordinates()) {
+            if (p.x + p.y < min.x + min.y) {
+                min = p;
+            }
+            if (p.x + p.y > max.x + max.y) {
+                max = p;
+            }
+        }
+
+        // North and south first, west and east then take in the new rows
+        int minY = canGrow(min.x, min.y - 1, 1, 0, max.x - min.x, 0, -1) ? min.y - 1 : min.y;
+        int maxY = canGrow(min.x, max.y + 1, 1, 0, max.x - min.x, 0, 1) ? max.y + 1 : max.y;
+        int minX = canGrow(min.x - 1, minY, 0, 1, maxY - minY, -1, 0) ? min.x - 1 : min.x;
+        int maxX = canGrow(max.x + 1, minY, 0, 1, maxY - minY, 1, 0) ? max.x + 1 : max.x;
+        if (minX == min.x && minY == min.y && maxX == max.x && maxY == max.y) {
+            return null;
+        }
+
+        return new RoomSite(null, new Point(minX, minY), new Point(maxX, maxY));
+    }
+
+    /**
+     * A row of tiles along a side of a room can take the room when each is
+     * rock to dig out or own free land. Behind the row there has to be rock
+     * that is not tagged, but for one tile
+     */
+    private boolean canGrow(int x, int y, int stepX, int stepY, int tiles, int outX, int outY) {
+        boolean gap = false;
+        for (int i = 0; i < tiles; i++, x += stepX, y += stepY) {
+            IMapTileInformation tile = mapInformation.getMapData().getTile(x, y);
+            if (tile == null || mapInformation.getMapData().getTile(x + outX, y + outY) == null
+                    || !(isTaggable(x, y) ? !mapInformation.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)
+                    : tile.getOwnerId() == playerId && tile.getRoomId() == null)) {
+                return false;
+            }
+            if (isTagged(x + outX, y + outY) || !isTaggable(x + outX, y + outY)) {
+                if (gap) {
+                    return false;
+                }
+                gap = true;
+            }
+        }
+
+        return true;
     }
 
     /**
