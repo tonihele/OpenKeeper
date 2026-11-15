@@ -22,6 +22,7 @@ import com.simsilica.es.EntitySet;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -29,6 +30,7 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
 /**
@@ -40,12 +42,13 @@ import toniarts.openkeeper.utils.Point;
 public final class TremorSystem implements IGameLogicUpdatable {
 
     /**
-     * Largest tremor radius, in tiles
+     * Largest tremor radius, in tiles, DKII.EXE tremor shot handler (0x4AF330)
      */
     public static final int MAX_RADIUS = 5;
 
     /**
-     * How many tremors can shake at once, a new one replaces the oldest
+     * How many tremors can shake at once, a new one replaces the oldest (DKII.EXE
+     * has 8 tremor slots, 0x510290)
      */
     public static final int MAX_TREMORS = 8;
 
@@ -70,18 +73,20 @@ public final class TremorSystem implements IGameLogicUpdatable {
      * @param entityData the entity data
      * @param gameTimer the game timer
      * @param mapController the map controller
-     * @param damagePerTile the level variable
-     * {@code TREMOR_DAMAGE_PER_TERRAIN_TILE_PER_SECOND}
+     * @param gameSettings the level variables, the system reads
+     * {@code TREMOR_DAMAGE_PER_TERRAIN_TILE_PER_SECOND} from them
      */
-    public TremorSystem(EntityData entityData, IGameTimer gameTimer, IMapController mapController, int damagePerTile) {
-        this(entityData, gameTimer, mapController, damagePerTile, new Random());
+    public TremorSystem(EntityData entityData, IGameTimer gameTimer, IMapController mapController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this(entityData, gameTimer, mapController, gameSettings, new Random());
     }
 
-    TremorSystem(EntityData entityData, IGameTimer gameTimer, IMapController mapController, int damagePerTile, Random random) {
+    TremorSystem(EntityData entityData, IGameTimer gameTimer, IMapController mapController,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Random random) {
         this.entityData = entityData;
         this.gameTimer = gameTimer;
         this.mapController = mapController;
-        this.damagePerTile = damagePerTile;
+        damagePerTile = (int) gameSettings.get(Variable.MiscVariable.MiscType.TREMOR_DAMAGE_PER_TERRAIN_TILE_PER_SECOND).getValue();
         this.random = random;
     }
 

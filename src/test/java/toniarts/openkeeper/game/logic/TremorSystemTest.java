@@ -35,9 +35,11 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.FakeMapTile;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -51,6 +53,11 @@ class TremorSystemTest {
     private static final short WALL = 9;
     private static final short ROCK = 2;
     private static final int DAMAGE_PER_TILE = 436;
+
+    private static Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings(int damagePerTile) {
+        return Map.of(Variable.MiscVariable.MiscType.TREMOR_DAMAGE_PER_TERRAIN_TILE_PER_SECOND,
+                CasinoVariableFixtures.miscVariable(Variable.MiscVariable.MiscType.TREMOR_DAMAGE_PER_TERRAIN_TILE_PER_SECOND, damagePerTile));
+    }
     private static final Point CENTRE = new Point(5, 5);
 
     private final EntityData entityData = new DefaultEntityData();
@@ -71,7 +78,7 @@ class TremorSystemTest {
         }
 
         IGameTimer gameTimer = () -> gameTime;
-        tremorSystem = new TremorSystem(entityData, gameTimer, mapController(), DAMAGE_PER_TILE, random);
+        tremorSystem = new TremorSystem(entityData, gameTimer, mapController(), gameSettings(DAMAGE_PER_TILE), random);
         tremorSystem.start();
     }
 
@@ -149,7 +156,7 @@ class TremorSystemTest {
 
     @Test
     void tinyDamageVariableDoesNotAddRandomDamage() {
-        tremorSystem = new TremorSystem(entityData, () -> gameTime, mapController(), 1, random);
+        tremorSystem = new TremorSystem(entityData, () -> gameTime, mapController(), gameSettings(1), random);
         tremorSystem.start();
         setTile(CENTRE, FLOOR, Player.KEEPER1_ID);
         setTile(new Point(5, 4), WALL, Player.KEEPER1_ID);
