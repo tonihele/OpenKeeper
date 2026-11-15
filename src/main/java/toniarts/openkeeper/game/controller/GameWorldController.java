@@ -1656,7 +1656,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
         }
         if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)
-                || !KeeperSpellCastValidator.checkReaperRule(keeperSpell, kwdFile, player, entityData)) {
+                || !ReaperSummoner.checkReaperRule(keeperSpell, kwdFile, player, entityData)) {
             return;
         }
 
