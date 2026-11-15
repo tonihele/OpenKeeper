@@ -75,6 +75,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
@@ -176,6 +177,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
@@ -569,6 +571,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
         }
+        if (shotViewState.velocity != null) {
+            Node flyingShot = new Node(result.getName());
+            flyingShot.attachChild(result);
+            flyingShot.addControl(new ShotFlightControl(shotViewState.velocity));
+            addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), flyingShot);
+            result = flyingShot;
+        }
         nodeShots.attachChild(result);
 
         Shot shot = kwdFile.getShotById(shotViewState.shotId);
@@ -578,6 +587,23 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
 
         return result;
+    }
+
+    /**
+     * A flying shot drags its general effect along, like the fire trail of the
+     * cannon ball. DKII.EXE moves the effect with the shot every turn
+     * (0x4AB180). The effect lasts as long as the shot flies.
+     */
+    private void addShotTrail(EntityId entityId, Shot shot, Node flyingShot) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), true);
+        if (trail != null) {
+            shotTrails.put(entityId, trail);
+        }
     }
 
     /**
@@ -945,8 +971,16 @@ public class PlayerEntityViewState extends AbstractAppState {
      */
     private final class DoorModelContainer extends EntityContainer<Spatial> {
 
+        private boolean stopped = false;
+
         public DoorModelContainer(EntityData ed) {
             super(ed, Position.class, DoorViewState.class); // Stuff with position is on the map
+        }
+
+        @Override
+        public void stop() {
+            stopped = true;
+            super.stop();
         }
 
         @Override
@@ -967,6 +1001,14 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+
+            // A door that goes, destroyed or sold, leaves its death effect, a blueprint just vanishes
+            DoorViewState viewState = e.get(DoorViewState.class);
+            if (!stopped && viewState != null && !viewState.blueprint) {
+                Door door = kwdFile.getDoorById(viewState.doorId);
+                stateManager.getState(EffectManagerState.class).load(nodeDoors, object.getWorldTranslation().clone(),
+                        door.getDeathEffectId(), false);
+            }
             removeModel(object, e);
             notifyTerrainOfDoor(e, false);
         }
@@ -1093,6 +1135,10 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+            VisualEffect trail = shotTrails.remove(e.getId());
+            if (trail != null) {
+                trail.removeEffect();
+            }
             removeModel(object, e);
         }
     }

@@ -108,6 +108,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void executeAttack(EntityId attackTarget);
 
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
+
     public void navigateToAttackTarget(EntityId attackTarget);
 
     public ICreatureController getFollowTarget();
@@ -166,6 +177,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void fireEvent(GameEventType type, Point location);
 
     public void addGold(int amount);
+
+    /**
+     * The keeper pays the creature by hand, by dropping gold on it. The
+     * creature keeps half of the gold, up to what it can carry, and the rest
+     * is gone. However little it got, it is owed nothing more
+     *
+     * @param amount the gold dropped on the creature
+     */
+    public void takePay(int amount);
 
     public int getObjectiveTargetActionPointId();
 
@@ -285,15 +305,39 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sate();
 
     /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
+
+    /**
      * Makes the creature hungry
      */
     public void makeHungry();
 
     /**
-     * Get the research points the creature makes on each game tick in the
-     * library
+     * Get the research points the creature makes on this game tick in the
+     * library. A slapped creature makes extra points on the first tick of
+     * every second.
      *
-     * @return research points per tick
+     * @return research points of this tick
      */
     public int getResearchPerTick();
 

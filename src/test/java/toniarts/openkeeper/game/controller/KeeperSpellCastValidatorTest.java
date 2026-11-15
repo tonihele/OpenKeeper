@@ -17,24 +17,17 @@
 package toniarts.openkeeper.game.controller;
 
 import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
-import java.lang.reflect.Proxy;
 import java.util.EnumSet;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
-import toniarts.openkeeper.game.component.CreatureAi;
-import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
-import toniarts.openkeeper.game.component.Owner;
-import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.FakeMapInformation;
 import toniarts.openkeeper.game.map.FakeMapTile;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFlagFixtures;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -50,8 +43,6 @@ class KeeperSpellCastValidatorTest {
     private final EntityData entityData = new DefaultEntityData();
     private final FakeMapInformation mapInformation = new FakeMapInformation(new FakeMapData(4, 4), Map.of());
     private final Creature creature = CreatureFlagFixtures.creature((short) 1, EnumSet.noneOf(Creature.CreatureFlag.class));
-    private final IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
-            (proxy, method, args) -> method.getName().equals("getCreature") ? creature : null);
     private final KeeperSpell thunderbolt = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ENEMY_CREATURES, 6000);
     private final KeeperSpell chicken = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ALL_CREATURES, 0);
     private final KeeperSpell possession = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.POSESSION, 0);
@@ -66,31 +57,24 @@ class KeeperSpellCastValidatorTest {
 
     @Test
     void enemyCreatureCanBeStruck() {
-        EntityId enemyCreature = createThing(ENEMY_ID, true);
-
-        assertTrue(isValidCast(enemyCreature));
+        assertTrue(isValidCast(thunderbolt, creature, ENEMY_ID, false));
     }
 
     @Test
     void enemyThatIsNotACreatureCannotBeStruck() {
-        EntityId enemyDoor = createThing(ENEMY_ID, false);
-
-        assertFalse(isValidCast(enemyDoor));
+        assertFalse(isValidCast(thunderbolt, null, ENEMY_ID, false));
     }
 
     @Test
     void ownCreatureCannotBeStruck() {
-        EntityId ownCreature = createThing(PLAYER_ID, true);
-
-        assertFalse(isValidCast(ownCreature));
+        assertFalse(isValidCast(thunderbolt, creature, PLAYER_ID, false));
     }
 
     @Test
     void notEnoughManaCannotStrike() {
-        EntityId enemyCreature = createThing(ENEMY_ID, true);
         player.setMana(5999);
 
-        assertFalse(isValidCast(enemyCreature));
+        assertFalse(isValidCast(thunderbolt, creature, ENEMY_ID, false));
     }
 
     @Test
@@ -116,43 +100,24 @@ class KeeperSpellCastValidatorTest {
 
     @Test
     void chickenCanBeCastOnAnyCreatureButNeutralOnes() {
-        assertTrue(isValidCast(chicken, createThing(ENEMY_ID, true)));
-        assertTrue(isValidCast(chicken, createThing(PLAYER_ID, true)));
-        assertFalse(isValidCast(chicken, createThing(Player.NEUTRAL_PLAYER_ID, true)));
+        assertTrue(isValidCast(chicken, creature, ENEMY_ID, false));
+        assertTrue(isValidCast(chicken, creature, PLAYER_ID, false));
+        assertFalse(isValidCast(chicken, creature, Player.NEUTRAL_PLAYER_ID, false));
     }
 
     @Test
     void chickenCannotBePossessed() {
-        EntityId ownCreature = createThing(PLAYER_ID, true);
-        assertTrue(isValidCast(possession, ownCreature));
-
-        entityData.setComponent(ownCreature, new CreatureAi(100, CreatureState.CHICKEN, (short) 1, null, 60));
-
-        assertFalse(isValidCast(possession, ownCreature));
+        assertTrue(isValidCast(possession, creature, PLAYER_ID, false));
+        assertFalse(isValidCast(possession, creature, PLAYER_ID, true));
     }
 
     @Test
-    void clientChecksTheChickenRuleFromWhatItShows() {
-        assertFalse(KeeperSpellCastValidator.isValidCast(chicken, mapInformation, ownTile, player, creature, Player.NEUTRAL_PLAYER_ID, false, 0));
-        assertTrue(KeeperSpellCastValidator.isValidCast(possession, mapInformation, ownTile, player, creature, PLAYER_ID, false, 0));
-        assertFalse(KeeperSpellCastValidator.isValidCast(possession, mapInformation, ownTile, player, creature, PLAYER_ID, true, 0));
+    void spellWithoutTargetCannotBeCastOnCreatures() {
+        assertFalse(KeeperSpellCastValidator.isValidCast(chicken, mapInformation, ownTile, player, null, null, false, 0));
     }
 
-    private boolean isValidCast(EntityId target) {
-        return isValidCast(thunderbolt, target);
-    }
-
-    private boolean isValidCast(KeeperSpell keeperSpell, EntityId target) {
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, ownTile, player, entityData, target, keeperSpell.getManaCost());
-    }
-
-    private EntityId createThing(short ownerId, boolean creature) {
-        EntityId thing = entityData.createEntity();
-        entityData.setComponent(thing, new Owner(ownerId, ownerId));
-        if (creature) {
-            entityData.setComponent(thing, new CreatureComponent());
-        }
-        return thing;
+    private boolean isValidCast(KeeperSpell keeperSpell, Creature target, short owner, boolean isChicken) {
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, ownTile, player, target, owner, isChicken, keeperSpell.getManaCost());
     }
 
 }
