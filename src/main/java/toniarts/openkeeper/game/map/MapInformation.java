@@ -76,6 +76,21 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
         return terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE);
     }
 
+    /**
+     * Tells whether rooms can be built on the terrain as land. That is claimed
+     * floor, but not a claimed Mana Vault: it has the same flags as claimed
+     * floor, but is the only one that generates mana of its own
+     *
+     * @param terrain the terrain
+     * @return true if a room can be placed on the terrain
+     */
+    public static boolean isBuildableLand(Terrain terrain) {
+        return !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
+                && !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                && terrain.getMaxManaGain() == 0;
+    }
+
     @Override
     public boolean isBuildable(Point p, short playerId, short roomId) {
         S tile = getMapData().getTile(p);
@@ -88,9 +103,7 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
         // Ownable tile is needed for land building (and needs to be owned by us)
         if (room.getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)
-                && !terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
-                && terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)
-                && !terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)
+                && isBuildableLand(terrain)
                 && tile.getOwnerId() == playerId) {
             return true;
         }
@@ -140,8 +153,10 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
         // See if the terrain is claimable at all
         boolean claimable = false;
+        // Somebody else's land can only be taken if it is attackable, the Hero Lair and the Hero Gates are not
         if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
-            if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)
+                    && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId()))) {
 
                 // A Dungeon Heart can't be claimed while its keeper is in the game, only once it is destroyed
                 Keeper owner = playersById.get(tile.getOwnerId());
@@ -149,7 +164,8 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
                         || !kwdFile.getDungeonHeart().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
             }
         } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
-            if (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId())) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)
+                    && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId()))) {
                 claimable = true;
             }
         } else {

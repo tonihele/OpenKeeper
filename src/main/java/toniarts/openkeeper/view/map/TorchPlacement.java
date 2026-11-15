@@ -21,14 +21,18 @@ import com.jme3.math.Vector3f;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
-import toniarts.openkeeper.view.map.WallSection.WallDirection;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
 /**
  * Where wall torches, and the lights that go with them, are placed. Pure
- * functions of the tile coordinates and terrain data.
+ * functions of the tile coordinates, terrain and room data.
  */
 public final class TorchPlacement {
 
@@ -37,6 +41,13 @@ public final class TorchPlacement {
     private static final List<WallDirection> VERTICAL_TORCH_DIRECTIONS = List.of(WallDirection.WEST, WallDirection.EAST);
     private static final List<WallDirection> ALL_TORCH_DIRECTIONS = List.of(WallDirection.NORTH, WallDirection.WEST,
             WallDirection.SOUTH, WallDirection.EAST);
+
+    /**
+     * The Torture Chamber and the Casino, whose torches DK II puts between
+     * their wall furniture (room data +0x482, set for these two by
+     * MyRoomDataObj_sub_4EACC0, 0x4EACC0)
+     */
+    private static final Set<Short> TORCHES_BETWEEN_WALL_FURNITURE_ROOM_IDS = Set.of((short) 12, (short) 15);
 
     private TorchPlacement() {
     }
@@ -49,6 +60,43 @@ public final class TorchPlacement {
             return vertical ? ALL_TORCH_DIRECTIONS : HORIZONTAL_TORCH_DIRECTIONS;
         }
         return vertical ? VERTICAL_TORCH_DIRECTIONS : NO_TORCH_DIRECTIONS;
+    }
+
+    /**
+     * The walls of a floor tile that may carry its torch, in the order they
+     * are looked at. Like DK II (CBridge 0x439B90 with 0x452F20 and 0x452EC0),
+     * in a Torture Chamber or a Casino the torches go on the tiles between the
+     * wall furniture of the walls running the same way, and on no wall running
+     * a way that has no wall furniture.
+     *
+     * @param x the floor tile x
+     * @param y the floor tile y
+     * @param roomInstance the room the floor tile is in, null if none
+     * @return the sides of the floor tile, as the way to the wall
+     */
+    static List<WallDirection> getTorchDirections(int x, int y, RoomInstance roomInstance) {
+        if (roomInstance == null || !TORCHES_BETWEEN_WALL_FURNITURE_ROOM_IDS.contains(roomInstance.getRoom().getRoomId())) {
+            return getTorchDirections(x, y);
+        }
+
+        Integer xParity = null;
+        Integer yParity = null;
+        for (Map.Entry<Point, WallDirection> tile : WallSection.findWallFurnitureTiles(roomInstance).entrySet()) {
+            if (tile.getValue() == WallDirection.NORTH || tile.getValue() == WallDirection.SOUTH) {
+                xParity = tile.getKey().x & 1;
+            } else {
+                yParity = tile.getKey().y & 1;
+            }
+        }
+        List<WallDirection> directions = new ArrayList<>(4);
+        for (WallDirection direction : ALL_TORCH_DIRECTIONS) {
+            boolean northOrSouth = direction == WallDirection.NORTH || direction == WallDirection.SOUTH;
+            Integer parity = northOrSouth ? xParity : yParity;
+            if (parity != null && ((northOrSouth ? x : y) & 1) != parity) {
+                directions.add(direction);
+            }
+        }
+        return directions;
     }
 
     /**
@@ -93,11 +141,14 @@ public final class TorchPlacement {
      * The tiles that may carry a torch for the floor tile, in the order the
      * torch is looked for. The tile has a torch if one of these is a torch wall.
      *
+     * @param x the floor tile x
+     * @param y the floor tile y
+     * @param roomInstance the room the floor tile is in, null if none
      * @return the neighbouring tiles, empty if the floor tile has no torch
      */
-    public static List<Point> getTorchWallCandidates(int x, int y) {
+    public static List<Point> getTorchWallCandidates(int x, int y, RoomInstance roomInstance) {
         List<Point> result = new ArrayList<>(4);
-        for (WallDirection direction : getTorchDirections(x, y)) {
+        for (WallDirection direction : getTorchDirections(x, y, roomInstance)) {
             result.add(switch (direction) {
                 case NORTH -> new Point(x, y - 1);
                 case WEST -> new Point(x - 1, y);
