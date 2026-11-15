@@ -35,6 +35,7 @@ public final class RoomFixtures {
         Room room = new Room();
         room.setName(name);
         room.setTileConstruction(tileConstruction);
+        room.setFlags(EnumSet.noneOf(Room.RoomFlag.class));
         return room;
     }
 
