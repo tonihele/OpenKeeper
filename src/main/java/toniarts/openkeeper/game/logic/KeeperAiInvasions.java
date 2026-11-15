@@ -465,7 +465,7 @@ final class KeeperAiInvasions {
      * them at the level it wants. When only a few are below that level, as
      * many as the level or fewer, they go up one level first.
      */
-    private boolean isArmyReady(short playerId, AI ai, int creatureLevel) {
+    boolean isArmyReady(short playerId, AI ai, int creatureLevel) {
         List<Entity> fighters = new ArrayList<>();
         List<Entity> below = new ArrayList<>();
         for (Entity creature : battles.getCreatures(playerId)) {
