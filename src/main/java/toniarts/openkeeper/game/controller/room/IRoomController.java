@@ -119,6 +119,17 @@ public interface IRoomController extends IRoomInformation {
 
     public boolean isFullCapacity();
 
+    /**
+     * The keeper clicks a piece of the room's furniture. Some furniture works
+     * as a switch, like the Prison Door Bar in DK II, and isn't picked up
+     *
+     * @param furniture the clicked object
+     * @return true if the furniture is a switch and was switched
+     */
+    public default boolean switchFurniture(EntityId furniture) {
+        return false;
+    }
+
     public void setHealth(int health);
 
 }
