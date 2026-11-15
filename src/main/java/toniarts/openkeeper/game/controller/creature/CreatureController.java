@@ -478,8 +478,16 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         // Choose
-        if (!jobs.isEmpty()) {
-            workResult.accept(taskManager.assignTask(this, chooseOnWeight(jobs).getJobType()));
+        if (!jobs.isEmpty() && taskManager.assignTask(this, chooseOnWeight(jobs).getJobType())) {
+            workResult.accept(true);
+            return;
+        }
+
+        // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
+        if (!creature.getFlags().contains(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE)
+                && taskManager.isTaskAvailable(this, Creature.JobType.TRAIN)
+                && taskManager.assignTask(this, Creature.JobType.TRAIN)) {
+            workResult.accept(true);
             return;
         }
 

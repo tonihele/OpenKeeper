@@ -23,11 +23,16 @@ import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Spin;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.map.FakeMapData;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -37,11 +42,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class ObjectControllerTest {
 
     private static final short PLAYER_ID = 3;
+    private static final int TICKS_PER_SECOND = 4;
 
     private DefaultEntityData entityData;
     private FakeMapData mapData;
     private ObjectController controller;
     private EntityId object;
+    private double gameTime;
 
     @BeforeEach
     void setUp() {
@@ -55,7 +62,7 @@ class ObjectControllerTest {
         });
         object = entityData.createEntity();
         entityData.setComponent(object, new Placeable());
-        controller = new ObjectController(object, entityData, null, null, mapController);
+        controller = new ObjectController(object, entityData, null, null, mapController, () -> gameTime, TICKS_PER_SECOND);
     }
 
     @AfterEach
@@ -82,6 +89,30 @@ class ObjectControllerTest {
 
         // In the hand the object has no position
         assertFalse(controller.isPickableByPlayerCreature(PLAYER_ID));
+    }
+
+    @Test
+    void spinSetsTheSpinningStateAndTheEndOfTheSpin() {
+        entityData.setComponent(object, new ObjectViewState((short) 30, GameObject.State.NONE,
+                ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+        gameTime = 10;
+
+        controller.spin();
+
+        assertEquals(GameObject.State.SPINNING, entityData.getComponent(object, ObjectViewState.class).state);
+        assertEquals(10 + (double) SpinSystem.SPIN_TICKS / TICKS_PER_SECOND, entityData.getComponent(object, Spin.class).endTime);
+    }
+
+    @Test
+    void aNewSpinWhileSpinningStartsOver() {
+        entityData.setComponent(object, new ObjectViewState((short) 30, GameObject.State.NONE,
+                ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+        controller.spin();
+        gameTime = 3;
+
+        controller.spin();
+
+        assertEquals(3 + (double) SpinSystem.SPIN_TICKS / TICKS_PER_SECOND, entityData.getComponent(object, Spin.class).endTime);
     }
 
 }
