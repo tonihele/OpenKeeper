@@ -112,6 +112,7 @@ public final class TerrainDeformer {
     private final int pointsX;
     private final int pointsY;
     private final BiFunction<Integer, Integer, TileShape> tiles;
+    private final TileShape[] tileShapeCache; // Cached until the corresponding tile is invalidated
     private final float[] displacements; // x, y, z for each of the levels, for each point
     private final boolean[] valid;
     private final int[] doorPinned; // How many doors pin the lattice point (the 3 x 3 points of the door tile)
@@ -132,6 +133,7 @@ public final class TerrainDeformer {
         this.pointsX = 2 * width + 1;
         this.pointsY = 2 * height + 1;
         this.tiles = tiles;
+        this.tileShapeCache = new TileShape[width * height];
         this.displacements = new float[pointsX * pointsY * LEVELS * 3];
         this.valid = new boolean[pointsX * pointsY];
         this.doorPinned = new int[pointsX * pointsY];
@@ -186,10 +188,14 @@ public final class TerrainDeformer {
     }
 
     /**
-     * A tile changed, forget the lattice points it can affect (7 x 7)
+     * A tile changed, forget its cached shape and the lattice points it can
+     * affect (7 x 7)
      */
     public void invalidateTile(int x, int y) {
         version++;
+        if (x >= 0 && y >= 0 && x < width && y < height) {
+            tileShapeCache[y * width + x] = null;
+        }
         for (int j = Math.max(2 * y - 2, 0); j <= Math.min(2 * y + 4, pointsY - 1); j++) {
             for (int i = Math.max(2 * x - 2, 0); i <= Math.min(2 * x + 4, pointsX - 1); i++) {
                 valid[j * pointsX + i] = false;
@@ -200,6 +206,7 @@ public final class TerrainDeformer {
     public void invalidateAll() {
         version++;
         java.util.Arrays.fill(valid, false);
+        java.util.Arrays.fill(tileShapeCache, null);
     }
 
     /**
@@ -238,7 +245,9 @@ public final class TerrainDeformer {
         float fw = w - k0;
 
         float dx = 0, dy = 0, dz = 0;
-        float[] jac = jacobian != null ? new float[9] : null;
+        float j00 = 0, j01 = 0, j02 = 0;
+        float j10 = 0, j11 = 0, j12 = 0;
+        float j20 = 0, j21 = 0, j22 = 0;
         for (int b = 0; b < 2; b++) {
             for (int a = 0; a < 2; a++) {
                 ensure(i0 + a, j0 + b);
@@ -261,30 +270,34 @@ public final class TerrainDeformer {
                     dx += weight * px;
                     dy += weight * py;
                     dz += weight * pz;
-                    if (jac != null) {
+                    if (jacobian != null) {
                         // d/dx = 2 d/du, d/dy = 2 d/dw, d/dz = 2 d/dv
                         float gx = 2 * du * lv * lw;
                         float gy = 2 * lu * lv * dw;
                         float gz = 2 * lu * dv * lw;
-                        jac[0] += gx * px;
-                        jac[1] += gy * px;
-                        jac[2] += gz * px;
-                        jac[3] += gx * py;
-                        jac[4] += gy * py;
-                        jac[5] += gz * py;
-                        jac[6] += gx * pz;
-                        jac[7] += gy * pz;
-                        jac[8] += gz * pz;
+                        j00 += gx * px;
+                        j01 += gy * px;
+                        j02 += gz * px;
+                        j10 += gx * py;
+                        j11 += gy * py;
+                        j12 += gz * py;
+                        j20 += gx * pz;
+                        j21 += gy * pz;
+                        j22 += gz * pz;
                     }
                 }
             }
         }
         if (jacobian != null) {
-            for (int r = 0; r < 3; r++) {
-                for (int c = 0; c < 3; c++) {
-                    jacobian.set(r, c, jacobian.get(r, c) + jac[r * 3 + c]);
-                }
-            }
+            jacobian.set(0, 0, jacobian.get(0, 0) + j00);
+            jacobian.set(0, 1, jacobian.get(0, 1) + j01);
+            jacobian.set(0, 2, jacobian.get(0, 2) + j02);
+            jacobian.set(1, 0, jacobian.get(1, 0) + j10);
+            jacobian.set(1, 1, jacobian.get(1, 1) + j11);
+            jacobian.set(1, 2, jacobian.get(1, 2) + j12);
+            jacobian.set(2, 0, jacobian.get(2, 0) + j20);
+            jacobian.set(2, 1, jacobian.get(2, 1) + j21);
+            jacobian.set(2, 2, jacobian.get(2, 2) + j22);
         }
         result.set(p.x + dx, p.y + dy, p.z + dz);
     }
@@ -425,7 +438,13 @@ public final class TerrainDeformer {
         if (x < 0 || y < 0 || x >= width || y >= height) {
             return OFF_MAP;
         }
-        return tiles.apply(x, y);
+        int index = y * width + x;
+        TileShape shape = tileShapeCache[index];
+        if (shape == null) {
+            shape = tiles.apply(x, y);
+            tileShapeCache[index] = shape;
+        }
+        return shape;
     }
 
     private void computePoint(int i, int j) {
@@ -605,4 +624,5 @@ public final class TerrainDeformer {
         h ^= h >>> 16;
         return h;
     }
+
 }

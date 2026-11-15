@@ -34,6 +34,10 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+            if (entity.isCombatPitFighter()) {
+                entity.getStateMachine().changeState(COMBAT_PIT);
+                return;
+            }
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
@@ -94,9 +98,24 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it
+            // Collect the jackpot won in the Casino
+            if (entity.collectWinnings()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return;
+            }
+
+            // Dance in the keeper's Casino while it is in disco mode
+            if (entity.goToDisco()) {
+                entity.getStateMachine().changeState(CreatureState.DANCING);
+                workResult.accept(true);
+                return;
+            }
+
+            // Find work. A worker with nothing to do keeps the gold it carries, the original's imp wanders about with it.
+            // The Casino is only a fallback for a creature that could not start any of its jobs, as in the original
             entity.findWork((foundWork) -> {
-                if (foundWork) {
+                if (foundWork || entity.goGambling()) {
                     entity.getStateMachine().changeState(CreatureState.WORK);
                     workResult.accept(true); // Found work
                 } else {
@@ -107,6 +126,10 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+            if (entity.isCombatPitFighter()) {
+                entity.getStateMachine().changeState(COMBAT_PIT);
+                return;
+            }
 
             // Should we flee or attack
             if (entity.shouldFleeOrAttack()) {
@@ -225,7 +248,8 @@ public enum CreatureState implements State<ICreatureController> {
             // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN
-                    || task.getTaskType() == TaskType.RESEARCH)
+                    || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.GAMBLE)
                     && ((entity.isHungry() && entity.goToEat())
                     || (entity.hasLair() && entity.isNeedForSleep() && entity.goToSleep()))) {
                 // setAssignedTask released the previous job. Keep WORK so its exit cannot
@@ -247,11 +271,9 @@ public enum CreatureState implements State<ICreatureController> {
                 // Do the task we were supposed to do
                 entity.executeAssignedTask();
 
-                // If we have too much gold, drop it to the treasury
+                // If we have too much gold, take it to the treasury. With nowhere to take it, we keep it
                 if (entity.isTooMuchGold()) {
-                    if (!entity.dropGoldToTreasury()) {
-                        entity.dropGold();
-                    }
+                    entity.dropGoldToTreasury();
                 }
             } else if (entity.isStopped()) {
                 entity.navigateToAssignedTask();
@@ -279,7 +301,7 @@ public enum CreatureState implements State<ICreatureController> {
         public void update(ICreatureController entity) {
             ICreatureController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
-                entity.getStateMachine().changeState(IDLE); // Nothing to do
+                entity.getStateMachine().changeState(entity.isCombatPitFighter() ? COMBAT_PIT : IDLE); // Nothing to do
                 return;
             }
 
@@ -654,6 +676,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+            entity.releaseCastShot();
             if (entity.isStateTimeExceeded()) {
                 entity.getStateMachine().changeState(FIGHT);
             }
@@ -661,7 +684,7 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void exit(ICreatureController entity) {
-
+            entity.cancelCastShot();
         }
 
         @Override
@@ -705,6 +728,123 @@ public enum CreatureState implements State<ICreatureController> {
         public boolean onMessage(ICreatureController entity, Telegram telegram) {
             return true;
         }
+    }, COMBAT_PIT {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Wait in the pit for someone to fight, now and then walking to another spot in it
+            if (!entity.isCombatPitFighter()) {
+                entity.getStateMachine().changeState(IDLE);
+            } else if (entity.getAttackTarget() != null) {
+                entity.getStateMachine().changeState(FIGHT);
+            } else if (entity.isTimeToReEvaluate()) {
+                entity.resetReEvaluationTimer();
+                entity.navigateToRandomPointInCombatPit();
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, DANCING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Should we flee or attack
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+
+            // Dance until the disco is over
+            if (entity.isStopped() && !entity.isAtDisco()) {
+                entity.getStateMachine().changeState(CreatureState.IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CELEBRATING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Then go to collect the jackpot
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(entity.collectWinnings() ? CreatureState.WORK : CreatureState.IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CHICKEN {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+            entity.navigateToRandomPoint();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Back to our old self
+            if (entity.isStateTimeExceeded()) {
+                entity.getStateMachine().changeState(IDLE);
+                return;
+            }
+
+            // Just peck about
+            if (entity.isStopped()) {
+                entity.navigateToRandomPoint();
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
     }, GO_TO_SLEEP {
 
         @Override
@@ -723,6 +863,29 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void exit(ICreatureController entity) {
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, CALL_TO_ARMS {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.unassingCurrentTask();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+            if (!entity.heedCallToArms()) {
+                entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+            entity.resetFollowTarget();
         }
 
         @Override
