@@ -320,8 +320,9 @@ public final class HealthSystem extends GameTimeCounter {
      */
     private void triggerDestroyedEffect(EntityId entityId) {
         Position position = entityData.getComponent(entityId, Position.class);
-        if (position != null) {
-            EffectTriggers.trigger(entityData, getDestroyedEffectId(entityId), position.position, timeElapsed);
+        int effectId = getDestroyedEffectId(entityId);
+        if (position != null && effectId != 0) {
+            gameEventService.emitEffect(effectId, position.position, 0);
         }
     }
 
