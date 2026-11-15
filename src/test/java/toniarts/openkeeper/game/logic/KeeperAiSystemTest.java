@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.controller.player.PlayerRoomControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -49,6 +50,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import static toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures.variable;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpellFixtures.keeperSpell;
@@ -58,6 +60,8 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import static toniarts.openkeeper.tools.convert.map.RoomFixtures.room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Terrain.TerrainFlag;
+import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.flags;
 import static toniarts.openkeeper.tools.convert.map.TerrainFixtures.terrain;
 import toniarts.openkeeper.utils.Point;
@@ -118,6 +122,36 @@ class KeeperAiSystemTest {
     private PlayerCreatureControl creatureControl;
     private double gameTime;
     private boolean logDecisions;
+    private AI.AIType lobbyType;
+
+    @Test
+    void aComputerPlayerSetUpInTheLobbyPlaysByItsTypeAndNotByTheLevel() {
+        lobbyType = AI.AIType.MASTER_KEEPER;
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+
+        // The level says no imps, a Master Keeper wants one for every 15 of its 25 tiles
+        system.processTick(0.25f);
+
+        assertEquals(1, impSpells.size());
+    }
+
+    @Test
+    void aPsychoticWantsMoreLandForAnImpThanAMasterKeeper() {
+        lobbyType = AI.AIType.PSYCHOTIC;
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+
+        system.processTick(0.25f);
+
+        assertTrue(impSpells.isEmpty());
+    }
+
+    @Test
+    void aComputerPlayerTypeStartsWithSomeMana() {
+        lobbyType = AI.AIType.PARANOID;
+        createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+
+        assertEquals(1100, keeper.getMana());
+    }
 
     @Test
     void logsWhatItDecidesWithTheTickAndTheReasonWhenTheLogIsOn() {
@@ -332,6 +366,14 @@ class KeeperAiSystemTest {
 
     private KeeperAiSystem createSystem(AI ai, int gold) {
         keeper = new Keeper(player(PLAYER_ID, ai));
+        if (lobbyType != null) {
+            keeper = new Keeper(true, PLAYER_ID);
+            keeper.setAiType(lobbyType);
+        }
+        Map<MiscType, Variable.MiscVariable> variables = Map.of(
+                MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL, variable(MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL, 8),
+                MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
+        PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         keeper.setGold(gold);
         keeper.setMana(1000);
         roomControl = new PlayerRoomControl(keeper, new ArrayList<>(rooms.values()));
@@ -342,12 +384,15 @@ class KeeperAiSystemTest {
             case "getKeeper" -> keeper;
             case "getRoomControl" -> roomControl;
             case "getCreatureControl" -> creatureControl;
+            case "getManaControl" -> manaControl;
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getGameLevel" -> gameLevel(4);
             case "getKeeperSpells" -> List.of(createImp);
+            case "getRooms" -> new ArrayList<>(rooms.values());
+            case "getVariables" -> variables;
             case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
             default -> throw new UnsupportedOperationException(method.getName());
         });

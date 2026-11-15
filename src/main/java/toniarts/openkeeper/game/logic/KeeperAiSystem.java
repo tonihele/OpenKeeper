@@ -23,6 +23,7 @@ import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -36,11 +37,13 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.AI;
+import toniarts.openkeeper.tools.convert.map.AiPresets;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -132,6 +135,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final IMapController mapController;
     private final IGameTimer gameTimer;
     private final boolean logDecisions;
+
+    /**
+     * The settings of each computer player: its type's in a game set up in
+     * the lobby, otherwise the ones the level gives it
+     */
+    private final Map<Short, AI> ais = new HashMap<>();
     private final EntitySet keeperAis;
 
     /**
@@ -157,9 +166,21 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         keeperAis = entityData.getEntities(KeeperAi.class);
         for (IPlayerController playerController : playerControllers.values()) {
             Keeper keeper = playerController.getKeeper();
-            if (keeper.getId() >= Player.KEEPER1_ID && (keeper.isAi() || keeper.getPlayer().isAi())
-                    && keeperAis.stream().noneMatch(entity -> entity.get(KeeperAi.class).playerId == keeper.getId())) {
+            if (keeper.getId() < Player.KEEPER1_ID || !(keeper.isAi() || keeper.getPlayer().isAi())) {
+                continue;
+            }
+            AI ai = keeper.isAi() ? AiPresets.create(AiPresets.getTypeOnMap(keeper.getAiType(), kwdFile.getGameLevel().getName()),
+                    kwdFile.getRooms(), (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue(),
+                    mapController.getMapData().getWidth(), mapController.getMapData().getHeight())
+                    : keeper.getPlayer().getAiAttributes();
+            ais.put(keeper.getId(), ai);
+            if (keeperAis.stream().noneMatch(entity -> entity.get(KeeperAi.class).playerId == keeper.getId())) {
                 entityData.setComponent(entityData.createEntity(), new KeeperAi(keeper.getId()));
+
+                // A computer player type comes with some mana to start with
+                if (keeper.isAi()) {
+                    playerController.getManaControl().addMana(ai.getStartingMana());
+                }
             }
         }
     }
@@ -170,7 +191,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         for (Entity entity : keeperAis) {
             KeeperAi keeperAi = new KeeperAi(entity.get(KeeperAi.class));
             IPlayerController playerController = playerControllers.get(keeperAi.playerId);
-            if (playerController == null || playerController.getKeeper().isDestroyed()
+            if (playerController == null || !ais.containsKey(keeperAi.playerId) || playerController.getKeeper().isDestroyed()
                     || playerController.getRoomControl().getDungeonHeart() == null) {
                 continue;
             }
@@ -181,7 +202,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     private void processKeeper(KeeperAi keeperAi, IPlayerController playerController) {
-        AI ai = playerController.getKeeper().getPlayer().getAiAttributes();
+        AI ai = ais.get(keeperAi.playerId);
         int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         int actions = ai.getSpeed();
 
