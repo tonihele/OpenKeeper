@@ -309,10 +309,11 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void makeHungry();
 
     /**
-     * Get the research points the creature makes on each game tick in the
-     * library
+     * Get the research points the creature makes on this game tick in the
+     * library. A slapped creature makes extra points on the first tick of
+     * every second.
      *
-     * @return research points per tick
+     * @return research points of this tick
      */
     public int getResearchPerTick();
 
@@ -339,6 +340,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if recuperating
      */
     public boolean isRecuperating();
+
+    /**
+     * Turns the creature into a chicken for a while, as by the Chicken spell.
+     * Creatures immune to the spell stay as they are
+     *
+     * @param duration how long, in seconds
+     */
+    public void turnIntoChicken(double duration);
 
     /**
      * Sets creature possession on/off
