@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.PathRetry;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
@@ -121,7 +122,6 @@ public final class CreatureController extends EntityController implements ICreat
     private final Creature creature;
     private final StateMachine<ICreatureController, CreatureState> stateMachine;
     private float motionless = 0;
-    private final PathRetryBackoff pathRetryBackoff = new PathRetryBackoff();
 
     public CreatureController(EntityId entityId, EntityData entityData, Creature creature, INavigationService navigationService,
             ITaskManager taskManager, IGameTimer gameTimer, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
@@ -467,7 +467,7 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
-            pathRetryBackoff.failed(destination, gameTimer.getGameTime());
+            entityData.setComponent(entityId, new PathRetry(destination, gameTimer.getGameTime()));
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
             return true;
         }
@@ -482,7 +482,8 @@ public final class CreatureController extends EntityController implements ICreat
     private boolean isWaitingToRetryPath() {
         Task assignedTask = getAssignedTask();
         Vector2f target = assignedTask != null ? assignedTask.getTarget(this) : null;
-        return target != null && pathRetryBackoff.isWaiting(WorldUtils.vectorToPoint(target), gameTimer.getGameTime());
+        PathRetry pathRetry = entityData.getComponent(entityId, PathRetry.class);
+        return target != null && pathRetry != null && pathRetry.isWaiting(WorldUtils.vectorToPoint(target), gameTimer.getGameTime());
     }
 
     @Override

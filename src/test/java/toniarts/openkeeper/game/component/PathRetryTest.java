@@ -14,7 +14,7 @@
  * You should have received a copy of the GNU General Public License
  * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
-package toniarts.openkeeper.game.controller.creature;
+package toniarts.openkeeper.game.component;
 
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.utils.Point;
@@ -25,46 +25,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A creature that finds no way to a place doesn't look for one again at once
  */
-class PathRetryBackoffTest {
+class PathRetryTest {
 
     private static final Point GOAL = new Point(13, 44);
     private static final Point OTHER_GOAL = new Point(42, 44);
 
-    private final PathRetryBackoff backoff = new PathRetryBackoff();
-
-    @Test
-    void firstSearchIsAlwaysAllowed() {
-        assertFalse(backoff.isWaiting(GOAL, 100.0));
-    }
+    private final PathRetry pathRetry = new PathRetry(GOAL, 100.0);
 
     @Test
     void failedGoalIsNotSearchedAgainAtOnce() {
-        backoff.failed(GOAL, 100.0);
-
-        assertTrue(backoff.isWaiting(GOAL, 100.25));
-        assertTrue(backoff.isWaiting(GOAL, 100.0 + PathRetryBackoff.RETRY_DELAY - 0.01));
+        assertTrue(pathRetry.isWaiting(GOAL, 100.25));
+        assertTrue(pathRetry.isWaiting(GOAL, 100.0 + PathRetry.RETRY_DELAY - 0.01));
     }
 
     @Test
     void failedGoalIsSearchedAgainAfterTheDelay() {
-        backoff.failed(GOAL, 100.0);
-
-        assertFalse(backoff.isWaiting(GOAL, 100.0 + PathRetryBackoff.RETRY_DELAY));
+        assertFalse(pathRetry.isWaiting(GOAL, 100.0 + PathRetry.RETRY_DELAY));
     }
 
     @Test
     void otherGoalsAreNotHeldBack() {
-        backoff.failed(GOAL, 100.0);
-
-        assertFalse(backoff.isWaiting(OTHER_GOAL, 100.25));
-    }
-
-    @Test
-    void foundWayClearsTheWait() {
-        backoff.failed(GOAL, 100.0);
-        backoff.succeeded();
-
-        assertFalse(backoff.isWaiting(GOAL, 100.25));
+        assertFalse(pathRetry.isWaiting(OTHER_GOAL, 100.25));
     }
 
 }
