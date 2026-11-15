@@ -55,13 +55,13 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     private final Predicate<Point> explored;
 
     /**
-     * @param explored tells if the player has explored the tile, the disco is not heard from the fog
      * @param mentorSpeech queues a mentor speech by its id
+     * @param explored tells if the player has explored the tile, the disco is not heard from the fog
      */
-    public GameEventSoundPlayer(IKwdFile kwdFile, Predicate<Point> explored, IntConsumer mentorSpeech) {
+    public GameEventSoundPlayer(IKwdFile kwdFile, IntConsumer mentorSpeech, Predicate<Point> explored) {
         this.kwdFile = kwdFile;
-        this.explored = explored;
         this.mentorSpeech = mentorSpeech;
+        this.explored = explored;
     }
 
     /**
