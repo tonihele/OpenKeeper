@@ -87,8 +87,13 @@ public final class ShotsController implements IShotsController {
 
     private Map<Shot.ProcessType, IShotProcessor> createProcessors() {
         Map<Shot.ProcessType, IShotProcessor> result = new EnumMap<>(Shot.ProcessType.class);
-        result.put(CREATE_CREATURE, request -> creaturesController.spawnCreature((short) request.shotData1(), request.playerId(),
-                request.shotData2(), WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE));
+        // The second value is how many creatures to make, they get no level of their own (0x4AD7A0)
+        result.put(CREATE_CREATURE, request -> {
+            for (int i = 0; i < request.shotData2(); i++) {
+                creaturesController.spawnCreature((short) request.shotData1(), request.playerId(), 1,
+                        WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE);
+            }
+        });
         result.put(CREATE_OBJECT, request -> {
             GameObject object = kwdFile.getObject(request.shotData1());
             if (object != null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
@@ -106,7 +111,9 @@ public final class ShotsController implements IShotsController {
         // The shot is at its target at once and dies there, its death shot goes on with the same values
         result.put(INSTANTANEOUS_HIT, request -> {
             if (request.shot().getDeathShotId() != 0) {
-                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(), request.position(), request.target(), null);
+                Vector3f targetPosition = request.target() != null ? EntityController.getPosition(entityData, request.target()) : null;
+                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(),
+                        targetPosition != null ? targetPosition : request.position(), request.target(), null);
             }
         });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
@@ -119,9 +126,10 @@ public final class ShotsController implements IShotsController {
 
         // Creature attacks still apply their damage themselves, see CreatureController#executeAttack. Processing
         // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type).
-        // What a creature casts on its own side is no attack and is processed here
+        // What a creature casts on its own side is no attack and is processed here, and so is a shot that only
+        // hands its values on to its death shot
         Shot shot = kwdFile.getShotById(shotTypeId);
-        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES) {
+        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES && shot.getProcessType() != INSTANTANEOUS_HIT) {
             return;
         }
 

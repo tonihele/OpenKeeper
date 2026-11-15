@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -41,6 +42,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -50,6 +52,8 @@ class ShotsControllerTest {
     private static final short HEAL_ID = 1;
     private static final short HEAL_INSTANT_ID = 53;
     private static final short CREATE_OBJECT_ID = 2;
+    private static final short CREATE_CREATURE_ID = 4;
+    private static final short SKELETON_ARMY_ID = 54;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short PLAYER_ID = 3;
@@ -57,6 +61,7 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final ShotsController shotsController;
 
     ShotsControllerTest() {
@@ -64,6 +69,8 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
+        addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
+        shotsById.put(SKELETON_ARMY_ID, ShotFixtures.skeletonArmyShot(SKELETON_ARMY_ID, CREATE_CREATURE_ID));
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
@@ -79,6 +86,14 @@ class ShotsControllerTest {
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("spawnCreature")) {
+                        spawnedCreatures.add(args);
+                        return null;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
 
         // A map without tiles, no strike lands on water
         IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(), new Class<?>[]{IMapDataInformation.class},
@@ -87,7 +102,7 @@ class ShotsControllerTest {
                 (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null, gameEventService);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
     @Test
@@ -130,6 +145,31 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_INSTANT_ID, 3000, 0, PLAYER_ID, new Vector3f(), creature, warlock);
 
         assertEquals(-3000, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void creatureShotCreatesItsSecondValueOfCreatures() {
+
+        // Create Imp: creature 1 (Imp), one of them
+        shotsController.createShot(CREATE_CREATURE_ID, 1, 1, PLAYER_ID, new Vector3f(4.5f, 1f, 7.5f), null, null);
+
+        assertEquals(1, spawnedCreatures.size());
+        assertArrayEquals(new Object[]{(short) 1, PLAYER_ID, 1, new Vector2f(4.5f, 7.5f), ICreaturesController.SpawnType.CONJURE}, spawnedCreatures.get(0));
+    }
+
+    @Test
+    void creatureSkeletonArmyRisesAtItsTarget() {
+        EntityId enemy = createCreature();
+        EntityId darkAngel = createCreature();
+
+        // Skeleton Army: creature 9 (Skeleton), three of them, through the death shot of an instant shot
+        shotsController.createShot(SKELETON_ARMY_ID, 9, 3, PLAYER_ID, new Vector3f(5.5f, 1f, 5.5f), enemy, darkAngel);
+
+        assertEquals(3, spawnedCreatures.size());
+        for (Object[] args : spawnedCreatures) {
+            assertArrayEquals(new Object[]{(short) 9, PLAYER_ID, 1, new Vector2f(1.5f, 1.5f), ICreaturesController.SpawnType.CONJURE}, args);
+        }
+        assertNull(entityData.getComponent(enemy, Damage.class));
     }
 
     @Test

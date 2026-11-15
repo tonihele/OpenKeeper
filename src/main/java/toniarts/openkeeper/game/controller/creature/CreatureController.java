@@ -93,6 +93,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -857,8 +858,10 @@ public final class CreatureController extends EntityController implements ICreat
                 shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), attackTarget, entityId);
 
                 // TODO: Of course not like that, the shot is created and it does what it does
-                // Set the damage
-                setDamage(attackTarget, creatureSpell.getShotData1());
+                // Set the damage, a shot that makes things has the thing in its value
+                if (levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId()).getAttackCategory() != Shot.AttackCategory.GENERATION) {
+                    setDamage(attackTarget, creatureSpell.getShotData1());
+                }
             }
         }
     }

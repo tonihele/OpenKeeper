@@ -68,6 +68,17 @@ public final class ShotFixtures {
         return shot;
     }
 
+    /**
+     * Shot 54, Skeleton Army Shot, as it ships in the original data: it is cast
+     * on an enemy and dies into the given shot
+     */
+    public static Shot skeletonArmyShot(short shotId, short deathShotId) {
+        Shot shot = healInstantShot(shotId, deathShotId);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setAttackCategory(Shot.AttackCategory.GENERATION);
+        return shot;
+    }
+
     public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
             short shotTypeId, int shotData1) {
         CreatureSpell creatureSpell = new CreatureSpell();
