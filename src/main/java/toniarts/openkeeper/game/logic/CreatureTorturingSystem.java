@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -35,13 +36,16 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -55,15 +59,17 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
     private final GameEventService gameEventService;
+    private final int chanceOfDyingWhenConverted;
     private final EntitySet torturedEntities;
     private final Map<EntityId, IRoomController> chambersByVictim = new HashMap<>();
 
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
-            GameEventService gameEventService) {
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
         this.mapController = mapController;
+        chanceOfDyingWhenConverted = (int) gameSettings.get(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED).getValue();
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
         torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
@@ -100,6 +106,16 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
             if (creatureTortured.timeTortured + tpf >= creatureComponent.tortureTimeToConvert) {
                 if (owner.ownerId != playerId) {
+
+                    // Some die instead, the torture starts over for them until death comes
+                    if (Utils.getRandom().nextInt(100) < chanceOfDyingWhenConverted) {
+                        Health health = entityData.getComponent(entity.getId(), Health.class);
+                        if (health != null) {
+                            EntityController.setDamage(entityData, entity.getId(), health.health);
+                        }
+                        entity.set(new CreatureTortured(0, timeElapsed, creatureTortured.healthCheckTime, creatureTortured.device));
+                        continue;
+                    }
 
                     // Convert!
                     entityData.removeComponent(entity.getId(), CreatureTortured.class);

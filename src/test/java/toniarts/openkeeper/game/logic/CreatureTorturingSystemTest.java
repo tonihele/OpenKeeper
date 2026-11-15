@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -32,7 +33,9 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -48,7 +51,9 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -87,19 +92,7 @@ class CreatureTorturingSystemTest {
      */
     private final List<List<Object>> soundEvents = new ArrayList<>();
     private int tick;
-    private CreatureTorturingSystem system = new CreatureTorturingSystem(entityData, creaturesController(), mapController(),
-            (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
-                    new Class<?>[]{GameEventService.class}, (proxy, method, args) -> switch (method.getName()) {
-                        case "emitToPlayer" -> {
-                            playerEvents.add(List.of(args));
-                            yield null;
-                        }
-                        case "emit", "emitAt" -> {
-                            soundEvents.add(List.of(tick, method.getName(), args[0], args[args.length == 2 ? 1 : 3]));
-                            yield null;
-                        }
-                        default -> throw new UnsupportedOperationException(method.getName());
-                    }));
+    private CreatureTorturingSystem system = createSystem(0);
 
     @Test
     void ownVictimGetsAngrierEverySecond() {
@@ -290,6 +283,39 @@ class CreatureTorturingSystemTest {
         assertTrue(converted.isEmpty());
         assertTrue(leftDevice.isEmpty());
         assertTrue(playerEvents.isEmpty());
+    }
+
+    @Test
+    void victimDiesInsteadOfJoiningByTheChanceOfDying() {
+        system = createSystem(100);
+        EntityId victim = victim(HERO_ID, 2);
+        entityData.setComponent(victim, new Health(300, 1000));
+
+        tick(3);
+
+        // The torture starts over, the health system lets the victim die
+        assertTrue(converted.isEmpty());
+        assertEquals(300, entityData.getComponent(victim, Damage.class).damage);
+        assertTrue(entityData.getComponent(victim, CreatureTortured.class).timeTortured < 2);
+    }
+
+    private CreatureTorturingSystem createSystem(int chanceOfDyingWhenConverted) {
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new EnumMap<>(Variable.MiscVariable.MiscType.class);
+        gameSettings.put(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED,
+                CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED, chanceOfDyingWhenConverted));
+        return new CreatureTorturingSystem(entityData, creaturesController(), mapController(),
+                (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                        new Class<?>[]{GameEventService.class}, (proxy, method, args) -> switch (method.getName()) {
+                            case "emitToPlayer" -> {
+                                playerEvents.add(List.of(args));
+                                yield null;
+                            }
+                            case "emit", "emitAt" -> {
+                                soundEvents.add(List.of(tick, method.getName(), args[0], args[args.length == 2 ? 1 : 3]));
+                                yield null;
+                            }
+                            default -> throw new UnsupportedOperationException(method.getName());
+                        }), gameSettings);
     }
 
     private void tick(int seconds) {
