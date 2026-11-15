@@ -54,6 +54,9 @@ public final class AiFixtures {
         ai.setDistanceBetweenRoomsThatShouldBeCloseMan(AI.Distance.CLOSE);
         ai.setBuildAreaEndX(Short.MAX_VALUE);
         ai.setBuildAreaEndY(Short.MAX_VALUE);
+        ai.setFirstAttemptToBreachRoom(AI.BreachRoomPolicy.ENEMY_DUNGEON_HEART);
+        ai.setFirstDigToEnemyPoint(AI.DigToPolicy.HEART);
+        ai.setUseCallToArms(AI.CallToArmsUsagePolicy.AT_HEART);
         return ai;
     }
 
@@ -165,6 +168,26 @@ public final class AiFixtures {
      */
     public static AI withRetreatHealth(AI ai, int percentage) {
         ai.setIfCreatureHealthIsPercentageAndNotInOwnRoomMoveToLairOrTemple((short) percentage);
+        return ai;
+    }
+
+    /**
+     * Sets when the computer player invades and how it calls its creatures
+     * to arms then
+     *
+     * @param ai the computer player settings
+     * @param creatures it needs more fighters than this
+     * @param tunnels the tunnels it digs to an enemy before it breaks through
+     * @param callToArms how it uses Call to Arms
+     * @param waitSeconds the seconds it waits after an attack
+     * @return the same settings
+     */
+    public static AI withInvasion(AI ai, int creatures, int tunnels, AI.CallToArmsUsagePolicy callToArms, int waitSeconds) {
+        ai.setAttackWhenNumberOfCreaturesIsAtLeast((short) creatures);
+        ai.setBreachAtPointsSimultaneously((short) tunnels);
+        ai.setUseCallToArms(callToArms);
+        ai.setWaitSecondsAfterPreviousAttackBeforeAttackingAgain(waitSeconds);
+
         return ai;
     }
 

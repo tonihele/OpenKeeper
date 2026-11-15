@@ -161,6 +161,12 @@ public final class KeeperAi implements EntityComponent {
      */
     public int attackLookTicks;
 
+    /**
+     * The enemy the tunnel being dug goes to, 0 for none. The tunnel stops
+     * at the enemy's land
+     */
+    public short invasionTargetId;
+
     public KeeperAi() {
         // For serialization
     }
@@ -194,6 +200,7 @@ public final class KeeperAi implements EntityComponent {
         this.attackTiles = keeperAi.attackTiles.clone();
         this.attackerId = keeperAi.attackerId;
         this.attackLookTicks = keeperAi.attackLookTicks;
+        this.invasionTargetId = keeperAi.invasionTargetId;
     }
 
 }
