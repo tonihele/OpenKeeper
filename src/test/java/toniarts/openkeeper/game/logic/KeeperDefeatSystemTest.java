@@ -40,10 +40,14 @@ import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperDefeatFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -52,7 +56,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A keeper whose Dungeon Heart is destroyed is defeated: he loses, his heart
- * room is a ruin, and in a skirmish the last keeper standing wins
+ * room is a ruin, his land goes back to nobody, and in a skirmish the last
+ * keeper standing wins
  */
 class KeeperDefeatSystemTest {
 
@@ -63,6 +68,11 @@ class KeeperDefeatSystemTest {
     private static final int HEART_GOLD = 2000;
     private static final int HEART_CAPACITY = 16000;
     private static final int TREASURY_CAPACITY = 27000;
+    private static final short ROCK = 2;
+    private static final short DIRT_PATH = 3;
+    private static final short CLAIMED_PATH = 8;
+    private static final short REINFORCED_WALL = 9;
+    private static final short LAIR = 13;
 
     private EntityData entityData;
     private Map<Short, Keeper> keepers;
@@ -73,6 +83,11 @@ class KeeperDefeatSystemTest {
     private List<Point> ruinedHearts;
     private List<String> createdObjects;
     private GameLevel level;
+    private List<IMapTileController> tiles;
+    private Map<Point, IRoomController> rooms;
+    private Map<Short, Terrain> terrains;
+    private Map<Point, String> alteredTiles;
+    private List<String> transferredRooms;
 
     @BeforeEach
     void setUp() {
@@ -85,6 +100,37 @@ class KeeperDefeatSystemTest {
         ruinedHearts = new ArrayList<>();
         createdObjects = new ArrayList<>();
         level = KeeperDefeatFixtures.level();
+        tiles = new ArrayList<>();
+        rooms = new HashMap<>();
+        terrains = Map.of(
+                ROCK, KeeperDefeatFixtures.terrain(ROCK, DIRT_PATH, Terrain.TerrainFlag.SOLID),
+                CLAIMED_PATH, KeeperDefeatFixtures.terrain(CLAIMED_PATH, DIRT_PATH, Terrain.TerrainFlag.OWNABLE),
+                REINFORCED_WALL, KeeperDefeatFixtures.terrain(REINFORCED_WALL, ROCK, Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.OWNABLE));
+        alteredTiles = new HashMap<>();
+        transferredRooms = new ArrayList<>();
+    }
+
+    @Test
+    void defeatedKeepersLandGoesBackToNobody() {
+        tile(1, 1, RIVAL, REINFORCED_WALL);
+        tile(2, 1, RIVAL, CLAIMED_PATH);
+        tile(3, 1, RIVAL, ROCK);
+        tile(1, 2, HUMAN, REINFORCED_WALL);
+        room("rival's lair", 4, 1, RIVAL);
+        room("human's lair", 4, 2, HUMAN);
+        // The ruined heart stays his
+        tile(heartTile(RIVAL).x, heartTile(RIVAL).y, RIVAL, LAIR);
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+
+        entityData.removeEntity(hearts.get(RIVAL));
+        system.processTick(0.25f);
+
+        String neutral = " for " + Player.NEUTRAL_PLAYER_ID;
+        assertEquals(Map.of(
+                new Point(1, 1), "terrain " + ROCK + neutral,
+                new Point(2, 1), "terrain " + DIRT_PATH + neutral,
+                new Point(3, 1), "terrain " + ROCK + neutral), alteredTiles);
+        assertEquals(List.of("rival's lair to " + Player.NEUTRAL_PLAYER_ID), transferredRooms);
     }
 
     @Test
@@ -294,8 +340,22 @@ class KeeperDefeatSystemTest {
             }
             return "getPlayerControllers".equals(name) ? playerControllers : null;
         });
-        IMapController mapController = stub(IMapController.class, (name, args) -> "getRoomControllerByCoordinates".equals(name)
-                ? heartRoom((Point) args[0]) : null);
+        IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> "iterator".equals(name) ? tiles.iterator() : null);
+        IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
+            case "getRoomControllerByCoordinates" -> keepers.keySet().stream().anyMatch(k -> heartTile(k).equals(args[0]))
+                    ? heartRoom((Point) args[0]) : rooms.get((Point) args[0]);
+            case "getMapData" -> mapData;
+            case "getTerrain" -> terrains.get(((IMapTileInformation) args[0]).getTerrainId());
+            case "alterTerrain" -> {
+                alteredTiles.put((Point) args[0], "terrain " + args[1] + " for " + args[2]);
+                yield null;
+            }
+            case "transferRoom" -> {
+                transferredRooms.add(args[0] + " to " + args[1]);
+                yield null;
+            }
+            default -> null;
+        });
         IObjectsController objectsController = stub(IObjectsController.class, (name, args) -> {
             if ("loadObject".equals(name)) {
                 createdObjects.add(args[0] + " for " + args[1] + " at " + new Point((Integer) args[2], (Integer) args[3]));
@@ -317,6 +377,21 @@ class KeeperDefeatSystemTest {
             }
             default -> null;
         });
+    }
+
+    private void tile(int x, int y, short ownerId, short terrainId) {
+        Point location = new Point(x, y);
+        tiles.add(stub(IMapTileController.class, (name, args) -> switch (name) {
+            case "getLocation" -> location;
+            case "getOwnerId" -> ownerId;
+            case "getTerrainId" -> terrainId;
+            default -> null;
+        }));
+    }
+
+    private void room(String roomName, int x, int y, short ownerId) {
+        tile(x, y, ownerId, LAIR);
+        rooms.put(new Point(x, y), stub(IRoomController.class, (name, args) -> "toString".equals(name) ? roomName : null));
     }
 
     private void attack(short keeperId, short attackerOwner) {
@@ -341,6 +416,14 @@ class KeeperDefeatSystemTest {
     @SuppressWarnings("unchecked")
     private static <T> T stub(Class<T> type, Answer answer) {
         return (T) Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "hashCode" -> {
+                    return System.identityHashCode(proxy);
+                }
+                case "equals" -> {
+                    return proxy == args[0];
+                }
+            }
             Object result = answer.answer(method.getName(), args);
             if (result == null && method.isDefault()) {
                 return InvocationHandler.invokeDefault(proxy, method, args);
