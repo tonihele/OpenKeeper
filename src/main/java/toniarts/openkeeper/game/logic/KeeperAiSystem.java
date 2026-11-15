@@ -23,6 +23,7 @@ import com.simsilica.es.EntitySet;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,6 +41,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.AiPresets;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -164,6 +166,16 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             Map.entry(ROOM_COMBAT_PIT, ROOM_PRISON));
 
     /**
+     * DK II weighs up each way round rock for up to 24 tiles to dig
+     */
+    private static final int WALL_TILES_TO_DIG = 24;
+
+    /**
+     * The steps a path takes heading north, east, south and west
+     */
+    private static final int[][] HEADINGS = {{0, -1}, {1, 0}, {0, 1}, {-1, 0}};
+
+    /**
      * The directions of a room site search, for the decision log
      */
     private static final String[] DIRECTIONS = {"north", "west", "south", "east"};
@@ -173,6 +185,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final Map<Short, IPlayerController> playerControllers;
     private final IGameWorldController gameWorldController;
     private final IMapController mapController;
+    private final INavigationService navigationService;
     private final IGameTimer gameTimer;
     private final boolean logDecisions;
 
@@ -200,6 +213,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     public KeeperAiSystem(EntityData entityData, IKwdFile kwdFile, Map<Short, IPlayerController> playerControllers,
             IGameWorldController gameWorldController, INavigationService navigationService, IGameTimer gameTimer, boolean logDecisions) {
+        this.navigationService = navigationService;
         this.gameTimer = gameTimer;
         this.logDecisions = logDecisions;
         this.entityData = entityData;
@@ -267,6 +281,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         keeperAi.taskTicks++;
         if (keeperAi.taskTicks > TASK_TIME_OUT_SECONDS * ticksPerSecond) {
             setTask(keeperAi, KeeperAi.Task.PLAN, "the task took too long");
+            keeperAi.wallFollowing = false;
             keeperAi.nextTask = KeeperAi.Task.PLAN;
         }
 
@@ -1080,9 +1095,10 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      */
     private int digPath(KeeperAi keeperAi, IPlayerController playerController, AI ai, int ticksPerSecond, int actions) {
 
-        // No paths out of the build area
-        if (keeperAi.target.x < ai.getBuildAreaStartX() || keeperAi.target.x > ai.getBuildAreaEndX()
-                || keeperAi.target.y < ai.getBuildAreaStartY() || keeperAi.target.y > ai.getBuildAreaEndY()) {
+        // No paths out of the build area to a room site or to gold
+        if (keeperAi.nextTask != KeeperAi.Task.PLAN && keeperAi.nextTask != KeeperAi.Task.FINISH
+                && (keeperAi.target.x < ai.getBuildAreaStartX() || keeperAi.target.x > ai.getBuildAreaEndX()
+                || keeperAi.target.y < ai.getBuildAreaStartY() || keeperAi.target.y > ai.getBuildAreaEndY())) {
             setTask(keeperAi, KeeperAi.Task.FINISH, "the path leads out of the build area");
             keeperAi.nextTask = KeeperAi.Task.FINISH;
             return 0;
@@ -1119,8 +1135,15 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     }
                 }
             } else if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+
+                // On open land the path is done as soon as a creature can walk the rest
+                if (navigationService.findPath(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId)) != null) {
+                    keeperAi.current = keeperAi.target;
+                    finishPath(keeperAi, "there is a way to walk from here");
+                    return actions;
+                }
                 if (!stepOnPath(keeperAi)) {
-                    finishPath(keeperAi, "no way on from here");
+                    finishPath(keeperAi, "the way on is open, or there is none");
                     return actions;
                 }
             } else if (!tile.isSelected(keeperAi.playerId)) {
@@ -1133,55 +1156,189 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     private void finishPath(KeeperAi keeperAi, String reason) {
         keeperAi.invasionTargetId = 0;
+        keeperAi.wallFollowing = false;
         setTask(keeperAi, keeperAi.nextTask, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;
     }
 
     /**
-     * One tile closer to the target, along the longer way first. Rock that
-     * can't be dug is walked round the shortest way
+     * Moves the path on to the next tile that takes work, as DK II does:
+     * straight at the target along the longer way first, over open land, up
+     * to rock to dig or water or lava to bridge. Rock that can't be dug is
+     * followed along its edge to the tile where the straight way goes on
+     * behind it, on the side that takes less digging
      *
-     * @return false if there is no way to the target
+     * @return false if the way to the target is open, or if there is no way
      */
     private boolean stepOnPath(KeeperAi keeperAi) {
-        int width = mapController.getMapData().getWidth();
-        int height = mapController.getMapData().getHeight();
-
-        // How far each tile is from the target, as far out as the tile the path is on
-        int[][] distances = new int[width][height];
-        List<Point> open = new ArrayList<>();
-        open.add(keeperAi.target);
-        distances[keeperAi.target.x][keeperAi.target.y] = 1;
-        for (int i = 0; i < open.size() && distances[keeperAi.current.x][keeperAi.current.y] == 0; i++) {
-            Point p = open.get(i);
-            for (Point neighbour : new Point[]{new Point(p.x - 1, p.y), new Point(p.x + 1, p.y), new Point(p.x, p.y - 1), new Point(p.x, p.y + 1)}) {
-                IMapTileInformation tile = mapController.getMapData().getTile(neighbour);
-                if (tile == null || distances[neighbour.x][neighbour.y] != 0) {
-                    continue;
+        Point pos = keeperAi.current;
+        if (!keeperAi.wallFollowing) {
+            int heading;
+            Set<Terrain.TerrainFlag> flags;
+            do {
+                if (pos.equals(keeperAi.target)) {
+                    return false;
                 }
-                Set<Terrain.TerrainFlag> flags = mapController.getTerrain(tile).getFlags();
-                if (neighbour.equals(keeperAi.current) || !flags.contains(Terrain.TerrainFlag.SOLID) || flags.contains(Terrain.TerrainFlag.TAGGABLE)) {
-                    distances[neighbour.x][neighbour.y] = distances[p.x][p.y] + 1;
-                    open.add(neighbour);
-                }
-            }
-        }
-
-        int distance = distances[keeperAi.current.x][keeperAi.current.y];
-        int dx = keeperAi.target.x - keeperAi.current.x;
-        int dy = keeperAi.target.y - keeperAi.current.y;
-        Point alongX = new Point(keeperAi.current.x + (dx < 0 ? -1 : 1), keeperAi.current.y);
-        Point alongY = new Point(keeperAi.current.x, keeperAi.current.y + (dy < 0 ? -1 : 1));
-        boolean xFirst = Math.abs(dx) > Math.abs(dy);
-        for (Point next : new Point[]{xFirst ? alongX : alongY, xFirst ? alongY : alongX,
-            new Point(2 * keeperAi.current.x - alongX.x, keeperAi.current.y), new Point(keeperAi.current.x, 2 * keeperAi.current.y - alongY.y)}) {
-            if (distance > 1 && next.x >= 0 && next.y >= 0 && next.x < width && next.y < height && distances[next.x][next.y] == distance - 1) {
-                keeperAi.current = next;
+                heading = getHeading(pos, keeperAi.target);
+                pos = move(pos, heading);
+                flags = getFlags(pos);
+            } while (!flags.contains(Terrain.TerrainFlag.SOLID) && !flags.contains(Terrain.TerrainFlag.WATER) && !flags.contains(Terrain.TerrainFlag.LAVA));
+            if (!isRock(pos)) {
+                keeperAi.current = pos;
                 return true;
             }
+
+            // Where the straight way comes out of the rock
+            while (isRock(pos) && !pos.equals(keeperAi.target)) {
+                pos = move(pos, getHeading(pos, keeperAi.target));
+            }
+            keeperAi.wallFollowing = true;
+            keeperAi.wallStart = keeperAi.current;
+            keeperAi.wallExit = pos;
+
+            // The side that gets there with less to dig, or else gets nearer
+            int[] left = traceWall(keeperAi, (heading + 1) & 3, true, WALL_TILES_TO_DIG);
+            keeperAi.wallOnLeft = false;
+            if (left[0] >= 0) {
+                int[] right = traceWall(keeperAi, (heading - 1) & 3, false, left[0] == 0 ? left[1] : WALL_TILES_TO_DIG);
+                keeperAi.wallOnLeft = right[0] < 0 || left[0] < right[0];
+            }
+            keeperAi.wallHeading = (heading + (keeperAi.wallOnLeft ? 1 : -1)) & 3;
+            log(keeperAi, "follow the rock", keeperAi.wallExit, "rock that can't be dug in the way, round it "
+                    + DIRECTIONS[(4 - keeperAi.wallHeading) & 3] + " to where the straight way goes on");
+            pos = keeperAi.current;
         }
 
-        return false;
+        int heading = keeperAi.wallHeading;
+        for (int i = 0; !pos.equals(keeperAi.wallExit); i++) {
+            heading = getWallHeading(pos, heading, keeperAi.wallOnLeft);
+            if (heading < 0 || i > 4 * mapController.getMapData().getWidth() * mapController.getMapData().getHeight()) {
+                return false;
+            }
+            pos = move(pos, heading);
+            if (isDiggable(pos)) {
+                keeperAi.current = pos;
+                keeperAi.wallHeading = heading;
+                return true;
+            }
+            if (pos.equals(keeperAi.wallStart)) {
+                return false;
+            }
+        }
+        keeperAi.current = pos;
+        keeperAi.wallFollowing = false;
+
+        return true;
+    }
+
+    /**
+     * Follows the rock one way without digging, to see what that way takes
+     *
+     * @return 0 and the tiles to dig when it gets to where the straight way
+     * goes on, the nearest it got to the target when it takes too many
+     * tiles to dig, below 0 when it leads back to where it started
+     */
+    private int[] traceWall(KeeperAi keeperAi, int heading, boolean wallOnLeft, int tilesToDig) {
+        Point pos = keeperAi.current;
+        int dug = 0;
+        int nearest = Integer.MAX_VALUE;
+        for (int i = 0; !pos.equals(keeperAi.wallExit); i++) {
+            nearest = Math.min(nearest, getDistance(pos, keeperAi.target));
+            heading = getWallHeading(pos, heading, wallOnLeft);
+            if (heading < 0 || i > 4 * mapController.getMapData().getWidth() * mapController.getMapData().getHeight()) {
+                return new int[]{-1, dug};
+            }
+            pos = move(pos, heading);
+            if (isDiggable(pos)) {
+                dug++;
+                if (dug > tilesToDig) {
+                    return new int[]{Math.max(nearest, 1), dug};
+                }
+            } else if (pos.equals(keeperAi.wallStart)) {
+                return new int[]{-1, dug};
+            }
+        }
+
+        return new int[]{0, dug};
+    }
+
+    /**
+     * The way on along the rock: towards the rock if it can, else straight
+     * on, else away from it, else back
+     *
+     * @return the heading, or below 0 when it is walled in
+     */
+    private int getWallHeading(Point pos, int heading, boolean wallOnLeft) {
+        for (int i = -1; i < 3; i++) {
+            int next = (heading + (wallOnLeft ? i : -i)) & 3;
+            Point tile = move(pos, next);
+            if (isDiggable(tile) || !getFlags(tile).contains(Terrain.TerrainFlag.SOLID) && !getFlags(tile).contains(Terrain.TerrainFlag.LAVA)) {
+                return next;
+            }
+        }
+
+        return -1;
+    }
+
+    private static int getHeading(Point from, Point to) {
+        if (Math.abs(to.y - from.y) < Math.abs(to.x - from.x)) {
+            return to.x < from.x ? 3 : 1;
+        }
+
+        return to.y < from.y ? 0 : 2;
+    }
+
+    private static Point move(Point p, int heading) {
+        return new Point(p.x + HEADINGS[heading][0], p.y + HEADINGS[heading][1]);
+    }
+
+    /**
+     * What a tile is like, off the map it is rock that can't be dug
+     */
+    private Set<Terrain.TerrainFlag> getFlags(Point p) {
+        IMapTileInformation tile = mapController.getMapData().getTile(p);
+
+        return tile != null ? mapController.getTerrain(tile).getFlags() : EnumSet.of(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.IMPENETRABLE);
+    }
+
+    private boolean isDiggable(Point p) {
+        return getFlags(p).contains(Terrain.TerrainFlag.SOLID) && !getFlags(p).contains(Terrain.TerrainFlag.IMPENETRABLE);
+    }
+
+    private boolean isRock(Point p) {
+        return getFlags(p).contains(Terrain.TerrainFlag.SOLID) && getFlags(p).contains(Terrain.TerrainFlag.IMPENETRABLE);
+    }
+
+    /**
+     * A creature of the player that walks, to see where there is a way
+     */
+    private static INavigable getWalker(short playerId) {
+        return new INavigable() {
+            @Override
+            public short getOwnerId() {
+                return playerId;
+            }
+
+            @Override
+            public boolean canFly() {
+                return false;
+            }
+
+            @Override
+            public boolean canWalkOnWater() {
+                return false;
+            }
+
+            @Override
+            public boolean canWalkOnLava() {
+                return false;
+            }
+
+            @Override
+            public boolean canMoveDiagonally() {
+                return false;
+            }
+        };
     }
 
     /**
