@@ -129,4 +129,15 @@ public interface IEntityPositionLookup {
      */
     Set<EntityId> getSensedEntities(EntityId entityId);
 
+    /**
+     * Checks if an entity you sense is behind a door that blocks you, like an
+     * enemy or a locked door. You sense through doors, but you can't walk
+     * there
+     *
+     * @param entityId you, the entity
+     * @param sensedEntityId the entity you sense
+     * @return true if blocking doors stand between you and the sensed entity
+     */
+    boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId);
+
 }

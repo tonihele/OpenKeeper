@@ -185,6 +185,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case FETCH_OBJECT -> {
                 return Utils.getMainTextResourceBundle().getString("2608");
             }
+            case FETCH_CORPSE, CARRY_CORPSE_TO_GRAVEYARD -> {
+                return Utils.getMainTextResourceBundle().getString("2618");
+            }
             case GO_TO_LOCATION -> {
                 return Utils.getMainTextResourceBundle().getString("2670");
             }
@@ -211,6 +214,12 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             }
             case DELIVER_TRAP_CRATE -> {
                 return Utils.getMainTextResourceBundle().getString("2613");
+            }
+            case FETCH_DOOR_CRATE -> {
+                return Utils.getMainTextResourceBundle().getString("2615");
+            }
+            case DELIVER_DOOR_CRATE -> {
+                return Utils.getMainTextResourceBundle().getString("2616");
             }
             case GO_TO_EAT -> {
                 return Utils.getMainTextResourceBundle().getString("2668");
