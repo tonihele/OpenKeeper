@@ -65,6 +65,7 @@ import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.battleSpell;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.creatureWithJobs;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.player;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withAttackResponse;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBattleSpells;
@@ -110,6 +111,7 @@ class KeeperAiSystemTest {
     private static final short GUARD_ROOM = 9;
     private static final short PRISON = 11;
     private static final short HORNY = 9;
+    private static final short EATER = 8;
     private static final short THUNDERBOLT = 6;
     private static final short HEAL = 10;
     private static final int ROOM_COST = 10;
@@ -379,6 +381,35 @@ class KeeperAiSystemTest {
         spellControl.setTypeAvailable(thunderbolt, true, true);
         system.processTick(0.25f);
         assertTrue(battleCasts.isEmpty());
+    }
+
+    @Test
+    void dropsACreatureLeftInItsHandInTheRoomForAJobItLikes() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LAIR, new Point(2, 4)));
+        roomControl.onBuild(createRoom(HATCHERY, new Point(4, 8)));
+        EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = EATER;
+        entityData.setComponent(creature, creatureComponent);
+        handControl.push(creature);
+
+        system.processTick(0.25f);
+
+        // It would rather research, but there is no Library
+        assertEquals(Map.of(creature, new Point(4, 8)), dropped);
+    }
+
+    @Test
+    void dropsWhatElseIsLeftInItsHandAtTheDungeonHeart() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(LAIR, new Point(2, 4)));
+        EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        handControl.push(creature);
+
+        system.processTick(0.25f);
+
+        assertEquals(Map.of(creature, HEART), dropped);
     }
 
     @Test
@@ -981,7 +1012,8 @@ class KeeperAiSystemTest {
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getGameLevel" -> gameLevel(4);
             case "getKeeperSpells" -> List.of(createImp, heal, thunderbolt);
-            case "getCreature" -> ((Number) args[0]).shortValue() == HORNY
+            case "getCreature" -> ((Number) args[0]).shortValue() == EATER ? creatureWithJobs(EATER, Creature.JobType.RESEARCH, Creature.JobType.EAT)
+                    : ((Number) args[0]).shortValue() == HORNY
                     ? CombatExperienceFixtures.creature(HORNY, Creature.CreatureFlag.IS_HORNY) : CombatExperienceFixtures.creature((short) 0);
             case "getRooms" -> new ArrayList<>(rooms.values());
             case "getVariables" -> variables;
