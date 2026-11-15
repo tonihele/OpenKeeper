@@ -98,12 +98,12 @@ final class KeeperAiBattles {
      * A Combat Pit fighter is taken out of the pit below this much health
      */
     private static final int PIT_FIGHTER_RETREAT_HEALTH_PERCENTAGE = 50;
-    private static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
+    static final Set<CreatureState> FIGHTING = Set.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
 
     /**
      * The states the hand leaves a creature alone in
      */
-    private static final Set<CreatureState> HELPLESS = Set.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON, CreatureState.PICKED_UP,
+    static final Set<CreatureState> HELPLESS = Set.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON, CreatureState.PICKED_UP,
             CreatureState.UNCONSCIOUS, CreatureState.STUNNED, CreatureState.IMPRISONED, CreatureState.TORTURED, CreatureState.DRAGGED,
             CreatureState.FALLEN, CreatureState.GETTING_UP, CreatureState.COMBAT_PIT);
 
@@ -725,7 +725,7 @@ final class KeeperAiBattles {
         return true;
     }
 
-    private boolean isLeftAlone(Entity creature) {
+    boolean isLeftAlone(Entity creature) {
         KeeperAiDropped dropped = entityData.getComponent(creature.getId(), KeeperAiDropped.class);
 
         return dropped != null && gameTimer.getGameTime() - dropped.time < LEAVE_ALONE_AFTER_DROP_SECONDS;
@@ -738,7 +738,7 @@ final class KeeperAiBattles {
      *
      * @return true if the creature was dropped
      */
-    private boolean carry(EntityId creature, Point tile, IPlayerController playerController) {
+    boolean carry(EntityId creature, Point tile, IPlayerController playerController) {
         short playerId = playerController.getKeeper().getId();
         entityData.setComponent(creature, new KeeperAiDropped(gameTimer.getGameTime()));
         gameWorldController.pickUp(creature, playerId);

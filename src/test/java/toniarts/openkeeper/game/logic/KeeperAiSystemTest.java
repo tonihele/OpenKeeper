@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.KeeperAiEnemy;
 import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -69,6 +70,7 @@ import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.AI;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.ai;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.battleSpell;
@@ -116,8 +118,13 @@ class KeeperAiSystemTest {
     private static final short PORTAL = 3;
     private static final short HATCHERY = 4;
     private static final short DUNGEON_HEART = 5;
+    private static final short LIBRARY = 6;
+    private static final short TRAINING_ROOM = 7;
     private static final short GUARD_ROOM = 9;
     private static final short PRISON = 11;
+    private static final short TORTURE_CHAMBER = 12;
+    private static final short TEMPLE = 13;
+    private static final short COMBAT_PIT = 16;
     private static final short HORNY = 9;
     private static final short EATER = 8;
     private static final short THUNDERBOLT = 6;
@@ -152,14 +159,19 @@ class KeeperAiSystemTest {
     private final List<Point> built = new ArrayList<>();
     private final List<Point> impSpells = new ArrayList<>();
 
-    private final Map<Short, Room> rooms = Map.of(
-            TREASURY, room(TREASURY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
-            LAIR, room(LAIR, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
-            PORTAL, room(PORTAL, 0, Room.RoomFlag.PLACEABLE_ON_LAND),
-            PRISON, room(PRISON, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND),
-            HATCHERY, room(HATCHERY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE),
-            DUNGEON_HEART, room(DUNGEON_HEART, 0, Room.RoomFlag.PLACEABLE_ON_LAND),
-            GUARD_ROOM, room(GUARD_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE));
+    private final Map<Short, Room> rooms = Map.ofEntries(
+            Map.entry(TREASURY, room(TREASURY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
+            Map.entry(LAIR, room(LAIR, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
+            Map.entry(PORTAL, room(PORTAL, 0, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(PRISON, room(PRISON, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(HATCHERY, room(HATCHERY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
+            Map.entry(DUNGEON_HEART, room(DUNGEON_HEART, 0, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(GUARD_ROOM, room(GUARD_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
+            Map.entry(LIBRARY, room(LIBRARY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(TRAINING_ROOM, room(TRAINING_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(TORTURE_CHAMBER, room(TORTURE_CHAMBER, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(TEMPLE, room(TEMPLE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(COMBAT_PIT, room(COMBAT_PIT, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)));
     private final KeeperSpell createImp = keeperSpell("Create Imp", 100, KeeperSpell.KeeperSpellFlag.CREATE_WORKER);
     private final Creature imp = creature((short) 1);
     private final EntityData entityData = new DefaultEntityData();
@@ -726,6 +738,52 @@ class KeeperAiSystemTest {
         assertEquals(1, impSpells.size());
     }
 
+    @Test
+    void dropsItsCreaturesIntoTheTrainingRoomWhileItsArmyIsNotReady() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of()), 1000);
+        roomControl.onBuild(createRoom(TRAINING_ROOM, new Point(1, 4)));
+        EntityId creature = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.IDLE);
+        EntityId trainee = createCreature(PLAYER_ID, new Point(8, 4), 100, 100, CreatureState.WORK);
+        entityData.setComponent(trainee, new TaskComponent(1, null, new Point(1, 4), TaskType.TRAIN, 0, true));
+
+        // One fighter is an army when it wants more than none
+        for (int tick = 0; tick < 60; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(dropped.isEmpty());
+
+        entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
+        system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1, AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
+        roomControl.onBuild(createRoom(TRAINING_ROOM, new Point(1, 4)));
+        for (int tick = 0; tick < 60 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        // The one in training is left to it
+        assertEquals(Map.of(creature, new Point(1, 4)), dropped);
+    }
+
+    @Test
+    void dropsACreatureNearItsNextLevelIntoTheCombatPitWhenItIsFit() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1, AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
+        roomControl.onBuild(createRoom(TRAINING_ROOM, new Point(1, 4)));
+        roomControl.onBuild(createRoom(COMBAT_PIT, new Point(5, 4)));
+        EntityId hurt = createCreature(PLAYER_ID, new Point(8, 3), 75, 100, CreatureState.IDLE);
+        entityData.setComponent(hurt, new CreatureExperience(2, 751, 1000, 0, 0));
+        EntityId fit = createCreature(PLAYER_ID, new Point(8, 4), 76, 100, CreatureState.IDLE);
+        entityData.setComponent(fit, new CreatureExperience(2, 751, 1000, 0, 0));
+        for (int tick = 0; tick < 60 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        // Neither goes to the Training Room
+        assertEquals(Map.of(fit, new Point(5, 4)), dropped);
+        for (int tick = 0; tick < 60; tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(Map.of(fit, new Point(5, 4)), dropped);
+    }
+
     private EntityId createCreature(short playerId, Point tile, int health, int maxHealth, CreatureState state) {
         EntityId entityId = entityData.createEntity();
         entityData.setComponents(entityId, new CreatureComponent(), new Owner(playerId, playerId), new Health(health, maxHealth),
@@ -1175,6 +1233,7 @@ class KeeperAiSystemTest {
         }
         Map<MiscType, Variable.MiscVariable> variables = Map.of(
                 MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL, variable(MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL, 8),
+                MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, variable(MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL, 4),
                 MiscType.MAXIMUM_MANA_THRESHOLD, variable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, variables);
         handControl = new PlayerHandControl(keeper, 8, entityData);
