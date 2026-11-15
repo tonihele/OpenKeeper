@@ -69,6 +69,20 @@ public final class AiFixtures {
     }
 
     /**
+     * Sets how far the computer player digs to claim a neutral room
+     *
+     * @param ai the computer player settings
+     * @param tilesOfHeart how near its Dungeon Heart the room has to be
+     * @param tilesOfClaimedArea or how near its land
+     * @return the same settings
+     */
+    public static AI withNeutralRoomRange(AI ai, int tilesOfHeart, int tilesOfClaimedArea) {
+        ai.setDigToNeutralRoomsWithinTilesOfHeart((short) tilesOfHeart);
+        ai.setDigToNeutralRoomsWithinTilesOfClaimedArea((short) tilesOfClaimedArea);
+        return ai;
+    }
+
+    /**
      * Sets when the computer player pulls a hurt creature out
      *
      * @param ai the computer player settings
