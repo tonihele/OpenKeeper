@@ -647,7 +647,7 @@ class TrapSystemTest {
                 creatures.get((Short) args[0]);
             case "getVariables" ->
                 Map.of(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND,
-                        TrapFiringFixtures.miscVariable(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND, 1));
+                        TrapFiringFixtures.miscVariable(Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND, 4096));
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
