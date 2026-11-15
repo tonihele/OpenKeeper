@@ -27,7 +27,10 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -39,6 +42,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.AiPresets;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -57,8 +61,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * So far it creates imps, mines gold, picks the rooms to build, has their
  * sites dug out and builds them, digs to neutral Portals, fights, invades,
  * trains its creatures, puts idle ones to work, slaps them, sees to its
- * prisoners, places traps and doors and looks round with Sight of
- * Evil.<br>
+ * prisoners, places traps and doors, uses Specials and looks round with
+ * Sight of Evil.<br>
  * With the decision log on it writes a line for everything it decides: the
  * game tick, the player, the task it is on, what it does, where, and why.
  * The lines are there to be compared with DK II tick by tick.
@@ -89,6 +93,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int TRAPS_CHANCE_PERCENTAGE = 10;
     private static final int CREATE_IMP_DISTANCE_FROM_HEART = 2;
     private static final short SPELL_SIGHT_OF_EVIL = 1;
+
+    /**
+     * The specials DK II's computer player uses: all but Kill Creatures,
+     * Transfer Creature and the one not used
+     */
+    private static final Set<Short> SPECIALS_USED = Set.of((short) 117, (short) 118, (short) 119, (short) 120, (short) 121,
+            (short) 122, (short) 123, (short) 124, (short) 125, (short) 126, (short) 128, (short) 129);
 
     /**
      * DK II looks at a random tile each tick and casts Sight of Evil on it
@@ -169,6 +180,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private final KeeperAiCreatures creatures;
     private final KeeperAiTraps traps;
     private final EntitySet keeperAis;
+    private final EntitySet objects;
 
     /**
      * @param entityData the entities, the computer players keep their state
@@ -196,6 +208,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
         // The keepers the level or the game setup gives to the computer, a loaded game has them already
         keeperAis = entityData.getEntities(KeeperAi.class);
+        objects = entityData.getEntities(ObjectComponent.class, Position.class);
         for (IPlayerController playerController : playerControllers.values()) {
             Keeper keeper = playerController.getKeeper();
             if (keeper.getId() < Player.KEEPER1_ID || !(keeper.isAi() || keeper.getPlayer().isAi())) {
@@ -286,6 +299,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (actions > 0 && battles.retreatInjured(keeperAi, playerController, ai, creatureLevel)) {
             actions--;
         }
+
+        // A Special lying on its land is used, that takes no action
+        useSpecial(keeperAi, playerController);
 
         // On half of the ticks, while its army is not ready, it drops creatures where they train
         if (Utils.getRandom().nextInt(100) < TRAINING_CHANCE_PERCENTAGE && actions > 0
@@ -495,6 +511,30 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
 
         return false;
+    }
+
+    /**
+     * Uses the last Special it finds lying on its own land, as a human
+     * player does with the hand, unless it is one DK II's computer player
+     * leaves alone
+     */
+    private void useSpecial(KeeperAi keeperAi, IPlayerController playerController) {
+        objects.applyChanges();
+        Entity special = null;
+        for (Entity object : objects) {
+            Point tile = WorldUtils.vectorToPoint(object.get(Position.class).position);
+            IMapTileInformation mapTile = mapController.getMapData().getTile(tile);
+            if (mapTile != null && mapTile.getOwnerId() == keeperAi.playerId && entityData.getComponent(object.getId(), InHand.class) == null
+                    && kwdFile.getObject(object.get(ObjectComponent.class).objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)
+                    && (special == null || object.getId().getId() > special.getId().getId())) {
+                special = object;
+            }
+        }
+        if (special != null && SPECIALS_USED.contains(special.get(ObjectComponent.class).objectId)) {
+            log(keeperAi, "use Special " + special.get(ObjectComponent.class).objectId, WorldUtils.vectorToPoint(special.get(Position.class).position),
+                    "it lies on its land");
+            gameWorldController.pickUp(special.getId(), keeperAi.playerId);
+        }
     }
 
     private int countOwnedTiles(short playerId) {
@@ -1114,6 +1154,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         keeperAis.release();
+        objects.release();
         battles.release();
         traps.release();
     }
