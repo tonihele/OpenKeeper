@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -72,6 +73,16 @@ class EntityControllerDamageTest {
     @Test
     void otherThingsTakeTheDamageDealt() {
         assertEquals(10, damageTaken(entityData.createEntity(), 10));
+    }
+
+    @Test
+    void attacksCarryTheirPlayersOwnershipRatherThanTheVictims() {
+        EntityId attacker = entityData.createEntity();
+        entityData.setComponent(attacker, new Owner((short) 3, (short) 5));
+        EntityId victim = entityData.createEntity();
+        entityData.setComponent(victim, new Owner((short) 4, (short) 4));
+        new EntityController(attacker, entityData, null, null).setDamage(victim, 10);
+        assertEquals((short) 3, entityData.getComponent(victim, Damage.class).playerId);
     }
 
     private EntityId creature(CreatureState state, boolean possessed) {

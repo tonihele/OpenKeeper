@@ -122,7 +122,10 @@ public class PlayerTriggerControl extends TriggerControl {
             case PLAYER_CREATURES_KILLED:
                 return false;
             case PLAYER_KILLS_CREATURES:
-                return false;
+                target = getPlayerController(playerId).getStatsControl()
+                        .getCreaturesKilled(trigger.getUserData("playerId", short.class));
+                value = trigger.getUserData("value", int.class);
+                break;
 
             case PLAYER_ROOM_SLABS:
                 short roomId = trigger.getUserData("roomId", short.class);
