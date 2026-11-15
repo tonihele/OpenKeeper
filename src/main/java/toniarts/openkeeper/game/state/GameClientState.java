@@ -31,9 +31,11 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
@@ -44,6 +46,7 @@ import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.gui.nifty.message.SystemMessageTarget;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -56,6 +59,7 @@ import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
+import toniarts.openkeeper.view.text.GuardPostCounter;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -111,6 +115,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
     private TextParser textParser;
+    private GuardPostCounter guardPostCounter;
 
     /**
      * Single use game states
@@ -194,6 +199,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
         stateManager.detach(effectManagerState);
+        stateManager.detach(guardPostCounter);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
@@ -419,6 +425,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+                guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
+                        trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
+                textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
@@ -434,6 +443,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
                 stateManager.attach(effectManagerState);
+                stateManager.attach(guardPostCounter);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
@@ -606,6 +616,11 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            EventBus.publish(ClientEvents.GENERATED_EFFECT, new GeneratedEffect(effectId, position, yaw));
+        }
+
+        @Override
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
@@ -617,11 +632,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                // The speech is played from the queue, the HUD might not be there (yet / anymore)
-                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
-                if (systemMessageState != null) {
-                    systemMessageState.addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
-                }
+                SystemMessageState.addMessageIfAttached(stateManager, SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);
                 }
@@ -836,6 +847,15 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     public IFogOfWarInformation getFogOfWarInformation() {
         return fogOfWarInformation;
+    }
+
+    /**
+     * Get the rooms information, e.g. the number of rooms a player has
+     *
+     * @return the rooms information
+     */
+    public IRoomsInformation<?> getRoomsInformation() {
+        return playerMapViewState.getRoomsInformation();
     }
 
     public MinimapPanelState getMinimapPanelState() {

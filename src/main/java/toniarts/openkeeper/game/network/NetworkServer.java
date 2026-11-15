@@ -32,8 +32,12 @@ import com.simsilica.es.server.EntityDataHostedService;
 import com.simsilica.ethereal.EtherealHost;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CallToArms;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
+import toniarts.openkeeper.game.component.CombatPitFighter;
+import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -44,6 +48,7 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
@@ -59,11 +64,13 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.GraveyardDecompose;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.InfernoArea;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.MapTile;
 import toniarts.openkeeper.game.component.Mobile;
@@ -87,6 +94,7 @@ import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Spellbook;
+import toniarts.openkeeper.game.component.StolenGold;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -167,6 +175,7 @@ public final class NetworkServer {
             Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
+            Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
 
             // Events
             Serializer.registerClass(GameEventType.class, new EnumSerializer());
@@ -175,6 +184,8 @@ public final class NetworkServer {
             // Our entity components
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
+            Serializer.registerClass(CallToArms.class, new FieldSerializer());
+            Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
@@ -182,6 +193,8 @@ public final class NetworkServer {
             Serializer.registerClass(Portal.class, new FieldSerializer());
             Serializer.registerClass(ChickenAi.class, new FieldSerializer());
             Serializer.registerClass(ChickenGenerator.class, new FieldSerializer());
+            Serializer.registerClass(CombatPitFighter.class, new FieldSerializer());
+            Serializer.registerClass(Crate.class, new FieldSerializer());
             Serializer.registerClass(CreatureAi.class, new FieldSerializer());
             Serializer.registerClass(CreatureComponent.class, new FieldSerializer());
             Serializer.registerClass(CreatureEfficiency.class, new FieldSerializer());
@@ -191,6 +204,7 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureImprisoned.class, new FieldSerializer());
             Serializer.registerClass(CreatureMeleeAttack.class, new FieldSerializer());
             Serializer.registerClass(CreatureMood.class, new FieldSerializer());
+            Serializer.registerClass(CreaturePay.class, new FieldSerializer());
             Serializer.registerClass(CreatureRecuperating.class, new FieldSerializer());
             Serializer.registerClass(CreatureSleep.class, new FieldSerializer());
             Serializer.registerClass(CreatureTortured.class, new FieldSerializer());
@@ -204,10 +218,12 @@ public final class NetworkServer {
             Serializer.registerClass(FollowTarget.class, new FieldSerializer());
             Serializer.registerClass(Food.class, new FieldSerializer());
             Serializer.registerClass(Gold.class, new FieldSerializer());
+            Serializer.registerClass(GraveyardDecompose.class, new FieldSerializer());
             Serializer.registerClass(HauledBy.class, new FieldSerializer());
             Serializer.registerClass(Health.class, new FieldSerializer());
             Serializer.registerClass(InHand.class, new FieldSerializer());
             Serializer.registerClass(Interaction.class, new FieldSerializer());
+            Serializer.registerClass(InfernoArea.class, new FieldSerializer());
             Serializer.registerClass(Mana.class, new FieldSerializer());
             Serializer.registerClass(MapTile.class, new FieldSerializer());
             Serializer.registerClass(Mobile.class, new FieldSerializer());
@@ -226,6 +242,7 @@ public final class NetworkServer {
             Serializer.registerClass(Regeneration.class, new FieldSerializer());
             Serializer.registerClass(RoomComponent.class, new FieldSerializer());
             Serializer.registerClass(RoomEffect.class, new FieldSerializer());
+            Serializer.registerClass(StolenGold.class, new FieldSerializer());
             Serializer.registerClass(Storage.class, new FieldSerializer());
             Serializer.registerClass(Stored.class, new FieldSerializer());
             Serializer.registerClass(Senses.class, new FieldSerializer());

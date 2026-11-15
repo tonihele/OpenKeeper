@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.Objects;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.EntityPickupValidator;
 import toniarts.openkeeper.game.sound.SoundEngine;
@@ -83,6 +84,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         return super.isPickable(playerId)
                 && (mapData == null || EntityPickupValidator.isValidLocation(
                         getEntity().get(ObjectComponent.class),
+                        getEntity().get(Owner.class),
                         getEntity().get(Position.class),
                         playerId,
                         mapData));

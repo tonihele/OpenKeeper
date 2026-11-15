@@ -443,6 +443,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onEffect(effectId, position, yaw);
+        }
+    }
+
+    @Override
     public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (playerId == null || gameSession.getKey().getKeeper().getId() == playerId) {
@@ -617,6 +624,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void cancelCallToArms() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onCancelCallToArms(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void transitionEnd() {
             playersInTransition.put(clientInfo, false);
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
@@ -677,6 +691,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void setPossessedAttack(boolean attacking) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSetPossessedAttack(attacking, clientInfo.getKeeper().getId());
             }
         }
 
@@ -837,6 +858,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onGameEnded(boolean win) {
             getCallback().onGameEnded(win);
+        }
+
+        @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            getCallback().onEffect(effectId, position, yaw);
         }
 
         @Override

@@ -18,6 +18,7 @@ package toniarts.openkeeper.view.text;
 
 import com.simsilica.es.EntityId;
 import java.util.Map;
+import java.util.function.ToIntFunction;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
@@ -47,6 +48,7 @@ public class RoomTextParser {
             Map.entry(TextParameter.TEMPLE_COUNT, 13),
             Map.entry(TextParameter.CASINO_COUNT, 15));
 
+    private ToIntFunction<Short> patrolRouteCounter = owner -> 0;
     private final IRoomsInformation roomsInformation;
 
     public RoomTextParser(IRoomsInformation roomsInformation) {
@@ -72,6 +74,8 @@ public class RoomTextParser {
                 return Integer.toString(room.getUsedCapacity()); // Used capacity
             case ROOM_MAX_CAPACITY:
                 return Integer.toString(room.getMaxCapacity()); // Max capacity
+            case PATROL_ROUTE_COUNT:
+                return Integer.toString(patrolRouteCounter.applyAsInt(room.getOwnerId()));
             case DUNGEON_HEART_MANA:
                 return Integer.toString(roomOwner.getMana());
             case DUNGEON_HEART_MAX_MANA:
@@ -83,6 +87,17 @@ public class RoomTextParser {
 
     private String getRoomAmount(IRoomInformation room, int roomId) {
         return Integer.toString(roomsInformation.getRoomCount(room.getOwnerId(), (short) roomId));
+    }
+
+    /**
+     * Sets how the patrol routes of a player are counted. Without this, the
+     * count is always zero.
+     *
+     * @param patrolRouteCounter counts the patrol routes (Guard Posts) of a
+     * player, by the player ID
+     */
+    public void setPatrolRouteCounter(ToIntFunction<Short> patrolRouteCounter) {
+        this.patrolRouteCounter = patrolRouteCounter;
     }
 
 }
