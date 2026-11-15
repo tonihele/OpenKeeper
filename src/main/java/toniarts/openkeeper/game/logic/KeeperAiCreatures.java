@@ -27,8 +27,12 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -36,6 +40,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -48,16 +53,19 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * How the computer player looks after its creatures away from the fights:
  * it drops them where they train, makes room for creatures that research
- * puts idle creatures to work and slaps idle ones. It uses the hand like a human player
+ * puts idle creatures to work, slaps idle ones and sees to its prisoners. It uses the hand like a human player
  * does.
  */
 final class KeeperAiCreatures {
 
+    private static final short ROOM_LAIR = 2;
     private static final short ROOM_PORTAL = 3;
     private static final short ROOM_LIBRARY = 6;
     private static final short ROOM_TRAINING_ROOM = 7;
     private static final short ROOM_WORKSHOP = 10;
+    private static final short ROOM_PRISON = 11;
     private static final short ROOM_TORTURE_CHAMBER = 12;
+    private static final short ROOM_TEMPLE = 13;
     private static final short ROOM_COMBAT_PIT = 16;
     private static final short ROOM_HERO_PORTAL = 25;
 
@@ -89,6 +97,12 @@ final class KeeperAiCreatures {
      */
     private static final int SLAP_CHANCE = 100;
     private static final int SLAP_HEALTH_PERCENTAGE = 50;
+
+    /**
+     * DK II takes each enemy prisoner in turn with five chances in a
+     * hundred
+     */
+    private static final int PRISONER_CHANCE_PERCENTAGE = 5;
 
     /**
      * DK II sends a creature to the Combat Pit when it has more than three
@@ -349,6 +363,103 @@ final class KeeperAiCreatures {
         }
 
         return actions;
+    }
+
+    /**
+     * Sees to a prisoner in its Prison. It goes through them in turn and
+     * takes an enemy with five chances in a hundred, any other at once.
+     * That takes an action, whatever follows. A creature of its own side
+     * goes to the Lair. An enemy meets the fate its settings give it: the
+     * Torture Chamber or the Temple, or it is left to die. DK II also has it
+     * fight in the Combat Pit, which OpenKeeper can't do yet. Not one it
+     * dropped a short while ago.
+     *
+     * @param keeperAi the computer player
+     * @param playerController its player
+     * @param ai its settings
+     * @param actions the actions it has left
+     * @return the actions it has left after this
+     */
+    int seeToPrisoners(KeeperAi keeperAi, IPlayerController playerController, AI ai, int actions) {
+        IRoomController prison = getRoom(playerController, ROOM_PRISON);
+        if (prison == null) {
+            return actions;
+        }
+
+        Entity prisoner = null;
+        boolean enemy = false;
+        for (Entity creature : battles.getPrisoners(keeperAi.playerId)) {
+            if (entityData.getComponent(creature.getId(), CreatureImprisoned.class) == null
+                    || !prison.getRoomInstance().hasCoordinate(WorldUtils.vectorToPoint(creature.get(Position.class).position))) {
+                continue;
+            }
+            enemy = playerController.getKeeper().isEnemy(creature.get(Owner.class).ownerId);
+            if (!enemy || Utils.getRandom().nextInt(100) < PRISONER_CHANCE_PERCENTAGE) {
+                prisoner = creature;
+                break;
+            }
+        }
+        if (prisoner == null) {
+            return actions;
+        }
+
+        actions--;
+        AI.ImprisonedCreatureFatePolicy fate = ai.getFateOfImprisonedCreatures();
+        if (!enemy) {
+            carryPrisoner(keeperAi, playerController, prisoner, getRoom(playerController, ROOM_LAIR), false, "its own side");
+        } else if (fate == AI.ImprisonedCreatureFatePolicy.TORTURE) {
+            carryPrisoner(keeperAi, playerController, prisoner, getRoom(playerController, ROOM_TORTURE_CHAMBER), true, "to torture");
+        } else if (fate == AI.ImprisonedCreatureFatePolicy.PLACE_IN_PIT) {
+
+            // DK II drops it into the Combat Pit to fight, an enemy dropped there in OpenKeeper would walk free
+            decisionLog.log(keeperAi, "leave prisoner " + prisoner.getId().getId() + " in the Prison", null,
+                    "OpenKeeper has no pit fights for prisoners yet");
+        } else if (fate == AI.ImprisonedCreatureFatePolicy.SACRIFICE) {
+            carryPrisoner(keeperAi, playerController, prisoner, getRoom(playerController, ROOM_TEMPLE), false, "to sacrifice");
+        }
+
+        return actions;
+    }
+
+    /**
+     * Carries a prisoner to a room: to its middle, to a free tile of a
+     * Torture Chamber, or into the pool of a Temple
+     */
+    private void carryPrisoner(KeeperAi keeperAi, IPlayerController playerController, Entity prisoner, IRoomController room,
+            boolean freeTile, String reason) {
+        if (room == null || battles.isLeftAlone(prisoner) || prisoner.get(CreatureAi.class).getCreatureState() == CreatureState.DEAD) {
+            return;
+        }
+
+        Point tile = room.getRoomInstance().getCenter();
+        if (freeTile) {
+            tile = getFreeTile(room);
+        } else if (room instanceof TempleController temple) {
+            for (Point p : room.getRoomInstance().getCoordinates()) {
+                if (temple.isSacrificePool(p)) {
+                    tile = p;
+                    break;
+                }
+            }
+        }
+        if (tile == null) {
+            return;
+        }
+        decisionLog.log(keeperAi, "carry prisoner " + prisoner.getId().getId() + " to room " + room.getRoomInstance().getRoom().getRoomId(),
+                tile, reason);
+        battles.carry(prisoner.getId(), tile, playerController);
+    }
+
+    /**
+     * A random tile of a room that no creature is being tortured on
+     */
+    private Point getFreeTile(IRoomController room) {
+        List<Point> tiles = new ArrayList<>(room.getRoomInstance().getCoordinates());
+        for (EntityId tortured : entityData.findEntities(null, CreatureTortured.class, Position.class)) {
+            tiles.remove(WorldUtils.vectorToPoint(entityData.getComponent(tortured, Position.class).position));
+        }
+
+        return tiles.isEmpty() ? null : Utils.getRandomItem(tiles);
     }
 
     /**

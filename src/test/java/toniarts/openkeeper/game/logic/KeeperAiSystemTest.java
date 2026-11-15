@@ -43,6 +43,7 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperAi;
 import toniarts.openkeeper.game.component.KeeperAiDropped;
@@ -83,6 +84,7 @@ import static toniarts.openkeeper.tools.convert.map.AiFixtures.withBuildAreaEndX
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withCallToArms;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withInvasion;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withNeutralRoomRange;
+import static toniarts.openkeeper.tools.convert.map.AiFixtures.withPrisonerFate;
 import static toniarts.openkeeper.tools.convert.map.AiFixtures.withRetreatHealth;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -861,6 +863,52 @@ class KeeperAiSystemTest {
         }
 
         assertEquals(List.of(idle), slapped);
+    }
+
+    @Test
+    void takesAnEnemyPrisonerToTheTortureChamberNowAndThen() {
+        KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.TORTURE), 1000);
+        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        roomControl.onBuild(createRoom(TORTURE_CHAMBER, new Point(5, 4)));
+        EntityId prisoner = createPrisoner(new Point(1, 4));
+
+        // Not one that walks about free in its land
+        EntityId free = createPrisoner(new Point(1, 8));
+        entityData.removeComponent(free, CreatureImprisoned.class);
+        for (int tick = 0; tick < 400 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(Map.of(prisoner, new Point(5, 4)), dropped);
+    }
+
+    @Test
+    void sacrificesAnEnemyPrisonerOrLeavesItToDieByItsSettings() {
+        KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.LEAVE_TO_DIE), 1000);
+        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        roomControl.onBuild(createRoom(TEMPLE, new Point(5, 4)));
+        EntityId prisoner = createPrisoner(new Point(1, 4));
+        for (int tick = 0; tick < 400; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(dropped.isEmpty());
+
+        entityData.removeEntity(entityData.findEntity(null, KeeperAi.class));
+        system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.SACRIFICE), 1000);
+        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        roomControl.onBuild(createRoom(TEMPLE, new Point(5, 4)));
+        for (int tick = 0; tick < 400 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(Map.of(prisoner, new Point(5, 4)), dropped);
+    }
+
+    private EntityId createPrisoner(Point tile) {
+        EntityId prisoner = createCreature(ENEMY_ID, tile, 100, 100, CreatureState.IMPRISONED);
+        entityData.setComponents(prisoner, new Owner(ENEMY_ID, PLAYER_ID), new CreatureImprisoned(0, 0));
+
+        return prisoner;
     }
 
     private EntityId createCreature(short playerId, Point tile, int health, int maxHealth, CreatureState state) {
