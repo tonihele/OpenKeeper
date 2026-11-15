@@ -85,7 +85,7 @@ class DoorsControllerTest {
             case "getDoorById" -> woodenDoor;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        doorsController = new DoorsController(kwdFile, entityData, null, mapController, null, null);
+        doorsController = new DoorsController(kwdFile, entityData, null, mapController, null, null, null);
     }
 
     @Test
