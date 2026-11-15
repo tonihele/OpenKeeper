@@ -22,7 +22,9 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -36,7 +38,9 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -100,7 +104,11 @@ class CreatureTorturingSystemTest {
         ICreaturesController creaturesController = stub(ICreaturesController.class,
                 (name, args) -> "createController".equals(name) ? creatureController : null);
 
-        return new CreatureTorturingSystem(entityData, creaturesController, mapInformation, chanceOfDyingWhenConverted);
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new EnumMap<>(Variable.MiscVariable.MiscType.class);
+        gameSettings.put(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED,
+                CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED, chanceOfDyingWhenConverted));
+
+        return new CreatureTorturingSystem(entityData, creaturesController, mapInformation, gameSettings);
     }
 
     @FunctionalInterface

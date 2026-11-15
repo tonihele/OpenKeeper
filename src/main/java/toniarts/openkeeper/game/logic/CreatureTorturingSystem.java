@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.logic;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
@@ -27,6 +28,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -46,11 +48,11 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     private final EntitySet torturedEntities;
 
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapInformation mapInformation,
-            int chanceOfDyingWhenConverted) {
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
         this.entityData = entityData;
         this.creaturesController = creaturesController;
         this.mapInformation = mapInformation;
-        this.chanceOfDyingWhenConverted = chanceOfDyingWhenConverted;
+        chanceOfDyingWhenConverted = (int) gameSettings.get(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED).getValue();
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
         torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
