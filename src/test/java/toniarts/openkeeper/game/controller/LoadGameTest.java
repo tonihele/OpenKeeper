@@ -183,7 +183,8 @@ class LoadGameTest {
     private static IKwdFile level() {
         Terrain rock = TerrainFixtures.terrain(ROCK_ID, flags(Terrain.TerrainFlag.SOLID), 0, 100, 100, ROCK_ID);
         Terrain treasuryTerrain = TerrainFixtures.terrain(TREASURY_ID, flags(Terrain.TerrainFlag.ROOM, Terrain.TerrainFlag.OWNABLE), 0, 100, 100, TREASURY_ID);
-        Room treasury = HeroGateFixtures.heroGateRoom((short) 1, "Treasury", Room.TileConstruction.NORMAL);
+        Room treasury = HeroGateFixtures.heroGateRoom((short) 1, "Treasury", Room.TileConstruction.NORMAL,
+                Room.RoomFlag.PLACEABLE_ON_LAND);
         GameObject pillar = GameObjectFixtures.gameObject("Treasury Pillar");
         GameObject gold = GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD);
         Player player = new Player();
