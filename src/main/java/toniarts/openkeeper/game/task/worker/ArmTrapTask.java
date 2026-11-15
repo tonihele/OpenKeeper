@@ -69,14 +69,6 @@ public final class ArmTrapTask extends AbstractTask {
         this.playerId = playerId;
     }
 
-    public EntityId getBlueprint() {
-        return blueprint;
-    }
-
-    public EntityId getCrate() {
-        return crate;
-    }
-
     @Override
     public Point getTaskLocation() {
         Position position = entityData.getComponent(crate, Position.class);
