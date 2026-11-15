@@ -75,7 +75,7 @@ public final class GameConsole {
         SPAWN_IMP,
         UNLOCK_ROOMS,
         UNLOCK_SPELLS,
-        UNLOCK_ROOMS_TRAPS,
+        UNLOCK_DOORS_TRAPS,
         REMOVE_FOW,
         RESET_FOW,
         WIN_LEVEL;
@@ -152,7 +152,7 @@ public final class GameConsole {
                 case LEVEL_MAX:
                 case UNLOCK_ROOMS:
                 case UNLOCK_SPELLS:
-                case UNLOCK_ROOMS_TRAPS:
+                case UNLOCK_DOORS_TRAPS:
                 case REMOVE_FOW:
                 case RESET_FOW:
                 case WIN_LEVEL:
@@ -179,7 +179,7 @@ public final class GameConsole {
                 case ADD_GOLD:
                     try {
                         int amount = Integer.parseInt(args[1]);
-                        gameClientState.getPlayer(keeper.getId()).setGold(amount);
+                        gameClientState.getGameClientService().triggerAddGoldCheat(amount);
                     } catch (NumberFormatException e) {
                         console.outputError("First parameter must be a number!");
                     }
@@ -187,7 +187,7 @@ public final class GameConsole {
                 case ADD_MANA:
                     try {
                         int amount = Integer.parseInt(args[1]);
-                        gameClientState.getPlayer(keeper.getId()).setMana(amount);
+                        gameClientState.getGameClientService().triggerAddManaCheat(amount);
                     } catch (NumberFormatException e) {
                         console.outputError("First parameter must be a number!");
                     }

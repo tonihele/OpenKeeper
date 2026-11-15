@@ -10,13 +10,31 @@
     <!-- +++++++++++++++++++++++++++++++++++++++ -->
     <screen id="start" controller="toniarts.openkeeper.tools.modelviewer.ModelViewerScreenController">
         <layer childLayout="horizontal">
-            <panel childLayout="vertical" width="20%" valign="top" align="left" height="100%">
-                <control name="dropDown" id="types" displayItems="10"/>
+            <panel childLayout="vertical" width="18%" valign="top" align="left" height="100%">
+                <panel childLayout="center" width="100%" height="28px" backgroundColor="#111f">
+                    <control name="dropDown" id="types" displayItems="10" width="100%"/>
+                </panel>
+                <panel childLayout="horizontal" width="100%" height="24px" backgroundColor="#111f">
+                    <text style="text" text="Filter" width="50px" valign="center"/>
+                    <control name="textfield" id="filter" text="" maxLength="64" width="*"/>
+                </panel>
+                <panel id="selectionOptions" childLayout="vertical" width="100%" height="236px"
+                       padding="8px" backgroundColor="#000f">
+                    <text style="text" text="Options" width="100%" height="20px" textHAlign="left"/>
+                    <control name="viewerOption" id="autoRotate" label="Auto-rotate" shortcut="Alt+R"/>
+                    <control name="viewerOption" id="showNormals" label="Show normals" shortcut="Alt+N"/>
+                    <control name="viewerOption" id="wireframe" label="Wireframe" shortcut="Alt+T"/>
+                    <control name="viewerOption" id="showCeiling" label="Map ceiling" shortcut="Alt+C"/>
+                    <control name="viewerOption" id="enableOverlay" label="Enable overlay" shortcut=""/>
+                    <control name="dropDown" id="overlayModel" displayItems="12" width="100%" height="28px"/>
+                    <panel height="4px" width="100%"/>
+                    <control name="viewerOption" id="showEffectDetails" label="Effect details" shortcut=""/>
+                </panel>
                 <control name="listBox" id="items" horizontal="optional" selection="Single"
                          vertical="on" forceSelection="true" displayItems="20"/>
             </panel>
             <panel width="*" height="100%"/>
-            <panel id="item" childLayout="vertical" width="30%" valign="top" height="100%"/>
+            <panel id="item" childLayout="vertical" width="24%" valign="top" height="100%"/>
         </layer>
     </screen>
 </nifty>
