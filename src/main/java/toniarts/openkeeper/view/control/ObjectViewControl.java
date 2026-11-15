@@ -222,6 +222,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     private void playAnimation(ObjectViewState viewState) {
         AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
+        configureVertexLighting(getSpatial());
         if (uniqueCreatureBed) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
