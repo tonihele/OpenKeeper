@@ -92,7 +92,7 @@ class UsedSpecialStorageTest {
                         method.getName().equals("getObjectControl") && args[0] == ObjectType.SPECIAL ? objectControl : null);
         return (IMapController) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IMapController.class}, (proxy, method, args) ->
-                        method.getName().equals("getRoomControllerByCoordinates") ? roomController : null);
+                        method.getName().equals("getRoomController") ? roomController : null);
     }
 
 }
