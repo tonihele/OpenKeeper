@@ -28,7 +28,9 @@ import com.jme3.asset.cache.WeakRefAssetCache;
 import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.BlendMode;
+import com.jme3.bounding.BoundingVolume;
 import com.jme3.math.ColorRGBA;
+import com.jme3.math.Vector3f;
 import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
@@ -82,6 +84,7 @@ public final class AssetUtils {
 
     // Custom model data keys
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
+    private final static String USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT = "MaterialBeforeBlueprint";
     
     private static volatile boolean preWarmedAssets = false;
 
@@ -326,6 +329,9 @@ public final class AssetUtils {
     public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
             boolean ignoreObjectLights, boolean useTileAmbient) {
         List<Material> materials = new ArrayList<>();
+        // Object lights are attenuated from the model's center, not per vertex
+        BoundingVolume bound = spatial.getWorldBound();
+        Vector3f meshCenter = bound != null ? bound.getCenter().clone() : spatial.getWorldTranslation().clone();
         spatial.depthFirstTraversal(new SceneGraphVisitor() {
             @Override
             public void visit(Spatial s) {
@@ -345,6 +351,7 @@ public final class AssetUtils {
                 }
                 material.setFloat("MinLight", 0f);
                 material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
+                material.setVector3("MeshCenter", meshCenter);
                 material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
                 materials.add(material);
             }
@@ -886,9 +893,31 @@ public final class AssetUtils {
                             "Common/MatDefs/Misc/Unshaded.j3md");
                     mat.setColor("Color", new ColorRGBA(0, 0, 0.8f, 0.4f));
                     mat.getAdditionalRenderState().setBlendMode(BlendMode.Alpha);
+                    if (spatial.getUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT) == null) {
+                        spatial.setUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT, ((Geometry) spatial).getMaterial());
+                    }
                     spatial.setMaterial(mat);
                 } catch (Exception e) {
                     logger.log(Level.WARNING, "Failed to set material color!", e);
+                }
+            }
+        });
+    }
+
+    /**
+     * Gives a blueprint its own materials back, e.g. when the trap gets
+     * armed
+     *
+     * @param spatial the spatial which was turned into a blueprint
+     */
+    public static void removeBlueprint(Spatial spatial) {
+        spatial.depthFirstTraversal(new SceneGraphVisitor() {
+            @Override
+            public void visit(Spatial spatial) {
+                Material material = spatial.getUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT);
+                if (spatial instanceof Geometry && material != null) {
+                    spatial.setMaterial(material);
+                    spatial.setUserData(USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT, null);
                 }
             }
         });

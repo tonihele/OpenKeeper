@@ -68,7 +68,14 @@ public class VisualEffect {
      */
     private static final float GRAVITY_FACTOR = 25f;
 
+    private static final float EFFECT_TICK = 1f / 20f;
     private final Effect effect;
+    private final boolean emitOverLifetime;
+    // The emitters fed every effect tick, and how long the effect still emits
+    private final List<ParticleEmitter> lifetimeEmitters = new ArrayList<>();
+    private float lifetimeLeft;
+    private boolean started;
+    private float tickAccumulator;
     // Keyed by the spawned spatial (unique per instance), not the shared
     // EffectElement definition -- a burst spawns elementsPerTurn separate
     // instances of the same element id, which would otherwise collide as
@@ -105,7 +112,18 @@ public class VisualEffect {
      * light then takes the fallback player colour)
      */
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite, short ownerId) {
+        this(effectManagerState, node, location, effect, infinite, ownerId, false);
+    }
+
+    /**
+     * @param emitOverLifetime emit the particle elements every effect tick
+     * ({@link #EFFECT_TICK}) while the effect's hp lasts, instead of a single
+     * burst. Only for the sprite particle elements.
+     */
+    public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite,
+            short ownerId, boolean emitOverLifetime) {
         this.effect = effect;
+        this.emitOverLifetime = emitOverLifetime;
         this.kwdFile = effectManagerState.getKwdFile();
         this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
@@ -145,6 +163,18 @@ public class VisualEffect {
                 meshCollectionParts = loadMeshCollectionParts(resource);
             }
         }
+
+        // The first batch comes on the next update
+        lifetimeEmitters.clear();
+        lifetimeLeft = emitOverLifetime ? effect.getMaxHp() * EFFECT_TICK : 0;
+        if (emitOverLifetime && !started) {
+            // Every instance is loaded at the same moment and would restart in lockstep forever. Cut the first
+            // cycle short by a random amount so they end up at different points of their cycle (the original's
+            // slabs drift apart through its random element lifetimes)
+            lifetimeLeft *= 0.1f + 0.9f * FastMath.nextRandomFloat();
+        }
+        started = true;
+        tickAccumulator = EFFECT_TICK;
 
         // Light
         lightTarget = model;
@@ -330,7 +360,11 @@ public class VisualEffect {
             effectElements.put(emitter, effectElement);
             effectNode.attachChild(emitter);
             if (emitter instanceof ParticleEmitter particleEmitter) {
-                particleEmitter.emitAllParticles();
+                if (emitOverLifetime) {
+                    lifetimeEmitters.add(particleEmitter);
+                } else {
+                    particleEmitter.emitAllParticles();
+                }
             } else if (emitter instanceof EffectEmitter effectEmitter) {
                 effectEmitter.emitAllParticles();
             }
@@ -368,9 +402,11 @@ public class VisualEffect {
     }
 
     private ParticleEmitter createParticleElement(EffectElement element, ArtResource resource) {
+        // Over the lifetime, the pool has to hold everything emitted while the first one is still alive
+        int poolSize = emitOverLifetime ? effect.getElementsPerTurn() * (element.getMaxHp() + 1) : effect.getElementsPerTurn();
         ParticleEmitter emitter = new EffectParticleEmitter(element.getName(),
                 ParticleMesh.Type.Triangle,
-                effect.getElementsPerTurn(),
+                poolSize,
                 element.getAirFriction(),
                 element.getElasticity(),
                 element.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION),
@@ -420,7 +456,10 @@ public class VisualEffect {
     }
 
     private void configureParticleEmissionRate(ParticleEmitter emitter, EffectElement element) {
-        if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
+        if (emitOverLifetime) {
+            // Fed by hand every effect tick, see update()
+            emitter.setParticlesPerSec(0);
+        } else if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
             // keep the pool topped up forever via
             // jME3's own continuous emission instead of a single burst that
             // fades away for good.
@@ -643,6 +682,8 @@ public class VisualEffect {
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
 
+        emitLifetimeElements(tpf);
+
         // Check the elements
         spawnDeathElements(updateElements());
 
@@ -691,10 +732,34 @@ public class VisualEffect {
     }
 
     /**
+     * One batch of {@code elementsPerTurn} particles per element and effect
+     * tick while the effect's hp lasts. Several ticks within a single frame
+     * still give one batch.
+     */
+    private void emitLifetimeElements(float tpf) {
+        if (lifetimeLeft <= 0) {
+            return;
+        }
+        lifetimeLeft -= tpf;
+        tickAccumulator += tpf;
+        if (tickAccumulator < EFFECT_TICK) {
+            return;
+        }
+        tickAccumulator = Math.min(tickAccumulator - EFFECT_TICK, EFFECT_TICK);
+        for (ParticleEmitter emitter : lifetimeEmitters) {
+            emitter.emitParticles(effect.getElementsPerTurn());
+        }
+    }
+
+    /**
      * Removes depleted effect elements and collects the death elements they
      * should spawn in their place.
      */
     private List<Integer> updateElements() {
+        if (lifetimeLeft > 0) {
+            // Still emitting, an empty emitter is not depleted yet
+            return null;
+        }
         Iterator<Entry<Spatial, EffectElement>> iter = effectElements.entrySet().iterator();
         List<Integer> deathEffectElements = null;
         while (iter.hasNext()) {
@@ -764,6 +829,8 @@ public class VisualEffect {
     public void removeEffect() {
         effects.clear();
         effectElements.clear();
+        lifetimeEmitters.clear();
+        lifetimeLeft = 0;
         infinite = false;
     }
 }
