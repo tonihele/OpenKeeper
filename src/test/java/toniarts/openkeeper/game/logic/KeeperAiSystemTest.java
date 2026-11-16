@@ -297,6 +297,33 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void looksForASmallerRoomWhenTheSearchForASiteGaveUp() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 16, 1, 50, 0, List.of(TREASURY)), 1000);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+
+        // Rock that can't be dug leaves no side of the heart 4 by 4 tiles behind the gap, as on Level 14 (#1249)
+        for (int y = 1; y <= 9; y++) {
+            map[y][9] = 'X';
+        }
+
+        // The search gives up on 1 in 20 rounds of the four directions
+        for (int tick = 0; tick < 4000 && built.size() < 9; tick++) {
+            system.processTick(0.25f);
+            if (getKeeperAi().task == KeeperAi.Task.FIND_ROOM_SITE && getKeeperAi().roomSitesNotFound == 0) {
+                assertTrue(tagged.isEmpty());
+            }
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
+
+        // It gave up on the 16 tiles and built 3 by 3, the next room is looked for at its full size again
+        assertEquals(9, built.size());
+        assertEquals(0, getKeeperAi().roomSitesNotFound);
+    }
+
+    @Test
     void digsToAPortalFarFromItsRoomsOnlyFromLandItHasNearThePortal() {
         KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 5, 1), 1000);
         createNeutralPortal(new Point(10, 3));
