@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
+import toniarts.openkeeper.game.controller.shot.WindShotProcessor;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -53,6 +54,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WIND;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -117,6 +119,7 @@ public final class ShotsController implements IShotsController {
         });
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
+        result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
 
         return result;
     }
@@ -197,10 +200,21 @@ public final class ShotsController implements IShotsController {
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
+        process(shotEntity, flight, shot, thing);
+    }
+
+    @Override
+    public void fly(EntityId shotEntity) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        process(shotEntity, flight, kwdFile.getShotById(flight.shotId), null);
+    }
+
+    private void process(EntityId shotEntity, ShotFlight flight, Shot shot, EntityId thing) {
         IShotProcessor processor = processors.get(shot.getProcessType());
         if (processor != null) {
             processor.process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                    EntityController.getPosition(entityData, shotEntity), thing));
+                    EntityController.getPosition(entityData, shotEntity), thing, flight.shooter));
         } else if (shot.getProcessType() != Shot.ProcessType.NONE && unprocessedTypes.add(shot.getProcessType())) {
             logger.log(Logger.Level.WARNING, "Shot type {0} not implemented", shot.getProcessType());
         }
