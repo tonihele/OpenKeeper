@@ -958,6 +958,19 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void dropsAnEnemyPrisonerIntoTheCombatPitToFight() {
+        KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.PLACE_IN_PIT), 1000);
+        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
+        roomControl.onBuild(createRoom(COMBAT_PIT, new Point(5, 4)));
+        EntityId prisoner = createPrisoner(new Point(1, 4));
+        for (int tick = 0; tick < 400 && dropped.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(Map.of(prisoner, new Point(5, 4)), dropped);
+    }
+
+    @Test
     void sacrificesAnEnemyPrisonerOrLeavesItToDieByItsSettings() {
         KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.LEAVE_TO_DIE), 1000);
         roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
