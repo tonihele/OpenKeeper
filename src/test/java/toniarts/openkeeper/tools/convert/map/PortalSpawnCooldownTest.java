@@ -22,6 +22,9 @@ import com.jme3.network.serializing.Serializer;
 import com.jme3.network.serializing.serializers.FieldSerializer;
 import java.nio.ByteBuffer;
 import toniarts.openkeeper.game.component.CreatureGenerator;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.event.GameEventType;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -176,6 +179,8 @@ class PortalSpawnCooldownTest {
         assertEquals(toniarts.openkeeper.utils.WorldUtils.pointToVector3f(f.portal.getEntranceCoordinate()),
                 f.preparations.getFirst()[4]);
         assertEquals(List.of(), f.spawned);
+        assertTrue(f.entities.findEntities(null, toniarts.openkeeper.game.component.CreatureTypeAttraction.class).isEmpty(),
+                "Preparation must not consume attraction state");
         f.tick(0.25f);
         assertEquals(1, f.preparations.size(), "Emit preparation only once per cycle");
         f.tick(2.75f);
@@ -275,7 +280,7 @@ class PortalSpawnCooldownTest {
         setting(settings, Variable.MiscVariable.MiscType.CREATURES_SUPPORTED_PER_ADDITIONAL_PORTAL, 5);
         setting(settings, Variable.MiscVariable.MiscType.TIME_BEFORE_FREE_IMP_GENERATED_SECONDS, 5);
         CreatureSpawnSystem system = new CreatureSpawnSystem(entities, spawner, List.of(player), settings,
-                stub(ILevelInfo.class, (method, args) -> stub(IKwdFile.class, (m, a) -> imp)), map,
+                stub(ILevelInfo.class, (method, args) -> stub(IKwdFile.class, (m, a) -> m.equals("getImp") ? imp : null)), map,
                 stub(GameEventService.class, (method, args) -> null));
         listeners.get(0).onBuild(stub(ICreatureEntrance.class, (method, args) -> switch (method) {
             case "isDungeonHeart" -> true;
@@ -311,6 +316,7 @@ class PortalSpawnCooldownTest {
             Keeper keeper = new Keeper(false, (short) 3);
             Creature goblin = new Creature();
             goblin.setCreatureId((short) 7);
+            goblin.setFlags(java.util.EnumSet.of(Creature.CreatureFlag.AVAILABLE_VIA_PORTAL));
             Creature.Attraction lairRequirement = new Creature.Attraction();
             lairRequirement.setRoomId(2);
             lairRequirement.setType(Creature.AttractionType.ROOM);
@@ -357,7 +363,12 @@ class PortalSpawnCooldownTest {
                     throw new AssertionError(method);
                 }
                 spawned.add((Short) args[0]);
-                return failSpawn ? null : entities.createEntity();
+                if (failSpawn) {
+                    return null;
+                }
+                EntityId id = entities.createEntity();
+                entities.setComponents(id, new CreatureComponent(), new Owner((short) 3, (short) 3), new Health(100, 100));
+                return id;
             });
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> settings =
                     new EnumMap<>(Variable.MiscVariable.MiscType.class);

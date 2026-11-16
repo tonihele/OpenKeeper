@@ -24,6 +24,12 @@ import com.simsilica.es.EntityComponent;
  */
 public final class CreaturePay implements EntityComponent {
 
+    /**
+     * How many times a creature goes to collect its pay and gets nothing,
+     * before it waits for the next pay day
+     */
+    public static final int MAX_COLLECTION_ATTEMPTS = 2;
+
     public int unpaid;
     public int attempts;
     public double nextAttemptTime;
