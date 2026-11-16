@@ -21,6 +21,7 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -41,8 +42,6 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
-import toniarts.openkeeper.game.controller.trap.ITrapEffects;
-import toniarts.openkeeper.game.fogofwar.IBlocksSight;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -73,14 +72,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * revealed when fired. Creatures that reveal traps reveal the hidden traps of
  * their enemies on their tile and the eight tiles around it.
  *
- * @see ITrapEffects for what the shots do
+ * @see IShotsController for what the shots do
  */
 public final class TrapSystem implements IGameLogicUpdatable {
-
-    /**
-     * How far apart, in tiles, the line of sight is checked for walls
-     */
-    private static final float LINE_OF_SIGHT_STEP = 0.25f;
 
     /**
      * How far, in tiles, a Trigger Trap's wave reaches
@@ -102,13 +96,12 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
-    private final IBlocksSight blocksSight;
     private final IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
-    private final ITrapEffects trapEffects;
     private final IShotsController shotsController;
     private final float triggerSpeed;
     private final EntitySet trapEntities;
+    private final EntitySet hiddenTrapEntities;
     private final EntitySet creatureEntities;
     private final EntitySet triggerWaves;
 
@@ -118,27 +111,25 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * @param entityData the entity data
      * @param kwdFile the level data, for the traps and creatures
      * @param gameTimer the game time
-     * @param blocksSight tells the tiles that block a trap's sight
-     * @param entityPositionLookup finds the things on a tile
+     * @param entityPositionLookup finds the things on a tile and tells what
+     * a trap sees
      * @param playerControllers the players, for their mana and enemies
-     * @param trapEffects applies the shots that hit at once
-     * @param shotsController fires the shots that fly
+     * @param shotsController fires the shots
      */
-    public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IBlocksSight blocksSight,
-            IEntityPositionLookup entityPositionLookup, Map<Short, IPlayerController> playerControllers, ITrapEffects trapEffects,
-            IShotsController shotsController) {
+    public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IEntityPositionLookup entityPositionLookup,
+            Map<Short, IPlayerController> playerControllers, IShotsController shotsController) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
-        this.blocksSight = blocksSight;
         this.entityPositionLookup = entityPositionLookup;
         this.playerControllers = playerControllers;
-        this.trapEffects = trapEffects;
         this.shotsController = shotsController;
         triggerSpeed = kwdFile.getVariables().get(
                 Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND).getValue();
 
         trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class, Health.class);
+        hiddenTrapEntities = entityData.getEntities(new FieldFilter<>(TrapViewState.class, "hidden", true),
+                TrapViewState.class, Owner.class, Position.class, Health.class);
         creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
         triggerWaves = entityData.getEntities(TriggerWave.class);
     }
@@ -147,9 +138,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         trapEntities.applyChanges();
         creatureEntities.applyChanges();
-        trapEffects.update();
 
-        revealTrapsAroundCreatures();
+        revealHiddenTraps();
 
         double gameTime = gameTimer.getGameTime();
         for (Entity trapEntity : trapEntities) {
@@ -234,7 +224,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
         Vector3f trapPosition = trapEntity.get(Position.class).position;
         if (!fireFlyingShot(trapEntity, trap, ownerId, trapPosition, target)) {
-            trapEffects.fire(trap, ownerId, trapPosition.clone(), target);
+            shotsController.createShot(trap.getShotTypeId(), trap.getShotData1(), trap.getShotData2(), ownerId,
+                    trapPosition.clone(), target, null);
         }
         if (trap.getFlags().contains(Trap.TrapFlag.REVEAL_WHEN_FIRED)) {
             reveal(trapEntity);
@@ -260,7 +251,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     /**
      * A line of sight trap, like the Sentry Trap, sends a flying shot after its
      * victim (0x4A7FD0). A pressure trap's shot hits the creature on the trap
-     * at once (0x4A80E0), so that stays with the trap effects.
+     * at once (0x4A80E0).
      *
      * @param trapEntity the trap
      * @param trap the trap data
@@ -361,7 +352,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
             }
             EntityId target = null;
             if (victim != null && (trap.getTriggerType() == Trap.TriggerType.TRIGGER
-                    || hasLineOfSight(blocksSight, trapPosition, victim.get(Position.class).position))) {
+                    || entityPositionLookup.hasLineOfSight(trapPosition, victim.get(Position.class).position))) {
                 target = victim.getId();
             }
             fire(trapEntity, trap, target, firing, gameTime);
@@ -384,34 +375,41 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
     /**
      * The creatures that reveal traps reveal the hidden traps of their
-     * enemies around them
+     * enemies around them. There are fewer hidden traps than creatures, so
+     * this looks around the hidden traps
      */
-    private void revealTrapsAroundCreatures() {
-        for (Entity creatureEntity : creatureEntities) {
-            Creature creature = kwdFile.getCreature(creatureEntity.get(CreatureComponent.class).creatureId);
-            if (creature == null || !creature.getFlags().contains(Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS)
-                    || !canSetOffTraps(creatureEntity, false)) {
-                continue;
-            }
-
-            Point creatureTile = WorldUtils.vectorToPoint(creatureEntity.get(Position.class).position);
-            short creatureOwnerId = creatureEntity.get(Owner.class).ownerId;
-            for (int x = creatureTile.x - TRAP_REVEAL_RANGE; x <= creatureTile.x + TRAP_REVEAL_RANGE; x++) {
-                for (int y = creatureTile.y - TRAP_REVEAL_RANGE; y <= creatureTile.y + TRAP_REVEAL_RANGE; y++) {
-                    revealTraps(x, y, creatureOwnerId);
-                }
+    private void revealHiddenTraps() {
+        hiddenTrapEntities.applyChanges();
+        for (Entity trapEntity : hiddenTrapEntities) {
+            if (isRevealed(trapEntity)) {
+                reveal(trapEntity);
             }
         }
     }
 
-    private void revealTraps(int x, int y, short creatureOwnerId) {
-        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
-            Entity trapEntity = trapEntities.getEntity(entityId);
-            if (trapEntity != null && trapEntity.get(TrapViewState.class).hidden
-                    && isEnemy(creatureOwnerId, trapEntity.get(Owner.class).ownerId)) {
-                reveal(trapEntity);
+    private boolean isRevealed(Entity trapEntity) {
+        Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
+        short ownerId = trapEntity.get(Owner.class).ownerId;
+        for (int x = trapTile.x - TRAP_REVEAL_RANGE; x <= trapTile.x + TRAP_REVEAL_RANGE; x++) {
+            for (int y = trapTile.y - TRAP_REVEAL_RANGE; y <= trapTile.y + TRAP_REVEAL_RANGE; y++) {
+                for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Entity creatureEntity = creatureEntities.getEntity(entityId);
+                    if (creatureEntity != null && isEnemy(creatureEntity.get(Owner.class).ownerId, ownerId)
+                            && revealsTraps(creatureEntity)) {
+                        return true;
+                    }
+                }
             }
         }
+
+        return false;
+    }
+
+    private boolean revealsTraps(Entity creatureEntity) {
+        Creature creature = kwdFile.getCreature(creatureEntity.get(CreatureComponent.class).creatureId);
+
+        return creature != null && creature.getFlags().contains(Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS)
+                && canSetOffTraps(creatureEntity, false);
     }
 
     private boolean payForShot(Trap trap, short ownerId) {
@@ -460,19 +458,27 @@ public final class TrapSystem implements IGameLogicUpdatable {
      */
     private EntityId findTargetInSight(Entity trapEntity, int range) {
         Vector3f trapPosition = trapEntity.get(Position.class).position;
+        Point trapTile = WorldUtils.vectorToPoint(trapPosition);
         short ownerId = trapEntity.get(Owner.class).ownerId;
         float closestDistanceSquared = range * range;
         EntityId target = null;
-        for (Entity creatureEntity : creatureEntities) {
-            if (!isEnemy(ownerId, creatureEntity.get(Owner.class).ownerId) || !canSetOffTraps(creatureEntity, true)) {
-                continue;
-            }
+        for (int x = trapTile.x - range; x <= trapTile.x + range; x++) {
+            for (int y = trapTile.y - range; y <= trapTile.y + range; y++) {
+                for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    Entity creatureEntity = creatureEntities.getEntity(entityId);
+                    if (creatureEntity == null || !isEnemy(ownerId, creatureEntity.get(Owner.class).ownerId)
+                            || !canSetOffTraps(creatureEntity, true)) {
+                        continue;
+                    }
 
-            Vector3f creaturePosition = creatureEntity.get(Position.class).position;
-            float distanceSquared = distanceSquared(trapPosition, creaturePosition);
-            if (distanceSquared < closestDistanceSquared && hasLineOfSight(blocksSight, trapPosition, creaturePosition)) {
-                closestDistanceSquared = distanceSquared;
-                target = creatureEntity.getId();
+                    Vector3f creaturePosition = creatureEntity.get(Position.class).position;
+                    float distanceSquared = distanceSquared(trapPosition, creaturePosition);
+                    if (distanceSquared < closestDistanceSquared
+                            && entityPositionLookup.hasLineOfSight(trapPosition, creaturePosition)) {
+                        closestDistanceSquared = distanceSquared;
+                        target = entityId;
+                    }
+                }
             }
         }
 
@@ -550,32 +556,6 @@ public final class TrapSystem implements IGameLogicUpdatable {
         return dx * dx + dz * dz;
     }
 
-    /**
-     * Whether there are no sight blocking tiles between two points on the map.
-     * The tiles the points are on don't count
-     *
-     * @param blocksSight tells the tiles that block sight
-     * @param from the point to look from
-     * @param to the point to look at
-     * @return is there a line of sight
-     */
-    static boolean hasLineOfSight(IBlocksSight blocksSight, Vector3f from, Vector3f to) {
-        Point startTile = WorldUtils.vectorToPoint(from);
-        Point endTile = WorldUtils.vectorToPoint(to);
-        float dx = to.x - from.x;
-        float dz = to.z - from.z;
-        int steps = (int) Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / LINE_OF_SIGHT_STEP);
-        for (int i = 1; i < steps; i++) {
-            float progress = (float) i / steps;
-            Point tile = WorldUtils.vectorToPoint(from.x + dx * progress, from.z + dz * progress);
-            if (!tile.equals(startTile) && !tile.equals(endTile) && blocksSight.blocksSight(tile.x, tile.y)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
     @Override
     public void start() {
 
@@ -584,6 +564,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         trapEntities.release();
+        hiddenTrapEntities.release();
         creatureEntities.release();
         triggerWaves.release();
     }
