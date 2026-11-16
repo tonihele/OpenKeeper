@@ -68,6 +68,12 @@ public final class LightConstants {
      */
     public static final boolean TERRAIN_AMBIENT_ENABLED = true;
 
+    /**
+     * Share of its file value the per-terrain ambient of room tiles is baked
+     * with, only while gamma correction is on.
+     */
+    public static final float ROOM_AMBIENT_SCALE = 0.2f;
+
     // ---- general ----
 
     /**
@@ -229,14 +235,6 @@ public final class LightConstants {
      * Thing-light radius scale
      */
     public static final float THING_LIGHT_RADIUS_SCALE = 2f / 3f;
-
-    /**
-     * Extra radius factor for object lights only (dungeon heart glow, ...),
-     * applied on top of {@link #THING_LIGHT_RADIUS_SCALE} and still capped by
-     * {@link #MAX_LIGHT_RADIUS_TILES}. Creatures and effects are unaffected.
-     * Smaller with gamma correction, the lights look wider in linear space.
-     */
-    public static final float OBJECT_LIGHT_RADIUS_SCALE = Main.getUserSettings().getAppSettings().isGammaCorrection() ? 1.2f : 1.5f;
 
     /**
      * {@code flags.PLAYER_COLOURED} clamp floor
