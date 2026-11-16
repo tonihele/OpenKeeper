@@ -102,7 +102,6 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private final float triggerSpeed;
     private final EntitySet trapEntities;
     private final EntitySet hiddenTrapEntities;
-    private final EntitySet creatureEntities;
     private final EntitySet triggerWaves;
 
     /**
@@ -130,14 +129,12 @@ public final class TrapSystem implements IGameLogicUpdatable {
         trapEntities = entityData.getEntities(TrapComponent.class, TrapViewState.class, Owner.class, Position.class, Health.class);
         hiddenTrapEntities = entityData.getEntities(new FieldFilter<>(TrapViewState.class, "hidden", true),
                 TrapViewState.class, Owner.class, Position.class, Health.class);
-        creatureEntities = entityData.getEntities(CreatureComponent.class, Owner.class, Position.class, Health.class);
         triggerWaves = entityData.getEntities(TriggerWave.class);
     }
 
     @Override
     public void processTick(float tpf) {
         trapEntities.applyChanges();
-        creatureEntities.applyChanges();
 
         revealHiddenTraps();
 
@@ -280,7 +277,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
      */
     private Vector3f getShotStart(Trap trap, Vector3f trapPosition, EntityId target) {
         Vector3f result = new Vector3f(trapPosition);
-        Entity targetEntity = creatureEntities.getEntity(target);
+        Entity targetEntity = getCreature(target);
         if (targetEntity != null) {
             Vector3f forward = targetEntity.get(Position.class).position.subtract(trapPosition).setY(0);
             if (forward.lengthSquared() > 0) {
@@ -332,7 +329,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
      */
     private boolean spreadTriggerWave(TriggerWave triggerWave, Set<EntityId> reachedTraps, double gameTime) {
         float radius = (float) Math.min(TRIGGER_TRAP_RANGE, (gameTime - triggerWave.startTime) * triggerSpeed);
-        Entity victim = creatureEntities.getEntity(triggerWave.target);
+        Entity victim = getCreature(triggerWave.target);
         for (Entity trapEntity : trapEntities) {
             Vector3f trapPosition = trapEntity.get(Position.class).position;
             if (trapEntity.get(TrapViewState.class).blueprint || trapEntity.get(Owner.class).ownerId != triggerWave.ownerId
@@ -393,7 +390,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         for (int x = trapTile.x - TRAP_REVEAL_RANGE; x <= trapTile.x + TRAP_REVEAL_RANGE; x++) {
             for (int y = trapTile.y - TRAP_REVEAL_RANGE; y <= trapTile.y + TRAP_REVEAL_RANGE; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
-                    Entity creatureEntity = creatureEntities.getEntity(entityId);
+                    Entity creatureEntity = getCreature(entityId);
                     if (creatureEntity != null && isEnemy(creatureEntity.get(Owner.class).ownerId, ownerId)
                             && revealsTraps(creatureEntity)) {
                         return true;
@@ -403,6 +400,22 @@ public final class TrapSystem implements IGameLogicUpdatable {
         }
 
         return false;
+    }
+
+    /**
+     * Gets a creature, if the entity is one and still has everything the
+     * traps need from it
+     *
+     * @param entityId the entity ID
+     * @return the creature, or {@code null} if it is not a creature (any more)
+     */
+    private Entity getCreature(EntityId entityId) {
+        Entity entity = entityData.getEntity(entityId, CreatureComponent.class, Owner.class, Position.class, Health.class);
+        if (entity == null || entity.get(CreatureComponent.class) == null || entity.get(Owner.class) == null
+                || entity.get(Position.class) == null || entity.get(Health.class) == null) {
+            return null;
+        }
+        return entity;
     }
 
     private boolean revealsTraps(Entity creatureEntity) {
@@ -465,7 +478,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         for (int x = trapTile.x - range; x <= trapTile.x + range; x++) {
             for (int y = trapTile.y - range; y <= trapTile.y + range; y++) {
                 for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
-                    Entity creatureEntity = creatureEntities.getEntity(entityId);
+                    Entity creatureEntity = getCreature(entityId);
                     if (creatureEntity == null || !isEnemy(ownerId, creatureEntity.get(Owner.class).ownerId)
                             || !canSetOffTraps(creatureEntity, true)) {
                         continue;
@@ -498,7 +511,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
         short ownerId = trapEntity.get(Owner.class).ownerId;
         for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(trapTile)) {
-            Entity creatureEntity = creatureEntities.getEntity(entityId);
+            Entity creatureEntity = getCreature(entityId);
             if (creatureEntity == null) {
                 continue;
             }
@@ -565,7 +578,6 @@ public final class TrapSystem implements IGameLogicUpdatable {
     public void stop() {
         trapEntities.release();
         hiddenTrapEntities.release();
-        creatureEntities.release();
         triggerWaves.release();
     }
 
