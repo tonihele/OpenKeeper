@@ -28,10 +28,12 @@ import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.FurnitureUse;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Stored;
@@ -126,8 +128,22 @@ public class EntityController implements IEntityController {
 
     @Override
     public void removePossession() {
+        endFurnitureUse();
         handleLootDrop();
         handleAssociatedEntities();
+    }
+
+    /** Also used by creature-state interactions which outlive their navigation task. */
+    protected void endFurnitureUse() {
+        FurnitureUse use = entityData.getComponent(entityId, FurnitureUse.class);
+        if (use != null) {
+            // A room rebuild may already have removed the object. Do not recreate it.
+            if (entityData.getComponent(use.objectEntityId, ObjectViewState.class) != null) {
+                objectsController.createController(use.objectEntityId).endUse(entityId);
+            } else {
+                entityData.removeComponent(entityId, FurnitureUse.class);
+            }
+        }
     }
 
     private void handleLootDrop() {

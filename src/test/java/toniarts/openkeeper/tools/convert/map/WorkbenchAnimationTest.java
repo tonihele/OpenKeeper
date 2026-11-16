@@ -23,7 +23,8 @@ import com.jme3.scene.*;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumSet;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.view.control.ObjectViewControl;
@@ -43,12 +44,14 @@ class WorkbenchAnimationTest {
         composer.addAnimClip(clip);
         return root;
     }
-    ObjectViewState view(GameObject.State state) {
-        return new ObjectViewState((short) 46, state, ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true);
+    ObjectViewState view(short objectId, GameObject.State state) {
+        return new ObjectViewState(objectId, state, ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true);
     }
-    @Test void realObjectControlHoldsIdleFrameAnimatesWhileActiveAndResetsAfterward() {
+    @ParameterizedTest
+    @ValueSource(shorts = {46, 77})
+    void onlyWorkbenchPausesWhenIdleAndAllObjectsAnimateWhenActive(short objectId) {
         DefaultEntityData data = new DefaultEntityData();
-        GameObject object = new GameObject(); object.setObjectId((short) 46);
+        GameObject object = new GameObject(); object.setObjectId(objectId);
         ArtResource resource = new ArtResource(); resource.setName("SyntheticWorkbenchSpin");
         resource.setType(ArtResource.ArtResourceType.ANIMATING_MESH);
         resource.setFlags(EnumSet.noneOf(ArtResource.ArtResourceFlag.class));
@@ -59,17 +62,25 @@ class WorkbenchAnimationTest {
                 throw new UnsupportedOperationException(m.getName());
             });
         ObjectViewControl control = new ObjectViewControl(data.createEntity(), data, object,
-            view(GameObject.State.NONE), assets, null);
+            view(objectId, GameObject.State.NONE), assets, null);
         Node root = new Node(); root.addControl(control);
         for(int i=0;i<5;i++) root.updateLogicalState(.13f);
-        assertEquals(0, root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x);
-        control.setTargetState(view(GameObject.State.ACTIVATE_ANIM));
+        if (objectId == 46) {
+            assertEquals(0, root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x);
+        } else {
+            assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
+        }
+        control.setTargetState(view(objectId, GameObject.State.ACTIVATE_ANIM));
         for(int i=0;i<3;i++) root.updateLogicalState(.13f);
         assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
-        control.setTargetState(view(GameObject.State.NONE));
+        control.setTargetState(view(objectId, GameObject.State.NONE));
         for(int i=0;i<5;i++) root.updateLogicalState(.13f);
-        assertEquals(0, root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x);
-        control.setTargetState(view(GameObject.State.ACTIVATE_ANIM));
+        if (objectId == 46) {
+            assertEquals(0, root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x);
+        } else {
+            assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
+        }
+        control.setTargetState(view(objectId, GameObject.State.ACTIVATE_ANIM));
         for(int i=0;i<3;i++) root.updateLogicalState(.13f);
         assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
         control.cleanup(); data.close();

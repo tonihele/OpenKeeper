@@ -25,8 +25,10 @@ import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.data.FurnitureAnimationPolicy;
 import toniarts.openkeeper.game.navigation.INavigationService;
-import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
+import toniarts.openkeeper.game.task.AbstractFurnitureTask;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Trap;
@@ -37,7 +39,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * Manufacture traps for the keeper's blueprints in the workshop. The
  * finished trap is a crate in the workshop.
  */
-public final class Manufacture extends AbstractCapacityCriticalRoomTask {
+public final class Manufacture extends AbstractFurnitureTask {
 
     private final PlayerManufactureControl manufactureControl;
     private final IObjectsController objectsController;
@@ -45,7 +47,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
             TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController) {
-        super(navigationService, mapController, p, playerId, room, taskManager);
+        super(navigationService, mapController, p, playerId, room, taskManager, objectsController);
 
         this.manufactureControl = manufactureControl;
         this.objectsController = objectsController;
@@ -96,7 +98,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature, float executionDuration) {
+    protected void executeFurnitureTask(ICreatureController creature, float executionDuration) {
         // Work a second at a time, the logic runs several ticks a second
         if (executionDuration - getExecutionDuration(creature) < 1.0f) {
             return;
@@ -116,6 +118,11 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
             // No room for it after all
             objectsController.createController(crate).remove();
         }
+    }
+
+    @Override
+    protected boolean acceptsFurniture(IObjectController object) {
+        return object.getObjectId() == FurnitureAnimationPolicy.WORKBENCH_OBJECT_ID;
     }
 
     @Override
