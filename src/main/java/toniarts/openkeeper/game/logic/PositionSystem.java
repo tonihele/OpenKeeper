@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -52,6 +53,11 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
+
+    /**
+     * How far apart, in tiles, the line of sight is checked for walls
+     */
+    private static final float LINE_OF_SIGHT_STEP = 0.25f;
 
     private final EntityData entityData;
     private final IMapController mapController;
@@ -176,6 +182,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
     @Override
     public List<EntityId> getEntitiesInLocation(int x, int y) {
+        if (x < 0 || y < 0 || x >= entitiesByMapTile.length || y >= entitiesByMapTile[x].length) {
+            return Collections.emptyList();
+        }
         Set<EntityId> entityIds = entitiesByMapTile[x][y];
         if (entityIds.isEmpty()) {
             return Collections.emptyList();
@@ -374,9 +383,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
             List<IMapTileInformation> nextTiles = new ArrayList<>();
             for (IMapTileInformation tile : tiles) {
-                if (tile == null || !visitedTiles.add(tile)
-                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                        || (playerId != null && isTileBlocked(tile, playerId))) {
+                if (!visitedTiles.add(tile) || blocksSenses(tile) || (playerId != null && isTileBlocked(tile, playerId))) {
                     continue;
                 }
 
@@ -389,6 +396,28 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             }
             tiles = nextTiles;
         }
+    }
+
+    private boolean blocksSenses(IMapTileInformation tile) {
+        return tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+
+    @Override
+    public boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        Point startTile = WorldUtils.vectorToPoint(from);
+        Point endTile = WorldUtils.vectorToPoint(to);
+        float dx = to.x - from.x;
+        float dz = to.z - from.z;
+        int steps = (int) Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / LINE_OF_SIGHT_STEP);
+        for (int i = 1; i < steps; i++) {
+            float progress = (float) i / steps;
+            Point tile = WorldUtils.vectorToPoint(from.x + dx * progress, from.z + dz * progress);
+            if (!tile.equals(startTile) && !tile.equals(endTile) && blocksSenses(mapController.getMapData().getTile(tile))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }
