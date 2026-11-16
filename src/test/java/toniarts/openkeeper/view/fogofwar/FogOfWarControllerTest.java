@@ -52,7 +52,10 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * The fog of war must not run before the level start seeding. The seeding
  * clears everything explored so far, so anything seen or reported before it
  * would be back in the fog but already reported, and the Dungeon Heart's
- * start-of-level reveal would be used up.
+ * start-of-level reveal would be used up. The heart reveal runs on the first
+ * updates after the seeding, also for a heart that was already there when the
+ * fog of war started. Like in DK II, it only explores the terrain that shows
+ * through the fog of war.
  */
 class FogOfWarControllerTest {
 
@@ -60,7 +63,13 @@ class FogOfWarControllerTest {
     private static final short ENEMY = Player.KEEPER2_ID;
     private static final short FLOOR_ID = 1;
     private static final short CREATURE_ID = 1;
+    private static final short GOLD_ID = 2;
     private static final int MAP_SIZE = 21;
+
+    /**
+     * Gold near the edge of the heart reveal, the rest of the map is floor
+     */
+    private static final Point GOLD_TILE = new Point(10, 18);
 
     /**
      * More than enough to cover the heart reveal's start delay and steps
@@ -77,12 +86,14 @@ class FogOfWarControllerTest {
         entityData = new DefaultEntityData();
         Terrain floor = TerrainFixtures.terrain(FLOOR_ID, TerrainFixtures.flags(), 0, 0, 0, FLOOR_ID);
         Creature creature = FogVisionFixtures.creature(CREATURE_ID, 3, 0);
+        Terrain gold = TerrainFixtures.terrain(GOLD_ID, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID,
+                Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR), 0, 0, 0, GOLD_ID);
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> variables = Map.of(
                 Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES,
                 FogVisionFixtures.miscVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES, 15));
         IKwdFile kwdFile = proxy(IKwdFile.class, (proxy, method, args) -> switch (method.getName()) {
             case "getTerrain" ->
-                floor;
+                (short) args[0] == GOLD_ID ? gold : floor;
             case "getCreature" ->
                 creature;
             case "getThings" ->
@@ -194,16 +205,25 @@ class FogOfWarControllerTest {
     }
 
     private void assertHeartRevealedOnlyAfterSeeding() {
-        Point nearEdgeOfReveal = new Point(10, 18);
-
         update(UPDATES);
-        assertFalse(controller.isExplored(nearEdgeOfReveal), "The heart reveal must wait for the fog seeding");
+        assertFalse(controller.isExplored(GOLD_TILE), "The heart reveal must wait for the fog seeding");
 
         controller.seedLevelStart();
-        assertFalse(controller.isExplored(nearEdgeOfReveal));
+        assertFalse(controller.isExplored(GOLD_TILE));
         update(UPDATES);
 
-        assertTrue(controller.isExplored(nearEdgeOfReveal), "The heart reveal runs once the fog is seeded");
+        assertTrue(controller.isExplored(GOLD_TILE), "The heart reveal runs once the fog is seeded");
+    }
+
+    @Test
+    void heartRevealLeavesOtherTerrainUnexplored() {
+        Point floorNearHeart = new Point(10, 14);
+        createHeart(10, 10);
+        controller.start();
+
+        assertHeartRevealedOnlyAfterSeeding();
+
+        assertFalse(controller.isExplored(floorNearHeart), "Only the terrain that shows through the fog is revealed");
     }
 
     private void update(int times) {
@@ -239,7 +259,7 @@ class FogOfWarControllerTest {
                 Point location = new Point(x, y);
                 tiles[x][y] = proxy(IMapTileInformation.class, (proxy, method, args) -> switch (method.getName()) {
                     case "getTerrainId" ->
-                        FLOOR_ID;
+                        location.equals(GOLD_TILE) ? GOLD_ID : FLOOR_ID;
                     case "getOwnerId" ->
                         Player.NEUTRAL_PLAYER_ID;
                     case "getLocation" ->

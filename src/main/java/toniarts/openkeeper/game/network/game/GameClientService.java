@@ -387,6 +387,13 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            for (GameSessionListener listener : listeners.getArray()) {
+                listener.onEffect(effectId, position, yaw);
+            }
+        }
+
+        @Override
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
