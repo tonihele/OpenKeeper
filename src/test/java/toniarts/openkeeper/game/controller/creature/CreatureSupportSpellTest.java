@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
@@ -298,6 +299,24 @@ class CreatureSupportSpellTest {
         entityData.setComponent(friend, new SpeedChange(30));
         gameTime += RECHARGE;
         assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void theHasteShotLandsOnItsCaster() {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.speed = 1f;
+        entityData.setComponents(us, creatureComponent, new Mobile(false, false, false, 1f), new Health(100, 1000));
+
+        // Haste Creature, its shot flies. We are the one of our fighters that needs it
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE,
+                createShotsController(ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.MODIFY_SPEED)));
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        assertNotNull(entityData.getComponent(us, SpeedChange.class));
+        assertEquals(4f, entityData.getComponent(us, Mobile.class).maxSpeed);
     }
 
     @Test
