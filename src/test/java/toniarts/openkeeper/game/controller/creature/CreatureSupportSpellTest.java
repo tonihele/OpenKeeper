@@ -260,7 +260,7 @@ class CreatureSupportSpellTest {
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE);
 
         assertTrue(controller.castSupportSpell());
-        assertEquals(friend, shots.get(0)[5]);
+        assertEquals(friend, getCastTarget());
 
         entityData.setComponent(friend, new SpeedChange(30));
         gameTime += RECHARGE;
