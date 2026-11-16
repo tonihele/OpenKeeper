@@ -373,9 +373,8 @@ final class KeeperAiCreatures {
      * takes an enemy with five chances in a hundred, any other at once.
      * That takes an action, whatever follows. A creature of its own side
      * goes to the Lair. An enemy meets the fate its settings give it: the
-     * Torture Chamber or the Temple, or it is left to die. DK II also has it
-     * fight in the Combat Pit, which OpenKeeper can't do yet. Not one it
-     * dropped a short while ago.
+     * Torture Chamber, the Combat Pit or the Temple, or it is left to die.
+     * Not one it dropped a short while ago.
      *
      * @param keeperAi the computer player
      * @param playerController its player
@@ -413,10 +412,7 @@ final class KeeperAiCreatures {
         } else if (fate == AI.ImprisonedCreatureFatePolicy.TORTURE) {
             carryPrisoner(keeperAi, playerController, prisoner, getRoom(playerController, ROOM_TORTURE_CHAMBER), true, "to torture");
         } else if (fate == AI.ImprisonedCreatureFatePolicy.PLACE_IN_PIT) {
-
-            // DK II drops it into the Combat Pit to fight, an enemy dropped there in OpenKeeper would walk free
-            decisionLog.log(keeperAi, "leave prisoner " + prisoner.getId().getId() + " in the Prison", null,
-                    "OpenKeeper has no pit fights for prisoners yet");
+            carryPrisoner(keeperAi, playerController, prisoner, getRoom(playerController, ROOM_COMBAT_PIT), false, "to fight in the pit");
         } else if (fate == AI.ImprisonedCreatureFatePolicy.SACRIFICE) {
             carryPrisoner(keeperAi, playerController, prisoner, getRoom(playerController, ROOM_TEMPLE), false, "to sacrifice");
         }
@@ -426,7 +422,8 @@ final class KeeperAiCreatures {
 
     /**
      * Carries a prisoner to a room: to its middle, to a free tile of a
-     * Torture Chamber, or into the pool of a Temple
+     * Torture Chamber, into the pool of a Temple, or to a tile of a Combat
+     * Pit the creatures fight on
      */
     private void carryPrisoner(KeeperAi keeperAi, IPlayerController playerController, Entity prisoner, IRoomController room,
             boolean freeTile, String reason) {
@@ -437,6 +434,8 @@ final class KeeperAiCreatures {
         Point tile = room.getRoomInstance().getCenter();
         if (freeTile) {
             tile = getFreeTile(room);
+        } else if (room instanceof CombatPitController) {
+            tile = getRandomTile(room, true);
         } else if (room instanceof TempleController temple) {
             for (Point p : room.getRoomInstance().getCoordinates()) {
                 if (temple.isSacrificePool(p)) {
