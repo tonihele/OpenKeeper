@@ -27,7 +27,6 @@ import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
-import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.trap.ITrapController;
@@ -108,7 +107,7 @@ public final class TrapsController implements ITrapsController {
         pos.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entity, new Position(0, pos));
 
-        // Health and threat
+        // Health, traps only threaten after they fire
         if (!blueprint) {
             setArmed(entity, kwdFile.getTrapById(trapId));
         }
@@ -116,15 +115,15 @@ public final class TrapsController implements ITrapsController {
         // Add some interaction properties
         entityData.setComponent(entity, new Interaction(true, false, false, false, false));
 
-        // The visual state
-        entityData.setComponent(entity, new TrapViewState(trapId, blueprint));
+        // The visual state, invisible traps are hidden from the other players until they are revealed
+        entityData.setComponent(entity, new TrapViewState(trapId, blueprint,
+                kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.INVISIBLE)));
 
         return entity;
     }
 
     private void setArmed(EntityId entity, Trap trap) {
         entityData.setComponent(entity, new Health(trap.getHealth(), trap.getHealth()));
-        entityData.setComponent(entity, new Threat(trap.getThreat()));
 
         // Regeneration
         if (trap.getHealthGain() > 0) {
@@ -140,7 +139,7 @@ public final class TrapsController implements ITrapsController {
         }
 
         setArmed(blueprint, kwdFile.getTrapById(viewState.trapId));
-        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false));
+        entityData.setComponent(blueprint, new TrapViewState(viewState.trapId, false, viewState.hidden));
     }
 
     @Override

@@ -59,6 +59,7 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -801,10 +802,6 @@ public class PlayerEntityViewState extends AbstractAppState {
             LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
                     intensity, honourPulse, !possessed);
             source.setObjectLight(objectLight);
-            if (objectLight) {
-                source.setRadius(Math.min(source.getRadius() * LightConstants.OBJECT_LIGHT_RADIUS_SCALE,
-                        LightConstants.MAX_LIGHT_RADIUS_TILES));
-            }
         } else {
             lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
         }
@@ -852,9 +849,21 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (!dirty.contains(tile)) {
                 continue;
             }
-            boolean baseVisible = !(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible;
+            boolean baseVisible = (!(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible)
+                    && isTrapShown(control);
             applyFogCullHint(spatial, tile, baseVisible);
         }
+    }
+
+    /**
+     * Hidden traps and blueprints are shown only to their owner
+     *
+     * @param control the view control of the entity
+     * @return false if the entity is a trap the player doesn't get to see
+     */
+    private boolean isTrapShown(IEntityViewControl<?, ?> control) {
+        return !(control instanceof TrapViewControl trapControl)
+                || trapControl.getCurrentState().isShownTo(trapControl.getOwnerId(), playerId);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -1057,7 +1066,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             }
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
-            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), isTrapShown(control));
         }
 
         @Override
@@ -1090,7 +1099,8 @@ public class PlayerEntityViewState extends AbstractAppState {
             // tile centre
             Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
                     .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f + roomEffect.offsetZ);
-            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, !roomEffect.once,
+                    Player.NEUTRAL_PLAYER_ID, roomEffect.emitOverLifetime);
             if (visualEffect != null && roomEffect.yaw != 0) {
                 visualEffect.getEffectNode().rotate(0, roomEffect.yaw, 0);
             }

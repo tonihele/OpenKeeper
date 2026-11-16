@@ -23,6 +23,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.BeforeEach;
@@ -140,7 +141,7 @@ class CreatureChickenTest {
     private CreatureController controller(Creature creature) {
         ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                 new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> null);
-        return new CreatureController(entity, entityData, creature, null, null, () -> now, null, null, null, null, levelInfo, null, null, null);
+        return new CreatureController(entity, entityData, creature, null, null, () -> now, Map.of(), null, null, null, levelInfo, null, null, null);
     }
 
     private static ICreatureController creature(AtomicBoolean timeUp, AtomicBoolean wandered, AtomicReference<CreatureState> state) {

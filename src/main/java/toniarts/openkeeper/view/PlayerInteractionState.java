@@ -45,6 +45,7 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
@@ -104,6 +105,21 @@ import toniarts.openkeeper.view.text.TextParser;
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
+
+    /**
+     * The status texts DK II shows for these room types (by room ID) instead
+     * of the tooltip texts the room data has
+     */
+    private static final Map<Short, String> ROOM_STATUS_TEXT_IDS = Map.of(
+            (short) 1, "2581", // Treasury
+            (short) 4, "2580", // Hatchery
+            (short) 6, "2582", // Library
+            (short) 7, "2583", // Training Room
+            (short) 9, "2585", // Guard Room
+            (short) 10, "2584", // Workshop
+            (short) 11, "2586", // Prison
+            (short) 14, "2587", // Graveyard
+            (short) 15, "2781"); // Casino
 
     private Main app;
     private GameClientState gameClientState;
@@ -430,11 +446,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         // Text 0 is "Jelly", the terrains that have it have no tooltip
-        if (terrain.getTooltipStringId() == 0) {
+        int textId = textParser.getMapTileTextParser().getTooltipTextId(tile, terrain, player.getPlayerId());
+        if (textId == 0) {
             return "";
         }
 
-        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
+        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(textId)), tile);
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
@@ -444,7 +461,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Override dungeon heart JELLY text and the portal text, DK II ignores the stored ids
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        String bundleKey = Integer.toString(room.getTooltipStringId());
+        String bundleKey = ROOM_STATUS_TEXT_IDS.getOrDefault(room.getRoomId(), Integer.toString(room.getTooltipStringId()));
         if (kwdFile.getDungeonHeart() == room) {
             bundleKey = "2579";
         } else if (kwdFile.getPortal() == room) {
