@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -69,6 +70,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         this.objectsController = objectsController;
         entityWrappers.put(ICreatureController.class, creaturesController);
         entityWrappers.put(IDoorController.class, doorsController);
+        entityWrappers.put(IObjectController.class, objectsController);
 
         // Initialize data structures in a single pass
         int width = mapController.getMapData().getWidth();
