@@ -107,6 +107,19 @@ public final class ShotFixtures {
         return shot;
     }
 
+    /**
+     * A shot that flies to one of our own creatures, as the shots of Armour,
+     * Invulnerability, Invisibility and Haste do in the original data
+     */
+    public static Shot flyingSupportShot(short shotId, Shot.ProcessType processType) {
+        Shot shot = shot(shotId, processType, 1, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
     public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
             short shotTypeId, int shotData1) {
         CreatureSpell creatureSpell = new CreatureSpell();

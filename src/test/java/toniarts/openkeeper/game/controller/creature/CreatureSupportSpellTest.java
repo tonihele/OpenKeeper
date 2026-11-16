@@ -42,10 +42,12 @@ import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.controller.ShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -53,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.CreatureSpell.AlternativeShot;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -127,6 +130,22 @@ class CreatureSupportSpellTest {
 
         // The heal is the shot's to do, the cast itself does no damage
         assertEquals(249, entityData.getComponent(friend, Health.class).health);
+    }
+
+    @Test
+    void aShotThatFliesHitsItsOwnCasterAtOnce() {
+        entityData.setComponent(us, new Health(100, 1000));
+
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HEAL,
+                createShotsController(ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.MODIFY_HEALTH)));
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        // No shot is left to fly: a flying shot never hits the creature that shot it
+        assertNull(entityData.findEntity(null, ShotFlight.class));
+        assertEquals(-HEAL_AMOUNT, entityData.getComponent(us, Damage.class).damage);
     }
 
     @Test
@@ -239,6 +258,20 @@ class CreatureSupportSpellTest {
     }
 
     @Test
+    void theInvisibleShotLandsOnItsCaster() {
+
+        // The Thief's and the Rogue's Invisible, its shot flies
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE,
+                createShotsController(ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.INVISIBLE)));
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        assertEquals(gameTime + HEAL_AMOUNT, entityData.getComponent(us, Invisible.class).endTime);
+    }
+
+    @Test
     void turnsInvisibleInAFightUntilItWearsOff() {
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE);
 
@@ -300,18 +333,36 @@ class CreatureSupportSpellTest {
     }
 
     private CreatureController createController(EnumSet<CreatureSpellFlag> flags, AlternativeShot alternativeShot) {
+        return createController(flags, alternativeShot, stub(IShotsController.class, (name, args) -> {
+            if (name.equals("createShot")) {
+                shots.add(args);
+            }
+            return null;
+        }));
+    }
+
+    /**
+     * The real shots, with the one shot there is
+     */
+    private IShotsController createShotsController(Shot shot) {
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getShotById" ->
+                shot;
+            case "getGameLevel" ->
+                ShotFixtures.gameLevel(4);
+            default ->
+                null;
+        });
+        return new ShotsController(kwdFile, entityData, null, () -> gameTime, null, null, null, null, null, stub(GameEventService.class, (name, args) -> null));
+    }
+
+    private CreatureController createController(EnumSet<CreatureSpellFlag> flags, AlternativeShot alternativeShot, IShotsController shotsController) {
         toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = ShotFixtures.creatureSpell(HEAL_SPELL_ID, flags, alternativeShot, HEAL_SHOT_ID, HEAL_AMOUNT);
         IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? gameTime : null);
         IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class,
                 (name, args) -> "getSensedEntities".equals(name) ? new HashSet<>(sensedEntities) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> name.equals("getLevelData")
                 ? stub(IKwdFile.class, (kwdName, kwdArgs) -> kwdName.equals("getCreatureSpellById") ? creatureSpell : null) : null);
-        IShotsController shotsController = stub(IShotsController.class, (name, args) -> {
-            if (name.equals("createShot")) {
-                shots.add(args);
-            }
-            return null;
-        });
         return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), null, null, gameTimer, new HashMap<>(), null,
                 positionLookup, null, levelInfo, null, shotsController, stub(GameEventService.class, (name, args) -> null));
     }
