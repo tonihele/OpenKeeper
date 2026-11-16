@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureTypeAttraction;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -45,6 +46,7 @@ import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -176,6 +178,17 @@ class PortalCreatureChoiceTest {
         // Creatures that don't sleep in the Lair don't need space there
         addCreatures(skeleton, 2, true);
         assertEquals(1, PortalCreatureChoice.getFreeLairSpace(player, creaturesController));
+    }
+
+    @Test
+    void preparationChecksEligibilityWithoutCreatingOrConsumingFavour() {
+        setAvailable(goblin);
+        assertFalse(choice.canChooseCreature(player, portalRoom, creaturesController, creature -> false));
+        assertTrue(choice.canChooseCreature(player, portalRoom, creaturesController, ALL));
+        assertTrue(choice.canChooseCreature(player, portalRoom, creaturesController, ALL));
+        assertTrue(entityData.findEntities(null, CreatureTypeAttraction.class).isEmpty());
+        assertSame(goblin, choice.chooseCreature(player, portalRoom, creaturesController, ALL));
+        assertFalse(entityData.findEntities(null, CreatureTypeAttraction.class).isEmpty());
     }
 
     @Test

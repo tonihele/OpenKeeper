@@ -159,6 +159,21 @@ public final class PortalCreatureChoice {
      */
     public Creature chooseUniqueCreature(IPlayerController player, Collection<IPlayerController> players,
             ICreaturesController creaturesController, IKwdFile kwdFile) {
+        Creature creature = findUniqueCreature(player, players, creaturesController, kwdFile);
+        if (creature != null) {
+            addAttraction(player.getKeeper().getId(), creature.getCreatureId(), 0);
+        }
+        return creature;
+    }
+
+    /** Checks preparation eligibility without consuming the once-per-level unique creature. */
+    public boolean canChooseUniqueCreature(IPlayerController player, Collection<IPlayerController> players,
+            ICreaturesController creaturesController, IKwdFile kwdFile) {
+        return findUniqueCreature(player, players, creaturesController, kwdFile) != null;
+    }
+
+    private Creature findUniqueCreature(IPlayerController player, Collection<IPlayerController> players,
+            ICreaturesController creaturesController, IKwdFile kwdFile) {
         if (getFreeLairSpace(player, creaturesController) < 0) {
             return null;
         }
@@ -173,7 +188,6 @@ public final class PortalCreatureChoice {
                 roomTypes = getRoomTypes(players);
             }
             if (isLayoutBuilt(layout, player, roomTypes)) {
-                addAttraction(playerId, layout.creatureId(), 0);
                 return kwdFile.getCreature(layout.creatureId());
             }
         }
@@ -254,6 +268,20 @@ public final class PortalCreatureChoice {
             }
         }
         return pattern;
+    }
+
+    /** Checks preparation eligibility without rolling a choice or changing attraction/favour state. */
+    public boolean canChooseCreature(IPlayerController player, IRoomController entrance,
+            ICreaturesController creaturesController, Predicate<Creature> available) {
+        if (getFreeLairSpace(player, creaturesController) < 0) {
+            return false;
+        }
+        for (Creature creature : player.getCreatureControl().getTypesAvailable()) {
+            if (isAvailableVia(creature, entrance.getRoom()) && isAttractable(creature, player, available)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
