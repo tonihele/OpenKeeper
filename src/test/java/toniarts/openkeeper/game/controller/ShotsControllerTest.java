@@ -22,13 +22,18 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -36,6 +41,9 @@ import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.tools.convert.map.TrapFiringFixtures;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -55,9 +63,14 @@ class ShotsControllerTest {
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
-    private static final short FREEZE_ID = 8;
-    private static final short HORNY_ID = 22;
+    private static final short SPIKE_ID = 27;
+    private static final short GAS_CLOUD_ID = 58;
+    private static final short DOOR_FIREBALL_ID = 57;
+    private static final short FREEZE_ID = 45;
+    private static final short ALARM_ID = 13;
+    private static final short REAPER_ID = 2;
     private static final short PLAYER_ID = 3;
+    private static final short ENEMY_ID = 4;
     private static final int TICKS_PER_SECOND = 4;
     private static final float DELTA = 0.0001f;
 
@@ -65,6 +78,7 @@ class ShotsControllerTest {
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
     private final ShotsController shotsController;
+    private double gameTime = 0;
 
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
@@ -72,14 +86,17 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
-        addShot(FREEZE_ID, Shot.ProcessType.FREEZE);
+        shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
+        shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
+        shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
+        shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
+        shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
                     case "getObject" -> (int) args[0] == GOLD_OBJECT_ID ? GameObjectFixtures.gameObject("Gold", GameObject.ObjectFlag.OBJECT_TYPE_GOLD) : null;
                     case "getGameLevel" -> ShotFixtures.gameLevel(TICKS_PER_SECOND);
-                    case "getCreature" -> (Short) args[0] == 0 ? null : ShotFixtures.creature((Short) args[0], (Short) args[0] == HORNY_ID
-                            ? EnumSet.of(Creature.CreatureFlag.IS_HORNY) : EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
+                    case "getCreature" -> (short) args[0] == REAPER_ID ? TrapFiringFixtures.creature(REAPER_ID, Creature.CreatureFlag.IS_HORNY) : null;
                     default -> null;
                 });
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class},
@@ -98,7 +115,13 @@ class ShotsControllerTest {
                 (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
         GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null, gameEventService);
+        IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
+                (proxy, method, args) -> entityData.findEntities(null, Position.class).stream()
+                        .filter(entity -> new Point((int) args[0], (int) args[1]).equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position)))
+                        .toList());
+        IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
+                (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
     }
 
     @Test
@@ -220,42 +243,116 @@ class ShotsControllerTest {
     }
 
     @Test
-    void freezeFreezesTheCreatureItHitsForItsFirstValueInSeconds() {
-        EntityId target = createCreature((short) 1);
+    void shotThatHitsAThingHurtsItsTargetAtOnce() {
+        EntityId target = createCreature(ENEMY_ID, 13, 10);
+        EntityId bystander = createCreature(ENEMY_ID, 13, 10);
 
-        // The Mistress freezes for 10 seconds
-        shotsController.hit(createFreezeShot(10), target);
+        shotsController.createShot(DOOR_FIREBALL_ID, 150, 0, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+        shotsController.createShot(DOOR_FIREBALL_ID, 150, 0, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+        shotsController.createShot(DOOR_FIREBALL_ID, 150, 0, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
 
-        assertEquals(10.0, entityData.getComponent(target, Frozen.class).duration);
-
-        // A frozen creature stays as it is
-        shotsController.hit(createFreezeShot(15), target);
-
-        assertEquals(10.0, entityData.getComponent(target, Frozen.class).duration);
+        assertEquals(300, entityData.getComponent(target, Damage.class).damage);
+        assertNull(entityData.getComponent(bystander, Damage.class));
     }
 
     @Test
-    void freezeLeavesTheHornedReaperAlone() {
-        EntityId target = createCreature(HORNY_ID);
+    void constantDamageShotHurtsEveryoneOnItsTileButTheOwnersCreatures() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        EntityId other = createCreature(ENEMY_ID, 10.3f, 9.8f);
+        EntityId own = createCreature(PLAYER_ID, 10, 10);
+        EntityId nextTile = createCreature(ENEMY_ID, 11, 10);
 
-        shotsController.hit(createFreezeShot(10), target);
+        // The Spike Trap
+        shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
-        assertNull(entityData.getComponent(target, Frozen.class));
+        assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(750, entityData.getComponent(other, Damage.class).damage);
+        assertNull(entityData.getComponent(own, Damage.class));
+        assertNull(entityData.getComponent(nextTile, Damage.class));
     }
 
-    private EntityId createCreature(short creatureId) {
-        EntityId creature = createCreature();
+    @Test
+    void damageFromOriginHurtsEveryoneWithinTheRadiusButTheOwnersCreatures() {
+        EntityId target = createCreature(ENEMY_ID, 11, 10);
+        EntityId neutral = createCreature((short) 2, 10, 9);
+        EntityId own = createCreature(PLAYER_ID, 10, 11);
+        EntityId diagonal = createCreature(ENEMY_ID, 11, 11);
+        EntityId farAway = createCreature(ENEMY_ID, 12, 10);
+
+        // The Gas Trap, there is no lingering cloud yet
+        shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(750, entityData.getComponent(neutral, Damage.class).damage);
+        assertNull(entityData.getComponent(own, Damage.class));
+        assertNull(entityData.getComponent(diagonal, Damage.class));
+        assertNull(entityData.getComponent(farAway, Damage.class));
+    }
+
+    @Test
+    void freezeShotFreezesItsTarget() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        EntityId bystander = createCreature(ENEMY_ID, 10, 10);
+        gameTime = 5;
+
+        shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        Frozen frozen = entityData.getComponent(target, Frozen.class);
+        assertEquals(5, frozen.startTime);
+        assertEquals(20, frozen.duration);
+        assertNull(entityData.getComponent(bystander, Frozen.class));
+
+        // Freezing again doesn't prolong the freeze
+        gameTime = 10;
+        shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
+
+        assertEquals(5, entityData.getComponent(target, Frozen.class).startTime);
+    }
+
+    @Test
+    void hornedReaperDoesNotFreeze() {
+        EntityId reaper = createCreature(ENEMY_ID, 10, 10);
         CreatureComponent creatureComponent = new CreatureComponent();
-        creatureComponent.creatureId = creatureId;
-        entityData.setComponent(creature, creatureComponent);
-        return creature;
+        creatureComponent.creatureId = REAPER_ID;
+        entityData.setComponent(reaper, creatureComponent);
+
+        shotsController.createShot(FREEZE_ID, 20, 1, PLAYER_ID, new Vector3f(10, 1, 10), reaper, null);
+
+        assertNull(entityData.getComponent(reaper, Frozen.class));
     }
 
-    private EntityId createFreezeShot(int seconds) {
-        EntityId shot = entityData.createEntity();
-        entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
-                new ShotFlight(FREEZE_ID, PLAYER_ID, entityData.createEntity(), seconds, 0, new Vector3f(), new Vector3f(), 3, 50));
-        return shot;
+    @Test
+    void alarmShotRaisesAnAlarmForItsOwnerWhereItWasFired() {
+        Vector3f position = new Vector3f(10, 1, 10);
+        gameTime = 5;
+
+        shotsController.createShot(ALARM_ID, 0, 5, PLAYER_ID, position, createCreature(ENEMY_ID, 12, 10), null);
+
+        EntityId alarm = entityData.findEntity(null, Alarm.class);
+        assertEquals(PLAYER_ID, entityData.getComponent(alarm, Owner.class).ownerId);
+        assertEquals(position, entityData.getComponent(alarm, Position.class).position);
+        assertEquals(5, entityData.getComponent(alarm, Decay.class).startTime);
+        assertEquals(50, entityData.getComponent(alarm, Decay.class).duration);
+    }
+
+    @Test
+    void alarmIsNotRaisedAgainWhileTheOwnersLastAlarmLasts() {
+        shotsController.createShot(ALARM_ID, 0, 5, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+        shotsController.createShot(ALARM_ID, 0, 5, PLAYER_ID, new Vector3f(20, 1, 20), null, null);
+
+        assertEquals(1, entityData.findEntities(null, Alarm.class).size());
+
+        // Another keeper's alarm doesn't hold back the alarm
+        shotsController.createShot(ALARM_ID, 0, 5, ENEMY_ID, new Vector3f(20, 1, 20), null, null);
+
+        assertEquals(2, entityData.findEntities(null, Alarm.class).size());
+    }
+
+    private EntityId createCreature(short ownerId, float x, float y) {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Position(0, new Vector3f(x, 1f, y)), new CreatureComponent(),
+                new Owner(ownerId, ownerId), new Health(100, 100));
+        return creature;
     }
 
     private ShotFlight getShotFlight() {
