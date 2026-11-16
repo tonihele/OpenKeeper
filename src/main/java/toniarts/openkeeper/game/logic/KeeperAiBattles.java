@@ -479,7 +479,7 @@ final class KeeperAiBattles {
                 lair = room;
                 break;
             }
-            Point tile = lair != null ? lair.getRoomInstance().getCenter() : playerController.getKeeper().getDungeonHeartLocation();
+            Point tile = lair != null ? lair.getRoomInstance().getCenter() : getHeartDropTile(playerController.getKeeper());
             decisionLog.log(keeperAi, "carry creature " + creature.getId().getId() + " to the " + (lair != null ? "Lair" : "Dungeon Heart"), tile, reason);
             carry(creature.getId(), tile, playerController);
 
@@ -633,7 +633,7 @@ final class KeeperAiBattles {
         Threat creatureThreat = entityData.getComponent(picked.getId(), Threat.class);
         int threat = creatureThreat != null ? creatureThreat.threat : 0;
         if (retreat) {
-            Point heart = playerController.getKeeper().getDungeonHeartLocation();
+            Point heart = getHeartDropTile(playerController.getKeeper());
             decisionLog.log(keeperAi, "carry creature " + picked.getId().getId() + " to the Dungeon Heart", heart, "outnumbered in a fight away from its land");
             carry(picked.getId(), heart, playerController);
             keeperAi.attackNeeds[attack] += threat;
@@ -703,6 +703,19 @@ final class KeeperAiBattles {
         KeeperAiDropped dropped = entityData.getComponent(creature.getId(), KeeperAiDropped.class);
 
         return dropped != null && gameTimer.getGameTime() - dropped.time < LEAVE_ALONE_AFTER_DROP_SECONDS;
+    }
+
+    /**
+     * The tile by the Dungeon Heart to drop a creature on. Like in DK II, the
+     * hand drops no creature but a worker on the middle 3x3 of the heart, so
+     * this is on the edge of the heart's 5x5
+     *
+     * @param keeper the keeper
+     * @return the tile
+     */
+    static Point getHeartDropTile(Keeper keeper) {
+        Point heart = keeper.getDungeonHeartLocation();
+        return new Point(heart.x + 2, heart.y);
     }
 
     /**
