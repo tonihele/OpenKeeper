@@ -20,6 +20,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.EnumSource;
+import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.*;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
@@ -48,6 +49,7 @@ class FurnitureUseTest {
     private final EntityData data = new DefaultEntityData();
     private final Map<EntityId, GameObject> definitions = new HashMap<>();
     private final Set<EntityId> furniture = new HashSet<>();
+    private final Set<EntityId> wallFurniture = new HashSet<>();
     private short roomOwner = PLAYER;
     private final IObjectsController objects = stub(IObjectsController.class, (p, m, a) -> {
         if (m.getName().equals("createController")) {
@@ -61,6 +63,7 @@ class FurnitureUseTest {
     });
     private final IRoomController room = stub(IRoomController.class, (p, m, a) -> switch (m.getName()) {
         case "getFloorFurniture" -> furniture;
+        case "getWallFurniture" -> wallFurniture;
         case "getOwnerId" -> roomOwner;
         default -> defaultValue(p, m, a);
     });
@@ -147,29 +150,85 @@ class FurnitureUseTest {
         assertNull(data.getComponent(worker.getEntityId(), FurnitureUse.class));
     }
 
-    @Test void researchUsesSameLifecycleWithoutOverridingUnverifiedPresentation() {
-        EntityId bookcase = furniture((short) 77, 4, 4); // synthetic ID, no native asset
+    @ParameterizedTest
+    @ValueSource(shorts = {58, 64, 77})
+    void researchBindsFloorAndWallFurnitureWithObjectSpecificPresentation(short objectId) {
+        EntityId bookcase = objectId == 58 ? wallBook(4, 4) : furniture(objectId, 4, 4);
         ObjectViewState original = data.getComponent(bookcase, ObjectViewState.class);
         Keeper keeper = new Keeper(false, PLAYER);
         ResearchableEntity research = new ResearchableEntity((short) 1, ResearchableType.DOOR);
         keeper.setCurrentResearch(research);
-        Door door = ResearchFixtures.door((short) 1, Integer.MAX_VALUE);
-        IKwdFile kwd = stub(IKwdFile.class, (p, m, a) -> switch (m.getName()) {
-            case "getDoorById" -> door;
-            default -> m.getReturnType() == List.class ? List.of() : defaultValue(p, m, a);
-        });
-        Research task = new Research(null, null, new Point(4, 4), PLAYER, room, tasks,
-                new PlayerResearchControl(keeper, kwd), objects);
+        Research task = research(keeper);
         ICreatureController worker = worker();
         task.assign(worker, false);
         assertNull(data.getComponent(worker.getEntityId(), FurnitureUse.class));
         task.executeTask(worker, .25f);
         assertEquals(5, research.getResearch());
         assertEquals(bookcase, data.getComponent(worker.getEntityId(), FurnitureUse.class).objectEntityId);
-        assertSame(original, data.getComponent(bookcase, ObjectViewState.class));
+        if (objectId == 58) {
+            assertEquals(GameObject.State.ACTIVATE_ANIM, state(bookcase));
+        } else {
+            assertSame(original, data.getComponent(bookcase, ObjectViewState.class));
+        }
         task.unassign(worker);
         assertNull(data.getComponent(worker.getEntityId(), FurnitureUse.class));
-        assertSame(original, data.getComponent(bookcase, ObjectViewState.class));
+        assertEquals(GameObject.State.NONE, state(bookcase));
+        if (objectId != 58) {
+            assertSame(original, data.getComponent(bookcase, ObjectViewState.class));
+        }
+    }
+
+    @Test void wallBooksAreIndependentAndKeepTurningUntilTheLastResearcherLeaves() {
+        EntityId book = wallBook(4, 4);
+        EntityId other = wallBook(8, 4);
+        Research first = research();
+        Research second = research();
+        ICreatureController a = worker();
+        ICreatureController b = worker();
+        first.assign(a, false);
+        second.assign(b, false);
+        assertEquals(GameObject.State.NONE, state(book));
+        first.executeTask(a, .25f);
+        second.executeTask(b, .25f);
+        assertEquals(GameObject.State.ACTIVATE_ANIM, state(book));
+        assertEquals(GameObject.State.NONE, state(other));
+        first.unassign(a);
+        assertEquals(GameObject.State.ACTIVATE_ANIM, state(book));
+        second.unassign(b);
+        assertEquals(GameObject.State.NONE, state(book));
+    }
+
+    @Test void oldWallBookTaskCannotActivateOrStopItsReplacement() {
+        EntityId book = wallBook(4, 4);
+        ICreatureController a = worker();
+        Research old = research();
+        old.assign(a, false);
+        old.executeTask(a, .25f);
+        wallFurniture.remove(book);
+        old.executeTask(a, .5f);
+        assertEquals(GameObject.State.NONE, state(book));
+        assertNull(data.getComponent(a.getEntityId(), FurnitureUse.class));
+        data.removeEntity(book);
+        EntityId replacement = wallBook(4, 4);
+        Research fresh = research();
+        fresh.assign(a, false);
+        fresh.executeTask(a, .25f);
+        old.unassign(a);
+        assertEquals(GameObject.State.ACTIVATE_ANIM, state(replacement));
+        assertEquals(replacement, data.getComponent(a.getEntityId(), FurnitureUse.class).objectEntityId);
+        assertNull(data.getComponent(book, ObjectViewState.class));
+    }
+
+    @Test void capturingTheLibraryStopsItsOldResearcher() {
+        EntityId book = wallBook(4, 4);
+        ICreatureController worker = worker();
+        Research task = research();
+        task.assign(worker, false);
+        task.executeTask(worker, .25f);
+        roomOwner = 4;
+        task.executeTask(worker, .5f);
+        assertEquals(GameObject.State.NONE, state(book));
+        assertNull(data.getComponent(worker.getEntityId(), FurnitureUse.class));
     }
 
     @Test void sleepingAndRecuperatingUseTheBedFromStateEntryAndSurviveMissingTask() {
@@ -186,8 +245,10 @@ class FurnitureUseTest {
         assertNull(data.getComponent(id, FurnitureUse.class));
     }
 
-    @Test void lostAiAndRemovalReleaseUseEvenIfTheTaskComponentIsAlreadyGone() {
-        EntityId bench = furniture((short) 46, 4, 4);
+    @ParameterizedTest
+    @ValueSource(shorts = {46, 58})
+    void lostAiAndRemovalReleaseUseEvenIfTheTaskComponentIsAlreadyGone(short objectId) {
+        EntityId bench = furniture(objectId, 4, 4);
         EntityId id = worker().getEntityId();
         object(bench).beginUse(id);
         creature(id).getStateMachine().changeState(null);
@@ -197,8 +258,10 @@ class FurnitureUseTest {
         assertEquals(GameObject.State.NONE, state(bench));
     }
 
-    @Test void deadOrCarriedCreaturesCannotActivateFurniture() {
-        EntityId bench = furniture((short) 46, 4, 4);
+    @ParameterizedTest
+    @ValueSource(shorts = {46, 58})
+    void deadOrCarriedCreaturesCannotActivateFurniture(short objectId) {
+        EntityId bench = furniture(objectId, 4, 4);
         EntityId id = worker().getEntityId();
         data.setComponent(id, new InHand());
         object(bench).beginUse(id);
@@ -237,6 +300,31 @@ class FurnitureUseTest {
     private CreatureController creature(EntityId id) {
         return new CreatureController(id, data, null, null, null, null, Map.of(), null, null,
                 null, null, objects, null, null);
+    }
+
+    private EntityId wallBook(int x, int y) {
+        EntityId id = furniture((short) 58, x, y);
+        furniture.remove(id);
+        wallFurniture.add(id);
+        // Wall objects stand 7/16 of a tile away from its centre.
+        data.setComponent(id, new Position(0, new Vector3f(x + 7f / 16, 0, y)));
+        return id;
+    }
+
+    private Research research() {
+        Keeper keeper = new Keeper(false, PLAYER);
+        keeper.setCurrentResearch(new ResearchableEntity((short) 1, ResearchableType.DOOR));
+        return research(keeper);
+    }
+
+    private Research research(Keeper keeper) {
+        Door door = ResearchFixtures.door((short) 1, Integer.MAX_VALUE);
+        IKwdFile kwd = stub(IKwdFile.class, (p, m, a) -> switch (m.getName()) {
+            case "getDoorById" -> door;
+            default -> m.getReturnType() == List.class ? List.of() : defaultValue(p, m, a);
+        });
+        return new Research(null, null, new Point(4, 4), PLAYER, room, tasks,
+                new PlayerResearchControl(keeper, kwd), objects);
     }
 
     private Manufacture manufacture() {

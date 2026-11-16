@@ -18,6 +18,8 @@ package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityId;
+import java.util.HashSet;
+import java.util.Set;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -103,6 +105,13 @@ public final class Research extends AbstractFurnitureTask {
                 researchControl.completeResearch();
             }
         }
+    }
+
+    @Override
+    protected Set<EntityId> getFurniture() {
+        Set<EntityId> furniture = new HashSet<>(room.getFloorFurniture());
+        furniture.addAll(room.getWallFurniture());
+        return furniture;
     }
 
     @Override

@@ -19,10 +19,11 @@ package toniarts.openkeeper.game.data;
 /** Object-specific presentation rules; use alone does not imply an animation. */
 public final class FurnitureAnimationPolicy {
     public static final short WORKBENCH_OBJECT_ID = 46;
+    public static final short LIBRARY_WALL_BOOK_OBJECT_ID = 58;
 
     private FurnitureAnimationPolicy() { }
 
     public static boolean pausesWhenIdle(short objectId) {
-        return objectId == WORKBENCH_OBJECT_ID;
+        return objectId == WORKBENCH_OBJECT_ID || objectId == LIBRARY_WALL_BOOK_OBJECT_ID;
     }
 }

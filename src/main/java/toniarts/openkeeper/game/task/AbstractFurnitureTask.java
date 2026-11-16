@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.simsilica.es.EntityId;
+import java.util.Set;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
@@ -26,7 +27,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
-/** Opt-in use lifecycle for tasks working at a particular floor furniture entity. */
+/** Opt-in use lifecycle for tasks working at a particular furniture entity. */
 public abstract class AbstractFurnitureTask extends AbstractCapacityCriticalRoomTask {
     private final IObjectsController objectsController;
     private IObjectController furniture;
@@ -46,8 +47,13 @@ public abstract class AbstractFurnitureTask extends AbstractCapacityCriticalRoom
         return super.isValid(creature) && (furniture == null || isFurniturePresent());
     }
 
+    /** Furniture this task can use; research also includes the room's wall books. */
+    protected Set<EntityId> getFurniture() {
+        return room.getFloorFurniture();
+    }
+
     private boolean isFurniturePresent() {
-        return !furniture.isRemoved() && room.getFloorFurniture().contains(furniture.getEntityId());
+        return !furniture.isRemoved() && getFurniture().contains(furniture.getEntityId());
     }
 
     @Override
@@ -62,7 +68,7 @@ public abstract class AbstractFurnitureTask extends AbstractCapacityCriticalRoom
         }
         if (furniture == null && room != null && objectsController != null) {
             IObjectController match = null;
-            for (EntityId id : room.getFloorFurniture()) {
+            for (EntityId id : getFurniture()) {
                 IObjectController candidate = objectsController.createController(id);
                 if (!candidate.isRemoved() && candidate.getPosition() != null
                         && getTaskLocation().equals(WorldUtils.vectorToPoint(candidate.getPosition()))

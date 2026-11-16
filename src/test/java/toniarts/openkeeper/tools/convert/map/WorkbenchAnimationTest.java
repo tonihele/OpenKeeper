@@ -48,8 +48,8 @@ class WorkbenchAnimationTest {
         return new ObjectViewState(objectId, state, ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true);
     }
     @ParameterizedTest
-    @ValueSource(shorts = {46, 77})
-    void onlyWorkbenchPausesWhenIdleAndAllObjectsAnimateWhenActive(short objectId) {
+    @ValueSource(shorts = {46, 58, 64, 77})
+    void workbenchAndWallBookPauseWhenIdleAndResumeOnUse(short objectId) {
         DefaultEntityData data = new DefaultEntityData();
         GameObject object = new GameObject(); object.setObjectId(objectId);
         ArtResource resource = new ArtResource(); resource.setName("SyntheticWorkbenchSpin");
@@ -65,7 +65,7 @@ class WorkbenchAnimationTest {
             view(objectId, GameObject.State.NONE), assets, null);
         Node root = new Node(); root.addControl(control);
         for(int i=0;i<5;i++) root.updateLogicalState(.13f);
-        if (objectId == 46) {
+        if (objectId == 46 || objectId == 58) {
             assertEquals(0, root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x);
         } else {
             assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
@@ -75,7 +75,7 @@ class WorkbenchAnimationTest {
         assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
         control.setTargetState(view(objectId, GameObject.State.NONE));
         for(int i=0;i<5;i++) root.updateLogicalState(.13f);
-        if (objectId == 46) {
+        if (objectId == 46 || objectId == 58) {
             assertEquals(0, root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x);
         } else {
             assertTrue(root.getChild("SyntheticWorkbenchSpin").getLocalTranslation().x > 0);
