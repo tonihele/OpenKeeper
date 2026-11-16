@@ -29,6 +29,7 @@ import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Armour;
+import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -45,7 +46,6 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.AlternativeShot;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -55,6 +55,7 @@ import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -70,6 +71,7 @@ class CreatureSupportSpellTest {
     private static final int HEAL_AMOUNT = 3000;
     private static final float RECHARGE = 2.5f;
     private static final float RANGE = 3f;
+    private static final float SHOT_DELAY = 0.5f;
 
     private EntityData entityData;
     private List<EntityId> sensedEntities;
@@ -99,10 +101,29 @@ class CreatureSupportSpellTest {
 
         assertTrue(controller.castSupportSpell());
 
-        assertEquals(1, shots.size());
-        assertArrayEquals(new Object[]{HEAL_SHOT_ID, HEAL_AMOUNT, 0, KEEPER, new Vector3f(5, 0, 5), friend, us}, shots.get(0));
         assertEquals(gameTime, entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
         assertEquals(CreatureState.CAST_SPELL, controller.getStateMachine().getCurrentState());
+        assertEquals(friend, getCastTarget());
+    }
+
+    @Test
+    void theShotLeavesAfterTheShotDelay() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 249);
+        CreatureController controller = createController();
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY / 2;
+        controller.releaseCastShot();
+        assertTrue(shots.isEmpty());
+
+        gameTime += SHOT_DELAY / 2;
+        controller.releaseCastShot();
+        assertEquals(1, shots.size());
+        assertArrayEquals(new Object[]{HEAL_SHOT_ID, HEAL_AMOUNT, 0, KEEPER, new Vector3f(5, 0, 5), friend, us}, shots.get(0));
+        assertNull(entityData.getComponent(us, CastShot.class));
+
+        // The heal is the shot's to do, the cast itself does no damage
+        assertEquals(249, entityData.getComponent(friend, Health.class).health);
     }
 
     @Test
@@ -112,7 +133,7 @@ class CreatureSupportSpellTest {
 
         assertTrue(createController().castSupportSpell());
 
-        assertEquals(near, shots.get(0)[5]);
+        assertEquals(near, getCastTarget());
     }
 
     @Test
@@ -122,7 +143,7 @@ class CreatureSupportSpellTest {
 
         assertTrue(createController().castSupportSpell());
 
-        assertEquals(us, shots.get(0)[5]);
+        assertEquals(us, getCastTarget());
     }
 
     @Test
@@ -131,7 +152,7 @@ class CreatureSupportSpellTest {
 
         assertFalse(createController().castSupportSpell());
 
-        assertTrue(shots.isEmpty());
+        assertNull(entityData.getComponent(us, CastShot.class));
         assertNull(entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
     }
 
@@ -158,7 +179,7 @@ class CreatureSupportSpellTest {
         gameTime += RECHARGE / 2;
         assertTrue(controller.castSupportSpell());
 
-        assertEquals(2, shots.size());
+        assertNotNull(entityData.getComponent(us, CastShot.class));
     }
 
     @Test
@@ -181,7 +202,7 @@ class CreatureSupportSpellTest {
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.ARMOUR);
 
         assertTrue(controller.castSupportSpell());
-        assertEquals(friend, shots.get(0)[5]);
+        assertEquals(friend, getCastTarget());
 
         entityData.setComponent(friend, new Armour(30));
         gameTime += RECHARGE;
@@ -230,6 +251,10 @@ class CreatureSupportSpellTest {
         assertEquals(100, entityData.getComponent(enemy, Damage.class).damage);
     }
 
+    private EntityId getCastTarget() {
+        return entityData.getComponent(us, CastShot.class).target;
+    }
+
     private EntityId createFighter(short ownerId, Vector3f position, int health) {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new CreatureComponent(), new Owner(ownerId, ownerId), new Health(health, 1000),
@@ -250,10 +275,12 @@ class CreatureSupportSpellTest {
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> name.equals("getLevelData")
                 ? stub(IKwdFile.class, (kwdName, kwdArgs) -> kwdName.equals("getCreatureSpellById") ? creatureSpell : null) : null);
         IShotsController shotsController = stub(IShotsController.class, (name, args) -> {
-            shots.add(args);
+            if (name.equals("createShot")) {
+                shots.add(args);
+            }
             return null;
         });
-        return new CreatureController(us, entityData, new Creature(), null, null, gameTimer, new HashMap<>(), null,
+        return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), null, null, gameTimer, new HashMap<>(), null,
                 positionLookup, null, levelInfo, null, shotsController, stub(GameEventService.class, (name, args) -> null));
     }
 

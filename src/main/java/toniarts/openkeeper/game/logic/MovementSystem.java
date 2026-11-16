@@ -31,11 +31,13 @@ import java.util.Set;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
 import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Handles moving of the entities
@@ -61,9 +63,11 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final Map<EntitySteeringBehavior, SteeringAcceleration<Vector2>> steeringOutputsBySteeringBehaviors = new HashMap<>();
     private final EntitySet movableEntities;
     private final EntityData entityData;
+    private final IMapInformation mapInformation;
 
-    public MovementSystem(EntityData entityData) {
+    public MovementSystem(EntityData entityData, IMapInformation mapInformation) {
         this.entityData = entityData;
+        this.mapInformation = mapInformation;
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
 
         processAddedEntities(movableEntities);
@@ -81,6 +85,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
         // Process ticks
         for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
+            EntityId entityId = entityIdsBySteeringBehavior.get(steeringBehavior);
+            ISteerableEntity steerableEntity = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
+            steerableEntity.setMaxLinearSpeed(getMaxSpeed(movableEntities.getEntity(entityId).get(Mobile.class), steerableEntity.getPosition()));
 
             // Calculate steering acceleration
             SteeringAcceleration<Vector2> steeringOutput = steeringOutputsBySteeringBehaviors.get(steeringBehavior);
@@ -94,8 +101,29 @@ public final class MovementSystem implements IGameLogicUpdatable {
              * accelerate; and it only moves in the direction it is facing (ignoring power slides).
              */
             // Apply steering acceleration
-            applySteering(entityIdsBySteeringBehavior.get(steeringBehavior), steerableEntitiesBySteeringBehavior.get(steeringBehavior), steeringOutput, tpf);
+            applySteering(entityId, steerableEntity, steeringOutput, tpf);
         }
+    }
+
+    /**
+     * Get the speed for the tile the entity is on. Walking through water halves
+     * the speed and lava speeds it up by half, flying is not affected
+     *
+     * @param mobile the mobility of the entity
+     * @param position the position of the entity
+     * @return the maximum speed
+     */
+    private float getMaxSpeed(Mobile mobile, Vector2 position) {
+        if (!mobile.canFly) {
+            Point p = WorldUtils.vectorToPoint(position);
+            if (mapInformation.isWater(p)) {
+                return mobile.maxSpeed * 0.5f;
+            }
+            if (mapInformation.isLava(p)) {
+                return mobile.maxSpeed * 1.5f;
+            }
+        }
+        return mobile.maxSpeed;
     }
 
     private void processAddedEntities(Set<Entity> addedEntities) {

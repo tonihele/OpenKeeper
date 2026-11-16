@@ -28,6 +28,8 @@ import java.util.Map.Entry;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.ObjectsController;
+import toniarts.openkeeper.game.controller.StoredGoldVisuals;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -98,7 +100,7 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
             } else {
 
                 // Adjust the gold sum
-                goldPile.gold = pointStoredGold;
+                updateGold(goldPiles.iterator().next(), pointStoredGold, goldPile.maxGold);
             }
 
             // Player gold is updated by GameWorldController, not here.
@@ -157,13 +159,14 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
                 Gold goldPile = entityData.getComponent(goldPiles.iterator().next(), Gold.class);
                 int goldToRemove = Math.min(goldPile.gold, amount);
                 amount -= goldToRemove;
-                goldPile.gold = goldPile.gold - goldToRemove;
+                int remainingGold = goldPile.gold - goldToRemove;
+                updateGold(goldEntity, remainingGold, goldPile.maxGold);
 
                 // Player gold is updated by GameWorldController, not here.
                 addCurrentCapacity(-goldToRemove);
 
                 // Add to removal list if empty item
-                if (goldPile.gold == 0) {
+                if (remainingGold == 0) {
                     objectsToRemove.add(goldEntity);
                 }
 
@@ -179,6 +182,12 @@ public abstract class RoomGoldControl extends AbstractRoomObjectControl<Integer>
         }
 
         return amount;
+    }
+
+    private void updateGold(EntityId entity, int amount, int capacity) {
+        Gold gold = new Gold(amount, capacity);
+        entityData.setComponent(entity, gold);
+        StoredGoldVisuals.update(entityData, entity, gold, kwdFile.getObject(ObjectsController.OBJECT_GOLD_PILE_ID));
     }
 
     @Override
