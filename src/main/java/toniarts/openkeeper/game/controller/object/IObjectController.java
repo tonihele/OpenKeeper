@@ -54,4 +54,11 @@ public interface IObjectController extends IEntityController {
      */
     public boolean creaturePicksUp(ICreatureController creature);
 
+    /**
+     * Makes the object spin, like a roulette wheel. The object goes to the
+     * spinning state until the spin ends, a new spin while spinning starts
+     * over.
+     */
+    public void spin();
+
 }

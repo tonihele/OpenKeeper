@@ -108,6 +108,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void executeAttack(EntityId attackTarget);
 
+    /**
+     * Lets the shot of the spell being cast leave once the cast has reached
+     * the spell's shot delay
+     */
+    public void releaseCastShot();
+
+    /**
+     * Drops the shot of an interrupted cast
+     */
+    public void cancelCastShot();
+
     public void navigateToAttackTarget(EntityId attackTarget);
 
     public ICreatureController getFollowTarget();
@@ -121,6 +132,33 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void resetFollowTarget();
 
     public void flee();
+
+    /**
+     * Weighs the threat of the enemies we fight against our fear. Call once on
+     * every turn of a fight, it takes a few turns in a row to scare us
+     *
+     * @return true if we are scared and should back off
+     */
+    public boolean isScared();
+
+    /**
+     * Starts backing off from the attack target, sets how long we back off
+     */
+    public void startBackOff();
+
+    /**
+     * Checks if our time to back off is over
+     *
+     * @return true if the back-off is over
+     */
+    public boolean isBackOffOver();
+
+    /**
+     * Backs away from the attack target, or stands if it is far enough
+     *
+     * @return false if we can't back away
+     */
+    public boolean backOff();
 
     public boolean isAttacked();
 
@@ -149,6 +187,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isUnconscious();
 
+    /**
+     * Wakes up a knocked out creature, like when it is carried to a Lair. It
+     * keeps the health that was left of its dying time
+     */
+    public void wakeUp();
+
     public Point getCreatureCoordinates();
 
     public void setAssignedTask(Task task);
@@ -166,6 +210,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void fireEvent(GameEventType type, Point location);
 
     public void addGold(int amount);
+
+    /**
+     * The keeper pays the creature by hand, by dropping gold on it. The
+     * creature keeps half of the gold, up to what it can carry, and the rest
+     * is gone. However little it got, it is owed nothing more
+     *
+     * @param amount the gold dropped on the creature
+     */
+    public void takePay(int amount);
 
     public int getObjectiveTargetActionPointId();
 
@@ -273,6 +326,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goGambling();
 
     /**
+     * Sends the creature to collect the pay it is owed, if it is owed any and
+     * it is time to try. A try that finds no gold to collect is counted
+     *
+     * @return true if the creature is on its way to a gold room
+     */
+    public boolean goToCollectPay();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree
@@ -285,24 +346,49 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void sate();
 
     /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
+
+    /**
      * Makes the creature hungry
      */
     public void makeHungry();
 
     /**
-     * Get the research points the creature makes on each game tick in the
-     * library
+     * Get the research points the creature makes on this game tick in the
+     * library. A slapped creature makes extra points on the first tick of
+     * every second.
      *
-     * @return research points per tick
+     * @return research points of this tick
      */
     public int getResearchPerTick();
 
     /**
-     * Get manufacture per second attribute
+     * Get the manufacture points the creature makes on each game tick in the
+     * workshop
      *
-     * @return manufacture per second
+     * @return manufacture points per tick
      */
-    public int getManufacturePerSecond();
+    public int getManufacturePerTick();
 
     /**
      * Gives object to creature
@@ -319,6 +405,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if recuperating
      */
     public boolean isRecuperating();
+
+    /**
+     * Turns the creature into a chicken for a while, as by the Chicken spell.
+     * Creatures immune to the spell stay as they are
+     *
+     * @param duration how long, in seconds
+     */
+    public void turnIntoChicken(double duration);
 
     /**
      * Sets creature possession on/off

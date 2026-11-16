@@ -18,6 +18,8 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.EnumSource;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.*;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
@@ -73,11 +75,13 @@ class FurnitureUseTest {
         data.close();
     }
 
-    @Test void sawStartsOnFirstExecutionBeforeTheFirstManufacturingSecondAndStopsOnUnassign() {
+    @ParameterizedTest
+    @EnumSource(value = ResearchableType.class, names = {"TRAP", "DOOR"})
+    void sawStartsOnFirstExecutionAndStopsOnUnassign(ResearchableType type) {
         EntityId bench = furniture((short) 46, 4, 4);
         EntityId other = furniture((short) 46, 8, 4);
         ICreatureController worker = worker();
-        Manufacture task = manufacture();
+        Manufacture task = manufacture(type);
         task.assign(worker, false);
         assertEquals(GameObject.State.NONE, state(bench));
         assertNull(data.getComponent(worker.getEntityId(), FurnitureUse.class));
@@ -236,8 +240,12 @@ class FurnitureUseTest {
     }
 
     private Manufacture manufacture() {
+        return manufacture(ResearchableType.TRAP);
+    }
+
+    private Manufacture manufacture(ResearchableType type) {
         PlayerManufactureControl manufacture = new PlayerManufactureControl();
-        manufacture.setTrapToManufacture(TrapFixtures.trapToManufacture((short) 1, Integer.MAX_VALUE));
+        manufacture.setOrder(new ManufactureOrders.Order(type, (short) 1, Integer.MAX_VALUE, (short) 2));
         return new Manufacture(null, null, new Point(4, 4), PLAYER, room, tasks, manufacture, objects);
     }
 
@@ -254,7 +262,7 @@ class FurnitureUseTest {
     }
 
     private IObjectController object(EntityId id) {
-        return new ObjectController(id, data, definitions.get(id), objects, null);
+        return new ObjectController(id, data, definitions.get(id), objects, null, null, 4);
     }
 
     private ICreatureController worker() {
@@ -263,7 +271,7 @@ class FurnitureUseTest {
         return stub(ICreatureController.class, (p, m, a) -> switch (m.getName()) {
             case "getEntityId" -> id;
             case "getOwnerId" -> PLAYER;
-            case "getManufacturePerSecond" -> 60;
+            case "getManufacturePerTick" -> 15;
             case "getResearchPerTick" -> 5;
             default -> defaultValue(p, m, a);
         });
