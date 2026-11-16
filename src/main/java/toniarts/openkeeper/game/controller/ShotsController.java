@@ -334,8 +334,9 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
-        // The shot's data 1 is its damage (0x4AC420)
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+        // The shot's data 1 is its damage, an invulnerable creature takes none (0x4AC420)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0
+                && entityData.getComponent(thing, Invulnerable.class) == null) {
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
