@@ -46,6 +46,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.AlternativeShot;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -228,7 +229,7 @@ class CreatureSupportSpellTest {
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.INVULNERABLE);
 
         assertTrue(controller.castSupportSpell());
-        assertEquals(friend, shots.get(0)[5]);
+        assertEquals(friend, getCastTarget());
 
         entityData.setComponent(friend, new Invulnerable(30));
         gameTime += RECHARGE;
