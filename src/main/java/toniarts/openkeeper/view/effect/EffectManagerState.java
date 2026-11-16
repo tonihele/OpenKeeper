@@ -89,6 +89,12 @@ public class EffectManagerState extends AbstractAppState {
         load(node, location, effectId, infinite);
     }
 
+    @Override
+    public void cleanup() {
+        clearActiveEffects();
+        super.cleanup();
+    }
+
     public void clearActiveEffects() {
         Iterator<VisualEffect> iterator = activeEffects.iterator();
         while (iterator.hasNext()) {
