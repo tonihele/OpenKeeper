@@ -257,6 +257,20 @@ class CreatureSupportSpellTest {
     }
 
     @Test
+    void theInvisibleShotLandsOnItsCaster() {
+
+        // The Thief's and the Rogue's Invisible, its shot flies
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE,
+                createShotsController(ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.INVISIBLE)));
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        assertEquals(gameTime + HEAL_AMOUNT, entityData.getComponent(us, Invisible.class).endTime);
+    }
+
+    @Test
     void turnsInvisibleInAFightUntilItWearsOff() {
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE);
 
