@@ -91,6 +91,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int FAILED_PATH_WAIT_SECONDS = 120;
 
     /**
+     * A room it found no site for at its default size is looked for smaller,
+     * down to 3 by 3 tiles. DK II never looks for a smaller room
+     */
+    private static final int SMALLEST_ROOM_SIDE = 3;
+
+    /**
      * DK II looks at its army and the training on half of the ticks
      */
     private static final int TRAINING_CHANCE_PERCENTAGE = 50;
@@ -1091,12 +1097,19 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     /**
      * Tries one direction a tick: the preferred one, then both sides and
      * then the opposite one. After that it mostly tries again from another
-     * room
+     * room. Each time it gives up, the next search is for a smaller room,
+     * which DK II does not do: it looks for the default size for ever
      */
     private int findRoomSite(KeeperAi keeperAi, IPlayerController playerController, AI ai, int actions) {
+        int size = ai.getDefaultSize();
+        if (keeperAi.roomSitesNotFound > 0) {
+            int side = Math.max(SMALLEST_ROOM_SIDE, (int) Math.sqrt(size) - keeperAi.roomSitesNotFound);
+            size = Math.min(size, side * side);
+        }
         KeeperAiRoomSiteFinder.RoomSite site = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai)
-                .find(keeperAi.current, keeperAi.direction, ai.getDefaultSize());
+                .find(keeperAi.current, keeperAi.direction, size);
         if (site != null) {
+            keeperAi.roomSitesNotFound = 0;
 
             // First the path to the site
             keeperAi.target = site.entrance();
@@ -1119,7 +1132,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.direction = preferred;
             keeperAi.current = getRandomRoomLocation(playerController);
         } else {
-            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId);
+            keeperAi.roomSitesNotFound++;
+            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " of " + size + " tiles");
         }
 
         return 0;
