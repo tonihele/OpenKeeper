@@ -16,9 +16,16 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
 import java.util.List;
 import java.util.Random;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.tools.convert.map.RoomFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -27,6 +34,25 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class GraveyardControllerTest {
 
     private final Random random = new Random(1);
+
+    @Test
+    void bodiesLieOnlyOnTheInsideTiles() {
+
+        // A 3x3 graveyard has one inside tile and no crypt
+        assertEquals(1, buildGraveyard(3).getMaxCapacity(ObjectType.CORPSE));
+    }
+
+    @Test
+    void cryptTakesAnInsideTile() {
+
+        // A 4x4 graveyard has four inside tiles, one of them with the crypt
+        assertEquals(3, buildGraveyard(4).getMaxCapacity(ObjectType.CORPSE));
+    }
+
+    @Test
+    void graveyardWithoutInsideTilesHoldsNoBodies() {
+        assertEquals(0, buildGraveyard(2).getMaxCapacity(ObjectType.CORPSE));
+    }
 
     @Test
     void oneCryptForEveryTenTiles() {
@@ -77,5 +103,25 @@ class GraveyardControllerTest {
             }
         }
         return map;
+    }
+
+    private static GraveyardController buildGraveyard(int size) {
+        EntityData entityData = new DefaultEntityData();
+        IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
+                IObjectsController.class.getClassLoader(),
+                new Class<?>[]{IObjectsController.class},
+                (proxy, method, args) -> method.getName().equals("loadObject") ? entityData.createEntity() : null);
+
+        // Graveyard objects in DK II: the four Tomb Stones
+        RoomInstance roomInstance = new RoomInstance(RoomFixtures.room((short) 14, List.of((short) 31, (short) 32, (short) 33, (short) 34, (short) 0, (short) 0)));
+        for (int x = 1; x <= size; x++) {
+            for (int y = 1; y <= size; y++) {
+                roomInstance.addCoordinate(new Point(x, y));
+            }
+        }
+
+        GraveyardController room = new GraveyardController(entityData.createEntity(), entityData, null, roomInstance, objectsController, null);
+        room.construct();
+        return room;
     }
 }
