@@ -1727,7 +1727,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         }
 
         // Validate
-        if (isGodMode(playerId) && !getConstructionBlockingTiles().contains(tile)
+        if (isGodMode(playerId) && !isConstructionBlocked(tile)
                 && mapTile.getOwnerId() == playerId
                 && !mapController.getTerrain(mapTile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
             doorsController.addDoor(doorId, tile, playerId);

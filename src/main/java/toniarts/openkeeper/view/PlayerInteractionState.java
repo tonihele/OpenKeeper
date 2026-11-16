@@ -756,6 +756,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 if (gameClientState.isGodMode()) {
                     gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(),
                             selectionHandler.getPointedTileIndex());
+                    return;
                 }
                 Point p = selectionHandler.getPointedTileIndex();
                 if (isDoorPlacementValid(p)) {
