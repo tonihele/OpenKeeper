@@ -85,6 +85,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int NOTHING_TO_DO_LOG_SECONDS = 60;
 
     /**
+     * How long a neutral room it could not dig to is left alone. DK II has
+     * no such wait, it digs to the same room again on its next Portal plan
+     */
+    private static final int FAILED_PATH_WAIT_SECONDS = 120;
+
+    /**
      * DK II looks at its army and the training on half of the ticks
      */
     private static final int TRAINING_CHANCE_PERCENTAGE = 50;
@@ -300,6 +306,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
         if (keeperAi.cannotAttackTicks > 0) {
             keeperAi.cannotAttackTicks--;
+        }
+
+        // A neutral room it could not dig to is left alone for a while
+        for (int i = 0; i < keeperAi.failedTargetTicks.length; i++) {
+            if (keeperAi.failedTargetTicks[i] > 0) {
+                keeperAi.failedTargetTicks[i]--;
+            }
         }
         battles.liftCallToArms(keeperAi, playerControllers, ai, ticksPerSecond);
 
@@ -932,7 +945,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * Has a path dug to the nearest neutral room of a kind, so that the
      * imps claim it. A Portal has to be near one of the computer player's
      * rooms, any other room near its Dungeon Heart, or else some of its
-     * land has to lie on the edge of a square around the room
+     * land has to lie on the edge of a square around the room. A room it
+     * could not dig to a short while ago is passed over
      *
      * @return true if it digs to a room
      */
@@ -944,7 +958,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             short id = room.getRoomInstance().getRoom().getRoomId();
             Point centre = room.getRoomInstance().getCenter();
             if (room.getRoomInstance().getOwnerId() == Player.NEUTRAL_PLAYER_ID && !room.getRoomInstance().isDestroyed()
-                    && (portal ? id == ROOM_PORTAL || id == ROOM_HERO_PORTAL : id == roomId)
+                    && (portal ? id == ROOM_PORTAL || id == ROOM_HERO_PORTAL : id == roomId) && !isWaitingAfterFailedPath(keeperAi, centre)
                     && (target == null || getDistance(heart, centre) < getDistance(heart, target))) {
                 target = centre;
             }
@@ -970,6 +984,16 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         keeperAi.nextTask = KeeperAi.Task.FINISH;
 
         return true;
+    }
+
+    private static boolean isWaitingAfterFailedPath(KeeperAi keeperAi, Point target) {
+        for (int i = 0; i < keeperAi.failedTargets.length; i++) {
+            if (keeperAi.failedTargetTicks[i] > 0 && target.equals(keeperAi.failedTargets[i])) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -1107,13 +1131,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         while (actions > 0) {
             actions--;
             if (keeperAi.current.equals(keeperAi.target)) {
-                finishPath(keeperAi, "the path is dug");
+                finishPath(keeperAi, true, "the path is dug");
                 return actions;
             }
 
             // A tunnel to an enemy stops at the enemy's land, to break through later
             if (keeperAi.invasionTargetId != 0 && invasions.stopTunnel(keeperAi, playerController.getKeeper())) {
-                finishPath(keeperAi, "the tunnel is dug up to the enemy's land");
+                finishPath(keeperAi, true, "the tunnel is dug up to the enemy's land");
                 return actions;
             }
 
@@ -1122,7 +1146,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.WATER) || terrain.getFlags().contains(Terrain.TerrainFlag.LAVA)) {
                 Room bridge = getBridge(playerController, terrain);
                 if (bridge == null) {
-                    finishPath(keeperAi, "no bridge to cross with");
+                    finishPath(keeperAi, false, "no bridge to cross with");
                     return actions;
                 }
                 if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, bridge.getRoomId())) {
@@ -1130,7 +1154,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     gameWorldController.build(position, position, keeperAi.playerId, bridge.getRoomId());
                     log(keeperAi, "build room " + bridge.getRoomId(), keeperAi.current, "the path crosses water or lava");
                     if (mapController.getRoomControllerByCoordinates(keeperAi.current) != null && !stepOnPath(keeperAi)) {
-                        finishPath(keeperAi, "no way on from here");
+                        finishPath(keeperAi, !keeperAi.wallFollowing, "no way on from here");
                         return actions;
                     }
                 }
@@ -1139,11 +1163,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 // On open land the path is done as soon as a creature can walk the rest
                 if (navigationService.findPath(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId)) != null) {
                     keeperAi.current = keeperAi.target;
-                    finishPath(keeperAi, "there is a way to walk from here");
+                    finishPath(keeperAi, true, "there is a way to walk from here");
                     return actions;
                 }
                 if (!stepOnPath(keeperAi)) {
-                    finishPath(keeperAi, "the way on is open, or there is none");
+                    finishPath(keeperAi, !keeperAi.wallFollowing, "the way on is open, or there is none");
                     return actions;
                 }
             } else if (!tile.isSelected(keeperAi.playerId)) {
@@ -1154,7 +1178,26 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         return 0;
     }
 
-    private void finishPath(KeeperAi keeperAi, String reason) {
+    /**
+     * Ends the path and goes on with the next task. A path that could not go
+     * on, with no bridge to cross with or no way round rock, has its target
+     * left alone for a while, in the slot that frees up first
+     *
+     * @param reached whether the path got through, a rock follow that gave
+     * up is still on when the stepper finds no way
+     */
+    private void finishPath(KeeperAi keeperAi, boolean reached, String reason) {
+        if (!reached) {
+            int slot = 0;
+            for (int i = 1; i < keeperAi.failedTargetTicks.length; i++) {
+                if (keeperAi.failedTargetTicks[i] < keeperAi.failedTargetTicks[slot]) {
+                    slot = i;
+                }
+            }
+            keeperAi.failedTargets[slot] = keeperAi.target;
+            keeperAi.failedTargetTicks[slot] = FAILED_PATH_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
+            log(keeperAi, "leave the target alone for " + FAILED_PATH_WAIT_SECONDS + " s", keeperAi.target, reason);
+        }
         keeperAi.invasionTargetId = 0;
         keeperAi.wallFollowing = false;
         setTask(keeperAi, keeperAi.nextTask, reason);
@@ -1343,7 +1386,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * A wooden bridge over water if the player has it, otherwise a stone
-     * bridge
+     * bridge. Over lava only a stone bridge: DK II's computer player never
+     * puts a wooden one there, although a player can and it burns away
      */
     private Room getBridge(IPlayerController playerController, Terrain terrain) {
         for (short roomId : new short[]{ROOM_WOODEN_BRIDGE, ROOM_STONE_BRIDGE}) {

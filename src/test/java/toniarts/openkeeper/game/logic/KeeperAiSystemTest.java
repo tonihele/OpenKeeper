@@ -148,6 +148,8 @@ class KeeperAiSystemTest {
     private static final short TORTURE_CHAMBER = 12;
     private static final short TEMPLE = 13;
     private static final short COMBAT_PIT = 16;
+    private static final short WOODEN_BRIDGE = 8;
+    private static final short STONE_BRIDGE = 17;
     private static final short HORNY = 9;
     private static final short EATER = 8;
     private static final short THUNDERBOLT = 6;
@@ -177,9 +179,19 @@ class KeeperAiSystemTest {
             '.', terrain((short) 4, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0),
             'H', terrain((short) 5, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0),
             'P', terrain((short) 6, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0),
-            'E', terrain((short) 7, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0));
+            'E', terrain((short) 7, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0),
+            'W', terrain((short) 8, flags(TerrainFlag.WATER), 0, 0, 0, (short) 0),
+            'L', terrain((short) 9, flags(TerrainFlag.LAVA), 0, 0, 0, (short) 0));
     private final Set<Point> tagged = new HashSet<>();
     private final List<Point> built = new ArrayList<>();
+    private final List<Short> builtRoomIds = new ArrayList<>();
+
+    /**
+     * Kept out of the level's room list, which sets the lobby build order
+     */
+    private final Map<Short, Room> bridges = Map.of(
+            WOODEN_BRIDGE, room(WOODEN_BRIDGE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_WATER, Room.RoomFlag.PLACEABLE_ON_LAVA, Room.RoomFlag.BUILDABLE),
+            STONE_BRIDGE, room(STONE_BRIDGE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_WATER, Room.RoomFlag.PLACEABLE_ON_LAVA, Room.RoomFlag.BUILDABLE));
     private final List<Point> impSpells = new ArrayList<>();
 
     private final Map<Short, Room> rooms = Map.ofEntries(
@@ -368,6 +380,66 @@ class KeeperAiSystemTest {
         assertTrue(dug.containsAll(Set.of(new Point(7, 5), new Point(7, 1), new Point(1, 1), new Point(1, 9), new Point(7, 9), new Point(7, 7))));
         assertEquals(24, dug.size());
         assertFalse(getKeeperAi().wallFollowing);
+    }
+
+    @Test
+    void bridgesWaterWithTheWoodenBridgeWhenThatIsTheOnlyBridgeItHas() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        roomControl.setTypeAvailable(bridges.get(WOODEN_BRIDGE), true, true);
+        createNeutralPortal(new Point(9, 6));
+        map[6][7] = 'W';
+
+        digPath(system);
+
+        // The rock up to the water is dug, the water bridged and the rock behind it dug
+        assertEquals(List.of(new Point(7, 6)), built);
+        assertEquals(List.of(WOODEN_BRIDGE), builtRoomIds);
+        assertEquals('.', map[6][8]);
+        assertEquals(KeeperAi.Task.FINISH, getKeeperAi().task);
+    }
+
+    @Test
+    void leavesAPortalBehindLavaAloneForAWhileWhenItHasOnlyTheWoodenBridge() {
+        KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
+        roomControl.setTypeAvailable(bridges.get(WOODEN_BRIDGE), true, true);
+        createNeutralPortal(new Point(9, 6));
+        map[6][7] = 'L';
+
+        // DK II's computer player bridges lava only with the Stone Bridge
+        digPath(system);
+        assertTrue(built.isEmpty());
+        assertEquals(new Point(7, 6), getKeeperAi().current);
+
+        // The plans after that pass the Portal over, 2 minutes at 4 ticks a second
+        for (int tick = 0; tick < 470; tick++) {
+            system.processTick(0.25f);
+            assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        }
+
+        // Then it digs there again, and now it has the Stone Bridge
+        roomControl.setTypeAvailable(bridges.get(STONE_BRIDGE), true, true);
+        for (int tick = 0; tick < 100 && built.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+        assertEquals(List.of(new Point(7, 6)), built);
+        assertEquals(List.of(STONE_BRIDGE), builtRoomIds);
+    }
+
+    /**
+     * Runs the computer player until the path it starts on the first tick
+     * ends, with the imps digging out what is tagged at once
+     */
+    private void digPath(KeeperAiSystem system) {
+        for (int tick = 0; tick < 100 && (tick == 0 || getKeeperAi().task == KeeperAi.Task.DIG_PATH); tick++) {
+            system.processTick(0.25f);
+            if (tick == 0) {
+                assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+            }
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
     }
 
     @Test
@@ -1676,7 +1748,7 @@ class KeeperAiSystemTest {
                     : GameObjectFixtures.gameObject("Special", GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL);
             case "getDoors" -> List.of(woodenDoor);
             case "getVariables" -> variables;
-            case "getRoomById" -> rooms.get(((Number) args[0]).shortValue());
+            case "getRoomById" -> rooms.getOrDefault(((Number) args[0]).shortValue(), bridges.get(((Number) args[0]).shortValue()));
             case "getKeeperSpellById" -> ((Number) args[0]).shortValue() == CALL_TO_ARMS ? callToArms
                     : ((Number) args[0]).shortValue() == SIGHT_OF_EVIL ? sightOfEvil
                     : ((Number) args[0]).shortValue() == CREATE_GOLD ? createGold : null;
@@ -1743,6 +1815,7 @@ class KeeperAiSystemTest {
                         case "build" -> {
                             Point p = new Point((int) ((Vector2f) args[0]).x, (int) ((Vector2f) args[0]).y);
                             built.add(p);
+                            builtRoomIds.add((short) args[3]);
                             map[p.y][p.x] = 'H';
                         }
                         default -> throw new UnsupportedOperationException(method.getName());
@@ -1821,7 +1894,7 @@ class KeeperAiSystemTest {
                             return getTerrain((Point) args[0]).getFlags().contains(TerrainFlag.TAGGABLE);
                         }
                         case "isBuildable" -> {
-                            return map[((Point) args[0]).y][((Point) args[0]).x] == '.';
+                            return ".WL".indexOf(map[((Point) args[0]).y][((Point) args[0]).x]) >= 0;
                         }
                         case "selectTiles" -> {
                             Vector2f start = (Vector2f) args[0];

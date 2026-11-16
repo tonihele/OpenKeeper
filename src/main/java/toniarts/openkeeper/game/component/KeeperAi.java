@@ -206,6 +206,14 @@ public final class KeeperAi implements EntityComponent {
      */
     public Point rallyTile;
 
+    /**
+     * The targets of the last paths it could not dig to the end, and for
+     * each the game ticks until it may pick that neutral room again. DK II
+     * keeps no such list and picks the same room each time it plans
+     */
+    public Point[] failedTargets = new Point[4];
+    public int[] failedTargetTicks = new int[4];
+
     public KeeperAi() {
         // For serialization
     }
@@ -249,6 +257,8 @@ public final class KeeperAi implements EntityComponent {
         this.attackLookTicks = keeperAi.attackLookTicks;
         this.invasionTargetId = keeperAi.invasionTargetId;
         this.rallyTile = keeperAi.rallyTile;
+        this.failedTargets = keeperAi.failedTargets.clone();
+        this.failedTargetTicks = keeperAi.failedTargetTicks.clone();
     }
 
 }
