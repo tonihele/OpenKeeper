@@ -156,6 +156,11 @@ class KeeperAiSystemTest {
     private static final short HEAL = 10;
     private static final int ROOM_COST = 10;
     private static final Point HEART = new Point(3, 6);
+    /**
+     * A fighter isn't dropped on the middle 3x3 of the heart, the AI drops it
+     * on the heart's edge
+     */
+    private static final Point HEART_DROP = new Point(HEART.x + 2, HEART.y);
     private static final int NORTH = 0;
     private static final int WEST = 1;
     private static final int EAST = 3;
@@ -570,7 +575,7 @@ class KeeperAiSystemTest {
 
         system.processTick(0.25f);
 
-        assertEquals(Map.of(creature, HEART), dropped);
+        assertEquals(Map.of(creature, HEART_DROP), dropped);
     }
 
     @Test
@@ -602,7 +607,7 @@ class KeeperAiSystemTest {
         }
 
         // Every creature it has within 5 tiles of the fight, the others stay
-        assertEquals(Map.of(fighter, HEART, near, HEART), dropped);
+        assertEquals(Map.of(fighter, HEART_DROP, near, HEART_DROP), dropped);
         assertTrue(!dropped.containsKey(far));
         assertEquals(0, getKeeperAi().attacks);
     }
@@ -695,7 +700,7 @@ class KeeperAiSystemTest {
         EntityId outside = createCreature(PLAYER_ID, new Point(1, 8), 5, 100, CreatureState.IDLE);
         system.processTick(0.25f);
 
-        assertEquals(Map.of(outside, HEART), dropped);
+        assertEquals(Map.of(outside, HEART_DROP), dropped);
     }
 
     @Test
@@ -715,7 +720,7 @@ class KeeperAiSystemTest {
         gameTime = 75;
         system.processTick(0.25f);
 
-        assertEquals(Map.of(hurt, HEART), dropped);
+        assertEquals(Map.of(hurt, HEART_DROP), dropped);
     }
 
     @Test
@@ -735,7 +740,7 @@ class KeeperAiSystemTest {
         entityData.setComponent(fighter, new Health(49, 100));
         system.processTick(0.25f);
 
-        assertEquals(Map.of(fighter, HEART), dropped);
+        assertEquals(Map.of(fighter, HEART_DROP), dropped);
     }
 
     @Test
@@ -755,7 +760,7 @@ class KeeperAiSystemTest {
         entityData.setComponent(fighter, new CreatureExperience(5, 0, 0, 0, 0));
         system.processTick(0.25f);
 
-        assertEquals(Map.of(fighter, HEART), dropped);
+        assertEquals(Map.of(fighter, HEART_DROP), dropped);
     }
 
     @Test
