@@ -232,8 +232,9 @@ public class EntityController implements IEntityController {
     public static void setDamage(EntityData entityData, EntityId entityId, int damageAmount, Short playerId) {
         Damage damage = entityData.getComponent(entityId, Damage.class);
         int damageTotal = damage != null ? damage.damage : 0;
-        Short source = damageAmount > 0 ? playerId : (damage != null ? damage.playerId : null);
-        entityData.setComponent(entityId, new Damage(damageTotal + scaleDamage(entityData, entityId, damageAmount), source));
+        // Native health adjustments update the source before checking whether the
+        // adjustment can take effect, including healing and unconscious targets.
+        entityData.setComponent(entityId, new Damage(damageTotal + scaleDamage(entityData, entityId, damageAmount), playerId));
     }
 
     /**

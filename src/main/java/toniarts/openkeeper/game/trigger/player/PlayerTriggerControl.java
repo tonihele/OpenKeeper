@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -120,7 +121,17 @@ public class PlayerTriggerControl extends TriggerControl {
                 value = trigger.getUserData("value", int.class);
                 break;
             case PLAYER_CREATURES_KILLED:
-                return false;
+                short killerPlayerId = trigger.getUserData("playerId", short.class);
+                if (killerPlayerId == 0) {
+                    target = getPlayerController(playerId).getStatsControl().getCreaturesLost();
+                } else {
+                    // Native 0x4C7D43 reads the killer's per-victim-owner counter.
+                    IPlayerController killer = getPlayerController(killerPlayerId);
+                    target = killer == null ? 0 : killer.getStatsControl()
+                            .getCreaturesKilled(getPlayerController(playerId).getKeeper().getId());
+                }
+                value = trigger.getUserData("value", int.class);
+                break;
             case PLAYER_KILLS_CREATURES:
                 target = getPlayerController(playerId).getStatsControl()
                         .getCreaturesKilled(trigger.getUserData("playerId", short.class));

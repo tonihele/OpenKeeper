@@ -29,6 +29,7 @@ public final class PlayerStatsControl {
 
     private int payDays;
     private int enemyCreaturesKilled;
+    private int creaturesLost;
     private final Map<Short, Integer> creaturesKilledByOwner = new HashMap<>();
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
@@ -50,6 +51,15 @@ public final class PlayerStatsControl {
     public int getCreaturesKilled(short victimOwnerId) {
         return victimOwnerId == 0 ? enemyCreaturesKilled
                 : creaturesKilledByOwner.getOrDefault(victimOwnerId, 0);
+    }
+
+    /** Records a creature's actual death, including workers and unattributed deaths. */
+    public void creatureLost() {
+        creaturesLost++;
+    }
+
+    public int getCreaturesLost() {
+        return creaturesLost;
     }
 
     public boolean hasSlapped() {

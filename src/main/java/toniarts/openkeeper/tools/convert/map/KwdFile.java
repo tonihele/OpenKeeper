@@ -2480,9 +2480,8 @@ public final class KwdFile implements IKwdFile, IKwdMap {
 
                         case PLAYER_CREATURES_KILLED:
                             ((TriggerGeneric) trigger).setTargetValueComparison(reader.readByteAsEnum(TriggerGeneric.ComparisonType.class));
-                            trigger.setUserData("targetId", reader.readUnsignedByte()); // playerId
-                            trigger.setUserData("flag", reader.readUnsignedByte()); // 0x1 = Value, !0x1 = Player
-                            trigger.setUserData("playerId", reader.readUnsignedByte());
+                            reader.skipBytes(2); // Unused: native 0x4C7D0F always compares against a literal.
+                            trigger.setUserData("playerId", reader.readUnsignedByte()); // Killer player, 0 = all losses.
                             trigger.setUserData("value", reader.readUnsignedInteger());
                             break;
 

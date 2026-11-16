@@ -28,7 +28,7 @@ public final class Damage implements EntityComponent {
 
     public int damage;
 
-    /** Player responsible for the last damaging hit in this batch, null for unattributed damage. */
+    /** Player responsible for the latest health adjustment in this batch, null when unattributed. */
     public Short playerId;
 
     public Damage() {

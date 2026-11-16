@@ -161,6 +161,14 @@ public final class HealthSystem extends GameTimeCounter {
 
             // From unconsciousness we start the countdown to death
             if (unconscious != null) {
+                Entity damaged = damageEntities.getEntity(entityId);
+                if (damaged != null) {
+                    // DK II updates attribution even when unconsciousness prevents
+                    // a health change (0x4B2CF3 / 0x4B2DEF). Consume the adjustment
+                    // now so it cannot be replayed after rescue.
+                    setCreatureDeathCredit(entityId, damaged.get(Damage.class).playerId);
+                    entityData.removeComponent(entityId, Damage.class);
+                }
                 if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
                 }
@@ -187,8 +195,8 @@ public final class HealthSystem extends GameTimeCounter {
             if (health.health + healthChange <= 0) {
                 Entity damaged = damageEntities.getEntity(entityId);
                 Damage damage = damaged == null ? null : damaged.get(Damage.class);
-                if (damage != null && damage.damage > 0 && damage.playerId != null) {
-                    entityData.setComponent(entityId, new CreatureDeathCredit(damage.playerId));
+                if (damage != null && damage.damage > 0) {
+                    setCreatureDeathCredit(entityId, damage.playerId);
                 }
                 processHealthDepleted(entityId, health);
             } else {
@@ -232,7 +240,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
-            recordCreatureKill(entityId);
+            recordCreatureDeath(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
         }
@@ -410,7 +418,7 @@ public final class HealthSystem extends GameTimeCounter {
     private void processDeath(EntityId entityId) {
         if (entityData.getComponent(entityId, Death.class) == null
                 && entityData.getComponent(entityId, CreatureComponent.class) != null) {
-            recordCreatureKill(entityId);
+            recordCreatureDeath(entityId);
             gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
         }
         entityData.removeComponent(entityId, Health.class);
@@ -427,12 +435,25 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.setComponent(entityId, new Death(timeElapsed));
     }
 
-    private void recordCreatureKill(EntityId entityId) {
+    private void setCreatureDeathCredit(EntityId entityId, Short playerId) {
+        if (playerId == null) {
+            entityData.removeComponent(entityId, CreatureDeathCredit.class);
+        } else {
+            entityData.setComponent(entityId, new CreatureDeathCredit(playerId));
+        }
+    }
+
+    private void recordCreatureDeath(EntityId entityId) {
         CreatureDeathCredit credit = entityData.getComponent(entityId, CreatureDeathCredit.class);
         CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (credit != null && creature != null && owner != null) {
-            IPlayerController killer = playerControllersById.get(credit.playerId);
+        if (creature != null && owner != null) {
+            // DK II increments the owner's total even when no killer is known (0x48832A).
+            IPlayerController victim = playerControllersById.get(owner.ownerId);
+            if (victim != null) {
+                victim.getStatsControl().creatureLost();
+            }
+            IPlayerController killer = credit == null ? null : playerControllersById.get(credit.playerId);
             if (killer != null) {
                 killer.getStatsControl().creatureKilled(credit.playerId, owner.ownerId, creature.worker);
             }

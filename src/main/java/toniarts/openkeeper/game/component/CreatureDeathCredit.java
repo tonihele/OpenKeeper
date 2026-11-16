@@ -18,7 +18,7 @@ package toniarts.openkeeper.game.component;
 
 import com.simsilica.es.EntityComponent;
 
-/** Retains the lethal hit's player while a creature lies unconscious awaiting death. */
+/** Retains the latest health-adjustment source while a creature lies unconscious awaiting death. */
 public final class CreatureDeathCredit implements EntityComponent {
 
     public short playerId;
