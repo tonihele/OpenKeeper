@@ -20,6 +20,7 @@ import toniarts.openkeeper.utils.Point;
 
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.function.BiPredicate;
 
 /**
  * The primitive fog-of-war mutations and the pure algorithms built on top of
@@ -184,17 +185,18 @@ public final class FogOfWarRules {
     }
 
     /**
-     * Explores every tile whose centre lies within {@code radius} tiles of
-     * (cx, cy), Euclidean distance, ignoring line of sight. Used for the
-     * dungeon-heart start-of-level "unfolding" reveal (§6.6).
+     * Explores every tile whose centre lies strictly within {@code radius}
+     * tiles of (cx, cy), Euclidean distance, ignoring line of sight, and that
+     * {@code revealable} accepts. Used for the dungeon-heart start-of-level
+     * "unfolding" reveal (§6.6).
      */
-    public static void exploreDisc(FogState state, int cx, int cy, float radius) {
+    public static void exploreDisc(FogState state, int cx, int cy, float radius, BiPredicate<Integer, Integer> revealable) {
         int r = (int) Math.ceil(radius);
         double radiusSq = (double) radius * radius;
         for (int dx = -r; dx <= r; dx++) {
             for (int dy = -r; dy <= r; dy++) {
                 double distSq = (double) dx * dx + (double) dy * dy;
-                if (distSq <= radiusSq) {
+                if (distSq < radiusSq && revealable.test(cx + dx, cy + dy)) {
                     explore(state, cx + dx, cy + dy);
                 }
             }
