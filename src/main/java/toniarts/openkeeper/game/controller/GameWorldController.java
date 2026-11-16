@@ -102,6 +102,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -579,9 +580,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void sell(Vector2f start, Vector2f end, short playerId) {
-        // A trap is sold on its own, one at a time and never together with rooms
+        // A trap or a door is sold on its own, one at a time and never together with rooms
         Point startTile = new Point((int) start.x, (int) start.y);
-        if (startTile.equals(new Point((int) end.x, (int) end.y)) && sellTrap(startTile, playerId)) {
+        if (startTile.equals(new Point((int) end.x, (int) end.y))
+                && (sellTrap(startTile, playerId) || sellDoor(startTile, playerId))) {
             return;
         }
 
@@ -620,6 +622,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return true;
         }
         return false;
+    }
+
+    private boolean sellDoor(Point tile, short playerId) {
+        if (mapController.getMapData().getTile(tile) == null) {
+            return false;
+        }
+
+        // Only the entities on the tile, not every door on the map
+        OptionalInt saleValue = doorsController.sellDoor(entityPositionLookup.getEntitiesInLocation(tile), playerId);
+        if (saleValue.isEmpty()) {
+            return false;
+        }
+
+        returnSaleRevenue(playerId, List.of(new AbstractMap.SimpleImmutableEntry<>(tile, saleValue.getAsInt())));
+        return true;
     }
 
     private Sale sellTiles(Vector2f start, Vector2f end, short playerId) {
@@ -1287,6 +1304,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean tortureOrImprisonment = false;
         boolean torture = false;
         boolean imprison = false;
+        boolean pitFighter = false;
         CreatureState creatureState = null;
         Position devicePosition = null;
 
@@ -1334,13 +1352,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             tortureOrImprisonment = imprison || torture;
 
-            // Our own creatures dropped into the pit itself fight there, workers just go back to work
-            if (roomController instanceof CombatPitController combatPit
-                    && roomController.getRoomInstance().getOwnerId() == owner.ownerId
-                    && combatPit.isFightingTile(tile)
-                    && !entityData.getComponent(entity, CreatureComponent.class).worker) {
-                entityData.setComponent(entity, new CombatPitFighter(roomController.getEntityId()));
-            }
+            // Creatures dropped into the pit itself fight there, our prisoners too
+            pitFighter = roomController instanceof CombatPitController combatPit && combatPit.addFighter(entity, tile);
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
@@ -1385,7 +1398,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Owner owner = entityData.getComponent(entity, Owner.class);
         if (tortureOrImprisonment) {
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
-        } else {
+        } else if (!pitFighter) {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
     }
