@@ -30,6 +30,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -59,6 +60,7 @@ class ShotSystemTest {
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
+    private final Shot raiseDead = ShotFixtures.raiseDead();
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
             EnumSet.noneOf(Creature.CreatureFlag3.class));
     private final List<EntityId> creatures = new ArrayList<>();
@@ -73,7 +75,7 @@ class ShotSystemTest {
         ShotFixtures.setSize(imp, 0.14f, 0.5f);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
-            case "getShotById" -> fireball;
+            case "getShotById" -> (Short) args[0] == ShotFixtures.RAISE_DEAD_ID ? raiseDead : fireball;
             case "getCreature" -> imp;
             default -> throw new UnsupportedOperationException(method.getName());
         });
@@ -180,6 +182,39 @@ class ShotSystemTest {
     @Test
     void shotFliesThroughItsOwnersCreatures() {
         createCreature(PLAYER_ID, new Vector3f(2, 1, 1));
+        EntityId shot = createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
+        assertNotNull(positionOf(shot));
+    }
+
+    @Test
+    void raiseDeadHitsADeadBodyAndDies() {
+        createCreature(ENEMY_ID, new Vector3f(1.5f, 1, 1));
+        EntityId deadBody = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        entityData.removeComponent(deadBody, Health.class);
+        entityData.setComponent(deadBody, new Death(0));
+        EntityId shot = createShot(new Vector3f(1.3f, 1.3f, 1), new Vector3f(0.5f, 0, 0), 3);
+        entityData.setComponent(shot, new ShotFlight(ShotFixtures.RAISE_DEAD_ID, PLAYER_ID, null, 9, 0, new Vector3f(0.5f, 0, 0),
+                new Vector3f(1.3f, 1.3f, 1), 3, raiseDead.getHealth()));
+
+        // Through the living on the first turn
+        shotSystem.processTick(0.25f);
+        assertTrue(hits.isEmpty());
+
+        shotSystem.processTick(0.25f);
+        assertEquals(1, hits.size());
+        assertEquals(deadBody, hits.get(0)[1]);
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotAtCreaturesFliesThroughADeadBody() {
+        EntityId deadBody = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        entityData.removeComponent(deadBody, Health.class);
+        entityData.setComponent(deadBody, new Death(0));
         EntityId shot = createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
 
         shotSystem.processTick(0.25f);

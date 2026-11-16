@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -180,7 +181,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     /**
      * Looks for a thing the shot touches, on the tiles under the shot. For now
-     * the shots only hit creatures.
+     * the shots only hit creatures and dead bodies.
      *
      * @param shot the shot
      * @param flight the shot's flight
@@ -210,11 +211,8 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     private boolean isHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        Health health = entityData.getComponent(entityId, Health.class);
-        Owner owner = entityData.getComponent(entityId, Owner.class);
         Position creaturePosition = entityData.getComponent(entityId, Position.class);
-        if (creatureComponent == null || health == null || health.health <= 0 || owner == null || creaturePosition == null
-                || !collidesWith(shot.getCollideType(), flight.ownerId, owner.ownerId)) {
+        if (creatureComponent == null || creaturePosition == null || !collidesWith(shot.getCollideType(), flight.ownerId, entityId)) {
             return false;
         }
 
@@ -224,7 +222,18 @@ public final class ShotSystem implements IGameLogicUpdatable {
                 creature.getAttributes().getWidth(), creatureComponent.height);
     }
 
-    private boolean collidesWith(Shot.CollideType collideType, short shotOwnerId, short creatureOwnerId) {
+    private boolean collidesWith(Shot.CollideType collideType, short shotOwnerId, EntityId entityId) {
+        if (collideType == Shot.CollideType.DEAD_BODIES) {
+            return entityData.getComponent(entityId, Death.class) != null;
+        }
+
+        Health health = entityData.getComponent(entityId, Health.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (health == null || health.health <= 0 || owner == null) {
+            return false;
+        }
+
+        short creatureOwnerId = owner.ownerId;
         return switch (collideType) {
             case OWN_CREATURES ->
                 creatureOwnerId == shotOwnerId;

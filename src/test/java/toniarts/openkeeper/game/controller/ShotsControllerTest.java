@@ -24,16 +24,20 @@ import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
@@ -42,6 +46,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -53,6 +58,8 @@ class ShotsControllerTest {
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
+    private static final short SKELETON_ID = 9;
+    private static final int RAISE_DEAD_EFFECT_ID = 324;
     private static final short PLAYER_ID = 3;
     private static final int TICKS_PER_SECOND = 4;
     private static final float DELTA = 0.0001f;
@@ -60,11 +67,15 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<EntityId> deadBodies = new ArrayList<>();
+    private final List<Object[]> raised = new ArrayList<>();
+    private final List<Object[]> effects = new ArrayList<>();
     private final ShotsController shotsController;
 
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
+        shotsById.put(ShotFixtures.RAISE_DEAD_ID, ShotFixtures.raiseDead());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
@@ -89,9 +100,16 @@ class ShotsControllerTest {
                 (proxy, method, args) -> null);
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
                 (proxy, method, args) -> method.getName().equals("getMapData") ? mapData : null);
-        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class},
+                (proxy, method, args) -> method.getName().equals("emitEffect") ? effects.add(args) : null);
+        IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
+                (proxy, method, args) -> deadBodies.stream().filter(entity -> args[0].equals(WorldUtils.vectorToPoint(entityData.getComponent(entity, Position.class).position))).toList());
+        IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
+                (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> method.getName().equals("turnCreatureIntoAnother") ? raised.add(args) : null);
 
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, null, mapController, null, objectsController, null, gameEventService);
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> 0.0, gameController, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
     @Test
@@ -210,6 +228,35 @@ class ShotsControllerTest {
         shotsController.hit(shot, target);
 
         assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
+    void raiseDeadRaisesTheDeadBodiesOnTheTileForTheCaster() {
+        EntityId hit = createDeadBody(new Vector3f(2.8f, 1f, 4f));
+        EntityId onTheTile = createDeadBody(new Vector3f(3.2f, 1f, 3.9f));
+        createDeadBody(new Vector3f(4f, 1f, 4f));
+        EntityId living = createCreature();
+        entityData.setComponent(living, new Position(0, new Vector3f(3f, 1f, 4f)));
+        deadBodies.add(living);
+        shotsController.fireShot(ShotFixtures.RAISE_DEAD_ID, SKELETON_ID, 0, PLAYER_ID, new Vector3f(1f, 1f, 4f), hit,
+                entityData.createEntity(), 3);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, hit);
+
+        assertEquals(2, raised.size());
+        assertArrayEquals(new Object[]{hit, PLAYER_ID, SKELETON_ID}, raised.get(0));
+        assertArrayEquals(new Object[]{onTheTile, PLAYER_ID, SKELETON_ID}, raised.get(1));
+        assertEquals(2, effects.size());
+        assertEquals(RAISE_DEAD_EFFECT_ID, effects.get(0)[0]);
+        assertEquals(new Vector3f(2.8f, 1f, 4f), effects.get(0)[1]);
+    }
+
+    private EntityId createDeadBody(Vector3f position) {
+        EntityId deadBody = entityData.createEntity();
+        entityData.setComponents(deadBody, new Position(0, position), new CreatureComponent(), new Death(0));
+        deadBodies.add(deadBody);
+        return deadBody;
     }
 
     private ShotFlight getShotFlight() {
