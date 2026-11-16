@@ -327,6 +327,19 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballHitDoesAnInvulnerableCreatureNoHarm() {
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Invulnerable(30));
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, target);
+
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void shotThatHitsAThingHurtsItsTargetAtOnce() {
         EntityId target = createCreature(ENEMY_ID, 13, 10);
         EntityId bystander = createCreature(ENEMY_ID, 13, 10);
