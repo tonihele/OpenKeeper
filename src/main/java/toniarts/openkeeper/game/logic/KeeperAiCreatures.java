@@ -271,7 +271,7 @@ final class KeeperAiCreatures {
             return false;
         }
 
-        Point tile = playerController.getKeeper().getDungeonHeartLocation();
+        Point tile = KeeperAiBattles.getHeartDropTile(playerController.getKeeper());
         String reason = "its hand was not empty";
         CreatureComponent creatureComponent = entityData.getComponent(held, CreatureComponent.class);
         Creature.JobPreference[] jobs = creatureComponent != null ? kwdFile.getCreature(creatureComponent.creatureId).getHappyJobs() : null;
