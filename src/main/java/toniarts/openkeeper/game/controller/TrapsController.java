@@ -148,6 +148,11 @@ public final class TrapsController implements ITrapsController {
     }
 
     @Override
+    public EntityId addTrap(short trapId, Point tile, short ownerId) {
+        return loadTrap(tile.x, tile.y, trapId, ownerId, false);
+    }
+
+    @Override
     public ITrapController createController(EntityId entityId) {
         TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
         if (trapComponent == null) {

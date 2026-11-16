@@ -29,6 +29,17 @@ import toniarts.openkeeper.utils.Point;
  */
 public interface IDoorsController extends IEntityWrapper<IDoorController> {
 
+
+    /**
+     * Places a ready, unlocked door
+     *
+     * @param doorId the door
+     * @param tile the tile to place it on
+     * @param ownerId the owning keeper
+     * @return the door entity
+     */
+    public EntityId addDoor(short doorId, Point tile, short ownerId);
+
     /**
      * Places a door blueprint. The door isn't built, it waits for its crate
      * from the workshop

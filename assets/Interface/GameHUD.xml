@@ -362,6 +362,15 @@
                                      hintText="${menu.2159}" tooltip="${menu.2160}">
                                 <control name="flowLayout" id="tab-workshop-content" maxRows="2" padding="6px" />
                             </control>
+
+                            <!-- Cheats, filled in only for single player games -->
+                            <control name="customTab" id="tab-god"
+                                     image="Textures/GUI/Specials/SP-Level_Up.png"
+                                     active="Textures/GUI/Icons/selected-workshop.png"
+                                     sound="GUI_BUTTON_TAB_WORKSHOP"
+                                     hintText="Cheats" tooltip="Switch cheats on and off">
+                                <control name="flowLayout" id="tab-god-content" maxRows="2" padding="6px" />
+                            </control>
                         </control>
 
                     </panel>
@@ -390,6 +399,36 @@
                         </panel>
                     </panel>
                 </panel>
+            </panel>
+        </layer>
+        <!-- terrain change overlay, shown only while the terrain change cheat mode is on -->
+        <layer childLayout="horizontal">
+            <panel width="*" height="100%" />
+            <panel id="terrain-overlay" width="300px" height="190px" valign="center" childLayout="vertical"
+                   visible="false" visibleToMouse="true" backgroundColor="#000b" padding="10px">
+                <text style="textSmall" text="Terrain" />
+                <control name="dropDown" id="cheatTerrain" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Owner" />
+                <control name="dropDown" id="cheatOwner" width="100%" />
+            </panel>
+        </layer>
+        <!-- creature spawn overlay, shown only while the spawn creatures cheat mode is on -->
+        <layer childLayout="horizontal">
+            <panel width="*" height="100%" />
+            <panel id="creature-overlay" width="300px" height="330px" valign="center" childLayout="vertical"
+                   visible="false" visibleToMouse="true" backgroundColor="#000b" padding="10px">
+                <text style="textSmall" text="Creature" />
+                <control name="dropDown" id="cheatCreature" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Level" />
+                <control name="dropDown" id="cheatLevel" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Amount" />
+                <control name="dropDown" id="cheatAmount" width="100%" />
+                <panel height="12px" />
+                <text style="textSmall" text="Keeper" />
+                <control name="dropDown" id="cheatCreatureOwner" width="100%" />
             </panel>
         </layer>
         <!-- console layer-->

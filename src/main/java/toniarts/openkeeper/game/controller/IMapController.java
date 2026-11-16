@@ -36,7 +36,20 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * @param select select or unselect
      * @param playerId the player who selected the tile
      */
-    void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId);
+    default void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
+        selectTiles(start, end, select, playerId, false);
+    }
+
+    /**
+     * Set some tiles selected/undelected
+     *
+     * @param start start coordinates
+     * @param end end coordinates
+     * @param select select or unselect
+     * @param playerId the player who selected the tile
+     * @param anySolid also allow selecting solid tiles that can't normally be tagged, like impenetrable rock
+     */
+    void selectTiles(Vector2f start, Vector2f end, boolean select, short playerId, boolean anySolid);
 
     /**
      * If you want to get notified about tile changes
