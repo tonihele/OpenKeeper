@@ -242,7 +242,7 @@ class CreatureSupportSpellTest {
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE);
 
         assertTrue(controller.castSupportSpell());
-        assertEquals(us, shots.get(0)[5]);
+        assertEquals(us, getCastTarget());
 
         entityData.setComponents(us, new Invisible(30), new CreatureFall(), new CreatureAi(0, CreatureState.FIGHT, (short) 1));
         gameTime += RECHARGE;
