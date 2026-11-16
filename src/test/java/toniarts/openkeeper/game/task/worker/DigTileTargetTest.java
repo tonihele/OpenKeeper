@@ -36,7 +36,7 @@ class DigTileTargetTest {
 
     @Test
     void eachSpotNextToAnUnreachableTileIsSearchedOnce() {
-        AtomicInteger pathSearches = new AtomicInteger();
+        AtomicInteger reachabilityChecks = new AtomicInteger();
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> switch (name) {
             case "getTile" -> tile(args.length == 1 ? (Point) args[0] : new Point((int) args[0], (int) args[1]));
             case "getWidth", "getHeight" -> 20;
@@ -48,9 +48,9 @@ class DigTileTargetTest {
         });
         INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
             case "isAccessible" -> true;
-            case "findPath" -> {
-                pathSearches.incrementAndGet();
-                yield null; // Walled off
+            case "isReachable" -> {
+                reachabilityChecks.incrementAndGet();
+                yield false; // Walled off
             }
             default -> null;
         });
@@ -63,7 +63,7 @@ class DigTileTargetTest {
         DigTileTask task = new DigTileTask(navigationService, mapController, new Point(10, 10), (short) 3);
 
         assertNull(task.getTarget(imp));
-        assertEquals(4, pathSearches.get(), "One search for each of the four sides");
+        assertEquals(4, reachabilityChecks.get(), "One check for each of the four sides");
     }
 
     private static IMapTileInformation tile(Point location) {

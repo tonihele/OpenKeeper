@@ -184,7 +184,7 @@ public abstract class AbstractTask implements Task {
         }
 
         // Path find
-        return (navigationService.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
+        return navigationService.isReachable(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature);
     }
 
     /**

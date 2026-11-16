@@ -149,7 +149,11 @@ class CreatureCombatTest {
             default -> null;
         });
         GraphPath<?> path = stub(GraphPath.class, (name, args) -> null);
-        INavigationService navigationService = stub(INavigationService.class, (name, args) -> "findPath".equals(name) ? path : null);
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "findPath" -> path;
+            case "isReachable" -> true;
+            default -> null;
+        });
         CreatureComponent creatureComponent = entityData.getComponent(entity, CreatureComponent.class);
 
         return new CreatureController(entity, entityData, creatures.get(creatureComponent.creatureId), navigationService,

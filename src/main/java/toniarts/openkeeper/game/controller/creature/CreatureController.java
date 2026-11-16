@@ -812,7 +812,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point ourPos = WorldUtils.vectorToPoint(getPosition());
         Point theirPos = WorldUtils.vectorToPoint(getPosition(entityData, entity));
 
-        return ourPos.equals(theirPos) || navigationService.findPath(ourPos, theirPos, this) != null;
+        return navigationService.isReachable(ourPos, theirPos, this);
     }
 
     private void setAttackTarget(EntityId entity) {
@@ -1319,7 +1319,7 @@ public final class CreatureController extends EntityController implements ICreat
         Point ourLocation = getCreatureCoordinates();
         FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
                 mapController.getMapData().getHeight(),
-                (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
+                (x, y) -> navigationService.isReachable(ourLocation, new Point(x, y), this),
                 (x, y) -> mapController.getMapData().getTile(x, y).getOwnerId() == getOwnerId() && !mapController.isSolid(new Point(x, y)),
                 ThreadLocalRandom.current());
         finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
