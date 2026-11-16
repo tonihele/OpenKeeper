@@ -300,8 +300,12 @@ public final class HealthSystem extends GameTimeCounter {
     private void processUnconscious(EntityId entityId, Health health) {
         entityData.removeComponent(entityId, AttackTarget.class);
 
-        // A knocked out pit fighter is out of the fight and waits to be carried to its lair
-        entityData.removeComponent(entityId, CombatPitFighter.class);
+        // A knocked out pit fighter is out of the fight and waits to be carried to its lair.
+        // One that was held in the pit is not held anymore, the imps may take it to the Prison again
+        if (entityData.removeComponent(entityId, CombatPitFighter.class)) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            entityData.setComponent(entityId, new Owner(owner.ownerId, owner.ownerId));
+        }
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
