@@ -64,7 +64,8 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         INSTANT_DIG(null),
         CLAIM_LAND(null),
         TERRAIN_CHANGE(null),
-        SPAWN_CREATURES(null);
+        SPAWN_CREATURES(null),
+        JACKPOT("disco inferno");
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {

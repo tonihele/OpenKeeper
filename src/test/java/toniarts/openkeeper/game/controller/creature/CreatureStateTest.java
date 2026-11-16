@@ -18,10 +18,14 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -53,6 +57,45 @@ class CreatureStateTest {
         recovered.set(true);
         CreatureState.SLEEPING.update(creature);
         assertEquals(CreatureState.IDLE, currentState.get());
+    }
+
+    @Test
+    void castReleasesItsShotBeforeItEnds() {
+        List<String> calls = new ArrayList<>();
+        ICreatureController creature = recordingCreature(calls);
+
+        CreatureState.CAST_SPELL.update(creature);
+
+        assertEquals(List.of("releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
+    }
+
+    @Test
+    void interruptedCastDropsItsShot() {
+        List<String> calls = new ArrayList<>();
+
+        CreatureState.CAST_SPELL.exit(recordingCreature(calls));
+
+        assertEquals(List.of("cancelCastShot"), calls);
+    }
+
+    private static ICreatureController recordingCreature(List<String> calls) {
+        StateMachine<ICreatureController, CreatureState> stateMachine = (StateMachine<ICreatureController, CreatureState>) Proxy.newProxyInstance(
+                StateMachine.class.getClassLoader(), new Class<?>[]{StateMachine.class}, (proxy, method, args) -> {
+                    calls.add(method.getName() + " " + args[0]);
+                    return defaultValue(method.getReturnType());
+                });
+        return (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "isStateTimeExceeded" -> {
+                        calls.add(method.getName());
+                        yield true;
+                    }
+                    default -> {
+                        calls.add(method.getName());
+                        yield defaultValue(method.getReturnType());
+                    }
+                });
     }
 
     private static void assertMissingLairChangesStateToIdle(CreatureState state) {
@@ -130,6 +173,29 @@ class CreatureStateTest {
         assertEquals(CreatureState.WORK, worker.state.get());
         assertTrue(worker.lookedForWork.get());
         assertFalse(worker.wentToTreasury.get());
+    }
+
+    @Test
+    void creatureOwedPayLeavesItsRoomJob() {
+        for (TaskType taskType : List.of(TaskType.TRAIN, TaskType.RESEARCH, TaskType.MANUFACTURE)) {
+            AtomicBoolean wentToCollect = new AtomicBoolean();
+            Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                    (proxy, method, args) -> method.getName().equals("getTaskType") ? taskType : defaultValue(method.getReturnType()));
+            ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                    ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "getAssignedTask" -> task;
+                        case "isAssignedTaskValid" -> true;
+                        case "goToCollectPay" -> {
+                            wentToCollect.set(true);
+                            yield true;
+                        }
+                        default -> defaultValue(method.getReturnType());
+                    });
+
+            CreatureState.WORK.update(creature);
+
+            assertTrue(wentToCollect.get(), taskType.toString());
+        }
     }
 
     @Test

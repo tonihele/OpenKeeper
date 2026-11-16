@@ -244,6 +244,11 @@ public final class FogOfWarController implements IFogOfWarInformation {
         doorsByPosition.clear();
         closedDoorTiles.clear();
         for (Entity e : doorEntities) {
+
+            // A blueprint is no door yet, it doesn't block the view
+            if (e.get(DoorViewState.class).blueprint) {
+                continue;
+            }
             Position position = e.get(Position.class);
             Point p = WorldUtils.vectorToPoint(position.position);
             doorsByPosition.put(p, e);
@@ -355,8 +360,17 @@ public final class FogOfWarController implements IFogOfWarInformation {
                 continue;
             }
             float radius = scanRadius * HEART_REVEAL_STEPS[step] / 128f;
-            FogOfWarRules.exploreDisc(state, reveal.center.x, reveal.center.y, radius);
+
+            // Like in DK II, only the terrain that shows through the fog (gold,
+            // gems, water, lava, rock), not the rooms, creatures or paths
+            FogOfWarRules.exploreDisc(state, reveal.center.x, reveal.center.y, radius, this::revealsThroughFog);
         }
+    }
+
+    private boolean revealsThroughFog(int x, int y) {
+        IMapTileInformation tile = mapData.getTile(x, y);
+        return tile != null
+                && kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
     }
 
     /**
@@ -532,10 +546,7 @@ public final class FogOfWarController implements IFogOfWarInformation {
         if (possessedCreature != null) {
             return true;
         }
-        IMapTileInformation tile = mapData.getTile(p);
-        boolean revealThrough = tile != null
-                && kwdFile.getTerrain(tile.getTerrainId()).getFlags().contains(Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR);
-        return FogOfWarRules.isVisible(state, p.x, p.y, revealThrough);
+        return FogOfWarRules.isVisible(state, p.x, p.y, revealsThroughFog(p.x, p.y));
     }
 
     @Override
