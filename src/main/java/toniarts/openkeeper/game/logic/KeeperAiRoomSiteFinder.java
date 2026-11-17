@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.logic;
 
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.AI;
@@ -26,8 +27,8 @@ import toniarts.openkeeper.utils.Point;
 /**
  * Finds the computer player a place to dig out for a new room, the way DK II
  * does. From the starting point it walks in one direction to the edge of the
- * rooms there, leaves the wanted gap and then needs a square of rock, or of
- * its own free land, centred on that line.
+ * rooms there, leaves the wanted gap and then needs a square of rock, of
+ * land nobody has claimed, or of its own free land, centred on that line.
  */
 public final class KeeperAiRoomSiteFinder {
 
@@ -65,9 +66,11 @@ public final class KeeperAiRoomSiteFinder {
      * @param start where to start from, a tile of an own room
      * @param direction 0 north, 1 west, 2 south, 3 east
      * @param size the wanted size of the room in tiles
+     * @param gap the tiles to leave between the rooms, without a gap the
+     * site may be as open as it is
      * @return the site, or {@code null} if there is no room for it
      */
-    public RoomSite find(Point start, int direction, int size) {
+    public RoomSite find(Point start, int direction, int size, int gap) {
         int side = (int) Math.sqrt(size);
         int dx = DIRECTIONS[direction][0];
         int dy = DIRECTIONS[direction][1];
@@ -88,7 +91,7 @@ public final class KeeperAiRoomSiteFinder {
         }
 
         // The gap between the rooms
-        for (int i = 0; i < ai.getTilesLeftBetweenRooms(); i++) {
+        for (int i = 0; i < gap; i++) {
             x += dx;
             y += dy;
             if (isBlocked(x, y)) {
@@ -107,7 +110,7 @@ public final class KeeperAiRoomSiteFinder {
                 }
             }
         }
-        if (isTooOpen(countOpenBorder(x, y, stepX, stepY, side), side * 4 + 4)) {
+        if (isTooOpen(countOpenBorder(x, y, stepX, stepY, side), side * 4 + 4, gap)) {
             return null;
         }
 
@@ -126,12 +129,12 @@ public final class KeeperAiRoomSiteFinder {
                     open++;
                 }
             }
-            if (isTooOpen(open, side)) {
+            if (isTooOpen(open, side, gap)) {
                 return null;
             }
 
             // DK II only adds the row when a gap is left between the rooms
-            if (ai.getTilesLeftBetweenRooms() > 0) {
+            if (gap > 0) {
                 if (dx == 0) {
                     height++;
                 } else {
@@ -235,8 +238,8 @@ public final class KeeperAiRoomSiteFinder {
      * The openness is how many percent of the tiles around a room may be
      * open. It only counts when a gap is left between the rooms
      */
-    private boolean isTooOpen(int open, int border) {
-        return ai.getTilesLeftBetweenRooms() > 0 && open * 100 / border > ai.getOpenness();
+    private boolean isTooOpen(int open, int border, int gap) {
+        return gap > 0 && open * 100 / border > ai.getOpenness();
     }
 
     private boolean isInBuildArea(int x, int y) {
@@ -277,12 +280,14 @@ public final class KeeperAiRoomSiteFinder {
     }
 
     /**
-     * Rock to dig out, or own land without a room
+     * Rock to dig out, land nobody has claimed yet such as a dirt path, or own
+     * land without a room
      */
     private boolean isFree(int x, int y) {
         IMapTileInformation tile = mapInformation.getMapData().getTile(x, y);
 
-        return tile != null && (isTaggable(x, y) || (tile.getOwnerId() == playerId && tile.getRoomId() == null));
+        return tile != null && (isTaggable(x, y) || TileWork.convertsAtFullHealth(mapInformation.getTerrain(tile))
+                || (tile.getOwnerId() == playerId && tile.getRoomId() == null));
     }
 
     private boolean isOpen(int x, int y) {
