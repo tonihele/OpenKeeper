@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.LinkedHashSet;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -129,7 +130,7 @@ class CreatureTurncoatAllegianceTest {
             default -> null;
         });
 
-        return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), null, null, null, null,
+        return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), null, null, null, Map.of(),
                 creaturesController, entityPositionLookup, null, levelInfo, null, null, null);
     }
 

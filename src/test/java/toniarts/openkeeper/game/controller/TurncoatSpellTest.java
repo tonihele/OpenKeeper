@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -71,7 +72,7 @@ class TurncoatSpellTest {
             case "createController" -> {
                 EntityId entity = (EntityId) args[0];
                 Creature targetCreature = kwdFile.getCreature(entityData.getComponent(entity, CreatureComponent.class).creatureId);
-                yield new CreatureController(entity, entityData, targetCreature, null, null, gameTimer, null, null, null, null, levelInfo, null, null, null);
+                yield new CreatureController(entity, entityData, targetCreature, null, null, gameTimer, Map.of(), null, null, null, levelInfo, null, null, null);
             }
             default -> null;
         });
