@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Dig a tile task, for workers
@@ -40,8 +41,14 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public int getMaxAllowedNumberOfAsignees() {
-        // TODO: I think it is 3 per accessible side, but we would need the map data for this
-        return 3;
+        // Three for each side of the tile that is open
+        int openSides = 0;
+        for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+            if (!p.equals(getTaskLocation()) && !mapController.isSolid(p)) {
+                openSides++;
+            }
+        }
+        return 3 * openSides;
     }
 
     @Override
