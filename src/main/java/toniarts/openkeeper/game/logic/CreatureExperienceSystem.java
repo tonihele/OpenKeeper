@@ -122,8 +122,8 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
         for (EntityId entityId : experienceEntityIds.getArray()) {
             Entity entity = experienceEntities.getEntity(entityId);
             handleEntity(entity, entityId, tpf, () -> {
-                if (isFightingACreature(entity) && !isWorkerFightingWithoutGain(entity)) {
-                    return ExperienceGainReason.FIGHTING;
+                if (isFightingACreature(entity)) {
+                    return isWorkerFightingWithoutGain(entity) ? ExperienceGainReason.NONE : ExperienceGainReason.FIGHTING;
                 }
                 return isEntityWorking(entity) ? ExperienceGainReason.WORKING : ExperienceGainReason.NONE;
             });
@@ -293,20 +293,21 @@ public final class CreatureExperienceSystem implements IGameLogicUpdatable {
     }
 
     private int getCreatureExperienceGain(Entity entity, ExperienceGainReason reason) {
-        switch (reason) {
-            case WORKING -> {
-                // Any worker, a hero Dwarf too, learns the Imp's experience from its jobs
-                return impExperienceGainPerSecond;
-            }
-            case FIGHTING -> {
-                // The experience per second spread over the ticks, at least one point
-                int experiencePerSecond = entity.get(CreatureExperience.class).experiencePerSecond;
-                return experiencePerSecond > 0 ? Math.max(1, experiencePerSecond / kwdFile.getGameLevel().getTicksPerSec()) : 0;
-            }
-            default -> {
-                return 0;
-            }
+        if (reason == ExperienceGainReason.FIGHTING) {
+            // The experience per second spread over the ticks, at least one point
+            int experiencePerSecond = entity.get(CreatureExperience.class).experiencePerSecond;
+            return experiencePerSecond > 0 ? Math.max(1, experiencePerSecond / kwdFile.getGameLevel().getTicksPerSec()) : 0;
         }
+        if (reason != ExperienceGainReason.WORKING) {
+            return 0;
+        }
+
+        // Any worker, a hero Dwarf too, learns the Imp's experience from its jobs
+        CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
+        if (kwdFile.getImp().getId() == creatureComponent.creatureId || entity.get(CreatureAi.class).getCreatureState() == CreatureState.WORK) {
+            return impExperienceGainPerSecond;
+        }
+        return entity.get(CreatureExperience.class).experiencePerSecond;
     }
 
     @Override

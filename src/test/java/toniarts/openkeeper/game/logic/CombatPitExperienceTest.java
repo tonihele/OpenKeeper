@@ -66,11 +66,9 @@ class CombatPitExperienceTest {
         creatureComponent.creatureId = FIGHTER;
         entityData.setComponents(entity, creatureComponent, new CreatureExperience(level, 0, 1000, 10, 0),
                 new CreatureAi(0, CreatureState.MELEE_ATTACK, FIGHTER));
-
-        // Only fighting another creature teaches, on every tick
-        EntityId enemy = entityData.createEntity();
-        entityData.setComponent(enemy, new CreatureComponent());
-        entityData.setComponent(entity, new AttackTarget(enemy));
+        EntityId opponent = entityData.createEntity();
+        entityData.setComponent(opponent, new CreatureComponent());
+        entityData.setComponent(entity, new AttackTarget(opponent));
         if (inPit) {
             entityData.setComponent(entity, new CombatPitFighter(entityData.createEntity()));
         }
@@ -79,7 +77,7 @@ class CombatPitExperienceTest {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getImp" -> imp;
-                    case "getGameLevel" -> CreatureSleepFixtures.level(2);
+                    case "getGameLevel" -> CreatureSleepFixtures.level(2); // Fighting teaches on every tick
                     default -> null;
                 });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
@@ -90,7 +88,7 @@ class CombatPitExperienceTest {
 
         CreatureExperienceSystem system = new CreatureExperienceSystem(entityData, kwdFile, gameSettings, creaturesController);
         system.processTick(0.5f);
-        system.processTick(0.5f);
+        system.processTick(1f);
         system.stop();
 
         return entityData.getComponent(entity, CreatureExperience.class).experience;
