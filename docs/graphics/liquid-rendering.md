@@ -1,31 +1,48 @@
 # Water and lava rendering
 
-OpenKeeper uses the shared `DkLighting/Vertex.j3md` material for water and lava. The liquid path keeps the current terrain lighting, fog-of-war, and alpha handling and adds the enhanced texture stages as a material variant. It does not maintain a second copy of the terrain lighting shader.
+OpenKeeper uses the shared `DkLighting/Vertex.j3md` material for water and lava. Enhanced liquids add texture stages to the existing terrain shader, preserving its lighting, fog-of-war visibility, and alpha handling without maintaining a second lighting implementation.
 
-## Modes and fallback
+## Contributions and architecture
 
-`Settings.Setting.ENHANCED_LIQUIDS` is persisted with the normal graphics settings and defaults to `false` (Classic). The main menu selects the mode for the next game start. The pause menu and Model Viewer update the setting while a map is active; `LiquidSurfaceControl` applies the change to each liquid material on the next scene update without rebuilding the mesh or rebinding lights.
+This consolidation combines work from [PR #852](https://github.com/tonihele/OpenKeeper/pull/852) by `belgianguy` and [PR #1278](https://github.com/tonihele/OpenKeeper/pull/1278) by `adrian-andrzjewski`.
 
-Enhanced resources are loaded and cached independently for water and lava by `Dk2EmbmResources`. If any required map is missing or cannot be loaded, that liquid stays on its existing Classic material and the loader logs why. `LiquidSurfaceControl` also waits for renderer capability discovery and requires jME's `TextureArray` capability before selecting Enhanced mode. `ConvertTextures` extracts the normal texture archives and also copies the named liquid maps from installations that ship them loose in `Data/EngineTextures`. No DKII commercial textures are stored in the OpenKeeper repository.
+- #852 contributed the recovered three-by-three liquid mesh, lava wave and normal profile, Classic Temple pools, and Model Viewer comparison control.
+- #1278 contributed loose-texture conversion, persisted configuration and pause-menu integration, GPU-side water-frame selection, and the initial runtime/performance evidence.
+- The consolidated path combines these with the shared terrain shader, GPU wave evaluation, per-liquid resource fallback, and Classic compatibility default.
 
-Temple pools pass `allowEnhanced=false`; `RoomConstructor` keeps their animated surface material outside its static floor batch so Classic texture animation and the shared lighting binding survive. The ordinary map path continues to pass its `TerrainDeformer` into `Water.construct`.
+## Modes and compatibility
 
-## Animation and shader path
+`Settings.Setting.ENHANCED_LIQUIDS` is saved with the normal graphics settings and defaults to `false` (Classic). The main menu selects the mode for the next game start. The pause menu and Model Viewer can change it while a map is active; `LiquidSurfaceControl` applies the change on the next scene update without rebuilding lighting registrations.
 
-Water retains its existing flat, animated diffuse texture and four-vertex tiles in Classic. Enhanced mode preserves that diffuse alpha, uses `BumpWater0.png` for base colour, and adds a four-second wave field plus a 32-layer bump texture array advancing at 8 frames per second. The mesh switches to a prebuilt 3-by-3 grid only while Enhanced water is active, so the Classic water draw cost and flat surface remain unchanged.
+`Dk2EmbmResources` loads and caches water and lava resources independently. Missing or unreadable resources leave that liquid on its Classic material and produce a diagnostic. Enhanced water uses a 32-layer bump `TextureArray`, so water remains Classic if the renderer lacks texture-array support. Lava uses a regular 2D bump texture and does not need that capability. `ConvertTextures` extracts the normal texture archives and copies the named liquid maps from installations that ship them loose in `Data/EngineTextures`. No DKII commercial textures are stored in the repository.
 
-Lava uses the recovered 3-by-3 sample grid per tile in both modes. `TexCoord2` stores the integer tile-grid phase coordinates before shore deformation; repeated edge vertices therefore receive matching wave heights and normals without sharing texture UVs between tiles. Enhanced water uses the same two-wave profile with the water-specific spatial frequency from PR #852. `Vertex.vert` evaluates the 0.04-amplitude waves and the matching normal field from the shared jME shader clock. No per-frame CPU vertex-buffer upload is performed. The mesh bound includes the maximum vertical displacement.
+Temple pools pass `allowEnhanced=false`. `RoomConstructor` keeps their animated surface outside its static floor batch so its opaque Classic appearance, texture animation, and lighting binding remain intact. The ordinary map path passes the existing `TerrainDeformer` to `Water.construct`.
 
-The Enhanced fragment path follows the original three-stage structure: base colour multiplied by the existing diffuse lighting, bump-dependent environment lookup, and additive environment colour. The loose original PNGs inspected in the local GOG DKII installation are grayscale height fields (lava also has a varying alpha channel), while Direct3D EMBM consumes signed texture-coordinate deltas and optional luminance. `Dk2EmbmResources` computes wrapped central differences once when Enhanced mode is first selected, uploads the result as linear RG data, and retains source alpha for lava luminance. This avoids four extra per-fragment texture reads. The exact native height-to-delta scale and filter still need comparison with the original executable. Environment colour remains subject to the existing fog visibility and the liquid's original alpha.
+## Visual and animation behavior
 
-## Fidelity status and limitations
+Classic water retains its existing animated diffuse texture and four-vertex tiles. Enhanced water uses `BumpWater0.png` for base colour, preserves the Classic diffuse alpha, adds GPU waves, and advances the 32-frame bump array at 8 frames per second (a four-second cycle). It switches to a prebuilt three-by-three grid only in Enhanced mode.
 
-The issue's native-reference investigation reports matching lava height and normal samples for the recovered CPU formula. This implementation evaluates that model in GLSL. The water-specific wave frequency is carried over from PR #852 but has not been independently revalidated against native water samples. Neither shader output has been compared pixel-for-pixel with the original executable in this worktree.
+Lava uses the recovered three-by-three sample grid in both modes. `TexCoord2` stores stable map-grid phase coordinates before shore deformation, so duplicated tile edges receive matching wave heights and normals. The GPU evaluates two 0.04-amplitude waves and their matching normal field using the shared jME shader clock; no per-frame CPU vertex-buffer upload is needed. The mesh bounds include the maximum displacement. Enhanced water uses the water-specific spatial frequency carried over from #852; native water samples have not independently confirmed that value.
 
-The Enhanced texture-stage architecture and 32 water bump frames come from the original DKII resource set. The local PNG packing is verified as grayscale height data, but the native conversion from height to EMBM offsets has not been captured. The environment lookup uses sphere mapping and the liquid-specific bump/reflection strengths follow the available prototype profile; exact native environment coordinates, stage-state mapping, matrix values, and rendered parity remain unverified. Do not describe the current EMBM mode as bit-exact G400 output.
+The Enhanced fragment path follows the original three-stage structure: base colour multiplied by existing diffuse lighting, bump-dependent environment lookup, and additive environment colour. `Dk2EmbmResources` converts the source grayscale bump fields to wrapped central differences once at load time, stores the signed offsets in linear RG, and retains lava alpha for the luminance variant. The exact native height-to-offset conversion, filtering, environment coordinates, and strengths remain unverified. The environment lookup uses sphere mapping as an approximation. Exact G400 pixel parity is not claimed.
 
-The GPU wave path trades four vertices per Classic water tile for nine only while Enhanced water is active; lava uses nine in both modes, replacing CPU-side per-frame position updates. Enhanced rendering adds base, bump, and environment texture sampling on top of the normal material sample; height derivatives are prepared once on the CPU when the Enhanced assets load. Local RTX 2060 SUPER runtime smokes confirmed the shader on OpenGL 3.2 / GLSL 1.50 and OpenGL 4.5 / GLSL 4.50. Short Classic and Enhanced process samples showed roughly 0.9 GiB resident memory and 17–38% sampled GPU utilization, but concurrent desktop workloads and non-identical captures made frame-time and GPU-cost comparison inconclusive. The converted 128-by-128 RGBA water frame array is about 2 MiB, excluding driver alignment; lava and base/environment maps add roughly 0.2 MiB. A controlled GPU timer-query benchmark on small and large liquid maps remains necessary before tuning the profile or changing wave resolution.
+EMBM adds a bump-distorted environment reflection; it does not add emission or post-process bloom. Issue [#22](https://github.com/tonihele/OpenKeeper/issues/22) remains a separate bloom request.
 
-## Verification
+## Performance
 
-The unit tests cover the lava grid and duplicate-edge coordinates, the four-vertex water mesh, wave phase periodicity and normal normalization, Classic default, runtime switching, texture-array capability fallback, missing-asset fallback, bump conversion, and loose-texture conversion. Runtime checks on the local RTX 2060 SUPER loaded water and lava in both modes at OpenGL 4.5; a separate OpenGL 3.2 shader smoke rendered both Enhanced surfaces and loaded all 32 water frames. The Model Viewer launched with the new control visible. The game-map captures were not synchronized by camera and animation timestamp, and the OpenGL 3.2 full-game run hit an unrelated existing `FogState.drainDirtyTiles` concurrent-modification exception, so these checks do not establish whole-game GL 3.2 stability or pixel parity. Native comparison still needs identical camera, resolution, lighting, fog state, and animation timestamp for water, lava, Temple pools, and map-viewer output.
+Classic water uses four vertices per tile; Enhanced water uses nine. Lava uses nine in both modes and replaces CPU-side per-frame displacement with GPU evaluation. Enhanced mode adds base, bump, and environment texture reads. A 128-by-128 RGBA water bump array uses about 2 MiB before driver alignment; lava and base/environment maps add roughly 0.2 MiB.
+
+The available A/B measurement is from the pre-consolidation #1278 prototype on an RTX 2060 SUPER at 1920x1080 with VSync off. Each mode had 35 valid samples.
+
+| Mode | Process GPU 3D average | Java working set |
+| --- | ---: | ---: |
+| Classic | 26.14% | 936.3 MiB |
+| EMBM | 27.72% | 957.0 MiB |
+
+That run showed a +1.58 percentage-point GPU-utilization difference (about 6% relative) and +20.7 MiB working set. It is not a GPU-time measurement, was not repeated statistically, and does not measure the consolidated mesh and animation path. A controlled timer-query comparison on small and large liquid maps remains follow-up work.
+
+## Verification and limitations
+
+The consolidated branch passed `gradlew --no-daemon clean test build`: 1,396 tests, zero failures or errors, and 4 skipped. `glslangValidator` compiled the GLSL 1.50 vertex and fragment stages for Classic animated water, Enhanced water with its texture-array sampler, and Enhanced lava with its 2D bump sampler, using jME's shader libraries and the project's falloff library.
+
+A fresh gameplay render could not be run from this worktree because the local application setup had no valid DKII installation path; startup stopped at the first-run folder selector. The existing #1278 captures cover the prototype's Level 7 lava and Level 5 water, but their cameras are not aligned and they do not validate the consolidated mesh path. Native comparison still needs matching camera, resolution, lighting, fog state, and animation timestamp for water, lava, Temple pools, and Model Viewer output. No exact DKII pixel parity is claimed.
