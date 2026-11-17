@@ -62,7 +62,7 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
     private static final short CREATE_OBJECT_ID = 2;
-    private static final short CREATE_CREATURE_ID = 3;
+    private static final short CREATE_CREATURE_ID = 10;
     private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
