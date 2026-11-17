@@ -708,6 +708,12 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean canBreakDoor(EntityId door) {
+        // A follower keeps behind its leader, and the leader breaks the door (DKII.EXE 0x462130 walks with
+        // the own-doors-only flag, see 0x4C8BD0)
+        IPartyController party = getParty();
+        if (party != null && !party.isPartyLeader(this)) {
+            return false;
+        }
         return DoorAttackTarget.canBreak(entityData, door, creature.getFightStyle(), isEnemy(door));
     }
 
