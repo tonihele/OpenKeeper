@@ -218,7 +218,8 @@ public final class MinimapMarkerPainter {
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);
             float py = toPixelY(position.position.z, fit, fitGeometry, cameraTileY, pixelsPerTile);
-            if (own && guardPostTrapIds.contains(e.get(TrapViewState.class).trapId)) {
+            TrapViewState trap = e.get(TrapViewState.class);
+            if (own && !trap.blueprint && guardPostTrapIds.contains(trap.trapId)) {
                 // Same colour as the Dungeon Heart's ring, like DK II
                 float pixelsPerTileScale = fit ? fitGeometry.pixelsPerTileScale() : pixelsPerTile;
                 int radius = Math.round(guardPostReportingDistanceTiles * pixelsPerTileScale);
