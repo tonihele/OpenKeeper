@@ -140,30 +140,42 @@ class JobRoomOccupancyTest {
     }
 
     @Test
-    void casinoCountsTheGamblersThatHaveATask() {
+    void casinoCountsAGamblerOnceItGambles() {
         CasinoController casino = casino();
         ICreatureController gambler = creature();
+        Gamble gamble = gamble(casino);
+
+        // Nothing is kept for it on the way
+        gamble.assign(gambler, true);
         assertEquals(0, casino.getUsedCapacity(ObjectType.GAMBLER));
 
-        Gamble gamble = gamble(casino);
-        gamble.assign(gambler, true);
+        gamble.executeTask(gambler, 0);
+        gamble.executeTask(gambler, 0);
         assertEquals(1, casino.getUsedCapacity(ObjectType.GAMBLER));
 
+        // The creature leaves, once is enough
         gamble.unassign(gambler);
         gamble.unassign(gambler);
         assertEquals(0, casino.getUsedCapacity(ObjectType.GAMBLER));
     }
 
     @Test
-    void gamblerInAFullCasinoKeepsItsTaskButANewcomerHasNone() {
+    void gamblerInAFullCasinoKeepsItsTaskButOneOnItsWayIsTurnedAway() {
         CasinoController casino = casino();
+        ICreatureController onItsWay = creature();
+        Gamble late = gamble(casino);
+        late.assign(onItsWay, true);
         ICreatureController gambler = creature();
         Gamble gamble = gamble(casino);
         gamble.assign(gambler, true);
+        for (int i = 1; i < casino.getMaxCapacity(ObjectType.GAMBLER); i++) {
+            gamble(casino).executeTask(creature(), 0);
+        }
+        gamble.executeTask(gambler, 0);
         assertEquals(casino.getMaxCapacity(ObjectType.GAMBLER), casino.getUsedCapacity(ObjectType.GAMBLER));
 
         assertTrue(gamble.isValid(gambler));
-        assertFalse(gamble(casino).isValid(creature()));
+        assertFalse(late.isValid(onItsWay));
     }
 
     private CasinoController casino() {

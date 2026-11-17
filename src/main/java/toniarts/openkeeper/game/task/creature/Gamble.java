@@ -132,6 +132,8 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        super.executeTask(creature, executionDuration);
+
         while (secondsGambled + 1 <= executionDuration && canCoverStake(creature)) {
             secondsGambled++;
             gamble(creature, payOut.get());
