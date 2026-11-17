@@ -180,6 +180,14 @@ public final class CreatureController extends EntityController implements ICreat
             CreatureState.SLEEPING, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.EATING,
             CreatureState.CHICKEN);
 
+    /**
+     * The states a meal interrupts. Like in DK II, a creature busy with
+     * something else, say fighting, sleeping or held in prison, gets the food
+     * of a chicken it is given without stopping to eat it
+     */
+    private static final Set<CreatureState> EAT_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
+            CreatureState.WANDER, CreatureState.WORK, CreatureState.DANCING);
+
     private final INavigationService navigationService;
     private final ITaskManager taskManager;
     private final IGameTimer gameTimer;
@@ -2262,12 +2270,21 @@ public final class CreatureController extends EntityController implements ICreat
         if (health != null) {
             target.remove();
 
-            stateMachine.changeState(CreatureState.EATING);
+            if (EAT_INTERRUPTIBLE_STATES.contains(stateMachine.getCurrentState())) {
+                stateMachine.changeState(CreatureState.EATING);
+            } else if (!isIncapacitated()) {
+                sate();
+            }
         }
     }
 
     @Override
     public void sate() {
+
+        // Like in DK II, a creature that isn't hungry gets nothing from a chicken
+        if (!isHungry()) {
+            return;
+        }
         CreatureHunger creatureHunger = entityData.getComponent(entityId, CreatureHunger.class);
         if (creatureHunger.amountNeeded == 1) {
 
