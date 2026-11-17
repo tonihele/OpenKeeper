@@ -250,8 +250,8 @@ public final class ShotsController implements IShotsController {
     }
 
     /**
-     * Raises an alarm for the player where the shot was fired, unless the
-     * player's last alarm still lasts
+     * Raises an alarm for the player where the shot was fired and tells the
+     * player of it, unless the player's last alarm still lasts
      *
      * @param request the shot
      */
@@ -263,6 +263,7 @@ public final class ShotsController implements IShotsController {
         EntityId alarm = entityData.createEntity();
         entityData.setComponents(alarm, new Alarm(), new Owner(request.playerId(), request.playerId()),
                 new Position(0, new Vector3f(request.position())), new Decay(gameTimer.getGameTime(), ALARM_DURATION));
+        gameEventService.emitToPlayer(GameEventType.ALARM_RAISED, request.playerId());
     }
 
     private void notifyShotHit(Shot shot, EntityId target) {
