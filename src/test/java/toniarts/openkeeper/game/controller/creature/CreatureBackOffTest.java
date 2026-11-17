@@ -289,6 +289,7 @@ class CreatureBackOffTest {
         self.set(proxy(ICreatureController.class, (method, args) -> switch (method) {
             case "getStateMachine" -> stateMachine;
             case "getAttackTarget" -> self.get();
+            case "shouldFleeOrAttack" -> false;
             case "isScared" -> scared.get();
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
