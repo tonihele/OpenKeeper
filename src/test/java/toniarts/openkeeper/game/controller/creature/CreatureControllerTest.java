@@ -36,10 +36,12 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
@@ -48,6 +50,7 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -64,7 +67,9 @@ import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.utils.Point;
@@ -429,6 +434,41 @@ class CreatureControllerTest {
     }
 
     @Test
+    void chickenGivenToAPrisonerFeedsItWithoutLettingItOut() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 1));
+            f.controller.getStateMachine().changeState(CreatureState.IMPRISONED);
+            EntityId chicken = f.data.createEntity();
+            f.data.setComponent(chicken, new Health(1000, 1000));
+
+            f.controller.eat(proxy(IEntityController.class, (method, args) -> switch (method) {
+                case "getEntityId" -> chicken;
+                case "remove" -> {
+                    f.data.removeEntity(chicken);
+                    yield null;
+                }
+                default -> throw new UnsupportedOperationException(method);
+            }));
+
+            assertEquals(CreatureState.IMPRISONED, f.state());
+            assertNull(f.data.getComponent(chicken, Health.class));
+            assertEquals(0, f.data.getComponent(f.entity, CreatureHunger.class).amountNeeded);
+            assertEquals(-250, f.data.getComponent(f.entity, Damage.class).damage);
+        }
+    }
+
+    @Test
+    void chickenGivesNothingToACreatureThatIsNotHungry() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 0));
+
+            f.controller.sate();
+
+            assertNull(f.data.getComponent(f.entity, Damage.class));
+        }
+    }
+
+    @Test
     void prisonerKeepsItsDyingTimeAsHealthAndGetsATenthOfItsMaximumOnTop() {
         try (Fixture f = new Fixture(9)) {
             f.data.setComponents(f.entity, new Health(0, 1000), new Unconscious(0));
@@ -468,6 +508,22 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void idleHeroTriesItsObjectiveAgainEveryTwelveTicks() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new Owner(Player.GOOD_PLAYER_ID, Player.GOOD_PLAYER_ID));
+            f.data.setComponent(f.entity, new Objective(Thing.HeroParty.Objective.KILL_PLAYER, (short) 3, 0));
+            f.data.removeComponent(f.entity, CreatureSleep.class);
+            f.controller.getStateMachine().changeState(CreatureState.IDLE);
+            for (int i = 0; i < 24; i++) {
+                f.tick();
+            }
+
+            // DK II's hero idle state does nothing for 12 ticks when the objective can't start (0x477850)
+            assertEquals(List.of(0d, 3d, 6d), f.objectiveAttempts);
+        }
+    }
+
     private static CreatureComponent workerComponent() {
         CreatureComponent component = new CreatureComponent();
         component.creatureId = 6;
@@ -495,6 +551,7 @@ class CreatureControllerTest {
             return null;
         });
         final List<Double> eatAttempts = new java.util.ArrayList<>();
+        final List<Double> objectiveAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
         int oldJobUnassignments;
         int targetQueries;
@@ -526,6 +583,10 @@ class CreatureControllerTest {
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
                 case "getTaskById" -> tasks.get((Long) args[0]);
                 case "addToUnemployedWorkerQueue" -> null;
+                case "assignObjectiveTask" -> {
+                    objectiveAttempts.add(time);
+                    yield false;
+                }
                 case "isTaskAvailable" -> false;
                 case "assignSleepTask" -> {
                     sleepAssignments++;

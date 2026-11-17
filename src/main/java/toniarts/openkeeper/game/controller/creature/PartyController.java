@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -23,7 +24,6 @@ import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -223,7 +223,7 @@ public final class PartyController implements IPartyController {
         Float cost = IPartyController.super.getCost(from, to, mapController, entityPositionLookup);
         if (cost == null) {
 
-            // No path by ordinary means, but we might want to tunnel or smash our way through obstacles
+            // No path by ordinary means, but we might want to tunnel our way through
             Terrain terrain = mapController.getTerrain(to);
             if (isWorkersAvailable()) {
                 Float tunnelCost = Tunneller.getTunnelCost(terrain);
@@ -231,16 +231,21 @@ public final class PartyController implements IPartyController {
                     return tunnelCost;
                 }
             }
-
-            // Check if any obstacles lies in our path, we can smash through enemy doors but not our own locked doors
-            // FIXME: now just doors
-            for (IDoorController doorController : entityPositionLookup.getEntityTypesInLocation(to, IDoorController.class)) {
-                if (doorController.getOwnerId() != getOwnerId()) {
-                    return 3f;
-                }
-            }
         }
         return cost;
+    }
+
+    /**
+     * The party takes the way its leader takes, so it breaks the doors its
+     * leader breaks
+     *
+     * @param door the door entity
+     * @return true if the leader breaks the door down when it is in the way
+     */
+    @Override
+    public boolean canBreakDoor(EntityId door) {
+        ICreatureController partyLeader = getPartyLeader();
+        return partyLeader != null && partyLeader.canBreakDoor(door);
     }
 
     @Override
