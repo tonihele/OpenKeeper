@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.logic.KeeperDefeatSystem;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
 import toniarts.openkeeper.game.logic.MovementSystem;
+import toniarts.openkeeper.game.logic.OnFireSystem;
 import toniarts.openkeeper.game.logic.PayDaySystem;
 import toniarts.openkeeper.game.logic.PlayerCreatureSystem;
 import toniarts.openkeeper.game.logic.PlayerManufactureSystem;
@@ -168,6 +169,7 @@ public final class GameLoopManager {
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
+                new OnFireSystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(), gameEventService),
                 (IGameLogicUpdatable) taskManager);
 
         loops.add(new GameLoop(gameLogicThread, 1_000_000_000 / levelInfo.getLevelData().getGameLevel().getTicksPerSec(), "Logic"));

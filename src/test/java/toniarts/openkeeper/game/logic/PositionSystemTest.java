@@ -21,10 +21,12 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -38,6 +40,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PositionSystemTest {
@@ -105,6 +109,56 @@ class PositionSystemTest {
         positionSystem.processTick(0.25f);
 
         assertTrue(positionSystem.isTileBlocked(TILE, PLAYER));
+    }
+
+    private EntityId walker(short owner, Point from) {
+        EntityId walker = entityData.createEntity();
+        entityData.setComponents(walker, new Owner(owner, owner), new Position(0, WorldUtils.pointToVector3f(from)),
+                new Navigation(TILE, null, new ArrayList<>()));
+        positionSystem.processTick(0.25f);
+        return walker;
+    }
+
+    private void walkTo(EntityId walker, Point to) {
+        Position position = entityData.getComponent(walker, Position.class);
+        entityData.setComponent(walker, new Position(position.rotation, WorldUtils.pointToVector3f(to)));
+        positionSystem.processTick(0.25f);
+    }
+
+    @Test
+    void enemyWalkingOnAnUnlockedDoorIsStoppedBeforeIt() {
+        entityData.setComponent(door, new DoorComponent(WOODEN_DOOR, false, false));
+        positionSystem.processTick(0.25f);
+        EntityId enemy = walker(ENEMY, new Point(1, 2));
+
+        // A path planned before the door was built carries the enemy into the door tile
+        walkTo(enemy, TILE);
+
+        assertEquals(new Point(1, 2), WorldUtils.vectorToPoint(entityData.getComponent(enemy, Position.class).position));
+        assertNull(entityData.getComponent(enemy, Navigation.class));
+    }
+
+    @Test
+    void ownerWalksThroughItsUnlockedDoor() {
+        entityData.setComponent(door, new DoorComponent(WOODEN_DOOR, false, false));
+        positionSystem.processTick(0.25f);
+        EntityId own = walker(PLAYER, new Point(1, 2));
+
+        walkTo(own, TILE);
+
+        assertEquals(TILE, WorldUtils.vectorToPoint(entityData.getComponent(own, Position.class).position));
+        assertNotNull(entityData.getComponent(own, Navigation.class));
+    }
+
+    @Test
+    void ownerIsStoppedByItsLockedDoor() {
+        entityData.setComponent(door, new DoorComponent(WOODEN_DOOR, true, false));
+        positionSystem.processTick(0.25f);
+        EntityId own = walker(PLAYER, new Point(1, 2));
+
+        walkTo(own, TILE);
+
+        assertEquals(new Point(1, 2), WorldUtils.vectorToPoint(entityData.getComponent(own, Position.class).position));
     }
 
     @Test
