@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
+import toniarts.openkeeper.view.PlayerMapViewState;
 
 import java.io.IOException;
 import java.lang.System.Logger;
@@ -80,6 +81,7 @@ final class PauseMenuSettings {
         addDropDown(left, "OpenGL", "openGl", "220px");
         addCheckBox(left, " SSAO", "ssao");
         addCheckBox(left, "Gamma correction", "gammaCorrection");
+        addCheckBox(left, " Enhanced liquids (EMBM)", "embm");
 
         addDropDown(right, "Bit depth", "bitDepth", "100px");
         addDropDown(right, "Refresh rate", "refreshRate", "100px");
@@ -151,6 +153,7 @@ final class PauseMenuSettings {
 
         find("ssao", CheckBox.class).setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
         find("gammaCorrection", CheckBox.class).setChecked(settings.isGammaCorrection());
+        find("embm", CheckBox.class).setChecked(Main.getUserSettings().getBoolean(Settings.Setting.EMBM_ENABLED));
     }
 
     /**
@@ -172,10 +175,15 @@ final class PauseMenuSettings {
         settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());
+        settings.setSetting(Settings.Setting.EMBM_ENABLED, find("embm", CheckBox.class).isChecked());
         settings.getAppSettings().setGammaCorrection(find("gammaCorrection", CheckBox.class).isChecked());
 
         save();
         app.setViewProcessors();
+        PlayerMapViewState mapViewState = app.getStateManager().getState(PlayerMapViewState.class);
+        if (mapViewState != null) {
+            mapViewState.getMapLoader().refreshLiquidSurfaces();
+        }
     }
 
     private void onResolutionChanged(String id, DropDownSelectionChangedEvent event) {

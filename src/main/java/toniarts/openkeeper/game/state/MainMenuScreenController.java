@@ -299,6 +299,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
+        CheckBox embm = screen.findNiftyControl("embm", CheckBox.class);
         DisplayMode mdm = (DisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
@@ -312,6 +313,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setSamples((Integer) aa.getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
+        settings.setSetting(Settings.Setting.EMBM_ENABLED, embm.isChecked());
         settings.getAppSettings().setGammaCorrection(gamma.isChecked());
 
         // This fails and crashes on invalid settings
@@ -850,6 +852,9 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
+
+        CheckBox embm = screen.findNiftyControl("embm", CheckBox.class);
+        embm.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.EMBM_ENABLED));
 
         // Gamma correction
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);

@@ -383,6 +383,13 @@ public abstract class MapViewController implements ILoader<IKwdFile> {
         }
     }
 
+    /** Rebuilds the batched liquid materials after the graphics setting changes. */
+    public void refreshLiquidSurfaces() {
+        if (map != null) {
+            refreshWaterAndLavaSurfaces(true, true);
+        }
+    }
+
     private Spatial replaceSurface(Spatial oldSurface, List<EntityInstance<Terrain>> batches) {
         if (oldSurface != null) {
             oldSurface.removeFromParent();

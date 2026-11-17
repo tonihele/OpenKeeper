@@ -80,6 +80,10 @@ public final class Settings {
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
         SSAO_SCALE(Float.class, 0.33f, SettingCategory.GRAPHICS),
         SSAO_BIAS(Float.class, 0.1f, SettingCategory.GRAPHICS),
+        EMBM_ENABLED(Boolean.class, true, SettingCategory.GRAPHICS),
+        EMBM_BUMP_INTENSITY(Float.class, 1f, SettingCategory.GRAPHICS),
+        EMBM_REFLECTION_INTENSITY(Float.class, 1f, SettingCategory.GRAPHICS),
+        EMBM_ANIMATION_SPEED(Float.class, 1f, SettingCategory.GRAPHICS),
         // Lighting
         AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),
