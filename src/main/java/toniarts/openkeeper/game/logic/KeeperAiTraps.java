@@ -94,6 +94,15 @@ final class KeeperAiTraps {
         doors = entityData.getEntities(DoorComponent.class, Owner.class, Position.class);
     }
 
+    /**
+     * Takes in the changes the sets have queued. Called every tick, as a set
+     * that is not applied queues every Position change forever.
+     */
+    void applyChanges() {
+        traps.applyChanges();
+        doors.applyChanges();
+    }
+
     void release() {
         traps.release();
         doors.release();
@@ -134,8 +143,6 @@ final class KeeperAiTraps {
         if (minX == Integer.MAX_VALUE) {
             return actions;
         }
-        traps.applyChanges();
-        doors.applyChanges();
         int growth = Utils.getRandom().nextInt(BOX_GROWTH_ROLL) + BOX_GROWTH_LEAST;
         int width = mapController.getMapData().getWidth();
         int height = mapController.getMapData().getHeight();

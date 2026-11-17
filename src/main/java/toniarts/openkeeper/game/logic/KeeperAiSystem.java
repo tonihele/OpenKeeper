@@ -278,6 +278,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         keeperAis.applyChanges();
         battles.applyChanges();
+        traps.applyChanges();
+        objects.applyChanges();
         for (Entity entity : keeperAis) {
             KeeperAi keeperAi = new KeeperAi(entity.get(KeeperAi.class));
             IPlayerController playerController = playerControllers.get(keeperAi.playerId);
@@ -583,7 +585,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * leaves alone
      */
     private void useSpecial(KeeperAi keeperAi, IPlayerController playerController) {
-        objects.applyChanges();
         Entity special = null;
         for (Entity object : objects) {
             Point tile = WorldUtils.vectorToPoint(object.get(Position.class).position);
