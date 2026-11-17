@@ -50,6 +50,8 @@ import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.ChickenSpawnFixtures;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureFlagFixtures;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.GameObjectFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -72,6 +74,8 @@ class CallToArmsSystemTest {
     private static final short ENEMY_ID = 4;
     private static final short SPELL_ID = 3;
     private static final short SHOT_ID = 5;
+    private static final short FIGHTER_ID = 1;
+    private static final short REAPER_ID = 27;
 
     private final EntityData entityData = new DefaultEntityData();
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
@@ -92,6 +96,8 @@ class CallToArmsSystemTest {
             case "getShotById" -> ShotFixtures.shot(SHOT_ID, Shot.ProcessType.CREATE_OBJECT, 1, EnumSet.noneOf(Shot.ShotProcessFlag.class));
             case "getObject" -> bannerObject();
             case "getThings" -> List.of();
+            case "getCreatureList" -> List.of(CreatureFlagFixtures.creature(REAPER_ID, EnumSet.of(Creature.CreatureFlag.IS_HORNY)),
+                    CreatureFlagFixtures.creature(FIGHTER_ID, EnumSet.noneOf(Creature.CreatureFlag.class)));
             case "getVariables" -> Map.of(MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE,
                     ChickenSpawnFixtures.miscVariable(MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE, 70));
             default -> throw new UnsupportedOperationException(name);
@@ -124,6 +130,20 @@ class CallToArmsSystemTest {
         system.processTick(0.25f);
 
         assertEquals(List.of(idle, working, sleeping), answered.stream().sorted().toList());
+    }
+
+    @Test
+    void theHornedReaperDoesNotAnswer() {
+
+        // Out of a fight he is in his own states, which can't change to answering the banner (0x4BDDA0, 0x476D30)
+        EntityId fighter = creature(PLAYER_ID, false, CreatureState.IDLE);
+        creature(PLAYER_ID, false, REAPER_ID, CreatureState.IDLE);
+        creature(PLAYER_ID, false, REAPER_ID, CreatureState.WANDER);
+        banner();
+
+        system.processTick(0.25f);
+
+        assertEquals(List.of(fighter), answered);
     }
 
     @Test
@@ -329,9 +349,14 @@ class CallToArmsSystemTest {
     }
 
     private EntityId creature(short ownerId, boolean worker, CreatureState state) {
+        return creature(ownerId, worker, FIGHTER_ID, state);
+    }
+
+    private EntityId creature(short ownerId, boolean worker, short creatureId, CreatureState state) {
         EntityId creature = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.worker = worker;
+        creatureComponent.creatureId = creatureId;
         entityData.setComponents(creature, creatureComponent, new Owner(ownerId, ownerId),
                 new CreatureAi(0, state, (short) 1));
         return creature;

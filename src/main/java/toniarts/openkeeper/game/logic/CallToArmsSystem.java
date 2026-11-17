@@ -26,6 +26,7 @@ import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -47,6 +48,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -79,6 +81,7 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
     private final KeeperSpell keeperSpell;
     private final GameObject bannerObject;
     private final int upgradedUpkeepPercentage;
+    private final Set<Short> reaperIds;
     private final Map<Short, Keeper> keepers;
     private final EntitySet banners;
     private final EntitySet creatures;
@@ -107,6 +110,12 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
                 .findFirst().orElse(null);
         bannerObject = kwdFile.getObject(ObjectsController.OBJECT_CALL_TO_ARMS_ID);
         upgradedUpkeepPercentage = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE).getValue();
+
+        // The original's Horned Reaper is in his own states whenever he isn't fighting, and those can't change
+        // to answering the banner (0x4BDDA0, 0x476D30), so he never answers
+        reaperIds = kwdFile.getCreatureList().stream()
+                .filter(creature -> creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY))
+                .map(Creature::getCreatureId).collect(Collectors.toSet());
         keepers = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             keepers.put(playerController.getKeeper().getId(), playerController.getKeeper());
@@ -217,6 +226,7 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
             }
             for (Entity creature : creatures) {
                 if (creature.get(Owner.class).ownerId == ownerId && !creature.get(CreatureComponent.class).worker
+                        && !reaperIds.contains(creature.get(CreatureComponent.class).creatureId)
                         && !BUSY_STATES.contains(creature.get(CreatureAi.class).getCreatureState())) {
                     creaturesController.createController(creature.getId()).answerCallToArms(bannerId);
                 }
