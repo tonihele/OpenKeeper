@@ -70,8 +70,8 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
         /**
          * Tells whether the room's used capacity is the number of creatures
-         * that have been given a job in it, like the gamblers of a Casino,
-         * counted from when they set off to it
+         * that are doing a job in it, like the trainees of a Training Room,
+         * counted once they are in the room
          *
          * @return true if the creatures count
          */
