@@ -115,6 +115,7 @@ public final class ShotFixtures {
      */
     public static Shot gasCloud(short shotId) {
         Shot shot = shot(shotId, Shot.ProcessType.GAS, 5, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setAttackCategory(Shot.AttackCategory.GAS);
         shot.setSpeed(1f);
         shot.setRadius(0.2f);
         shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
