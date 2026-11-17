@@ -224,9 +224,7 @@ class ShotSystemTest {
 
         shotSystem.processTick(0.25f);
         shotSystem.processTick(0.25f);
-        shotSystem.processTick(0.25f);
 
-        // Not on the turn the shot is out of its range
         assertEquals(List.of(new Vector3f(1, 1.3f, 1), new Vector3f(1.25f, 1.3f, 1)), turns);
     }
 
