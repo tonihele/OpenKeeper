@@ -20,6 +20,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,6 +35,8 @@ import toniarts.openkeeper.game.controller.door.DoorController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.FakeMapData;
+import toniarts.openkeeper.tools.convert.map.DestroyedFixtures;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.TrapFiringFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -57,6 +60,7 @@ class DoorDamageTest {
     private static final Point TILE = new Point(2, 2);
 
     private final EntityData entityData = new DefaultEntityData();
+    private final List<Object[]> effects = new ArrayList<>();
     private PositionSystem positionSystem;
     private HealthSystem healthSystem;
     private EntityId door;
@@ -80,8 +84,9 @@ class DoorDamageTest {
             case "getEntityController" -> new DoorController((EntityId) args[0], entityData, null, null, mapController);
             default -> throw new UnsupportedOperationException(method.getName());
         });
+        Door woodenDoor = DestroyedFixtures.door((short) 1, DestroyedFixtures.WOODEN_DOOR_EXPLOSION_ID);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
-                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> null);
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> method.getName().equals("getDoorById") ? woodenDoor : null);
         ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
                 new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getLevelData" -> kwdFile;
@@ -91,7 +96,12 @@ class DoorDamageTest {
                 MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, TrapFiringFixtures.miscVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 10),
                 MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, TrapFiringFixtures.miscVariable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, 0),
                 MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, TrapFiringFixtures.miscVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 0)),
-                null, levelInfo, List.of(), mapController, () -> 0.0, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null));
+                null, levelInfo, List.of(), mapController, () -> 0.0, (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("emitEffect")) {
+                        effects.add(args);
+                    }
+                    return null;
+                }));
         healthSystem.processTick(0.25f);
     }
 
@@ -116,6 +126,16 @@ class DoorDamageTest {
 
         assertNull(entityData.getComponent(door, DoorComponent.class));
         assertNull(entityData.getComponent(door, Health.class));
+    }
+
+    @Test
+    void theBrokenDoorBlowsUpWithItsDeathEffect() {
+        EntityController.setDamage(entityData, door, 2000);
+        healthSystem.processTick(0.25f);
+
+        assertEquals(1, effects.size());
+        assertEquals(DestroyedFixtures.WOODEN_DOOR_EXPLOSION_ID, effects.get(0)[0]);
+        assertEquals(WorldUtils.pointToVector3f(TILE), effects.get(0)[1]);
     }
 
     @Test
