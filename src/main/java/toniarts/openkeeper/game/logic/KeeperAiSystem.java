@@ -1352,22 +1352,16 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     finishPath(keeperAi, false, "no bridge to cross with");
                     return actions;
                 }
+
+                // A bridge it can't build yet, short of gold say, keeps it on this tile (DK II doesn't try the other bridge)
                 if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, bridge.getRoomId())) {
-                    if (playerController.getKeeper().getGold() < bridge.getCost()) {
-                        finishPath(keeperAi, false, "the bridge needs more gold");
-                        return actions;
-                    }
                     Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                     gameWorldController.build(position, position, keeperAi.playerId, bridge.getRoomId());
                     log(keeperAi, "build room " + bridge.getRoomId(), keeperAi.current, "the path crosses water or lava");
-                }
-                if (mapController.getRoomControllerByCoordinates(keeperAi.current) == null) {
-                    finishPath(keeperAi, false, "could not place the bridge");
-                    return actions;
-                }
-                if (!stepOnPath(keeperAi)) {
-                    finishPath(keeperAi, !keeperAi.wallFollowing, "no way on from here");
-                    return actions;
+                    if (mapController.getRoomControllerByCoordinates(keeperAi.current) != null && !stepOnPath(keeperAi)) {
+                        finishPath(keeperAi, !keeperAi.wallFollowing, "no way on from here");
+                        return actions;
+                    }
                 }
             } else if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
                     || !TileWork.canDamageTile(terrain, tile.getOwnerId(), keeperAi.playerId)) {

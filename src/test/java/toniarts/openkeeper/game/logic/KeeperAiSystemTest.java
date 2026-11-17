@@ -478,7 +478,7 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void doesNotTryToBuildABridgeWithoutEnoughGold() {
+    void waitsOnTheTileWhileItIsShortOfGoldForTheBridge() {
         KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
         roomControl.setTypeAvailable(bridges.get(WOODEN_BRIDGE), true, true);
         createNeutralPortal(new Point(9, 6));
@@ -486,14 +486,27 @@ class KeeperAiSystemTest {
         chargeGoldForBuild = true;
         keeper.setGold(ROOM_COST - 1);
 
-        digPath(system);
+        for (int tick = 0; tick < 20; tick++) {
+            system.processTick(0.25f);
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
 
-        assertTrue(buildAttempts.isEmpty());
+        // DK II stays on the tile until it can build the bridge
         assertTrue(built.isEmpty());
-        assertEquals('W', map[6][7]);
-        assertEquals(ROOM_COST - 1, keeper.getGold());
-        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
-        assertTrue(getKeeperAi().failedTargetTicks[0] > 0);
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(new Point(7, 6), getKeeperAi().current);
+        assertEquals(0, getKeeperAi().failedTargetTicks[0]);
+
+        keeper.setGold(ROOM_COST);
+        for (int tick = 0; tick < 5 && built.isEmpty(); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(List.of(new Point(7, 6)), built);
+        assertEquals(List.of(WOODEN_BRIDGE), builtRoomIds);
     }
 
     @Test
@@ -514,21 +527,27 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void backsOffWhenBridgePlacementDoesNotCreateARoom() {
+    void staysOnTheTileWhenTheBridgeItPickedIsNotPlacedAndDoesNotTryTheOther() {
         KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
         roomControl.setTypeAvailable(bridges.get(WOODEN_BRIDGE), true, true);
+        roomControl.setTypeAvailable(bridges.get(STONE_BRIDGE), true, true);
         createNeutralPortal(new Point(9, 6));
         map[6][7] = 'W';
         rejectedRoomBuildId = WOODEN_BRIDGE;
 
-        digPath(system);
+        for (int tick = 0; tick < 20; tick++) {
+            system.processTick(0.25f);
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
 
-        assertEquals(1, rejectedBuildAttempts);
+        assertTrue(rejectedBuildAttempts > 1);
         assertTrue(built.isEmpty());
-        assertEquals('W', map[6][7]);
-        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
-        assertNotEquals(KeeperAi.Task.TAG_GOLD, getKeeperAi().task);
-        assertTrue(getKeeperAi().failedTargetTicks[0] > 0);
+        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(new Point(7, 6), getKeeperAi().current);
+        assertEquals(0, getKeeperAi().failedTargetTicks[0]);
     }
 
     @Test
