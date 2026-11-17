@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundEvent;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.SoundSequencer;
+import toniarts.openkeeper.game.sound.SoundVoice;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -72,6 +73,8 @@ public final class SoundState extends AbstractPauseAwareState {
     private int speechHandle = SoundEngine.NO_HANDLE;
     private int backgroundHandle = SoundEngine.NO_HANDLE;
     private IKwdFile kwdFile;
+    private volatile float musicVolumeFactor = 1f;
+    private boolean musicDucked;
 
     /**
      * AMBIENCE(341) | OPTIONS_MUSIC(838) | MUSIC(343, 345) | maybe ONE_SHOT_ATMOS(746)
@@ -244,7 +247,12 @@ public final class SoundState extends AbstractPauseAwareState {
      * @param listener can be {@code null}, allows you to listen when the speech starts playing
      */
     public void attachMentorSpeech(MentorType type, ISpeechListener listener) {
-        attachSpeech(SoundCategory.SPEECH_MENTOR, type.getId(), listener);
+        attachMentorSpeech(type.getId(), listener);
+    }
+
+    /** Queues a general mentor recording, respecting the voice setting. */
+    public void attachMentorSpeech(int speechId, ISpeechListener listener) {
+        attachSpeech(SoundCategory.SPEECH_MENTOR, speechId, listener);
     }
 
     private void attachSpeech(String soundCategory, int speechId, ISpeechListener listener) {
@@ -270,6 +278,15 @@ public final class SoundState extends AbstractPauseAwareState {
         if (speech.listener != null) {
             speech.listener.onStart();
         }
+    }
+
+    /**
+     * Turns the level music down, e.g. while the Casino's disco plays
+     *
+     * @param factor 1 is the full volume, 0 is silent
+     */
+    public void setMusicVolumeFactor(float factor) {
+        musicVolumeFactor = factor;
     }
 
     public void stopSpeech() {
@@ -310,6 +327,15 @@ public final class SoundState extends AbstractPauseAwareState {
         } else if (backgroundHandle == SoundEngine.NO_HANDLE || !SoundManager.isPlaying(backgroundHandle)) {
             backgroundHandle = SoundEngine.NO_HANDLE;
             playBackground();
+        }
+        float factor = musicVolumeFactor;
+        if (backgroundHandle != SoundEngine.NO_HANDLE && (factor < 1f || musicDucked)) {
+            musicDucked = factor < 1f;
+            SoundEngine engine = SoundManager.getEngine();
+            SoundVoice voice = engine != null ? engine.getVoice(backgroundHandle) : null;
+            if (voice != null) {
+                voice.setVolume(Math.round(100 * factor));
+            }
         }
 
         super.update(tpf);

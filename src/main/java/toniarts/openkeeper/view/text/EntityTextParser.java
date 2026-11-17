@@ -48,7 +48,7 @@ public abstract class EntityTextParser<T> {
             case HEALTH_PERCENTAGE:
                 Health health = entity.get(Health.class);
                 if (health != null) {
-                    return Integer.toString((int) (health.health / health.maxHealth * 100f));
+                    return Integer.toString(Math.round((float) health.health / health.maxHealth * 100f));
                 }
                 return "";
             case ENTITY_GOLD:

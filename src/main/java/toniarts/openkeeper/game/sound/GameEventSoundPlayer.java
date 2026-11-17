@@ -30,6 +30,7 @@ import java.lang.System.Logger.Level;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.IntConsumer;
 
 /**
  * Plays the sounds of the {@link GameEvent}s published on the {@link EventBus}.
@@ -39,10 +40,12 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     private static final Logger logger = System.getLogger(GameEventSoundPlayer.class.getName());
 
     private final IKwdFile kwdFile;
+    private final IntConsumer mentorSpeech;
     private final Map<ExclusiveKey, Integer> exclusiveSounds = new HashMap<>();
 
-    public GameEventSoundPlayer(IKwdFile kwdFile) {
+    public GameEventSoundPlayer(IKwdFile kwdFile, IntConsumer mentorSpeech) {
         this.kwdFile = kwdFile;
+        this.mentorSpeech = mentorSpeech;
     }
 
     public void register() {
@@ -58,6 +61,10 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     public void newEvent(EventType<GameEvent> type, GameEvent event) {
         exclusiveSounds.values().removeIf(handle -> !SoundManager.isPlaying(handle));
 
+        if (event.type == GameEventType.CASINO_DISCO_START) {
+            return; // The disco music is played by the DiscoViewState
+        }
+
         ExclusiveKey key = null;
         if (GameEventSounds.isExclusive(event.type) && event.entity != null) {
             key = new ExclusiveKey(event.entity, event.type);
@@ -72,6 +79,10 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
                     event.type, event.subjectKind, event.subjectId);
         }
         for (GameEventSounds.Sound sound : sounds) {
+            if (SoundCategory.SPEECH_MENTOR.equals(sound.category())) {
+                mentorSpeech.accept(sound.eventId());
+                continue;
+            }
             int handle = sound.position() != null
                     ? SoundManager.playSound(sound.category(), sound.eventId(), sound.position())
                     : SoundManager.playSound(sound.category(), sound.eventId());
