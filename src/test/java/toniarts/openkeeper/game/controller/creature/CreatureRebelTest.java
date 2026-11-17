@@ -24,6 +24,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -84,7 +85,7 @@ class CreatureRebelTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
         controller = new CreatureController(entityId, entityData,
-                CreatureFlagFixtures.creature((short) 5, EnumSet.noneOf(Creature.CreatureFlag.class)), null, taskManager, () -> 0, null,
+                CreatureFlagFixtures.creature((short) 5, EnumSet.noneOf(Creature.CreatureFlag.class)), null, taskManager, () -> 0, Map.of(),
                 null, lookup, null, null, null, null, eventService);
         rebel = new Rebel(null, null, controller, TICKS_PER_SECOND);
     }
