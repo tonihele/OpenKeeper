@@ -17,14 +17,19 @@
 package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityId;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
 import toniarts.openkeeper.utils.Point;
@@ -102,6 +107,46 @@ class ManufactureTest {
         manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
                 trap.getManufCrateObjectId()));
         return new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, null);
+    }
+
+    @Test
+    void crateWithoutRoomStaysOnTheFloorForNobody() {
+        List<Short> crateOwners = new ArrayList<>();
+        IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
+                IObjectsController.class.getClassLoader(), new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "addRoomCrate" -> {
+                        crateOwners.add((short) args[1]);
+                        yield new EntityId(1);
+                    }
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        IRoomObjectControl<?> fullWorkshop = (IRoomObjectControl<?>) Proxy.newProxyInstance(
+                IRoomObjectControl.class.getClassLoader(), new Class<?>[]{IRoomObjectControl.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "addItem" -> args[0]; // No room for it
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        IRoomController workshop = (IRoomController) Proxy.newProxyInstance(
+                IRoomController.class.getClassLoader(), new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getObjectControl" -> fullWorkshop;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        Trap trap = TrapFixtures.trapToManufacture((short) 1, BILE_DEMON);
+        PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
+        manufactureControl.setOrder(new ManufactureOrders.Order(ResearchableType.TRAP, trap.getTrapId(), trap.getManufToBuild(),
+                trap.getManufCrateObjectId()));
+        ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getManufacturePerTick" -> BILE_DEMON;
+                    case "hashCode" -> System.identityHashCode(proxy);
+                    case "equals" -> proxy == args[0];
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        Manufacture task = new Manufacture(null, null, new Point(3, 4), (short) 1, workshop, null, manufactureControl, objectsController);
+
+        // Not removed, the objects controller would be asked for the crate's controller
+        task.executeTask(creature, 1f / TICKS_PER_SECOND);
+
+        assertEquals(List.of(Player.NEUTRAL_PLAYER_ID), crateOwners);
     }
 
 }
