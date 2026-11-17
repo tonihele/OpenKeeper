@@ -1599,6 +1599,39 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void takesTheFirstTileOfTheSpiralWhenTheMiddleOfASeamIsImpenetrable() {
+        map[6][10] = '#';
+        map[6][11] = '#';
+        map[3][10] = 'X';
+        map[3][11] = 'G';
+        map[4][11] = 'G';
+        map[4][10] = 'G';
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        system.processTick(0.25f);
+
+        // The spiral starts one tile east, on the gold, not on the rock north west of the middle
+        assertEquals(new Point(11, 3), getKeeperAi().goldDeposits[0]);
+    }
+
+    @Test
+    void headsForTheNextSeamWhenThePathToTheNearestTookTooLong() {
+        map[2][13] = 'G';
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        system.processTick(0.25f);
+        system.processTick(0.25f);
+
+        assertEquals(new Point(10, 6), getKeeperAi().target);
+
+        // The imps never dig the path, so it is dropped after 7 minutes
+        for (int tick = 0; tick < 500 * 4 && getKeeperAi().target.equals(new Point(10, 6)); tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(KeeperAi.Task.GO_TO_GOLD, getKeeperAi().task);
+        assertEquals(new Point(13, 2), getKeeperAi().target);
+    }
+
+    @Test
     void makesItsOwnGoldWhenItKnowsOfNoSeamAndHasTheSpell() {
         map[6][10] = '#';
         map[6][11] = '#';
