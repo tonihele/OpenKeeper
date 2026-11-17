@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
@@ -89,7 +90,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * alone. DK II has no such wait, it digs to the same room again on its
      * next Portal plan and to the same seam when it next needs gold
      */
-    private static final int FAILED_PATH_WAIT_SECONDS = 120;
+    private static final int FAILED_TARGET_WAIT_SECONDS = 120;
+    private static final int FAILED_ROOM_SITE_WAIT_SECONDS = 120;
 
     /**
      * A room it found no site for at its default size is looked for smaller,
@@ -306,6 +308,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (keeperAi.untagTicks > 0) {
             keeperAi.untagTicks--;
             if (keeperAi.untagTicks == 0) {
+                finishGoldAttempt(keeperAi);
                 log(keeperAi, "untag gold", null, "no dig order for a while");
                 untagGold(keeperAi.playerId);
             }
@@ -323,6 +326,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         for (int i = 0; i < keeperAi.failedTargetTicks.length; i++) {
             if (keeperAi.failedTargetTicks[i] > 0) {
                 keeperAi.failedTargetTicks[i]--;
+            }
+        }
+        for (int i = 1; i < keeperAi.failedRoomTicks.length; i++) {
+            if (keeperAi.failedRoomTicks[i] > 0) {
+                keeperAi.failedRoomTicks[i]--;
             }
         }
         battles.liftCallToArms(keeperAi, playerControllers, ai, ticksPerSecond);
@@ -430,7 +438,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 case TAG_ROOM ->
                     tagRoom(keeperAi, ticksPerSecond, actions);
                 case BUILD_ROOM ->
-                    buildRoom(keeperAi, ticksPerSecond, actions);
+                    buildRoom(keeperAi, playerController, ticksPerSecond, actions);
                 case FINISH -> {
                     mineGoldIfLow(keeperAi, playerController, ai);
                     if (keeperAi.task == KeeperAi.Task.FINISH) {
@@ -503,6 +511,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             }
         }
         if (createImp == null) {
+            return false;
+        }
+        if (!playerController.getSpellControl().isAvailable(createImp)) {
             return false;
         }
 
@@ -650,13 +661,18 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
         Point gold = null;
         for (Point deposit : keeperAi.goldDeposits) {
-            if (deposit != null && !isWaitingAfterFailedPath(keeperAi, deposit)) {
+            if (deposit != null && !isWaitingAfterFailedTarget(keeperAi, deposit)) {
                 gold = deposit;
                 break;
             }
         }
-        keeperAi.goldDeposits = findGold(playerController);
+        keeperAi.goldDeposits = findGold(keeperAi, playerController);
         if (gold != null) {
+            if (!gold.equals(keeperAi.goldAttemptTarget)) {
+                keeperAi.goldAttemptTarget = gold;
+                keeperAi.goldAttemptWorkAtStart = getGoldAttemptWorkRemaining(gold);
+                keeperAi.goldAttemptLooked = false;
+            }
             keeperAi.target = gold;
             setTask(keeperAi, KeeperAi.Task.GO_TO_GOLD, "low on gold with " + playerController.getKeeper().getGold()
                     + ", the nearest seam of its last look, the next look has "
@@ -668,13 +684,15 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Groups the gold of the whole map into seams and takes the middles of
-     * the four seams that are nearest to one of the player's rooms
+     * Groups the gold of the whole map into seams and takes a gold tile near
+     * the center of each of the four seams nearest to one of the player's rooms.
+     * The path planner must target the seam itself so it can dig up to it; a
+     * nearby non-solid tile does not prove that an imp can reach the gold.
      *
      * @return the middles, the nearest first, {@code null} where there are
      * fewer seams
      */
-    private Point[] findGold(IPlayerController playerController) {
+    private Point[] findGold(KeeperAi keeperAi, IPlayerController playerController) {
         int width = mapController.getMapData().getWidth();
         int height = mapController.getMapData().getHeight();
         boolean[][] seen = new boolean[width][height];
@@ -687,35 +705,42 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 }
 
                 // The whole seam
-                int tiles = 0;
                 int sumX = 0;
                 int sumY = 0;
-                List<Point> open = new ArrayList<>();
-                open.add(new Point(x, y));
+                List<Point> seam = new ArrayList<>();
+                seam.add(new Point(x, y));
                 seen[x][y] = true;
-                while (!open.isEmpty()) {
-                    Point p = open.removeLast();
-                    tiles++;
+                for (int i = 0; i < seam.size(); i++) {
+                    Point p = seam.get(i);
                     sumX += p.x;
                     sumY += p.y;
                     for (Point neighbour : new Point[]{new Point(p.x - 1, p.y), new Point(p.x + 1, p.y), new Point(p.x, p.y - 1), new Point(p.x, p.y + 1)}) {
                         if (hasGold(neighbour.x, neighbour.y) && !seen[neighbour.x][neighbour.y]) {
                             seen[neighbour.x][neighbour.y] = true;
-                            open.add(neighbour);
+                            seam.add(neighbour);
                         }
                     }
                 }
 
-                Point middle = getNearestReachableTile(new Point(sumX / tiles, sumY / tiles));
-                if (middle == null) {
+                Point centre = new Point(sumX / seam.size(), sumY / seam.size());
+                Point target = null;
+                int nearestDistance = Integer.MAX_VALUE;
+                for (Point p : seam) {
+                    int distance = getDistance(centre, p);
+                    if (distance < nearestDistance) {
+                        target = p;
+                        nearestDistance = distance;
+                    }
+                }
+                if (target == null || isWaitingAfterFailedTarget(keeperAi, target)) {
                     continue;
                 }
-                int distance = getDistance(getNearestRoom(playerController, middle).getRoomInstance().getCenter(), middle);
+                int distance = getDistance(getNearestRoom(playerController, target).getRoomInstance().getCenter(), target);
                 for (int i = 0; i < nearest.length; i++) {
                     if (nearest[i] == null || distance < distances[i]) {
                         System.arraycopy(nearest, i, nearest, i + 1, nearest.length - 1 - i);
                         System.arraycopy(distances, i, distances, i + 1, nearest.length - 1 - i);
-                        nearest[i] = middle;
+                        nearest[i] = target;
                         distances[i] = distance;
                         break;
                     }
@@ -824,6 +849,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             }
             keeperAi.goldTiles++;
             if (keeperAi.goldTiles == GOLD_TILES_TO_TAG) {
+                keeperAi.goldAttemptLooked = keeperAi.target.equals(keeperAi.goldAttemptTarget);
+                keeperAi.untagTicks = UNTAG_GOLD_SECONDS * ticksPerSecond;
                 setTask(keeperAi, KeeperAi.Task.PLAN, "looked at all the tiles around the gold");
             }
         }
@@ -844,7 +871,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         keeperAi.roomId = 0;
         wantMoreSpace(keeperAi, playerController, ai);
         if (!keeperAi.roomWanted) {
-            Room wanted = getNextRoom(playerController, ai);
+            Room wanted = getNextRoom(keeperAi, playerController, ai);
             keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId() : ROOM_PORTAL;
             keeperAi.roomWanted = true;
         }
@@ -981,7 +1008,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             short id = room.getRoomInstance().getRoom().getRoomId();
             Point centre = room.getRoomInstance().getCenter();
             if (room.getRoomInstance().getOwnerId() == Player.NEUTRAL_PLAYER_ID && !room.getRoomInstance().isDestroyed()
-                    && (portal ? id == ROOM_PORTAL || id == ROOM_HERO_PORTAL : id == roomId) && !isWaitingAfterFailedPath(keeperAi, centre)
+                    && (portal ? id == ROOM_PORTAL || id == ROOM_HERO_PORTAL : id == roomId) && !isWaitingAfterFailedTarget(keeperAi, centre)
                     && (target == null || getDistance(heart, centre) < getDistance(heart, target))) {
                 target = centre;
             }
@@ -1009,7 +1036,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         return true;
     }
 
-    private static boolean isWaitingAfterFailedPath(KeeperAi keeperAi, Point target) {
+    private static boolean isWaitingAfterFailedTarget(KeeperAi keeperAi, Point target) {
         for (int i = 0; i < keeperAi.failedTargets.length; i++) {
             if (keeperAi.failedTargetTicks[i] > 0 && target.equals(keeperAi.failedTargets[i])) {
                 return true;
@@ -1017,6 +1044,82 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
 
         return false;
+    }
+
+    private int getGoldAttemptWorkRemaining(Point centre) {
+        int work = 0;
+        for (int i = 0; i < GOLD_TILES_TO_TAG; i++) {
+            Point point = getGoldLookTile(centre, i);
+            IMapTileInformation tile = mapController.getMapData().getTile(point);
+            if (tile != null && mapController.getTerrain(tile).getGoldValue() > 0) {
+                work += tile.getHealth();
+            }
+        }
+        return work;
+    }
+
+    /** The center tile followed by the same spiral used when tagging gold. */
+    private static Point getGoldLookTile(Point centre, int index) {
+        int x = centre.x;
+        int y = centre.y;
+        int dx = 0;
+        int dy = 1;
+        int sideX = 1;
+        int sideY = 1;
+        boolean vertical = true;
+        if (index > 0) {
+            x++;
+        }
+        for (int i = 1; i < index; i++) {
+            if (vertical) {
+                y += dy;
+                sideY--;
+                if (sideY == 0) {
+                    sideX++;
+                    sideY = sideX;
+                    dx = -dy;
+                    vertical = false;
+                }
+            } else {
+                x += dx;
+                sideX--;
+                if (sideX == 0) {
+                    sideX = sideY;
+                    dy = dx;
+                    vertical = true;
+                }
+            }
+        }
+        return new Point(x, y);
+    }
+
+    private void finishGoldAttempt(KeeperAi keeperAi) {
+        Point target = keeperAi.goldAttemptTarget;
+        if (target == null || !keeperAi.goldAttemptLooked) {
+            return;
+        }
+        if (getGoldAttemptWorkRemaining(target) >= keeperAi.goldAttemptWorkAtStart) {
+            rememberFailedTarget(keeperAi, target, "the gold seam made no mining progress");
+        }
+        keeperAi.goldAttemptTarget = null;
+        keeperAi.goldAttemptWorkAtStart = 0;
+        keeperAi.goldAttemptLooked = false;
+    }
+
+    private void rememberFailedTarget(KeeperAi keeperAi, Point target, String reason) {
+        int slot = 0;
+        for (int i = 0; i < keeperAi.failedTargetTicks.length; i++) {
+            if (target.equals(keeperAi.failedTargets[i])) {
+                slot = i;
+                break;
+            }
+            if (keeperAi.failedTargetTicks[i] < keeperAi.failedTargetTicks[slot]) {
+                slot = i;
+            }
+        }
+        keeperAi.failedTargets[slot] = target;
+        keeperAi.failedTargetTicks[slot] = FAILED_TARGET_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
+        log(keeperAi, "leave the target alone for " + FAILED_TARGET_WAIT_SECONDS + " s", target, reason);
     }
 
     /**
@@ -1042,7 +1145,15 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * The first room of the computer player's build order, and then of the
      * rest of the rooms, that it may build and doesn't have yet
      */
+    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+        return getNextRoom(keeperAi, playerController, ai, true);
+    }
+
     private Room getNextRoom(IPlayerController playerController, AI ai) {
+        return getNextRoom(null, playerController, ai, false);
+    }
+
+    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, boolean skipFailedRoomSites) {
         List<Short> roomIds = new ArrayList<>(ai.getBuildOrder());
         for (short roomId = (short) (roomIds.size() + 1); roomId <= LAST_ROOM; roomId++) {
             roomIds.add(roomId);
@@ -1053,7 +1164,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 continue;
             }
             ResearchableEntity availability = playerController.getRoomControl().getTypes().get(room);
-            if (availability != null && availability.isDiscovered() && playerController.getRoomControl().getTypeCount(room) == 0) {
+            if (availability != null && availability.isDiscovered() && playerController.getRoomControl().getTypeCount(room) == 0
+                    && (!skipFailedRoomSites || !isWaitingAfterFailedRoomSite(keeperAi, roomId))) {
                 return room;
             }
         }
@@ -1108,50 +1220,86 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * default size and gap for ever
      */
     private int findRoomSite(KeeperAi keeperAi, IPlayerController playerController, AI ai, int actions) {
-        int size = ai.getDefaultSize();
-        int gap = ai.getTilesLeftBetweenRooms();
-        for (int i = 0; i < keeperAi.roomSitesNotFound; i++) {
-            if (size > SMALLEST_ROOM_SIDE * SMALLEST_ROOM_SIDE) {
-                int side = Math.max(SMALLEST_ROOM_SIDE, (int) Math.sqrt(size) - 1);
-                size = side * side;
-            } else if (gap > 0) {
-                gap--;
+        KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai);
+        List<Point> locations = getRoomSearchLocations(keeperAi, playerController);
+        int[] directionOrder = {keeperAi.direction, (keeperAi.direction + 1) & 3, (keeperAi.direction + 3) & 3,
+            (keeperAi.direction + 2) & 3};
+
+        // Keep the configured size and spacing when possible, then relax them for tight maps.
+        for (int size : getRoomSearchSizes(ai.getDefaultSize())) {
+            for (Point location : locations) {
+                for (int direction : directionOrder) {
+                    for (int gap = ai.getTilesLeftBetweenRooms(); gap >= 0; gap--) {
+                        KeeperAiRoomSiteFinder.RoomSite site = finder.find(location, direction, size, gap);
+                        if (site == null) {
+                            continue;
+                        }
+
+                        keeperAi.current = location;
+                        keeperAi.direction = direction;
+                        keeperAi.target = site.entrance();
+                        keeperAi.corner = site.corner();
+                        keeperAi.oppositeCorner = site.oppositeCorner();
+                        String sizeNote = size < ai.getDefaultSize() ? " at fallback size " + size : "";
+                        String gapNote = gap < ai.getTilesLeftBetweenRooms() ? " with fallback spacing " + gap : "";
+                        setTask(keeperAi, KeeperAi.Task.DIG_PATH, "site for room " + keeperAi.roomId + sizeNote + gapNote + " from "
+                                + site.corner().x + "," + site.corner().y + " to " + site.oppositeCorner().x + "," + site.oppositeCorner().y
+                                + ", " + DIRECTIONS[direction] + " of " + location.x + "," + location.y);
+                        keeperAi.nextTask = KeeperAi.Task.TAG_ROOM;
+                        return actions - 1;
+                    }
+                }
             }
         }
-        KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai);
-        KeeperAiRoomSiteFinder.RoomSite site = null;
-        for (int i = ai.getTilesLeftBetweenRooms(); site == null && i >= gap; i--) {
-            site = finder.find(keeperAi.current, keeperAi.direction, size, i);
-        }
-        if (site != null) {
-            keeperAi.roomSitesNotFound = 0;
 
-            // First the path to the site
-            keeperAi.target = site.entrance();
-            keeperAi.corner = site.corner();
-            keeperAi.oppositeCorner = site.oppositeCorner();
-            setTask(keeperAi, KeeperAi.Task.DIG_PATH, "site for room " + keeperAi.roomId + " from " + site.corner().x + "," + site.corner().y
-                    + " to " + site.oppositeCorner().x + "," + site.oppositeCorner().y + ", " + DIRECTIONS[keeperAi.direction] + " of " + keeperAi.current.x + "," + keeperAi.current.y);
-            keeperAi.nextTask = KeeperAi.Task.TAG_ROOM;
-            return actions - 1;
+        if (keeperAi.roomId > 0 && keeperAi.roomId <= LAST_ROOM && keeperAi.roomId < keeperAi.failedRoomTicks.length) {
+            keeperAi.failedRoomTicks[keeperAi.roomId] = FAILED_ROOM_SITE_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
         }
-
-        int preferred = getPreferredDirection(keeperAi.roomId, playerController.getKeeper());
-        if (keeperAi.direction == preferred) {
-            keeperAi.direction = (preferred + 1) & 3;
-        } else if (keeperAi.direction == ((preferred + 1) & 3)) {
-            keeperAi.direction = (preferred - 1) & 3;
-        } else if (keeperAi.direction == ((preferred - 1) & 3)) {
-            keeperAi.direction = (preferred - 2) & 3;
-        } else if (Utils.getRandom().nextInt(100) > 4) {
-            keeperAi.direction = preferred;
-            keeperAi.current = getRandomRoomLocation(playerController);
-        } else {
-            keeperAi.roomSitesNotFound++;
-            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " of " + size + " tiles, leaving " + gap + " tiles to the other rooms");
-        }
-
+        setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " at sizes " + getRoomSearchSizes(ai.getDefaultSize()));
         return 0;
+    }
+
+    private static boolean isWaitingAfterFailedRoomSite(KeeperAi keeperAi, short roomId) {
+        return roomId > 0 && roomId < keeperAi.failedRoomTicks.length && keeperAi.failedRoomTicks[roomId] > 0;
+    }
+
+    private List<Point> getRoomSearchLocations(KeeperAi keeperAi, IPlayerController playerController) {
+        List<Point> locations = new ArrayList<>();
+        if (keeperAi.current != null) {
+            locations.add(keeperAi.current);
+        }
+        for (Map.Entry<Room, Set<IRoomController>> entry : playerController.getRoomControl().getRoomControllers().entrySet()) {
+            if (!entry.getKey().getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
+                continue;
+            }
+            for (IRoomController room : entry.getValue()) {
+                if (!room.getRoomInstance().isDestroyed()) {
+                    Point center = room.getRoomInstance().getCenter();
+                    if (!locations.contains(center)) {
+                        locations.add(center);
+                    }
+                }
+            }
+        }
+        return locations;
+    }
+
+    private static List<Integer> getRoomSearchSizes(int preferredSize) {
+        if (preferredSize < 1) {
+            return List.of();
+        }
+
+        List<Integer> sizes = new ArrayList<>();
+        sizes.add(preferredSize);
+        int side = (int) Math.sqrt(preferredSize);
+        if (side * side != preferredSize) {
+            sizes.add(side * side);
+        }
+        while (side > 1) {
+            side--;
+            sizes.add(side * side);
+        }
+        return sizes;
     }
 
     /**
@@ -1191,15 +1339,24 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     return actions;
                 }
                 if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, bridge.getRoomId())) {
+                    if (playerController.getKeeper().getGold() < bridge.getCost()) {
+                        finishPath(keeperAi, false, "the bridge needs more gold");
+                        return actions;
+                    }
                     Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                     gameWorldController.build(position, position, keeperAi.playerId, bridge.getRoomId());
                     log(keeperAi, "build room " + bridge.getRoomId(), keeperAi.current, "the path crosses water or lava");
-                    if (mapController.getRoomControllerByCoordinates(keeperAi.current) != null && !stepOnPath(keeperAi)) {
-                        finishPath(keeperAi, !keeperAi.wallFollowing, "no way on from here");
-                        return actions;
-                    }
                 }
-            } else if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+                if (mapController.getRoomControllerByCoordinates(keeperAi.current) == null) {
+                    finishPath(keeperAi, false, "could not place the bridge");
+                    return actions;
+                }
+                if (!stepOnPath(keeperAi)) {
+                    finishPath(keeperAi, !keeperAi.wallFollowing, "no way on from here");
+                    return actions;
+                }
+            } else if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                    || !TileWork.canDamageTile(terrain, tile.getOwnerId(), keeperAi.playerId)) {
 
                 // On open land the path is done as soon as a creature can walk the rest
                 if (navigationService.findPath(keeperAi.target, keeperAi.current, getWalker(keeperAi.playerId)) != null) {
@@ -1233,7 +1390,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
         keeperAi.invasionTargetId = 0;
         keeperAi.wallFollowing = false;
-        setTask(keeperAi, keeperAi.nextTask, reason);
+        setTask(keeperAi, reached ? keeperAi.nextTask : KeeperAi.Task.PLAN, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;
     }
 
@@ -1242,15 +1399,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * frees up first, so that it is passed over for a while
      */
     private void leaveTargetAlone(KeeperAi keeperAi, String reason) {
-        int slot = 0;
-        for (int i = 1; i < keeperAi.failedTargetTicks.length; i++) {
-            if (keeperAi.failedTargetTicks[i] < keeperAi.failedTargetTicks[slot]) {
-                slot = i;
-            }
-        }
-        keeperAi.failedTargets[slot] = keeperAi.target;
-        keeperAi.failedTargetTicks[slot] = FAILED_PATH_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
-        log(keeperAi, "leave the target alone for " + FAILED_PATH_WAIT_SECONDS + " s", keeperAi.target, reason);
+        rememberFailedTarget(keeperAi, keeperAi.target, reason);
     }
 
     /**
@@ -1472,14 +1621,33 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * Goes through the room site tile by tile. It waits for the imps to dig
      * out and claim the tile, then places the room on it
      */
-    private int buildRoom(KeeperAi keeperAi, int ticksPerSecond, int actions) {
+    private int buildRoom(KeeperAi keeperAi, IPlayerController playerController, int ticksPerSecond, int actions) {
         while (actions > 0) {
             actions--;
             if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, keeperAi.roomId)) {
+                Room room = kwdFile.getRoomById(keeperAi.roomId);
+                if (room == null) {
+                    setTask(keeperAi, KeeperAi.Task.PLAN, keeperAi.current, "room definition is missing");
+                    return 0;
+                }
+                if (playerController.getKeeper().getGold() < room.getCost()) {
+                    setTask(keeperAi, KeeperAi.Task.PLAN, keeperAi.current, "room " + keeperAi.roomId + " needs more gold");
+                    return 0;
+                }
+
                 Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                 gameWorldController.build(position, position, keeperAi.playerId, keeperAi.roomId);
-                log(keeperAi, "build room " + keeperAi.roomId, keeperAi.current, "the tile is dug out and claimed");
-                return actions;
+                if (!mapController.isBuildable(keeperAi.current, keeperAi.playerId, keeperAi.roomId)) {
+                    log(keeperAi, "build room " + keeperAi.roomId, keeperAi.current, "the tile is dug out and claimed");
+                    return actions;
+                }
+
+                if (playerController.getKeeper().getGold() < room.getCost()) {
+                    setTask(keeperAi, KeeperAi.Task.PLAN, keeperAi.current, "room " + keeperAi.roomId + " ran short of gold");
+                    return 0;
+                }
+
+                log(keeperAi, "skip room tile", keeperAi.current, "room placement was rejected");
             }
 
             IMapTileInformation tile = mapController.getMapData().getTile(keeperAi.current);
