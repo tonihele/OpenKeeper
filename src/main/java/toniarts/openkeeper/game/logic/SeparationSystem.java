@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -47,6 +48,12 @@ import toniarts.openkeeper.utils.WorldUtils;
  * 1/sqrt(d/R) - 1, or as 1/(d/R) - 1 from a creature that stands its ground (a
  * blocker), is shared by mass, and is stronger when moving away from the other
  * one. A blocker is never pushed itself.
+ * <br>
+ * A creature that stands to swing or cast has no path, but DK II runs its pilot
+ * too (0x488930) and the fight state leaves it no blocker while the blow runs
+ * (0x45F030), so it is pushed about as well (0x4D2B80 only skips blockers). It
+ * is moved by the push straight away, as far as a walker's push would move it
+ * in a tick.
  * <br>
  * DK II adds the weighted push to a velocity that is capped at the walking
  * speed of a tick, so the push is measured against that speed: it can hold a
@@ -69,7 +76,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
-    private final EntitySet walkingCreatures;
+    private final EntitySet creatures;
 
     public SeparationSystem(EntityData entityData, IKwdFile kwdFile, IMapController mapController,
             IEntityPositionLookup entityPositionLookup) {
@@ -77,27 +84,60 @@ public final class SeparationSystem implements IGameLogicUpdatable {
         this.kwdFile = kwdFile;
         this.mapController = mapController;
         this.entityPositionLookup = entityPositionLookup;
-        walkingCreatures = entityData.getEntities(CreatureComponent.class, Position.class, Navigation.class, Mobile.class);
+        creatures = entityData.getEntities(CreatureComponent.class, Position.class, Mobile.class);
     }
 
     @Override
     public void processTick(float tpf) {
-        if (walkingCreatures.applyChanges()) {
-            for (Entity entity : walkingCreatures.getRemovedEntities()) {
+        if (creatures.applyChanges()) {
+            for (Entity entity : creatures.getRemovedEntities()) {
                 entityData.removeComponent(entity.getId(), SeparationPush.class);
             }
         }
 
-        for (Entity entity : walkingCreatures) {
-            Vector2f push = getPush(entity);
-            if (push.equals(Vector2f.ZERO)) {
-                if (entityData.getComponent(entity.getId(), SeparationPush.class) != null) {
-                    entityData.removeComponent(entity.getId(), SeparationPush.class);
-                }
-            } else {
+        for (Entity entity : creatures) {
+            boolean walking = entityData.getComponent(entity.getId(), Navigation.class) != null;
+            Vector2f push = walking || isSwinging(entity) ? getPush(entity) : new Vector2f();
+            if (walking && !push.equals(Vector2f.ZERO)) {
                 entityData.setComponent(entity.getId(), new SeparationPush(push));
+                continue;
+            }
+            if (entityData.getComponent(entity.getId(), SeparationPush.class) != null) {
+                entityData.removeComponent(entity.getId(), SeparationPush.class);
+            }
+            if (!push.equals(Vector2f.ZERO)) {
+                nudge(entity, push);
             }
         }
+    }
+
+    /**
+     * Is the creature swinging or casting at its target. Like DK II's pilot
+     * (0x4D5A40) only a creature that can move is pushed, and a possessed one
+     * is moved by its keeper alone.
+     */
+    private boolean isSwinging(Entity entity) {
+        CreatureAi creatureAi = entityData.getComponent(entity.getId(), CreatureAi.class);
+        return creatureAi != null
+                && (creatureAi.getCreatureState() == CreatureState.MELEE_ATTACK || creatureAi.getCreatureState() == CreatureState.CAST_SPELL)
+                && entity.get(Mobile.class).maxSpeed > 0
+                && entityData.getComponent(entity.getId(), Possessed.class) == null;
+    }
+
+    /**
+     * Moves a creature that has no path by the push of one tick, at most the
+     * walking speed of a tick. It keeps facing its target.
+     */
+    private void nudge(Entity entity, Vector2f push) {
+        Position position = entity.get(Position.class);
+        Vector2f step = (push.length() > 1 ? push.normalizeLocal() : push).multLocal(getSpeedPerTick(entity));
+        Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+        slideAlongWalls(step, position, creature.getAttributes().getWidth() / 2 + step.length());
+        entityData.setComponent(entity.getId(), new Position(position.rotation, position.position.add(step.x, 0, step.y)));
+    }
+
+    private float getSpeedPerTick(Entity entity) {
+        return entity.get(Mobile.class).maxSpeed / kwdFile.getGameLevel().getTicksPerSec();
     }
 
     private Vector2f getPush(Entity entity) {
@@ -107,7 +147,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
             return separation;
         }
 
-        // A walking creature faces where it goes
+        // A walking creature faces where it goes, a fighter its target
         Position position = entity.get(Position.class);
         Vector2 heading = SteeringUtils.calculateAngleToVector(new Vector2(), -position.rotation);
         Point tile = WorldUtils.vectorToPoint(position.position);
@@ -126,8 +166,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
         slideAlongWalls(separation, position, creature.getAttributes().getWidth() / 2);
 
         // As a share of the path following, that turns the velocity towards the walking speed of a tick
-        float speedPerTick = entity.get(Mobile.class).maxSpeed / kwdFile.getGameLevel().getTicksPerSec();
-        return separation.multLocal(SEPARATION_WEIGHT / speedPerTick);
+        return separation.multLocal(SEPARATION_WEIGHT / getSpeedPerTick(entity));
     }
 
     private void addPairPush(Vector2f separation, EntityId entityId, Position position, Vector2 heading,
@@ -214,7 +253,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
 
     @Override
     public void stop() {
-        walkingCreatures.release();
+        creatures.release();
     }
 
 }

@@ -57,7 +57,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Creatures walking to the same spot are kept apart like DK II's separation
- * steering does (0x4D2DF0, 0x4D2B80), but never pushed into walls.
+ * steering does (0x4D2DF0, 0x4D2B80), but never pushed into walls. A
+ * creature swinging at its target is pushed too.
  */
 class CreatureSeparationTest {
 
@@ -123,6 +124,27 @@ class CreatureSeparationTest {
             separationSystem.processTick(1 / 4f);
             assertEquals(push, entityData.getComponent(walker, SeparationPush.class).push.length(), 0.001f);
         }
+    }
+
+    @Test
+    void aCreatureSwingingAtItsTargetIsPushedToo() {
+        standing(KNIGHT, 5, 5, CreatureState.IDLE);
+        float x = 5 + KNIGHT_WIDTH / 4;
+        EntityId fighter = standing(KNIGHT, x, 5, CreatureState.FIGHT);
+        entityData.setComponent(fighter, new Mobile(false, false, false, KNIGHT_SPEED));
+        SeparationSystem separationSystem = new SeparationSystem(entityData, kwdFile(), map(), positionLookup());
+
+        // Between its blows it holds its ground
+        separationSystem.processTick(1 / 4f);
+        assertEquals(x, position(fighter).x, 0.0001f);
+
+        // While the blow runs it is pushed away, no further than it walks in a tick
+        entityData.setComponent(fighter, new CreatureAi(0, CreatureState.MELEE_ATTACK, KNIGHT));
+        separationSystem.processTick(1 / 4f);
+        float moved = position(fighter).x - x;
+        assertTrue(moved > 0 && moved <= KNIGHT_SPEED / 4 + 0.0001f, "Moved " + moved);
+        assertEquals(5, position(fighter).y, 0.0001f);
+        assertNull(entityData.getComponent(fighter, SeparationPush.class));
     }
 
     @Test
