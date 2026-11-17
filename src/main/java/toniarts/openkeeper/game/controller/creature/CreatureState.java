@@ -91,6 +91,13 @@ public enum CreatureState implements State<ICreatureController> {
                 return; // Found work
             }
 
+            // See if we are owed pay
+            if (entity.goToCollectPay()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                workResult.accept(true);
+                return; // Found work
+            }
+
             // A full worker unloads its gold before it takes on new work
             if (entity.isWorker() && entity.isTooMuchGold() && entity.dropGoldToTreasury()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
@@ -138,6 +145,12 @@ public enum CreatureState implements State<ICreatureController> {
 
             // Native hunger is checked every tick, not only when re-evaluating
             if (entity.isHungry() && entity.goToEat()) {
+                entity.getStateMachine().changeState(CreatureState.WORK);
+                return;
+            }
+
+            // So is the pay
+            if (entity.goToCollectPay()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
                 return;
             }
@@ -258,6 +271,15 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // Pay day takes a creature out of any room job, the Workshop included
+            if (task != null && (task.getTaskType() == TaskType.TRAIN
+                    || task.getTaskType() == TaskType.RESEARCH
+                    || task.getTaskType() == TaskType.MANUFACTURE)
+                    && entity.goToCollectPay()) {
+                entity.navigateToAssignedTask();
+                return;
+            }
+
             // Check validity
             // A full worker unloads its gold, otherwise it looks for new work and keeps the gold it carries for now
             if (!entity.isAssignedTaskValid() && !(entity.isTooMuchGold() && entity.dropGoldToTreasury())) {
@@ -302,6 +324,12 @@ public enum CreatureState implements State<ICreatureController> {
             ICreatureController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(entity.isCombatPitFighter() ? COMBAT_PIT : IDLE); // Nothing to do
+                return;
+            }
+
+            // A scared creature backs off from its target for a while (DK II 0x45F030)
+            if (entity.isScared()) {
+                entity.getStateMachine().changeState(BACK_OFF);
                 return;
             }
 
@@ -381,6 +409,7 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
             if (entity.isStateTimeExceeded()) {
+                entity.completeDungeonEntrance();
                 entity.getStateMachine().changeState(IDLE);
             }
         }
@@ -430,6 +459,36 @@ public enum CreatureState implements State<ICreatureController> {
         public void update(ICreatureController entity) {
             if (entity.isStateTimeExceeded() && !entity.shouldFleeOrAttack()) {
                 entity.getStateMachine().changeState(IDLE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+
+    }, BACK_OFF {
+
+        @Override
+        public void enter(ICreatureController entity) {
+            entity.startBackOff();
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0)
+            if (entity.isBackOffOver()) {
+                entity.getStateMachine().changeState(FLEE);
+            } else if (!entity.isScared() || entity.getAttackTarget() == null) {
+                entity.getStateMachine().changeState(FIGHT);
+            } else if (!entity.backOff()) {
+                entity.getStateMachine().changeState(FLEE);
             }
         }
 
@@ -673,6 +732,13 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
+
+            // The fear is checked during the cast too, and a scared caster backs off at once, cutting its cast short
+            // (DK II 0x45F030, 0x471890)
+            if (entity.isScared()) {
+                entity.getStateMachine().changeState(BACK_OFF);
+                return;
+            }
             entity.releaseCastShot();
             if (entity.isStateTimeExceeded()) {
                 entity.getStateMachine().changeState(FIGHT);
