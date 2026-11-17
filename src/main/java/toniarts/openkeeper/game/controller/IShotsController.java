@@ -66,4 +66,23 @@ public interface IShotsController {
      */
     public void hit(EntityId shot, EntityId thing);
 
+    /**
+     * A flying shot hurts what is around it by its damage type, on every turn
+     * of its flight
+     *
+     * @param shot the shot entity
+     */
+    public void damageArea(EntityId shot);
+
+    /**
+     * A flying shot leaves another shot where it is, when it hits a thing or
+     * a wall or when it dies. The new shot has the values, the owner and the
+     * shooter of the old one and stays where it is.
+     *
+     * @param shot the shot entity
+     * @param shotTypeId the shot to leave
+     * @param position where to leave it
+     */
+    public void createChildShot(EntityId shot, short shotTypeId, Vector3f position);
+
 }
