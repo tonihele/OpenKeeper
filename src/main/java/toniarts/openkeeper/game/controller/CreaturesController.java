@@ -50,6 +50,7 @@ import toniarts.openkeeper.game.component.Party;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
@@ -240,8 +241,14 @@ public final class CreaturesController implements ICreaturesController {
 
         // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
         SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+        EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        // A hero may be set to withdraw to the hero lair when it is badly hurt
+        if (ownerId == Player.GOOD_PLAYER_ID && flags != null && flags.contains(Thing.Creature.CreatureFlag.RETURN_TO_HERO_LAIR)) {
+            entityData.setComponent(entityId, new ReturnToHeroLair());
+        }
+        return entityId;
     }
 
     @Override

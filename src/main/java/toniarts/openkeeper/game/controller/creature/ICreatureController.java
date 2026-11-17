@@ -163,6 +163,20 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean backOff();
 
+    /**
+     * A hero set to return to the hero lair withdraws there from a fight when
+     * it is badly hurt. Starts the walk to the hero lair if so
+     *
+     * @return true if we withdraw to the hero lair
+     */
+    public boolean withdrawToHeroLair();
+
+    /**
+     * Walks to a tile of our own land some way off, as a recuperating hero
+     * does until its health is back
+     */
+    public void wanderOnOwnLand();
+
     public boolean isAttacked();
 
     public boolean isEnoughSleep();
