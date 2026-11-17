@@ -147,6 +147,10 @@ public interface PlayerService {
      */
     public void endGame(boolean win, short playerId);
 
+    /** Broadcasts a generated effect without rounding its world position to a tile. */
+    @Asynchronous(reliable = false)
+    void sendEffect(int effectId, Vector3f position, float yaw);
+
     @Asynchronous(reliable = false)
     void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId,
                  EntityId entity, Point position, Short playerId);
