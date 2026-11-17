@@ -21,9 +21,13 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.event.EventBus;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -107,6 +111,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
     private RoomSoundState roomSoundState;
+    private volatile EntityId possessedCreature;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
@@ -114,6 +119,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private EffectManagerState effectManagerState;
     private TextParser textParser;
     private GuardPostCounter guardPostCounter;
+    private volatile EntitySet portalLimits;
 
     /**
      * Single use game states
@@ -231,7 +237,31 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     @Override
+    public void update(float tpf) {
+        if (portalLimits != null && portalLimits.applyChanges()) {
+            copyPortalLimits(portalLimits.getAddedEntities());
+            copyPortalLimits(portalLimits.getChangedEntities());
+        }
+    }
+
+    /**
+     * Gather the keeper stats the server keeps in the entities to our keepers
+     */
+    private void copyPortalLimits(Collection<Entity> entities) {
+        for (Entity entity : entities) {
+            Keeper keeper = getPlayer(entity.get(Owner.class).ownerId);
+            if (keeper != null) {
+                PortalCreatureLimit limit = entity.get(PortalCreatureLimit.class);
+                keeper.setPortalCreatures(limit.attracted, limit.capacity);
+            }
+        }
+    }
+
+    @Override
     public void cleanup() {
+        if (portalLimits != null) {
+            portalLimits.release();
+        }
 
         // Signal our exit & close all the connections
         gameClientService.exitGame();
@@ -384,6 +414,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                     GameClientState.this.players.put(keeper.getId(), keeper);
                     GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
                 }
+                EntitySet limits = gameClientService.getEntityData().getEntities(Owner.class, PortalCreatureLimit.class);
+                copyPortalLimits(limits);
+                portalLimits = limits;
 
                 // Create player state
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
@@ -860,9 +893,18 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */
     public void setPossessedCreature(EntityId entityId) {
+        possessedCreature = entityId;
         if (playerMapViewState != null) {
             playerMapViewState.setPossessedCreature(entityId);
         }
+    }
+
+    /**
+     * @return the creature the viewer is currently possessing, or
+     * {@code null} if not possessing
+     */
+    public EntityId getPossessedCreature() {
+        return possessedCreature;
     }
 
     /**

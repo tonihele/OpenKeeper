@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -30,30 +31,42 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.Casino.PayOut;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
+import toniarts.openkeeper.game.component.CasinoDisco;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CasinoVariableFixtures;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Gambling in the Casino follows the rules of the original: once a second the
  * creature's mood and gold change by the pay out setting of the casino, every
  * four seconds the keeper pays or takes the casino's share, and the creature
- * may hit the jackpot
+ * may hit the jackpot and become the keeper's big winner
  */
 class GambleTest {
 
@@ -62,9 +75,11 @@ class GambleTest {
     private static final int JACKPOT = Gamble.JACKPOT_NUMBER;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final EntityId casinoId = entityData.createEntity();
     private final Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
     private final List<Integer> keeperPayments = new ArrayList<>();
     private final List<int[]> goldPiles = new ArrayList<>();
+    private final List<EntityId> spun = new ArrayList<>();
     private int keeperGold = 5000;
     private EntityId creatureId;
     private ICreatureController creature;
@@ -78,10 +93,12 @@ class GambleTest {
         setting(MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND, 5000);
         setting(MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND, 20000);
         setting(MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT, 1000);
+        setting(MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT, 240);
         setting(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, 2000);
 
         creatureId = entityData.createEntity();
-        entityData.setComponents(creatureId, new Gold(100, 400), new CreatureMood(10000, 0, 0, 10000, 0, 3000));
+        entityData.setComponents(creatureId, new Gold(100, 400), new CreatureMood(10000, 0, 0, 10000, 0, 3000),
+                new Owner(KEEPER, KEEPER), creatureComponent(300));
         creature = creature();
     }
 
@@ -177,26 +194,51 @@ class GambleTest {
     }
 
     @Test
-    void theKeeperPaysTheJackpotFromTheTreasury() {
-        entityData.setComponent(creatureId, new Gold(100, 2000));
+    void theJackpotMakesTheCreatureTheKeepersBigWinner() {
         Gamble gamble = gamble(PayOut.SMILES, JACKPOT);
 
-        gamble.executeTask(creature, 1f);
+        gamble.executeTask(creature, 3f);
 
-        assertEquals(List.of(1000), keeperPayments);
-        assertEquals(1101, gold());
+        CasinoBigWinner bigWinner = entityData.getComponent(creatureId, CasinoBigWinner.class);
+        assertEquals(240, bigWinner.timeLeft);
+        assertEquals(1000, bigWinner.winnings);
+        assertEquals(0, bigWinner.slapCount);
+
+        // It collects the winnings later, and stops gambling
+        assertTrue(keeperPayments.isEmpty());
+        assertEquals(101, gold());
+        assertFalse(gamble.isValid(creature));
     }
 
     @Test
-    void theJackpotIsWhatTheKeeperHasWhenThatIsLess() {
-        keeperGold = 300;
-        Gamble gamble = gamble(PayOut.SMILES, JACKPOT);
+    void theBigWinnerWinsTheKeepersWagesWhenTheyAreMoreThanTheJackpot() {
+        EntityId otherCreature = entityData.createEntity();
+        entityData.setComponents(otherCreature, new Owner(KEEPER, KEEPER), creatureComponent(900));
+        EntityId enemyCreature = entityData.createEntity();
+        entityData.setComponents(enemyCreature, new Owner((short) 4, (short) 4), creatureComponent(5000));
 
-        gamble.executeTask(creature, 1f);
+        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1f);
 
-        assertEquals(List.of(1000), keeperPayments);
-        assertEquals(0, keeperGold);
-        assertEquals(400, gold());
+        assertEquals(1200, entityData.getComponent(creatureId, CasinoBigWinner.class).winnings);
+    }
+
+    @Test
+    void theKeeperHasOnlyOneBigWinnerAtATime() {
+        EntityId otherCreature = entityData.createEntity();
+        entityData.setComponents(otherCreature, new Owner(KEEPER, KEEPER), new CasinoBigWinner(10, 1000, 0));
+
+        gamble(PayOut.SMILES, JACKPOT).executeTask(creature, 1f);
+
+        assertNull(entityData.getComponent(creatureId, CasinoBigWinner.class));
+    }
+
+    @Test
+    void creaturesStopGamblingWhileTheCasinoIsInDiscoMode() {
+        Gamble gamble = gamble(PayOut.SMILES, NO_JACKPOT);
+
+        entityData.setComponent(casinoId, new CasinoDisco(0));
+
+        assertFalse(gamble.isValid(creature));
     }
 
     @Test
@@ -209,6 +251,48 @@ class GambleTest {
 
         assertEquals(PayOut.MONEY, entityData.getComponent(casinoId, Casino.class).payOut);
         assertEquals(PayOut.MONEY, new CasinoController(casinoId, entityData, null, new RoomInstance(new Room()), null, null).getPayOut());
+    }
+
+    @Test
+    void theGamblerSpinsOneOfTheWheelsOfItsRouletteTableEveryFourSeconds() {
+        EntityId wheel1 = rouletteWheel(5, 5.49f);
+        EntityId wheel2 = rouletteWheel(5, 4.51f);
+        EntityId otherTable = rouletteWheel(7, 7.49f);
+        Gamble gamble = gamble(PayOut.MONEY, NO_JACKPOT);
+
+        gamble.executeTask(creature, 3f);
+        assertFalse(isSpinning(wheel1) || isSpinning(wheel2));
+
+        gamble.executeTask(creature, 4f);
+        assertTrue(isSpinning(wheel1) ^ isSpinning(wheel2));
+        assertFalse(isSpinning(otherTable));
+    }
+
+    private EntityId rouletteWheel(float x, float z) {
+        EntityId wheel = entityData.createEntity();
+        entityData.setComponents(wheel, new ObjectComponent(CasinoController.ROULETTE_WHEEL_OBJECT_ID, null),
+                new Position(0, new Vector3f(x, 1, z)),
+                new ObjectViewState(CasinoController.ROULETTE_WHEEL_OBJECT_ID, GameObject.State.NONE,
+                        ObjectViewState.GameObjectAnimState.MESH_RESOURCE, true));
+        return wheel;
+    }
+
+    private boolean isSpinning(EntityId wheel) {
+        return spun.contains(wheel);
+    }
+
+    private IObjectController objectController(EntityId entityId) {
+        return (IObjectController) Proxy.newProxyInstance(IObjectController.class.getClassLoader(), new Class<?>[]{IObjectController.class}, (proxy, method, args) -> {
+            switch (method.getName()) {
+                case "getEntityId":
+                    return entityId;
+                case "spin":
+                    spun.add(entityId);
+                    return null;
+                default:
+                    throw new UnsupportedOperationException(method.getName());
+            }
+        });
     }
 
     private Gamble gamble(PayOut payOut, int jackpotRoll) {
@@ -234,6 +318,8 @@ class GambleTest {
                     KEEPER;
                 case "getObjectControl" ->
                     control;
+                case "getEntityId" ->
+                    casinoId;
                 default ->
                     throw new UnsupportedOperationException(method.getName());
             };
@@ -255,8 +341,20 @@ class GambleTest {
             }
             throw new UnsupportedOperationException(method.getName());
         });
-        return new Gamble(null, null, new Point(5, 5), KEEPER, room, null, entityData, gameWorldController, objectsController,
-                gameSettings, () -> payOut, fixedRandom(jackpotRoll));
+        IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> {
+            if ("getEntityTypesInLocation".equals(method.getName())) {
+                List<IObjectController> objects = new ArrayList<>();
+                for (EntityId entityId : entityData.findEntities(null, Position.class)) {
+                    if (args[0].equals(WorldUtils.vectorToPoint(entityData.getComponent(entityId, Position.class).position))) {
+                        objects.add(objectController(entityId));
+                    }
+                }
+                return objects;
+            }
+            throw new UnsupportedOperationException(method.getName());
+        });
+        return new Gamble(null, null, entityPositionLookup, new Point(5, 5), KEEPER, room, null, entityData, gameWorldController,
+                objectsController, gameSettings, () -> payOut, fixedRandom(jackpotRoll));
     }
 
     private ICreatureController creature() {
@@ -283,6 +381,12 @@ class GambleTest {
                     throw new UnsupportedOperationException(method.getName());
             };
         });
+    }
+
+    private static CreatureComponent creatureComponent(int pay) {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.pay = pay;
+        return creatureComponent;
     }
 
     private int gold() {

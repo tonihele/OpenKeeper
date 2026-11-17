@@ -28,6 +28,8 @@ import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -52,6 +54,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -131,6 +134,30 @@ class KeeperDefeatSystemTest {
                 new Point(2, 1), "terrain " + DIRT_PATH + neutral,
                 new Point(3, 1), "terrain " + ROCK + neutral), alteredTiles);
         assertEquals(List.of("rival's lair to " + Player.NEUTRAL_PLAYER_ID), transferredRooms);
+    }
+
+    @Test
+    void defeatedKeepersImpsDieSoNobodyClaimsHisLandBack() {
+        EntityId imp = creature(RIVAL, true);
+        EntityId fighter = creature(RIVAL, false);
+        EntityId humansImp = creature(HUMAN, true);
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+
+        entityData.removeEntity(hearts.get(RIVAL));
+        system.processTick(0.25f);
+
+        assertEquals(300, entityData.getComponent(imp, Damage.class).damage);
+        assertNull(entityData.getComponent(fighter, Damage.class));
+        assertNull(entityData.getComponent(humansImp, Damage.class));
+    }
+
+    private EntityId creature(short ownerId, boolean worker) {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.worker = worker;
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, creatureComponent, new Owner(ownerId, ownerId), new Health(300, 400));
+
+        return entityId;
     }
 
     @Test
