@@ -74,9 +74,9 @@ import toniarts.openkeeper.utils.WorldUtils;
  * revealed when fired. Creatures that reveal traps reveal the hidden traps of
  * their enemies on their tile and the eight tiles around it.
  * <br>
- * A door with a trap, the Magic Door, fires the trap's shot at the first enemy
- * creature it has a clear line to in the {@value #DOOR_TRAP_RANGE} tiles around
- * it, but only while it is closed. Its owner pays the trap's mana for the shot
+ * A door with a trap, the Magic Door, fires the trap's shot at the first
+ * creature of another keeper, an ally's too, it has a clear line to in the
+ * {@value #DOOR_TRAP_RANGE} tiles around it, but only while it is closed. Its owner pays the trap's mana for the shot
  * and the door recharges like a trap (0x4A55F0). The door doesn't charge,
  * threaten or show itself like a trap does.
  *
