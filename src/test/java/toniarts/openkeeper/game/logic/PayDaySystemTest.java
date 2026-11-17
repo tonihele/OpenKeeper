@@ -31,9 +31,11 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.PayDayFixtures;
@@ -160,6 +162,23 @@ class PayDaySystemTest {
         entityData.removeComponent(goblin, CreaturePay.class);
         tick(FIRST_PAY_DAY + 0.5);
         assertEquals(0, mood(goblin).noPay);
+    }
+
+    @Test
+    void aCreatureTorturingItselfDoesNotGetAngrierForNoPay() {
+        EntityId mistress = addCreature(KEEPER, GOBLIN, WAGE, false);
+        EntityId device = entityData.createEntity();
+        entityData.setComponent(mistress, new TaskComponent(1, device, null, TaskType.TORTURE, 0, true));
+        tick(0);
+        tick(FIRST_PAY_DAY);
+        tick(FIRST_PAY_DAY + 0.25);
+        assertEquals(WAGE, entityData.getComponent(mistress, CreaturePay.class).unpaid);
+        assertEquals(0, mood(mistress).noPay);
+
+        // Whipping a victim is work like any other
+        entityData.setComponent(mistress, new TaskComponent(1, addCreature(KEEPER, GOBLIN, 0, false), null, TaskType.TORTURE, 0, true));
+        tick(FIRST_PAY_DAY + 0.5);
+        assertEquals(ANGER_NO_PAY / 4, mood(mistress).noPay);
     }
 
     @Test
