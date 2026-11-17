@@ -63,6 +63,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.session.SaveGame;
@@ -80,6 +81,7 @@ import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -218,10 +220,12 @@ public final class CreaturesController implements ICreaturesController {
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
         boolean diesInstantly = false;
+        EnumSet<Thing.Creature.CreatureFlag> flags = null;
         if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
             level = goodCreature.getLevel();
+            flags = goodCreature.getFlags();
             ownerId = Player.GOOD_PLAYER_ID;
             objective = goodCreature.getObjective();
             objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
@@ -232,17 +236,22 @@ public final class CreaturesController implements ICreaturesController {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
             level = neutralCreature.getLevel();
+            flags = neutralCreature.getFlags();
             ownerId = Player.NEUTRAL_PLAYER_ID;
         } else if (creature instanceof Thing.KeeperCreature keeperCreature) {
             triggerId = keeperCreature.getTriggerId();
             healthPercentage = keeperCreature.getInitialHealth();
             level = keeperCreature.getLevel();
+            flags = keeperCreature.getFlags();
             ownerId = keeperCreature.getPlayerId();
         } else if (creature instanceof Thing.DeadBody deadBody) {
             ownerId = deadBody.getPlayerId();
         }
+
+        // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
+        SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
         return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
-                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+                triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
     }
 
     @Override
@@ -392,6 +401,9 @@ public final class CreaturesController implements ICreaturesController {
                 creatureState = CreatureState.ENTERING_DUNGEON;
             }
             case PLACE -> {
+                creatureState = CreatureState.IDLE;
+            }
+            case DROP -> {
                 creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
             }
             case CONJURE -> {
@@ -466,7 +478,7 @@ public final class CreaturesController implements ICreaturesController {
 
             // See if tortured or imprisoned
             // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+            if (room instanceof PrisonController prison && prison.isCageTile(location)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;
@@ -576,7 +588,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
         creatureExperience.experiencePerTickTraining = getPointsPerTick(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
         creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
-        creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
+        creatureComponent.manufacturePerTick = getPointsPerTick(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
         creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
         creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));

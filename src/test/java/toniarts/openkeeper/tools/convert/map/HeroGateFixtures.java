@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.tools.convert.map;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.EnumSet;
 
 /**
  * Builds hero gate {@link Room} fixtures for tests. Lives in {@code Room}'s
@@ -34,13 +36,15 @@ public final class HeroGateFixtures {
      * @param roomId the room ID
      * @param name the room name
      * @param tileConstruction the tile construction type
+     * @param flags the room flags
      * @return the room
      */
-    public static Room heroGateRoom(short roomId, String name, Room.TileConstruction tileConstruction) {
+    public static Room heroGateRoom(short roomId, String name, Room.TileConstruction tileConstruction, Room.RoomFlag... flags) {
         Room room = new Room();
         room.setRoomId(roomId);
         room.setName(name);
         room.setTileConstruction(tileConstruction);
+        room.setFlags(flags.length == 0 ? EnumSet.noneOf(Room.RoomFlag.class) : EnumSet.copyOf(Arrays.asList(flags)));
         room.setObjects(Collections.nCopies(8, (short) 0));
         return room;
     }

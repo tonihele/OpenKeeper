@@ -72,10 +72,14 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_LEVEL_UP, event.position);
             case CREATURE_LAND ->
                 add(sounds, subject, ThingSounds.CREATURE_LAND, event.position);
+            case GRAVEYARD_VAMPIRE_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null);
             case CREATURE_HURT ->
                 add(sounds, subject, ThingSounds.CREATURE_HIT, event.position);
             case CREATURE_DIE ->
                 add(sounds, subject, ThingSounds.CREATURE_DIE, event.position);
+            case PRISON_SKELETON_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null);
             case CREATURE_CLAIM_TILE ->
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
@@ -131,6 +135,17 @@ public final class GameEventSounds {
             }
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
+            case CASINO_JACKPOT_ANNOUNCED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.CASIN001.getId(), null);
+            case CASINO_DISCO_END ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_OVER, event.position);
+            case CASINO_FIREWORKS ->
+                add(sounds, GlobalCategory.EFFECTS, ThingSounds.FIREWORKS, event.position);
+            case CASINO_DISCO_START ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_MUSIC, null); // Looped, DiscoViewState plays it and sets its volume
+            case CASINO_JACKPOT -> {
+                // The effect is the view's
+            }
             case CREATURE_SACRIFICED ->
                 add(sounds, subject, ThingSounds.CREATURE_SACRIFICE, event.position);
             case SACRIFICE_SPEECH ->

@@ -21,7 +21,6 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.TaskComponent;

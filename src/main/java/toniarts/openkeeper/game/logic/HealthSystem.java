@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
@@ -158,9 +159,13 @@ public final class HealthSystem extends GameTimeCounter {
         for (EntityId entityId : entityIds.getArray()) {
             Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
 
-            // From unconsciousness we start the countdown to death
+            // From unconsciousness we start the countdown to death. Like DK II, it
+            // stops while the creature is carried (DKII.EXE 0x4599D0 skips the
+            // tick when 0x4B5DE0 says it is being dragged)
             if (unconscious != null) {
-                if (timeElapsed - unconscious.startTime >= timeToDeath) {
+                if (entityData.getComponent(entityId, HauledBy.class) != null) {
+                    entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
+                } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
                 }
                 continue;
@@ -244,6 +249,9 @@ public final class HealthSystem extends GameTimeCounter {
             Short creatureId = getRoomCreatureId(entityId);
             if (creatureId != null && !damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
                 creaturesController.turnCreatureIntoAnother(entityId, owner.controlId, creatureId);
+
+                // The mentor tells the keeper of the Prison, like DK II (CRoom_sub_4E30F0, message 0x41)
+                gameEventService.emitToPlayer(GameEventType.PRISON_SKELETON_RISEN, owner.controlId);
                 return;
             }
             processDeath(entityId);
@@ -297,8 +305,12 @@ public final class HealthSystem extends GameTimeCounter {
     private void processUnconscious(EntityId entityId, Health health) {
         entityData.removeComponent(entityId, AttackTarget.class);
 
-        // A knocked out pit fighter is out of the fight and waits to be carried to its lair
-        entityData.removeComponent(entityId, CombatPitFighter.class);
+        // A knocked out pit fighter is out of the fight and waits to be carried to its lair.
+        // One that was held in the pit is not held anymore, the imps may take it to the Prison again
+        if (entityData.removeComponent(entityId, CombatPitFighter.class)) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            entityData.setComponent(entityId, new Owner(owner.ownerId, owner.ownerId));
+        }
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
