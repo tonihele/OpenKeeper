@@ -17,6 +17,7 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.EnumSet;
+import java.util.List;
 
 public final class ShotFixtures {
 
@@ -30,6 +31,17 @@ public final class ShotFixtures {
      */
     public static final short INFERNO_ID = 15;
 
+    /**
+     * Shot 1 as it ships in the original data, the Warlock's and the Wizard's
+     * fireball
+     */
+    public static final short FIREBALL_ID = 1;
+
+    /**
+     * The fireball's effect when it hits a thing, "Spot Hit 4"
+     */
+    public static final int FIREBALL_HIT_EFFECT_ID = 234;
+
     private ShotFixtures() {
     }
 
@@ -40,7 +52,34 @@ public final class ShotFixtures {
         shot.setProcessType(processType);
         shot.setHealth(health);
         shot.setShotProcessFlags(processFlags);
+        shot.setFlags(EnumSet.noneOf(Shot.ShotFlag.class));
         return shot;
+    }
+
+    /**
+     * The fireball, with the values of the original data
+     */
+    public static Shot fireball() {
+        Shot shot = shot(FIREBALL_ID, Shot.ProcessType.NONE, 60, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setSpeed(0.9f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.HIT_THING);
+        shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
+                Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    public static GameLevel gameLevel(int ticksPerSecond) {
+        GameLevel gameLevel = new GameLevel();
+        gameLevel.setTicksPerSec(ticksPerSecond);
+        return gameLevel;
+    }
+
+    public static void setSize(Creature creature, float width, float height) {
+        creature.getAttributes().setWidth(width);
+        creature.getAttributes().setHeight(height);
     }
 
     /**
@@ -79,6 +118,19 @@ public final class ShotFixtures {
         return shot;
     }
 
+    /**
+     * A shot that flies to one of our own creatures, as the shots of Armour,
+     * Invulnerability, Invisibility and Haste do in the original data
+     */
+    public static Shot flyingSupportShot(short shotId, Shot.ProcessType processType) {
+        Shot shot = shot(shotId, processType, 1, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.OWN_CREATURES);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        return shot;
+    }
+
     public static CreatureSpell creatureSpell(short creatureSpellId, EnumSet<CreatureSpell.CreatureSpellFlag> flags, CreatureSpell.AlternativeShot alternativeShot,
             short shotTypeId, int shotData1) {
         CreatureSpell creatureSpell = new CreatureSpell();
@@ -89,6 +141,20 @@ public final class ShotFixtures {
         creatureSpell.setShotTypeId(shotTypeId);
         creatureSpell.setShotData1(shotData1);
         return creatureSpell;
+    }
+
+    /**
+     * A creature with one spell, whose shot leaves the given time into a cast
+     * that lasts a second
+     */
+    public static Creature caster(short creatureSpellId, float shotDelay) {
+        Creature creature = CasinoVariableFixtures.creatureWithAnimations((short) 1, Creature.AnimationType.CAST_SPELL);
+        Creature.Spell spell = new Creature.Spell();
+        spell.setCreatureSpellId(creatureSpellId);
+        spell.setShotDelay(shotDelay);
+        spell.setShotOffset(0, 0, 0);
+        creature.setSpells(List.of(spell));
+        return creature;
     }
 
     public static Creature creature(short creatureId, EnumSet<Creature.CreatureFlag> flags, EnumSet<Creature.CreatureFlag3> flags3) {
