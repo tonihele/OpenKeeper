@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -61,6 +62,8 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
     private static final short CREATE_OBJECT_ID = 2;
+    private static final short CREATE_CREATURE_ID = 3;
+    private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short SPIKE_ID = 27;
@@ -77,6 +80,7 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
 
@@ -85,6 +89,7 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
+        addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
@@ -121,7 +126,15 @@ class ShotsControllerTest {
                         .toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("spawnCreature")) {
+                        spawnedCreatures.add(args);
+                        return null;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
     @Test
@@ -180,6 +193,22 @@ class ShotsControllerTest {
         assertEquals(4, args[2]);
         assertEquals(7, args[3]);
         assertEquals(1000, args[4]);
+    }
+
+    @Test
+    void creatureShotCreatesTheShotsNumberOfCreaturesAtLevelOne() {
+
+        // Create Imp: creature 1 (Imp), the second value is how many
+        shotsController.createShot(CREATE_CREATURE_ID, IMP_ID, 3, PLAYER_ID, new Vector3f(4.5f, 1f, 7.5f), null, null);
+
+        assertEquals(3, spawnedCreatures.size());
+        for (Object[] args : spawnedCreatures) {
+            assertEquals(IMP_ID, args[0]);
+            assertEquals(PLAYER_ID, args[1]);
+            assertEquals(1, args[2]);
+            assertEquals(new Vector2f(4.5f, 7.5f), args[3]);
+            assertEquals(ICreaturesController.SpawnType.CONJURE, args[4]);
+        }
     }
 
     @Test

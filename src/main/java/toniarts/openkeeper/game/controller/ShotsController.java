@@ -114,8 +114,14 @@ public final class ShotsController implements IShotsController {
 
     private Map<Shot.ProcessType, IShotProcessor> createProcessors() {
         Map<Shot.ProcessType, IShotProcessor> result = new EnumMap<>(Shot.ProcessType.class);
-        result.put(CREATE_CREATURE, request -> creaturesController.spawnCreature((short) request.shotData1(), request.playerId(),
-                request.shotData2(), WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE));
+        result.put(CREATE_CREATURE, request -> {
+
+            // The shot's second value is how many creatures to create, each at level 1 (0x4AD7A0)
+            for (int i = 0; i < request.shotData2(); i++) {
+                creaturesController.spawnCreature((short) request.shotData1(), request.playerId(), 1,
+                        WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE);
+            }
+        });
         result.put(CREATE_OBJECT, request -> {
             GameObject object = kwdFile.getObject(request.shotData1());
             if (object != null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
