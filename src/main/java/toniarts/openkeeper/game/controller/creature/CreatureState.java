@@ -21,6 +21,7 @@ import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -155,10 +156,11 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // A creature of a keeper or of the heroes thinks again as soon as its idle walk ends. In DK II the walk
-            // (state 87, 0x4808E0) goes on in state 1 (0x4773D0), which takes it straight back to its choice: state 10
-            // (0x463DF0) for a worker, 89 (0x4778E0) for a keeper's other creatures and 90 (0x477850) for a hero
-            if (entity.isClaimed() ? entity.isStopped() : entity.isTimeToReEvaluate()) {
+            // A creature of a keeper thinks again as soon as its idle walk ends. In DK II the walk (state 87, 0x4808E0)
+            // goes on in state 1 (0x4773D0), which takes it straight back to its choice: state 10 (0x463DF0) for a worker
+            // and 89 (0x4778E0) for a keeper's other creatures. A hero (state 90, 0x477850) tries again every 12 ticks, as
+            // a neutral creature waits on its own re-evaluation timer
+            if (entity.getOwnerId() >= Player.KEEPER1_ID ? entity.isStopped() : entity.isTimeToReEvaluate()) {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
