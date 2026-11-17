@@ -22,10 +22,12 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Map;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.controller.room.BridgeController;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.DoubleQuadController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.game.controller.room.GraveyardController;
 import toniarts.openkeeper.game.controller.room.GuardRoomController;
 import toniarts.openkeeper.game.controller.room.HatcheryController;
 import toniarts.openkeeper.game.controller.room.HeroGateController;
@@ -85,6 +87,10 @@ public final class RoomControllerFactory {
             case DOUBLE_QUAD -> {
                 return constructDoubleQuad(entity, entityData, roomName, kwdFile, roomInstance, objectsController, gameTimer);
             }
+            case QUAD -> {
+                // Only the bridges are built of quads
+                return new BridgeController(entity, entityData, kwdFile, roomInstance, objectsController);
+            }
             default -> {
                 // TODO
                 logger.log(Level.WARNING, "Room {0} not exist", roomName);
@@ -118,9 +124,9 @@ public final class RoomControllerFactory {
         } else if (roomName.equalsIgnoreCase("Guard Room")) {
             return new GuardRoomController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Casino")) {
-            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController);
-//                } else if (roomName.equalsIgnoreCase("Graveyard")) {
-//                    return new Graveyard(assetManager, roomInstance, objectLoader, worldState, effectManager);
+            return new CasinoController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
+        } else if (roomName.equalsIgnoreCase("Graveyard")) {
+            return new GraveyardController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Torture Chamber")) {
             return new TortureChamberController(entity, entityData, kwdFile, roomInstance, objectsController, gameTimer);
         } else if (roomName.equalsIgnoreCase("Treasury")) {

@@ -17,8 +17,11 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import java.lang.System.Logger;
 import java.util.Random;
 import toniarts.openkeeper.game.component.AttackTarget;
@@ -35,6 +38,7 @@ import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.SummonedReaper;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
@@ -44,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.tools.convert.map.Shot;
 
 /**
  * Summons the Horned Reaper, what the Summon Reaper shot does. The Reaper
@@ -280,6 +285,38 @@ public final class ReaperSummoner {
             return true;
         }
 
+    }
+
+    /**
+     * The Summon Reaper spells, also the Talisman's one shot Reaper, can't be
+     * cast while the keeper has a Horned Reaper. Checked on the server only,
+     * the shared {@link KeeperSpellCastValidator} must not read the entity data
+     *
+     * @param keeperSpell the spell
+     * @param kwdFile the level
+     * @param player the casting player
+     * @param entityData the entities
+     * @return true if the rule allows the cast
+     */
+    static boolean checkReaperRule(KeeperSpell keeperSpell, IKwdFile kwdFile, Keeper player, EntityData entityData) {
+        Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
+        if (shot == null || shot.getProcessType() != Shot.ProcessType.SUMMON_REAPER) {
+            return true;
+        }
+
+        EntitySet creatures = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", player.getId()), Owner.class, CreatureComponent.class);
+        try {
+            for (Entity entity : creatures) {
+                Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+                if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+                    return false;
+                }
+            }
+        } finally {
+            creatures.release();
+        }
+
+        return true;
     }
 
     private static Creature getReaper(IKwdFile kwdFile) {

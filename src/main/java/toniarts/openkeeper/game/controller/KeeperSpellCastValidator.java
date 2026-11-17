@@ -16,13 +16,6 @@
  */
 package toniarts.openkeeper.game.controller;
 
-import com.simsilica.es.Entity;
-import com.simsilica.es.EntityData;
-import com.simsilica.es.EntityId;
-import com.simsilica.es.EntitySet;
-import com.simsilica.es.filter.FieldFilter;
-import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -40,9 +33,7 @@ import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.LAND;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.NONE;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.OWN_CREATURES;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.TargetRule.POSESSION;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
-import toniarts.openkeeper.tools.convert.map.Shot;
 
 /**
  * Simple util class to check whether casting is allowed
@@ -56,78 +47,8 @@ public final class KeeperSpellCastValidator {
     }
 
     /**
-     * Checks whether the player can cast the spell
-     *
-     * @param keeperSpell the spell
-     * @param kwdFile the level
-     * @param mapInformation the map
-     * @param mapTile the tile the spell is cast on
-     * @param player the casting player
-     * @param entityData the entities
-     * @param target the targeted entity, can be {@code null}
-     * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
-     * @return true if the cast is allowed
-     */
-    public static boolean isValidCast(
-            KeeperSpell keeperSpell,
-            IKwdFile kwdFile,
-            IMapInformation mapInformation,
-            IMapTileInformation mapTile,
-            Keeper player,
-            EntityData entityData,
-            EntityId target,
-            int manaCost) {
-        Creature creature = null;
-        Short owner = null;
-        if (target != null) {
-            CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
-            if (creatureComponent != null) {
-                creature = kwdFile.getCreature(creatureComponent.creatureId);
-            }
-            Owner ownerComponent = entityData.getComponent(target, Owner.class);
-            if (ownerComponent != null) {
-                owner = ownerComponent.controlId;
-            }
-        }
-
-        return isValidCast(keeperSpell, mapInformation, mapTile, player, creature, owner, manaCost)
-                && checkReaperRule(keeperSpell, kwdFile, player, entityData);
-    }
-
-    /**
-     * The Summon Reaper spells, also the Talisman's one shot Reaper, can't be
-     * cast while the keeper has a Horned Reaper
-     *
-     * @param keeperSpell the spell
-     * @param kwdFile the level
-     * @param player the casting player
-     * @param entityData the entities
-     * @return true if the rule allows the cast
-     */
-    static boolean checkReaperRule(KeeperSpell keeperSpell, IKwdFile kwdFile, Keeper player, EntityData entityData) {
-        Shot shot = kwdFile.getShotById(keeperSpell.getShotTypeId());
-        if (shot == null || shot.getProcessType() != Shot.ProcessType.SUMMON_REAPER) {
-            return true;
-        }
-
-        EntitySet creatures = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", player.getId()), Owner.class, CreatureComponent.class);
-        try {
-            for (Entity entity : creatures) {
-                Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-                if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
-                    return false;
-                }
-            }
-        } finally {
-            creatures.release();
-        }
-
-        return true;
-    }
-
-    /**
-     * Checks the cast with the target already known, the client knows it from
-     * what it shows and must not look it up from the entity data
+     * Checks the cast with the target already resolved. The validator runs on
+     * both the server and the client, so it must not read the entity data
      *
      * @param keeperSpell the spell
      * @param mapInformation the map
@@ -137,6 +58,7 @@ public final class KeeperSpellCastValidator {
      * creature
      * @param owner the keeper in control of the target, {@code null} if
      * there is no target or it has no owner
+     * @param chicken whether the targeted creature is a chicken
      * @param manaCost the mana the cast costs, see {@link KeeperSpellCost}
      * @return whether the cast is allowed
      */
@@ -147,17 +69,18 @@ public final class KeeperSpellCastValidator {
             Keeper player,
             Creature creature,
             Short owner,
+            boolean chicken,
             int manaCost) {
         return checkPlayerMana(manaCost, player)
                 && checkCastRule(mapInformation, mapTile, keeperSpell, player)
-                && checkTargetRule(creature, owner, keeperSpell, player);
+                && checkTargetRule(creature, owner, chicken, keeperSpell, player);
     }
 
     private static boolean checkPlayerMana(int manaCost, Keeper player) {
         return manaCost <= player.getMana() - player.getManaLoose();
     }
 
-    private static boolean checkTargetRule(Creature creature, Short owner, KeeperSpell keeperSpell, Keeper player) {
+    private static boolean checkTargetRule(Creature creature, Short owner, boolean chicken, KeeperSpell keeperSpell, Keeper player) {
         short playerId = player.getId();
 
         switch (keeperSpell.getTargetRule()) {
@@ -167,7 +90,9 @@ public final class KeeperSpellCastValidator {
                 return false;
             }
             case ALL_CREATURES -> {
-                if (creature == null) {
+
+                // Spells for all creatures, such as Chicken, can't be cast on neutral creatures
+                if (creature == null || owner == null || owner == Player.NEUTRAL_PLAYER_ID) {
                     return false;
                 }
             }
@@ -186,8 +111,8 @@ public final class KeeperSpellCastValidator {
             }
             case POSESSION -> {
 
-                // The Horned Reaper can't be possessed
-                if (creature == null || owner == null || owner != playerId
+                // The Horned Reaper and a chicken can't be possessed
+                if (creature == null || owner == null || owner != playerId || chicken
                         || creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
                     return false;
                 }
