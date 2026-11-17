@@ -338,16 +338,15 @@ public final class HealthSystem extends GameTimeCounter {
     }
 
     private int getDestroyedEffectId(EntityId entityId) {
-        Entity entity = entityData.getEntity(entityId, TrapComponent.class, DoorComponent.class, ObjectComponent.class);
-        TrapComponent trapComponent = entity.get(TrapComponent.class);
+        TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
         if (trapComponent != null) {
             return levelInfo.getLevelData().getTrapById(trapComponent.trapId).getDeathEffectId();
         }
-        DoorComponent doorComponent = entity.get(DoorComponent.class);
+        DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
         if (doorComponent != null) {
             return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getDeathEffectId();
         }
-        ObjectComponent objectComponent = entity.get(ObjectComponent.class);
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         if (objectComponent != null) {
             return levelInfo.getLevelData().getObject(objectComponent.objectId).getDeathEffectId();
         }
