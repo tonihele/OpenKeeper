@@ -59,6 +59,7 @@ class LowManaSystemTest {
 
     private static final short PLAYER_ID = 3;
     private static final short IMP_ID = 1;
+    private static final short FIGHTER_ID = 2;
     private static final int PERIOD = 10;
     private static final int THRESHOLD = 100;
     private static final int MINIMUM_IMPS = 4;
@@ -175,6 +176,26 @@ class LowManaSystemTest {
         }
 
         assertEquals(imps.get(3), startPopping());
+    }
+
+    @Test
+    void aLowerLevelCreatureOfAnotherKindSavesTheImps() {
+        List<EntityId> imps = addImps(6);
+        for (EntityId imp : imps) {
+            entityData.setComponent(imp, experience(2));
+        }
+        EntityId fighter = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = FIGHTER_ID;
+        entityData.setComponents(fighter, creatureComponent, experience(1), new Owner(PLAYER_ID, PLAYER_ID),
+                new Position(0, new Vector3f(12, 0, 12)));
+
+        // DK II chooses the keeper's lowest level creature of any kind, and only an imp pops (0x4C1BC0, 0x488930)
+        keeper.setMana(50);
+        runSeconds(1 + PERIOD * 4);
+
+        assertEquals(List.of(447, 1329, 1330, 1331, 1333), speech);
+        assertEquals(0, countdowns());
     }
 
     @Test

@@ -80,7 +80,8 @@ public final class LowManaSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final PlayerService playerService;
     private final Map<Short, Keeper> keepers;
-    private final EntitySet imps;
+    private final short impId;
+    private final EntitySet creatures;
     private final EntitySet popCountdowns;
     private final int warningThreshold;
     private final int evaluationPeriod;
@@ -119,8 +120,8 @@ public final class LowManaSystem implements IGameLogicUpdatable {
         }
         createImpManaCost = manaCost;
 
-        imps = entityData.getEntities(new FieldFilter(CreatureComponent.class, "creatureId", kwdFile.getImp().getId()),
-                CreatureComponent.class, CreatureExperience.class, Owner.class);
+        impId = kwdFile.getImp().getId();
+        creatures = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, Owner.class);
         popCountdowns = entityData.getEntities(ImpPopCountdown.class, Owner.class);
     }
 
@@ -128,7 +129,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
     public void processTick(float tpf) {
         tick += tpf;
         if (tick >= 1) {
-            imps.applyChanges();
+            creatures.applyChanges();
             popCountdowns.applyChanges();
             updatePopCountdowns();
             for (Keeper keeper : keepers.values()) {
@@ -188,7 +189,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
             } else if (secondsToWarning <= 0) {
 
                 // Without spare imps the third warning is repeated, the fourth one starts the popping
-                if (stage == POPPING_STAGE - 1 && getImps(keeper.getId()).size() <= minimumImps) {
+                if (stage == POPPING_STAGE - 1 && getCreatures(keeper.getId(), true).size() <= minimumImps) {
                     stage--;
                 }
                 playerService.showMentorMessage(WARNING_SPEECH_IDS[stage - 1], null, keeper.getId());
@@ -208,31 +209,36 @@ public final class LowManaSystem implements IGameLogicUpdatable {
 
     /**
      * Chooses the imp to pop, if the keeper has more imps than the minimum.
-     * It is the imp with the lowest level. If several share it, it is an idle
-     * imp, or failing that the imp farthest from the Dungeon Heart. Imps in
-     * hand are not chosen.
+     * It is the keeper's creature with the lowest level, of any kind, and
+     * only an imp pops, so a lower level creature that isn't an imp saves the
+     * imps for this period (0x4C1BC0, 0x488930). If several share the lowest
+     * level, it is an idle imp, or failing that the imp farthest from the
+     * Dungeon Heart. Creatures in hand are not chosen.
      *
      * @param keeper the keeper
      */
     private void chooseImpToPop(Keeper keeper) {
-        List<Entity> ownImps = getImps(keeper.getId());
+        List<Entity> ownImps = getCreatures(keeper.getId(), true);
         if (ownImps.size() <= minimumImps) {
             return;
         }
-        ownImps.removeIf(imp -> entityData.getComponent(imp.getId(), Position.class) == null);
+        ownImps.removeIf(this::isInHand);
 
         Entity chosen = null;
         boolean shared = false;
-        for (Entity imp : ownImps) {
-            int level = imp.get(CreatureExperience.class).level;
+        for (Entity creature : getCreatures(keeper.getId(), false)) {
+            if (isInHand(creature)) {
+                continue;
+            }
+            int level = creature.get(CreatureExperience.class).level;
             if (chosen == null || level < chosen.get(CreatureExperience.class).level) {
-                chosen = imp;
+                chosen = creature;
                 shared = false;
             } else if (level == chosen.get(CreatureExperience.class).level) {
                 shared = true;
             }
         }
-        if (shared) {
+        if (shared || chosen == null) {
             chosen = getIdleImp(ownImps);
             if (chosen == null) {
                 chosen = getImpFarthestFrom(ownImps, keeper.getDungeonHeartLocation());
@@ -242,7 +248,9 @@ public final class LowManaSystem implements IGameLogicUpdatable {
             return;
         }
 
-        entityData.setComponent(chosen.getId(), new ImpPopCountdown(IMP_POP_SECONDS));
+        if (chosen.get(CreatureComponent.class).creatureId == impId) {
+            entityData.setComponent(chosen.getId(), new ImpPopCountdown(IMP_POP_SECONDS));
+        }
         playerService.showMentorMessage(IMP_POP_SPEECH_ID, null, keeper.getId());
     }
 
@@ -276,18 +284,26 @@ public final class LowManaSystem implements IGameLogicUpdatable {
         return farthest;
     }
 
+    private boolean isInHand(Entity creature) {
+        return entityData.getComponent(creature.getId(), Position.class) == null;
+    }
+
     /**
-     * The keeper's imps, oldest first
+     * The keeper's creatures, oldest first
+     *
+     * @param playerId the keeper
+     * @param impsOnly only his imps
      */
-    private List<Entity> getImps(short playerId) {
-        List<Entity> ownImps = new ArrayList<>();
-        for (Entity imp : imps) {
-            if (imp.get(Owner.class).ownerId == playerId) {
-                ownImps.add(imp);
+    private List<Entity> getCreatures(short playerId, boolean impsOnly) {
+        List<Entity> own = new ArrayList<>();
+        for (Entity creature : creatures) {
+            if (creature.get(Owner.class).ownerId == playerId
+                    && (!impsOnly || creature.get(CreatureComponent.class).creatureId == impId)) {
+                own.add(creature);
             }
         }
-        ownImps.sort(Comparator.comparing(Entity::getId));
-        return ownImps;
+        own.sort(Comparator.comparing(Entity::getId));
+        return own;
     }
 
     @Override
@@ -297,7 +313,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
 
     @Override
     public void stop() {
-        imps.release();
+        creatures.release();
         popCountdowns.release();
     }
 
