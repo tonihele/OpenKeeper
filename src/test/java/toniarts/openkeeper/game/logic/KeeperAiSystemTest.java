@@ -492,7 +492,7 @@ class KeeperAiSystemTest {
         assertTrue(built.isEmpty());
         assertEquals('W', map[6][7]);
         assertEquals(ROOM_COST - 1, keeper.getGold());
-        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
         assertTrue(getKeeperAi().failedTargetTicks[0] > 0);
     }
 
@@ -532,13 +532,11 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void doesNotRunTheDependentTaskAfterBridgePlacementFails() {
+    void stillTagsTheGoldWhenThePathIsGivenUp() {
         KeeperAiSystem system = createSystem(withNeutralRoomRange(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 15, 1), 1000);
-        roomControl.setTypeAvailable(bridges.get(WOODEN_BRIDGE), true, true);
         createNeutralPortal(new Point(9, 6));
         map[6][7] = 'W';
         map[7][9] = 'G';
-        rejectedRoomBuildId = WOODEN_BRIDGE;
 
         system.processTick(0.25f);
         assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
@@ -555,8 +553,9 @@ class KeeperAiSystemTest {
             system.processTick(0.25f);
         }
 
+        // No bridge to cross the water with, DK II still goes on to the task the path was for
         assertTrue(getKeeperAi().failedTargetTicks[0] > 0);
-        assertFalse(taggedHistory.contains(new Point(9, 7)));
+        assertTrue(taggedHistory.contains(new Point(9, 7)));
     }
 
     @Test

@@ -1393,7 +1393,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     /**
      * Ends the path and goes on with the next task. A path that could not go
      * on, with no bridge to cross with or no way round rock, has its target
-     * left alone for a while
+     * left alone for a while. Given up or not, DK II (0x4FDC50) goes on to
+     * the task the path was for, so the room site or the gold is still
+     * tagged: the imps may get there another way
      *
      * @param reached whether the path got through, a rock follow that gave
      * up is still on when the stepper finds no way
@@ -1404,7 +1406,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
         keeperAi.invasionTargetId = 0;
         keeperAi.wallFollowing = false;
-        setTask(keeperAi, reached ? keeperAi.nextTask : KeeperAi.Task.PLAN, reason);
+        setTask(keeperAi, keeperAi.nextTask, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;
     }
 
