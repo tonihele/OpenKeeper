@@ -414,22 +414,27 @@ class CreatureControllerTest {
     }
 
     @Test
-    void workerInItsOwnHeartOnlyFightsAnEnemyInReach() {
-        assertNull(workerStateWithHeroAt(6)); // Neither fights nor flees, keeps working
-        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(3.5f));
+    void workerNearItsOwnHeartOnlyFightsAnEnemyInReach() {
+        assertNull(workerStateWithHeroAt(6, 3, 1)); // Neither fights nor flees, keeps working
+        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(3.5f, 3, 1));
+
+        // 3 tiles from the heart's centre is still near it, and the reach is a tile whatever the melee range
+        assertEquals(CreatureState.FIGHT, workerStateWithHeroAt(4, 6, .3f));
+
+        // 4 tiles away it isn't
+        assertEquals(CreatureState.FLEE, workerStateWithHeroAt(3.5f, 7, 1));
     }
 
-    private static CreatureState workerStateWithHeroAt(float x) {
+    private static CreatureState workerStateWithHeroAt(float x, int heartX, float meleeRange) {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
             EntityId hero = f.data.createEntity();
             f.data.setComponents(hero, new Owner((short) 1, (short) 1), new Health(1000, 1000), new Threat(100),
                     new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
-            f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
+            f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, meleeRange));
             f.data.removeComponent(f.entity, Fearless.class);
             f.sensed = Set.of(hero);
+            f.keeper.setDungeonHeartLocation(new Point(heartX, 4));
             f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
-                case "isDungeonHeart" -> true;
-                case "getOwnerId" -> (short) 3;
                 case "isDestroyed" -> false;
                 default -> throw new UnsupportedOperationException(method);
             });
@@ -539,6 +544,7 @@ class CreatureControllerTest {
         final EntityId room = data.createEntity();
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
+        final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
         Set<EntityId> sensed = Set.of();
         CreatureController controller;
@@ -629,7 +635,6 @@ class CreatureControllerTest {
                 case "getEntityLocation" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
-            Keeper keeper = new Keeper(false, (short) 3);
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
                 case "getGameLevel" -> CreatureSleepFixtures.level(4);
