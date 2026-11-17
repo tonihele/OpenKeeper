@@ -61,6 +61,10 @@ public final class GameEventSoundPlayer implements EventListener<GameEvent> {
     public void newEvent(EventType<GameEvent> type, GameEvent event) {
         exclusiveSounds.values().removeIf(handle -> !SoundManager.isPlaying(handle));
 
+        if (event.type == GameEventType.CASINO_DISCO_START) {
+            return; // The disco music is played by the DiscoViewState
+        }
+
         ExclusiveKey key = null;
         if (GameEventSounds.isExclusive(event.type) && event.entity != null) {
             key = new ExclusiveKey(event.entity, event.type);
