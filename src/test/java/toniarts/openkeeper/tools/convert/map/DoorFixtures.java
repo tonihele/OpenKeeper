@@ -45,6 +45,21 @@ public final class DoorFixtures {
         return door;
     }
 
+    /**
+     * A level variable, such as the share of the cost that a sold door
+     * returns
+     *
+     * @param type the variable
+     * @param value its value
+     * @return the variable
+     */
+    public static Variable.MiscVariable miscVariable(Variable.MiscVariable.MiscType type, int value) {
+        Variable.MiscVariable variable = new Variable.MiscVariable();
+        variable.setVariableId(type);
+        variable.setValue(value);
+        return variable;
+    }
+
     public static Door doorToManufacture(short doorId, int manufToBuild, short manufCrateObjectId) {
         Door door = door(doorId, 0);
         door.setManufToBuild(manufToBuild);

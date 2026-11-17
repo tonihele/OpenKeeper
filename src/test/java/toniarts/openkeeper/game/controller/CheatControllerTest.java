@@ -53,7 +53,7 @@ class CheatControllerTest {
                     throw new UnsupportedOperationException(method.getName());
                 });
 
-        new CheatController(null, gameController).addGold(250, PLAYER_ID);
+        new CheatController(null, gameController, new com.simsilica.es.base.DefaultEntityData()).addGold(250, PLAYER_ID);
 
         assertEquals(1, addedGold.size());
         assertEquals(PLAYER_ID, addedGold.get(0)[0]);

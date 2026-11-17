@@ -28,8 +28,10 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.Point;
@@ -173,6 +175,18 @@ class RoomTortureeControlTest {
         devices.remove(chair);
 
         assertEquals(wheel, control.addItem(entityData.createEntity(), new Point(6, 3)));
+    }
+
+    @Test
+    void victimSkipsTheDeviceACreatureTorturesItselfOn() {
+        EntityId mistress = entityData.createEntity();
+        entityData.setComponent(mistress, new TaskComponent(1, wheel, new Point(3, 3), TaskType.TORTURE, 0, true));
+        EntityId onItsWay = entityData.createEntity();
+        entityData.setComponent(onItsWay, new TaskComponent(2, chair, new Point(6, 3), TaskType.TORTURE, 0, false));
+
+        // The wheel is closer, but the Mistress is on it. The chair is only her colleague's destination
+        assertEquals(chair, control.addItem(entityData.createEntity(), new Point(3, 3)));
+        assertNull(control.addItem(entityData.createEntity(), new Point(3, 3)));
     }
 
     private IKwdFile kwdFile() {
