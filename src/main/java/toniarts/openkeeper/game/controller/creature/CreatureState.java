@@ -21,6 +21,7 @@ import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -48,9 +49,22 @@ public enum CreatureState implements State<ICreatureController> {
             entity.unassingCurrentTask();
             findStuffToDo(entity, (foundWork) -> {
                 if (!foundWork) {
-                    entity.navigateToRandomPoint();
+                    wander(entity);
                 }
             });
+        }
+
+        /**
+         * Walks an idle creature that found nothing to do to a random spot. A
+         * hero stays where it is: in DK II a hero whose objective can't start
+         * does nothing until it tries again (hero idle state 0x477850)
+         *
+         * @param entity the idle creature
+         */
+        private static void wander(ICreatureController entity) {
+            if (entity.getOwnerId() != Player.GOOD_PLAYER_ID) {
+                entity.navigateToRandomPoint();
+            }
         }
 
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
@@ -159,7 +173,7 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
-                        entity.navigateToRandomPoint();
+                        wander(entity);
                     }
                 });
             }
