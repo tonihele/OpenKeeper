@@ -55,6 +55,7 @@ class RoomCaptureAnnouncementTest {
                     case "getMap" -> map;
                     case "getGameLevel" -> CreatureSleepFixtures.level(1);
                     case "getTerrain" -> (short) args[0] == 1 ? floor : roomTerrain;
+                    case "getGameLevel" -> CreatureSleepFixtures.level(1);
                     default -> null;
                 });
                 var keepers = Map.of(Player.NEUTRAL_PLAYER_ID, new Keeper(false, Player.NEUTRAL_PLAYER_ID));
