@@ -49,6 +49,7 @@ class SummonedReaperSystemTest {
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
     private final List<EntityId> removedCreatures = new ArrayList<>();
     private final List<EntityId> thinkingReapers = new ArrayList<>();
+    private boolean somethingToDo = true;
     private double now = 0;
 
     @Test
@@ -155,15 +156,12 @@ class SummonedReaperSystemTest {
     }
 
     @Test
-    void reaperStaysUntilHisTimeIsUpWhateverHeDoes() {
-        EntityId reaper = addReaper(99, 0);
-        SummonedReaperSystem system = system();
+    void reaperLeavesWhenThereIsNothingLeftForHim() {
+        somethingToDo = false;
+        EntityId reaper = addReaper(0, MANA_DRAIN);
 
-        tickAt(system, 1);
-        tickAt(system, 98);
-        assertFalse(isLeaving(reaper));
+        tickAt(system(), 1);
 
-        tickAt(system, 99);
         assertTrue(isLeaving(reaper));
     }
 
@@ -233,7 +231,7 @@ class SummonedReaperSystemTest {
                     return keeper;
                 });
         return new SummonedReaperSystem(entityData, List.of(playerController), creaturesController(), () -> now,
-                (reaper, ownerId) -> thinkingReapers.add(reaper));
+                (reaper, ownerId) -> thinkingReapers.add(reaper) && somethingToDo);
     }
 
     private ICreaturesController creaturesController() {
