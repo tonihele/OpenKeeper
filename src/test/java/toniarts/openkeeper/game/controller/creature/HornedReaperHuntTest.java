@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -126,7 +127,7 @@ class HornedReaperHuntTest {
         });
 
         return new CreatureController(reaper, entityData, reaperDefinition, navigationService, null, () -> 0,
-                null, creaturesController, lookup, null, levelInfo, null, null,
+                Map.of(), creaturesController, lookup, null, levelInfo, null, null,
                 proxy(GameEventService.class, (method, args) -> null));
     }
 
