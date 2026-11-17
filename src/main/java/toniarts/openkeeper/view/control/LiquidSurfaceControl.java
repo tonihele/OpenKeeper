@@ -5,6 +5,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.material.Material;
 import com.jme3.renderer.Caps;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.control.Control;
@@ -25,24 +26,33 @@ public final class LiquidSurfaceControl extends AbstractControl {
     private final boolean water;
     private final boolean allowEnhanced;
     private final AssetManager assetManager;
+    private final Mesh enhancedWaterMesh;
     private Material material;
+    private Mesh classicMesh;
     private Texture classicDiffuse;
     private Integer classicFrameCount;
     private Integer classicFrameRate;
+    private Boolean classicWavesEnabled;
     private Boolean lastRequest;
     private Boolean textureArraysSupported;
     private boolean enhancedActive;
 
     public LiquidSurfaceControl(boolean water, boolean allowEnhanced, AssetManager assetManager) {
+        this(water, allowEnhanced, assetManager, null);
+    }
+
+    public LiquidSurfaceControl(boolean water, boolean allowEnhanced, AssetManager assetManager,
+            Mesh enhancedWaterMesh) {
         this.water = water;
         this.allowEnhanced = allowEnhanced;
         this.assetManager = assetManager;
+        this.enhancedWaterMesh = enhancedWaterMesh;
     }
 
     @Override
     @SuppressWarnings("deprecation") // Required by jME's Control contract.
     public Control cloneForSpatial(Spatial spatial) {
-        return new LiquidSurfaceControl(water, allowEnhanced, assetManager);
+        return new LiquidSurfaceControl(water, allowEnhanced, assetManager, enhancedWaterMesh);
     }
 
     @Override
@@ -55,7 +65,7 @@ public final class LiquidSurfaceControl extends AbstractControl {
             return;
         }
         if (material != current) {
-            captureClassicMaterial(current);
+            captureClassicMaterial(current, geometry);
         }
 
         boolean settingEnabled = allowEnhanced
@@ -71,21 +81,26 @@ public final class LiquidSurfaceControl extends AbstractControl {
             return;
         }
         lastRequest = requested;
-        if (requested && enableEnhanced(current)) {
+        if (requested && enableEnhanced(current, geometry)) {
             enhancedActive = true;
             return;
         }
 
-        disableEnhanced(current);
+        disableEnhanced(current, geometry);
         enhancedActive = false;
     }
 
-    private void captureClassicMaterial(Material current) {
+    private void captureClassicMaterial(Material current, Geometry geometry) {
         material = current;
+        if (!enhancedActive) {
+            classicMesh = geometry.getMesh();
+        }
         classicDiffuse = current.getTextureParam("DiffuseMap") == null
                 ? null : current.getTextureParam("DiffuseMap").getTextureValue();
         classicFrameCount = integerParameter(current, "NumberOfTiles");
         classicFrameRate = integerParameter(current, "Speed");
+        classicWavesEnabled = current.getParam("LiquidWavesEnabled") == null
+                ? null : (Boolean) current.getParam("LiquidWavesEnabled").getValue();
         lastRequest = null;
         enhancedActive = false;
     }
@@ -94,7 +109,7 @@ public final class LiquidSurfaceControl extends AbstractControl {
         return material.getParam(name) == null ? null : (Integer) material.getParam(name).getValue();
     }
 
-    private boolean enableEnhanced(Material current) {
+    private boolean enableEnhanced(Material current, Geometry geometry) {
         Optional<Dk2EmbmResources> resources = Dk2EmbmResources.load(assetManager,
                 water ? Dk2EmbmResources.Liquid.WATER : Dk2EmbmResources.Liquid.LAVA);
         if (resources.isEmpty()) {
@@ -102,6 +117,10 @@ public final class LiquidSurfaceControl extends AbstractControl {
         }
         try {
             resources.get().apply(current);
+            if (water && enhancedWaterMesh != null) {
+                current.setBoolean("LiquidWavesEnabled", true);
+                geometry.setMesh(enhancedWaterMesh);
+            }
             return true;
         } catch (RuntimeException ex) {
             LOG.log(System.Logger.Level.WARNING,
@@ -110,7 +129,7 @@ public final class LiquidSurfaceControl extends AbstractControl {
         }
     }
 
-    private void disableEnhanced(Material current) {
+    private void disableEnhanced(Material current, Geometry geometry) {
         if (classicDiffuse != null) {
             current.setTexture("DiffuseMap", classicDiffuse);
         }
@@ -119,6 +138,14 @@ public final class LiquidSurfaceControl extends AbstractControl {
         }
         if (classicFrameRate != null) {
             current.setInt("Speed", classicFrameRate);
+        }
+        if (classicWavesEnabled == null) {
+            current.clearParam("LiquidWavesEnabled");
+        } else {
+            current.setBoolean("LiquidWavesEnabled", classicWavesEnabled);
+        }
+        if (water && enhancedWaterMesh != null && classicMesh != null) {
+            geometry.setMesh(classicMesh);
         }
         current.clearParam("EmbmEnabled");
         current.clearParam("EmbmBaseMap");

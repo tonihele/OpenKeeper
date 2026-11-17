@@ -5,6 +5,14 @@
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
  */
 package toniarts.openkeeper.view.map;
 
@@ -34,7 +42,7 @@ import toniarts.openkeeper.view.control.LiquidSurfaceControl;
 /** Builds the shared map and Temple water/lava surface path. */
 public final class Water {
 
-    private static final int NATIVE_LAVA_SUBDIVISIONS = 2;
+    private static final int NATIVE_WAVE_SUBDIVISIONS = 2;
 
     private Water() {
     }
@@ -75,6 +83,8 @@ public final class Water {
         Terrain terrain = entityInstances.get(0).getEntity();
         boolean water = terrain.getFlags().contains(Terrain.TerrainFlag.WATER);
         Mesh mesh = createMesh(entityInstances, !water, deformer);
+        Mesh enhancedWaterMesh = water && allowEnhanced
+                ? createMesh(entityInstances, true, deformer) : null;
 
         Geometry geometry = new Geometry(water ? "Water" : "Lava", mesh);
         geometry.setBatchHint(Spatial.BatchHint.Never);
@@ -91,12 +101,13 @@ public final class Water {
         }
         MapViewController.setTerrainMaterialLighting(original, terrain);
         Material material = AssetUtils.createDkSurfaceMaterial(assetManager, original);
+        material.setFloat("LiquidWaveLevel", WorldUtils.WATER_LEVEL);
+        material.setFloat("LiquidWaveFrequency", LiquidWaves.frequency(water));
         if (!water) {
             material.setBoolean("LiquidWavesEnabled", true);
-            material.setFloat("LiquidWaveLevel", WorldUtils.WATER_LEVEL);
         }
         geometry.setMaterial(material);
-        geometry.addControl(new LiquidSurfaceControl(water, allowEnhanced, assetManager));
+        geometry.addControl(new LiquidSurfaceControl(water, allowEnhanced, assetManager, enhancedWaterMesh));
 
         if (material.isTransparent()) {
             geometry.setQueueBucket(RenderQueue.Bucket.Transparent);
@@ -108,19 +119,19 @@ public final class Water {
     }
 
     /**
-     * Build one quad per water tile and a 3-by-3 sample grid per lava tile.
-     * The map coordinates in TexCoord2 keep lava phase continuous when the
-     * duplicated tile-edge vertices are displaced independently by the GPU.
+     * Build one quad per Classic water tile and a 3-by-3 sample grid for any
+     * liquid surface that waves. The map coordinates in TexCoord2 keep phase
+     * continuous when duplicated tile-edge vertices are displaced on the GPU.
      */
-    static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances, boolean lava,
+    static Mesh createMesh(List<EntityInstance<Terrain>> entityInstances, boolean animatedWaves,
             TerrainDeformer deformer) {
         Mesh mesh = new Mesh();
-        int subdivisions = lava ? NATIVE_LAVA_SUBDIVISIONS : 1;
+        int subdivisions = animatedWaves ? NATIVE_WAVE_SUBDIVISIONS : 1;
         int verticesPerTile = (subdivisions + 1) * (subdivisions + 1);
         int tiles = entityInstances.stream().mapToInt(instance -> instance.getCoordinates().size()).sum();
         ArrayList<Vector3f> vertices = new ArrayList<>(tiles * verticesPerTile);
         ArrayList<Vector2f> textureCoordinates = new ArrayList<>(tiles * verticesPerTile);
-        ArrayList<Vector2f> waveCoordinates = lava ? new ArrayList<>(tiles * verticesPerTile) : null;
+        ArrayList<Vector2f> waveCoordinates = animatedWaves ? new ArrayList<>(tiles * verticesPerTile) : null;
         ArrayList<Vector3f> normals = new ArrayList<>(tiles * verticesPerTile);
         ArrayList<Integer> indexes = new ArrayList<>(tiles * subdivisions * subdivisions * 6);
 
@@ -160,7 +171,7 @@ public final class Water {
         }
 
         // Keep the liquid edge horizontally attached to the deformed bank.
-        // Its y remains at water level; the shader applies the lava wave after this.
+        // Its y remains at water level; the shader applies waves after this.
         if (deformer != null) {
             Vector3f bank = new Vector3f();
             for (Vector3f vertex : vertices) {
@@ -180,7 +191,7 @@ public final class Water {
             mesh.setBuffer(Type.TexCoord2, 2, BufferUtils.createFloatBuffer(waveCoordinates.toArray(Vector2f[]::new)));
         }
         mesh.updateBound();
-        if (lava && mesh.getBound() instanceof BoundingBox bound) {
+        if (animatedWaves && mesh.getBound() instanceof BoundingBox bound) {
             mesh.setBound(new BoundingBox(bound.getCenter().clone(), bound.getXExtent(),
                     bound.getYExtent() + LiquidWaves.AMPLITUDE * 2f, bound.getZExtent()));
         }

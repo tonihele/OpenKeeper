@@ -12,6 +12,7 @@ import com.jme3.asset.DesktopAssetManager;
 import com.jme3.material.Material;
 import com.jme3.renderer.Caps;
 import com.jme3.scene.Geometry;
+import com.jme3.scene.Mesh;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.Image;
 import com.jme3.util.BufferUtils;
@@ -46,9 +47,12 @@ class LiquidSurfaceControlTest {
             pixel.put(new byte[]{(byte) 255, (byte) 255, (byte) 255, (byte) 255}).flip();
             Texture2D classic = new Texture2D(new Image(Image.Format.RGBA8, 1, 1, pixel));
             material.setTexture("DiffuseMap", classic);
+            Mesh classicMesh = new Mesh();
+            Mesh enhancedMesh = new Mesh();
             Geometry geometry = new Geometry("water");
+            geometry.setMesh(classicMesh);
             geometry.setMaterial(material);
-            LiquidSurfaceControl control = new LiquidSurfaceControl(true, true, assets);
+            LiquidSurfaceControl control = new LiquidSurfaceControl(true, true, assets, enhancedMesh);
             geometry.addControl(control);
 
             Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, false);
@@ -65,12 +69,16 @@ class LiquidSurfaceControlTest {
             assertNotNull(material.getParam("EmbmEnabled"));
             assertNotNull(material.getTextureParam("EmbmBumpFrames"));
             assertEquals(32, material.getParam("EmbmBumpFrameCount").getValue());
+            assertEquals(Boolean.TRUE, material.getParam("LiquidWavesEnabled").getValue());
+            assertSame(enhancedMesh, geometry.getMesh());
 
             Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, false);
             control.update(1f / 60f);
             assertFalse(control.isEnhancedActive());
             assertNull(material.getParam("EmbmEnabled"));
             assertNull(material.getTextureParam("EmbmBumpFrames"));
+            assertNull(material.getParam("LiquidWavesEnabled"));
+            assertSame(classicMesh, geometry.getMesh());
             assertSame(classic, material.getTextureParam("DiffuseMap").getTextureValue());
         } finally {
             Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, previous);
@@ -85,9 +93,12 @@ class LiquidSurfaceControlTest {
             Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, true);
             DesktopAssetManager assets = new DesktopAssetManager(true);
             Material material = new Material(assets, "MatDefs/DkLighting/Vertex.j3md");
+            Mesh classicMesh = new Mesh();
+            Mesh enhancedMesh = new Mesh();
             Geometry geometry = new Geometry("water");
+            geometry.setMesh(classicMesh);
             geometry.setMaterial(material);
-            LiquidSurfaceControl control = new LiquidSurfaceControl(true, true, assets);
+            LiquidSurfaceControl control = new LiquidSurfaceControl(true, true, assets, enhancedMesh);
             geometry.addControl(control);
 
             control.captureRendererCapabilities(EnumSet.noneOf(Caps.class));
@@ -95,6 +106,7 @@ class LiquidSurfaceControlTest {
 
             assertFalse(control.isEnhancedActive());
             assertNull(material.getParam("EmbmEnabled"));
+            assertSame(classicMesh, geometry.getMesh());
         } finally {
             Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, previous);
         }

@@ -23,6 +23,7 @@ uniform int m_Speed;
 #endif
 #ifdef LIQUID_WAVES
 uniform float m_LiquidWaveLevel;
+uniform float m_LiquidWaveFrequency;
 attribute vec2 inTexCoord2;
 #endif
 #ifdef AMBIENT_MAP
@@ -65,13 +66,13 @@ void main() {
     vec4 modelSpacePos = vec4(inPosition, 1.0);
     vec3 localNormal = inNormal;
 #ifdef LIQUID_WAVES
-    // The reference uses a 128-tick phase cycle (30 ticks/second) and
-    // two 0.04-amplitude waves sampled on integer map-grid coordinates.
+    // The recovered lava field uses a 128-tick phase cycle (30 ticks/second)
+    // and two 0.04-amplitude waves. Enhanced water supplies its own frequency.
     // TexCoord2 is generated before terrain deformation, so bending shores
     // cannot alter the wave phase or introduce tile seams.
     float tick = mod(g_Time * 30.0, 128.0);
-    float phaseX = mod(inTexCoord2.x * 64.0 + tick, 128.0) * 0.04908738521;
-    float phaseZ = mod(inTexCoord2.y * 64.0 + tick, 128.0) * 0.04908738521;
+    float phaseX = mod(inTexCoord2.x * m_LiquidWaveFrequency + tick, 128.0) * 0.04908738521;
+    float phaseZ = mod(inTexCoord2.y * m_LiquidWaveFrequency + tick, 128.0) * 0.04908738521;
     modelSpacePos.y = m_LiquidWaveLevel - 0.04 * (sin(phaseX) + sin(phaseZ));
     localNormal = normalize(vec3(cos(phaseX), 3.0, cos(phaseZ)));
 #endif

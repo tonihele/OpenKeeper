@@ -93,6 +93,7 @@ MaterialDef DK Terrain Lighting {
         // the GPU. TexCoord2 carries those coordinates through terrain bending.
         Boolean LiquidWavesEnabled
         Float LiquidWaveLevel
+        Float LiquidWaveFrequency
     }
 
     Technique {
