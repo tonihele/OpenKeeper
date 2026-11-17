@@ -112,6 +112,39 @@ class LiquidSurfaceControlTest {
         }
     }
 
+    @Test
+    @SuppressWarnings("deprecation") // jME exposes update() as deprecated test support.
+    void keepsLavaEnhancedWithoutTextureArraySupport(@TempDir Path directory) throws Exception {
+        Path textures = Files.createDirectories(directory.resolve("Textures"));
+        writeTexture(textures.resolve("BumpLava0.png"));
+        writeTexture(textures.resolve("BumpLavaBumpmap0.png"));
+        writeTexture(textures.resolve("BumpLavaEnvMap0.png"));
+
+        boolean previous = Settings.getInstance().getBoolean(Settings.Setting.ENHANCED_LIQUIDS);
+        DesktopAssetManager assets = new DesktopAssetManager(true);
+        try {
+            assets.registerLocator(directory.toString(), com.jme3.asset.plugins.FileLocator.class);
+            Material material = new Material(assets, "MatDefs/DkLighting/Vertex.j3md");
+            Mesh classicMesh = new Mesh();
+            Geometry geometry = new Geometry("lava", classicMesh);
+            geometry.setMaterial(material);
+            LiquidSurfaceControl control = new LiquidSurfaceControl(false, true, assets);
+            geometry.addControl(control);
+
+            Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, true);
+            control.captureRendererCapabilities(EnumSet.noneOf(Caps.class));
+            control.update(1f / 60f);
+
+            assertTrue(control.isEnhancedActive());
+            assertNotNull(material.getParam("EmbmEnabled"));
+            assertNotNull(material.getTextureParam("EmbmBumpMap"));
+            assertNull(material.getTextureParam("EmbmBumpFrames"));
+            assertSame(classicMesh, geometry.getMesh());
+        } finally {
+            Settings.getInstance().setSetting(Settings.Setting.ENHANCED_LIQUIDS, previous);
+        }
+    }
+
     private static void writeTexture(Path path) throws Exception {
         BufferedImage image = new BufferedImage(2, 2, BufferedImage.TYPE_INT_ARGB);
         for (int y = 0; y < 2; y++) {

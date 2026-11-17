@@ -9,7 +9,6 @@ import com.jme3.scene.Mesh;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.scene.control.Control;
-import com.jme3.texture.Texture;
 import java.util.Optional;
 import java.util.Set;
 import toniarts.openkeeper.game.data.Settings;
@@ -29,9 +28,6 @@ public final class LiquidSurfaceControl extends AbstractControl {
     private final Mesh enhancedWaterMesh;
     private Material material;
     private Mesh classicMesh;
-    private Texture classicDiffuse;
-    private Integer classicFrameCount;
-    private Integer classicFrameRate;
     private Boolean classicWavesEnabled;
     private Boolean lastRequest;
     private Boolean textureArraysSupported;
@@ -73,10 +69,12 @@ public final class LiquidSurfaceControl extends AbstractControl {
         // Renderer capabilities are first available on the render thread. Let
         // one Classic frame through rather than risk compiling an unsupported
         // sampler2DArray shader before we know the active backend.
-        if (settingEnabled && textureArraysSupported == null) {
+        if (settingEnabled && water && textureArraysSupported == null) {
             return;
         }
-        boolean requested = settingEnabled && Boolean.TRUE.equals(textureArraysSupported);
+        // Water uses the 32-frame bump texture array. Lava's bump map is a
+        // regular 2D texture and can stay enhanced without array support.
+        boolean requested = settingEnabled && (!water || Boolean.TRUE.equals(textureArraysSupported));
         if (lastRequest != null && lastRequest == requested) {
             return;
         }
@@ -92,21 +90,13 @@ public final class LiquidSurfaceControl extends AbstractControl {
 
     private void captureClassicMaterial(Material current, Geometry geometry) {
         material = current;
-        if (!enhancedActive) {
+        if (geometry.getMesh() != enhancedWaterMesh) {
             classicMesh = geometry.getMesh();
         }
-        classicDiffuse = current.getTextureParam("DiffuseMap") == null
-                ? null : current.getTextureParam("DiffuseMap").getTextureValue();
-        classicFrameCount = integerParameter(current, "NumberOfTiles");
-        classicFrameRate = integerParameter(current, "Speed");
         classicWavesEnabled = current.getParam("LiquidWavesEnabled") == null
                 ? null : (Boolean) current.getParam("LiquidWavesEnabled").getValue();
         lastRequest = null;
         enhancedActive = false;
-    }
-
-    private static Integer integerParameter(Material material, String name) {
-        return material.getParam(name) == null ? null : (Integer) material.getParam(name).getValue();
     }
 
     private boolean enableEnhanced(Material current, Geometry geometry) {
@@ -130,15 +120,6 @@ public final class LiquidSurfaceControl extends AbstractControl {
     }
 
     private void disableEnhanced(Material current, Geometry geometry) {
-        if (classicDiffuse != null) {
-            current.setTexture("DiffuseMap", classicDiffuse);
-        }
-        if (classicFrameCount != null) {
-            current.setInt("NumberOfTiles", classicFrameCount);
-        }
-        if (classicFrameRate != null) {
-            current.setInt("Speed", classicFrameRate);
-        }
         if (classicWavesEnabled == null) {
             current.clearParam("LiquidWavesEnabled");
         } else {
@@ -177,9 +158,9 @@ public final class LiquidSurfaceControl extends AbstractControl {
     void captureRendererCapabilities(Set<Caps> rendererCaps) {
         if (textureArraysSupported == null) {
             textureArraysSupported = rendererCaps.contains(Caps.TextureArray);
-            if (!textureArraysSupported) {
+            if (water && !textureArraysSupported) {
                 LOG.log(System.Logger.Level.WARNING,
-                        "Enhanced DKII liquids require texture-array support; using Classic rendering.");
+                        "Enhanced DKII water requires texture-array support; using Classic water rendering.");
             }
         }
     }

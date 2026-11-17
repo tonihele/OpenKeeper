@@ -151,7 +151,7 @@ public final class Dk2EmbmResources {
         }
         for (String name : required) {
             if (assetManager.locateAsset(new TextureKey(name, false)) == null) {
-                System.getLogger(Dk2EmbmResources.class.getName()).log(System.Logger.Level.WARNING,
+                LOG.log(System.Logger.Level.WARNING,
                         "Enhanced DKII " + liquid.name().toLowerCase(Locale.ROOT)
                         + " rendering is unavailable; missing " + name + ". Using classic liquid rendering.");
                 return Optional.empty();
@@ -184,7 +184,7 @@ public final class Dk2EmbmResources {
                     + " animated bump frames." : "."));
             return Optional.of(new Textures(base, bump, bumpFrames, bumpFrameCount, environment));
         } catch (RuntimeException ex) {
-            System.getLogger(Dk2EmbmResources.class.getName()).log(System.Logger.Level.WARNING,
+            LOG.log(System.Logger.Level.WARNING,
                     "Failed to load enhanced DKII " + liquid.name().toLowerCase(Locale.ROOT)
                     + " textures. Using classic liquid rendering.", ex);
             return Optional.empty();
