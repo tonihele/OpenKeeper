@@ -211,6 +211,35 @@ class DungeonHeartAttackTest {
     }
 
     @Test
+    void creatureHittingTheHeartTurnsOnAWorkerThatSwingsAtIt() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Vector3f(10, 0, 7.9f));
+        EntityId heart = createHeart(KEEPER);
+        EntityId worker = createCreature(KEEPER, IMP, new Vector3f(10.3f, 0, 7.6f));
+        entityData.setComponents(hero, new AttackTarget(heart), new CreatureAi(0, CreatureState.FIGHT, FIGHTER));
+
+        createController(worker).executeAttack(hero);
+
+        assertEquals(worker, entityData.getComponent(hero, AttackTarget.class).entityId);
+    }
+
+    @Test
+    void creatureFightingACreatureNoOneElseAttacksKeepsItWhenAnotherSwingsAtIt() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 20));
+        EntityId target = createCreature(KEEPER, FIGHTER, new Vector3f(10.4f, 0, 20));
+        entityData.setComponents(hero, new AttackTarget(target), new CreatureAi(0, CreatureState.FIGHT, FIGHTER));
+
+        createController(createCreature(KEEPER, FIGHTER, new Vector3f(9.7f, 0, 20))).executeAttack(hero);
+        assertEquals(target, entityData.getComponent(hero, AttackTarget.class).entityId);
+
+        // With someone else attacking its target too, it turns on the one that swings at it
+        EntityId other = createCreature(HERO, FIGHTER, new Vector3f(10.8f, 0, 20));
+        entityData.setComponent(other, new AttackTarget(target));
+        EntityId attacker = createCreature(KEEPER, FIGHTER, new Vector3f(9.7f, 0, 20.2f));
+        createController(attacker).executeAttack(hero);
+        assertEquals(attacker, entityData.getComponent(hero, AttackTarget.class).entityId);
+    }
+
+    @Test
     void workerAsNearAsThePillarComesBeforeTheHeart() {
         float pillarZ = HEART_TILE.y - 1.2f;
         EntityId hero = createCreature(HERO, FIGHTER, new Vector3f(HEART_TILE.x, 0, pillarZ - 1));
