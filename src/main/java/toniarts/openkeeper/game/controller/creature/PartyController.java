@@ -16,11 +16,10 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
-import java.util.ArrayList;
+import com.simsilica.es.EntityId;
 import java.util.Collection;
-import java.util.Iterator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,12 +30,11 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.utils.Utils;
 
 /**
- * Represents a party, a group of creatures. When the Leader is incapacitated, a
- * new Leader is chosen at random. Any triggers and actions which hung off the
- * old Leader are transferred to the new.
+ * Represents a party, a group of creatures. When the leader is incapacitated,
+ * the first remaining follower in reverse spawn order becomes leader. Any
+ * triggers and actions which hung off the old leader are transferred to the new.
  *
  * @author ArchDemon
  */
@@ -52,6 +50,12 @@ public final class PartyController implements IPartyController {
     private PartyType type;
     private ICreatureController leader;
     private boolean created = false;
+    // Preserve the native party identity independently of the historical instance roster.
+    private final Set<EntityId> detachedMembers = new HashSet<>();
+    // An incapacitated leader retains its native leader role after a successor is promoted.
+    private final Set<EntityId> membersWithLeaderRole = new HashSet<>();
+    // Native owned-creature insertion puts the newest member at the list head.
+    private final SequencedMap<EntityId, ICreatureController> followers = new LinkedHashMap<>();
 
     public PartyController(Thing.HeroParty heroParty) {
         partyId = heroParty.getId();
@@ -72,6 +76,37 @@ public final class PartyController implements IPartyController {
     @Override
     public boolean isCreated() {
         return created;
+    }
+
+    @Override
+    public int getCapturedMemberCount() {
+        if (!created) {
+            return 0;
+        }
+        int remaining = 0;
+        for (ICreatureController creature : members.values()) {
+            if (creature != null && !detachedMembers.contains(creature.getEntityId())
+                    && !creature.isDead() && creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                remaining++;
+            }
+        }
+        return members.size() - remaining;
+    }
+
+    @Override
+    public void onMemberUnconscious(EntityId entityId) {
+        if (!membersWithLeaderRole.contains(entityId)) {
+            detachedMembers.add(entityId);
+            followers.remove(entityId);
+        }
+        // Native knockout promotes a successor before the next member can take damage.
+        checkPartyLeader();
+    }
+
+    @Override
+    public void onMemberConverted(EntityId entityId) {
+        detachedMembers.add(entityId);
+        followers.remove(entityId);
     }
 
     @Override
@@ -113,9 +148,15 @@ public final class PartyController implements IPartyController {
     @Override
     public void addMemberInstance(Thing.GoodCreature creature, ICreatureController entity) {
         members.put(creature, entity);
+        if (creature.getFlags().contains(Thing.Creature.CreatureFlag.FOLLOWER)) {
+            followers.putFirst(entity.getEntityId(), entity);
+        }
 
-        if (leader == null && creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER)) {
-            leader = entity;
+        if (creature.getFlags().contains(Thing.Creature.CreatureFlag.LEADER)) {
+            membersWithLeaderRole.add(entity.getEntityId());
+            if (leader == null) {
+                leader = entity;
+            }
         }
     }
 
@@ -152,24 +193,22 @@ public final class PartyController implements IPartyController {
      */
     private void checkPartyLeader() {
         if (leader != null && leader.isIncapacitated()) {
-            List<ICreatureController> leaderCandidates = new ArrayList<>(getActualMembers());
-            Iterator<ICreatureController> iter = leaderCandidates.iterator();
-            while (iter.hasNext()) {
-                ICreatureController c = iter.next();
-                if (c.isIncapacitated()) {
-                    iter.remove();
+            while (!followers.isEmpty()) {
+                ICreatureController successor = followers.pollFirstEntry().getValue();
+                if (detachedMembers.contains(successor.getEntityId()) || successor.isDead()
+                        || successor.getOwnerId() != Player.GOOD_PLAYER_ID) {
+                    continue;
                 }
-            }
-
-            // See if any left
-            if (!leaderCandidates.isEmpty()) {
                 ICreatureController oldLeader = leader;
-                leader = Utils.getRandomItem(leaderCandidates);
+                leader = successor;
+                // Promotion consumes the follower role; former leaders cannot be selected again.
+                membersWithLeaderRole.add(leader.getEntityId());
 
                 // Swap duties
                 // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
                 leader.setObjectiveTargetActionPointId(oldLeader.getObjectiveTargetActionPointId());
                 leader.setObjective(oldLeader.getObjective());
+                break;
             }
         }
     }

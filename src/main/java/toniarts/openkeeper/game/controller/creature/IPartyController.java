@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
+import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Set;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -87,6 +88,15 @@ public interface IPartyController extends INavigable {
     void setType(PartyType type);
 
     boolean isCreated();
+
+    /** Native captured count: original roster minus remaining hero-owned members. */
+    int getCapturedMemberCount();
+
+    /** Record an ordinary member losing its original party identity on knockout. */
+    void onMemberUnconscious(EntityId entityId);
+
+    /** Conversion does not restore the original membership when ownership changes back. */
+    void onMemberConverted(EntityId entityId);
 
     Set<Thing.GoodCreature> getMembers();
 
