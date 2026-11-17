@@ -180,7 +180,7 @@ class DungeonHeartAttackTest {
     }
 
     @Test
-    void creatureHittingTheHeartPicksItsTargetAgainEveryTenTurns() {
+    void creatureOnItsWayToTheHeartPicksItsTargetAgainEveryTenTurns() {
         EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
         EntityId heart = createHeart(KEEPER);
         EntityId defender = createCreature(KEEPER, FIGHTER, new Point(10, 16));
@@ -192,6 +192,33 @@ class DungeonHeartAttackTest {
 
         entityData.setComponent(hero, new AttackTarget(heart, 7.5, new Point(10, 12), Double.NaN));
         assertEquals(defender, createController(hero).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureHittingTheHeartKeepsItWhileItFights() {
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 8));
+        EntityId heart = createHeart(KEEPER);
+        EntityId defender = createCreature(KEEPER, FIGHTER, new Point(10, 6));
+        sensed.put(hero, Set.of(heart, defender));
+        entityData.setComponent(hero, new AttackTarget(heart, 7.5, new Point(10, 7), Double.NaN));
+
+        CreatureController controller = createController(hero);
+        controller.getStateMachine().changeState(CreatureState.FIGHT);
+        assertEquals(heart, controller.getAttackTarget().getEntityId());
+
+        controller.getStateMachine().changeState(CreatureState.MELEE_ATTACK);
+        assertEquals(heart, controller.getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void workerAsNearAsThePillarComesBeforeTheHeart() {
+        float pillarZ = HEART_TILE.y - 1.2f;
+        EntityId hero = createCreature(HERO, FIGHTER, new Vector3f(HEART_TILE.x, 0, pillarZ - 1));
+        EntityId heart = createHeart(KEEPER);
+        EntityId worker = createCreature(KEEPER, IMP, new Vector3f(HEART_TILE.x, 0, pillarZ - 2));
+        sensed.put(hero, Set.of(heart, worker));
+
+        assertEquals(worker, createController(hero).getAttackTarget().getEntityId());
     }
 
     @Test

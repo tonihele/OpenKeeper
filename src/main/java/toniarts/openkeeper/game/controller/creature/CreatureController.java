@@ -865,14 +865,15 @@ public final class CreatureController extends EntityController implements ICreat
 
         // The original picks its target again when it steps onto another tile or every 10 turns, and keeps the one it
         // has when it finds none (0x45E9F0). Chasing a creature, it drops it and picks again every turn, so it only
-        // chases on while it picks the same one (0x470E30). Fighting a creature in reach, it keeps it: 0x45E9F0 does
-        // not pick in the fight states, and the fight state picks only when it has no target (0x45F030)
-        boolean creatureTarget = target != null && !DungeonHeartTarget.isDungeonHeart(entityData, target);
-        boolean chasing = creatureTarget && !isWithinAttackDistance(target);
-        boolean fighting = creatureTarget && (stateMachine.isInState(CreatureState.FIGHT) || stateMachine.isInState(CreatureState.MELEE_ATTACK));
+        // chases on while it picks the same one (0x470E30). Fighting a creature or a heart's pillar in reach, it keeps
+        // it: 0x45E9F0 does not pick in the fight states, and the fight state picks only when it has no target, between
+        // swings it just waits (0x45F030, 0x48C9B0)
+        boolean inReach = target != null && isWithinAttackDistance(target);
+        boolean chasing = target != null && !inReach && !DungeonHeartTarget.isDungeonHeart(entityData, target);
+        boolean fighting = inReach && (stateMachine.isInState(CreatureState.FIGHT) || stateMachine.isInState(CreatureState.MELEE_ATTACK));
         boolean picked = target == null || chasing || !fighting && isTimeToPickTarget(attackTarget);
         if (picked) {
-            EntityId enemy = pickAttackTarget(target);
+            EntityId enemy = pickAttackTarget();
             if (enemy != null || chasing) {
                 target = enemy;
             }
@@ -937,29 +938,19 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Picks the enemy to attack: the nearest one, or with no one but workers
-     * to fight, an enemy heart in sight that is nearer. A creature hitting a
-     * heart leaves it for any fighter that shows up. A worker, even one that
-     * attacks it, only draws it away when it is nearer than the heart's
-     * nearest pillar, so only on its way there: next to the pillar the
-     * original stands closer to it than a worker can come (0x45CB00).
+     * Picks the enemy to attack. A fighter always comes before an enemy heart,
+     * a worker only while the heart's nearest pillar isn't strictly nearer, so
+     * on a tie the worker is kept (0x45CB00).
      *
-     * @param current the target we have now, if any
      * @return the enemy to attack, {@code null} if there is none
      */
-    private EntityId pickAttackTarget(EntityId current) {
-        boolean hittingHeart = current != null && DungeonHeartTarget.isDungeonHeart(entityData, current);
-        EntityId fighter = getNearestEnemy(true);
-        if (fighter != null) {
-            return hittingHeart ? fighter : getNearestEnemy(false);
+    private EntityId pickAttackTarget() {
+        EntityId enemy = getNearestEnemy();
+        if (enemy != null && !creaturesController.createController(enemy).isWorker()) {
+            return enemy;
         }
-        EntityId worker = getNearestEnemy(false);
-        if (worker != null && hittingHeart
-                && (isWithinAttackDistance(current) || getDistanceToCreature(worker) >= getDistanceToHeart(current))) {
-            return current;
-        }
-        EntityId heart = getNearestEnemyHeart(worker != null ? getDistanceToCreature(worker) : Float.MAX_VALUE);
-        return heart != null ? heart : worker;
+        EntityId heart = getNearestEnemyHeart(enemy != null ? getDistanceToCreature(enemy) : Float.MAX_VALUE);
+        return heart != null ? heart : enemy;
     }
 
     /**
@@ -1029,10 +1020,9 @@ public final class CreatureController extends EntityController implements ICreat
      * Finds the enemy creature we sense and can fight, the nearest enemy
      * already attacking us first
      *
-     * @param fightersOnly leave the workers out
      * @return the creature, or {@code null} if there is none
      */
-    private EntityId getNearestEnemy(boolean fightersOnly) {
+    private EntityId getNearestEnemy() {
         EntityId nearestEnemy = null;
         float bestScore = Float.MAX_VALUE;
         EntityId nearestAttacker = null;
@@ -1042,8 +1032,6 @@ public final class CreatureController extends EntityController implements ICreat
                     && isEnemy(entity)
                     && !(isIncapacitated(entity) || isCaptive(entity))
                     && !(isFleeing(entity) && isBackingOff() && !isWithinAttackDistance(entity))
-                    && hasRoomForAttacker(entity)
-                    && !(fightersOnly && creaturesController.createController(entity).isWorker())
                     && hasRoomForAttacker(entity)
                     && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
                 float distance = getTargetDistance(entity);
