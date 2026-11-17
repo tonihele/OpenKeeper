@@ -26,8 +26,8 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.game.map.WallSection;
 import toniarts.openkeeper.view.map.TerrainDeformer;
-import toniarts.openkeeper.view.map.WallSection;
 
 /**
  * A base class for constructing different kind of rooms. FIXME: Basically
