@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
@@ -157,7 +158,8 @@ class CreatureSeparationTest {
      */
     private void run(int frames, IntConsumer afterFrame) {
         SeparationSystem separationSystem = new SeparationSystem(entityData, kwdFile(), map(), positionLookup());
-        MovementSystem movementSystem = new MovementSystem(entityData);
+        MovementSystem movementSystem = new MovementSystem(entityData, (IMapInformation) Proxy.newProxyInstance(
+                IMapInformation.class.getClassLoader(), new Class<?>[]{IMapInformation.class}, (proxy, method, args) -> false));
         for (int frame = 0; frame < frames; frame++) {
             if (frame % 15 == 0) {
                 separationSystem.processTick(1 / 4f);
