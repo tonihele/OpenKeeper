@@ -93,7 +93,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * A room it found no site for at its default size is looked for smaller,
-     * down to 3 by 3 tiles. DK II never looks for a smaller room
+     * down to 3 by 3 tiles, and then also with fewer tiles left between the
+     * rooms, down to none. DK II does neither
      */
     private static final int SMALLEST_ROOM_SIDE = 3;
 
@@ -1114,16 +1115,26 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * Tries one direction a tick: the preferred one, then both sides and
      * then the opposite one. After that it mostly tries again from another
      * room. Each time it gives up, the next search is for a smaller room,
-     * which DK II does not do: it looks for the default size for ever
+     * and once the room is as small as it gets, a site with a tile less
+     * between the rooms is taken too. DK II does not do that: it looks for the
+     * default size and gap for ever
      */
     private int findRoomSite(KeeperAi keeperAi, IPlayerController playerController, AI ai, int actions) {
         int size = ai.getDefaultSize();
-        if (keeperAi.roomSitesNotFound > 0) {
-            int side = Math.max(SMALLEST_ROOM_SIDE, (int) Math.sqrt(size) - keeperAi.roomSitesNotFound);
-            size = Math.min(size, side * side);
+        int gap = ai.getTilesLeftBetweenRooms();
+        for (int i = 0; i < keeperAi.roomSitesNotFound; i++) {
+            if (size > SMALLEST_ROOM_SIDE * SMALLEST_ROOM_SIDE) {
+                int side = Math.max(SMALLEST_ROOM_SIDE, (int) Math.sqrt(size) - 1);
+                size = side * side;
+            } else if (gap > 0) {
+                gap--;
+            }
         }
-        KeeperAiRoomSiteFinder.RoomSite site = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai)
-                .find(keeperAi.current, keeperAi.direction, size);
+        KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai);
+        KeeperAiRoomSiteFinder.RoomSite site = null;
+        for (int i = ai.getTilesLeftBetweenRooms(); site == null && i >= gap; i--) {
+            site = finder.find(keeperAi.current, keeperAi.direction, size, i);
+        }
         if (site != null) {
             keeperAi.roomSitesNotFound = 0;
 
@@ -1149,7 +1160,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             keeperAi.current = getRandomRoomLocation(playerController);
         } else {
             keeperAi.roomSitesNotFound++;
-            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " of " + size + " tiles");
+            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " of " + size + " tiles, leaving " + gap + " tiles to the other rooms");
         }
 
         return 0;
