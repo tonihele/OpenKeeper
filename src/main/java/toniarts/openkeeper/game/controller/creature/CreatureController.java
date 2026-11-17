@@ -868,7 +868,7 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private EntityId getNearestEnemy(boolean fightersOnly) {
         EntityId nearestEnemy = null;
-        float nearestDistance = Float.MAX_VALUE;
+        float bestScore = Float.MAX_VALUE;
         EntityId nearestAttacker = null;
         float nearestAttackerDistance = Float.MAX_VALUE;
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
@@ -879,9 +879,10 @@ public final class CreatureController extends EntityController implements ICreat
                     && hasRoomForAttacker(entity)
                     && !(fightersOnly && creaturesController.createController(entity).isWorker())
                     && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
-                float distance = getDistanceToCreature(entity);
-                if (distance < nearestDistance) {
-                    nearestDistance = distance;
+                float distance = getTargetDistance(entity);
+                float score = distance + getFightStyleScore(entity);
+                if (score < bestScore) {
+                    bestScore = score;
                     nearestEnemy = entity;
                 }
                 if (distance < nearestAttackerDistance && isAttacking(entity, entityId)) {
@@ -892,6 +893,53 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return nearestAttacker != null ? nearestAttacker : nearestEnemy;
+    }
+
+    /**
+     * The squared distance to a target, 7/8 of it for a natural enemy: a good
+     * creature against an evil one and the other way round (0x45C640)
+     */
+    private float getTargetDistance(EntityId target) {
+        float distance = getDistanceToCreature(target);
+        CreatureComponent other = entityData.getComponent(target, CreatureComponent.class);
+        Creature.CreatureFlag naturalEnemy = creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)
+                ? Creature.CreatureFlag.IS_EVIL : Creature.CreatureFlag.IS_GOOD;
+        boolean isNaturalEnemy = other != null
+                && levelInfo.getLevelData().getCreature(other.creatureId).getFlags().contains(naturalEnemy);
+        return distance * distance * (isNaturalEnemy ? 7f / 8 : 1);
+    }
+
+    /**
+     * What our fight style adds to a target's squared distance, in our sight
+     * squared. A blocker takes the nearest (0x45B140), a blitzer goes for
+     * the support creatures (0x45B800), and flankers and support creatures go
+     * for an enemy a blocker or a blitzer already holds (0x45BAD0, 0x45B500)
+     */
+    private float getFightStyleScore(EntityId target) {
+        Creature.FightStyle fightStyle = creature.getFightStyle();
+        int holders = 0;
+        int supporters = 0;
+        if (fightStyle == Creature.FightStyle.FLANKER || fightStyle == Creature.FightStyle.SUPPORT) {
+            for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", target), AttackTarget.class)) {
+                Creature.FightStyle attackerStyle = getEntityFightingStyle(attacker);
+                if (attackerStyle == Creature.FightStyle.BLITZER || attackerStyle == Creature.FightStyle.BLOCKER) {
+                    holders++;
+                } else if (attackerStyle == Creature.FightStyle.SUPPORT) {
+                    supporters++;
+                }
+            }
+        }
+
+        int sightSquares = 0;
+        if (fightStyle == Creature.FightStyle.BLITZER) {
+            sightSquares = getEntityFightingStyle(target) == Creature.FightStyle.SUPPORT ? 0 : 1;
+        } else if (fightStyle == Creature.FightStyle.FLANKER) {
+            sightSquares = holders > 0 ? holders : supporters > 0 ? supporters + 8 : 17;
+        } else if (fightStyle == Creature.FightStyle.SUPPORT) {
+            sightSquares = holders > 0 ? holders : 9;
+        }
+        float sight = creature.getAttributes().getDistanceCanSee();
+        return sightSquares * sight * sight;
     }
 
     /**

@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -92,11 +93,16 @@ class CreatureAttackTargetTest {
             case "createController" -> stub(ICreatureController.class, (method, params) -> null);
             default -> null;
         });
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreature".equals(name) ? creature : null);
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
+            case "getPlayer" -> new Keeper(false, (short) args[0]);
+            case "getLevelData" -> kwdFile;
+            default -> null;
+        });
         return new CreatureController(entity, entityData, creature, navigationService, null, () -> 0, Map.of(),
                 creaturesController, stub(IEntityPositionLookup.class,
                         (name, args) -> "getSensedEntities".equals(name) ? Set.of(enemy) : null),
-                null, stub(ILevelInfo.class, (name, args) -> "getPlayer".equals(name) ? new Keeper(false, (short) args[0]) : null),
-                null, null, null);
+                null, levelInfo, null, null, null);
     }
 
     @FunctionalInterface
