@@ -29,10 +29,10 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.map.FakeFogOfWarInformation;
-import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -44,7 +44,6 @@ class MinimapMarkerPainterTest {
     private static final short GUARD_POST_ID = 11;
     private static final short ALARM_ID = 13;
 
-    private final FakeFogOfWarInformation fogOfWar = new FakeFogOfWarInformation();
     private EntityData entityData;
     private MinimapMarkerPainter painter;
 
@@ -88,32 +87,72 @@ class MinimapMarkerPainterTest {
     }
 
     @Test
+    void hiddenEnemyTrapIsNotPaintedUntilRevealed() {
+        short enemyId = 4;
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap,
+                new Position(0, new Vector3f(5, 0, 5)),
+                new Owner(enemyId, enemyId),
+                new TrapViewState((short) 1, false, true));
+        FakeFogOfWarInformation fogOfWar = new FakeFogOfWarInformation();
+        fogOfWar.explored.add(new Point(5, 5));
+
+        painter.update();
+        assertFalse(paintsAnything(fogOfWar));
+
+        entityData.setComponent(trap, new TrapViewState((short) 1, false, false));
+        painter.update();
+        assertTrue(paintsAnything(fogOfWar));
+    }
+
+    @Test
+    void ownHiddenTrapIsPainted() {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap,
+                new Position(0, new Vector3f(5, 0, 5)),
+                new Owner(VIEWER_ID, VIEWER_ID),
+                new TrapViewState((short) 1, false, true));
+
+        painter.update();
+        assertTrue(paintsAnything());
+    }
+
+    private boolean paintsAnything() {
+        return paintsAnything(new FakeFogOfWarInformation());
+    }
+
+    @Test
     void ownGuardPostGetsItsReportingDistanceRing() {
         EntityId trap = entityData.createEntity();
         entityData.setComponents(trap,
                 new Position(0, new Vector3f(8, 0, 8)),
                 new Owner(VIEWER_ID, VIEWER_ID),
-                new TrapComponent(ALARM_ID));
+                new TrapViewState(ALARM_ID, false));
+        FakeFogOfWarInformation fogOfWar = new FakeFogOfWarInformation();
         painter.update();
-        int trapDotOnly = paintedBytes();
+        int trapDotOnly = paintedBytes(fogOfWar);
 
-        entityData.setComponent(trap, new TrapComponent(GUARD_POST_ID));
+        entityData.setComponent(trap, new TrapViewState(GUARD_POST_ID, true));
         painter.update();
-        assertTrue(paintedBytes() > trapDotOnly);
+        assertEquals(trapDotOnly, paintedBytes(fogOfWar)); // a blueprint doesn't report yet
 
-        fogOfWar.explored.add(WorldUtils.vectorToPoint(8, 8));
+        entityData.setComponent(trap, new TrapViewState(GUARD_POST_ID, false));
+        painter.update();
+        assertTrue(paintedBytes(fogOfWar) > trapDotOnly);
+
+        fogOfWar.explored.add(new Point(8, 8));
         entityData.setComponent(trap, new Owner((short) (VIEWER_ID + 1), (short) (VIEWER_ID + 1)));
         painter.update();
-        assertEquals(trapDotOnly, paintedBytes()); // another keeper's guard post, only its dot
+        assertEquals(trapDotOnly, paintedBytes(fogOfWar)); // another keeper's guard post, only its dot
     }
 
-    private boolean paintsAnything() {
-        return paintedBytes() > 0;
+    private boolean paintsAnything(FakeFogOfWarInformation fogOfWar) {
+        return paintedBytes(fogOfWar) > 0;
     }
 
-    private int paintedBytes() {
+    private int paintedBytes(FakeFogOfWarInformation fogOfWar) {
         byte[] raster = new byte[MinimapRasteriser.RASTER_SIZE * MinimapRasteriser.RASTER_SIZE * 3];
-        painter.paint(raster, 16, 16, -1, 0, 0, fogOfWar, true, 0, 0, null, 0);
+        painter.paint(raster, 16, 16, -1, 0, 0, fogOfWar, true, 0, 0, null, 0, null);
         int painted = 0;
         for (byte b : raster) {
             if (b != 0) {

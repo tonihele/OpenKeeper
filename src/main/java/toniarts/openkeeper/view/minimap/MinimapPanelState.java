@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapColourClassifier;
 import toniarts.openkeeper.game.map.MapColourGrid;
 import toniarts.openkeeper.game.map.PlayerNumbers;
+import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -223,7 +224,7 @@ public final class MinimapPanelState extends AbstractAppState {
 
     private void rebuildRaster() {
         PlayerCamera camera = getPlayerCamera();
-        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
+        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(getCameraGroundPoint(camera)) : null;
         float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
         float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
 
@@ -242,7 +243,8 @@ public final class MinimapPanelState extends AbstractAppState {
         markerPainter.update();
         markerPainter.paint(rasterBgr, grid.getWidth(), grid.getHeight(), zoom, cameraTileX, cameraTileY,
                 fogOfWarInformation, blinkParity, dashPhase, neutralRotationPhase,
-                localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles);
+                localKeeper.getDungeonHeartLocation(), dungeonHeartReportingDistanceTiles,
+                stateManager.getState(GameClientState.class).getPossessedCreature());
 
         view.updateRaster(rasterBgr);
     }
@@ -297,6 +299,25 @@ public final class MinimapPanelState extends AbstractAppState {
         view.updateNorthIndicator(yaw);
     }
 
+    /**
+     * The point the minimap centres on. The RTS camera looks down at the
+     * ground, so its look-at point is meaningful; the possession camera looks
+     * along the horizon (the look-at projection degenerates), so use the
+     * camera's own position instead.
+     */
+    private Vector3f getCameraGroundPoint(PlayerCamera camera) {
+        if (isPossessing()) {
+            Vector3f location = camera.getCamera().getLocation();
+            return new Vector3f(location.x, 0, location.z);
+        }
+        return camera.getLookAt();
+    }
+
+    private boolean isPossessing() {
+        PossessionCameraState possessionCameraState = stateManager.getState(PossessionCameraState.class);
+        return possessionCameraState != null && possessionCameraState.isEnabled();
+    }
+
     private PlayerCamera getPlayerCamera() {
         PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
         return cameraState != null ? cameraState.getCamera() : null;
@@ -311,8 +332,7 @@ public final class MinimapPanelState extends AbstractAppState {
             view.hideFrustum();
             return;
         }
-        PossessionCameraState possessionCameraState = stateManager.getState(PossessionCameraState.class);
-        if (possessionCameraState != null && possessionCameraState.isEnabled()) {
+        if (isPossessing()) {
             view.hideFrustum();
             return;
         }
@@ -408,7 +428,7 @@ public final class MinimapPanelState extends AbstractAppState {
         boolean fit = zoom == MIN_ZOOM;
         MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(grid.getWidth(), grid.getHeight()) : null;
         int pixelsPerTile = fit ? 0 : (1 << zoom);
-        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(camera.getLookAt()) : null;
+        Vector2f cameraTile = camera != null ? MinimapCoordinates.worldToTile(getCameraGroundPoint(camera)) : null;
         float cameraTileX = cameraTile != null ? cameraTile.x : 0f;
         float cameraTileY = cameraTile != null ? cameraTile.y : 0f;
 
