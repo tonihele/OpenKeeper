@@ -42,6 +42,7 @@ import toniarts.openkeeper.game.logic.DeathSystem;
 import toniarts.openkeeper.game.logic.DecaySystem;
 import toniarts.openkeeper.game.logic.DoorViewSystem;
 import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
+import toniarts.openkeeper.game.logic.FreezeSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.GraveyardSystem;
 import toniarts.openkeeper.game.logic.HaulingSystem;
@@ -62,6 +63,7 @@ import toniarts.openkeeper.game.logic.PossessedSystem;
 import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
+import toniarts.openkeeper.game.logic.TrapSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.SaveGame;
@@ -209,6 +211,9 @@ public final class GameLoopManager {
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
+                new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
+                        gameWorldController.getShotsController()),
+                new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
                 (IGameLogicUpdatable) taskManager);
@@ -226,7 +231,7 @@ public final class GameLoopManager {
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData),
+        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData, gameWorldController.getMapController()),
                 new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
 
