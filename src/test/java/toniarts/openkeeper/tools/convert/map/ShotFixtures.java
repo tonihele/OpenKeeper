@@ -41,6 +41,11 @@ public final class ShotFixtures {
      */
     public static final int FIREBALL_HIT_EFFECT_ID = 234;
 
+    /**
+     * Shot 61 as it ships in the original data, the Maiden's web
+     */
+    public static final short WEB_ID = 61;
+
     private ShotFixtures() {
     }
 
@@ -67,6 +72,18 @@ public final class ShotFixtures {
         shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * The Maiden's web, with the values of the original data
+     */
+    public static Shot web() {
+        Shot shot = shot(WEB_ID, Shot.ProcessType.WEB_AREA_EFFECT, 16, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
         return shot;
     }
 
