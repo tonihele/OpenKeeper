@@ -32,6 +32,13 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             return result;
         }
 
+        // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
+        // work order (DKII.EXE 0x463DF0)
+        result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
+        if (result != 0) {
+            return result;
+        }
+
         // A digging or claiming worker carries on with the closest work of the same kind, however far
         result = Boolean.compare(o2.sameWork(), o1.sameWork());
         if (result != 0) {
@@ -61,6 +68,10 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
 
         // If the same, compare by date added
         return o1.task().getTaskCreated().compareTo(o2.task().getTaskCreated());
+    }
+
+    private static boolean isArmingTrap(Task task) {
+        return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
     }
 
     private static boolean isWallWork(Task task) {
