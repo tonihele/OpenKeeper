@@ -478,9 +478,11 @@ final class KeeperAiInvasions {
     }
 
     /**
-     * The army is ready with at least the number of fighters its settings
-     * ask for, all of them at the level it wants. When only a few are below
-     * that level, as many as the level or fewer, they go up one level first.
+     * The army is ready with more fighters than its settings ask for, all of
+     * them at the level it wants. When only a few are below that level, as
+     * many as the level or fewer, they go up one level first. DK II
+     * (0x4FAB10) wants more than attackWhenNumberOfCreaturesIsAtLeast, not
+     * at least that many.
      */
     boolean isArmyReady(short playerId, AI ai, int creatureLevel) {
         List<Entity> fighters = new ArrayList<>();
@@ -493,7 +495,7 @@ final class KeeperAiInvasions {
                 }
             }
         }
-        if (fighters.size() < ai.getAttackWhenNumberOfCreaturesIsAtLeast()) {
+        if (fighters.size() <= ai.getAttackWhenNumberOfCreaturesIsAtLeast()) {
             return false;
         }
         if (below.size() <= creatureLevel && below.size() < fighters.size()) {

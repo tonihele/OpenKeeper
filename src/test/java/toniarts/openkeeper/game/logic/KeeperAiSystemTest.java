@@ -1501,14 +1501,20 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void digsATunnelToTheEnemyHeartWhenItHasAtLeastTheNumberOfFightersItsSettingsAskFor() {
+    void digsATunnelToTheEnemyHeartOnceItHasMoreFightersThanItsSettingsAskFor() {
         KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50, AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
         enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(13, 6)));
         createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.WORK);
 
         system.processTick(0.25f);
 
-        // One fighter meets the configured threshold of one.
+        // One fighter is not more than the setting of one
+        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
+
+        createCreature(PLAYER_ID, new Point(1, 8), 100, 100, CreatureState.WORK);
+        system.processTick(0.25f);
+
+        // From its own heart to the enemy's, by the settings
         assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
         assertEquals(HEART, getKeeperAi().current);
         assertEquals(new Point(13, 6), getKeeperAi().target);
@@ -1521,7 +1527,7 @@ class KeeperAiSystemTest {
 
     @Test
     void digsTowardAHostileHeroPortalWithoutAnEnemyDungeonHeart() {
-        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 2, 50,
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50,
                 AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000, Player.GOOD_PLAYER_ID);
         enemyRoomControl.onBuild(createRoom(HERO_PORTAL, new Point(13, 6)));
         createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.WORK);
@@ -1542,7 +1548,7 @@ class KeeperAiSystemTest {
 
     @Test
     void digsTowardNearestRoomWhenTheEnemyDungeonHeartIsDestroyed() {
-        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 2, 50,
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50,
                 AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000, Player.GOOD_PLAYER_ID);
         IRoomController heart = createRoom(DUNGEON_HEART, new Point(11, 6));
         heart.getRoomInstance().setDestroyed(true);
