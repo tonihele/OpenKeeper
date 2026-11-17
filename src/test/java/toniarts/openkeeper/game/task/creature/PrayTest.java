@@ -81,7 +81,11 @@ class PrayTest {
     }
 
     @Test
-    void worshipperIsCountedInTheTemple() {
+    void worshipperIsCountedInTheTempleOnceItPrays() {
+        assertEquals(List.of(), worshippers);
+
+        pray.executeTask(creature, 0);
+
         assertEquals(List.of(entity), worshippers);
     }
 
