@@ -24,6 +24,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -32,6 +33,7 @@ import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.KeeperAi;
@@ -40,6 +42,7 @@ import toniarts.openkeeper.game.component.KeeperAiNoPrisoner;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -669,18 +672,20 @@ final class KeeperAiBattles {
     }
 
     /**
-     * The player's tile nearest to a place that is not solid, no further
-     * than some tiles along either axis
+     * The player's own tile nearest to a place where a fighter can be dropped,
+     * no further than some tiles along either axis.
      */
     Point getNearestOwnOpenTile(short playerId, Point place, int tiles) {
         Point nearest = null;
         int nearestDistance = Integer.MAX_VALUE;
+        Set<Point> doorTiles = getBuiltDoorTiles();
         for (int y = place.y - tiles; y <= place.y + tiles; y++) {
             for (int x = place.x - tiles; x <= place.x + tiles; x++) {
                 Point p = new Point(x, y);
                 IMapTileInformation tile = mapController.getMapData().getTile(p);
                 int distance = (x - place.x) * (x - place.x) + (y - place.y) * (y - place.y);
-                if (tile != null && distance < nearestDistance && tile.getOwnerId() == playerId && !mapController.isSolid(p)) {
+                if (tile != null && distance < nearestDistance && tile.getOwnerId() == playerId && !mapController.isSolid(p)
+                        && !DropValidator.isBlocked(kwdFile, mapController.getMapData(), doorTiles, p, true)) {
                     nearest = p;
                     nearestDistance = distance;
                 }
@@ -688,6 +693,18 @@ final class KeeperAiBattles {
         }
 
         return nearest;
+    }
+
+    private Set<Point> getBuiltDoorTiles() {
+        Set<Point> doorTiles = new HashSet<>();
+        for (EntityId entityId : entityData.findEntities(null, DoorComponent.class)) {
+            DoorComponent door = entityData.getComponent(entityId, DoorComponent.class);
+            Position position = entityData.getComponent(entityId, Position.class);
+            if (door != null && !door.blueprint && position != null) {
+                doorTiles.add(WorldUtils.vectorToPoint(position.position));
+            }
+        }
+        return doorTiles;
     }
 
     /**

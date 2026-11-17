@@ -19,8 +19,8 @@ package toniarts.openkeeper.game.controller;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 
 /**
- * The arithmetic of tile work: digging, mining, claiming, reinforcing and
- * repairing. Measured against the original 1.70, see
+ * The rules and arithmetic of tile work: digging, mining, claiming,
+ * reinforcing and repairing. Measured against the original 1.70, see
  * <a href="https://github.com/tonihele/OpenKeeper/issues/559">#559</a>.
  */
 public final class TileWork {
@@ -102,6 +102,26 @@ public final class TileWork {
         int newGold = Math.min(gold, totalGold - goldReleased(totalGold, maxHealth, newHealth));
 
         return new Mining(newHealth, newGold, gold - newGold);
+    }
+
+    /**
+     * Whether a player can damage this terrain with a dig order. Solid
+     * terrain can be dug by any player; an owned tile can be attacked by a
+     * different player. Open terrain, including a taggable dirt path, cannot
+     * be damaged.
+     *
+     * @param terrain the tile terrain
+     * @param ownerId the current tile owner
+     * @param playerId the player doing the work
+     * @return whether {@code MapController.damageTile} can apply damage
+     */
+    public static boolean canDamageTile(Terrain terrain, short ownerId, short playerId) {
+        if (terrain == null) {
+            return false;
+        }
+
+        return terrain.getFlags().contains(Terrain.TerrainFlag.SOLID)
+                || terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && ownerId != playerId;
     }
 
     /**

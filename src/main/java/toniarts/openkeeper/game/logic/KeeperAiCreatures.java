@@ -90,6 +90,7 @@ final class KeeperAiCreatures {
      * DK II picks idle creatures up to put them to work on one tick in ten
      */
     private static final int PICK_UP_IDLE_CHANCE_PERCENTAGE = 10;
+    private static final int FALLBACK_DROP_TILES = 5;
 
     /**
      * DK II slaps an idle creature on one tick in a hundred, when it has more
@@ -263,7 +264,7 @@ final class KeeperAiCreatures {
      *
      * @param keeperAi the computer player
      * @param playerController its player
-     * @return true if there was something in the hand, that takes the turn
+     * @return whether the held thing was successfully put down and took the turn
      */
     boolean emptyHand(KeeperAi keeperAi, IPlayerController playerController) {
         EntityId held = playerController.getHandControl().peek();
@@ -286,13 +287,30 @@ final class KeeperAiCreatures {
                 }
             }
         }
-        decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
-        if (creatureComponent != null) {
-            battles.leaveAlone(held);
-        }
         gameWorldController.drop(held, tile, WorldUtils.pointToVector2f(tile), null, keeperAi.playerId);
+        if (held.equals(playerController.getHandControl().peek())) {
+            Point fallback = battles.getNearestOwnOpenTile(keeperAi.playerId, tile, FALLBACK_DROP_TILES);
+            if (fallback != null && !fallback.equals(tile)) {
+                gameWorldController.drop(held, fallback, WorldUtils.pointToVector2f(fallback), null, keeperAi.playerId);
+                if (!held.equals(playerController.getHandControl().peek())) {
+                    decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", fallback,
+                            reason + "; its preferred tile would not accept it");
+                    if (creatureComponent != null) {
+                        battles.leaveAlone(held);
+                    }
+                    return true;
+                }
+            }
+        }
+        if (!held.equals(playerController.getHandControl().peek())) {
+            decisionLog.log(keeperAi, "drop " + held.getId() + " from its hand", tile, reason);
+            if (creatureComponent != null) {
+                battles.leaveAlone(held);
+            }
+            return true;
+        }
 
-        return true;
+        return false;
     }
 
     /**
