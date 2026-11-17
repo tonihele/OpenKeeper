@@ -186,7 +186,8 @@ class KeeperAiSystemTest {
             'P', terrain((short) 6, flags(TerrainFlag.OWNABLE, TerrainFlag.ROOM), 0, 0, 0, (short) 0),
             'E', terrain((short) 7, flags(TerrainFlag.OWNABLE), 0, 0, 0, (short) 0),
             'W', terrain((short) 8, flags(TerrainFlag.WATER), 0, 0, 0, (short) 0),
-            'L', terrain((short) 9, flags(TerrainFlag.LAVA), 0, 0, 0, (short) 0));
+            'L', terrain((short) 9, flags(TerrainFlag.LAVA), 0, 0, 0, (short) 0),
+            'D', terrain((short) 10, flags(), 0, 1, 660, (short) 4));
     private final Set<Point> tagged = new HashSet<>();
     private final List<Point> built = new ArrayList<>();
     private final List<Short> builtRoomIds = new ArrayList<>();
@@ -319,6 +320,30 @@ class KeeperAiSystemTest {
         }
 
         // It gave up on the 16 tiles and built 3 by 3, the next room is looked for at its full size again
+        assertEquals(9, built.size());
+        assertEquals(0, getKeeperAi().roomSitesNotFound);
+    }
+
+    @Test
+    void leavesLessGapBetweenRoomsWhenNoSmallestRoomFits() {
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 2, 30, 0, List.of(TREASURY)), 1000);
+        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
+
+        // Rock that can't be dug leaves no site with a gap between the rooms, as on Level 14 (#1259)
+        for (int i = 1; i <= 9; i++) {
+            map[i][8] = 'X';
+            map[1][i] = 'X';
+        }
+
+        for (int tick = 0; tick < 4000 && built.size() < 9; tick++) {
+            system.processTick(0.25f);
+            for (Point p : tagged) {
+                map[p.y][p.x] = '.';
+            }
+            tagged.clear();
+        }
+
+        // Right next to the heart a 3 by 3 room fits. Its open sides don't count then, as for a computer player that leaves no gap
         assertEquals(9, built.size());
         assertEquals(0, getKeeperAi().roomSitesNotFound);
     }
@@ -1677,9 +1702,24 @@ class KeeperAiSystemTest {
     void findsARoomSiteBehindTheGap() {
         KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 9, 1, 50, 0, List.of()));
 
-        KeeperAiRoomSiteFinder.RoomSite site = finder.find(HEART, EAST, 9);
+        KeeperAiRoomSiteFinder.RoomSite site = finder.find(HEART, EAST, 9, 1);
 
         assertEquals(new Point(6, 6), site.entrance());
+        assertEquals(new Point(6, 7), site.corner());
+        assertEquals(new Point(8, 5), site.oppositeCorner());
+    }
+
+    @Test
+    void findsARoomSiteOnPathNobodyHasClaimed() {
+
+        // DK II takes terrain that is claimed at full health, a dirt path or a mana vault, as a site tile
+        for (int y = 5; y <= 7; y++) {
+            map[y][7] = 'D';
+        }
+
+        KeeperAiRoomSiteFinder.RoomSite site = new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 9, 1, 50, 0, List.of()))
+                .find(HEART, EAST, 9, 1);
+
         assertEquals(new Point(6, 7), site.corner());
         assertEquals(new Point(8, 5), site.oppositeCorner());
     }
@@ -1688,20 +1728,20 @@ class KeeperAiSystemTest {
     void roomSiteGetsOneMoreRowWhenTheSizeIsNotSquare() {
         KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 12, 1, 50, 0, List.of()));
 
-        KeeperAiRoomSiteFinder.RoomSite site = finder.find(HEART, EAST, 12);
+        KeeperAiRoomSiteFinder.RoomSite site = finder.find(HEART, EAST, 12, 1);
 
         assertEquals(new Point(6, 7), site.corner());
         assertEquals(new Point(9, 5), site.oppositeCorner());
 
         // There is no room for a fourth row between the heart and the edge of the map
-        assertNull(finder.find(HEART, NORTH, 12));
+        assertNull(finder.find(HEART, NORTH, 12, 1));
     }
 
     @Test
     void roomSiteStaysSquareWhenNoGapIsLeftBetweenRooms() {
         KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 12, 0, 50, 0, List.of()));
 
-        KeeperAiRoomSiteFinder.RoomSite site = finder.find(HEART, EAST, 12);
+        KeeperAiRoomSiteFinder.RoomSite site = finder.find(HEART, EAST, 12, 0);
 
         assertEquals(new Point(5, 7), site.corner());
         assertEquals(new Point(7, 5), site.oppositeCorner());
@@ -1711,15 +1751,15 @@ class KeeperAiSystemTest {
     void findsNoRoomSiteInImpenetrableRockOrOutsideTheBuildArea() {
         AI ai = ai(0, 0, 9, 1, 50, 0, List.of());
 
-        assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai).find(HEART, WEST, 9));
-        assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, withBuildAreaEndX(ai, 8)).find(HEART, EAST, 9));
+        assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai).find(HEART, WEST, 9, 1));
+        assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, withBuildAreaEndX(ai, 8)).find(HEART, EAST, 9, 1));
     }
 
     @Test
     void findsNoRoomSiteWithTooMuchOpenSpaceAroundIt() {
 
         // 5 of the 16 tiles around the site are claimed path
-        assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 9, 1, 30, 0, List.of())).find(HEART, EAST, 9));
+        assertNull(new KeeperAiRoomSiteFinder(mapController, PLAYER_ID, ai(0, 0, 9, 1, 30, 0, List.of())).find(HEART, EAST, 9, 1));
     }
 
     @Test
