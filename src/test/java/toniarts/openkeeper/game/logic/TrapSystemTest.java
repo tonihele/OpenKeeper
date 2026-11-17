@@ -45,7 +45,6 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
-import toniarts.openkeeper.game.controller.trap.ITrapEffects;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -88,7 +87,6 @@ class TrapSystemTest {
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
-    private int effectUpdates;
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
     private double gameTime = 0;
@@ -456,17 +454,6 @@ class TrapSystemTest {
     }
 
     @Test
-    void effectsAreKeptUpToDateWhenNoTrapFires() {
-        addTrap(SENTRY, TRAP_TILE);
-
-        tick();
-        tick();
-
-        assertTrue(shots.isEmpty());
-        assertEquals(2, effectUpdates);
-    }
-
-    @Test
     void hiddenTrapShowsItselfWhenItFires() {
         EntityId trap = addHiddenTrap(GAS, TRAP_TILE);
         addCreature(IMP, ENEMY, 10, 10);
@@ -522,18 +509,10 @@ class TrapSystemTest {
         assertTrue(entityData.getComponent(trap, TrapViewState.class).hidden);
     }
 
-    @Test
-    void lineOfSightIsBlockedByWallsBetween() {
-        walls.add(new Point(11, 11));
-
-        assertTrue(TrapSystem.hasLineOfSight(this::isWall, new Vector3f(10, 1, 10), new Vector3f(10, 1, 13)));
-        assertFalse(TrapSystem.hasLineOfSight(this::isWall, new Vector3f(10, 1, 10), new Vector3f(12, 1, 12)));
-    }
-
     private void tick() {
         if (trapSystem == null) {
-            trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, this::isWall, positionLookup(),
-                    playerControllers(), effects(), shotsController());
+            trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, positionLookup(), playerControllers(),
+                    shotsController());
         }
         trapSystem.processTick(0.25f);
     }
@@ -569,23 +548,20 @@ class TrapSystemTest {
         return entityId;
     }
 
-    private boolean isWall(int x, int y) {
-        return walls.contains(new Point(x, y));
-    }
-
-    private ITrapEffects effects() {
-        return new ITrapEffects() {
-
-            @Override
-            public void fire(Trap trap, short ownerId, Vector3f origin, EntityId target) {
-                shots.add(new Fired(trap.getTrapId(), target));
+    /**
+     * The real line of sight is the position system's, here a wall anywhere
+     * between the two tiles blocks it
+     */
+    private boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        Point start = WorldUtils.vectorToPoint(from);
+        Point end = WorldUtils.vectorToPoint(to);
+        for (Point wall : walls) {
+            if (wall.x >= Math.min(start.x, end.x) && wall.x <= Math.max(start.x, end.x)
+                    && wall.y >= Math.min(start.y, end.y) && wall.y <= Math.max(start.y, end.y)) {
+                return false;
             }
-
-            @Override
-            public void update() {
-                effectUpdates++;
-            }
-        };
+        }
+        return true;
     }
 
     private IEntityPositionLookup positionLookup() {
@@ -594,6 +570,9 @@ class TrapSystemTest {
                     if (method.getName().equals("getEntitiesInLocation")) {
                         Point tile = args.length == 2 ? new Point((Integer) args[0], (Integer) args[1]) : (Point) args[0];
                         return entitiesOn(tile);
+                    }
+                    if (method.getName().equals("hasLineOfSight")) {
+                        return hasLineOfSight((Vector3f) args[0], (Vector3f) args[1]);
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });
@@ -618,6 +597,13 @@ class TrapSystemTest {
                             flyingShots.add(args);
                         }
                         return shotsFly;
+                    }
+                    if (method.getName().equals("createShot")) {
+
+                        // The shots that hit at once, every trap here has a shot of its own
+                        Trap trap = traps.values().stream().filter(t -> t.getShotTypeId() == (Short) args[0]).findFirst().orElseThrow();
+                        shots.add(new Fired(trap.getTrapId(), (EntityId) args[5]));
+                        return null;
                     }
                     throw new UnsupportedOperationException(method.getName());
                 });

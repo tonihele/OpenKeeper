@@ -17,17 +17,23 @@
 package toniarts.openkeeper.game.controller.room;
 
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.HashSet;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CombatPitFighter;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static toniarts.openkeeper.tools.convert.map.CombatPitFixtures.pitRoom;
 
@@ -66,13 +72,80 @@ class CombatPitControllerTest {
         assertTrue(tiles.stream().allMatch(pit::isFightingTile));
     }
 
-    private static CombatPitController buildPit(int size) {
+    @Test
+    void prisonerDroppedIntoThePitFightsHeldByThePitsKeeper() {
         EntityData entityData = new DefaultEntityData();
+        CombatPitController pit = buildPit(entityData, 5);
+        EntityId prisoner = creature(entityData, Player.KEEPER2_ID, false);
+        EntityId own = creature(entityData, Player.KEEPER1_ID, false);
+
+        assertTrue(pit.addFighter(prisoner, new Point(3, 3)));
+        assertTrue(pit.addFighter(own, new Point(2, 4)));
+
+        assertEquals(pit.getEntityId(), entityData.getComponent(prisoner, CombatPitFighter.class).pit);
+        assertEquals(Player.KEEPER2_ID, entityData.getComponent(prisoner, Owner.class).ownerId);
+        assertEquals(Player.KEEPER1_ID, entityData.getComponent(prisoner, Owner.class).controlId);
+        assertEquals(Player.KEEPER1_ID, entityData.getComponent(own, Owner.class).controlId);
+    }
+
+    @Test
+    void edgeOfThePitAndWorkersTakeNoFight() {
+        EntityData entityData = new DefaultEntityData();
+        CombatPitController pit = buildPit(entityData, 5);
+        EntityId prisoner = creature(entityData, Player.KEEPER2_ID, false);
+        EntityId imp = creature(entityData, Player.KEEPER2_ID, true);
+
+        assertFalse(pit.addFighter(prisoner, new Point(1, 3)));
+        assertFalse(pit.addFighter(imp, new Point(3, 3)));
+
+        assertNull(entityData.getComponent(prisoner, CombatPitFighter.class));
+        assertEquals(Player.KEEPER2_ID, entityData.getComponent(prisoner, Owner.class).controlId);
+        assertNull(entityData.getComponent(imp, CombatPitFighter.class));
+    }
+
+    @Test
+    void fightersOfARemovedOrCapturedPitWalkFree() {
+        EntityData entityData = new DefaultEntityData();
+        CombatPitController removed = buildPit(entityData, 5);
+        CombatPitController captured = buildPit(entityData, 5);
+        CombatPitController other = buildPit(entityData, 5);
+        EntityId prisoner = creature(entityData, Player.KEEPER2_ID, false);
+        EntityId secondPrisoner = creature(entityData, Player.KEEPER2_ID, false);
+        EntityId elsewhere = creature(entityData, Player.KEEPER2_ID, false);
+        removed.addFighter(prisoner, new Point(3, 3));
+        captured.addFighter(secondPrisoner, new Point(3, 3));
+        other.addFighter(elsewhere, new Point(3, 3));
+
+        removed.remove();
+        captured.captured(Player.KEEPER3_ID);
+
+        for (EntityId freed : new EntityId[]{prisoner, secondPrisoner}) {
+            assertNull(entityData.getComponent(freed, CombatPitFighter.class));
+            assertEquals(Player.KEEPER2_ID, entityData.getComponent(freed, Owner.class).controlId);
+        }
+        assertEquals(other.getEntityId(), entityData.getComponent(elsewhere, CombatPitFighter.class).pit);
+        assertEquals(Player.KEEPER1_ID, entityData.getComponent(elsewhere, Owner.class).controlId);
+    }
+
+    private static EntityId creature(EntityData entityData, short ownerId, boolean worker) {
+        EntityId creature = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.worker = worker;
+        entityData.setComponents(creature, creatureComponent, new Owner(ownerId, ownerId));
+        return creature;
+    }
+
+    private static CombatPitController buildPit(int size) {
+        return buildPit(new DefaultEntityData(), size);
+    }
+
+    private static CombatPitController buildPit(EntityData entityData, int size) {
         IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(
                 IObjectsController.class.getClassLoader(),
                 new Class<?>[]{IObjectsController.class},
                 (proxy, method, args) -> method.getName().equals("loadObject") ? entityData.createEntity() : null);
         RoomInstance roomInstance = new RoomInstance(pitRoom());
+        roomInstance.setOwnerId(Player.KEEPER1_ID);
         for (int x = 1; x <= size; x++) {
             for (int y = 1; y <= size; y++) {
                 roomInstance.addCoordinate(new Point(x, y));
