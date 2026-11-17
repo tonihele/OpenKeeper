@@ -208,8 +208,8 @@ public final class KeeperAi implements EntityComponent {
 
     /**
      * The targets of the last paths it could not dig to the end, and for
-     * each the game ticks until it may pick that neutral room again. DK II
-     * keeps no such list and picks the same room each time it plans
+     * each the game ticks until it may pick that neutral room or gold seam
+     * again. DK II keeps no such list and picks the same one each time
      */
     public Point[] failedTargets = new Point[4];
     public int[] failedTargetTicks = new int[4];
