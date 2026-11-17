@@ -388,6 +388,7 @@ class CreatureTorturingSystemTest {
                     case "getEntityId" -> roomEntities.computeIfAbsent(roomInstance, room -> entityData.createEntity());
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
+    }
 
     @Test
     void victimDiesInsteadOfJoiningByTheChanceOfDying() {
