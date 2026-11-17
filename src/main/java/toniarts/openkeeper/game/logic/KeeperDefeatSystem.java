@@ -23,27 +23,36 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
+import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Point;
 
 /**
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
- * he is marked destroyed, loses the game and his heart room is left in ruins.
+ * he is marked destroyed, loses the game, his heart room is left in ruins,
+ * his land goes back to nobody and his imps die.
  * In a skirmish or multiplayer game the last keeper standing wins. In the
  * campaign, a level can have the last enemy heart leave a Portal Gem.
  */
@@ -126,6 +135,8 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
         ruinHeartRoom(keeper);
+        abandonLand(keeper.getId());
+        killImps(keeper.getId());
         if (!isAi(keeper)) {
             gameController.endGame(keeper.getId(), false);
         }
@@ -161,7 +172,60 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
         IRoomController room = mapController.getRoomControllerByCoordinates(keeper.getDungeonHeartLocation());
         if (room != null && room.isDungeonHeart()) {
-            room.destroy();
+
+            // The ruined heart no longer stores gold, what it held is no longer the keeper's
+            synchronized (GameWorldController.GOLD_LOCK) {
+                PlayerGoldControl goldControl = gameController.getPlayerControllers().get(keeper.getId()).getGoldControl();
+                goldControl.subGold(room.getUsedCapacity(ObjectType.GOLD));
+                goldControl.setGoldMax(goldControl.getGoldMax() - room.getMaxCapacity(ObjectType.GOLD));
+                room.destroy();
+            }
+        }
+    }
+
+    /**
+     * Nobody holds the land of a defeated keeper. His rooms, all but the ruined
+     * heart, become neutral and his other tiles lose their claim, a reinforced
+     * wall turning back into rock and a claimed path into a dirt path
+     *
+     * @param keeperId the defeated keeper
+     */
+    private void abandonLand(short keeperId) {
+        Set<IRoomController> rooms = new HashSet<>();
+        for (IMapTileController tile : mapController.getMapData()) {
+            if (tile.getOwnerId() != keeperId) {
+                continue;
+            }
+
+            IRoomController room = mapController.getRoomControllerByCoordinates(tile.getLocation());
+            if (room != null) {
+                if (!room.isDungeonHeart()) {
+                    rooms.add(room);
+                }
+                continue;
+            }
+
+            Terrain terrain = mapController.getTerrain(tile);
+            short terrainId = terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) ? terrain.getDestroyedTypeTerrainId() : terrain.getTerrainId();
+            mapController.alterTerrain(tile.getLocation(), terrainId, Player.NEUTRAL_PLAYER_ID);
+        }
+
+        for (IRoomController room : rooms) {
+            mapController.transferRoom(room, Player.NEUTRAL_PLAYER_ID);
+        }
+    }
+
+    /**
+     * The imps of a defeated keeper die, so that nobody claims his land back.
+     * DK II deals each of them damage equal to its health
+     *
+     * @param keeperId the defeated keeper
+     */
+    private void killImps(short keeperId) {
+        for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class, Health.class)) {
+            if (entityData.getComponent(creature, CreatureComponent.class).worker) {
+                EntityController.setDamage(entityData, creature, entityData.getComponent(creature, Health.class).health);
+            }
         }
     }
 
