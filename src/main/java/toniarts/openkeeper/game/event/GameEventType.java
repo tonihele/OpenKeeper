@@ -120,6 +120,9 @@ public enum GameEventType {
      */
     SACRIFICE_SPEECH,
 
+    /** An eligible Portal has started its creature attraction build-up. */
+    PORTAL_PREPARING,
+
     // The Casino
     /**
      * A gambler became the big winner, the place is the winner's
