@@ -72,6 +72,10 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_LEVEL_UP, event.position);
             case CREATURE_LAND ->
                 add(sounds, subject, ThingSounds.CREATURE_LAND, event.position);
+            case CREATURE_TELEPORT_OUT ->
+                add(sounds, subject, ThingSounds.CREATURE_TELEPORT_OUT, event.position);
+            case CREATURE_TELEPORT_IN ->
+                add(sounds, subject, ThingSounds.CREATURE_TELEPORT_IN, event.position);
             case GRAVEYARD_VAMPIRE_RISEN ->
                 add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null);
             case CREATURE_HURT ->
