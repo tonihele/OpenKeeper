@@ -116,6 +116,13 @@ class CreatureSeparationTest {
 
         // A quarter of the radii apart: 1/(d/R) - 1 = 3 instead of 1/sqrt(d/R) - 1 = 1
         assertEquals(3 * push, entityData.getComponent(walker, SeparationPush.class).push.length(), 0.001f);
+
+        // Only between its blows, while it swings or casts it pushes like any other
+        for (CreatureState state : new CreatureState[]{CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL}) {
+            entityData.setComponent(standing, new CreatureAi(0, state, KNIGHT));
+            separationSystem.processTick(1 / 4f);
+            assertEquals(push, entityData.getComponent(walker, SeparationPush.class).push.length(), 0.001f);
+        }
     }
 
     @Test

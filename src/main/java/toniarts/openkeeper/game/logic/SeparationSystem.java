@@ -22,7 +22,6 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.util.EnumSet;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Mobile;
@@ -65,12 +64,6 @@ public final class SeparationSystem implements IGameLogicUpdatable {
      * DK II weighs the separation 0.13 and the path following 0.35 (0x4D56E0)
      */
     private static final float SEPARATION_WEIGHT = 0x2147 / (float) 0x5999;
-
-    /**
-     * A creature stands its ground while it fights a target in reach (the
-     * fight state 0x45F030 sets the blocker flag +0x232 0x80)
-     */
-    private static final EnumSet<CreatureState> FIGHTING = EnumSet.of(CreatureState.FIGHT, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL);
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
@@ -191,8 +184,10 @@ public final class SeparationSystem implements IGameLogicUpdatable {
 
     /**
      * Does the creature stand its ground against the separation of others. DK
-     * II marks a creature that fights a target in reach (0x45F030) and the
-     * Horned Reaper always (0x488930).
+     * II marks the Horned Reaper always (0x488930), and a creature that fights
+     * a target in reach only between its blows: the fight state clears the
+     * blocker flag (+0x232 0x80) every turn and sets it again only when no
+     * swing or cast is running (0x45F030, 0x496D00).
      *
      * @param entityId the creature
      * @param creature its type
@@ -203,7 +198,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
             return true;
         }
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
-        if (creatureAi == null || !FIGHTING.contains(creatureAi.getCreatureState())) {
+        if (creatureAi == null || creatureAi.getCreatureState() != CreatureState.FIGHT) {
             return false;
         }
 
