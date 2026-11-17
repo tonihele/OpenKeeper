@@ -111,8 +111,8 @@ public final class CallToArmsSystem implements IGameLogicUpdatable {
         bannerObject = kwdFile.getObject(ObjectsController.OBJECT_CALL_TO_ARMS_ID);
         upgradedUpkeepPercentage = (int) kwdFile.getVariables().get(Variable.MiscVariable.MiscType.UPGRADED_CALL_TO_ARMS_COST_PERCENTAGE).getValue();
 
-        // The original's Horned Reaper is in his own states whenever he isn't fighting, and those can't change
-        // to answering the banner (0x4BDDA0, 0x476D30), so he never answers
+        // The original's Horned Reaper is in its own states whenever it isn't fighting, and those can't change
+        // to answering the banner (0x4BDDA0, 0x476D30), so it never answers
         reaperIds = kwdFile.getCreatureList().stream()
                 .filter(creature -> creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY))
                 .map(Creature::getCreatureId).collect(Collectors.toSet());

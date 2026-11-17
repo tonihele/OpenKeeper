@@ -135,7 +135,7 @@ class CallToArmsSystemTest {
     @Test
     void theHornedReaperDoesNotAnswer() {
 
-        // Out of a fight he is in his own states, which can't change to answering the banner (0x4BDDA0, 0x476D30)
+        // Out of a fight it is in its own states, which can't change to answering the banner (0x4BDDA0, 0x476D30)
         EntityId fighter = creature(PLAYER_ID, false, CreatureState.IDLE);
         creature(PLAYER_ID, false, REAPER_ID, CreatureState.IDLE);
         creature(PLAYER_ID, false, REAPER_ID, CreatureState.WANDER);
