@@ -87,6 +87,7 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.GAS_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_CLOUD_ID));
         shotsById.put(ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile());
         shotsById.put(ShotFixtures.GAS_MISSILE_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_MISSILE_CLOUD_ID));
+        shotsById.put(ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
@@ -247,6 +248,22 @@ class ShotsControllerTest {
     }
 
     @Test
+    void hitDoesTheShotsProcessOnlyIfTheShotIsMadeTo() {
+        EntityId target = createCreature();
+        EntityId shot = entityData.createEntity();
+        entityData.setComponent(shot, new ShotFlight(HEAL_ID, PLAYER_ID, null, target, 50, 0, new Vector3f(), new Vector3f(), 0, 1));
+
+        shotsController.hit(shot, target);
+        assertNull(entityData.getComponent(target, Damage.class));
+
+        // Modify Health heals what it hits, as in the original data
+        shotsById.put(HEAL_ID, ShotFixtures.shot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH, 0,
+                EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
+        shotsController.hit(shot, target);
+        assertEquals(-50, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
     void shotThatHitsAThingHurtsItsTargetAtOnce() {
         EntityId target = createCreature(ENEMY_ID, 13, 10);
         EntityId bystander = createCreature(ENEMY_ID, 13, 10);
@@ -322,6 +339,22 @@ class ShotsControllerTest {
     }
 
     @Test
+    void creatureHailStormIsAShotThatStandsStillUntilItGoesOntoItsTarget() {
+        EntityId target = createCreature();
+        EntityId mistress = createCreature(PLAYER_ID, 1.5f, 4.5f);
+
+        assertTrue(shotsController.fireShot(ShotFixtures.HAIL_STORM_ID, 10, 2, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                mistress, 4));
+
+        ShotFlight flight = getShotFlight();
+        assertEquals(0, flight.velocity.length(), DELTA);
+        assertEquals(target, flight.target);
+        assertEquals(10, flight.shotData1);
+        assertEquals(2, flight.shotData2);
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void childShotStaysWhereItsParentIsWithTheParentsValues() {
         EntityId target = createCreature();
         EntityId bileDemon = createCreature(PLAYER_ID, 1.5f, 4.5f);
@@ -336,6 +369,7 @@ class ShotsControllerTest {
         assertEquals(1, flight.shotData2);
         assertEquals(PLAYER_ID, flight.ownerId);
         assertEquals(bileDemon, flight.shooter);
+        assertEquals(target, flight.target);
         assertEquals(Vector3f.ZERO, flight.velocity);
         assertEquals(5, flight.health);
         assertEquals(new Vector3f(1.5f, 1f, 2f), entityData.getComponent(cloud, Position.class).position);
@@ -348,7 +382,7 @@ class ShotsControllerTest {
         EntityId halfway = createCreature(ENEMY_ID, 10.5f, 10);
         EntityId own = createCreature(PLAYER_ID, 10, 10);
         EntityId missile = entityData.createEntity();
-        entityData.setComponent(missile, new ShotFlight(ShotFixtures.GAS_MISSILE_ID, PLAYER_ID, null, 100, 1, new Vector3f(),
+        entityData.setComponent(missile, new ShotFlight(ShotFixtures.GAS_MISSILE_ID, PLAYER_ID, null, null, 100, 1, new Vector3f(),
                 new Vector3f(), 0, 16));
         shotsController.createChildShot(missile, ShotFixtures.GAS_MISSILE_CLOUD_ID, new Vector3f(10, 1, 10));
         EntityId cloud = entityData.findEntity(new FieldFilter<>(ShotFlight.class, "shotId", ShotFixtures.GAS_MISSILE_CLOUD_ID), ShotFlight.class);
