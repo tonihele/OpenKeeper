@@ -68,6 +68,7 @@ class CreatureSupportSpellTest {
     private static final short KEEPER = Player.KEEPER1_ID;
     private static final short HEAL_SPELL_ID = 14;
     private static final short HEAL_SHOT_ID = 53;
+    private static final short MODIFY_HEALTH_SHOT_ID = 4;
     private static final int HEAL_AMOUNT = 3000;
     private static final float RECHARGE = 2.5f;
     private static final float RANGE = 3f;
@@ -76,6 +77,8 @@ class CreatureSupportSpellTest {
     private EntityData entityData;
     private List<EntityId> sensedEntities;
     private List<Object[]> shots;
+    private List<Object[]> firedShots;
+    private Shot shot;
     private double gameTime;
     private EntityId us;
     private EntityId spell;
@@ -85,6 +88,8 @@ class CreatureSupportSpellTest {
         entityData = new DefaultEntityData();
         sensedEntities = new ArrayList<>();
         shots = new ArrayList<>();
+        firedShots = new ArrayList<>();
+        shot = ShotFixtures.healInstantShot(HEAL_SHOT_ID, MODIFY_HEALTH_SHOT_ID);
         gameTime = 10;
 
         us = createFighter(KEEPER, new Vector3f(5, 0, 5), 1000);
@@ -129,9 +134,10 @@ class CreatureSupportSpellTest {
     @Test
     void aShotThatFliesHitsItsOwnCasterAtOnce() {
         entityData.setComponent(us, new Health(100, 1000));
+        shot = ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.MODIFY_HEALTH);
 
         CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HEAL,
-                createShotsController(ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.MODIFY_HEALTH)));
+                createShotsController(shot));
         assertTrue(controller.castSupportSpell());
 
         gameTime += SHOT_DELAY;
@@ -140,6 +146,19 @@ class CreatureSupportSpellTest {
         // No shot is left to fly: a flying shot never hits the creature that shot it
         assertNull(entityData.findEntity(null, ShotFlight.class));
         assertEquals(-HEAL_AMOUNT, entityData.getComponent(us, Damage.class).damage);
+    }
+
+    @Test
+    void anInstantShotOnItsOwnCasterIsFiredLikeAnyOther() {
+        entityData.setComponent(us, new Health(100, 1000));
+        CreatureController controller = createController();
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        assertEquals(1, firedShots.size());
+        assertEquals(us, firedShots.get(0)[5]);
     }
 
     @Test
@@ -232,6 +251,8 @@ class CreatureSupportSpellTest {
         return createController(flags, alternativeShot, stub(IShotsController.class, (name, args) -> {
             if (name.equals("createShot")) {
                 shots.add(args);
+            } else if (name.equals("fireShot")) {
+                firedShots.add(args);
             }
             return null;
         }));
@@ -258,7 +279,14 @@ class CreatureSupportSpellTest {
         IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class,
                 (name, args) -> "getSensedEntities".equals(name) ? new HashSet<>(sensedEntities) : null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> name.equals("getLevelData")
-                ? stub(IKwdFile.class, (kwdName, kwdArgs) -> kwdName.equals("getCreatureSpellById") ? creatureSpell : null) : null);
+                ? stub(IKwdFile.class, (kwdName, kwdArgs) -> switch (kwdName) {
+                    case "getCreatureSpellById" ->
+                        creatureSpell;
+                    case "getShotById" ->
+                        shot;
+                    default ->
+                        null;
+                }) : null);
         return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), null, null, gameTimer, new HashMap<>(), null,
                 positionLookup, null, levelInfo, null, shotsController, stub(GameEventService.class, (name, args) -> null));
     }
