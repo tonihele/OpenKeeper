@@ -54,11 +54,6 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
 
-    /**
-     * How far apart, in tiles, the line of sight is checked for walls
-     */
-    private static final float LINE_OF_SIGHT_STEP = 0.25f;
-
     private final EntityData entityData;
     private final IMapController mapController;
     private final IObjectsController objectsController;
@@ -402,17 +397,41 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         return tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
     }
 
+    /**
+     * Like DK II, goes along the line from tile to tile and checks every tile
+     * it enters. Where the line passes exactly through a corner, both tiles
+     * beside the corner block it too (DKII.EXE 0x4512F0).
+     */
     @Override
     public boolean hasLineOfSight(Vector3f from, Vector3f to) {
         Point startTile = WorldUtils.vectorToPoint(from);
-        Point endTile = WorldUtils.vectorToPoint(to);
+        int x = startTile.x;
+        int y = startTile.y;
         float dx = to.x - from.x;
         float dz = to.z - from.z;
-        int steps = (int) Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / LINE_OF_SIGHT_STEP);
-        for (int i = 1; i < steps; i++) {
-            float progress = (float) i / steps;
-            Point tile = WorldUtils.vectorToPoint(from.x + dx * progress, from.z + dz * progress);
-            if (!tile.equals(startTile) && !tile.equals(endTile) && blocksSenses(mapController.getMapData().getTile(tile))) {
+        int stepX = dx > 0 ? 1 : -1;
+        int stepY = dz > 0 ? 1 : -1;
+
+        // How far along the line the next tile edge on each axis is, 1 being the whole line
+        float edgeX = dx == 0 ? Float.MAX_VALUE : ((x + stepX * 0.5f) * WorldUtils.TILE_WIDTH - from.x) / dx;
+        float edgeY = dz == 0 ? Float.MAX_VALUE : ((y + stepY * 0.5f) * WorldUtils.TILE_WIDTH - from.z) / dz;
+        var mapData = mapController.getMapData();
+        while (edgeX < 1 || edgeY < 1) {
+            boolean crossesX = edgeX <= edgeY;
+            boolean crossesY = edgeY <= edgeX;
+            if (crossesX && crossesY
+                    && (blocksSenses(mapData.getTile(x + stepX, y)) || blocksSenses(mapData.getTile(x, y + stepY)))) {
+                return false;
+            }
+            if (crossesX) {
+                x += stepX;
+                edgeX += WorldUtils.TILE_WIDTH / Math.abs(dx);
+            }
+            if (crossesY) {
+                y += stepY;
+                edgeY += WorldUtils.TILE_WIDTH / Math.abs(dz);
+            }
+            if (blocksSenses(mapData.getTile(x, y))) {
                 return false;
             }
         }

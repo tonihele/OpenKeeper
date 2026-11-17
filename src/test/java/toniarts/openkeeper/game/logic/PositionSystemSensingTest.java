@@ -79,8 +79,21 @@ public class PositionSystemSensingTest {
         assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 0), WorldUtils.pointToVector3f(2, 2)));
         assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(1, 2), WorldUtils.pointToVector3f(3, 2)));
 
-        // Standing next to the wall or in it doesn't block, only what is in between
-        assertTrue(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 1), WorldUtils.pointToVector3f(1, 1)));
+        // The tile it starts on doesn't count, the tile it ends on does, like in DK II
+        assertTrue(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(1, 1), WorldUtils.pointToVector3f(0, 1)));
+        assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 1), WorldUtils.pointToVector3f(1, 1)));
+    }
+
+    @Test
+    public void lineOfSightThroughACornerIsBlockedByEitherTileBesideIt() {
+        PositionSystem positionSystem = new PositionSystem(createMapController(), entityData, null, null, null);
+
+        // The line goes through the corner between (1, 1), which is solid, and (0, 2)
+        assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(1, 2), WorldUtils.pointToVector3f(0, 1)));
+        assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 1), WorldUtils.pointToVector3f(1, 2)));
+
+        // Just off the corner it only passes through (0, 2)
+        assertTrue(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(1, 2), new Vector3f(0, 0, 1.1f)));
     }
 
     @Test

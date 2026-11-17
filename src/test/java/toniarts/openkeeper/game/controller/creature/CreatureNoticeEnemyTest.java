@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.logic.PositionSystem;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -46,6 +47,8 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -58,6 +61,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * like DK II
  */
 class CreatureNoticeEnemyTest {
+
+    private static final int MAP_SIZE = 30;
+    private static final Terrain FLOOR = TerrainFixtures.terrain((short) 1, TerrainFixtures.flags(), 0, 0, 0, (short) 0);
+    private static final Terrain ROCK = TerrainFixtures.terrain((short) 2, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID), 0, 0, 0, (short) 0);
 
     private final EntityData data = new DefaultEntityData();
     private final Set<Point> walls = new HashSet<>();
@@ -152,9 +159,20 @@ class CreatureNoticeEnemyTest {
     private EntityId attackTarget(EntityId hero) {
         Point heroTile = WorldUtils.vectorToPoint(data.getComponent(hero, Position.class).position);
         Point enemyTile = WorldUtils.vectorToPoint(data.getComponent(enemy, Position.class).position);
+        IMapDataInformation<?> mapData = proxy(IMapDataInformation.class, (method, args) -> switch (method) {
+            case "getWidth", "getHeight" -> MAP_SIZE;
+            default -> tile(args.length == 1 ? (Point) args[0] : new Point((int) args[0], (int) args[1]));
+        });
+        IMapController mapController = proxy(IMapController.class, (method, args) -> switch (method) {
+            case "getTerrain" -> walls.contains(((IMapTileInformation) args[0]).getLocation()) ? ROCK : FLOOR;
+            case "getMapData" -> mapData;
+            default -> throw new UnsupportedOperationException(method);
+        });
+        PositionSystem positionSystem = new PositionSystem(mapController, data, null, null, null);
         IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
             case "getEntityLocation" -> tile(heroTile);
             case "getEntitiesInLocation" -> ((IMapTileInformation) args[0]).getLocation().equals(enemyTile) ? List.of(enemy) : List.of();
+            case "hasLineOfSight" -> positionSystem.hasLineOfSight((Vector3f) args[0], (Vector3f) args[1]);
 
             // The sensed area spreads four steps along the map axes
             case "getSensedEntities" -> Math.abs(enemyTile.x - heroTile.x) + Math.abs(enemyTile.y - heroTile.y) <= 4 ? Set.of(enemy) : Set.of();
@@ -175,12 +193,6 @@ class CreatureNoticeEnemyTest {
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> switch (method) {
             case "getPlayer" -> heroes;
             case "getLevelData" -> proxy(IKwdFile.class, (m, a) -> enemyData);
-            default -> throw new UnsupportedOperationException(method);
-        });
-        IMapDataInformation<?> mapData = proxy(IMapDataInformation.class, (method, args) -> tile(new Point((int) args[0], (int) args[1])));
-        IMapController mapController = proxy(IMapController.class, (method, args) -> switch (method) {
-            case "isSolid" -> walls.contains((Point) args[0]);
-            case "getMapData" -> mapData;
             default -> throw new UnsupportedOperationException(method);
         });
         INavigationService navigationService = proxy(INavigationService.class, (method, args) -> switch (method) {

@@ -143,8 +143,8 @@ public interface IEntityPositionLookup {
 
     /**
      * Checks if there is a straight line of sight between two points on the
-     * map, with no tile that blocks the senses in between. The tiles the
-     * points are on don't count
+     * map, with no tile that blocks the senses in the way. The tile it starts
+     * on doesn't count, the tile it ends on does
      *
      * @param from the point to look from
      * @param to the point to look at
