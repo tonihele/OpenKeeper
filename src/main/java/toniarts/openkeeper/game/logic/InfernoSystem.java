@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InfernoArea;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -57,12 +58,13 @@ public final class InfernoSystem implements IGameLogicUpdatable {
 
         for (Entity fire : fires) {
             InfernoArea area = fire.get(InfernoArea.class);
-            burn(area, fire.get(Position.class).position);
+            Owner owner = entityData.getComponent(fire.getId(), Owner.class);
+            burn(area, fire.get(Position.class).position, owner == null ? null : owner.ownerId);
             entityData.setComponent(fire.getId(), new InfernoArea(area.damage, area.radius, area.burns + 1));
         }
     }
 
-    private void burn(InfernoArea area, Vector3f centre) {
+    private void burn(InfernoArea area, Vector3f centre, Short playerId) {
 
         // The creatures on the tiles in reach that are closer than the radius. The first burn reaches only half the
         // area, as in the original
@@ -84,7 +86,7 @@ public final class InfernoSystem implements IGameLogicUpdatable {
                     float dx = position.position.x - centre.x;
                     float dz = position.position.z - centre.z;
                     if (dx * dx + dz * dz < reachSquared) {
-                        EntityController.setDamage(entityData, entityId, area.damage);
+                        EntityController.setDamage(entityData, entityId, area.damage, playerId);
                     }
                 }
             }

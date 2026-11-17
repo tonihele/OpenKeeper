@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureDeathCredit;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -163,6 +164,14 @@ public final class HealthSystem extends GameTimeCounter {
             // stops while the creature is carried (DKII.EXE 0x4599D0 skips the
             // tick when 0x4B5DE0 says it is being dragged)
             if (unconscious != null) {
+                Entity damaged = damageEntities.getEntity(entityId);
+                if (damaged != null) {
+                    // DK II updates attribution even when unconsciousness prevents
+                    // a health change (0x4B2CF3 / 0x4B2DEF). Consume the adjustment
+                    // now so it cannot be replayed after rescue.
+                    setCreatureDeathCredit(entityId, damaged.get(Damage.class).playerId);
+                    entityData.removeComponent(entityId, Damage.class);
+                }
                 if (entityData.getComponent(entityId, HauledBy.class) != null) {
                     entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
                 } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
@@ -176,6 +185,10 @@ public final class HealthSystem extends GameTimeCounter {
             if (health == null) {
                 continue;
             }
+            // Recovery cancels credit for a previous knockout.
+            if (health.health > 0) {
+                entityData.removeComponent(entityId, CreatureDeathCredit.class);
+            }
             delayAttacksWhenBadlyHurt(entityId, health, tpf);
 
             int healthChange = calculateHealthChange(entityId, health, timeElapsed, gameTime);
@@ -185,6 +198,11 @@ public final class HealthSystem extends GameTimeCounter {
 
             // Set new health or death
             if (health.health + healthChange <= 0) {
+                Entity damaged = damageEntities.getEntity(entityId);
+                Damage damage = damaged == null ? null : damaged.get(Damage.class);
+                if (damage != null && damage.damage > 0) {
+                    setCreatureDeathCredit(entityId, damage.playerId);
+                }
                 processHealthDepleted(entityId, health);
             } else {
                 entityData.setComponent(entityId, new Health(Math.min(health.health + healthChange, health.maxHealth), health.maxHealth));
@@ -227,6 +245,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            recordCreatureDeath(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
         }
@@ -411,6 +430,7 @@ public final class HealthSystem extends GameTimeCounter {
     private void processDeath(EntityId entityId) {
         if (entityData.getComponent(entityId, Death.class) == null
                 && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            recordCreatureDeath(entityId);
             gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
         }
         entityData.removeComponent(entityId, Health.class);
@@ -425,6 +445,32 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
         entityData.setComponent(entityId, new Death(timeElapsed));
+    }
+
+    private void setCreatureDeathCredit(EntityId entityId, Short playerId) {
+        if (playerId == null) {
+            entityData.removeComponent(entityId, CreatureDeathCredit.class);
+        } else {
+            entityData.setComponent(entityId, new CreatureDeathCredit(playerId));
+        }
+    }
+
+    private void recordCreatureDeath(EntityId entityId) {
+        CreatureDeathCredit credit = entityData.getComponent(entityId, CreatureDeathCredit.class);
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (creature != null && owner != null) {
+            // DK II increments the owner's total even when no killer is known (0x48832A).
+            IPlayerController victim = playerControllersById.get(owner.ownerId);
+            if (victim != null) {
+                victim.getStatsControl().creatureLost();
+            }
+            IPlayerController killer = credit == null ? null : playerControllersById.get(credit.playerId);
+            if (killer != null) {
+                killer.getStatsControl().creatureKilled(credit.playerId, owner.ownerId, creature.worker);
+            }
+        }
+        entityData.removeComponent(entityId, CreatureDeathCredit.class);
     }
 
     private void processAddedEntities(Set<Entity> entities) {

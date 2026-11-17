@@ -240,6 +240,7 @@ class ShotsControllerTest {
         shotsController.hit(shot, target);
 
         assertEquals(50, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(PLAYER_ID, entityData.getComponent(target, Damage.class).playerId);
     }
 
     @Test
@@ -252,6 +253,7 @@ class ShotsControllerTest {
         shotsController.createShot(DOOR_FIREBALL_ID, 150, 0, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
 
         assertEquals(300, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(PLAYER_ID, entityData.getComponent(target, Damage.class).playerId);
         assertNull(entityData.getComponent(bystander, Damage.class));
     }
 
@@ -266,6 +268,7 @@ class ShotsControllerTest {
         shotsController.createShot(SPIKE_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
         assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(PLAYER_ID, entityData.getComponent(target, Damage.class).playerId);
         assertEquals(750, entityData.getComponent(other, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(nextTile, Damage.class));
@@ -283,6 +286,7 @@ class ShotsControllerTest {
         shotsController.createShot(GAS_CLOUD_ID, 750, 1, PLAYER_ID, new Vector3f(10, 1, 10), target, null);
 
         assertEquals(750, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(PLAYER_ID, entityData.getComponent(target, Damage.class).playerId);
         assertEquals(750, entityData.getComponent(neutral, Damage.class).damage);
         assertNull(entityData.getComponent(own, Damage.class));
         assertNull(entityData.getComponent(diagonal, Damage.class));

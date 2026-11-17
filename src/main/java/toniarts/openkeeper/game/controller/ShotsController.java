@@ -128,7 +128,7 @@ public final class ShotsController implements IShotsController {
             }
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
-        result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1(), request.playerId()));
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
@@ -184,7 +184,7 @@ public final class ShotsController implements IShotsController {
     private void damage(ShotRequest request) {
         Shot.DamageType damageType = request.shot().getDamageType();
         if (damageType == Shot.DamageType.HIT_THING && request.target() != null) {
-            EntityController.setDamage(entityData, request.target(), request.shotData1());
+            EntityController.setDamage(entityData, request.target(), request.shotData1(), request.playerId());
         } else if (damageType == Shot.DamageType.CONSTANT) {
             damageCreatures(request, 0);
         } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN) {
@@ -217,7 +217,7 @@ public final class ShotsController implements IShotsController {
                     float dx = position.x - origin.x;
                     float dz = position.z - origin.z;
                     if (radius == 0 || dx * dx + dz * dz <= radius * radius) {
-                        EntityController.setDamage(entityData, entityId, request.shotData1());
+                        EntityController.setDamage(entityData, entityId, request.shotData1(), request.playerId());
                     }
                 }
             }
@@ -318,7 +318,7 @@ public final class ShotsController implements IShotsController {
 
         // The shot's data 1 is its damage (0x4AC420)
         if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
-            EntityController.setDamage(entityData, thing, flight.shotData1);
+            EntityController.setDamage(entityData, thing, flight.shotData1, flight.ownerId);
         }
 
         process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,

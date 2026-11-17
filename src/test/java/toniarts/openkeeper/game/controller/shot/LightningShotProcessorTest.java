@@ -106,6 +106,7 @@ class LightningShotProcessorTest {
         processor.process(strike(creature));
 
         assertEquals(DAMAGE, entityData.getComponent(creature, Damage.class).damage);
+        assertEquals(PLAYER_ID, entityData.getComponent(creature, Damage.class).playerId);
         assertTrue(knockedDown.contains(creature));
     }
 

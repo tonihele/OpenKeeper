@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InfernoArea;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFlagFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -64,10 +65,12 @@ class InfernoSystemTest {
     @Test
     void burnsEveryTick() {
         EntityId fire = fire(new Point(5, 5));
+        entityData.setComponent(fire, new Owner((short) 3, (short) 3));
         EntityId inTheFire = creature(new Point(5, 5));
 
         system.processTick(TICK);
         assertEquals(DAMAGE, damage(inTheFire));
+        assertEquals((short) 3, entityData.getComponent(inTheFire, Damage.class).playerId);
         system.processTick(TICK);
         assertEquals(2 * DAMAGE, damage(inTheFire));
         assertEquals(2, entityData.getComponent(fire, InfernoArea.class).burns);

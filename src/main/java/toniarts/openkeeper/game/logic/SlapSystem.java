@@ -163,7 +163,7 @@ public final class SlapSystem extends GameTimeCounter {
         // Damage
         int damage = creature.getAttributes().getSlapDamage();
         if (damage != 0) {
-            EntityController.setDamage(entityData, entity.getId(), damage);
+            EntityController.setDamage(entityData, entity.getId(), damage, ownerId);
         }
 
         // Mood

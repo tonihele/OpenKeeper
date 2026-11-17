@@ -28,12 +28,20 @@ public final class Damage implements EntityComponent {
 
     public int damage;
 
+    /** Player responsible for the latest health adjustment in this batch, null when unattributed. */
+    public Short playerId;
+
     public Damage() {
         // For serialization
     }
 
     public Damage(int damage) {
+        this(damage, null);
+    }
+
+    public Damage(int damage, Short playerId) {
         this.damage = damage;
+        this.playerId = playerId;
     }
 
 }

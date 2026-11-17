@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.shot;
 
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.Owner;
 import java.util.function.IntSupplier;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.InfernoArea;
@@ -53,6 +54,7 @@ public final class InfernoShotProcessor implements IShotProcessor {
         EntityId fire = ShotEntityFactory.create(entityData, request.shot(), request.position(), now);
         entityData.setComponent(fire, new Decay(now, getLifetime(request.shot())));
 
+        entityData.setComponent(fire, new Owner(request.playerId(), request.playerId()));
         entityData.setComponent(fire, new InfernoArea(request.shotData1(), request.shotData2(), 0));
     }
 

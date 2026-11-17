@@ -28,9 +28,39 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 public final class PlayerStatsControl {
 
     private int payDays;
+    private int enemyCreaturesKilled;
+    private int creaturesLost;
+    private final Map<Short, Integer> creaturesKilledByOwner = new HashMap<>();
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
+
+    /**
+     * Records an actual death, rather than a creature knocked unconscious.
+     * DK II's total excludes workers and own creatures; its per-owner counters
+     * include both (DKII.EXE 0x4882B6 and 0x4C7DF0).
+     */
+    public void creatureKilled(short killerId, short victimOwnerId, boolean worker) {
+        creaturesKilledByOwner.merge(victimOwnerId, 1, Integer::sum);
+        if (!worker && killerId != victimOwnerId) {
+            enemyCreaturesKilled++;
+        }
+    }
+
+    /** Victim player 0 selects the total, otherwise the selected owner's deaths. */
+    public int getCreaturesKilled(short victimOwnerId) {
+        return victimOwnerId == 0 ? enemyCreaturesKilled
+                : creaturesKilledByOwner.getOrDefault(victimOwnerId, 0);
+    }
+
+    /** Records a creature's actual death, including workers and unattributed deaths. */
+    public void creatureLost() {
+        creaturesLost++;
+    }
+
+    public int getCreaturesLost() {
+        return creaturesLost;
+    }
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();
