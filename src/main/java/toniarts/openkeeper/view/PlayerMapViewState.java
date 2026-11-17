@@ -88,6 +88,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private MapTileEffectTracker tileEffects;
     private final FogOfWarController fogOfWarController;
     private final GameEventSoundPlayer gameEventSoundPlayer;
+    private final DiscoViewState discoViewState;
     private final EventListener<GameEvent> casinoEffectsListener = this::onCasinoEvent;
 
     // Tile updates (the fog seeding, fog changes from the server) that came
@@ -198,8 +199,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                                 messages.addMessage(SystemMessageState.MessageType.INFO,
                                         String.format("${speech.%d}", speech - 1));
                             }
-                        }),
-                fogOfWarController::isExplored);
+                        }));
+        discoViewState = new DiscoViewState(kwdFile, fogOfWarController::isExplored);
 
         // Start collecting the map entities. In a local game the whole map is
         // there already and start() loads it, over the network see initialize()
@@ -226,6 +227,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Sounds
         this.gameEventSoundPlayer.register();
         EventBus.addListener(ClientEvents.GAME_EVENT, casinoEffectsListener);
+        this.stateManager.attach(discoViewState);
 
         // Tile flash state
         this.stateManager.attach(flashTileControl);
@@ -261,10 +263,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Sounds
         this.gameEventSoundPlayer.unregister();
         EventBus.removeListener(ClientEvents.GAME_EVENT, casinoEffectsListener);
-        SoundState soundState = stateManager.getState(SoundState.class);
-        if (soundState != null) {
-            soundState.setMusicVolumeFactor(1f);
-        }
+        stateManager.detach(discoViewState);
 
         // The actual map data
         mapRoomContainer.stop();
@@ -291,11 +290,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
         mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
         mapLoader.getLightRules().update(tpf, app.getCamera());
-        // The level music is turned down as much as the loudest disco is heard
-        SoundState soundState = stateManager.getState(SoundState.class);
-        if (soundState != null) {
-            soundState.setMusicVolumeFactor(1f - gameEventSoundPlayer.updateDiscoMusic() / 100f);
-        }
     }
 
     public MapViewController getMapLoader() {

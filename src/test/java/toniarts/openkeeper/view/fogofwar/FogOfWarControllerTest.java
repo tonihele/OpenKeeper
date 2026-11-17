@@ -26,35 +26,36 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
-import toniarts.openkeeper.tools.convert.map.ChickenSpawnFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
-import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
 import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * The Dungeon Heart's start-of-level reveal runs on the first updates after
- * the level start seeding, also for a heart that was already there when the
- * fog of war started.
+ * Like in DK II, the Dungeon Heart does not explore the terrain around it
+ * after the start of the level, the creatures do that by perceiving it.
  */
 class FogOfWarControllerTest {
 
     private static final short VIEWER = Player.KEEPER1_ID;
     private static final short FLOOR_ID = 1;
+    private static final short GOLD_ID = 2;
     private static final int MAP_SIZE = 21;
 
     /**
-     * More than enough to cover the heart reveal's start delay and steps
+     * Gold a few tiles from the heart, the rest of the map is floor
+     */
+    private static final Point GOLD_TILE = new Point(10, 18);
+
+    /**
+     * More than enough for the old heart reveal to have run
      */
     private static final int UPDATES = 100;
 
@@ -65,16 +66,13 @@ class FogOfWarControllerTest {
     void setUp() {
         entityData = new DefaultEntityData();
         Terrain floor = TerrainFixtures.terrain(FLOOR_ID, TerrainFixtures.flags(), 0, 0, 0, FLOOR_ID);
-        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> variables = Map.of(
-                Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES,
-                ChickenSpawnFixtures.miscVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_CLAIM_SCAN_RADIUS_TILES, 15));
+        Terrain gold = TerrainFixtures.terrain(GOLD_ID, TerrainFixtures.flags(Terrain.TerrainFlag.SOLID,
+                Terrain.TerrainFlag.REVEAL_THROUGH_FOG_OF_WAR), 0, 0, 0, GOLD_ID);
         IKwdFile kwdFile = proxy(IKwdFile.class, (proxy, method, args) -> switch (method.getName()) {
             case "getTerrain" ->
-                floor;
+                (short) args[0] == GOLD_ID ? gold : floor;
             case "getThings" ->
                 List.of();
-            case "getVariables" ->
-                variables;
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
@@ -91,31 +89,17 @@ class FogOfWarControllerTest {
     }
 
     @Test
-    void heartAddedAfterStartIsRevealed() {
-        controller.start();
-        createHeart(10, 10);
-
-        assertHeartRevealedAfterSeeding();
-    }
-
-    @Test
-    void heartPresentAtStartIsRevealed() {
+    void heartDoesNotRevealTheTerrainAroundIt() {
         createHeart(10, 10);
         controller.start();
-
-        assertHeartRevealedAfterSeeding();
-    }
-
-    private void assertHeartRevealedAfterSeeding() {
-        Point nearEdgeOfReveal = new Point(10, 18);
-
         controller.seedLevelStart();
-        assertFalse(controller.isExplored(nearEdgeOfReveal));
+
         for (int i = 0; i < UPDATES; i++) {
             controller.update(0.2f);
         }
 
-        assertTrue(controller.isExplored(nearEdgeOfReveal), "The heart reveal runs once the fog is seeded");
+        assertFalse(controller.isExplored(GOLD_TILE), "The gold is not revealed by the heart");
+        assertFalse(controller.isVisible(GOLD_TILE), "The gold does not show through the fog");
     }
 
     private void createHeart(int x, int y) {
@@ -134,7 +118,7 @@ class FogOfWarControllerTest {
                 Point location = new Point(x, y);
                 tiles[x][y] = proxy(IMapTileInformation.class, (proxy, method, args) -> switch (method.getName()) {
                     case "getTerrainId" ->
-                        FLOOR_ID;
+                        location.equals(GOLD_TILE) ? GOLD_ID : FLOOR_ID;
                     case "getOwnerId" ->
                         Player.NEUTRAL_PLAYER_ID;
                     case "getLocation" ->

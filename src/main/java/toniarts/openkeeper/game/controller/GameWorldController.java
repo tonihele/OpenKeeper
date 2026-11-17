@@ -178,9 +178,9 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
         sacrificeController = new SacrificeController(entityData, kwdFile.getSacrifices(), creaturesController, objectsController, this, playerControllers, gameEventService);
 
-        // Setup player stuff
-        initPlayerMoney();
+        // Setup player stuff, the rooms first since the starting gold goes to the Dungeon Heart
         initPlayerRooms();
+        initPlayerMoney();
     }
 
     private void initPlayerMoney() {
@@ -195,11 +195,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
         }
 
-        // Set up the money$$$
+        // Set up the money$$$, only the keepers get their starting gold. Like in the original, it goes
+        // to the Dungeon Heart first and then to the treasuries, a keeper without a heart doesn't get it
         for (Keeper keeper : players.values()) {
             Player player = kwdFile.getPlayer(keeper.getId());
-            if (player.getStartingGold() > 0) {
-                addGold(keeper.getId(), player.getStartingGold());
+            Point dungeonHeart = keeper.getDungeonHeartLocation();
+            if (player.getStartingGold() > 0 && keeper.getId() >= Player.KEEPER1_ID && dungeonHeart != null) {
+                int goldLeft = addGold(keeper.getId(), dungeonHeart, player.getStartingGold());
+                addGold(keeper.getId(), goldLeft);
             }
         }
     }
@@ -1304,6 +1307,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         boolean tortureOrImprisonment = false;
         boolean torture = false;
         boolean imprison = false;
+        boolean pitFighter = false;
         CreatureState creatureState = null;
         Position devicePosition = null;
 
@@ -1351,13 +1355,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             tortureOrImprisonment = imprison || torture;
 
-            // Our own creatures dropped into the pit itself fight there, workers just go back to work
-            if (roomController instanceof CombatPitController combatPit
-                    && roomController.getRoomInstance().getOwnerId() == owner.ownerId
-                    && combatPit.isFightingTile(tile)
-                    && !entityData.getComponent(entity, CreatureComponent.class).worker) {
-                entityData.setComponent(entity, new CombatPitFighter(roomController.getEntityId()));
-            }
+            // Creatures dropped into the pit itself fight there, our prisoners too
+            pitFighter = roomController instanceof CombatPitController combatPit && combatPit.addFighter(entity, tile);
             targetState = getLairRestTarget(roomController, entity, owner.ownerId, tortureOrImprisonment);
         }
 
@@ -1402,7 +1401,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Owner owner = entityData.getComponent(entity, Owner.class);
         if (tortureOrImprisonment) {
             entityData.setComponent(entity, new Owner(owner.ownerId, playerId));
-        } else {
+        } else if (!pitFighter) {
             entityData.setComponent(entity, new Owner(owner.ownerId, owner.ownerId));
         }
     }
