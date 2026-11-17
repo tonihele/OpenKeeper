@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.util.List;
@@ -151,5 +152,16 @@ public interface IEntityPositionLookup {
      * @return true if blocking doors stand between you and the sensed entity
      */
     boolean isBehindBlockingDoor(EntityId entityId, EntityId sensedEntityId);
+
+    /**
+     * Checks if there is a straight line of sight between two points on the
+     * map, with no tile that blocks the senses in between. The tiles the
+     * points are on don't count
+     *
+     * @param from the point to look from
+     * @param to the point to look at
+     * @return true if nothing blocks the sight
+     */
+    boolean hasLineOfSight(Vector3f from, Vector3f to);
 
 }

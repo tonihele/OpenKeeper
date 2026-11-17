@@ -16,11 +16,14 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
@@ -65,6 +68,27 @@ public class PositionSystemSensingTest {
         PositionSystem positionSystem = new PositionSystem(createMapController(), entityData, null, null, null);
 
         assertEquals(Set.of(atRange, aroundTheCorner, sameTile), positionSystem.getSensedEntities(creature));
+    }
+
+    @Test
+    public void lineOfSightIsBlockedBySolidTilesBetween() {
+        PositionSystem positionSystem = new PositionSystem(createMapController(), entityData, null, null, null);
+
+        assertTrue(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 0), WorldUtils.pointToVector3f(5, 0)));
+        assertTrue(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 0), WorldUtils.pointToVector3f(0, 2)));
+        assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 0), WorldUtils.pointToVector3f(2, 2)));
+        assertFalse(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(1, 2), WorldUtils.pointToVector3f(3, 2)));
+
+        // Standing next to the wall or in it doesn't block, only what is in between
+        assertTrue(positionSystem.hasLineOfSight(WorldUtils.pointToVector3f(0, 1), WorldUtils.pointToVector3f(1, 1)));
+    }
+
+    @Test
+    public void nothingIsFoundOutsideTheMap() {
+        PositionSystem positionSystem = new PositionSystem(createMapController(), entityData, null, null, null);
+
+        assertTrue(positionSystem.getEntitiesInLocation(-1, 0).isEmpty());
+        assertTrue(positionSystem.getEntitiesInLocation(0, MAP.length).isEmpty());
     }
 
     private EntityId createEntity(int x, int y) {
