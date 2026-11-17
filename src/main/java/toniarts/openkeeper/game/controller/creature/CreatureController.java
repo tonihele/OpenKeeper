@@ -1736,6 +1736,12 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void flee() {
+
+        // A creature with a lair withdraws to it first (0x4611D0 goes to the object in creature +0x3B7)
+        Point lair = getLairLocation();
+        if (lair != null && !createNavigation(getCreatureCoordinates(), lair, null)) {
+            return;
+        }
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
 
         // A creature without a heart to withdraw to runs away from its threat

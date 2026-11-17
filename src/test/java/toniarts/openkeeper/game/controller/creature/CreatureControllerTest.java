@@ -540,6 +540,18 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void creatureWithALairWithdrawsToIt() {
+        try (Fixture f = new Fixture(9)) {
+            f.keeper.setDungeonHeartLocation(new Point(3, 4));
+            f.data.setComponent(f.bed, new Position(0, new Vector3f(8, WorldUtils.FLOOR_HEIGHT, 4)));
+
+            f.controller.flee();
+
+            assertEquals(new Point(8, 4), f.data.getComponent(f.entity, Navigation.class).target);
+        }
+    }
+
     private static CreatureState workerStateWithHeroAt(float x, int heartX, Boolean heroAfterUs) {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
             EntityId hero = heroNextToWorker(f, x, heartX);
@@ -557,6 +569,9 @@ class CreatureControllerTest {
                 new Position(0, new Vector3f(x, WorldUtils.FLOOR_HEIGHT, 4)));
         f.data.setComponent(f.entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
         f.data.removeComponent(f.entity, Fearless.class);
+
+        // Workers have no lair
+        f.data.setComponent(f.entity, new CreatureSleep(null, 0, 0, 0));
         f.sensed = Set.of(hero);
         f.keeper.setDungeonHeartLocation(new Point(heartX, 4));
         f.roomHere = proxy(IRoomController.class, (method, args) -> switch (method) {
