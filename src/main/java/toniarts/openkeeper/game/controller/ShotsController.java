@@ -372,10 +372,19 @@ public final class ShotsController implements IShotsController {
     @Override
     public void createChildShot(EntityId shotEntity, short shotTypeId, Vector3f position) {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+        Shot childShot = kwdFile.getShotById(shotTypeId);
+
+        // A shot that only does its process at its end, like the Create Creature the Skeleton Army leaves, has it
+        // where it is left. Nothing processes a flying shot's end yet
+        if (childShot.getShotProcessFlags().contains(Shot.ShotProcessFlag.AT_END)) {
+            process(new ShotRequest(childShot, flight.shotData1, flight.shotData2, flight.ownerId, new Vector3f(position),
+                    flight.target));
+            return;
+        }
 
         // The new shot keeps the old one's values and target, not its own (0x4AB180)
         addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.target, flight.shotData1, flight.shotData2,
-                new Vector3f(), new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+                new Vector3f(), new Vector3f(position), 0, childShot.getHealth()));
     }
 
 }
