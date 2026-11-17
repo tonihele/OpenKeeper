@@ -85,8 +85,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final int NOTHING_TO_DO_LOG_SECONDS = 60;
 
     /**
-     * How long a neutral room it could not dig to is left alone. DK II has
-     * no such wait, it digs to the same room again on its next Portal plan
+     * How long a neutral room or a gold seam it could not dig to is left
+     * alone. DK II has no such wait, it digs to the same room again on its
+     * next Portal plan and to the same seam when it next needs gold
      */
     private static final int FAILED_PATH_WAIT_SECONDS = 120;
 
@@ -289,9 +290,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         int actions = ai.getSpeed();
 
-        // A task that takes too long is dropped
+        // A task that takes too long is dropped, and a path that does leaves its target alone for a while
         keeperAi.taskTicks++;
         if (keeperAi.taskTicks > TASK_TIME_OUT_SECONDS * ticksPerSecond) {
+            if (keeperAi.task == KeeperAi.Task.DIG_PATH) {
+                leaveTargetAlone(keeperAi, "the path took too long");
+            }
             setTask(keeperAi, KeeperAi.Task.PLAN, "the task took too long");
             keeperAi.wallFollowing = false;
             keeperAi.nextTask = KeeperAi.Task.PLAN;
@@ -634,7 +638,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     /**
      * Heads for the nearest gold seam it found the last time it looked,
      * unless there is gold tagged already, and looks for the seams again
-     * for the next time. So what it heads for is one look old, as in DK II
+     * for the next time. So what it heads for is one look old, as in DK II.
+     * A seam it could not dig a path to a short while ago is passed over
      *
      * @return true if it heads for gold
      */
@@ -642,7 +647,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         if (!getTaggedGold(keeperAi.playerId).isEmpty()) {
             return false;
         }
-        Point gold = keeperAi.goldDeposits[0];
+        Point gold = null;
+        for (Point deposit : keeperAi.goldDeposits) {
+            if (deposit != null && !isWaitingAfterFailedPath(keeperAi, deposit)) {
+                gold = deposit;
+                break;
+            }
+        }
         keeperAi.goldDeposits = findGold(playerController);
         if (gold != null) {
             keeperAi.target = gold;
@@ -721,24 +732,62 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * The tile itself, or the nearest tile around it that is not
-     * impenetrable
+     * The tile itself, or else the first tile on the spiral around it that
+     * is not impenetrable, as DK II looks. A seam's own gold is on the
+     * spiral, so the search ends there at the latest
      */
     private Point getNearestReachableTile(Point p) {
-        int furthest = Math.max(mapController.getMapData().getWidth(), mapController.getMapData().getHeight());
-        for (int distance = 0; distance < furthest; distance++) {
-            for (int x = p.x - distance; x <= p.x + distance; x++) {
-                for (int y = p.y - distance; y <= p.y + distance; y++) {
-                    IMapTileInformation tile = mapController.getMapData().getTile(x, y);
-                    if (Math.max(Math.abs(x - p.x), Math.abs(y - p.y)) == distance && tile != null
-                            && !mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
-                        return tile.getLocation();
-                    }
-                }
+        int side = 2 * Math.max(mapController.getMapData().getWidth(), mapController.getMapData().getHeight()) + 1;
+        for (int i = 0; i < side * side; i++) {
+            Point spiral = getSpiralTile(p, i);
+            IMapTileInformation tile = mapController.getMapData().getTile(spiral);
+            if (tile != null && !mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.IMPENETRABLE)) {
+                return spiral;
             }
         }
 
         return null;
+    }
+
+    /**
+     * A tile on DK II's spiral around a centre: the centre, one tile east,
+     * then round and round with every second side one tile longer
+     *
+     * @param index how many steps along the spiral
+     */
+    private static Point getSpiralTile(Point centre, int index) {
+        int x = centre.x;
+        int y = centre.y;
+        int dx = 0;
+        int dy = 1;
+        int sideX = 1;
+        int sideY = 1;
+        boolean vertical = true;
+        if (index > 0) {
+            x++;
+        }
+        for (int i = 1; i < index; i++) {
+            if (vertical) {
+                y += dy;
+                sideY--;
+                if (sideY == 0) {
+                    sideX++;
+                    sideY = sideX;
+                    dx = -dy;
+                    vertical = false;
+                }
+            } else {
+                x += dx;
+                sideX--;
+                if (sideX == 0) {
+                    sideX = sideY;
+                    dy = dx;
+                    vertical = true;
+                }
+            }
+        }
+
+        return new Point(x, y);
     }
 
     private static int getDistance(Point from, Point to) {
@@ -768,41 +817,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private int tagGold(KeeperAi keeperAi, int ticksPerSecond, int actions) {
         while (actions > 0 && keeperAi.task == KeeperAi.Task.TAG_GOLD) {
             actions--;
-
-            // Down one tile, then round and round with every second side one tile longer
-            int x = keeperAi.target.x;
-            int y = keeperAi.target.y;
-            int dx = 0;
-            int dy = 1;
-            int sideX = 1;
-            int sideY = 1;
-            boolean vertical = true;
-            if (keeperAi.goldTiles > 0) {
-                x++;
-            }
-            for (int i = 1; i < keeperAi.goldTiles; i++) {
-                if (vertical) {
-                    y += dy;
-                    sideY--;
-                    if (sideY == 0) {
-                        sideX++;
-                        sideY = sideX;
-                        dx = -dy;
-                        vertical = false;
-                    }
-                } else {
-                    x += dx;
-                    sideX--;
-                    if (sideX == 0) {
-                        sideX = sideY;
-                        dy = dx;
-                        vertical = true;
-                    }
-                }
-            }
-
-            Point tile = new Point(x, y);
-            if (hasGold(x, y) && mapController.isTaggable(tile)) {
+            Point tile = getSpiralTile(keeperAi.target, keeperAi.goldTiles);
+            if (hasGold(tile.x, tile.y) && mapController.isTaggable(tile)) {
                 tag(keeperAi, tile, tile, ticksPerSecond, "gold");
             }
             keeperAi.goldTiles++;
@@ -1195,27 +1211,35 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     /**
      * Ends the path and goes on with the next task. A path that could not go
      * on, with no bridge to cross with or no way round rock, has its target
-     * left alone for a while, in the slot that frees up first
+     * left alone for a while
      *
      * @param reached whether the path got through, a rock follow that gave
      * up is still on when the stepper finds no way
      */
     private void finishPath(KeeperAi keeperAi, boolean reached, String reason) {
         if (!reached) {
-            int slot = 0;
-            for (int i = 1; i < keeperAi.failedTargetTicks.length; i++) {
-                if (keeperAi.failedTargetTicks[i] < keeperAi.failedTargetTicks[slot]) {
-                    slot = i;
-                }
-            }
-            keeperAi.failedTargets[slot] = keeperAi.target;
-            keeperAi.failedTargetTicks[slot] = FAILED_PATH_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
-            log(keeperAi, "leave the target alone for " + FAILED_PATH_WAIT_SECONDS + " s", keeperAi.target, reason);
+            leaveTargetAlone(keeperAi, reason);
         }
         keeperAi.invasionTargetId = 0;
         keeperAi.wallFollowing = false;
         setTask(keeperAi, keeperAi.nextTask, reason);
         keeperAi.nextTask = KeeperAi.Task.FINISH;
+    }
+
+    /**
+     * Keeps the path's target, a neutral room or a gold seam, in the slot that
+     * frees up first, so that it is passed over for a while
+     */
+    private void leaveTargetAlone(KeeperAi keeperAi, String reason) {
+        int slot = 0;
+        for (int i = 1; i < keeperAi.failedTargetTicks.length; i++) {
+            if (keeperAi.failedTargetTicks[i] < keeperAi.failedTargetTicks[slot]) {
+                slot = i;
+            }
+        }
+        keeperAi.failedTargets[slot] = keeperAi.target;
+        keeperAi.failedTargetTicks[slot] = FAILED_PATH_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
+        log(keeperAi, "leave the target alone for " + FAILED_PATH_WAIT_SECONDS + " s", keeperAi.target, reason);
     }
 
     /**
