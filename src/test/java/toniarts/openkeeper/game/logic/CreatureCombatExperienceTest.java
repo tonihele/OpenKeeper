@@ -34,8 +34,8 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.CombatExperienceFixtures;
-import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -48,6 +48,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class CreatureCombatExperienceTest {
 
     private static final float TPF = 0.25f;
+    private static final int TICKS_PER_SECOND = 4;
     private static final int TEN_SECONDS = 40;
     private static final short IMP = 1;
     private static final short GOBLIN = 4;
@@ -70,8 +71,8 @@ class CreatureCombatExperienceTest {
 
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getImp" -> creatures.get(IMP);
+            case "getGameLevel" -> CreatureSleepFixtures.level(TICKS_PER_SECOND);
             case "getCreature" -> creatures.get((Short) args[0]);
-            case "getGameLevel" -> CreatureSleepFixtures.level((int) (1 / TPF));
             default -> throw new UnsupportedOperationException(method.getName());
         });
         ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> {
@@ -109,8 +110,7 @@ class CreatureCombatExperienceTest {
 
         tenSeconds();
 
-        // Fighting teaches on every tick
-        assertEquals(10 * EXPERIENCE_PER_SECOND, experience(dwarf));
+        assertEquals(TEN_SECONDS * EXPERIENCE_PER_SECOND / TICKS_PER_SECOND, experience(dwarf));
     }
 
     @Test
@@ -119,13 +119,13 @@ class CreatureCombatExperienceTest {
 
         tenSeconds();
 
-        // Fighting teaches on every tick
-        assertEquals(10 * EXPERIENCE_PER_SECOND, experience(goblin));
+        assertEquals(TEN_SECONDS * EXPERIENCE_PER_SECOND / TICKS_PER_SECOND, experience(goblin));
     }
 
     /**
-     * The first tick only starts the clock, so ten seconds give experience
-     * nine times
+     * The first tick only starts the clock of the once a second gains, so ten
+     * seconds of work give experience nine times, while fighting gives it on
+     * every tick
      */
     private void tenSeconds() {
         for (int i = 0; i < TEN_SECONDS; i++) {
@@ -145,8 +145,6 @@ class CreatureCombatExperienceTest {
         if (state == CreatureState.WORK) {
             entityData.setComponent(entityId, new TaskComponent(1, null, null, TaskType.CLAIM_TILE, 0, true));
         } else {
-
-            // Only fighting another creature teaches
             EntityId enemy = entityData.createEntity();
             entityData.setComponent(enemy, new CreatureComponent());
             entityData.setComponent(entityId, new AttackTarget(enemy));
