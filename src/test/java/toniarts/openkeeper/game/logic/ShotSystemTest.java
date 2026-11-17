@@ -320,6 +320,22 @@ class ShotSystemTest {
         assertNull(positionOf(shot));
     }
 
+    @Test
+    void shotCastOnItsShooterHitsOnlyItsShooter() {
+        createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shooter = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot,
+                new Position(0, new Vector3f(2, 1.3f, 1)),
+                new ShotFlight(ShotFixtures.FIREBALL_ID, PLAYER_ID, shooter, shooter, 50, 0, new Vector3f(), new Vector3f(2, 1.3f, 1),
+                        0, fireball.getHealth()));
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(shooter, hits.get(0)[1]);
+    }
+
     private EntityId createHailStorm(EntityId target) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot,
