@@ -22,13 +22,18 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -49,6 +54,7 @@ class PositionSystemTest {
     private final EntityData entityData = new DefaultEntityData();
     private PositionSystem positionSystem;
     private EntityId door;
+    private EntityId wheel;
 
     @BeforeEach
     void setUp() {
@@ -62,7 +68,24 @@ class PositionSystemTest {
         Vector3f position = WorldUtils.pointToVector3f(TILE);
         entityData.setComponents(door, new DoorComponent(WOODEN_DOOR, false, true), new Owner(PLAYER, PLAYER),
                 new Position(0, position));
-        positionSystem = new PositionSystem(mapController, entityData, null, null, null);
+        wheel = entityData.createEntity();
+        entityData.setComponents(wheel, new ObjectComponent(CasinoController.ROULETTE_WHEEL_OBJECT_ID, null),
+                new Position(0, position));
+        IObjectsController objectsController = (IObjectsController) Proxy.newProxyInstance(IObjectsController.class.getClassLoader(),
+                new Class<?>[]{IObjectsController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isValidEntity" -> entityData.getComponent((EntityId) args[0], ObjectComponent.class) != null;
+            case "createController" -> createObjectController((EntityId) args[0]);
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
+        positionSystem = new PositionSystem(mapController, entityData, null, null, objectsController);
+    }
+
+    private static IObjectController createObjectController(EntityId entityId) {
+        return (IObjectController) Proxy.newProxyInstance(IObjectController.class.getClassLoader(),
+                new Class<?>[]{IObjectController.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "getEntityId" -> entityId;
+            default -> throw new UnsupportedOperationException(method.getName());
+        });
     }
 
     @Test
@@ -136,6 +159,14 @@ class PositionSystemTest {
         walkTo(own, TILE);
 
         assertEquals(new Point(1, 2), WorldUtils.vectorToPoint(entityData.getComponent(own, Position.class).position));
+    }
+
+    @Test
+    void findsTheRouletteWheelOnItsTile() {
+        List<IObjectController> objects = positionSystem.getEntityTypesInLocation(TILE, IObjectController.class);
+
+        assertEquals(1, objects.size());
+        assertEquals(wheel, objects.get(0).getEntityId());
     }
 
 }
