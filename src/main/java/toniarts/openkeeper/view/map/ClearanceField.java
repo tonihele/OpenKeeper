@@ -66,6 +66,14 @@ public final class ClearanceField {
         this.solid = solid.clone();
     }
 
+    int width() {
+        return width;
+    }
+
+    int height() {
+        return height;
+    }
+
     /**
      * @param worldX world x, in tiles
      * @param worldY world y (map z), in tiles
