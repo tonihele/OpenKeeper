@@ -161,6 +161,8 @@ class DigTileTaskTest {
                     new Class<?>[]{IMapTileInformation.class}, (proxy, method, args) -> switch (method.getName()) {
                 case "isSelected" ->
                     health > 0;
+                case "getLocation" ->
+                    new Point(-1, -1);
                 default ->
                     throw new UnsupportedOperationException(method.getName());
             });
@@ -175,6 +177,8 @@ class DigTileTaskTest {
                     new Class<?>[]{IMapController.class}, (proxy, method, args) -> switch (method.getName()) {
                 case "getMapData" ->
                     mapData;
+                case "isSolid" ->
+                    false;
                 case "damageTile" -> {
                     hits.add(tick);
                     health = Math.max(0, health - damage);
