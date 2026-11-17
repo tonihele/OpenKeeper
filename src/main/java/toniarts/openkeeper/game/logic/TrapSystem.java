@@ -470,7 +470,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
     private boolean payForShot(Trap trap, short ownerId) {
 
-        // The good player has no mana, its traps fire for free
+        // DK II gives the good player unlimited mana (0x4B9EC0), so it never pays
         if (!trap.getFlags().contains(Trap.TrapFlag.REQUIRE_MANA) || ownerId == Player.GOOD_PLAYER_ID) {
             return true;
         }
