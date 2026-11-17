@@ -136,13 +136,7 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
      */
     protected static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
             IEntityPositionLookup entityPositionLookup) {
-        Float cost = getCost(navigable, from, to, mapController, entityPositionLookup, true);
-
-        // Breaking through a door takes effort
-        if (cost != null && entityPositionLookup.getBlockingDoor(to.getX(), to.getY(), navigable.getOwnerId()) != null) {
-            return cost + DOOR_COST;
-        }
-        return cost;
+        return getCost(navigable, from, to, mapController, entityPositionLookup, true);
     }
 
     private static Float getCost(final INavigable navigable, final IMapTileInformation from, final IMapTileInformation to, final IMapController mapController,
@@ -179,10 +173,10 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
                 }
             }
 
-            // Check for doors etc., the ones that can be broken don't stop us
+            // Check for doors, the ones that can be broken cost the effort of breaking them, others stop us
             EntityId door = entityPositionLookup.getBlockingDoor(to.getX(), to.getY(), navigable.getOwnerId());
-            if (door != null && !navigable.canBreakDoor(door)) {
-                return null;
+            if (door != null) {
+                return navigable.canBreakDoor(door) ? DOOR_COST : null;
             }
 
             // Check terrain
