@@ -38,6 +38,9 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  */
 public interface ICreatureController extends IGameLogicUpdatable, INavigable, IEntityController {
 
+    /** Move to the authored end position after a completed Portal entrance animation. */
+    public void completeDungeonEntrance();
+
     public boolean shouldFleeOrAttack();
 
     /**
@@ -133,6 +136,33 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void flee();
 
+    /**
+     * Weighs the threat of the enemies we fight against our fear. Call once on
+     * every turn of a fight, it takes a few turns in a row to scare us
+     *
+     * @return true if we are scared and should back off
+     */
+    public boolean isScared();
+
+    /**
+     * Starts backing off from the attack target, sets how long we back off
+     */
+    public void startBackOff();
+
+    /**
+     * Checks if our time to back off is over
+     *
+     * @return true if the back-off is over
+     */
+    public boolean isBackOffOver();
+
+    /**
+     * Backs away from the attack target, or stands if it is far enough
+     *
+     * @return false if we can't back away
+     */
+    public boolean backOff();
+
     public boolean isAttacked();
 
     public boolean isEnoughSleep();
@@ -159,6 +189,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public Point getLairLocation();
 
     public boolean isUnconscious();
+
+    /**
+     * Wakes up a knocked out creature, like when it is carried to a Lair. It
+     * keeps the health that was left of its dying time
+     */
+    public void wakeUp();
 
     public Point getCreatureCoordinates();
 
@@ -293,6 +329,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goGambling();
 
     /**
+     * Sends the creature to collect the pay it is owed, if it is owed any and
+     * it is time to try. A try that finds no gold to collect is counted
+     *
+     * @return true if the creature is on its way to a gold room
+     */
+    public boolean goToCollectPay();
+
+    /**
      * Makes the creature eat the target
      *
      * @param target the devouree
@@ -303,6 +347,29 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Marks that we have eaten a single ration of food
      */
     public void sate();
+
+    /**
+     * Sends the creature to collect its jackpot, if it is the big winner of a
+     * Casino
+     *
+     * @return true if the creature was assigned to collect its winnings
+     */
+    public boolean collectWinnings();
+
+    /**
+     * Sends the creature to dance in its keeper's Casino, if one is in disco
+     * mode
+     *
+     * @return true if the creature is in the disco or on its way there
+     */
+    public boolean goToDisco();
+
+    /**
+     * Is the creature standing in its keeper's Casino while it is in disco mode
+     *
+     * @return true if the creature is at the disco
+     */
+    public boolean isAtDisco();
 
     /**
      * Makes the creature hungry
