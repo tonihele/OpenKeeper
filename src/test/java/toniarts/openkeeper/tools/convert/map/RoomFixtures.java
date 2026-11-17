@@ -12,6 +12,12 @@ public final class RoomFixtures {
     private RoomFixtures() {
     }
 
+    public static Room roomCreating(short createdCreatureId) {
+        Room room = new Room();
+        room.setCreatedCreatureId(createdCreatureId);
+        return room;
+    }
+
     public static Room room(short roomId, int cost, Room.RoomFlag... flags) {
         EnumSet<Room.RoomFlag> set = EnumSet.noneOf(Room.RoomFlag.class);
         for (Room.RoomFlag flag : flags) {
@@ -22,6 +28,12 @@ public final class RoomFixtures {
         room.setRoomId(roomId);
         room.setCost(cost);
         room.setFlags(set);
+        return room;
+    }
+
+    public static Room roomWithObjects(short roomId, Short... objects) {
+        Room room = room(roomId, 0);
+        room.setObjects(List.of(objects));
         return room;
     }
 

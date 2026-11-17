@@ -250,13 +250,19 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
             case CAPTURE_ENEMY_CREATURE:
             case CARRY_CREATURE_TO_JAIL:
             case CARRY_OBJECT_TO_STORAGE:
+            case CARRY_CORPSE_TO_GRAVEYARD:
             case RESCUE_CREATURE:
+            case FETCH_TRAP_CRATE:
+            case DELIVER_TRAP_CRATE:
+            case FETCH_DOOR_CRATE:
+            case DELIVER_DOOR_CRATE:
                 return "Textures/GUI/moods/SJ-Take_Crate.png";
             case CARRY_GOLD_TO_TREASURY:
                 return "Textures/GUI/moods/SJ-Take_Gold.png";
             case CLAIM_TILE:
             case CLAIM_ROOM:
             case FETCH_OBJECT:
+            case FETCH_CORPSE:
                 return "Textures/GUI/moods/SJ-Claim.png";
             case REPAIR_WALL:
             case CLAIM_WALL:
@@ -280,6 +286,8 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
                 return "Textures/GUI/moods/SJ-Guarding.png";
             case GAMBLE:
                 return "Textures/GUI/moods/SJ-Casino.png";
+            case TORTURE:
+                return "Textures/GUI/moods/SJ-Torture.png";
             default:
                 return null;
         }
