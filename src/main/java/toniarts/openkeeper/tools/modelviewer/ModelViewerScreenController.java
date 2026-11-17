@@ -42,6 +42,7 @@ import java.util.List;
 import java.util.ArrayList;
 import java.util.ResourceBundle;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.sound.SoundFile;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -278,6 +279,18 @@ public final class ModelViewerScreenController implements ScreenController {
     public void onTerrainAmbientChanged(final String id, final CheckBoxStateChangedEvent event) {
         if (event.isChecked() != app.isTerrainAmbient()) {
             app.setTerrainAmbient(event.isChecked());
+        }
+    }
+
+    @NiftyEventSubscriber(id = "enhancedLiquids")
+    public void onEnhancedLiquidsChanged(final String id, final CheckBoxStateChangedEvent event) {
+        Settings settings = Main.getUserSettings();
+        settings.setSetting(Settings.Setting.ENHANCED_LIQUIDS, event.isChecked());
+        try {
+            settings.save();
+        } catch (java.io.IOException ex) {
+            System.getLogger(ModelViewerScreenController.class.getName()).log(
+                    System.Logger.Level.WARNING, "Could not save enhanced-liquid setting.", ex);
         }
     }
 
@@ -579,6 +592,8 @@ public final class ModelViewerScreenController implements ScreenController {
                 parameter("litSolidRock", String.valueOf(app.isLitSolidRock()));
                 parameter("terrainAmbient", String.valueOf(app.isTerrainAmbient()));
                 parameter("ceiling", String.valueOf(app.isCeilingVisible()));
+                parameter("enhancedLiquids", String.valueOf(Main.getUserSettings()
+                        .getBoolean(Settings.Setting.ENHANCED_LIQUIDS)));
                 // Initial state of the per-group light checkboxes
                 for (LightSource.Group group : LightSource.Group.values()) {
                     parameter(ID_LIGHT_PREFIX + group.name(), String.valueOf(app.isLightGroupEnabled(group)));

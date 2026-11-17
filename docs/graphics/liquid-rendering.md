@@ -1,0 +1,31 @@
+# Water and lava rendering
+
+OpenKeeper uses the shared `DkLighting/Vertex.j3md` material for water and lava. The liquid path keeps the current terrain lighting, fog-of-war, and alpha handling and adds the enhanced texture stages as a material variant. It does not maintain a second copy of the terrain lighting shader.
+
+## Modes and fallback
+
+`Settings.Setting.ENHANCED_LIQUIDS` is persisted with the normal graphics settings and defaults to `false` (Classic). The main menu selects the mode for the next game start. The pause menu and Model Viewer update the setting while a map is active; `LiquidSurfaceControl` applies the change to each liquid material on the next scene update without rebuilding the mesh or rebinding lights.
+
+Enhanced resources are loaded and cached independently for water and lava by `Dk2EmbmResources`. If any required map is missing or cannot be loaded, that liquid stays on its existing Classic material and the loader logs why. `LiquidSurfaceControl` also waits for renderer capability discovery and requires jME's `TextureArray` capability before selecting Enhanced mode. `ConvertTextures` extracts the normal texture archives and also copies the named liquid maps from installations that ship them loose in `Data/EngineTextures`. No DKII commercial textures are stored in the OpenKeeper repository.
+
+Temple pools pass `allowEnhanced=false`; `RoomConstructor` keeps their animated surface material outside its static floor batch so Classic texture animation and the shared lighting binding survive. The ordinary map path continues to pass its `TerrainDeformer` into `Water.construct`.
+
+## Animation and shader path
+
+Water retains its existing animated diffuse texture in Classic. In Enhanced mode that texture still supplies the original alpha, while `BumpWater0.png` supplies the enhanced base colour and a 32-layer bump texture array supplies the animated water distortion. The array advances at 8 frames per second, for a four-second loop.
+
+Lava uses the recovered 3-by-3 sample grid per tile in both modes. `TexCoord2` stores the integer tile-grid phase coordinates before shore deformation; repeated edge vertices therefore receive matching wave heights and normals without sharing texture UVs between tiles. `Vertex.vert` evaluates the two 0.04-amplitude waves and their recovered normal field from the shared jME shader clock. No per-frame CPU vertex-buffer upload is performed. The mesh bound includes the maximum vertical displacement.
+
+The Enhanced fragment path follows the original three-stage structure: base colour multiplied by the existing diffuse lighting, bump-dependent environment lookup, and additive environment colour. The loose original PNGs inspected in the local GOG DKII installation are grayscale height fields (lava also has a varying alpha channel), while Direct3D EMBM consumes signed texture-coordinate deltas and optional luminance. `Dk2EmbmResources` computes wrapped central differences once when Enhanced mode is first selected, uploads the result as linear RG data, and retains source alpha for lava luminance. This avoids four extra per-fragment texture reads. The exact native height-to-delta scale and filter still need comparison with the original executable. Environment colour remains subject to the existing fog visibility and the liquid's original alpha.
+
+## Fidelity status and limitations
+
+The issue's native-reference investigation reports matching lava height and normal samples for the recovered CPU formula. This implementation evaluates that model in GLSL, but the shader output has not been compared pixel-for-pixel with the original executable in this worktree.
+
+The Enhanced texture-stage architecture and 32 water bump frames come from the original DKII resource set. The local PNG packing is verified as grayscale height data, but the native conversion from height to EMBM offsets has not been captured. The environment lookup uses sphere mapping and the liquid-specific bump/reflection strengths follow the available prototype profile; exact native environment coordinates, stage-state mapping, matrix values, and rendered parity remain unverified. Do not describe the current EMBM mode as bit-exact G400 output.
+
+The GPU wave path trades the previous four vertices per lava tile for nine vertices and eight triangles per tile, while removing CPU-side per-frame position updates. Enhanced rendering adds base, bump, and environment texture sampling on top of the normal material sample; height derivatives are prepared once on the CPU when the Enhanced assets load. Local RTX 2060 SUPER runtime smokes confirmed the shader on OpenGL 3.2 / GLSL 1.50 and OpenGL 4.5 / GLSL 4.50. Short Classic and Enhanced process samples showed roughly 0.9 GiB resident memory and 17–38% sampled GPU utilization, but concurrent desktop workloads and non-identical captures made frame-time and GPU-cost comparison inconclusive. The converted 128-by-128 RGBA water frame array is about 2 MiB, excluding driver alignment; lava and base/environment maps add roughly 0.2 MiB. A controlled GPU timer-query benchmark on small and large liquid maps remains necessary before tuning the profile or changing wave resolution.
+
+## Verification
+
+The unit tests cover the lava grid and duplicate-edge coordinates, the four-vertex water mesh, wave phase periodicity and normal normalization, Classic default, runtime switching, texture-array capability fallback, missing-asset fallback, bump conversion, and loose-texture conversion. Runtime checks on the local RTX 2060 SUPER loaded water and lava in both modes at OpenGL 4.5; a separate OpenGL 3.2 shader smoke rendered both Enhanced surfaces and loaded all 32 water frames. The Model Viewer launched with the new control visible. The game-map captures were not synchronized by camera and animation timestamp, and the OpenGL 3.2 full-game run hit an unrelated existing `FogState.drainDirtyTiles` concurrent-modification exception, so these checks do not establish whole-game GL 3.2 stability or pixel parity. Native comparison still needs identical camera, resolution, lighting, fog state, and animation timestamp for water, lava, Temple pools, and map-viewer output.

@@ -80,6 +80,7 @@ final class PauseMenuSettings {
         addDropDown(left, "OpenGL", "openGl", "220px");
         addCheckBox(left, " SSAO", "ssao");
         addCheckBox(left, "Gamma correction", "gammaCorrection");
+        addCheckBox(left, " Enhanced water and lava (EMBM)", "enhancedLiquids");
 
         addDropDown(right, "Bit depth", "bitDepth", "100px");
         addDropDown(right, "Refresh rate", "refreshRate", "100px");
@@ -151,6 +152,8 @@ final class PauseMenuSettings {
 
         find("ssao", CheckBox.class).setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
         find("gammaCorrection", CheckBox.class).setChecked(settings.isGammaCorrection());
+        find("enhancedLiquids", CheckBox.class).setChecked(
+                Main.getUserSettings().getBoolean(Settings.Setting.ENHANCED_LIQUIDS));
     }
 
     /**
@@ -172,6 +175,8 @@ final class PauseMenuSettings {
         settings.getAppSettings().setSamples((Integer) find("antialiasing", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, find("anisotropicFiltering", DropDown.class).getSelection());
         settings.setSetting(Settings.Setting.SSAO, find("ssao", CheckBox.class).isChecked());
+        settings.setSetting(Settings.Setting.ENHANCED_LIQUIDS,
+                find("enhancedLiquids", CheckBox.class).isChecked());
         settings.getAppSettings().setGammaCorrection(find("gammaCorrection", CheckBox.class).isChecked());
 
         save();
