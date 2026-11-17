@@ -82,9 +82,12 @@ public final class ShotSystem implements IGameLogicUpdatable {
         ShotFlight flight = entity.get(ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
         Vector3f position = entity.get(Position.class).position;
+
+        // A shot out of its range, or one that dies when it hits a thing, has the rest of its turn and dies at the end
+        // of it, it leaves its death shot (0x4AB180)
+        int health = flight.health;
         if (ShotFlightRules.isOutOfRange(flight.start, position, flight.maxRange)) {
-            entityData.removeEntity(entity.getId());
-            return;
+            health = 0;
         }
 
         EntityId thing = findThingHit(shot, flight, position);
@@ -93,8 +96,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
             createChildShot(entity.getId(), shot.getHitThingShotId(), position);
             shotsController.hit(entity.getId(), thing);
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
-                entityData.removeEntity(entity.getId());
-                return;
+                health = 0;
             }
         }
         shotsController.damageArea(entity.getId());
@@ -115,15 +117,16 @@ public final class ShotSystem implements IGameLogicUpdatable {
             }
         }
 
-        int health = flight.health;
         if (shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME)) {
             health--;
-            if (health < 1) {
-                triggerEffect(shot.getDeathEffectId(), move.position());
-                createChildShot(entity.getId(), shot.getDeathShotId(), move.position());
-                entityData.removeEntity(entity.getId());
-                return;
-            }
+        }
+        if (health < 1) {
+            triggerEffect(shot.getDeathEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getDeathShotId(), move.position());
+            entityData.removeEntity(entity.getId());
+            return;
+        }
+        if (health != flight.health) {
             entityData.setComponent(entity.getId(), new ShotFlight(flight, health));
         }
         if (!move.hitWall()) {

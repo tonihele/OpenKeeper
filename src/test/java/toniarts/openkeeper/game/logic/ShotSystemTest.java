@@ -279,6 +279,19 @@ class ShotSystemTest {
         assertNull(positionOf(shot));
     }
 
+    @Test
+    void grenadeOutOfTheSpellsRangeExplodesAtTheEndOfItsTurn() {
+        EntityId shot = createShot(ShotFixtures.GRENADE_ID, new Vector3f(1, 1.3f, 1), new Vector3f(0.3f, 0, 0), 0.5f);
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+        assertTrue(childShots.isEmpty());
+
+        shotSystem.processTick(0.25f);
+        assertChildShot(shot, ShotFixtures.GRENADE_EXPLOSION_ID, new Vector3f(1.9f, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
     private void assertChildShot(EntityId shot, short shotTypeId, Vector3f position) {
         assertEquals(1, childShots.size());
         assertEquals(shot, childShots.get(0)[0]);
