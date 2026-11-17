@@ -64,8 +64,9 @@ class ShotsControllerTest {
     private static final short HEAL_ID = 4;
     private static final short HEAL_INSTANT_ID = 53;
     private static final short CREATE_OBJECT_ID = 2;
-    private static final short CREATE_CREATURE_ID = 4;
+    private static final short CREATE_CREATURE_ID = 10;
     private static final short SKELETON_ARMY_ID = 54;
+    private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short SPIKE_ID = 27;
@@ -184,16 +185,6 @@ class ShotsControllerTest {
     }
 
     @Test
-    void creatureShotCreatesItsSecondValueOfCreatures() {
-
-        // Create Imp: creature 1 (Imp), one of them
-        shotsController.createShot(CREATE_CREATURE_ID, 1, 1, PLAYER_ID, new Vector3f(4.5f, 1f, 7.5f), null, null);
-
-        assertEquals(1, spawnedCreatures.size());
-        assertArrayEquals(new Object[]{(short) 1, PLAYER_ID, 1, new Vector2f(4.5f, 7.5f), ICreaturesController.SpawnType.CONJURE}, spawnedCreatures.get(0));
-    }
-
-    @Test
     void creatureSkeletonArmyRisesAtItsTarget() {
         EntityId enemy = createCreature();
         EntityId darkAngel = createCreature();
@@ -233,6 +224,22 @@ class ShotsControllerTest {
         assertEquals(4, args[2]);
         assertEquals(7, args[3]);
         assertEquals(1000, args[4]);
+    }
+
+    @Test
+    void creatureShotCreatesTheShotsNumberOfCreaturesAtLevelOne() {
+
+        // Create Imp: creature 1 (Imp), the second value is how many
+        shotsController.createShot(CREATE_CREATURE_ID, IMP_ID, 3, PLAYER_ID, new Vector3f(4.5f, 1f, 7.5f), null, null);
+
+        assertEquals(3, spawnedCreatures.size());
+        for (Object[] args : spawnedCreatures) {
+            assertEquals(IMP_ID, args[0]);
+            assertEquals(PLAYER_ID, args[1]);
+            assertEquals(1, args[2]);
+            assertEquals(new Vector2f(4.5f, 7.5f), args[3]);
+            assertEquals(ICreaturesController.SpawnType.CONJURE, args[4]);
+        }
     }
 
     @Test
