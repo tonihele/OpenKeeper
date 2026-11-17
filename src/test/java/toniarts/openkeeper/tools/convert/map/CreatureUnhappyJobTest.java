@@ -22,6 +22,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -75,7 +76,7 @@ class CreatureUnhappyJobTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IGameTimer gameTimer = () -> gameTime;
-        controller = new CreatureController(entityId, entityData, warlock, null, taskManager, gameTimer, null,
+        controller = new CreatureController(entityId, entityData, warlock, null, taskManager, gameTimer, Map.of(),
                 null, null, null, null, null, null, null);
     }
 
