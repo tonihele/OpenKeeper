@@ -29,9 +29,11 @@ import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -68,6 +70,7 @@ class ShotsControllerTest {
     private static final short DOOR_FIREBALL_ID = 57;
     private static final short FREEZE_ID = 45;
     private static final short ALARM_ID = 13;
+    private static final short POISON_SPIT_ID = 62;
     private static final short REAPER_ID = 2;
     private static final short PLAYER_ID = 3;
     private static final short ENEMY_ID = 4;
@@ -91,6 +94,7 @@ class ShotsControllerTest {
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
+        shotsById.put(POISON_SPIT_ID, TrapFiringFixtures.shot(POISON_SPIT_ID, Shot.ProcessType.POISON_SPIT, Shot.DamageType.NONE));
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
@@ -322,6 +326,37 @@ class ShotsControllerTest {
     }
 
     @Test
+    void poisonSpitPoisonsTheCreatureItHits() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        EntityId bystander = createCreature(ENEMY_ID, 10, 10);
+
+        // The Maiden of the Nest's spit: 200 ticks of 10 damage
+        hitWithPoisonSpit(target, 200, 10);
+
+        Poisoned poisoned = entityData.getComponent(target, Poisoned.class);
+        assertEquals(200, poisoned.ticksLeft);
+        assertEquals(10, poisoned.damage);
+        assertNull(entityData.getComponent(target, Damage.class));
+        assertNull(entityData.getComponent(bystander, Poisoned.class));
+
+        // Another spit starts the poison over
+        entityData.setComponent(target, new Poisoned(5, 10));
+        hitWithPoisonSpit(target, 200, 10);
+
+        assertEquals(200, entityData.getComponent(target, Poisoned.class).ticksLeft);
+    }
+
+    @Test
+    void poisonSpitDoesNotPoisonADyingCreature() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Unconscious(0));
+
+        hitWithPoisonSpit(target, 200, 10);
+
+        assertNull(entityData.getComponent(target, Poisoned.class));
+    }
+
+    @Test
     void alarmShotRaisesAnAlarmForItsOwnerWhereItWasFired() {
         Vector3f position = new Vector3f(10, 1, 10);
         gameTime = 5;
@@ -353,6 +388,14 @@ class ShotsControllerTest {
         entityData.setComponents(creature, new Position(0, new Vector3f(x, 1f, y)), new CreatureComponent(),
                 new Owner(ownerId, ownerId), new Health(100, 100));
         return creature;
+    }
+
+    private void hitWithPoisonSpit(EntityId target, int shotData1, int shotData2) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot, new Position(0, new Vector3f(10, 1, 10)), new ShotFlight(POISON_SPIT_ID, PLAYER_ID,
+                entityData.createEntity(), shotData1, shotData2, new Vector3f(), new Vector3f(10, 1, 10), 3, 20));
+
+        shotsController.hit(shot, target);
     }
 
     private ShotFlight getShotFlight() {

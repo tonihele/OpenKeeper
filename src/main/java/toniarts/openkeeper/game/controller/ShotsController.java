@@ -27,9 +27,11 @@ import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -62,6 +64,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POISON_SPIT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 
 /**
@@ -138,6 +141,7 @@ public final class ShotsController implements IShotsController {
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
+        result.put(POISON_SPIT, this::poison);
 
         return result;
     }
@@ -247,6 +251,23 @@ public final class ShotsController implements IShotsController {
         }
 
         entityData.setComponent(target, new Frozen(gameTimer.getGameTime(), request.shotData1()));
+    }
+
+    /**
+     * Poisons the creature the shot hit for shot data 1 ticks, taking shot data
+     * 2 damage a tick. A new poisoning starts the poison over. A dying creature
+     * isn't poisoned (0x4B0270)
+     *
+     * @param request the shot
+     */
+    private void poison(ShotRequest request) {
+        EntityId target = request.target();
+        if (target == null || entityData.getComponent(target, CreatureComponent.class) == null
+                || entityData.getComponent(target, Unconscious.class) != null) {
+            return;
+        }
+
+        entityData.setComponent(target, new Poisoned(request.shotData1(), request.shotData2()));
     }
 
     /**
