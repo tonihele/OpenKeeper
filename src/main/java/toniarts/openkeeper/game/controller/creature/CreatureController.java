@@ -60,6 +60,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
@@ -701,6 +702,12 @@ public final class CreatureController extends EntityController implements ICreat
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null) {
             return getCombatPitOpponent(pitFighter.pit);
+        }
+
+        // One that won't fight neither picks a target nor keeps the one it has (DK II 0x45A6D0, 0x45F030)
+        if (entityData.getComponent(entityId, Peaceful.class) != null) {
+            setAttackTarget(null);
+            return null;
         }
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         ICreatureController attackTargetController = null;
@@ -2235,6 +2242,15 @@ public final class CreatureController extends EntityController implements ICreat
     private void makeHungry(CreatureHunger creatureHunger) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
+    }
+
+    @Override
+    public void setWillFight(boolean willFight) {
+        if (willFight) {
+            entityData.removeComponent(entityId, Peaceful.class);
+        } else {
+            entityData.setComponent(entityId, new Peaceful());
+        }
     }
 
     @Override

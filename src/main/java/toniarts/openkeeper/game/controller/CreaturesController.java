@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
@@ -240,8 +241,14 @@ public final class CreaturesController implements ICreaturesController {
 
         // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
         SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+        EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
+        if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
+            entityData.setComponent(entityId, new Peaceful());
+        }
+        return entityId;
     }
 
     @Override
