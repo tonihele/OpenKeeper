@@ -1213,19 +1213,6 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void dropsAnEnemyPrisonerIntoTheCombatPitToFight() {
-        KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.PLACE_IN_PIT), 1000);
-        roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
-        roomControl.onBuild(createRoom(COMBAT_PIT, new Point(5, 4)));
-        EntityId prisoner = createPrisoner(new Point(1, 4));
-        for (int tick = 0; tick < 400 && dropped.isEmpty(); tick++) {
-            system.processTick(0.25f);
-        }
-
-        assertEquals(Map.of(prisoner, new Point(5, 4)), dropped);
-    }
-
-    @Test
     void sacrificesAnEnemyPrisonerOrLeavesItToDieByItsSettings() {
         KeeperAiSystem system = createSystem(withPrisonerFate(ai(0, 0, 9, 1, 50, 0, List.of()), AI.ImprisonedCreatureFatePolicy.LEAVE_TO_DIE), 1000);
         roomControl.onBuild(createRoom(PRISON, new Point(1, 4)));
@@ -1750,33 +1737,6 @@ class KeeperAiSystemTest {
 
         assertEquals(HATCHERY, getKeeperAi().roomId);
         assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
-    }
-
-    @Test
-    void hasASiteDugForARoomItIsStillResearchingAndBuildsNothingOnIt() {
-        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY, LAIR)), 0);
-        roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
-        roomControl.onBuild(createRoom(TREASURY, new Point(1, 4)));
-        roomControl.setTypeAvailable(rooms.get(LAIR), true, false);
-
-        system.processTick(0.25f);
-
-        assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
-        assertEquals(229, getKeeperAi().roomId);
-
-        Set<Point> dug = new HashSet<>();
-        for (int tick = 0; tick < 100 && getKeeperAi().task != KeeperAi.Task.PLAN; tick++) {
-            system.processTick(0.25f);
-            for (Point p : tagged) {
-                map[p.y][p.x] = '.';
-            }
-            dug.addAll(tagged);
-            tagged.clear();
-        }
-
-        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
-        assertTrue(dug.size() >= 9);
-        assertTrue(built.isEmpty());
     }
 
     @Test

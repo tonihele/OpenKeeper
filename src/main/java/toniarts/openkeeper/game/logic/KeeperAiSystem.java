@@ -154,12 +154,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private static final short LAST_ROOM = 26;
 
     /**
-     * DK II plans this in place of a room it is still researching: a site is
-     * dug out for it and nothing is built there
-     */
-    private static final short ROOM_NOT_RESEARCHED = 229;
-
-    /**
      * The rooms DK II's computer player never builds
      */
     private static final Set<Short> ROOMS_NOT_BUILT = Set.of(ROOM_PORTAL, ROOM_DUNGEON_HEART, ROOM_WOODEN_BRIDGE,
@@ -421,7 +415,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 case PLAN -> {
 
                     // An invasion first, else a room
-                    boolean allRoomsPlaced = getNextRoom(playerController, ai, true) == null;
+                    boolean allRoomsPlaced = getNextRoom(playerController, ai) == null;
                     String nothingPlanned = null;
                     if (!invasions.planInvasion(keeperAi, playerControllers, ai, creatureLevel, allRoomsPlaced, ticksPerSecond)) {
                         nothingPlanned = planRoom(keeperAi, playerController, ai);
@@ -878,9 +872,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         keeperAi.roomId = 0;
         wantMoreSpace(keeperAi, playerController, ai);
         if (!keeperAi.roomWanted) {
-            Room wanted = getNextRoom(keeperAi, playerController, ai, true);
-            keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId()
-                    : getNextRoom(keeperAi, playerController, ai, false) != null ? ROOM_NOT_RESEARCHED : ROOM_PORTAL;
+            Room wanted = getNextRoom(keeperAi, playerController, ai);
+            keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId() : ROOM_PORTAL;
             keeperAi.roomWanted = true;
         }
         short roomId = keeperAi.wantedRoomId;
@@ -896,17 +889,17 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         }
 
         Room room = roomId == ROOM_PORTAL ? null : kwdFile.getRoomById(roomId);
-        if (roomId != ROOM_NOT_RESEARCHED && room == null || ai.getDefaultSize() < 1) {
+        if (room == null || ai.getDefaultSize() < 1) {
             return roomId == ROOM_PORTAL ? "no neutral Portal to dig to" : "can't build room " + roomId;
         }
 
         // The room at its default size has to be affordable, otherwise mine gold first
-        if (room != null && room.getCost() * ai.getDefaultSize() > playerController.getKeeper().getGold()) {
+        if (room.getCost() * ai.getDefaultSize() > playerController.getKeeper().getGold()) {
             mineGold(keeperAi, playerController);
             return "room " + roomId + " costs more than its gold and there is no gold to mine";
         }
 
-        keeperAi.roomId = roomId;
+        keeperAi.roomId = room.getRoomId();
 
         // Its first room of the kind grows where it can, without a path to dig. If it can't, another one is built
         if (expand) {
@@ -1151,26 +1144,20 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * The first room of the computer player's build order, and then of the
-     * rest of the rooms, that it doesn't have yet and may build, or is
-     * still researching. For the rooms it is still researching DK II starts
-     * at the second room of the build order
+     * rest of the rooms, that it may build and doesn't have yet
      */
-    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, boolean researched) {
-        return getNextRoom(keeperAi, playerController, ai, researched, true);
+    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai) {
+        return getNextRoom(keeperAi, playerController, ai, true);
     }
 
-    private Room getNextRoom(IPlayerController playerController, AI ai, boolean researched) {
-        return getNextRoom(null, playerController, ai, researched, false);
+    private Room getNextRoom(IPlayerController playerController, AI ai) {
+        return getNextRoom(null, playerController, ai, false);
     }
 
-    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, boolean researched,
-            boolean skipFailedRoomSites) {
+    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, boolean skipFailedRoomSites) {
         List<Short> roomIds = new ArrayList<>(ai.getBuildOrder());
         for (short roomId = (short) (roomIds.size() + 1); roomId <= LAST_ROOM; roomId++) {
             roomIds.add(roomId);
-        }
-        if (!researched) {
-            roomIds.removeFirst();
         }
         for (short roomId : roomIds) {
             Room room = kwdFile.getRoomById(roomId);
@@ -1178,7 +1165,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 continue;
             }
             ResearchableEntity availability = playerController.getRoomControl().getTypes().get(room);
-            if (availability != null && availability.isDiscovered() == researched && playerController.getRoomControl().getTypeCount(room) == 0
+            if (availability != null && availability.isDiscovered() && playerController.getRoomControl().getTypeCount(room) == 0
                     && (!skipFailedRoomSites || !isWaitingAfterFailedRoomSite(keeperAi, roomId))) {
                 return room;
             }
@@ -1625,10 +1612,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     private int tagRoom(KeeperAi keeperAi, int ticksPerSecond, int actions) {
         tag(keeperAi, keeperAi.corner, keeperAi.oppositeCorner, ticksPerSecond, "the site of room " + keeperAi.roomId);
-        if (keeperAi.roomId == ROOM_NOT_RESEARCHED) {
-            setTask(keeperAi, KeeperAi.Task.PLAN, "the site is tagged, the room for it is still being researched");
-            return actions - 1;
-        }
         setTask(keeperAi, KeeperAi.Task.BUILD_ROOM, "the site is tagged");
         keeperAi.current = keeperAi.corner;
 
