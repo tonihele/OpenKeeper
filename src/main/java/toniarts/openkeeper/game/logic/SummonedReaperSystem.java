@@ -43,7 +43,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
  * seconds, after that the Reaper costs the mana drain every second. When the
  * keeper has less mana than that, the Reaper leaves. A Reaper summoned for a
  * set time leaves when the time is up, and costs nothing. Slapping the Reaper
- * sends him back too. With nothing to destroy he roams about. A leaving
+ * sends him back too, and so does running out of things to destroy. A leaving
  * Reaper stops what he is doing and is gone six seconds later. A Reaper sent for
  * the Portal Gem at the end of the level only goes for the gem.
  */
@@ -72,8 +72,9 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
          *
          * @param reaper the Reaper
          * @param ownerId the keeper who summoned him
+         * @return {@code false} if there is nothing left for the Reaper to do
          */
-        void think(EntityId reaper, short ownerId);
+        boolean think(EntityId reaper, short ownerId);
 
         /**
          * Lets the Reaper go for the Portal Gem and pick it up
@@ -147,10 +148,10 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
                 }
             } else if (isDismissed(entityId, ownerId, summonedReaper, gameTime)) {
                 leave(entityId, summonedReaper, gameTime);
-            } else if (entityData.getComponent(entityId, CreatureAi.class) != null) {
+            } else if (entityData.getComponent(entityId, CreatureAi.class) != null && !decisions.think(entityId, ownerId)) {
 
                 // He only thinks when he is on his feet, not while still falling from the sky
-                decisions.think(entityId, ownerId);
+                leave(entityId, summonedReaper, gameTime);
             }
         }
     }

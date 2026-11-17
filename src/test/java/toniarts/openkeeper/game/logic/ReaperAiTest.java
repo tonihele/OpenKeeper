@@ -157,15 +157,39 @@ class ReaperAiTest {
     }
 
     @Test
-    void roamsWhenThereIsNothingToDestroy() {
+    void goesForTheHeartThatIsNearestTheWayDungeonKeeperIIMeasuresIt() {
+        keepers.get(ENEMY_ID).setDungeonHeartLocation(new Point(13, 10));
+        short otherEnemyId = 6;
+        keepers.put(otherEnemyId, new Keeper(false, otherEnemyId));
+        Point below = new Point(10, 14);
+        keepers.get(otherEnemyId).setDungeonHeartLocation(below);
+
+        // 3 * 3 = 9 for the one across, 2 * 4 = 8 for the one further away below
+        assertTrue(ai().think(reaper, PLAYER_ID));
+
+        assertEquals(below, entityData.getComponent(reaper, Navigation.class).target);
+    }
+
+    @Test
+    void skipsADestroyedHeart() {
+        keepers.get(ENEMY_ID).setDungeonHeartLocation(new Point(12, 10));
+        keepers.get(ENEMY_ID).setDestroyed(PLAYER_ID);
+
+        assertFalse(ai().think(reaper, PLAYER_ID));
+    }
+
+    @Test
+    void hasNothingLeftToDoWhenHeCanReachNothing() {
+        Point walledIn = new Point(12, 10);
+        unreachableTiles.add(walledIn);
+        addCreature(ENEMY_ID, walledIn);
         Point heart = new Point(30, 12);
         keepers.get(ENEMY_ID).setDungeonHeartLocation(heart);
         unreachableTiles.add(heart);
 
-        ai().think(reaper, PLAYER_ID);
-
-        assertTrue(wandered);
-        assertEquals(CreatureState.WANDER, state);
+        assertFalse(ai().think(reaper, PLAYER_ID));
+        assertFalse(wandered);
+        assertNull(entityData.getComponent(reaper, AttackTarget.class));
     }
 
     @Test

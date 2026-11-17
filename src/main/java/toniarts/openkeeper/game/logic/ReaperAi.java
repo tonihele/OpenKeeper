@@ -53,11 +53,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  * What a summoned Horned Reaper does, as in DK II. Whenever he is free he
  * decides again: one time in three he roams about. Otherwise he goes for the
  * nearest enemy creature he can reach. With no such creature he goes for the
- * nearest enemy Dungeon Heart he can reach, and with no heart either he roams
- * about until his time or the keeper's mana runs out (DKII.EXE 0x474AF0 goes
- * to the roaming state when there is nothing to attack). He has no needs, so
- * he never looks for a lair, food or work. Sent for the Portal Gem, he walks to
- * it and picks it up, and that is the end of his job.
+ * nearest enemy Dungeon Heart he can reach, and with no heart either he has
+ * nothing left to do and leaves (DKII.EXE 0x4748E0, the search at 0x45E1B0).
+ * He has no needs, so he never looks for a lair, food or work. Sent for the
+ * Portal Gem, he walks to it and picks it up, and that is the end of his job.
  */
 final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
 
@@ -80,34 +79,28 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
     }
 
     @Override
-    public void think(EntityId reaper, short ownerId) {
+    public boolean think(EntityId reaper, short ownerId) {
         Keeper keeper = keepers.get(ownerId);
         ICreatureController reaperController = creaturesController.createController(reaper);
         if (keeper == null || isBusy(reaper, reaperController, keeper)) {
-            return;
+            return true;
         }
 
         StateMachine<ICreatureController, CreatureState> stateMachine = reaperController.getStateMachine();
         if (random.nextInt(WANDER_CHANCE) == 0) {
-            wander(reaperController);
-            return;
+            stateMachine.changeState(CreatureState.WANDER);
+            reaperController.navigateToRandomPoint();
+            return true;
         }
 
         EntityId target = findNearestEnemy(reaper, reaperController, keeper);
         if (target != null) {
             entityData.setComponent(reaper, new AttackTarget(target));
             stateMachine.changeState(CreatureState.FIGHT);
-            return;
+            return true;
         }
 
-        if (!goToNearestEnemyHeart(reaper, reaperController, keeper)) {
-            wander(reaperController);
-        }
-    }
-
-    private void wander(ICreatureController reaperController) {
-        reaperController.getStateMachine().changeState(CreatureState.WANDER);
-        reaperController.navigateToRandomPoint();
+        return goToNearestEnemyHeart(reaper, reaperController, keeper);
     }
 
     @Override
@@ -217,18 +210,19 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
     }
 
     /**
-     * Attacking the heart isn't there yet, so he just goes to it
+     * Attacking the heart isn't there yet, so he just goes to it. DK II
+     * measures the way to a heart as dx * dx + 2 * dy in tiles, compared
+     * unsigned, so a heart at a smaller y can count as far away (0x45E1B0).
      */
     private boolean goToNearestEnemyHeart(EntityId reaper, ICreatureController reaperController, Keeper keeper) {
-        Vector3f reaperPosition = entityData.getComponent(reaper, Position.class).position;
-        Point from = WorldUtils.vectorToPoint(reaperPosition);
+        Point from = WorldUtils.vectorToPoint(entityData.getComponent(reaper, Position.class).position);
         List<Point> hearts = new ArrayList<>();
         for (Keeper other : keepers.values()) {
-            if (keeper.isEnemy(other.getId()) && other.getDungeonHeartLocation() != null) {
+            if (keeper.isEnemy(other.getId()) && !other.isDestroyed() && other.getDungeonHeartLocation() != null) {
                 hearts.add(other.getDungeonHeartLocation());
             }
         }
-        hearts.sort(Comparator.comparingDouble(heart -> WorldUtils.pointToVector3f(heart).distanceSquared(reaperPosition)));
+        hearts.sort((a, b) -> Integer.compareUnsigned(heartDistance(from, a), heartDistance(from, b)));
 
         for (Point heart : hearts) {
             if (from.equals(heart)) {
@@ -250,6 +244,11 @@ final class ReaperAi implements SummonedReaperSystem.ReaperDecisions {
         }
 
         return false;
+    }
+
+    private static int heartDistance(Point from, Point heart) {
+        int dx = heart.x - from.x;
+        return dx * dx + 2 * (heart.y - from.y);
     }
 
 }

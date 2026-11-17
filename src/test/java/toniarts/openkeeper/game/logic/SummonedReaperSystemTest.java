@@ -50,6 +50,7 @@ class SummonedReaperSystemTest {
     private final List<EntityId> removedCreatures = new ArrayList<>();
     private final List<EntityId> thinkingReapers = new ArrayList<>();
     private final List<EntityId> fetchedGems = new ArrayList<>();
+    private boolean somethingToDo = true;
     private double now = 0;
 
     @Test
@@ -156,15 +157,12 @@ class SummonedReaperSystemTest {
     }
 
     @Test
-    void reaperStaysUntilHisTimeIsUpWhateverHeDoes() {
-        EntityId reaper = addReaper(99, 0);
-        SummonedReaperSystem system = system();
+    void reaperLeavesWhenThereIsNothingLeftForHim() {
+        somethingToDo = false;
+        EntityId reaper = addReaper(0, MANA_DRAIN);
 
-        tickAt(system, 1);
-        tickAt(system, 98);
-        assertFalse(isLeaving(reaper));
+        tickAt(system(), 1);
 
-        tickAt(system, 99);
         assertTrue(isLeaving(reaper));
     }
 
@@ -257,8 +255,8 @@ class SummonedReaperSystemTest {
         return new SummonedReaperSystem(entityData, List.of(playerController), creaturesController(), () -> now,
                 new SummonedReaperSystem.ReaperDecisions() {
             @Override
-            public void think(EntityId reaper, short ownerId) {
-                thinkingReapers.add(reaper);
+            public boolean think(EntityId reaper, short ownerId) {
+                return thinkingReapers.add(reaper) && somethingToDo;
             }
 
             @Override
