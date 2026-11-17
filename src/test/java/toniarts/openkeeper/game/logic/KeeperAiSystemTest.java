@@ -1526,46 +1526,38 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void digsTowardAHostileHeroPortalWithoutAnEnemyDungeonHeart() {
+    void neverPicksTheHeroesAsTheEnemyToInvade() {
         KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50,
                 AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000, Player.GOOD_PLAYER_ID);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(11, 6)));
         enemyRoomControl.onBuild(createRoom(HERO_PORTAL, new Point(13, 6)));
         createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.WORK);
-        system.processTick(0.25f);
-
-        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
-
         createCreature(PLAYER_ID, new Point(1, 8), 100, 100, CreatureState.WORK);
+
         system.processTick(0.25f);
 
-        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
-        assertEquals(HEART, getKeeperAi().current);
-        assertEquals(new Point(13, 6), getKeeperAi().target);
-        assertEquals(Player.GOOD_PLAYER_ID, getKeeperAi().invasionTargetId);
-        assertEquals(1, getEnemy(Player.GOOD_PLAYER_ID).tunnelsLeft);
-        assertTrue(getEnemy(Player.GOOD_PLAYER_ID).invaded);
+        // DK II's enemy loop skips player 1, even with a heart
+        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(0, getKeeperAi().invasionTargetId);
+        assertNull(getEnemy(Player.GOOD_PLAYER_ID));
     }
 
     @Test
-    void digsTowardNearestRoomWhenTheEnemyDungeonHeartIsDestroyed() {
+    void doesNotInvadeAKeeperWhoseDungeonHeartIsDestroyed() {
         KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 1, 50,
-                AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000, Player.GOOD_PLAYER_ID);
+                AI.CallToArmsUsagePolicy.AT_HEART, 0), 1000);
         IRoomController heart = createRoom(DUNGEON_HEART, new Point(11, 6));
         heart.getRoomInstance().setDestroyed(true);
         enemyRoomControl.onBuild(heart);
-        enemyRoomControl.onBuild(createRoom(HERO_PORTAL, new Point(13, 6)));
+        enemyRoomControl.onBuild(createRoom(TREASURY, new Point(13, 6)));
         createCreature(PLAYER_ID, new Point(1, 4), 100, 100, CreatureState.WORK);
-        system.processTick(0.25f);
-
-        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
-
         createCreature(PLAYER_ID, new Point(1, 8), 100, 100, CreatureState.WORK);
+
         system.processTick(0.25f);
 
-        assertEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
-        assertEquals(new Point(13, 6), getKeeperAi().target);
-        assertEquals(Player.GOOD_PLAYER_ID, getKeeperAi().invasionTargetId);
-        assertTrue(getEnemy(Player.GOOD_PLAYER_ID).invaded);
+        assertNotEquals(KeeperAi.Task.DIG_PATH, getKeeperAi().task);
+        assertEquals(0, getKeeperAi().invasionTargetId);
+        assertNull(getEnemy());
     }
 
     @Test
