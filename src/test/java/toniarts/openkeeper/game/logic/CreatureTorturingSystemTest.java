@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,7 +34,9 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -49,7 +52,9 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -119,8 +124,7 @@ class CreatureTorturingSystemTest {
                         }
                         default -> throw new UnsupportedOperationException(method.getName());
                     });
-    private CreatureTorturingSystem system = new CreatureTorturingSystem(entityData, creaturesController(), mapController(),
-            gameEventService, lastChoice);
+    private CreatureTorturingSystem system = createSystem(0);
 
     @Test
     void enemyTorturedToDeathRevealsOneOfItsKeepersRooms() {
@@ -142,7 +146,7 @@ class CreatureTorturingSystemTest {
     void victimTellsWhatTheKeeperDoesNotKnowYet() {
 
         // An artisan has two things to tell about its keeper, every victim one more thing
-        system = new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService, firstChoice);
+        system = createSystem(0, firstChoice);
         torturedToDeath(HERO_ID);
         torturedToDeath(HERO_ID);
         torturedToDeath(HERO_ID);
@@ -157,7 +161,7 @@ class CreatureTorturingSystemTest {
         torturedToDeath(HERO_ID);
 
         // A loaded game starts with a new system on the same entities
-        system = new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService, lastChoice);
+        system = createSystem(0, lastChoice);
         torturedToDeath(HERO_ID);
 
         assertEquals(List.of(heroGate.getCoordinates(), heroLair.getCoordinates()), revealed);
@@ -384,6 +388,31 @@ class CreatureTorturingSystemTest {
                     case "getEntityId" -> roomEntities.computeIfAbsent(roomInstance, room -> entityData.createEntity());
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
+
+    @Test
+    void victimDiesInsteadOfJoiningByTheChanceOfDying() {
+        system = createSystem(100);
+        EntityId victim = victim(HERO_ID, 2);
+        entityData.setComponent(victim, new Health(300, 1000));
+
+        tick(3);
+
+        // The torture starts over, the health system lets the victim die
+        assertTrue(converted.isEmpty());
+        assertEquals(300, entityData.getComponent(victim, Damage.class).damage);
+        assertTrue(entityData.getComponent(victim, CreatureTortured.class).timeTortured < 2);
+    }
+
+    private CreatureTorturingSystem createSystem(int chanceOfDyingWhenConverted) {
+        return createSystem(chanceOfDyingWhenConverted, lastChoice);
+    }
+
+    private CreatureTorturingSystem createSystem(int chanceOfDyingWhenConverted, Random random) {
+        Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new EnumMap<>(Variable.MiscVariable.MiscType.class);
+        gameSettings.put(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED,
+                CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED, chanceOfDyingWhenConverted));
+        return new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService,
+                gameSettings, random);
     }
 
     private void tick(int seconds) {

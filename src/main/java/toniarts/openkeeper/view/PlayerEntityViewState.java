@@ -443,7 +443,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
                         kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
                         textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed);
+                        uniqueCreatureBed, kwdFile.getGameLevel().getTicksPerSec());
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -1009,6 +1009,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
+            TrapViewControl control = object.getControl(TrapViewControl.class);
+            if (control != null) {
+                control.setTargetState(e.get(TrapViewState.class));
+            }
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
             applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
