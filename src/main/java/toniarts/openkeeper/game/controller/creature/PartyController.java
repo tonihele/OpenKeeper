@@ -17,11 +17,9 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.simsilica.es.EntityId;
-import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
-import java.util.List;
+import java.util.Map;
 import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
@@ -31,7 +29,6 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  * Represents a party, a group of creatures. When the Leader is incapacitated, a
@@ -147,29 +144,25 @@ public final class PartyController implements IPartyController {
     }
 
     /**
-     * A party member is incapacitated, if it was the leader. Swap the duties
-     * and objectives
+     * The party leader is incapacitated. The first member in party order that
+     * has the follower flag and is still standing takes over the duties and
+     * objectives (DKII.EXE 0x4B2CE0). Without such a member the party stays
+     * leaderless.
      */
     private void checkPartyLeader() {
         if (leader != null && leader.isIncapacitated()) {
-            List<ICreatureController> leaderCandidates = new ArrayList<>(getActualMembers());
-            Iterator<ICreatureController> iter = leaderCandidates.iterator();
-            while (iter.hasNext()) {
-                ICreatureController c = iter.next();
-                if (c.isIncapacitated()) {
-                    iter.remove();
+            for (Map.Entry<Thing.GoodCreature, ICreatureController> member : members.entrySet()) {
+                ICreatureController candidate = member.getValue();
+                if (candidate != null && member.getKey().getFlags().contains(Thing.Creature.CreatureFlag.FOLLOWER)
+                        && !candidate.isIncapacitated()) {
+
+                    // Swap duties
+                    // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
+                    candidate.setObjectiveTargetActionPointId(leader.getObjectiveTargetActionPointId());
+                    candidate.setObjective(leader.getObjective());
+                    leader = candidate;
+                    return;
                 }
-            }
-
-            // See if any left
-            if (!leaderCandidates.isEmpty()) {
-                ICreatureController oldLeader = leader;
-                leader = Utils.getRandomItem(leaderCandidates);
-
-                // Swap duties
-                // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
-                leader.setObjectiveTargetActionPointId(oldLeader.getObjectiveTargetActionPointId());
-                leader.setObjective(oldLeader.getObjective());
             }
         }
     }
