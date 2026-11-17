@@ -94,7 +94,9 @@ class ShotsControllerTest {
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
-        shotsById.put(POISON_SPIT_ID, TrapFiringFixtures.shot(POISON_SPIT_ID, Shot.ProcessType.POISON_SPIT, Shot.DamageType.NONE));
+        // Poison Spit does its process when it hits, as in the original data
+        shotsById.put(POISON_SPIT_ID, ShotFixtures.shot(POISON_SPIT_ID, Shot.ProcessType.POISON_SPIT, 0,
+                EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
