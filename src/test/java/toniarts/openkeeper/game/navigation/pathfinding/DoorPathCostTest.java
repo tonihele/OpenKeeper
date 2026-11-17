@@ -64,10 +64,10 @@ class DoorPathCostTest {
     }
 
     @Test
-    void aDoorThatIsBrokenOnlyCostsMore() {
+    void aDoorThatIsBrokenCostsTheDoorCostAlone() {
         breaksDoors = true;
 
-        assertEquals(INavigable.DEFAULT_COST + INavigable.DOOR_COST,
+        assertEquals(INavigable.DOOR_COST,
                 navigable().getCost(null, tile(DOOR_TILE.x, DOOR_TILE.y), mapController, positionLookup));
     }
 
