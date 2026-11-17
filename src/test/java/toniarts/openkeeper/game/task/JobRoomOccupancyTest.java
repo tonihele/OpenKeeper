@@ -93,19 +93,47 @@ class JobRoomOccupancyTest {
     }
 
     @Test
-    void guardRoomCountsTheGuardsThatHaveATask() {
-        GuardRoomController guardRoom = new GuardRoomController(entityData.createEntity(), entityData, null, roomInstance(16, 0), objectsController(), null);
-        guardRoom.construct();
+    void guardRoomCountsAGuardFromTheMomentItIsSent() {
+        GuardRoomController guardRoom = guardRoom();
         ICreatureController guard = creature();
-        assertEquals(0, guardRoom.getUsedCapacity(ObjectType.GUARD));
+        Guard task = guard(guardRoom);
 
-        Guard task = new Guard(null, null, new Point(1, 1), KEEPER, guardRoom, taskManager(), 4, 0, null);
+        // Unlike the other rooms, a guard on its way counts
         task.assign(guard, true);
+        assertEquals(1, guardRoom.getUsedCapacity(ObjectType.GUARD));
+
+        // Once it is there, it is not counted again
+        task.executeTask(guard, 0);
+        task.executeTask(guard, 1);
         assertEquals(1, guardRoom.getUsedCapacity(ObjectType.GUARD));
 
         task.unassign(guard);
         task.unassign(guard);
         assertEquals(0, guardRoom.getUsedCapacity(ObjectType.GUARD));
+    }
+
+    @Test
+    void guardsOnTheirWayFillTheGuardRoom() {
+        GuardRoomController guardRoom = guardRoom();
+        ICreatureController guard = creature();
+        Guard task = guard(guardRoom);
+        task.assign(guard, true);
+        for (int i = 1; i < guardRoom.getMaxCapacity(ObjectType.GUARD); i++) {
+            guard(guardRoom).assign(creature(), true);
+        }
+
+        assertTrue(task.isValid(guard));
+        assertFalse(guard(guardRoom).isValid(creature()));
+    }
+
+    private GuardRoomController guardRoom() {
+        GuardRoomController guardRoom = new GuardRoomController(entityData.createEntity(), entityData, null, roomInstance(16, 0), objectsController(), null);
+        guardRoom.construct();
+        return guardRoom;
+    }
+
+    private Guard guard(GuardRoomController guardRoom) {
+        return new Guard(null, null, new Point(1, 1), KEEPER, guardRoom, taskManager(), 4, 0, null);
     }
 
     private TrainingRoomController trainingRoom() {
