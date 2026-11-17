@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import toniarts.openkeeper.game.data.ResearchableType;
 
 /**
  * What the workshop manufactures next. Every blueprint is an order for a
@@ -28,6 +29,18 @@ import java.util.Map;
  */
 public final class ManufactureOrders {
 
+    /**
+     * An item to manufacture
+     *
+     * @param type trap or door
+     * @param typeId the trap or door id
+     * @param manufToBuild the manufacture points it needs
+     * @param crateObjectId the object of its crate
+     */
+    public record Order(ResearchableType type, short typeId, int manufToBuild, short crateObjectId) {
+
+    }
+
     private ManufactureOrders() {
         // Nope
     }
@@ -35,15 +48,16 @@ public final class ManufactureOrders {
     /**
      * The next type to manufacture
      *
+     * @param <T> the type of a blueprint and its crate
      * @param blueprints the type of each blueprint, in the order they were
      * placed
      * @param crates the number of existing crates by type
      * @return the type of the oldest blueprint without a crate, {@code null}
      * if every blueprint has one
      */
-    public static Short next(List<Short> blueprints, Map<Short, Integer> crates) {
-        Map<Short, Integer> unassignedCrates = new HashMap<>(crates);
-        for (Short type : blueprints) {
+    public static <T> T next(List<T> blueprints, Map<T, Integer> crates) {
+        Map<T, Integer> unassignedCrates = new HashMap<>(crates);
+        for (T type : blueprints) {
             int available = unassignedCrates.getOrDefault(type, 0);
             if (available > 0) {
                 unassignedCrates.put(type, available - 1);

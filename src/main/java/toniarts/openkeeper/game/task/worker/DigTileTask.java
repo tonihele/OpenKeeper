@@ -19,11 +19,13 @@ package toniarts.openkeeper.game.task.worker;
 import com.jme3.math.Vector2f;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Dig a tile task, for workers
@@ -38,8 +40,14 @@ public class DigTileTask extends AbstractTileTask {
 
     @Override
     public int getMaxAllowedNumberOfAsignees() {
-        // TODO: I think it is 3 per accessible side, but we would need the map data for this
-        return 3;
+        // Three for each side of the tile that is open
+        int openSides = 0;
+        for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), getTaskLocation(), false)) {
+            if (!p.equals(getTaskLocation()) && !mapController.isSolid(p)) {
+                openSides++;
+            }
+        }
+        return 3 * openSides;
     }
 
     @Override
@@ -55,7 +63,8 @@ public class DigTileTask extends AbstractTileTask {
     @Override
     public boolean isValid(ICreatureController creature) {
         IMapTileInformation tile = mapController.getMapData().getTile(getTaskLocation());
-        return tile.isSelected(playerId);
+        return tile != null && tile.isSelected(playerId)
+                && TileWork.canDamageTile(mapController.getTerrain(tile), tile.getOwnerId(), playerId);
     }
 
     @Override

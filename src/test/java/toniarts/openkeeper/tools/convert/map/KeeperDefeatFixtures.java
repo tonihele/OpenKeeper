@@ -42,6 +42,27 @@ public final class KeeperDefeatFixtures {
     }
 
     /**
+     * A terrain of the level
+     *
+     * @param terrainId the terrain id
+     * @param destroyedTypeTerrainId what the terrain turns into when destroyed
+     * @param flags the terrain flags
+     * @return the terrain
+     */
+    public static Terrain terrain(short terrainId, short destroyedTypeTerrainId, Terrain.TerrainFlag... flags) {
+        EnumSet<Terrain.TerrainFlag> set = EnumSet.noneOf(Terrain.TerrainFlag.class);
+        for (Terrain.TerrainFlag flag : flags) {
+            set.add(flag);
+        }
+
+        Terrain terrain = new Terrain();
+        terrain.setTerrainId(terrainId);
+        terrain.setDestroyedTypeTerrainId(destroyedTypeTerrainId);
+        terrain.setFlags(set);
+        return terrain;
+    }
+
+    /**
      * The level settings
      *
      * @param flags the level flags
