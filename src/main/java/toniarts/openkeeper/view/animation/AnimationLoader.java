@@ -264,10 +264,18 @@ public final class AnimationLoader {
         action.interpolate(phase);
     }
 
-    private static boolean isPaused(Spatial spatial) {
+    public static boolean isPaused(Spatial spatial) {
         for (Spatial node = spatial; node != null; node = node.getParent())
             if (Boolean.TRUE.equals(node.getUserData(PAUSED))) return true;
         return false;
+    }
+
+    /** Authored delay before the main segment, without model or metadata lookup. */
+    public static double getMainStartDelay(Spatial spatial) {
+        if (!(spatial instanceof Node root)) return 0;
+        Spatial start = root.getChild(START_ANIM_NODE_NAME);
+        var composer = start == null ? null : start.getControl(AnimComposer.class);
+        return composer == null ? 0 : composer.getAction(ANIM_WITH_LISTENERS_NAME).getLength();
     }
 
     private static void hideAllNodes(Node root) {

@@ -86,6 +86,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private java.util.function.DoubleSupplier gameTime = () -> Double.NaN;
     private boolean initialSeekPending;
     private ArtResource activeAnimation;
+    private int[] stepMarks;
+    private toniarts.openkeeper.view.animation.FootstepMarkers normalizedStepMarks;
+    private double previousMarkerAge = Double.NaN;
 
     public void setGameTime(java.util.function.DoubleSupplier gameTime) {
         this.gameTime = Objects.requireNonNull(gameTime);
@@ -197,6 +200,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
         isAnimationPlaying = true;
         currentState = animation;
+        stepMarks = FootstepSounds.getMarks(getDataObject(), animation);
+        normalizedStepMarks = stepMarks == null ? null : new toniarts.openkeeper.view.animation.FootstepMarkers(
+                stepMarks, toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(resource));
+        previousMarkerAge = Double.NaN;
         previousStepTime = -1;
         return true;
     }
@@ -205,6 +212,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
         synchronizeInitialPhase();
+        if (AnimationLoader.isPaused(spatial)) {
+            previousStepTime = -1;
+            previousMarkerAge = Double.NaN;
+            return;
+        }
 
         // A creature in the hand talks, one line every few seconds as long as it is held. It is heard at the hand
         if (currentState == Creature.AnimationType.IN_HAND) {
@@ -245,9 +257,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      * A walking or running creature steps when the animation passes a footstep mark
      */
     private void playFootsteps() {
-        int[] marks = FootstepSounds.getMarks(getDataObject(), currentState);
+        int[] marks = stepMarks;
         if (marks == null || spatial == null || spatial.getCullHint() == Spatial.CullHint.Always) {
             previousStepTime = -1;
+            previousMarkerAge = Double.NaN;
+            if (spatial != null && spatial.getCullHint() == Spatial.CullHint.Always) playResearchSound(null);
             return;
         }
 
@@ -263,9 +277,18 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
 
         float time = (float) animComposer.getTime(AnimComposer.DEFAULT_LAYER);
+        double age = activeRequest == null ? Double.NaN : Math.max(0, gameTime.getAsDouble() - activeRequest.startTime()
+                - AnimationLoader.getMainStartDelay(spatial));
         if (previousStepTime >= 0) {
             int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength(),
-                    toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(getAnimationData(currentState)));
+                    toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(activeAnimation));
+            if (Double.isFinite(age) && Double.isFinite(previousMarkerAge)) {
+                var mode = getPlaybackPolicy() == PlaybackPolicy.LOOP ? AnimationLoader.getLoopModeOnChannel(animComposer.getSpatial())
+                        : toniarts.openkeeper.view.animation.LoopMode.DontLoop;
+                long crossings = normalizedStepMarks.crossings(previousMarkerAge,age,action.getLength(),mode);
+                // One audible catch-up per render update; the shared crowd budget applies afterward.
+                event = crossings == 0 ? FootstepSounds.NO_STEP : event == FootstepSounds.NO_STEP ? FootstepSounds.STEP_A : event;
+            }
             if (event != FootstepSounds.NO_STEP && FootstepSounds.tryAcquire(System.currentTimeMillis())) {
                 LOGGER.log(Logger.Level.DEBUG, "Footstep {0} of {1} at {2}", Integer.toHexString(event), getDataObject().getName(), time);
                 Vector3f position = spatial.getWorldTranslation();
@@ -274,6 +297,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             }
         }
         previousStepTime = time;
+        previousMarkerAge = age;
     }
 
     /**
