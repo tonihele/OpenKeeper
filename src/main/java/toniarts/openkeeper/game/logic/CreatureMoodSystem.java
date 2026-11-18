@@ -25,6 +25,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
@@ -35,6 +36,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -48,12 +50,14 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(CreatureMoodSystem.class.getName());
     private static final short LAIR_ROOM_ID = 2;
+    private static final short HATCHERY_ROOM_ID = 4;
     private static final int LOG_COUNTER_INTERVAL = 1000;
     private static final int SECONDS_IN_HAND_BEFORE_ANGER = 20;
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final Room lair;
+    private final Room hatchery;
     private final IGameTimer gameTimer;
     private final int angerRecoveryInLairPerSecond;
     private final Map<Short, IPlayerController> playerControllersById;
@@ -68,6 +72,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
         angerRecoveryInLairPerSecond = (int) gameSettings.get(
                 Variable.MiscVariable.MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND).getValue();
         lair = kwdFile.getRoomById(LAIR_ROOM_ID);
+        hatchery = kwdFile.getRoomById(HATCHERY_ROOM_ID);
         playerControllersById = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             playerControllersById.put(playerController.getKeeper().getId(), playerController);
@@ -83,6 +88,13 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             CreatureMood mood = entity.get(CreatureMood.class);
             CreatureSleep sleep = entity.get(CreatureSleep.class);
             Owner owner = entity.get(Owner.class);
+
+            // DKII only runs the anger reasons for keepers (player index above 2),
+            // heroes and neutral creatures have no moods
+            if (owner.ownerId <= Player.NEUTRAL_PLAYER_ID) {
+                continue;
+            }
+
             Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
             if (creature == null) {
                 continue;
@@ -91,6 +103,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
             int unhappyThreshold = CreatureMood.toRuntimeThreshold(
                     creature.getAttributes().getUnhappyThreshold());
+            mood = applyNoFoodAnger(entity, mood, creature, owner.ownerId);
 
             // DKII clears reason 2 immediately after a bed is successfully assigned.
             if (hasAssignedLair(sleep)) {
@@ -112,7 +125,7 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             }
 
             if (creature.getLairObjectId() == 0
-                    || !isLairAvailableOrOwned(owner.ownerId)) {
+                    || !isRoomAvailableOrOwned(owner.ownerId, lair)) {
                 continue;
             }
 
@@ -204,11 +217,32 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
                 && entityData.getComponent(sleep.lairObjectId, Position.class) != null;
     }
 
-    private boolean isLairAvailableOrOwned(short playerId) {
+    /**
+     * DKII adds no-food anger every tick while a creature still waits for its
+     * whole fill of chickens and its keeper can build or has a Hatchery.
+     */
+    private CreatureMood applyNoFoodAnger(Entity entity, CreatureMood mood, Creature creature, short ownerId) {
+        CreatureHunger hunger = entityData.getComponent(entity.getId(), CreatureHunger.class);
+        int hungerFill = entity.get(CreatureComponent.class).hungerFill;
+        if (hunger == null || hungerFill == 0 || hunger.amountNeeded < hungerFill
+                || !isRoomAvailableOrOwned(ownerId, hatchery)) {
+            return mood;
+        }
+
+        CreatureMood updatedMood = mood.add(CreatureMood.REASON_NO_FOOD,
+                CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoFood()));
+        if (updatedMood.noFood == mood.noFood) {
+            return mood;
+        }
+        entityData.setComponent(entity.getId(), updatedMood);
+        return updatedMood;
+    }
+
+    private boolean isRoomAvailableOrOwned(short playerId, Room room) {
         IPlayerController playerController = playerControllersById.get(playerId);
-        return playerController != null && lair != null
-                && (playerController.getRoomControl().getTypesAvailable().contains(lair)
-                || playerController.getRoomControl().getTypeCount(lair) > 0);
+        return playerController != null && room != null
+                && (playerController.getRoomControl().getTypesAvailable().contains(room)
+                || playerController.getRoomControl().getTypeCount(room) > 0);
     }
 
     @Override

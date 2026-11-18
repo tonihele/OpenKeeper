@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
@@ -49,6 +50,41 @@ public final class CombatPitController extends DoubleQuadController {
                 break;
             }
         }
+    }
+
+    @Override
+    public boolean isTileAccessible(Integer fromX, Integer fromY, int toX, int toY) {
+
+        // The pit's door is the way in and out, for the imps that carry the knocked out fighters off too
+        if (door != null && fromX != null && fromY != null) {
+            Point from = new Point(fromX, fromY);
+            Point to = new Point(toX, toY);
+            if ((insideCoordinates.contains(from) && to.equals(door)) || (insideCoordinates.contains(to) && from.equals(door))) {
+                return true;
+            }
+        }
+        return super.isTileAccessible(fromX, fromY, toX, toY);
+    }
+
+    /**
+     * Is the tile in the pit itself, where the creatures fight, rather than on
+     * its edge
+     *
+     * @param tile the tile
+     * @return true if the creatures fight on the tile
+     */
+    public boolean isFightingTile(Point tile) {
+        return insideCoordinates.contains(tile);
+    }
+
+    /**
+     * Picks a tile in the pit itself, where a fighter without an opponent
+     * walks to wait for one
+     *
+     * @return a random tile the creatures fight on
+     */
+    public Point getRandomFightingTile() {
+        return insideCoordinates.stream().skip(FastMath.nextRandomInt(0, insideCoordinates.size() - 1)).findFirst().orElseThrow();
     }
 
 }
