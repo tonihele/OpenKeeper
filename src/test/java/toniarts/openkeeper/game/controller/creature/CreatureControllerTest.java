@@ -101,7 +101,9 @@ class CreatureControllerTest {
 
     @Test
     void fatigueInterruptsRoomWorkAndKeepsTheNewSleepTaskAssigned() {
-        for (TaskType type : List.of(TaskType.TRAIN, TaskType.RESEARCH, TaskType.GUARD)) {
+        // The job groups DK II lets fatigue interrupt (mask 0x800A3C3B, 0x477C20)
+        for (TaskType type : List.of(TaskType.RESEARCH, TaskType.MANUFACTURE, TaskType.GUARD, TaskType.PRAY, TaskType.TRAIN,
+                TaskType.GAMBLE)) {
             try (Fixture f = new Fixture(9)) {
                 f.startWork(type);
                 f.data.setComponent(f.entity, new CreatureSleep(f.bed, -20, 0, 0));
