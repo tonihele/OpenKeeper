@@ -1639,16 +1639,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         while (actions > 0) {
             actions--;
             if (mapController.isBuildable(keeperAi.current, keeperAi.playerId, keeperAi.roomId)) {
-                Room room = kwdFile.getRoomById(keeperAi.roomId);
-                if (room == null) {
-                    setTask(keeperAi, KeeperAi.Task.PLAN, keeperAi.current, "room definition is missing");
-                    return 0;
-                }
-                if (playerController.getKeeper().getGold() < room.getCost()) {
-                    setTask(keeperAi, KeeperAi.Task.PLAN, keeperAi.current, "room " + keeperAi.roomId + " needs more gold");
-                    return 0;
-                }
-
                 Vector2f position = new Vector2f(keeperAi.current.x, keeperAi.current.y);
                 gameWorldController.build(position, position, keeperAi.playerId, keeperAi.roomId);
                 if (!mapController.isBuildable(keeperAi.current, keeperAi.playerId, keeperAi.roomId)) {
@@ -1656,9 +1646,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     return actions;
                 }
 
-                if (playerController.getKeeper().getGold() < room.getCost()) {
-                    setTask(keeperAi, KeeperAi.Task.PLAN, keeperAi.current, "room " + keeperAi.roomId + " ran short of gold");
-                    return 0;
+                // DK II's gold check is inside the build call (0x4FD2B0, 0x4C5B40): short of gold the tile isn't built and is tried again next tick
+                if (playerController.getKeeper().getGold() < kwdFile.getRoomById(keeperAi.roomId).getCost()) {
+                    return actions;
                 }
 
                 log(keeperAi, "skip room tile", keeperAi.current, "room placement was rejected");

@@ -1908,7 +1908,7 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void returnsToPlanningWhenRoomConstructionBecomesUnaffordable() {
+    void triesTheSameRoomTileAgainEachTickWhileShortOfGold() {
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 0, List.of(TREASURY)), 1000);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
         chargeGoldForBuild = true;
@@ -1933,10 +1933,18 @@ class KeeperAiSystemTest {
             tagged.clear();
         }
 
-        assertNotEquals(KeeperAi.Task.BUILD_ROOM, getKeeperAi().task);
+        // It stays on the room, trying the one tile, and builds the rest once the gold comes in
+        assertEquals(KeeperAi.Task.BUILD_ROOM, getKeeperAi().task);
         assertEquals(buildsBeforeGoldWasSpent, built.size());
-        assertEquals(buildsBeforeGoldWasSpent, buildAttempts.size());
-        assertEquals(0, rejectedBuildAttempts);
+        assertTrue(rejectedBuildAttempts > 1);
+        assertEquals(1, new HashSet<>(buildAttempts.subList(buildsBeforeGoldWasSpent, buildAttempts.size())).size());
+
+        keeper.setGold(1000);
+        for (int tick = 0; tick < 100 && getKeeperAi().task == KeeperAi.Task.BUILD_ROOM; tick++) {
+            system.processTick(0.25f);
+        }
+
+        assertEquals(9, built.size());
     }
 
     @Test
