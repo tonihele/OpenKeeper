@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
@@ -815,7 +816,7 @@ public final class CreatureController extends EntityController implements ICreat
         }
         IEntityController attackTargetController = null;
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)
+                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId) || isInvisible(attackTarget.entityId)
                 || isUnreachable(attackTarget.entityId)) {
 
             // Pick a new target, the nearest enemy already attacking us comes first
@@ -944,7 +945,7 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             if (creaturesController.isValidEntity(entity)
                     && isEnemy(entity)
-                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity) || isInvisible(entity))
                     && !(fightersOnly && creaturesController.createController(entity).isWorker())
                     && hasRoomForAttacker(entity)
                     && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
@@ -1277,6 +1278,10 @@ public final class CreatureController extends EntityController implements ICreat
         return state == CreatureState.FIGHT || state == CreatureState.MELEE_ATTACK || state == CreatureState.CAST_SPELL;
     }
 
+    private boolean isInvisible(EntityId entity) {
+        return entityData.getComponent(entity, Invisible.class) != null;
+    }
+
     /**
      * The spell's own condition on the creature it would be cast on
      *
@@ -1294,8 +1299,10 @@ public final class CreatureController extends EntityController implements ICreat
                 isFighting(entity) && entityData.getComponent(entity, Armour.class) == null;
             case INVULNERABLE ->
                 isFighting(entity) && entityData.getComponent(entity, Invulnerable.class) == null;
+            case INVISIBLE ->
+                isFighting(entity) && !isInvisible(entity);
             default ->
-                false; // TODO: haste and invisibility have no effect yet
+                false; // TODO: haste has no effect yet
         };
     }
 
@@ -1818,6 +1825,10 @@ public final class CreatureController extends EntityController implements ICreat
         Invulnerable invulnerable = entityData.getComponent(entityId, Invulnerable.class);
         if (invulnerable != null && invulnerable.endTime <= gameTimer.getGameTime()) {
             entityData.removeComponent(entityId, Invulnerable.class);
+        }
+        Invisible invisible = entityData.getComponent(entityId, Invisible.class);
+        if (invisible != null && invisible.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Invisible.class);
         }
 
         // A manual drop can already carry its target in AI, but no state may
