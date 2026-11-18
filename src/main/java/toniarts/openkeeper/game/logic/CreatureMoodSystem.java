@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable;
 
@@ -62,6 +63,12 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
 
     public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
             Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this(entityData, kwdFile, playerControllers, gameTimer, gameSettings, ignored -> { });
+    }
+
+    public CreatureMoodSystem(EntityData entityData, IKwdFile kwdFile,
+            Collection<IPlayerController> playerControllers, IGameTimer gameTimer,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Consumer<EntityId> onAngry) {
         this.entityData = entityData;
         this.onAngry = onAngry;
@@ -85,6 +92,13 @@ public final class CreatureMoodSystem implements IGameLogicUpdatable {
             CreatureMood mood = entity.get(CreatureMood.class);
             CreatureSleep sleep = entity.get(CreatureSleep.class);
             Owner owner = entity.get(Owner.class);
+
+            // DKII only runs the anger reasons for keepers (player index above 2),
+            // heroes and neutral creatures have no moods
+            if (owner.ownerId <= Player.NEUTRAL_PLAYER_ID) {
+                continue;
+            }
+
             Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
             if (creature == null || creature.getFlags2().contains(Creature.CreatureFlag2.IS_EMOTIONLESS)) {
                 continue;

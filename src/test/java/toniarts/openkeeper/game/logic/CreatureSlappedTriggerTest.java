@@ -105,7 +105,9 @@ class CreatureSlappedTriggerTest {
                 case "getStatsControl" -> stats;
                 default -> throw new UnsupportedOperationException(name);
             });
-            var settings=Map.of(MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,
+            var settings=Map.of(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY,
+                    CreatureSleepFixtures.variable(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, 1000),
+                    MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,
                     CreatureSleepFixtures.variable(MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,5));
             SlapSystem slaps=new SlapSystem(f.data,f.kwd,List.of(player),settings,f.scripts::onAngry);
             try {

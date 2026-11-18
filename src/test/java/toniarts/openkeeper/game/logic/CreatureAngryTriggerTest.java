@@ -242,6 +242,8 @@ class CreatureAngryTriggerTest {
         final PlayerRoomControl rooms = new PlayerRoomControl(keeper, List.of(lair));
         final PlayerStatsControl stats = new PlayerStatsControl();
         final Map<MiscType, MiscVariable> settings = Map.of(
+                MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY,
+                CreatureSleepFixtures.variable(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, 1000),
                 MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND,
                 CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550),
                 MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS,

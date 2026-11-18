@@ -121,17 +121,14 @@ public final class TriggerGeneric extends Trigger {
          * <p>
          * DK II validates a usable torture device on the creature's tile, switches
          * to its torture command, then emits before later captive bookkeeping.
-         * OpenKeeper queues its completed hand-drop and living spawn/load
-         * admissions. The buffer exists before world loading, and only simulation
+         * OpenKeeper queues its completed hand-drop and living DROP-spawn
+         * admissions; ordinary placement and saved-game device restoration are silent. The buffer exists before world loading, and only simulation
          * ticks run matching creature-root branches. Nested conditions see the
          * delivery-time state; ordinary polling stays false. This differs from
          * native synchronous timing and does not independently dispatch nested events.
          * <p>
-         * TODO #1010: current OpenKeeper admission rules still accept arbitrary
-         * enemy torture-room tiles, without DK II's device/proximity/occupancy
-         * checks. Own-room admissions are not supported by those existing paths.
-         * Event delivery preserves these gameplay rules; it does not establish
-         * full native torture admission or repeat-counter parity.
+         * Device selection and occupancy follow the room gameplay implementation.
+         * Event delivery does not establish full native timing or repeat-counter parity.
          * <p>
          * Example: dropping a scripted captured hero into torture runs a message
          * or objective branch once on admission, rather than every tick throughout
@@ -205,7 +202,19 @@ public final class TriggerGeneric extends Trigger {
         OBJECT_CLAIMED(18), // Event, This object is
         PLAYER_CREATURES(19), // Player
         PLAYER_HAPPY_CREATURES(20), // Player
-        PLAYER_ANGRY_CREATURES(21), // Player
+        /**
+         * Compares the number of this player's fully angry non-worker creatures
+         * with a fixed threshold. A creature type of zero includes all types;
+         * otherwise only that type counts. An empty matching roster counts as zero.
+         * <p>
+         * Angry means mood state 2, beyond the unhappy state: merely unhappy
+         * creatures do not count. Workers are excluded even with a type filter.
+         * Ownership determines the player, rather than who controls a prisoner.
+         * This is a current count, so recovery, conversion and death can reduce it.
+         * For example, greater than or equal to 3 Warlocks requires three owned
+         * Warlocks that are fully angry at the time of the check.
+         */
+        PLAYER_ANGRY_CREATURES(21),
         PLAYER_CREATURES_KILLED(22), // Player
         PLAYER_KILLS_CREATURES(23), // Player
         PLAYER_ROOM_SLABS(24), // Player

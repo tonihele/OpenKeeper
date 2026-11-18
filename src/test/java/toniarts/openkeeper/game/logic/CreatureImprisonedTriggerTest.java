@@ -74,7 +74,7 @@ class CreatureImprisonedTriggerTest {
             f.data.setComponent(f.entity,new Unconscious());
             f.controller.imprison((short)3,f.roomId);
             assertEquals(0,f.flags[0]);
-            assertEquals(20,f.data.getComponent(f.entity,Health.class).health);
+            assertEquals(22,f.data.getComponent(f.entity,Health.class).health);
             assertNull(f.data.getComponent(f.entity,Unconscious.class));
             assertEquals(f.roomId,f.data.getComponent(f.entity,Stored.class).room);
             assertEquals(1,f.data.getComponent(f.entity,Owner.class).ownerId);
@@ -258,7 +258,7 @@ class CreatureImprisonedTriggerTest {
         final Map<Integer,toniarts.openkeeper.tools.convert.map.Trigger> records=new HashMap<>();
         final CreatureTriggerEventQueue queue=new CreatureTriggerEventQueue();
         final Creature creature=CreatureImprisonedFixtures.creature();
-        final RoomInstance instance=new RoomInstance(RoomFixtures.room((short)11,0));
+        final RoomInstance instance=new RoomInstance(RoomFixtures.room((short)11,List.of((short)49,(short)50,(short)51,(short)0,(short)0,(short)0)));
         final IKwdFile kwd;
         final ILevelInfo level;
         final ICreaturesController creatures;
@@ -278,7 +278,8 @@ class CreatureImprisonedTriggerTest {
         Fixture(int repeats,boolean bind) {
             records.put(1,CreatureAngryFixtures.condition(1,CREATURE_IMPRISONED,-1,0,repeats));
             records.put(-1,CreatureAngryFixtures.action(-1,0));
-            instance.setOwnerId((short)3);instance.addCoordinate(new Point(1,1));
+            instance.setOwnerId((short)3);
+            for (int x=0;x<3;x++) for (int y=0;y<3;y++) instance.addCoordinate(new Point(x,y));
             CreatureComponent component=new CreatureComponent();component.creatureId=6;
             data.setComponents(entity,component,new Trigger(1),new Health(100,100),
                     new Owner((short)1,(short)1),new Position(0,new Vector3f(1,0,1)),
@@ -318,24 +319,19 @@ class CreatureImprisonedTriggerTest {
                 case "onCreatureImprisoned" -> {admit((EntityId)args[0]);yield null;}
                 default -> throw new UnsupportedOperationException(name);
             });
-            room=proxy(IRoomController.class,(name,args)->switch(name) {
-                case "getEntityId" -> roomId;
-                case "getOwnerId" -> instance.getOwnerId();
-                case "getRoomInstance" -> instance;
-                case "hasObjectControl" -> args[0]==ObjectType.PRISONER;
-                case "getObjectControl" -> storage;
-                default -> throw new UnsupportedOperationException(name);
-            });
-            storage=new RoomPrisonerControl(kwd,room,data,()->20) {
-                @Override protected List<Point> getCoordinates() {return List.of(new Point(1,1));}
-                @Override protected int getNumberOfAccessibleTiles() {return 1;}
-            };
+            var objects=proxy(toniarts.openkeeper.game.controller.IObjectsController.class,
+                    (name,args)->name.equals("loadObject")?data.createEntity():null);
+            var prison=new toniarts.openkeeper.game.controller.room.PrisonController(roomId,data,null,instance,objects,()->20);
+            prison.construct();
+            room=prison;
+            storage=room.getObjectControl(ObjectType.PRISONER);
             map=proxy(IMapController.class,(name,args)->switch(name) {
                 case "getRoomControllerByCoordinates" -> inPrison ? room : null;
                 default -> throw new UnsupportedOperationException(name);
             });
             controller=new CreatureController(entity,data,creature,null,null,()->20,
-                    Map.of(),creatures,null,map,level,null,null,null,id->{ });
+                    Map.of(toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
+                            CreatureSleepFixtures.variable(toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,23)),creatures,null,map,level,null,null,null,id->{ });
             if(bind) bindScripts();
         }
         private CreatureController controller() {return controller;}

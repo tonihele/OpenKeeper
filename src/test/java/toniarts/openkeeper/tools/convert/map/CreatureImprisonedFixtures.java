@@ -33,6 +33,7 @@ public final class CreatureImprisonedFixtures {
     public static Thing.GoodCreature hero() {
         Thing.GoodCreature hero=CreatureAngryFixtures.thing(1);
         hero.setCreatureId((short)6);hero.setLevel((short)1);
+        hero.setFlags(java.util.EnumSet.of(Thing.Creature.CreatureFlag.ACT_AS_DROPPED));
         hero.setPosX(1);hero.setPosY(1);hero.setInitialHealth(100);
         return hero;
     }

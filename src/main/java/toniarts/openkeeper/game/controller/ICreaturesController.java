@@ -38,6 +38,11 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
 
     public enum SpawnType {
         PLACE,
+        /**
+         * Placed as if dropped by a hand (the level editor's "act as
+         * dropped"), an enemy prison or torture chamber takes it in
+         */
+        DROP,
         ENTRANCE,
         CONJURE
     }
@@ -149,6 +154,15 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      * @return the possessed creature entity, or {@code null} if the player possesses nothing
      */
     EntityId getPossessedCreature(short playerId);
+
+    /**
+     * Counts living, fully angry non-worker creatures belonging to a player.
+     *
+     * @param playerId owning player, rather than a captor
+     * @param creatureId creature type, or zero for all types
+     * @return matching creature count
+     */
+    int getAngryCreatureCount(short playerId, short creatureId);
 
     /**
      * Spawns creatures at the given player's dungeon heart entrance. Does nothing if the player has no

@@ -291,6 +291,7 @@ class CreatureAfraidTriggerTest {
             });
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (name,args) -> switch(name) {
                 case "getSensedEntities" -> sensed;
+                case "getEntityLocation" -> null;
                 default -> throw new UnsupportedOperationException(name);
             });
             var settings = Map.of(MiscType.CREATURE_CRITICAL_HEALTH_PERCENTAGE_OF_MAX,

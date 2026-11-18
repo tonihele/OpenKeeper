@@ -120,7 +120,7 @@ class CreatureTorturedTriggerTest {
     void aDeadBodyPlacedInTortureDoesNotEmitAnAdmission() {
         try(Fixture f=new Fixture(255,false)) {
             f.loadBody=true;f.factory(true);
-            f.assertLoaded(CreatureState.TORTURED,false);
+            f.assertLoaded(CreatureState.IDLE,false);
             assertNull(f.lastAdmission);
         }
     }
@@ -264,6 +264,7 @@ class CreatureTorturedTriggerTest {
         final IMapController map;
         final IRoomController room;
         final CreatureController controller;
+        final EntityId device = data.createEntity();
         RoomTortureeControl storage;
         CreatureTriggerLogicController scripts;
         EntityId lastAdmission;
@@ -319,10 +320,13 @@ class CreatureTorturedTriggerTest {
                 case "getEntityId" -> roomId;
                 case "getOwnerId" -> instance.getOwnerId();
                 case "getRoomInstance" -> instance;
+                case "getFloorFurniture" -> java.util.Set.of(device);
+                case "getWallFurniture" -> java.util.Set.of();
                 case "hasObjectControl" -> args[0]==ObjectType.TORTUREE;
                 case "getObjectControl" -> storage;
                 default -> throw new UnsupportedOperationException(name);
             });
+            data.setComponent(device,new Position(0,new Vector3f(1,0,1)));
             storage=new RoomTortureeControl(kwd,room,data,()->20) {
                 @Override protected List<Point> getCoordinates() {return List.of(new Point(1,1));}
                 @Override protected int getNumberOfAccessibleTiles() {return 1;}
