@@ -335,6 +335,18 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballDoesNotSetAnInvulnerableCreatureAlight() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(10, 100));
+        entityData.setComponent(target, new Invulnerable(30));
+
+        hitWithFireball(target);
+
+        assertNull(entityData.getComponent(target, OnFire.class));
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void creatureOnWaterDoesNotCatchFire() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         entityData.setComponent(target, new Health(10, 100));
