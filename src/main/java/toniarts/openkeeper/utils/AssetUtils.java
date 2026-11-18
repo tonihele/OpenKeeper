@@ -119,25 +119,30 @@ public final class AssetUtils {
             // Get the model from cache
             Spatial model = cache.getFromCache(assetKey);
             if (model == null) {
-                model = loadModel(assetManager, assetKey, artResource);
+                model = loadModelTemplate(assetManager, assetKey);
 
                 cache.addToCache(assetKey, model);
             }
             result = model.clone();
         } else {
-            result = loadModel(assetManager, assetKey, artResource);
+            result = loadModelTemplate(assetManager, assetKey);
         }
-
+        applyTextureAnimation(result, assetManager, artResource);
         return result;
     }
 
-    private static Spatial loadModel(final AssetManager assetManager, ModelKey assetKey, ArtResource artResource) {
+    private static Spatial loadModelTemplate(final AssetManager assetManager, ModelKey assetKey) {
         Spatial model = assetManager.loadModel(assetKey);
         resetSpatial(model);
         
         // Assign maps
         assignMapsToMaterial(model, assetManager);
         
+        return model;
+    }
+
+    private static void applyTextureAnimation(Spatial model, AssetManager assetManager, ArtResource artResource) {
+        // Apply resource policy to the returned instance, never to the raw template.
         // Create possible animating textures
         // This information is not found directly in KMF... at least to my knowledge
         if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) && 
@@ -145,7 +150,6 @@ public final class AssetUtils {
             assignAnimatingTextures(model, assetManager, artResource.getData("fps"));
         }
         
-        return model;
     }
     
     private static void assignAnimatingTextures(Spatial model, AssetManager assetManager, Integer fps) {
@@ -177,7 +181,8 @@ public final class AssetUtils {
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
-        Spatial result = loadModel(assetManager, assetKey, artResource);
+        Spatial result = loadModelTemplate(assetManager, assetKey);
+        applyTextureAnimation(result, assetManager, artResource);
 
         return result;
     }
@@ -474,11 +479,12 @@ public final class AssetUtils {
     private static Material createLightningSpriteMaterial(String name, boolean hasAlpha, Integer fps, Supplier<List<String>> texturesSupplier, AssetManager assetManager) {
         
         // Cache
-        MaterialKey assetKey = new MaterialKey(name);
+        List<String> textures = texturesSupplier.get();
+        MaterialKey assetKey = new MaterialKey("animated:" + name + ":" + hasAlpha + ":"
+                + (fps != null ? fps : 30) + ":" + textures);
         Material mat = ASSET_CACHE.getFromCache(assetKey);
         
         if (mat == null) {
-            List<String> textures = texturesSupplier.get();
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
             mat.setInt("NumberOfTiles", textures.size());
             mat.setInt("Speed", fps != null ? fps : 30);
@@ -665,6 +671,15 @@ public final class AssetUtils {
 
                         // Creatures
                         prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
+                        List<Spatial> animationModels = new ArrayList<>();
+                        for (var entry : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadModels(kwdFile.getCreatureList()).entrySet()) {
+                            try {
+                                animationModels.add(loadModel(assetManager, entry.getKey(), entry.getValue()));
+                            } catch (Exception e) {
+                                logger.log(Level.WARNING, "Could not prewarm creature animation " + entry.getKey(), e);
+                            }
+                        }
+                        app.enqueue(() -> animationModels.forEach(app.getRenderManager()::preloadScene));
 
                         // Doors
                         prewarmArtResources(kwdFile.getDoors(), assetManager, app);
@@ -685,6 +700,8 @@ public final class AssetUtils {
     }
 
     private static void prewarmArtResources(List<?> objects, AssetManager assetManager, Main app) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, Exception {
+
+        if (objects.isEmpty()) return;
 
         // Get the fields that house a possible ArtResource
         Class clazz = objects.get(0).getClass();

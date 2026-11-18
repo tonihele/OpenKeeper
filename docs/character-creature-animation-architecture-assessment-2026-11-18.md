@@ -537,3 +537,9 @@ Validation: composer time advances under a hidden owner without modifying/dirtyi
 | 1000 hidden | 3.9396 / 5.8480 | 0.0983 / 0.1085 | 0 |
 
 The hidden median reduction is approximately 97% at 500 in this CPU workload; visible differences are too small/noisy for a broad improvement claim. These dirty bytes are CPU update flags, not measured PCIe/GPU traffic. Raw results/JFR: ignored `build/animation-after.*`. No whole-game FPS, GPU duration or frustum/shadow visual acceptance is claimed by this benchmark.
+
+### 11.15 Template policy isolation and complete prewarming (F10)
+
+Raw model templates no longer receive the first request's texture-animation policy. Resource-specific texture setup is applied to each returned instance. Animated-material cache keys include frame names, FPS and alpha policy, so a shared model/material name cannot silently inherit a different caller's rate. `CreatureAnimationCatalog` enumerates actual map slots and flagged start/end segments; prewarming includes map-only actions, deduplicates names and honors PRELOAD. Empty catalogs are valid.
+
+Validation: a shared synthetic model is loaded with 15 FPS, 50 FPS and static texture policies in sequence; each retains its requested material. Catalog enumeration covers duplicate slots, map-only RUN, start/end, absent PRELOAD and empty input; existing sprite/particle/water and creature request tests pass. The existing process-global template cache is unchanged in lifetime; level-exit residency and multiple asset-root coexistence remain separate unresolved ownership requirements. Per-owner prepared playback reuse follows only after its own allocation/budget tests.
