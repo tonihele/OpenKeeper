@@ -172,6 +172,20 @@ class HeroLairTest {
     }
 
     @Test
+    void corneredHeroFightsOnRatherThanWithdrawing() {
+
+        // DK II checks whether it is cornered before the withdraw and the fear (0x45F030 calls 0x460C50 first)
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        List<String> calls = new ArrayList<>();
+        ICreatureController creature = creature(state, Map.of("isCornered", true, "withdrawToHeroLair", true, "isScared", true), calls);
+
+        CreatureState.FIGHT.update(creature);
+
+        assertEquals(CreatureState.FIGHT, state.get());
+        assertFalse(calls.contains("withdrawToHeroLair"));
+    }
+
+    @Test
     void badlyHurtHeroWithdrawsToTheLairRatherThanFleeing() {
 
         // DK II withdraws to the hero lair before it weighs fear (0x45F030)
