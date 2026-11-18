@@ -447,6 +447,10 @@ class CreatureControllerTest {
 
             f.data.setComponent(hero, new AttackTarget(f.entity));
             f.controller.getStateMachine().update();
+
+            // It backs off (DK II's 0xCB), which for a worker lasts no time, then withdraws
+            assertEquals(CreatureState.BACK_OFF, f.state());
+            f.controller.getStateMachine().update();
             assertEquals(CreatureState.FLEE, f.state());
         }
     }
@@ -458,6 +462,10 @@ class CreatureControllerTest {
             f.controller.getStateMachine().changeState(CreatureState.MELEE_ATTACK);
 
             f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.controller.getStateMachine().update();
+
+            // It backs off (DK II's 0xCB), which for a worker lasts no time, then withdraws
+            assertEquals(CreatureState.BACK_OFF, f.state());
             f.controller.getStateMachine().update();
             assertEquals(CreatureState.FLEE, f.state());
         }
