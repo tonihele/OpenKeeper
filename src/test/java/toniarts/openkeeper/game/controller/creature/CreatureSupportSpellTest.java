@@ -45,12 +45,16 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.SpeedChange;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.ShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.AlternativeShot;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
@@ -68,7 +72,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A creature in a fight casting its spells for its own side, with the Heal
- * Creature of the Warlock in the original data
+ * Creature of the Warlock in the original data, and an Imp speeding itself up
+ * on the way to a job
  */
 class CreatureSupportSpellTest {
 
@@ -341,6 +346,47 @@ class CreatureSupportSpellTest {
     }
 
     @Test
+    void anImpSpeedsItselfUpWhenItSetsOffToAJob() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_HASTE, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+
+        // At once and without a cast
+        assertEquals(1, shots.size());
+        assertArrayEquals(new Object[]{HEAL_SHOT_ID, HEAL_AMOUNT, 0, KEEPER, new Vector3f(5, 0, 5), us, us}, shots.get(0));
+        assertEquals(gameTime, entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+        assertNull(entityData.getComponent(us, CastShot.class));
+    }
+
+    @Test
+    void anImpSpeedsItselfUpAgainOnceTheSpellIsRecharged() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_HASTE, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+        gameTime += RECHARGE / 2;
+        controller.navigateToAssignedTask();
+        assertEquals(1, shots.size());
+
+        gameTime += RECHARGE / 2;
+        controller.navigateToAssignedTask();
+        assertEquals(2, shots.size());
+    }
+
+    @Test
+    void otherSpellsAreNotCastOnTheWayToAJob() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+
+        createController().navigateToAssignedTask();
+
+        assertTrue(shots.isEmpty());
+        assertNull(entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
+    }
+
+    @Test
     void hitsDoAnInvulnerableCreatureNoHarmUntilItWearsOff() {
         EntityId enemy = createFighter(Player.KEEPER2_ID, new Vector3f(5, 0, 6), 1000);
         entityData.setComponents(enemy, new Invulnerable(15), new CreatureFall());
@@ -412,7 +458,8 @@ class CreatureSupportSpellTest {
                     default ->
                         null;
                 }) : null);
-        return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), null, null, gameTimer, new HashMap<>(), null,
+        ITaskManager taskManager = stub(ITaskManager.class, (name, args) -> "getTaskById".equals(name) ? stub(Task.class, (taskName, taskArgs) -> null) : null);
+        return new CreatureController(us, entityData, ShotFixtures.caster(HEAL_SPELL_ID, SHOT_DELAY), null, taskManager, gameTimer, new HashMap<>(), null,
                 positionLookup, null, levelInfo, null, shotsController, stub(GameEventService.class, (name, args) -> null));
     }
 

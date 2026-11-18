@@ -633,6 +633,8 @@ public final class CreatureController extends EntityController implements ICreat
     public void navigateToAssignedTask() {
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
+            castImpHaste();
+
             Vector2f loc = assignedTask.getTarget(this);
             Vector2f workPosition = assignedTask.getWorkPosition(this);
             if (workPosition != null && workPosition.equals(loc)) {
@@ -646,6 +648,29 @@ public final class CreatureController extends EntityController implements ICreat
 
                 Point destination = WorldUtils.vectorToPoint(loc);
                 createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+            }
+        }
+    }
+
+    /**
+     * An Imp setting off to a job speeds itself up with its own speed spell
+     * whenever the spell is recharged, without a cast (0x4651A0). The spell
+     * does what its shot does, so a speed change that is still running is left
+     * as it is, but the spell recharges all the same
+     */
+    private void castImpHaste() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return;
+        }
+
+        for (EntityId spellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            if (creatureSpell.getFlags().contains(CreatureSpellFlag.IMP_HASTE) && isAttackRecharged(spell)) {
+                entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+                shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(),
+                        getPosition(), entityId, entityId);
             }
         }
     }
