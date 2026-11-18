@@ -406,6 +406,9 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(heroesDestroyed, "heroesDestroyed", 0);
         out.write(roomsCaptured, "roomsCaptured", 0);
         out.write(specialsFound, "specialsFound", 0);
+        out.write(itemsManufactured, "itemsManufactured", 0);
+        out.write(creaturesConverted, "creaturesConverted", 0);
+        out.write(ownCreaturesKilled, "ownCreaturesKilled", 0);
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
         out.write(manaLoose, "manaLoose", 0);
@@ -434,6 +437,9 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         heroesDestroyed = in.readInt("heroesDestroyed", heroesDestroyed);
         roomsCaptured = in.readInt("roomsCaptured", roomsCaptured);
         specialsFound = in.readInt("specialsFound", specialsFound);
+        itemsManufactured = in.readInt("itemsManufactured", itemsManufactured);
+        creaturesConverted = in.readInt("creaturesConverted", creaturesConverted);
+        ownCreaturesKilled = in.readInt("ownCreaturesKilled", ownCreaturesKilled);
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
         manaLoose = in.readInt("manaLoose", manaLoose);
