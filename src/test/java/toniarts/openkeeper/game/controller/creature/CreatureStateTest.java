@@ -107,7 +107,7 @@ class CreatureStateTest {
 
         CreatureState.CAST_SPELL.update(creature);
 
-        assertEquals(List.of("isScared", "releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
+        assertEquals(List.of("isCornered", "isScared", "releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
     }
 
     @Test
