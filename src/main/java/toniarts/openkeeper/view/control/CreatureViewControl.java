@@ -82,6 +82,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
     private CreatureAnimationRequest lastAttempt;
+    private CreatureAnimationRequest activeRequest;
+    private java.util.function.DoubleSupplier gameTime = () -> Double.NaN;
+    private boolean initialSeekPending;
+    private ArtResource activeAnimation;
+
+    public void setGameTime(java.util.function.DoubleSupplier gameTime) {
+        this.gameTime = Objects.requireNonNull(gameTime);
+    }
 
     /** Accepts restart identity even when the animation enum did not change. */
     public boolean setViewState(Creature creature, CreatureViewState state) {
@@ -96,7 +104,20 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             return false;
         }
         playStateSounds(state.state);
+        activeRequest = request;
+        initialSeekPending = true;
+        synchronizeInitialPhase();
         return true;
+    }
+
+    private void synchronizeInitialPhase() {
+        double now = gameTime.getAsDouble();
+        if (initialSeekPending && Double.isFinite(now)) {
+            AnimationLoader.seekAnimation(spatial, activeAnimation,
+                    Math.max(0, now - activeRequest.startTime()));
+            initialSeekPending = false;
+            previousStepTime = -1;
+        }
     }
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
@@ -165,8 +186,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private boolean playAnimation(Creature.AnimationType animation) {
-        if (AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager)
+        ArtResource resource = getAnimationData(animation);
+        if (AnimationLoader.playAnimation(getSpatial(), resource, assetManager)
                 != AnimationLoader.PlaybackResult.STARTED) return false;
+        activeAnimation = resource;
         if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
@@ -179,6 +202,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+        synchronizeInitialPhase();
 
         // A creature in the hand talks, one line every few seconds as long as it is held. It is heard at the hand
         if (currentState == Creature.AnimationType.IN_HAND) {
@@ -258,7 +282,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private AnimComposer getAnimComposer() {
-        ArtResource animation = getDataObject().getAnimation(currentState);
+        ArtResource animation = activeAnimation;
         if (animation == null || !(spatial instanceof Node node)) {
             return null;
         }

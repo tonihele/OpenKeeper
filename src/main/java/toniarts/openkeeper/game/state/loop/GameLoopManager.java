@@ -154,7 +154,7 @@ public final class GameLoopManager {
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
-                new CreatureViewSystem(entityData, levelInfo.getLevelData()),
+                new CreatureViewSystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer()),
                 new DoorViewSystem(entityData, positionSystem),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),

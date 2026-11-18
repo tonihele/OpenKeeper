@@ -148,6 +148,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
+    private final toniarts.openkeeper.view.animation.PresentationClock presentationClock;
     private final short playerId;
     private final Node rootNode;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
@@ -211,6 +212,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.entityData = entityData;
+        presentationClock = new toniarts.openkeeper.view.animation.PresentationClock(entityData);
         this.playerId = playerId;
         this.textParser = textParser;
         this.rootNode = rootNode;
@@ -277,8 +279,15 @@ public class PlayerEntityViewState extends AbstractAppState {
         portalEffects.setEnabled(enabled);
     }
 
+    public void setGamePaused(boolean paused) {
+        presentationClock.setPaused(paused);
+        if (paused) toniarts.openkeeper.view.animation.AnimationLoader.pauseAnimations(root);
+        else toniarts.openkeeper.view.animation.AnimationLoader.resumeAnimations(root);
+    }
+
     @Override
     public void update(float tpf) {
+        presentationClock.update(tpf);
 
         // Update the models
         objectModelContainer.update();
@@ -347,6 +356,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        presentationClock.close();
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
@@ -500,6 +510,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (result != null) {
                 CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, null, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
                 control.setWaterCheck(this::isWater);
+                control.setGameTime(presentationClock::getTime);
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);

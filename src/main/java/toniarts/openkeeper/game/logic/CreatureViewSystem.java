@@ -74,13 +74,21 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final EntitySet creatureViewEntities;
+    private final toniarts.openkeeper.game.controller.IGameTimer gameTimer;
+    private final EntityId clockEntity;
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
 
     public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile) {
+        this(entityData, kwdFile, null);
+    }
+
+    public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile, toniarts.openkeeper.game.controller.IGameTimer gameTimer) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameTimer = gameTimer;
+        clockEntity = entityData.createEntity();
 
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
@@ -89,6 +97,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
     @Override
     public void processTick(float tpf) {
         super.processTick(tpf);
+        if (gameTimer != null) timeElapsed = gameTimer.getGameTime();
+        entityData.setComponent(clockEntity, new toniarts.openkeeper.game.component.SimulationTime(timeElapsed, tpf));
         // Add new & remove old
         if (creatureViewEntities.applyChanges()) {
             processAddedEntities(creatureViewEntities.getAddedEntities());
@@ -188,6 +198,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
     @Override
     public void stop() {
+        entityData.removeEntity(clockEntity);
         creatureViewEntities.release();
         creatureEntities.clear();
     }

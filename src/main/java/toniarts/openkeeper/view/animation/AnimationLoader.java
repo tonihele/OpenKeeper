@@ -45,6 +45,8 @@ public final class AnimationLoader {
     private static final AnimEventListener ANIM_EVENT_LISTENER = new AnimEventListener();
     private static final String MODEL_REVISION = "AnimationLoader.modelRevision";
     private static final String LAST_FAILURE = "AnimationLoader.lastFailure";
+    private static final String PAUSED = "AnimationLoader.paused";
+    private static final String WAS_ENABLED = "AnimationLoader.wasEnabled";
 
     public enum PlaybackResult { STARTED, UNAVAILABLE, FAILED }
 
@@ -57,7 +59,7 @@ public final class AnimationLoader {
         // No!
     }
 
-    private static List<Spatial> prepareResource(final Node root, final AnimationControl animationControl, final ArtResource resource, ModelSource source) {
+    private static List<Spatial> prepareResource(final Node root, final ArtResource resource, ModelSource source) {
         List<Spatial> prepared = new ArrayList<>(3);
         if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
                 || resource.getType() == ArtResource.ArtResourceType.MESH
@@ -91,7 +93,7 @@ public final class AnimationLoader {
                     var animComposer = spatEnd.getControl(AnimComposer.class);
                     if (animComposer != null) {
                         animComposer.setEnabled(false);
-                        animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, false), Tweens.callMethod(ANIM_EVENT_LISTENER, "onEndAnimationDone", animComposer, animationControl));
+                        animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, false), Tweens.callMethod(ANIM_EVENT_LISTENER, "onEndAnimationDone", animComposer, root));
                     }
                 }
 
@@ -99,7 +101,7 @@ public final class AnimationLoader {
                 var animComposer = spat.getControl(AnimComposer.class);
                 if (animComposer != null) {
                     animComposer.setEnabled(false);
-                    animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, true), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, animationControl, root, resource, getLoopModeOnChannel(spat)));
+                    animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, true), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, root, resource, getLoopModeOnChannel(spat)));
                 }
         }
         return prepared;
@@ -152,7 +154,7 @@ public final class AnimationLoader {
             return PlaybackResult.UNAVAILABLE;
         }
         try {
-            List<Spatial> prepared = prepareResource(root, root.getControl(AnimationControl.class), anim, source);
+            List<Spatial> prepared = prepareResource(root, anim, source);
             if (prepared.isEmpty()) return PlaybackResult.UNAVAILABLE;
 
         // Attach the anim node and get rid of the rest
@@ -182,12 +184,11 @@ public final class AnimationLoader {
                 spat.setCullHint(Spatial.CullHint.Inherit);
                 if (animComposer != null) { // Not all are anims
                     animComposer.setCurrentAction(ANIM_WITH_LISTENERS_NAME);
-                    if (endFrame) {
-                        animComposer.setTime(Integer.MAX_VALUE);
-                    }
                     animComposer.setEnabled(true);
                 }
             }
+            if (endFrame) seekAnimation(root, anim, Double.MAX_VALUE);
+            if (isPaused(root)) pauseAnimations(root);
             return PlaybackResult.STARTED;
         } catch (Exception e) {
             if (!anim.getName().equals(root.getUserData(LAST_FAILURE))) {
@@ -215,6 +216,56 @@ public final class AnimationLoader {
         return revision == null ? 0 : revision;
     }
 
+    /** Seeks a newly received request without replaying historical gameplay events. */
+    public static void seekAnimation(Spatial spatial, ArtResource resource, double age) {
+        if (!(spatial instanceof Node root) || resource == null || !Double.isFinite(age)) return;
+        age = Math.max(0, age);
+        int revision = getModelRevision(root);
+        Spatial start = root.getChild(START_ANIM_NODE_NAME);
+        if (start != null && start.getControl(AnimComposer.class) != null) {
+            var composer = start.getControl(AnimComposer.class);
+            double length = composer.getAction(ANIM_WITH_LISTENERS_NAME).getLength();
+            if (age < length) { sampleAt(composer, age); return; }
+            sampleAt(composer, length);
+            if (revision != getModelRevision(root)) return;
+            age -= length;
+        }
+        Spatial main = root.getChild(resource.getName());
+        if (main == null || main.getControl(AnimComposer.class) == null) return;
+        var composer = main.getControl(AnimComposer.class);
+        double length = composer.getAction(ANIM_WITH_LISTENERS_NAME).getLength();
+        if (length <= 0) return;
+        var control = root.getControl(AnimationControl.class);
+        boolean once = control != null && (control.isStopAnimation() || control.isHoldLastFrame());
+        if (once && age >= length) {
+            sampleAt(composer, length);
+            if (revision != getModelRevision(root)) return;
+            Spatial end = root.getChild(END_ANIM_NODE_NAME);
+            if (end != null && end.getControl(AnimComposer.class) != null) {
+                var endComposer = end.getControl(AnimComposer.class);
+                sampleAt(endComposer, Math.min(age - length, endComposer.getAction(ANIM_WITH_LISTENERS_NAME).getLength()));
+            }
+        } else if (getLoopModeOnChannel(main) == LoopMode.Cycle && !once) {
+            double phase = age % (length * 2);
+            composer.setGlobalSpeed(phase > length ? -1 : 1);
+            sampleAt(composer, phase > length ? length * 2 - phase : phase);
+        } else sampleAt(composer, once ? age : age % length);
+    }
+
+    private static void sampleAt(AnimComposer composer, double phase) {
+        if (composer.getCurrentAction() == null) composer.setCurrentAction(ANIM_WITH_LISTENERS_NAME);
+        var action = composer.getCurrentAction();
+        if (action.getLength() <= 0) return;
+        composer.setTime(Math.min(phase, Math.nextDown(action.getLength())));
+        action.interpolate(phase);
+    }
+
+    private static boolean isPaused(Spatial spatial) {
+        for (Spatial node = spatial; node != null; node = node.getParent())
+            if (Boolean.TRUE.equals(node.getUserData(PAUSED))) return true;
+        return false;
+    }
+
     private static void hideAllNodes(Node root) {
         //UnitFlowerControl aufc = root.getControl(UnitFlowerControl.class);
         for (Spatial child : root.getChildren()) {
@@ -240,9 +291,13 @@ public final class AnimationLoader {
      * @param spatial the root node of the creature
      */
     public static void resumeAnimations(Spatial spatial) {
-
-        // This will reset all animations to go forward... Some cyclic animations may have been going backwards, but that is a small thing
-        setAnimSpeeds((Node) spatial, 1.0f);
+        spatial.depthFirstTraversal(node -> {
+            var composer = node.getControl(AnimComposer.class);
+            Boolean enabled = node.getUserData(WAS_ENABLED);
+            if (composer != null && enabled != null) composer.setEnabled(enabled);
+            node.setUserData(WAS_ENABLED, null);
+            node.setUserData(PAUSED, null);
+        });
     }
 
     /**
@@ -251,16 +306,14 @@ public final class AnimationLoader {
      * @param spatial the root node of the creature
      */
     public static void pauseAnimations(Spatial spatial) {
-        setAnimSpeeds((Node) spatial, 0.0f);
-    }
-
-    private static void setAnimSpeeds(Node node, float speed) {
-        for (Spatial child : node.getChildren()) {
-            var animComposer = child.getControl(AnimComposer.class);
-            if (animComposer != null) {
-                animComposer.setGlobalSpeed(speed);
+        spatial.setUserData(PAUSED, true);
+        spatial.depthFirstTraversal(node -> {
+            var composer = node.getControl(AnimComposer.class);
+            if (composer != null && node.getUserData(WAS_ENABLED) == null) {
+                node.setUserData(WAS_ENABLED, composer.isEnabled());
+                composer.setEnabled(false);
             }
-        }
+        });
     }
 
     /**
@@ -288,8 +341,9 @@ public final class AnimationLoader {
             composer.getSpatial().setCullHint(Spatial.CullHint.Always);
         }
 
-        public void onEndAnimationDone(AnimComposer composer, AnimationControl animationControl) {
-            if (composer.getSpatial().getParent() == null) return;
+        public void onEndAnimationDone(AnimComposer composer, Node root) {
+            if (composer.getSpatial().getParent() != root) return;
+            var animationControl = root.getControl(AnimationControl.class);
 
             // Stop us
             composer.reset();
@@ -299,8 +353,9 @@ public final class AnimationLoader {
             if (animationControl != null) animationControl.onAnimationStop();
         }
 
-        public void onAnimationDone(AnimComposer composer, AnimationControl animationControl, Node root, ArtResource resource, LoopMode loopMode) {
+        public void onAnimationDone(AnimComposer composer, Node root, ArtResource resource, LoopMode loopMode) {
             if (composer.getSpatial().getParent() != root) return;
+            var animationControl = root.getControl(AnimationControl.class);
 
             // Signal that the main animation cycle is done
             if (animationControl != null) animationControl.onAnimationCycleDone();

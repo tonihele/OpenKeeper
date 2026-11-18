@@ -12,11 +12,34 @@ import toniarts.openkeeper.utils.AssetUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationLoaderTest {
+    @Test void nestedPauseRestoresDirectionAndInactiveComposersAndCoversReplacement() {
+        Node root = new Node(); Node owner = new Node(); root.attachChild(owner);
+        var resource = new ArtResource("pause", ArtResource.ArtResourceType.ANIMATING_MESH);
+        AnimationLoader.playAnimation(owner, resource, AnimationLoaderTest::model, false);
+        var composer = owner.getChild("pause").getControl(AnimComposer.class);
+        composer.setGlobalSpeed(-2);
+        AnimationLoader.pauseAnimations(root); AnimationLoader.pauseAnimations(root);
+        double time = composer.getTime(); root.updateLogicalState(.01f); assertEquals(time,composer.getTime());
+        AnimationLoader.resumeAnimations(root); assertTrue(composer.isEnabled()); assertEquals(-2,composer.getGlobalSpeed());
+        AnimationLoader.pauseAnimations(root);
+        AnimationLoader.playAnimation(owner, resource, AnimationLoaderTest::model, false);
+        var replacement = owner.getChild("pause").getControl(AnimComposer.class);
+        assertFalse(replacement.isEnabled()); AnimationLoader.resumeAnimations(root); assertTrue(replacement.isEnabled());
+    }
+    @Test void lateRequestSeeksWithinTheAuthoredDuration() {
+        Node root = new Node();
+        var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("seek",30,15);
+        AnimationLoader.playAnimation(root,resource,AnimationLoaderTest::model,false);
+        AnimationLoader.seekAnimation(root,resource,3.25);
+        assertEquals(1.25, root.getChild("seek").getControl(AnimComposer.class).getTime(),1e-9);
+    }
     static Spatial model(String name, ArtResource resource) {
         Node wrapper = new Node(); Node model = new Node(name); wrapper.attachChild(model);
         if (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH) {
             var composer = new AnimComposer();
-            composer.addAnimClip(new AnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME));
+            var clip = new AnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+            clip.setTracks(new com.jme3.anim.AnimTrack<?>[0]);
+            composer.addAnimClip(clip);
             model.addControl(composer);
             model.setUserData(KmfModelLoader.FRAME_FACTOR_FUNCTION, "WRAP");
         }

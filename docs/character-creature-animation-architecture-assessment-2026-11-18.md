@@ -348,7 +348,7 @@ Action tracking:
 
 - [x] Preserve a deterministic sample corpus and asset hashes; promote the useful headless probes into maintained regressions when implementing fixes. See implementation record 11.1.
 - [x] Fix and validate finite terminal poses, including old converted files. See 11.2; original executable visual parity remains unclaimed.
-- [ ] Preserve same-animation request identity and authoritative phase.
+- [x] Preserve same-animation request identity and authoritative phase. See 11.5 and 11.7; replication latency remains measurable.
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions.
 - [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
 - [ ] Validate and correct CLAMP/cycle behavior.
@@ -463,3 +463,11 @@ Validation: real control/loader integration test exercises repeated notification
 `AnimationTiming` centralizes metadata validation without mesh loading or per-tick metadata object allocations. Simulation retains its existing `N / FPS` main-action duration contract. `TimedClip` maps elapsed authored time to historical 30 Hz keys and holds the final key for the remaining interval, aligning main playback with that simulation contract. Start/end segments use their own key counts and the resource FPS; their durations are not added to combat recharge/state timing without original evidence. Missing/nonpositive FPS falls back to 30; missing frame counts retain each caller's explicit fallback. Models and pose definitions stay shareable across per-resource rates. Footstep frame markers use the same authored FPS.
 
 Validation: seven-rate matrix (15/18/20/30/38/40/50), fractional key sampling, final-key hold, missing/invalid metadata, marker crossing, state and gambling regressions. **Blocked comparison:** the repository has no independent original-executable frame trace establishing endpoint dwell or `startAf/endAf` interpretation. The selected dwell preserves simulation timing; it is not claimed as newly verified DK2 parity. This prevents expanding gameplay durations or changing unknown format fields speculatively.
+
+### 11.7 Simulation clock, initial seek and playback pause
+
+One lightweight `SimulationTime` entity is published per logic tick and removed with the view system. Creature selection now uses the same injected simulation timer as gameplay producers. The view owns a monotonic `PresentationClock`, predicts at most two ticks (capped at 250 ms), freezes on pause, and closes its subscription on cleanup. Newly created/delayed requests seek through authored segments or into loop phase using this clock; initial seeks reset marker history rather than replaying past sound events. Skeleton fallback selection is retained per playback rather than re-randomized when looking up its active composer.
+
+Client pause now freezes nested world composers, including replacements created while paused, and restores their prior enabled state without destroying direction or rate. Zero-duration/empty and static resources remain supported. The obsolete Integer.MAX_VALUE modulo seek is replaced by segment-aware seeking.
+
+Validation: monotonic delayed-clock/prediction/pause tests, registered-component network serialization round trip (including request sequence), late-request seek, nested pause/resume and replacement-while-paused regressions, plus selection and gameplay tests. Snapshot replication still incurs transport delay; this is not an arbitrary wall-time latency correction or a promise to display every coalesced short action. Network peers need matching component schemas, as with other ECS protocol changes. Original gameplay event timing is unchanged. In-game pause/transition video remains a runtime acceptance item.
