@@ -12,6 +12,34 @@ import toniarts.openkeeper.utils.AssetUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationLoaderTest {
+    @Test void preparedReuseIsBoundedResetsPlaybackAndNeverCrossesOwners() {
+        var first = new Node(); var second = new Node();
+        var cache = new PreparedAnimationCache(2,1024); first.addControl(cache);
+        second.addControl(new PreparedAnimationCache(2,1024));
+        int[] loads = {0}; AnimationLoader.ModelSource source = (name,resource) -> { loads[0]++; return model(name,resource); };
+        var a = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("a",3,30);
+        var b = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("b",3,30);
+        var c = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("c",3,30);
+        AnimationLoader.playAnimation(first,a,source,false); var retained = first.getChild("a");
+        first.updateLogicalState(.05f);
+        AnimationLoader.playAnimation(first,b,source,false);
+        AnimationLoader.playAnimation(first,a,source,false);
+        assertSame(retained,first.getChild("a")); assertEquals(2,loads[0]);
+        assertEquals(0,retained.getControl(AnimComposer.class).getTime());
+        AnimationLoader.playAnimation(second,a,source,false); assertNotSame(retained,second.getChild("a"));
+        AnimationLoader.playAnimation(first,c,source,false); assertEquals(2,cache.size());
+        AnimationLoader.playAnimation(first,b,source,false); assertEquals(5,loads[0]);
+        AnimationLoader.playAnimation(first,toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("b",3,15),source,false);
+        assertEquals(6,loads[0]);
+        var clone = (Node)first.deepClone(); assertEquals(0,clone.getControl(PreparedAnimationCache.class).size());
+        cache.clear(); assertEquals(0,cache.size()); assertEquals(0,cache.getResidentPositionBytes());
+    }
+    @Test void preparedCacheRejectsEntriesExceedingThePositionBudget() {
+        var cache = new PreparedAnimationCache(3,35);
+        var mesh = new com.jme3.scene.Mesh(); mesh.setBuffer(com.jme3.scene.VertexBuffer.Type.Position,3,new float[]{0,0,0});
+        cache.put(new ArtResource("large",ArtResource.ArtResourceType.MESH),java.util.List.of(new com.jme3.scene.Geometry("large",mesh)));
+        assertEquals(0,cache.size());
+    }
     private static final class Listener extends com.jme3.scene.control.AbstractControl implements AnimationControl {
         PlaybackPolicy policy = PlaybackPolicy.ONCE;
         int cycles, stops;

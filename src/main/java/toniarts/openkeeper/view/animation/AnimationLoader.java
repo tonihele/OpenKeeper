@@ -156,7 +156,19 @@ public final class AnimationLoader {
             return PlaybackResult.UNAVAILABLE;
         }
         try {
-            List<Spatial> prepared = prepareResource(root, anim, source);
+            var cache = root.getControl(PreparedAnimationCache.class);
+            List<Spatial> prepared = cache == null ? null : cache.get(anim);
+            if (prepared == null) {
+                prepared = prepareResource(root, anim, source);
+                if (cache != null && !prepared.isEmpty()) cache.put(anim,prepared);
+            } else for (Spatial child : prepared) child.depthFirstTraversal(node -> {
+                node.setUserData(WAS_ENABLED,null);
+                var composer = node.getControl(AnimComposer.class);
+                if (composer != null) {
+                    composer.reset(); composer.setEnabled(false); composer.setGlobalSpeed(1);
+                    if (composer.getAction(ANIM_WITH_LISTENERS_NAME) instanceof PlaybackAction playback) playback.setReversed(false);
+                }
+            });
             if (prepared.isEmpty()) return PlaybackResult.UNAVAILABLE;
 
         // Attach the anim node and get rid of the rest
@@ -187,6 +199,7 @@ public final class AnimationLoader {
                 if (animComposer != null) { // Not all are anims
                     animComposer.setCurrentAction(ANIM_WITH_LISTENERS_NAME);
                     animComposer.setEnabled(true);
+                    sampleAt(animComposer,0);
                 }
             }
             if (endFrame) seekAnimation(root, anim, Double.MAX_VALUE);

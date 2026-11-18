@@ -100,6 +100,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (request.equals(lastAttempt)) return false;
         lastAttempt = request;
         Creature previous = getDataObject();
+        if (previous != creature && spatial != null) {
+            var cache = spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class);
+            if (cache != null) cache.clear();
+        }
         setDataObject(creature);
         super.setTargetState(state.state);
         if (!playAnimation(state.state)) {
@@ -150,6 +154,13 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
+        if (spatial != null && spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class) == null) {
+            int clips = Math.clamp(toniarts.openkeeper.Main.getUserSettings().getInteger(
+                    toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_CACHE_CLIPS),0,32);
+            long bytes = Math.clamp(toniarts.openkeeper.Main.getUserSettings().getInteger(
+                    toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_CACHE_KIB),0,4096) * 1024L;
+            if (clips > 0) spatial.addControl(new toniarts.openkeeper.view.animation.PreparedAnimationCache(clips,bytes));
+        }
 
         // Play the starting animation
         if (spatial != null && currentState != null) {
@@ -159,6 +170,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public void cleanup() {
+        if (spatial != null) {
+            var cache = spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class);
+            if (cache != null) cache.clear();
+        }
         playResearchSound(null);
         digSound = SoundEngine.NO_HANDLE;
         super.cleanup();

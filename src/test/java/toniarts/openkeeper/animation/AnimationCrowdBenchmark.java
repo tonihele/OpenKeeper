@@ -32,18 +32,22 @@ public final class AnimationCrowdBenchmark {
         for (int count : new int[]{1,50,200,500,1000}) {
             for (String mode : new String[]{"visible","hidden","unchanged"}) run(templates,count,mode);
         }
-        for(int count : new int[]{50,200,500}) {
+        for(int count : new int[]{50,200,500}) for(int capacity : new int[]{0,3}) {
             Node[] owners = new Node[count]; Arrays.setAll(owners,i->new Node());
+            if(capacity > 0) for(Node owner : owners) owner.addControl(new toniarts.openkeeper.view.animation.PreparedAnimationCache(capacity,256*1024));
             // Warm path caches, then measure two complete transition bursts.
             for(String name : NAMES) AnimationLoader.playAnimation(new Node(),new ArtResource(name,ArtResource.ArtResourceType.ANIMATING_MESH),assets);
+            for(String name : NAMES) for(Node owner : owners)
+                AnimationLoader.playAnimation(owner,new ArtResource(name,ArtResource.ArtResourceType.ANIMATING_MESH),assets);
             long allocation = allocated(), start = System.nanoTime(); int replacements = 0;
             for(int burst=0;burst<6;burst++) for(Node owner : owners) {
                 var result = AnimationLoader.playAnimation(owner,new ArtResource(NAMES[burst%3],ArtResource.ArtResourceType.ANIMATING_MESH),assets);
                 if(result != AnimationLoader.PlaybackResult.STARTED) throw new AssertionError(result);
                 replacements++;
             }
-            System.out.printf(java.util.Locale.ROOT,"TRANSITIONS creatures=%d replacements=%d ms=%.3f allocated_bytes=%d%n",
-                    count,replacements,(System.nanoTime()-start)/1e6,allocated()-allocation);
+            long resident = capacity == 0 ? 0 : Arrays.stream(owners).mapToLong(n->n.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class).getResidentPositionBytes()).sum();
+            System.out.printf(java.util.Locale.ROOT,"TRANSITIONS creatures=%d cache_clips=%d replacements=%d ms=%.3f allocated_bytes=%d retained_position_bytes=%d%n",
+                    count,capacity,replacements,(System.nanoTime()-start)/1e6,allocated()-allocation,resident);
         }
     }
 
