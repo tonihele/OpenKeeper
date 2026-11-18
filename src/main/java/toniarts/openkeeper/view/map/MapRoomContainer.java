@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PrisonStatus;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -58,20 +59,20 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
     private final Map<EntityId, AbstractRoomController.ObjectType> storageTypeByRoomCatalog = new HashMap<>();
     private final Map<EntityId, EntityId> roomByRoomCatalog = new HashMap<>();
 
-    private final EntityData entityData;
     private final EntitySet roomCatalogs;
     private final EntitySet dungeonHearts;
     private final Set<EntityId> dungeonHeartIds = new HashSet<>();
     private final EntitySet heartObjects;
+    private final EntitySet prisonStatuses;
 
     public MapRoomContainer(EntityData entityData, IKwdFile kwdFile) {
         super(entityData, RoomComponent.class, Owner.class, Health.class);
 
-        this.entityData = entityData;
         roomCatalogs = entityData.getEntities(Storage.class);
         dungeonHearts = entityData.getEntities(DungeonHeart.class);
         heartObjects = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
                 ObjectComponent.class, Position.class, Health.class);
+        prisonStatuses = entityData.getEntities(PrisonStatus.class);
     }
 
     @Override
@@ -140,6 +141,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             dungeonHearts.getAddedEntities().forEach(e -> dungeonHeartIds.add(e.getId()));
         }
         heartObjects.applyChanges();
+        prisonStatuses.applyChanges();
 
         return changes;
     }
@@ -154,6 +156,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         dungeonHearts.applyChanges();
         dungeonHearts.forEach(e -> dungeonHeartIds.add(e.getId()));
         heartObjects.applyChanges();
+        prisonStatuses.applyChanges();
     }
 
     @Override
@@ -168,6 +171,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         dungeonHearts.release();
         dungeonHeartIds.clear();
         heartObjects.release();
+        prisonStatuses.release();
 
         super.stop();
     }
@@ -217,9 +221,14 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         @Override
         protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
 
-            // The container entity only carries RoomComponent, Owner and Health, the rest are looked up
+            // The container entity only carries RoomComponent, Owner and Health. The client can't look components up
+            // (ClientEntityData), so the Prison's state comes from its own entity set
             T component = entity.get(type);
-            return component != null ? component : entityData.getComponent(getEntityId(), type);
+            if (component != null || type != PrisonStatus.class) {
+                return component;
+            }
+            Entity state = prisonStatuses.getEntity(getEntityId());
+            return state != null ? state.get(type) : null;
         }
 
         /**
