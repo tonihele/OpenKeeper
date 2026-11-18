@@ -40,6 +40,8 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
+import toniarts.openkeeper.tools.convert.map.DestroyedFixtures;
+import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -144,6 +146,11 @@ class HealthSystemTest {
     }
 
     private HealthSystem createHealthSystem() {
+
+        // The destroyed heart looks up its death effect, it has none here
+        GameObject heartObject = DestroyedFixtures.object(FiveByFiveRotatedController.OBJECT_HEART_ID, 0);
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> method.getName().equals("getObject") ? heartObject : null);
         return new HealthSystem(entityData, stub(IEntityPositionLookup.class, stub(IEntityController.class, null)),
                 Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60),
@@ -152,7 +159,7 @@ class HealthSystemTest {
                         MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND,
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 1)),
                 stub(ICreaturesController.class, null), new RoomAttackMessages(entityData, playerService, gameTimer),
-                stub(ILevelInfo.class, stub(IKwdFile.class, null)), List.of(), stub(IMapController.class, null),
+                stub(ILevelInfo.class, kwdFile), List.of(), stub(IMapController.class, null),
                 gameTimer, stub(GameEventService.class, null));
     }
 
