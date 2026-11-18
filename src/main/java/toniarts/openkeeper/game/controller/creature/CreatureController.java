@@ -1483,20 +1483,21 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     /**
-     * Turns the creature on the spot to face the heart it is hitting. Facing
-     * is steered through a navigation that only has the tile to face from, and
-     * it is only made when the creature isn't already facing the heart.
+     * Turns the creature on the spot to face the pillar of the heart it is
+     * hitting, the nearest one, as the original does (0x45CB00, 0x4B2AE0).
+     * Facing is steered through a navigation that only has the tile to face
+     * from, and it is only made when the creature isn't already facing the
+     * pillar.
      *
      * @param heart the heart being hit
      */
     private void faceHeart(EntityId heart) {
-        Point tile = getCreatureCoordinates();
-        Point heartTile = getHeartTile(heart);
         Position position = entityData.getComponent(entityId, Position.class);
+        Point pillar = DungeonHeartTarget.getNearestPillarTile(WorldUtils.vector3fToVector2f(position.position), getHeartTile(heart));
         double turn = Math.IEEEremainder(-position.rotation - SteeringUtils.calculateVectorToAngle(
-                new Vector2(heartTile.x - tile.x, heartTile.y - tile.y)), 2 * Math.PI);
+                new Vector2(pillar.x * WorldUtils.TILE_WIDTH - position.position.x, pillar.y * WorldUtils.TILE_WIDTH - position.position.z)), 2 * Math.PI);
         if (Math.abs(turn) > FACING_TOLERANCE) {
-            entityData.setComponent(entityId, new Navigation(tile, heartTile, new ArrayList<>()));
+            entityData.setComponent(entityId, new Navigation(getCreatureCoordinates(), pillar, new ArrayList<>()));
         }
     }
 
