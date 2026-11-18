@@ -12,6 +12,47 @@ import toniarts.openkeeper.utils.AssetUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationLoaderTest {
+    @Test void clampTraversesBothDirectionsForMultipleCyclesAndSeeksBackwards() {
+        Node root = new Node();
+        var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("cycle",3,30);
+        AnimationLoader.playAnimation(root,resource,(name, art) -> {
+            Node wrapper = (Node) model(name, art);
+            Node node = (Node) wrapper.getChild(0);
+            node.setUserData(KmfModelLoader.FRAME_FACTOR_FUNCTION,"CLAMP");
+            var mesh = new com.jme3.scene.Mesh();
+            mesh.setBuffer(com.jme3.scene.VertexBuffer.Type.Position,3,new float[]{0,0,0});
+            mesh.setBuffer(com.jme3.scene.VertexBuffer.Type.BindPosePosition,3,new float[]{0,0,0});
+            var geometry = new com.jme3.scene.Geometry("vertex",mesh); node.attachChild(geometry);
+            var a = new toniarts.openkeeper.animation.Pose("a",new com.jme3.math.Vector3f[]{new com.jme3.math.Vector3f()},new int[]{0});
+            var b = new toniarts.openkeeper.animation.Pose("b",new com.jme3.math.Vector3f[]{new com.jme3.math.Vector3f(2,0,0)},new int[]{0});
+            var clip = node.getControl(AnimComposer.class).getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+            clip.setTracks(new toniarts.openkeeper.animation.PoseTrack[]{new toniarts.openkeeper.animation.PoseTrack(geometry,
+                    new float[]{0,1f/30,2f/30},new toniarts.openkeeper.animation.PoseTrack.PoseFrame[]{
+                        new toniarts.openkeeper.animation.PoseTrack.PoseFrame(new toniarts.openkeeper.animation.Pose[]{a,b},new float[]{0}),
+                        new toniarts.openkeeper.animation.PoseTrack.PoseFrame(new toniarts.openkeeper.animation.Pose[]{a,b},new float[]{.5f}),
+                        new toniarts.openkeeper.animation.PoseTrack.PoseFrame(new toniarts.openkeeper.animation.Pose[]{a,b},new float[]{1})})});
+            return wrapper;
+        },false);
+        var composer = root.getChild("cycle").getControl(AnimComposer.class);
+        var geometry = (com.jme3.scene.Geometry)((Node)root.getChild("cycle")).getChild(0);
+        var positions = (java.nio.FloatBuffer)geometry.getMesh().getBuffer(com.jme3.scene.VertexBuffer.Type.Position).getData();
+        int rising = 0, falling = 0; float previous = 0;
+        for (int i=0;i<200;i++) {
+            root.updateLogicalState(.01f);
+            float current = positions.get(0);
+            if (current > previous+.01) rising++;
+            if (current < previous-.01) falling++;
+            previous = current;
+        }
+        assertTrue(rising > 30); assertTrue(falling > 30);
+        assertEquals(1,composer.getGlobalSpeed());
+        AnimationLoader.seekAnimation(root,resource,.15);
+        assertEquals(1.5,positions.get(0),1e-5);
+        AnimationLoader.pauseAnimations(root); root.updateLogicalState(.5f);
+        assertEquals(1.5,positions.get(0),1e-5);
+        AnimationLoader.resumeAnimations(root); root.updateLogicalState(.01f);
+        assertTrue(positions.get(0)<1.5);
+    }
     @Test void nestedPauseRestoresDirectionAndInactiveComposersAndCoversReplacement() {
         Node root = new Node(); Node owner = new Node(); root.attachChild(owner);
         var resource = new ArtResource("pause", ArtResource.ArtResourceType.ANIMATING_MESH);

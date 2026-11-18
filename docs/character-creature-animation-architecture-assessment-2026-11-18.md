@@ -471,3 +471,9 @@ One lightweight `SimulationTime` entity is published per logic tick and removed 
 Client pause now freezes nested world composers, including replacements created while paused, and restores their prior enabled state without destroying direction or rate. Zero-duration/empty and static resources remain supported. The obsolete Integer.MAX_VALUE modulo seek is replaced by segment-aware seeking.
 
 Validation: monotonic delayed-clock/prediction/pause tests, registered-component network serialization round trip (including request sequence), late-request seek, nested pause/resume and replacement-while-paused regressions, plus selection and gameplay tests. Snapshot replication still incurs transport delay; this is not an arbitrary wall-time latency correction or a promise to display every coalesced short action. Network peers need matching component schemas, as with other ECS protocol changes. Original gameplay event timing is unchanged. In-game pause/transition video remains a runtime acceptance item.
+
+### 11.8 Repeating CLAMP traversal (F05 mechanism fixed; source-policy comparison open)
+
+PlaybackAction owns the direction of TimedClip; composer time always advances forward. Each completed traversal changes source sampling direction, so CLAMP resources continue oscillating instead of becoming stuck on the first negative-time wrap. Late seeks choose the correct traversal and phase; pause preserves direction. Existing CLAMP-to-Cycle mapping and per-traversal completion notification are retained. This is a repair of that existing policy, not evidence that the mapping itself matches DK2.
+
+Validation: a synthetic animated vertex is advanced for twenty traversals, with repeated ascending and descending positions, backward-phase seeking and pause/resume assertions. Loader, timing and request tests pass. Original-executable CLAMP semantics remain an explicit parity blocker; no source flag is reinterpreted speculatively.

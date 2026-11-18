@@ -15,6 +15,7 @@ final class TimedClip extends AbstractTween {
     private Action action;
     private final double sourceLength;
     private final double rate;
+    private boolean reversed;
 
     TimedClip(AnimComposer composer, ArtResource resource, boolean mainSegment) {
         super(duration(composer, resource, mainSegment));
@@ -33,8 +34,13 @@ final class TimedClip extends AbstractTween {
     }
 
     @Override protected void doInterpolate(double fraction) {
+        if (reversed) fraction = 1 - fraction;
         action.interpolate(Math.min(sourceLength, fraction * getLength() * rate));
     }
+
+    void setReversed(boolean reversed) { this.reversed = reversed; }
+
+    void reverse() { reversed = !reversed; }
 
     @Override public void cloneFields(Cloner cloner, Object original) {
         super.cloneFields(cloner, original);

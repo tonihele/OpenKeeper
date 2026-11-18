@@ -101,7 +101,9 @@ public final class AnimationLoader {
                 var animComposer = spat.getControl(AnimComposer.class);
                 if (animComposer != null) {
                     animComposer.setEnabled(false);
-                    animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, true), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, root, resource, getLoopModeOnChannel(spat)));
+                    animComposer.addAction(ANIM_WITH_LISTENERS_NAME, new PlaybackAction(
+                            new TimedClip(animComposer, resource, true),
+                            Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, root, resource, getLoopModeOnChannel(spat))));
                 }
         }
         return prepared;
@@ -237,6 +239,8 @@ public final class AnimationLoader {
         if (length <= 0) return;
         var control = root.getControl(AnimationControl.class);
         boolean once = control != null && (control.isStopAnimation() || control.isHoldLastFrame());
+        PlaybackAction playback = (PlaybackAction) composer.getAction(ANIM_WITH_LISTENERS_NAME);
+        playback.setReversed(false);
         if (once && age >= length) {
             sampleAt(composer, length);
             if (revision != getModelRevision(root)) return;
@@ -247,8 +251,8 @@ public final class AnimationLoader {
             }
         } else if (getLoopModeOnChannel(main) == LoopMode.Cycle && !once) {
             double phase = age % (length * 2);
-            composer.setGlobalSpeed(phase > length ? -1 : 1);
-            sampleAt(composer, phase > length ? length * 2 - phase : phase);
+            playback.setReversed(phase >= length);
+            sampleAt(composer, phase >= length ? phase - length : phase);
         } else sampleAt(composer, once ? age : age % length);
     }
 
@@ -395,8 +399,9 @@ public final class AnimationLoader {
                 }
             } else if (loopMode == LoopMode.Cycle) {
 
-                // Change playing direction
-                composer.setGlobalSpeed(-composer.getGlobalSpeed());
+                // AnimLayer wraps negative time without completing another cycle.
+                // Keep its clock forward and reverse only source-pose traversal.
+                ((PlaybackAction) composer.getAction(ANIM_WITH_LISTENERS_NAME)).reverse();
             }
         }
 
