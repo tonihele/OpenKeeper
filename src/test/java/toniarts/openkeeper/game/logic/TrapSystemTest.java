@@ -380,37 +380,45 @@ class TrapSystemTest {
     @Test
     void triggerTrapSetsOffTrapsAsItsWaveReachesThem() {
         addTrap(TRIGGER, TRAP_TILE);
-        addTrap(SPIKE, new Point(12, 10));
-        addTrap(SPIKE, new Point(10, 13));
-        addTrap(SPIKE, new Point(15, 10));
-        walls.add(new Point(10, 12));
+        addTrap(SPIKE, new Point(11, 10));
+        addTrap(SPIKE, new Point(10, 9));
+        walls.add(new Point(10, 9));
         EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
 
         tick();
         assertEquals(List.of(new Fired(TRIGGER, enemy)), shots);
 
-        gameTime = 1.75;
+        gameTime = 0.75;
         tick();
         assertEquals(1, shots.size());
 
         // The trap that sees the victim aims at it, the one behind the wall just fires
-        gameTime = 2;
+        gameTime = 1;
         tick();
-        assertEquals(new Fired(SPIKE, enemy), shots.get(1));
-        gameTime = 3;
-        tick();
-        assertEquals(new Fired(SPIKE, null), shots.get(2));
+        assertEquals(List.of(new Fired(TRIGGER, enemy), new Fired(SPIKE, enemy), new Fired(SPIKE, null)), shots);
+    }
 
-        // The wave ends at four tiles
-        gameTime = 5;
+    @Test
+    void triggerWaveEndsAtOneTile() {
+        addTrap(TRIGGER, TRAP_TILE);
+        addTrap(SPIKE, new Point(11, 11));
+        addTrap(SPIKE, new Point(12, 10));
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+
         tick();
-        assertEquals(2, shots.stream().filter(fired -> fired.trapId() == SPIKE).count());
+        entityData.removeComponent(enemy, Position.class);
+        for (gameTime = 0.25; gameTime <= 5; gameTime += 0.25) {
+            tick();
+        }
+
+        assertEquals(List.of(new Fired(TRIGGER, enemy)), shots);
+        assertTrue(entityData.getEntities(TriggerWave.class).isEmpty());
     }
 
     @Test
     void triggerWaveIsKeptInTheEntityData() {
         addTrap(TRIGGER, TRAP_TILE);
-        addTrap(SPIKE, new Point(12, 10));
+        addTrap(SPIKE, new Point(11, 10));
         EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
 
         tick();
@@ -427,9 +435,9 @@ class TrapSystemTest {
     @Test
     void triggerTrapLeavesOtherKeepersAndRechargingTrapsAlone() {
         addTrap(TRIGGER, TRAP_TILE);
-        EntityId enemyTrap = addTrap(SPIKE, new Point(12, 10));
+        EntityId enemyTrap = addTrap(SPIKE, new Point(11, 10));
         entityData.setComponent(enemyTrap, new Owner(ENEMY, ENEMY));
-        EntityId rechargingTrap = addTrap(SPIKE, new Point(8, 10));
+        EntityId rechargingTrap = addTrap(SPIKE, new Point(9, 10));
         entityData.setComponent(rechargingTrap, new TrapFiring(10, TrapFiring.NOT_CHARGING, 0));
         EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
 
