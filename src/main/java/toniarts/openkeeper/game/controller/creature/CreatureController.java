@@ -2273,6 +2273,35 @@ public final class CreatureController extends EntityController implements ICreat
         return false;
     }
 
+    @Override
+    public boolean isCornered() {
+        Point location = getCreatureCoordinates();
+        for (int x = -1; x <= 1; x++) {
+            for (int y = -1; y <= 1; y++) {
+                Point tile = new Point(location.x + x, location.y + y);
+                if ((x != 0 || y != 0) && navigationService.findPath(location, tile, this) != null && !isHeldAgainstUs(tile)) {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Whether an enemy that fights us stands on the tile
+     */
+    private boolean isHeldAgainstUs(Point tile) {
+        for (EntityId entity : entityPositionLookup.getEntitiesInLocation(tile)) {
+            AttackTarget target = entityData.getComponent(entity, AttackTarget.class);
+            if (target != null && entityId.equals(target.entityId) && isEnemy(entity)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private int getThreat(EntityId entity) {
         Threat threat = entityData.getComponent(entity, Threat.class);
         if (threat != null) {
@@ -2324,8 +2353,11 @@ public final class CreatureController extends EntityController implements ICreat
             AttackTarget enemyTarget = entityData.getComponent(enemy, AttackTarget.class);
             int shares = (enemyTarget != null && entityId.equals(enemyTarget.entityId) ? 1 : 0)
                     + (ourTarget != null && enemy.equals(ourTarget.entityId) ? 1 : 0);
-            if (shares > 0 && isEnemy(enemy) && isThreat(enemy)) {
-                int opponents = entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", enemy), AttackTarget.class).size()
+            if (shares > 0 && isEnemy(enemy) && isThreat(enemy) && !isFleeing(enemy)) {
+
+                // A creature that walked away has left the fight, it takes no share (DK II 0x4602E0)
+                int opponents = (int) entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", enemy), AttackTarget.class)
+                        .stream().filter(attacker -> !isFleeing(attacker)).count()
                         + (enemyTarget != null ? 1 : 0);
                 threat += shares * (getThreat(enemy) / opponents);
             }
@@ -2344,23 +2376,35 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void startBackOff() {
+        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
+        entityData.setComponent(entityId, new BackOff(backOff != null ? backOff.overThreatChecks : 0,
+                gameTimer.getGameTime() + getBackOffTurns() / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+    }
 
-        // The more we are scared, the sooner we withdraw. We don't back off from one that would catch us (DK II 0x45F030)
+    @Override
+    public boolean canStepBack() {
+        return getBackOffTurns() > 0;
+    }
+
+    /**
+     * Gets how many turns we step back from our target before we walk away.
+     * The more we are scared, the sooner we walk away. We don't step back from
+     * one that would catch us (DK II 0x45F030)
+     *
+     * @return the turns, the durations are in turns despite their names
+     */
+    private int getBackOffTurns() {
         int fear = entityData.getComponent(entityId, CreatureComponent.class).fear;
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         CreatureComponent targetCreature = attackTarget != null ? entityData.getComponent(attackTarget.entityId, CreatureComponent.class) : null;
-        int turns = 0;
         if (fear > 0 && attackTarget != null && creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER
                 && (targetCreature == null || targetCreature.runSpeed <= entityData.getComponent(entityId, CreatureComponent.class).runSpeed)) {
             int minimum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MINIMUM_DURATION_SECONDS).getValue();
             int maximum = (int) gameSettings.get(Variable.MiscVariable.MiscType.BACK_OFF_MAXIMUM_DURATION_SECONDS).getValue();
-            turns = minimum + (maximum - minimum) * (4 - Math.min(getFightThreat() / fear, 4));
+            return minimum + (maximum - minimum) * (4 - Math.min(getFightThreat() / fear, 4));
         }
 
-        // The durations are in turns, despite the names
-        BackOff backOff = entityData.getComponent(entityId, BackOff.class);
-        entityData.setComponent(entityId, new BackOff(backOff != null ? backOff.overThreatChecks : 0,
-                gameTimer.getGameTime() + turns / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+        return 0;
     }
 
     @Override

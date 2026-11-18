@@ -369,9 +369,9 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // A scared creature backs off from its target for a while, then withdraws (DK II 0x45F030 calls 0x45EC80
-            // on every turn of a fight)
-            if (entity.isScared()) {
+            // A scared creature backs off from its target for a while, then withdraws, unless it is cornered (DK II
+            // 0x45F030 calls 0x45EC80 on every turn of a fight)
+            if (!entity.isCornered() && entity.isScared()) {
                 entity.getStateMachine().changeState(BACK_OFF);
                 return;
             }
@@ -546,7 +546,9 @@ public enum CreatureState implements State<ICreatureController> {
             } else if (!entity.isScared() || entity.getAttackTarget() == null) {
                 entity.getStateMachine().changeState(FIGHT);
             } else if (!entity.backOff()) {
-                entity.getStateMachine().changeState(FLEE);
+
+                // Cornered, with no way back, it fights on (0x4602E0)
+                entity.getStateMachine().changeState(entity.isCornered() ? FIGHT : FLEE);
             }
         }
 
@@ -768,8 +770,9 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
-            // A worker weighs withdrawing during its own swing too
-            if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER && entity.isScared()) {
+            // The fear is checked during the swing too. Stepping back keeps the swing going, so its hit still lands,
+            // but walking away at once cuts it short (DK II 0x45F030, 0x4602E0, 0x471890)
+            if (!entity.isCornered() && entity.isScared() && !entity.canStepBack()) {
                 entity.getStateMachine().changeState(BACK_OFF);
                 return;
             }
@@ -797,9 +800,9 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
-            // The fear is checked during the cast too, and a scared caster backs off at once, cutting its cast short
-            // (DK II 0x45F030, 0x471890)
-            if (entity.isScared()) {
+            // The fear is checked during the cast too. Stepping back keeps the cast going, but walking away at once
+            // cuts it short (DK II 0x45F030, 0x4602E0, 0x471890)
+            if (!entity.isCornered() && entity.isScared() && !entity.canStepBack()) {
                 entity.getStateMachine().changeState(BACK_OFF);
                 return;
             }

@@ -822,6 +822,8 @@ class CreatureControllerTest {
                 case "getSensedEntities" -> sensed;
                 case "getEntityLocation" -> null; // Not on a Hero Lair
                 case "getBlockingDoor" -> null;
+                case "getEntitiesInLocation" -> sensed.stream()
+                        .filter(other -> WorldUtils.vectorToPoint(data.getComponent(other, Position.class).position).equals(args[0])).toList();
                 default -> throw new UnsupportedOperationException(method);
             });
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
