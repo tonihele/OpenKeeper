@@ -67,7 +67,7 @@ class CreatureStateTest {
 
         CreatureState.CAST_SPELL.update(creature);
 
-        assertEquals(List.of("releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
+        assertEquals(List.of("isScared", "releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
     }
 
     @Test
@@ -247,6 +247,41 @@ class CreatureStateTest {
         }
     }
 
+    @Test
+    void heroWhoseObjectiveCannotStartStaysWhereItIs() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.IDLE);
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(state);
+        AtomicBoolean triedObjective = new AtomicBoolean();
+        AtomicBoolean walked = new AtomicBoolean();
+        ICreatureController hero = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "getOwnerId" -> Player.GOOD_PLAYER_ID;
+                    case "hasObjective", "isStopped", "isTimeToReEvaluate" -> true;
+                    case "followObjective" -> {
+                        triedObjective.set(true);
+                        yield false;
+                    }
+                    case "findWork" -> {
+                        ((Consumer<Boolean>) args[0]).accept(false);
+                        yield null;
+                    }
+                    case "navigateToRandomPoint" -> {
+                        walked.set(true);
+                        yield null;
+                    }
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        CreatureState.IDLE.enter(hero);
+        CreatureState.IDLE.update(hero);
+
+        // In DK II it does nothing and tries again later (0x477850)
+        assertTrue(triedObjective.get());
+        assertFalse(walked.get());
+        assertEquals(CreatureState.IDLE, state.get());
+    }
+
     /**
      * An imp carrying some gold, its assigned task is no longer valid
      */
@@ -298,6 +333,9 @@ class CreatureStateTest {
         }
         if (type == char.class) {
             return '\0';
+        }
+        if (type == short.class) {
+            return (short) 0;
         }
         return 0;
     }
