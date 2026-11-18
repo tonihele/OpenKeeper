@@ -361,7 +361,7 @@ Action tracking:
 - [x] Skip redundant/hidden deformation with correct visibility re-entry. See 11.14; frustum-only scheduling is deliberately excluded.
 - [ ] Introduce bounded reuse/cache ownership only where measurements support it.
 - [ ] Complete individually verified retreat/drag/recoil/idle/alternate-form policies.
-- [ ] Evaluate GPU vertex interpolation/instancing only if the measured gain justifies compatibility cost.
+- [x] Evaluate GPU vertex interpolation/instancing only if the measured gain justifies compatibility cost. Decision in 11.22: condition not established; retain measured CPU path.
 
 ## 9. Validation and profiling plan
 
@@ -597,3 +597,11 @@ Validation: shared-time, pause/resume, material replacement and clone-isolation 
 Hidden tracks retain their latest requested time without deforming. On a hidden-to-visible edge, the shared entity view flushes pending samples, including one-shots/held poses whose composers have already disabled themselves. Inactive start/end nodes remain hidden and do not upload. Subsequent unchanged visible samples stay clean. This closes an edge case that a looping-only re-entry test did not cover.
 
 Validation: a hidden terminal sample is flushed correctly without another composer update and only dirties once. Existing loop, clone, import, bounds and picking regressions pass. The GL probe now also hides during idle/death transitions and returns while one-shot composers may be stopped; the shadow-enabled probe completed successfully, retaining pixel-identical pause frames and correct later re-entry updates.
+
+### 11.22 GPU and parallelism decision
+
+**Decision: retain the compatible CPU pose backend; do not add a speculative GPU implementation.** After measured hidden/unchanged suppression, those populations produce no dirty position buffers. At 500 visible mixed creatures the final CPU logical-update median/P95 is 1.6533/2.7458 ms; at 1000 it is 4.0397/5.9946 ms. This is a pose/composer workload, not a full-game GPU bottleneck trace. Visible-run variation versus earlier samples is not evidence of an improvement; other engine work may dominate.
+
+There is no imported skeleton to move to skeletal skinning. GPU vertex interpolation would require a separate representation of sparse source frames, per-instance phase/material/clip metadata, correct picking/bounds, and parity in every color/shadow/debug path. Instancing cannot simply share independently CPU-deformed output meshes. These are implementable future options, but the condition in the checklist (a measured benefit justifying compatibility cost) is not established. The real GL probe proves basic execution, not asynchronous GPU timings or crowd draw-submission attribution.
+
+For the same reason, do not dispatch composer callbacks, scene replacements, material writes or shared navigation services to workers. Owned position snapshots are a prerequisite, not proof that the remaining scene graph is thread-safe. If a representative full-game profile shows pose work constraining the target frame budget, first isolate immutable decode jobs and render-thread publication; benchmark synchronization overhead before adopting parallelism. A GPU prototype should follow only with measured GPU/CPU attribution and reference captures. This closes the conditional evaluation, without claiming an accelerated backend was implemented or proven unnecessary for every future workload.
