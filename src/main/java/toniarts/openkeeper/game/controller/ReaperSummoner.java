@@ -46,6 +46,18 @@ public final class ReaperSummoner {
      */
     public static final int SPELL_REAPER_LEVEL = 10;
 
+    /**
+     * The Summon Reaper spell, Summon Horny in the level data. The Reaper
+     * Talisman casts it once it is researched.
+     */
+    public static final short SUMMON_REAPER_SPELL_ID = 5;
+
+    /**
+     * The Reaper Talisman's free Reaper, OneShotReaper in the level data. It
+     * can be cast once on the campaign levels that have it.
+     */
+    public static final short ONE_SHOT_REAPER_SPELL_ID = 14;
+
     private static final Logger logger = System.getLogger(ReaperSummoner.class.getName());
 
     private final IKwdFile kwdFile;
@@ -107,17 +119,28 @@ public final class ReaperSummoner {
 
         EntitySet creatures = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", player.getId()), Owner.class, CreatureComponent.class);
         try {
-            for (Entity entity : creatures) {
-                Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
-                if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
-                    return false;
-                }
-            }
+            return !hasReaper(kwdFile, creatures);
         } finally {
             creatures.release();
         }
+    }
 
-        return true;
+    /**
+     * Is there a Horned Reaper among the creatures
+     *
+     * @param kwdFile the level
+     * @param creatures the creatures of a keeper, with the creature component
+     * @return true if one of them is a Horned Reaper
+     */
+    public static boolean hasReaper(IKwdFile kwdFile, Iterable<Entity> creatures) {
+        for (Entity entity : creatures) {
+            Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
+            if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static Creature getReaper(IKwdFile kwdFile) {

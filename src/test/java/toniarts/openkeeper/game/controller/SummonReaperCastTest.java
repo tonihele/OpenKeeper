@@ -20,23 +20,29 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.player.PlayerSpellControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.PlayerSpell;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.SummonReaperFixtures;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The Summon Reaper spell's own cast rule: one Horned Reaper at a time. Checked
  * on its own so the test doesn't depend on the rest of the cast validation.
+ * Also the spell the Reaper Talisman casts.
  */
 class SummonReaperCastTest {
 
@@ -53,6 +59,7 @@ class SummonReaperCastTest {
             IMP_ID, SummonReaperFixtures.creature(IMP_ID, Creature.CreatureFlag.IS_WORKER),
             REAPER_ID, SummonReaperFixtures.creature(REAPER_ID, Creature.CreatureFlag.IS_HORNY));
     private final KeeperSpell summonReaper = SummonReaperFixtures.keeperSpell((short) 5, REAPER_SHOT_ID, 0, 100000, 2000);
+    private final KeeperSpell oneShotReaper = SummonReaperFixtures.keeperSpell((short) 14, REAPER_SHOT_ID, 99, 0, 125);
 
     @Test
     void reaperCanBeSummoned() {
@@ -72,7 +79,7 @@ class SummonReaperCastTest {
     void onlyOneReaperAtATimeWithTheTalisman() {
         addCreature(REAPER_ID, PLAYER_ID);
 
-        assertFalse(allowedByReaperRule(SummonReaperFixtures.keeperSpell((short) 14, REAPER_SHOT_ID, 99, 0, 125)));
+        assertFalse(allowedByReaperRule(oneShotReaper));
     }
 
     @Test
@@ -87,6 +94,59 @@ class SummonReaperCastTest {
         addCreature(REAPER_ID, PLAYER_ID);
 
         assertTrue(allowedByReaperRule(SummonReaperFixtures.keeperSpell((short) 4, IMP_SHOT_ID, 1, 1500, 7)));
+    }
+
+    @Test
+    void talismanCastsTheOneShotReaperFirst() {
+        keeper.getAvailableSpells().add(new PlayerSpell((short) 5, true));
+        keeper.getAvailableSpells().add(new PlayerSpell((short) 14, true));
+
+        assertEquals(oneShotReaper, talismanSpell());
+    }
+
+    @Test
+    void talismanCastsTheOneShotReaperFirstWhateverTheOrder() {
+        keeper.getAvailableSpells().add(new PlayerSpell((short) 14, true));
+        keeper.getAvailableSpells().add(new PlayerSpell((short) 5, true));
+
+        assertEquals(oneShotReaper, talismanSpell());
+    }
+
+    @Test
+    void talismanCastsSummonReaperOnceResearched() {
+        keeper.getAvailableSpells().add(new PlayerSpell((short) 5, false));
+
+        assertNull(talismanSpell());
+
+        keeper.getAvailableSpells().getFirst().setDiscovered(true);
+
+        assertEquals(summonReaper, talismanSpell());
+    }
+
+    @Test
+    void talismanOneShotReaperOnlyOnce() {
+        PlayerSpellControl spellControl = new PlayerSpellControl(keeper, List.of(summonReaper, oneShotReaper));
+        spellControl.setTypeAvailable(summonReaper, true, false);
+        spellControl.setTypeAvailable(oneShotReaper, true);
+
+        assertEquals(oneShotReaper, talismanSpell());
+
+        // What casting it does
+        spellControl.setTypeAvailable(oneShotReaper, false);
+
+        assertNull(talismanSpell());
+    }
+
+    @Test
+    void talismanCantBeUsedWithReaper() {
+        keeper.getAvailableSpells().add(new PlayerSpell((short) 14, true));
+        addCreature(REAPER_ID, PLAYER_ID);
+
+        assertNull(talismanSpell());
+    }
+
+    private KeeperSpell talismanSpell() {
+        return KeeperSpellCastValidator.getReaperTalismanSpell(kwdFile(), keeper, !allowedByReaperRule(summonReaper));
     }
 
     private boolean allowedByReaperRule(KeeperSpell keeperSpell) {
@@ -105,6 +165,7 @@ class SummonReaperCastTest {
         return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getCreature" -> creatures.get((short) args[0]);
+                    case "getKeeperSpellById" -> (int) args[0] == 14 ? oneShotReaper : summonReaper;
                     case "getShotById" -> SummonReaperFixtures.shot((short) args[0],
                             (short) args[0] == REAPER_SHOT_ID ? Shot.ProcessType.SUMMON_REAPER : Shot.ProcessType.CREATE_CREATURE);
                     default -> throw new UnsupportedOperationException(method.getName());

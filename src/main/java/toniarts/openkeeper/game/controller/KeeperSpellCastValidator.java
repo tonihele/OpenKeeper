@@ -17,9 +17,11 @@
 package toniarts.openkeeper.game.controller;
 
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.CastRule.ANYWHERE;
 import static toniarts.openkeeper.tools.convert.map.KeeperSpell.CastRule.ANY_LAND;
@@ -74,6 +76,30 @@ public final class KeeperSpellCastValidator {
         return checkPlayerMana(manaCost, player)
                 && checkCastRule(mapInformation, mapTile, keeperSpell, player)
                 && checkTargetRule(creature, owner, chicken, keeperSpell, player);
+    }
+
+    /**
+     * The spell the Reaper Talisman casts: the free one shot Reaper while the
+     * keeper still has it, otherwise the Summon Reaper spell once it is
+     * researched. The Talisman can't be used while the keeper has a Horned
+     * Reaper (DK II 0x424EC0, 0x424F50).
+     *
+     * @param kwdFile the level
+     * @param player the keeper
+     * @param hasReaper whether the keeper has a Horned Reaper, see
+     * {@link ReaperSummoner#hasReaper}
+     * @return the spell, {@code null} if the Talisman can't be used now
+     */
+    public static KeeperSpell getReaperTalismanSpell(IKwdFile kwdFile, Keeper player, boolean hasReaper) {
+        KeeperSpell keeperSpell = null;
+        for (ResearchableEntity spell : player.getAvailableSpells()) {
+            if (spell.isDiscovered() && (spell.getId() == ReaperSummoner.ONE_SHOT_REAPER_SPELL_ID
+                    || (spell.getId() == ReaperSummoner.SUMMON_REAPER_SPELL_ID && keeperSpell == null))) {
+                keeperSpell = kwdFile.getKeeperSpellById(spell.getId());
+            }
+        }
+
+        return hasReaper ? null : keeperSpell;
     }
 
     private static boolean checkPlayerMana(int manaCost, Keeper player) {
