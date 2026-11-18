@@ -232,7 +232,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
                         // Add object
                         objectMap[x][y] = true;
-                        EntityId object = objectsController.loadObject(room.getObjects().get(index), (short) 0, start.x + x, start.y + y);
+                        EntityId object = constructFloorObject(room.getObjects().get(index), new Point(start.x + x, start.y + y));
                         floorFurniture.add(object);
                     }
                 }
@@ -251,9 +251,24 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         // DK II (0x4EDFC0) picks each tile's object by a random number seeded from the tile
         for (Map.Entry<Point, WallDirection> tile : WallSection.findWallFurnitureTiles(roomInstance).entrySet()) {
             Point p = tile.getKey();
-            int seed = random(nextSeed(p.y), 0x2286) ^ random(nextSeed(p.x), 0x16F2);
-            wallFurniture.addAll(constructWallObject(wallObjects.get(random(nextSeed(seed), wallObjects.size())), p, tile.getValue()));
+            wallFurniture.addAll(constructWallObject(wallObjects.get(getTileRandom(p, wallObjects.size())), p, tile.getValue()));
         }
+    }
+
+    /**
+     * Places a floor object at the centre of a room tile.
+     */
+    protected EntityId constructFloorObject(short objectId, Point p) {
+        return objectsController.loadObject(objectId, (short) 0, p.x, p.y);
+    }
+
+    /**
+     * Picks a repeatable furniture choice from absolute map coordinates, using
+     * DK II's tile-seeded random number generator (0x4EDFC0).
+     */
+    protected static int getTileRandom(Point p, int bound) {
+        int seed = random(nextSeed(p.y), 0x2286) ^ random(nextSeed(p.x), 0x16F2);
+        return random(nextSeed(seed), bound);
     }
 
     /**
@@ -339,6 +354,19 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         control.destroy();
         existingControl.updateMaxCapacity();
         return (T) existingControl;
+    }
+
+    /**
+     * The room no longer stores this type of objects. The control is
+     * destroyed, which leaves the stored objects on the floor.
+     *
+     * @param objectType the type of objects
+     */
+    protected final void removeObjectControl(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.remove(objectType);
+        if (control != null) {
+            control.destroy();
+        }
     }
 
     @Override

@@ -18,17 +18,29 @@ package toniarts.openkeeper.game.task.creature;
 
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Supplier;
 import java.util.random.RandomGenerator;
 import toniarts.openkeeper.game.component.Casino.PayOut;
+import toniarts.openkeeper.game.component.CasinoBigWinner;
+import toniarts.openkeeper.game.component.CasinoDisco;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
+import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -41,7 +53,8 @@ import toniarts.openkeeper.utils.Point;
  * Gambles in the Casino, the room for the Drink job. Once a second the
  * gambler's mood and gold change by the pay out setting of the casino and it
  * may hit the jackpot. Every four seconds the keeper pays out the casino's
- * losses or gets its takings.
+ * losses or gets its takings, and a gambler at a roulette table spins one of
+ * its wheels.
  */
 public final class Gamble extends AbstractCapacityCriticalRoomTask {
 
@@ -54,6 +67,7 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
      */
     public static final int CASINO_SHARE_INTERVAL_SECONDS = 4;
 
+    private final IEntityPositionLookup entityPositionLookup;
     private final EntityData entityData;
     private final IGameWorldController gameWorldController;
     private final IObjectsController objectsController;
@@ -66,6 +80,7 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
     private final int smilesJackpotChance;
     private final int moneyJackpotChance;
     private final int jackpotAmount;
+    private final int jackpotPayTimeLimit;
     private final int maxGoldPile;
     private int secondsGambled = 0;
 
@@ -74,6 +89,8 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
      *
      * @param navigationService the navigation service
      * @param mapController the map controller
+     * @param entityPositionLookup the entity lookup, for the wheels of a
+     * roulette table
      * @param p the casino furniture to gamble at
      * @param playerId the owner of the casino
      * @param room the casino
@@ -87,12 +104,14 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
      * @param payOut the pay out setting of the casino
      * @param random the random number generator
      */
-    public Gamble(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
+    public Gamble(final INavigationService navigationService, final IMapController mapController,
+            final IEntityPositionLookup entityPositionLookup, Point p, short playerId,
             IRoomController room, TaskManager taskManager, EntityData entityData, IGameWorldController gameWorldController,
             IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, Supplier<PayOut> payOut,
             RandomGenerator random) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
+        this.entityPositionLookup = entityPositionLookup;
         this.entityData = entityData;
         this.gameWorldController = gameWorldController;
         this.objectsController = objectsController;
@@ -105,14 +124,17 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
         smilesJackpotChance = getSetting(gameSettings, MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_SMILES_PER_SECOND);
         moneyJackpotChance = getSetting(gameSettings, MiscType.GAMBLING_CREATURE_JACKPOT_CHANCE_MONEY_PER_SECOND);
         jackpotAmount = getSetting(gameSettings, MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT);
+        jackpotPayTimeLimit = getSetting(gameSettings, MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT);
         maxGoldPile = getSetting(gameSettings, MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY);
     }
 
     @Override
     public boolean isValid(ICreatureController creature) {
 
-        // The creature must be able to cover the stake of the money mode
-        return creature != null && canCoverStake(creature) && super.isValid(creature);
+        // The creature must be able to cover the stake of the money mode. The
+        // big winner and the gamblers of a casino in disco mode stop gambling
+        return creature != null && canCoverStake(creature) && !isBigWinner(creature)
+                && entityData.getComponent(getRoom().getEntityId(), CasinoDisco.class) == null && super.isValid(creature);
     }
 
     @Override
@@ -134,7 +156,7 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
     public void executeTask(ICreatureController creature, float executionDuration) {
         super.executeTask(creature, executionDuration);
 
-        while (secondsGambled + 1 <= executionDuration && canCoverStake(creature)) {
+        while (secondsGambled + 1 <= executionDuration && canCoverStake(creature) && !isBigWinner(creature)) {
             secondsGambled++;
             gamble(creature, payOut.get());
         }
@@ -182,14 +204,58 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
                 objectsController.addLooseGold(centre.x, centre.y,
                         CASINO_SHARE_INTERVAL_SECONDS * Math.abs(moneyGoldPerSecond), maxGoldPile);
             }
+
+            // At a roulette table the gambler spins one of its wheels, as in the original (0x456980). The SpinSystem
+            // stops it
+            spinRouletteWheel();
         }
 
-        // The jackpot, paid from the keeper's gold
+        // The jackpot
         int chance = (smiles ? smilesJackpotChance : moneyJackpotChance);
         if (chance > 0 && random.nextInt(chance) == JACKPOT_NUMBER) {
-            int paid = jackpotAmount - gameWorldController.substractGold(jackpotAmount, playerId);
-            addGold(creature, paid);
+            hitJackpot(creature);
         }
+    }
+
+    private void spinRouletteWheel() {
+        List<IObjectController> wheels = new ArrayList<>(2);
+        for (IObjectController object : entityPositionLookup.getEntityTypesInLocation(getTaskLocation(), IObjectController.class)) {
+            ObjectComponent objectComponent = entityData.getComponent(object.getEntityId(), ObjectComponent.class);
+            if (objectComponent != null && objectComponent.objectId == CasinoController.ROULETTE_WHEEL_OBJECT_ID) {
+                wheels.add(object);
+            }
+        }
+        if (!wheels.isEmpty()) {
+            wheels.get(random.nextInt(wheels.size())).spin();
+        }
+    }
+
+    /**
+     * Hits the jackpot. The creature becomes the keeper's big winner, unless
+     * the keeper has one already. It wins the basic jackpot or the keeper's
+     * pay day wages, whichever is more, and has
+     * GAMBLING_JACKPOT_PAY_TIME_LIMIT seconds to collect them from the keeper.
+     *
+     * @param creature the lucky gambler
+     * @return true if the creature became the big winner
+     */
+    public boolean hitJackpot(ICreatureController creature) {
+        FieldFilter<Owner> keeper = new FieldFilter<>(Owner.class, "ownerId", playerId);
+        if (!entityData.findEntities(keeper, Owner.class, CasinoBigWinner.class).isEmpty()) {
+            return false;
+        }
+
+        int wages = 0;
+        for (EntityId entityId : entityData.findEntities(keeper, Owner.class, CreatureComponent.class)) {
+            wages += entityData.getComponent(entityId, CreatureComponent.class).pay;
+        }
+        entityData.setComponent(creature.getEntityId(), new CasinoBigWinner(jackpotPayTimeLimit, Math.max(jackpotAmount, wages), 0));
+
+        return true;
+    }
+
+    private boolean isBigWinner(ICreatureController creature) {
+        return entityData.getComponent(creature.getEntityId(), CasinoBigWinner.class) != null;
     }
 
     /**
