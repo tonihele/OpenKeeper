@@ -1033,21 +1033,43 @@ public final class CreatureController extends EntityController implements ICreat
 
     /**
      * Checks that the target can take one more attacker, we may already be one
-     * of them
+     * of them. Like DK II (0x45A9A0), the melee attackers and the ones with
+     * attack spells have room for 8 each, and one with spells that finds no
+     * room among them fights in melee (0x45A550)
      *
      * @param target the creature we would like to attack
      * @return true if we can join the fight against the target
      */
     private boolean hasRoomForAttacker(EntityId target) {
-        int attackers = 0;
+        int meleeAttackers = 0;
+        int rangedAttackers = 0;
         for (EntityId attacker : entityData.findEntities(new FieldFilter<>(AttackTarget.class, "entityId", target), AttackTarget.class)) {
             if (attacker.equals(entityId)) {
                 return true;
             }
-            attackers++;
+            if (hasAttackSpell(attacker)) {
+                rangedAttackers++;
+            } else {
+                meleeAttackers++;
+            }
         }
+        meleeAttackers += Math.max(0, rangedAttackers - CombatRules.MAX_RANGED_ATTACKERS);
 
-        return attackers < CombatRules.MAX_MELEE_ATTACKERS;
+        return meleeAttackers < CombatRules.MAX_MELEE_ATTACKERS
+                || rangedAttackers < CombatRules.MAX_RANGED_ATTACKERS && hasAttackSpell(entityId);
+    }
+
+    private boolean hasAttackSpell(EntityId creature) {
+        CreatureSpells creatureSpells = entityData.getComponent(creature, CreatureSpells.class);
+        if (creatureSpells != null) {
+            for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+                CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+                if (spell != null && levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING)) {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     private boolean hasPathToEntity(EntityId entity) {
