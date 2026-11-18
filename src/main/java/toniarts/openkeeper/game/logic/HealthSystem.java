@@ -60,6 +60,7 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -81,6 +82,11 @@ public final class HealthSystem extends GameTimeCounter {
      * it by number where a frozen creature is removed (0x487C70)
      */
     private static final int FROZEN_BODY_EXPLODE_EFFECT_ID = 260;
+
+    /**
+     * The Hero Lair terrain, DK II tells it by its id (DKII.EXE 0x488930)
+     */
+    private static final short HERO_LAIR_TERRAIN_ID = 35;
 
     private final EntityData entityData;
     private final IGameTimer gameTimer;
@@ -410,8 +416,12 @@ public final class HealthSystem extends GameTimeCounter {
             }
         }
 
+        // A hero on the Hero Lair heals every turn, instead of regenerating on its own land (DK II 0x488930)
+        int heroLairHealing = health.health != health.maxHealth ? getHeroLairHealing(entityId) : 0;
+        delta += heroLairHealing;
+
         // Regeneration (with little bit optimization if already at full health)
-        if (health.health != health.maxHealth) {
+        if (health.health != health.maxHealth && heroLairHealing == 0) {
             entity = regeneratedEntities.getEntity(entityId);
             if (entity != null) {
                 Regeneration regeneration = entity.get(Regeneration.class);
@@ -450,6 +460,25 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return delta;
+    }
+
+    /**
+     * Gets how much a hero standing on the Hero Lair heals in a turn. The
+     * terrain's damage is negative there, a short in the level data
+     *
+     * @param entityId the entity
+     * @return the health gained, 0 if not a hero on the Hero Lair
+     */
+    private int getHeroLairHealing(EntityId entityId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId != Player.GOOD_PLAYER_ID || entityData.getComponent(entityId, CreatureComponent.class) == null) {
+            return 0;
+        }
+        IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+        if (tile == null || tile.getTerrainId() != HERO_LAIR_TERRAIN_ID) {
+            return 0;
+        }
+        return -(short) levelInfo.getLevelData().getTerrain(HERO_LAIR_TERRAIN_ID).getDamage();
     }
 
     private void processDeath(EntityId entityId) {

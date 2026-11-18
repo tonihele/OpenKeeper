@@ -64,7 +64,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * A Trigger Trap sets off its owner's traps around it. A trap next to an armed
  * Trigger Trap leaves the triggering to it and doesn't trigger on its own.
  * When the Trigger Trap fires, a wave spreads from it at the level's trigger
- * speed up to {@value #TRIGGER_TRAP_RANGE} tiles, and every recharged trap of
+ * speed to one tile, the four tiles next to it, and every recharged trap of
  * the owner it reaches fires. A trap that can see the Trigger Trap's victim
  * fires at it, the others fire without a target.
  * <br>
@@ -77,9 +77,11 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class TrapSystem implements IGameLogicUpdatable {
 
     /**
-     * How far, in tiles, a Trigger Trap's wave reaches
+     * How far, in tiles, a Trigger Trap's wave reaches. One tile, so it reaches
+     * the four tiles next to the Trigger Trap but not the diagonal ones
+     * (0x4A8E70)
      */
-    private static final float TRIGGER_TRAP_RANGE = 4;
+    private static final float TRIGGER_TRAP_RANGE = 1;
 
     /**
      * Where a Trigger Trap needs to be to take over another trap's triggering.
