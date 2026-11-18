@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -192,8 +193,8 @@ class JobRoomOccupancyTest {
             MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT, MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY}) {
             gameSettings.put(type, CasinoVariableFixtures.miscVariable(type, 1));
         }
-        return new Gamble(null, null, new Point(1, 1), KEEPER, casino, taskManager(), entityData, null, null, gameSettings,
-                () -> CasinoController.PayOut.SMILES, null);
+        return new Gamble(null, null, null, new Point(1, 1), KEEPER, casino, taskManager(), entityData, null, null, gameSettings,
+                () -> Casino.PayOut.SMILES, null);
     }
 
     private TrainingRoomController trainingRoom() {
