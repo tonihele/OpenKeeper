@@ -65,4 +65,27 @@ public final class ActionPointFixtures {
         return actionPoint;
     }
 
+    /**
+     * Build a claim or slab type condition with the trigger ID 1.
+     *
+     * @param type the condition type
+     * @param comparison the comparison
+     * @param playerId the tile owner, 0 for any
+     * @param terrainId the terrain, 0 for none
+     * @param value the value to compare the tile count with
+     * @return the condition
+     */
+    public static TriggerGeneric tileCondition(TriggerGeneric.TargetType type,
+            TriggerGeneric.ComparisonType comparison, int playerId, int terrainId, int value) {
+        TriggerGeneric condition = new TriggerGeneric(null);
+        condition.setId(1);
+        condition.setRepeatTimes((short) 255);
+        condition.setType(type);
+        condition.setTargetValueComparison(comparison);
+        condition.setUserData("playerId", (short) playerId);
+        condition.setUserData("terrainId", (short) terrainId);
+        condition.setUserData("value", value);
+        return condition;
+    }
+
 }

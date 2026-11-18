@@ -57,7 +57,9 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.tools.convert.map.Trigger;
 import toniarts.openkeeper.tools.convert.map.TriggerGeneric;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -71,6 +73,78 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class ActionPointTriggerControlTest {
 
     private static final ActionPoint ACTION_POINT = actionPoint(1, 1, 2, 2);
+    private static final short CLAIMED_PATH = 8;
+    private static final short ROCK = 2;
+
+    @Test
+    void claimPartOfCountsThePlayersOwnableTiles() {
+        Fixture fixture = new Fixture(tileCondition(TriggerGeneric.TargetType.AP_CLAIM_PART_OF,
+                TriggerGeneric.ComparisonType.GREATER_OR_EQUAL_TO, 3, 0, 2), ACTION_POINT, 4, 4);
+        fixture.setTile(1, 1, CLAIMED_PATH, (short) 3);
+        fixture.setTile(2, 1, ROCK, (short) 3);
+        fixture.setTile(1, 2, CLAIMED_PATH, (short) 1);
+        fixture.setTile(2, 2, ROCK, (short) 2);
+        assertFalse(fixture.isActive(), "rock is not a claimed tile, whoever it belongs to");
+
+        fixture.setTile(1, 2, CLAIMED_PATH, (short) 3);
+        assertTrue(fixture.isActive());
+    }
+
+    @Test
+    void claimPartOfWithoutAPlayerComparesTheArea() {
+        Fixture fixture = new Fixture(tileCondition(TriggerGeneric.TargetType.AP_CLAIM_PART_OF,
+                TriggerGeneric.ComparisonType.EQUAL_TO, 0, 0, 4), ACTION_POINT, 4, 4);
+        fixture.setTile(1, 1, CLAIMED_PATH, (short) 3);
+        fixture.setTile(2, 1, ROCK, (short) 2);
+        fixture.setTile(1, 2, CLAIMED_PATH, (short) 1);
+        fixture.setTile(2, 2, ROCK, (short) 2);
+
+        assertTrue(fixture.isActive());
+    }
+
+    @Test
+    void claimAllOfNeedsEveryTileOwnableAndOwned() {
+        Fixture fixture = new Fixture(tileCondition(TriggerGeneric.TargetType.AP_CLAIM_ALL_OF,
+                TriggerGeneric.ComparisonType.NONE, 3, 0, 0), ACTION_POINT, 4, 4);
+        fixture.setTile(1, 1, CLAIMED_PATH, (short) 3);
+        fixture.setTile(2, 1, CLAIMED_PATH, (short) 3);
+        fixture.setTile(1, 2, CLAIMED_PATH, (short) 3);
+        fixture.setTile(2, 2, ROCK, (short) 3);
+        assertFalse(fixture.isActive(), "rock is not a claimed tile, whoever it belongs to");
+
+        fixture.setTile(2, 2, CLAIMED_PATH, (short) 1);
+        assertFalse(fixture.isActive());
+
+        fixture.setTile(2, 2, CLAIMED_PATH, (short) 3);
+        assertTrue(fixture.isActive());
+    }
+
+    @Test
+    void slabTypesWithoutATerrainCountsThePlayersOwnableTiles() {
+        Fixture fixture = new Fixture(tileCondition(TriggerGeneric.TargetType.AP_SLAB_TYPES,
+                TriggerGeneric.ComparisonType.EQUAL_TO, 3, 0, 3), ACTION_POINT, 4, 4);
+        fixture.setTile(1, 1, CLAIMED_PATH, (short) 1);
+        fixture.setTile(2, 1, CLAIMED_PATH, (short) 3);
+        fixture.setTile(1, 2, CLAIMED_PATH, (short) 3);
+        fixture.setTile(2, 2, ROCK, (short) 3);
+        assertFalse(fixture.isActive());
+
+        fixture.setTile(2, 2, CLAIMED_PATH, (short) 3);
+        assertTrue(fixture.isActive());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"0,2,true", "0,1,false", "3,1,true", "3,2,false"})
+    void slabTypesWithATerrainCountsThatTerrain(int playerId, int count, boolean expected) {
+        Fixture fixture = new Fixture(tileCondition(TriggerGeneric.TargetType.AP_SLAB_TYPES,
+                TriggerGeneric.ComparisonType.EQUAL_TO, playerId, ROCK, count), ACTION_POINT, 4, 4);
+        fixture.setTile(1, 1, ROCK, (short) 2);
+        fixture.setTile(2, 1, ROCK, (short) 3);
+        fixture.setTile(1, 2, CLAIMED_PATH, (short) 3);
+        fixture.setTile(2, 2, CLAIMED_PATH, (short) 3);
+
+        assertEquals(expected, fixture.isActive());
+    }
 
     @Test
     void tagAllOfCountsPlayerTasksAgainstTaggableTerrainAndIgnoresAuthoredComparison() {
@@ -871,6 +945,23 @@ class ActionPointTriggerControlTest {
         };
     }
 
+    private static IKwdFile tileCondition(TriggerGeneric.TargetType type, TriggerGeneric.ComparisonType comparison,
+            int playerId, int terrainId, int value) {
+        Map<Integer, Trigger> triggers = Map.of(1,
+                ActionPointFixtures.tileCondition(type, comparison, playerId, terrainId, value));
+        Map<Short, Terrain> terrains = Map.of(
+                CLAIMED_PATH, TerrainFixtures.terrain(CLAIMED_PATH,
+                        TerrainFixtures.flags(Terrain.TerrainFlag.OWNABLE), 0, 0, 0, (short) 0),
+                ROCK, TerrainFixtures.terrain(ROCK,
+                        TerrainFixtures.flags(Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.TAGGABLE), 0, 0, 0, (short) 0));
+        return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getTriggers" -> triggers;
+                    case "getTerrain" -> terrains.get(((Number) args[0]).shortValue());
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+    }
+
     private static ActionPoint actionPoint(int startX, int startY, int endX, int endY) {
         return new ActionPoint(ActionPointFixtures.rectangle(1, startX, startY, endX, endY, 0, 0));
     }
@@ -958,6 +1049,11 @@ class ActionPointTriggerControlTest {
 
         private void setTerrain(int x, int y, short terrainId) {
             mapTileState(x, y).terrainId = terrainId;
+        }
+
+        private void setTile(int x, int y, short terrainId, short ownerId) {
+            setTerrain(x, y, terrainId);
+            mapTileState(x, y).ownerId = ownerId;
         }
 
         private void setTagged(int x, int y, short playerId, boolean tagged) {
@@ -1052,6 +1148,7 @@ class ActionPointTriggerControlTest {
         private final Map<Short, Boolean> selected = new HashMap<>();
         private final IMapTileInformation tile;
         private short terrainId;
+        private short ownerId;
 
         private MapTileState(int x, int y) {
             tile = (IMapTileInformation) Proxy.newProxyInstance(
@@ -1061,6 +1158,7 @@ class ActionPointTriggerControlTest {
                         case "getY" -> y;
                         case "getLocation" -> new Point(x, y);
                         case "getTerrainId" -> terrainId;
+                        case "getOwnerId" -> ownerId;
                         case "isSelected" -> selected.getOrDefault(((Number) args[0]).shortValue(), false);
                         default -> defaultValue(method.getReturnType());
                     });

@@ -87,54 +87,26 @@ public final class ActionPointTriggerControl extends TriggerControl {
             case AP_CLAIM_PART_OF:
                 playerId = trigger.getUserData("playerId", short.class);
                 value = trigger.getUserData("value", int.class);
-
-                IMapDataInformation map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        if (playerId == map.getTile(x, y).getOwnerId()) {
-                            target++;
-                        }
-                    }
-                }
+                target = countTiles(playerId, (short) 0);
                 break;
 
             case AP_CLAIM_ALL_OF:
+                // DK II ignores the comparison and the value, the count has to equal the area (DKII.EXE 0x4B0D70)
                 playerId = trigger.getUserData("playerId", short.class);
-                // value = trigger.getUserData("value", int.class); // Unusefull ?
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        if (playerId != map.getTile(x, y).getOwnerId()) {
-                            return false;
-                        }
-                    }
-                }
-                return true;
+                return countTiles(playerId, (short) 0) == countTiles((short) 0, (short) 0);
 
             case AP_SLAB_TYPES:
                 playerId = trigger.getUserData("playerId", short.class);
                 targetId = trigger.getUserData("terrainId", short.class);
                 value = trigger.getUserData("value", int.class);
-
-                map = mapController.getMapData();
-                for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
-                    for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
-                        IMapTileInformation tile = map.getTile(x, y);
-
-                        if (playerId != 0 && playerId != tile.getOwnerId() || targetId != tile.getTerrainId()) {
-                            continue;
-                        }
-
-                        target++;
-                    }
-                }
+                target = countTiles(playerId, targetId);
                 break;
 
             case AP_TAG_PART_OF:
                 playerId = trigger.getUserData("playerId", short.class);
                 value = trigger.getUserData("value", int.class);
 
-                map = mapController.getMapData();
+                IMapDataInformation map = mapController.getMapData();
                 for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
                     for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
                         // TODO check who tagged tile
@@ -357,6 +329,34 @@ public final class ActionPointTriggerControl extends TriggerControl {
                             && (targetId == 0 || object.getObjectId() == targetId)) {
                         count++;
                     }
+                }
+            }
+        }
+        return count;
+    }
+
+    /**
+     * Counts the action point's tiles the way DK II does for the claim and
+     * slab type conditions (DKII.EXE 0x4B07E0). With a terrain the tile has
+     * to be of that terrain. Without one, a player's tiles only count on
+     * ownable terrain. With neither, every tile counts.
+     *
+     * @param playerId the tile owner, 0 for any
+     * @param terrainId the terrain, 0 for none
+     * @return the number of matching tiles
+     */
+    private int countTiles(short playerId, short terrainId) {
+        int count = 0;
+        IMapDataInformation map = mapController.getMapData();
+        for (int x = (int) ap.getStart().x; x <= (int) ap.getEnd().x; x++) {
+            for (int y = (int) ap.getStart().y; y <= (int) ap.getEnd().y; y++) {
+                IMapTileInformation tile = map.getTile(x, y);
+                if (playerId != 0 && playerId != tile.getOwnerId()) {
+                    continue;
+                }
+                if (terrainId != 0 ? terrainId == tile.getTerrainId() : (playerId == 0
+                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.OWNABLE))) {
+                    count++;
                 }
             }
         }
