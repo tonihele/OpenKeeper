@@ -458,6 +458,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
                         trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
                 textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
+                textParser.getCreatureTextParser().setLevel(kwdFile.getGameLevel().getTextTableId());
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
