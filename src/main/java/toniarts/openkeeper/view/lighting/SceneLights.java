@@ -340,7 +340,9 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
             boolean ignoreObjectLights) {
         float r = 0, g = 0, b = 0;
         for (LightSource light : lights) {
-            if (!light.isEnabled() || (ignoreObjectLights && light.isObjectLight())) {
+            // objects, creatures are not lit by terrain lights
+            if (!light.isEnabled() || light.getKind() == LightSource.Kind.TERRAIN
+                    || (ignoreObjectLights && light.isObjectLight())) {
                 continue;
             }
             Vector3f pos = light.getPosition();
