@@ -2352,12 +2352,16 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean isScared() {
 
-        // It takes three fight turns in a row with the threat over our fear (DK II 0x45EC80)
+        // It takes three fight turns in a row with the threat over our fear (DK II 0x45EC80), a non-fighter is
+        // scared at once when an enemy fighter turns on it (0x45EC10)
         BackOff backOff = entityData.getComponent(entityId, BackOff.class);
         int overThreatChecks = 0;
-        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()
-                && getFightThreat() > entityData.getComponent(entityId, CreatureComponent.class).fear) {
-            overThreatChecks = Math.min(backOff != null ? backOff.overThreatChecks + 1 : 1, SCARED_OVER_THREAT_CHECKS);
+        if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()) {
+            if (creature.getFightStyle() == Creature.FightStyle.NON_FIGHTER && isTargetedByEnemyFighter()) {
+                overThreatChecks = SCARED_OVER_THREAT_CHECKS;
+            } else if (getFightThreat() > entityData.getComponent(entityId, CreatureComponent.class).fear) {
+                overThreatChecks = Math.min(backOff != null ? backOff.overThreatChecks + 1 : 1, SCARED_OVER_THREAT_CHECKS);
+            }
         }
         if (backOff == null || backOff.overThreatChecks != overThreatChecks) {
             entityData.setComponent(entityId, new BackOff(overThreatChecks, backOff != null ? backOff.endTime : 0));

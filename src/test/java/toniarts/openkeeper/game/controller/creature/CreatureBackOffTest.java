@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -124,6 +125,30 @@ class CreatureBackOffTest {
         }
         assertTrue(targetController.isScared());
         assertFalse(controller(giant).isScared());
+    }
+
+    @Test
+    void workerIsScaredAtOnceWhenAnEnemyFighterTurnsOnIt() {
+        EntityId imp = creature(Player.KEEPER1_ID, 10, 5, 2, 1.84f);
+        EntityId giant = creature(Player.GOOD_PLAYER_ID, 11, 400, GIANT_THREAT, 0.9f);
+        CreatureController controller = controller(imp, CreatureSleepFixtures.worker());
+
+        assertFalse(controller.isScared());
+        fight(giant, imp);
+        assertTrue(controller.isScared());
+    }
+
+    @Test
+    void workerIsNotScaredAtOnceByAnEnemyImp() {
+        EntityId imp = creature(Player.KEEPER1_ID, 10, 5, 2, 1.84f);
+        EntityId enemyImp = creature(Player.GOOD_PLAYER_ID, 11, 5, 2, 1.84f);
+        data.getComponent(enemyImp, CreatureComponent.class).creatureId = 1;
+        fight(enemyImp, imp);
+        CreatureController controller = controller(imp, CreatureSleepFixtures.worker());
+
+        for (int i = 0; i < 5; i++) {
+            assertFalse(controller.isScared());
+        }
     }
 
     @Test
@@ -253,6 +278,10 @@ class CreatureBackOffTest {
     }
 
     private CreatureController controller(EntityId entity) {
+        return controller(entity, CreatureSleepFixtures.sleeper(1));
+    }
+
+    private CreatureController controller(EntityId entity, Creature definition) {
         IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
             case "getSensedEntities" -> {
                 Set<EntityId> sensed = new HashSet<>(creatures);
@@ -263,6 +292,7 @@ class CreatureBackOffTest {
         });
         IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
             case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            case "getCreature" -> (Short) args[0] == 1 ? CreatureSleepFixtures.worker() : CreatureSleepFixtures.sleeper(1);
             default -> throw new UnsupportedOperationException(method);
         });
         Keeper heroes = new Keeper(false, Player.GOOD_PLAYER_ID);
@@ -271,7 +301,7 @@ class CreatureBackOffTest {
             case "getLevelData" -> kwd;
             default -> throw new UnsupportedOperationException(method);
         });
-        return new CreatureController(entity, data, CreatureSleepFixtures.sleeper(1), null, null, () -> time,
+        return new CreatureController(entity, data, definition, null, null, () -> time,
                 settings, null, lookup, null, levelInfo, null, null, null);
     }
 
@@ -289,7 +319,6 @@ class CreatureBackOffTest {
         self.set(proxy(ICreatureController.class, (method, args) -> switch (method) {
             case "getStateMachine" -> stateMachine;
             case "getAttackTarget" -> self.get();
-            case "shouldFleeOrAttack" -> false;
             case "isScared" -> scared.get();
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
