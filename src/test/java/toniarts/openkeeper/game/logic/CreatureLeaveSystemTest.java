@@ -23,11 +23,14 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureFall;
+import toniarts.openkeeper.game.component.CreatureTypePenalty;
 import toniarts.openkeeper.game.component.LeavingDungeon;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -40,6 +43,9 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureLeaveSystemTest {
+
+    private static final short PLAYER_ID = 3;
+    private static final short CREATURE_ID = 5;
 
     private final EntityData entityData = new DefaultEntityData();
     private final List<EntityId> left = new ArrayList<>();
@@ -73,6 +79,23 @@ class CreatureLeaveSystemTest {
     }
 
     @Test
+    void portalsShunTheTypeThatLeft() {
+        dropCreature(true);
+        dropCreature(true);
+        land();
+
+        leaveSystem.processTick(0.1f);
+
+        // One penalty for the type, however many of its kind left
+        Set<EntityId> penalties = entityData.findEntities(null, CreatureTypePenalty.class);
+        assertEquals(1, penalties.size());
+        CreatureTypePenalty penalty = entityData.getComponent(penalties.iterator().next(), CreatureTypePenalty.class);
+        assertEquals(PLAYER_ID, penalty.playerId);
+        assertEquals(CREATURE_ID, penalty.creatureId);
+        assertEquals(PortalCreatureChoice.PENALTY_GENERATIONS, penalty.penalty);
+    }
+
+    @Test
     void otherCreaturesGetUpAndStay() {
         EntityId creature = dropCreature(false);
 
@@ -86,7 +109,9 @@ class CreatureLeaveSystemTest {
 
     private EntityId dropCreature(boolean leaving) {
         EntityId creature = entityData.createEntity();
-        entityData.setComponents(creature, new CreatureComponent(), new CreatureFall(),
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = CREATURE_ID;
+        entityData.setComponents(creature, creatureComponent, new Owner(PLAYER_ID, PLAYER_ID), new CreatureFall(),
                 new Position(0, new Vector3f(3, WorldUtils.DROP_HEIGHT, 4)));
         if (leaving) {
             entityData.setComponent(creature, new LeavingDungeon());
