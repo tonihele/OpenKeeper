@@ -107,6 +107,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerState playerState;
     @Nullable
     private final CampaignLevel campaignLevel;
+    @Nullable
+    private final PlayerState.ClientSave savedGame;
 
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
@@ -130,13 +132,17 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param gameClientService client services
      * @param app the main application
      * @param campaignLevel the campaign level, or {@code null} for non-campaign
+     * @param savedGame the client's part of a loaded game, or {@code null} for
+     * a new game
      */
-    public GameClientState(IKwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app, @Nullable CampaignLevel campaignLevel) {
+    public GameClientState(IKwdFile level, Short playerId, List<ClientInfo> players, GameSessionClientService gameClientService, Main app, @Nullable CampaignLevel campaignLevel,
+            @Nullable PlayerState.ClientSave savedGame) {
         this.kwdFile = level;
         this.gameClientService = gameClientService;
         this.playerId = playerId;
         this.app = (Main) app;
         this.campaignLevel = campaignLevel;
+        this.savedGame = savedGame;
         this.clientInfos = List.copyOf(players);
 
         // Set multiplayer
@@ -419,10 +425,11 @@ public final class GameClientState extends AbstractPauseAwareState {
                 portalLimits = limits;
 
                 // Create player state
-                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
+                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel, savedGame);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
                         true, // Built, but hidden until the viewer possesses a creature
+                        savedGame,
                         () -> {
                             synchronized (mapDataLoadingObject) {
                                 mapDataLoaded = true;

@@ -85,7 +85,8 @@ import toniarts.openkeeper.tools.convert.map.Thing;
  * the rooms and every entity component, written as gzipped JSON. The entity
  * ids are kept as they are, so the ids inside the components stay valid.
  * Rooms, indexes, tasks and the state machines are not saved, they are built
- * again from the components and the level on load.
+ * again from the components and the level on load. The client may add a part
+ * of its own, which the server doesn't read.
  */
 public final class SaveGame {
 
@@ -262,6 +263,30 @@ public final class SaveGame {
             GSON.toJson(json, out);
         }
         Files.move(tempFile, file, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+    }
+
+    /**
+     * Adds the client's own part to the save, such as where its camera is. The
+     * server doesn't read it.
+     *
+     * @param client the client's part
+     */
+    public void setClient(Object client) {
+        json.add("client", GSON.toJsonTree(client));
+    }
+
+    /**
+     * Takes the client's own part out of the save, before the save is handed
+     * to the server
+     *
+     * @param <T> the type of the client's part
+     * @param type the type of the client's part
+     * @return the client's part, or {@code null} if the save has none
+     */
+    @Nullable
+    public <T> T removeClient(Class<T> type) {
+        JsonElement client = json.remove("client");
+        return client != null ? GSON.fromJson(client, type) : null;
     }
 
     /**

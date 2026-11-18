@@ -22,6 +22,7 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.input.controls.ActionListener;
 import com.jme3.input.controls.KeyTrigger;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.Entity;
@@ -53,11 +54,14 @@ import toniarts.openkeeper.game.state.session.LocalGameSession;
 import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.GameMap;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.view.PlayerCamera;
 import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerInteractionState;
@@ -67,6 +71,7 @@ import toniarts.openkeeper.view.PossessionInteractionState;
 import toniarts.openkeeper.view.SystemMessageState;
 import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
+import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 
 import javax.annotation.Nullable;
 import java.io.ByteArrayInputStream;
@@ -93,6 +98,8 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final EntityData entityData;
     @Nullable
     private final CampaignLevel campaignLevel;
+    @Nullable
+    private final ClientSave savedGame;
 
     private EntitySet heartEntities;
     private boolean paused = false;
@@ -101,6 +108,9 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private final List<AbstractPauseAwareState> appStates = new ArrayList<>();
     protected PlayerInteractionState interactionState;
     private PossessionInteractionState possessionState;
+
+    // A loaded game may start in possession, before our states are up
+    private EntityId pendingPossession;
     protected PlayerCameraState cameraState;
     private PossessionCameraState possessionCameraState;
 
@@ -112,12 +122,27 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     private static final String PAUSE_KEY_MAPPING = Settings.Setting.PAUSE_OR_OPTIONS.name();
     private final ActionListener pauseKeyListener = this::onPauseKey;
 
-    public PlayerState(int playerId, IKwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel) {
+    /**
+     * The player state
+     *
+     * @param playerId our player ID
+     * @param kwdFile the level
+     * @param entityData the entities
+     * @param enabled start enabled
+     * @param app the main application
+     * @param campaignLevel the campaign level, or {@code null} for
+     * non-campaign
+     * @param savedGame the client's part of a loaded game, or {@code null} for
+     * a new game
+     */
+    public PlayerState(int playerId, IKwdFile kwdFile, EntityData entityData, boolean enabled, Main app, @Nullable CampaignLevel campaignLevel,
+            @Nullable ClientSave savedGame) {
         this.playerId = (short) playerId;
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         this.app = app;
         this.campaignLevel = campaignLevel;
+        this.savedGame = savedGame;
 
         screen = new PlayerScreenController(this, app.getNifty());
         app.getNifty().registerScreenController(screen);
@@ -242,7 +267,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             appStates.add(possessionCameraState);
             appStates.add(possessionState);
 
-            cameraState = new PlayerCameraState(player);
+            cameraState = new PlayerCameraState(player, savedGame);
             interactionState = new PlayerInteractionState(player, kwdFile, entityData, gameState.getMapClientService(), gameState.getTextParser()) {
                 @Override
                 protected void onInteractionStateChange(InteractionState interactionState) {
@@ -275,6 +300,10 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void update(float tpf) {
         heartEntities.applyChanges();
+        if (pendingPossession != null && cameraState.isInitialized()) {
+            startPossession(pendingPossession);
+            pendingPossession = null;
+        }
         screen.update(tpf);
         autoSave();
     }
@@ -291,7 +320,7 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         }
 
         autoSave.update(gameServerState.getGameTime(), Main.getUserSettings().getInteger(Settings.Setting.AUTO_SAVE_INTERVAL),
-                file -> gameServerState.save(file).whenComplete((result, ex) -> {
+                file -> gameServerState.save(file, getClientSave()).whenComplete((result, ex) -> {
                     if (ex != null) {
                         logger.log(System.Logger.Level.ERROR, "Failed to auto-save to " + file + "!", ex);
                     }
@@ -487,6 +516,40 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         stateManager.getState(GameClientState.class).detach();
         stateManager.detach(this);
         stateManager.getState(MainMenuState.class).setEnabled(true);
+    }
+
+    /**
+     * Gets the client's own part of a save: where the camera is and the
+     * explored map. The camera isn't saved while possessing a creature, the
+     * possession is saved on the server, and after it the camera goes above
+     * the creature.
+     *
+     * @return the client's part of a save
+     */
+    public ClientSave getClientSave() {
+        ClientSave clientSave = new ClientSave();
+        if (cameraState != null && cameraState.getCamera() != null && !possessionState.isEnabled()) {
+            PlayerCamera camera = cameraState.getCamera();
+            clientSave.cameraMode = camera.getMode();
+            clientSave.cameraLocation = camera.getCamera().getLocation().clone();
+            clientSave.cameraRotation = camera.getCamera().getRotation().clone();
+        }
+
+        // Like DK II, which keeps an explored bit on every tile
+        GameClientState gameClientState = stateManager.getState(GameClientState.class);
+        IFogOfWarInformation fog = gameClientState.getFogOfWarInformation();
+        if (fog != null) {
+            GameMap map = gameClientState.getLevelData().getMap();
+            clientSave.exploredTiles = new String[map.getHeight()];
+            for (int y = 0; y < map.getHeight(); y++) {
+                StringBuilder row = new StringBuilder(map.getWidth());
+                for (int x = 0; x < map.getWidth(); x++) {
+                    row.append(fog.isExplored(new Point(x, y)) ? '1' : '0');
+                }
+                clientSave.exploredTiles[y] = row.toString();
+            }
+        }
+        return clientSave;
     }
 
     /**
@@ -717,10 +780,15 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
             if (possessionState == null) {
                 return;
             }
-            if (target != null) {
+            if (target != null && !cameraState.isInitialized()) {
+                pendingPossession = target;
+            } else if (target != null) {
                 startPossession(target);
-            } else if (possessionState.isEnabled()) {
-                possessionState.setEnabled(false);
+            } else {
+                pendingPossession = null;
+                if (possessionState.isEnabled()) {
+                    possessionState.setEnabled(false);
+                }
             }
         });
     }
@@ -741,6 +809,27 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
         possessionState.setEnabled(true);
 
         screen.goToScreen(IPlayerScreenController.SCREEN_POSSESSION_ID);
+    }
+
+    /**
+     * The client's own part of a saved game, the server doesn't read it
+     */
+    public static final class ClientSave {
+
+        /**
+         * The camera mode (F1 - F3), {@code null} if the camera wasn't saved
+         */
+        @Nullable
+        public Thing.Camera.CameraMode cameraMode;
+        public Vector3f cameraLocation;
+        public Quaternion cameraRotation;
+
+        /**
+         * The explored map, a row of 1s (explored) and 0s per y, {@code null}
+         * if it wasn't saved
+         */
+        @Nullable
+        public String[] exploredTiles;
     }
 
 }

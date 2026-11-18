@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.state.session;
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
+import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
@@ -68,6 +69,7 @@ import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameTimer;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.trigger.TriggerControl;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.HeroPartyFixtures;
@@ -242,6 +244,33 @@ class SaveGameTest {
         Path skirmish = folder.resolve("skirmish.json.gz");
         new SaveGame("Level6a", null, 1, levelInfo(), List.of(), List.of(), List.of(), List.of(), new DefaultEntityData()).write(skirmish);
         assertNull(SaveGame.read(skirmish).getCampaignLevel());
+    }
+
+    @Test
+    void testClientPartRoundTripsAndStaysOffTheServer() throws Exception {
+        PlayerState.ClientSave clientSave = new PlayerState.ClientSave();
+        clientSave.cameraMode = Thing.Camera.CameraMode.OVERHEAD;
+        clientSave.cameraLocation = new Vector3f(20.5f, 9f, 31.25f);
+        clientSave.cameraRotation = new Quaternion().fromAngles(1.1f, 0.4f, 0f);
+        clientSave.exploredTiles = new String[]{"0110", "1000"};
+        Path file = folder.resolve("client.json.gz");
+        SaveGame saveGame = new SaveGame("Test", null, 1, levelInfo(), List.of(), List.of(), List.of(), List.of(), new DefaultEntityData());
+        saveGame.setClient(clientSave);
+        saveGame.write(file);
+
+        SaveGame loaded = SaveGame.read(file);
+        PlayerState.ClientSave loadedClient = loaded.removeClient(PlayerState.ClientSave.class);
+
+        assertEquals(Thing.Camera.CameraMode.OVERHEAD, loadedClient.cameraMode);
+        assertEquals(clientSave.cameraLocation, loadedClient.cameraLocation);
+        assertEquals(clientSave.cameraRotation, loadedClient.cameraRotation);
+        assertEquals(List.of("0110", "1000"), List.of(loadedClient.exploredTiles));
+        assertNull(loaded.removeClient(PlayerState.ClientSave.class));
+
+        // A save without the client's part, the camera starts where the level starts
+        Path noClient = folder.resolve("noClient.json.gz");
+        new SaveGame("Test", null, 1, levelInfo(), List.of(), List.of(), List.of(), List.of(), new DefaultEntityData()).write(noClient);
+        assertNull(SaveGame.read(noClient).removeClient(PlayerState.ClientSave.class));
     }
 
     @Test

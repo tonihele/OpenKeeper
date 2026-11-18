@@ -292,9 +292,11 @@ public final class GameLoopManager {
      * @param file the save file
      * @param campaignLevel the campaign level, or {@code null} for
      * non-campaign
+     * @param client the client's own part of the save, see
+     * {@link SaveGame#setClient(Object)}, or {@code null} for none
      * @return completes when the file is written
      */
-    public CompletableFuture<Void> save(Path file, @Nullable CampaignLevel campaignLevel) {
+    public CompletableFuture<Void> save(Path file, @Nullable CampaignLevel campaignLevel, @Nullable Object client) {
         if (loops.isEmpty()) {
             return CompletableFuture.failedFuture(new IllegalStateException("The game has stopped!"));
         }
@@ -334,6 +336,9 @@ public final class GameLoopManager {
 
         CompletableFuture<Void> write = saveGame.thenAcceptAsync(save -> {
             try {
+                if (client != null) {
+                    save.setClient(client);
+                }
                 save.write(file);
             } catch (IOException ex) {
                 throw new UncheckedIOException(ex);
