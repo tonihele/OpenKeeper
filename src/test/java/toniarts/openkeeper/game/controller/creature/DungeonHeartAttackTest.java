@@ -57,6 +57,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -234,18 +235,20 @@ class DungeonHeartAttackTest {
     @Test
     void creatureHittingTheHeartTurnsToFaceIt() {
         EntityId heart = createHeart(KEEPER);
-        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 12));
+        EntityId hero = createCreature(HERO, FIGHTER, new Point(10, 15));
+        Vector3f inReach = new Vector3f(10, 0, 7.9f);
 
-        // Arrived on the ring facing away, with no navigation to turn it
+        // Arrived in reach of a pillar facing away, with no navigation to turn it
+        entityData.setComponent(hero, new Position((float) Math.PI, inReach));
         createController(hero).executeAttack(heart);
 
         Navigation navigation = entityData.getComponent(hero, Navigation.class);
         assertEquals(HEART_TILE, navigation.faceTarget);
-        assertEquals(new Point(10, 12), navigation.target);
+        assertEquals(WorldUtils.vectorToPoint(inReach), navigation.target);
 
         // Already facing it, nothing to steer
         entityData.removeComponent(hero, Navigation.class);
-        entityData.setComponent(hero, new Position((float) Math.PI, new Vector3f(10, 0, 12)));
+        entityData.setComponent(hero, new Position(0, inReach));
         createController(hero).executeAttack(heart);
 
         assertNull(entityData.getComponent(hero, Navigation.class));
