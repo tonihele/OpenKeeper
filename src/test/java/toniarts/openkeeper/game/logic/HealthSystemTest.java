@@ -37,18 +37,22 @@ import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
 import toniarts.openkeeper.tools.convert.map.DestroyedFixtures;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.KeeperDefeatFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The keeper hears of the damage to his Dungeon Heart. DKII.EXE queues message
@@ -65,10 +69,11 @@ class HealthSystemTest {
     private final PlayerService playerService = (PlayerService) Proxy.newProxyInstance(PlayerService.class.getClassLoader(),
             new Class<?>[]{PlayerService.class}, (proxy, method, args) -> {
                 if (method.getName().equals("showMentorMessage")) {
-                    messages.add(args[0] + "@" + args[1] + ">p" + args[2]);
+                    messages.add(args[0] + "@" + args[1] + ">p" + args[3]);
                 }
                 return null;
             });
+    private GameLevel.LevFlag[] levelFlags = {};
     private final IGameTimer gameTimer = (IGameTimer) Proxy.newProxyInstance(IGameTimer.class.getClassLoader(),
             new Class<?>[]{IGameTimer.class}, (proxy, method, args) -> method.getName().equals("getGameTime") ? 100.0 : null);
 
@@ -125,6 +130,21 @@ class HealthSystemTest {
     }
 
     @Test
+    void inASkirmishEveryOtherKeeperHearsTheKeeperIsDefeated() {
+        levelFlags = new GameLevel.LevFlag[]{GameLevel.LevFlag.IS_SKIRMISH_LEVEL};
+        EntityId heart = createHeart(KEEPER);
+        HealthSystem healthSystem = createHealthSystem();
+
+        entityData.setComponent(heart, new Damage(1000));
+        healthSystem.processTick(0.25f);
+
+        // The heart is lost, then the other keeper hears of the defeat (message 0x57, speech 1517 to 1520)
+        assertEquals(3, messages.size());
+        assertEquals("1291@null>p" + KEEPER, messages.get(1));
+        assertTrue(messages.get(2).matches("15(17|18|19|20)@null>p" + Player.KEEPER2_ID));
+    }
+
+    @Test
     void damageToAnotherObjectIsNotToldAsAnAttackOnTheHeart() {
         EntityId object = entityData.createEntity();
         entityData.setComponents(object, new ObjectComponent(FiveByFiveRotatedController.OBJECT_PLUG_ID, null),
@@ -149,8 +169,16 @@ class HealthSystemTest {
 
         // The destroyed heart looks up its death effect, it has none here
         GameObject heartObject = DestroyedFixtures.object(FiveByFiveRotatedController.OBJECT_HEART_ID, 0);
+        GameLevel level = KeeperDefeatFixtures.level(levelFlags);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
-                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> method.getName().equals("getObject") ? heartObject : null);
+                new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getObject" -> heartObject;
+                    case "getGameLevel" -> level;
+                    default -> null;
+                });
+        Map<Short, Keeper> players = Map.of(KEEPER, new Keeper(false, KEEPER), Player.KEEPER2_ID, new Keeper(false, Player.KEEPER2_ID));
+        ILevelInfo levelInfo = (ILevelInfo) Proxy.newProxyInstance(ILevelInfo.class.getClassLoader(),
+                new Class<?>[]{ILevelInfo.class}, (proxy, method, args) -> method.getName().equals("getPlayers") ? players : kwdFile);
         return new HealthSystem(entityData, stub(IEntityPositionLookup.class, stub(IEntityController.class, null)),
                 Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, 60),
@@ -159,7 +187,7 @@ class HealthSystemTest {
                         MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND,
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 1)),
                 stub(ICreaturesController.class, null), new RoomAttackMessages(entityData, playerService, gameTimer),
-                stub(ILevelInfo.class, kwdFile), List.of(), stub(IMapController.class, null),
+                levelInfo, List.of(), stub(IMapController.class, null),
                 gameTimer, stub(GameEventService.class, null));
     }
 

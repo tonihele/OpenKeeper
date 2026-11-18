@@ -62,6 +62,7 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
@@ -69,7 +70,9 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 import java.util.Collection;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
@@ -304,7 +307,12 @@ public final class HealthSystem extends GameTimeCounter {
                 break;
             }
         }
-        roomAttackMessages.heartDestroyed(owner.ownerId, destroyerId);
+
+        // In a skirmish or multiplayer game (DK II game types 2 and 3) every other player hears of it too (0x4DA560)
+        EnumSet<GameLevel.LevFlag> levelFlags = levelInfo.getLevelData().getGameLevel().getLvlFlags();
+        roomAttackMessages.heartDestroyed(owner.ownerId, destroyerId,
+                levelFlags.contains(GameLevel.LevFlag.IS_SKIRMISH_LEVEL) || levelFlags.contains(GameLevel.LevFlag.IS_MULTIPLAYER_LEVEL)
+                ? levelInfo.getPlayers().keySet() : List.of());
     }
 
     private boolean isDiesInstantly(EntityId entityId) {

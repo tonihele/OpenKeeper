@@ -429,9 +429,9 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onShowMentorMessage(int speechId, Vector3f position) {
+        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onShowMentorMessage(speechId, position);
+                l.onShowMentorMessage(speechId, position, namedPlayerId);
             }
         }
 
