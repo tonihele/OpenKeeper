@@ -322,7 +322,7 @@ class KeeperAiSystemTest {
         // The search gives up on 1 in 20 rounds of the four directions
         for (int tick = 0; tick < 4000 && built.size() < 9; tick++) {
             system.processTick(0.25f);
-            if (getKeeperAi().task == KeeperAi.Task.FIND_ROOM_SITE) {
+            if (getKeeperAi().task == KeeperAi.Task.FIND_ROOM_SITE && getKeeperAi().roomSitesNotFound == 0) {
                 assertTrue(tagged.isEmpty());
             }
             for (Point p : tagged) {
@@ -333,6 +333,7 @@ class KeeperAiSystemTest {
 
         // It gave up on the 16 tiles and built 3 by 3, the next room is looked for at its full size again
         assertEquals(9, built.size());
+        assertEquals(0, getKeeperAi().roomSitesNotFound);
     }
 
     @Test
@@ -356,6 +357,7 @@ class KeeperAiSystemTest {
 
         // Right next to the heart a 3 by 3 room fits. Its open sides don't count then, as for a computer player that leaves no gap
         assertEquals(9, built.size());
+        assertEquals(0, getKeeperAi().roomSitesNotFound);
     }
 
     @Test
@@ -1967,22 +1969,23 @@ class KeeperAiSystemTest {
     }
 
     @Test
-    void buildsASmallerRoomWhenItsPreferredSizeHasNoSite() {
+    void triesOneDirectionATickForARoomSite() {
         KeeperAiSystem system = createSystem(ai(0, 0, 100, 2, 50, 0, List.of(TREASURY)), 1000);
         roomControl.setTypeAvailable(rooms.get(TREASURY), true, true);
-
-        for (int tick = 0; tick < 200 && (built.isEmpty() || getKeeperAi().task != KeeperAi.Task.PLAN); tick++) {
+        for (int tick = 0; tick < 10 && getKeeperAi().task != KeeperAi.Task.FIND_ROOM_SITE; tick++) {
             system.processTick(0.25f);
-            for (Point p : tagged) {
-                map[p.y][p.x] = '.';
-            }
-            tagged.clear();
         }
+        int preferred = getKeeperAi().direction;
+        Point start = getKeeperAi().current;
 
-        assertEquals(KeeperAi.Task.PLAN, getKeeperAi().task);
-        assertEquals(TREASURY, builtRoomIds.getFirst());
-        assertTrue(built.size() > 0);
-        assertTrue(built.size() < 100);
+        // No 10 by 10 site fits anywhere: each tick tries the next direction at the default size, from the same room
+        for (int direction : new int[]{preferred + 1, preferred - 1, preferred + 2}) {
+            system.processTick(0.25f);
+            assertEquals(KeeperAi.Task.FIND_ROOM_SITE, getKeeperAi().task);
+            assertEquals(direction & 3, getKeeperAi().direction);
+            assertEquals(start, getKeeperAi().current);
+            assertEquals(0, getKeeperAi().roomSitesNotFound);
+        }
     }
 
     @Test

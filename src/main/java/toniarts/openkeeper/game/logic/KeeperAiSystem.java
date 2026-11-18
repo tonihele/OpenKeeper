@@ -91,7 +91,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * next Portal plan and to the same seam when it next needs gold
      */
     private static final int FAILED_TARGET_WAIT_SECONDS = 120;
-    private static final int FAILED_ROOM_SITE_WAIT_SECONDS = 120;
 
     /**
      * A room it found no site for at its default size is looked for smaller,
@@ -334,11 +333,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         for (int i = 0; i < keeperAi.failedTargetTicks.length; i++) {
             if (keeperAi.failedTargetTicks[i] > 0) {
                 keeperAi.failedTargetTicks[i]--;
-            }
-        }
-        for (int i = 1; i < keeperAi.failedRoomTicks.length; i++) {
-            if (keeperAi.failedRoomTicks[i] > 0) {
-                keeperAi.failedRoomTicks[i]--;
             }
         }
         battles.liftCallToArms(keeperAi, playerControllers, ai, ticksPerSecond);
@@ -878,9 +872,9 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         keeperAi.roomId = 0;
         wantMoreSpace(keeperAi, playerController, ai);
         if (!keeperAi.roomWanted) {
-            Room wanted = getNextRoom(keeperAi, playerController, ai, true);
+            Room wanted = getNextRoom(playerController, ai, true);
             keeperAi.wantedRoomId = wanted != null ? wanted.getRoomId()
-                    : getNextRoom(keeperAi, playerController, ai, false) != null ? ROOM_NOT_RESEARCHED : ROOM_PORTAL;
+                    : getNextRoom(playerController, ai, false) != null ? ROOM_NOT_RESEARCHED : ROOM_PORTAL;
             keeperAi.roomWanted = true;
         }
         short roomId = keeperAi.wantedRoomId;
@@ -1155,16 +1149,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * still researching. For the rooms it is still researching DK II starts
      * at the second room of the build order
      */
-    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, boolean researched) {
-        return getNextRoom(keeperAi, playerController, ai, researched, true);
-    }
-
     private Room getNextRoom(IPlayerController playerController, AI ai, boolean researched) {
-        return getNextRoom(null, playerController, ai, researched, false);
-    }
-
-    private Room getNextRoom(KeeperAi keeperAi, IPlayerController playerController, AI ai, boolean researched,
-            boolean skipFailedRoomSites) {
         List<Short> roomIds = new ArrayList<>(ai.getBuildOrder());
         for (short roomId = (short) (roomIds.size() + 1); roomId <= LAST_ROOM; roomId++) {
             roomIds.add(roomId);
@@ -1178,8 +1163,7 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 continue;
             }
             ResearchableEntity availability = playerController.getRoomControl().getTypes().get(room);
-            if (availability != null && availability.isDiscovered() == researched && playerController.getRoomControl().getTypeCount(room) == 0
-                    && (!skipFailedRoomSites || !isWaitingAfterFailedRoomSite(keeperAi, roomId))) {
+            if (availability != null && availability.isDiscovered() == researched && playerController.getRoomControl().getTypeCount(room) == 0) {
                 return room;
             }
         }
@@ -1234,86 +1218,50 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
      * default size and gap for ever
      */
     private int findRoomSite(KeeperAi keeperAi, IPlayerController playerController, AI ai, int actions) {
+        int size = ai.getDefaultSize();
+        int gap = ai.getTilesLeftBetweenRooms();
+        for (int i = 0; i < keeperAi.roomSitesNotFound; i++) {
+            if (size > SMALLEST_ROOM_SIDE * SMALLEST_ROOM_SIDE) {
+                int side = Math.max(SMALLEST_ROOM_SIDE, (int) Math.sqrt(size) - 1);
+                size = side * side;
+            } else if (gap > 0) {
+                gap--;
+            }
+        }
         KeeperAiRoomSiteFinder finder = new KeeperAiRoomSiteFinder(mapController, keeperAi.playerId, ai);
-        List<Point> locations = getRoomSearchLocations(keeperAi, playerController);
-        int[] directionOrder = {keeperAi.direction, (keeperAi.direction + 1) & 3, (keeperAi.direction + 3) & 3,
-            (keeperAi.direction + 2) & 3};
+        KeeperAiRoomSiteFinder.RoomSite site = null;
+        for (int i = ai.getTilesLeftBetweenRooms(); site == null && i >= gap; i--) {
+            site = finder.find(keeperAi.current, keeperAi.direction, size, i);
+        }
+        if (site != null) {
+            keeperAi.roomSitesNotFound = 0;
 
-        // Keep the configured size and spacing when possible, then relax them for tight maps.
-        for (int size : getRoomSearchSizes(ai.getDefaultSize())) {
-            for (Point location : locations) {
-                for (int direction : directionOrder) {
-                    for (int gap = ai.getTilesLeftBetweenRooms(); gap >= 0; gap--) {
-                        KeeperAiRoomSiteFinder.RoomSite site = finder.find(location, direction, size, gap);
-                        if (site == null) {
-                            continue;
-                        }
-
-                        keeperAi.current = location;
-                        keeperAi.direction = direction;
-                        keeperAi.target = site.entrance();
-                        keeperAi.corner = site.corner();
-                        keeperAi.oppositeCorner = site.oppositeCorner();
-                        String sizeNote = size < ai.getDefaultSize() ? " at fallback size " + size : "";
-                        String gapNote = gap < ai.getTilesLeftBetweenRooms() ? " with fallback spacing " + gap : "";
-                        setTask(keeperAi, KeeperAi.Task.DIG_PATH, "site for room " + keeperAi.roomId + sizeNote + gapNote + " from "
-                                + site.corner().x + "," + site.corner().y + " to " + site.oppositeCorner().x + "," + site.oppositeCorner().y
-                                + ", " + DIRECTIONS[direction] + " of " + location.x + "," + location.y);
-                        keeperAi.nextTask = KeeperAi.Task.TAG_ROOM;
-                        return actions - 1;
-                    }
-                }
-            }
+            // First the path to the site
+            keeperAi.target = site.entrance();
+            keeperAi.corner = site.corner();
+            keeperAi.oppositeCorner = site.oppositeCorner();
+            setTask(keeperAi, KeeperAi.Task.DIG_PATH, "site for room " + keeperAi.roomId + " from " + site.corner().x + "," + site.corner().y
+                    + " to " + site.oppositeCorner().x + "," + site.oppositeCorner().y + ", " + DIRECTIONS[keeperAi.direction] + " of " + keeperAi.current.x + "," + keeperAi.current.y);
+            keeperAi.nextTask = KeeperAi.Task.TAG_ROOM;
+            return actions - 1;
         }
 
-        if (keeperAi.roomId > 0 && keeperAi.roomId <= LAST_ROOM && keeperAi.roomId < keeperAi.failedRoomTicks.length) {
-            keeperAi.failedRoomTicks[keeperAi.roomId] = FAILED_ROOM_SITE_WAIT_SECONDS * kwdFile.getGameLevel().getTicksPerSec();
+        int preferred = getPreferredDirection(keeperAi.roomId, playerController.getKeeper());
+        if (keeperAi.direction == preferred) {
+            keeperAi.direction = (preferred + 1) & 3;
+        } else if (keeperAi.direction == ((preferred + 1) & 3)) {
+            keeperAi.direction = (preferred - 1) & 3;
+        } else if (keeperAi.direction == ((preferred - 1) & 3)) {
+            keeperAi.direction = (preferred - 2) & 3;
+        } else if (Utils.getRandom().nextInt(100) > 4) {
+            keeperAi.direction = preferred;
+            keeperAi.current = getRandomRoomLocation(playerController);
+        } else {
+            keeperAi.roomSitesNotFound++;
+            setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " of " + size + " tiles, leaving " + gap + " tiles to the other rooms");
         }
-        setTask(keeperAi, KeeperAi.Task.PLAN, "no site for room " + keeperAi.roomId + " at sizes " + getRoomSearchSizes(ai.getDefaultSize()));
+
         return 0;
-    }
-
-    private static boolean isWaitingAfterFailedRoomSite(KeeperAi keeperAi, short roomId) {
-        return roomId > 0 && roomId < keeperAi.failedRoomTicks.length && keeperAi.failedRoomTicks[roomId] > 0;
-    }
-
-    private List<Point> getRoomSearchLocations(KeeperAi keeperAi, IPlayerController playerController) {
-        List<Point> locations = new ArrayList<>();
-        if (keeperAi.current != null) {
-            locations.add(keeperAi.current);
-        }
-        for (Map.Entry<Room, Set<IRoomController>> entry : playerController.getRoomControl().getRoomControllers().entrySet()) {
-            if (!entry.getKey().getFlags().contains(Room.RoomFlag.PLACEABLE_ON_LAND)) {
-                continue;
-            }
-            for (IRoomController room : entry.getValue()) {
-                if (!room.getRoomInstance().isDestroyed()) {
-                    Point center = room.getRoomInstance().getCenter();
-                    if (!locations.contains(center)) {
-                        locations.add(center);
-                    }
-                }
-            }
-        }
-        return locations;
-    }
-
-    private static List<Integer> getRoomSearchSizes(int preferredSize) {
-        if (preferredSize < 1) {
-            return List.of();
-        }
-
-        List<Integer> sizes = new ArrayList<>();
-        sizes.add(preferredSize);
-        int side = (int) Math.sqrt(preferredSize);
-        if (side * side != preferredSize) {
-            sizes.add(side * side);
-        }
-        while (side > 1) {
-            side--;
-            sizes.add(side * side);
-        }
-        return sizes;
     }
 
     /**
