@@ -99,6 +99,29 @@ class MovementSystemTest {
     }
 
     /**
+     * The other threads still read the Position the creature had before the
+     * step, walking on must not move that one under them.
+     */
+    @Test
+    void walkingLeavesThePreviousPositionAlone() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Position(0, new Vector3f(15, 1, 23)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(17, 23), null, List.of(new Vector2(15, 23), new Vector2(17, 23))));
+        MovementSystem movementSystem = new MovementSystem(entityData, map(false, false));
+        Position previous = entityData.getComponent(creature, Position.class);
+
+        for (int frame = 0; frame < 30; frame++) {
+            movementSystem.processTick(1 / 60f);
+        }
+
+        assertEquals(new Vector3f(15, 1, 23), previous.position);
+        Vector3f position = entityData.getComponent(creature, Position.class).position;
+        assertTrue(position.x > 15, "not walking");
+        assertEquals(1, position.y);
+    }
+
+    /**
      * Walking through water halves the speed and lava speeds it up by half
      * (DKII.EXE 0x488930), flying is not slowed
      */
