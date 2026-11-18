@@ -12,6 +12,47 @@ import toniarts.openkeeper.utils.AssetUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationLoaderTest {
+    private static final class Listener extends com.jme3.scene.control.AbstractControl implements AnimationControl {
+        PlaybackPolicy policy = PlaybackPolicy.ONCE;
+        int cycles, stops;
+        Runnable complete = () -> {};
+        @Override public PlaybackPolicy getPlaybackPolicy() { return policy; }
+        @Override public boolean isStopAnimation() { return policy == PlaybackPolicy.ONCE; }
+        @Override public void onAnimationStop() { stops++; }
+        @Override public void onAnimationCycleDone() { cycles++; complete.run(); }
+        @Override protected void controlUpdate(float tpf) {}
+        @Override protected void controlRender(com.jme3.renderer.RenderManager rm, com.jme3.renderer.ViewPort vp) {}
+    }
+    @Test void oncePlaysStartMainEndAndNotifiesExactlyOnceWhileHoldKeepsMainVisible() {
+        for (var policy : new AnimationControl.PlaybackPolicy[]{AnimationControl.PlaybackPolicy.ONCE,AnimationControl.PlaybackPolicy.HOLD}) {
+            Node root = new Node(); var listener = new Listener(); listener.policy = policy; root.addControl(listener);
+            var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("segments",3,30);
+            resource.getFlags().add(ArtResource.ArtResourceFlag.HAS_START_ANIMATION);
+            resource.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+            AnimationLoader.playAnimation(root,resource,AnimationLoaderTest::model,false);
+            assertNotEquals(Spatial.CullHint.Always,root.getChild("Start").getCullHint());
+            for (int i=0;i<100;i++) root.updateLogicalState(.01f);
+            assertEquals(1,listener.cycles);
+            if (policy == AnimationControl.PlaybackPolicy.HOLD) {
+                assertEquals(0,listener.stops);
+                assertNotEquals(Spatial.CullHint.Always,root.getChild("segments").getCullHint());
+            } else {
+                assertEquals(1,listener.stops);
+                assertNotEquals(Spatial.CullHint.Always,root.getChild("End").getCullHint());
+            }
+            assertFalse(root.getChild("segments").getControl(AnimComposer.class).isEnabled());
+        }
+    }
+    @Test void completionThatReplacesTheModelCannotActivateTheOldEndSegment() {
+        Node root = new Node(); var listener = new Listener(); root.addControl(listener);
+        var old = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("old",3,30);
+        old.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+        listener.complete = () -> AnimationLoader.playAnimation(root,new ArtResource("new",ArtResource.ArtResourceType.MESH),AnimationLoaderTest::model,false);
+        AnimationLoader.playAnimation(root,old,AnimationLoaderTest::model,false);
+        for(int i=0;i<50;i++) root.updateLogicalState(.01f);
+        assertNotNull(root.getChild("new")); assertNull(root.getChild("End"));
+        assertEquals(1,listener.cycles); assertEquals(0,listener.stops);
+    }
     @Test void clampTraversesBothDirectionsForMultipleCyclesAndSeeksBackwards() {
         Node root = new Node();
         var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("cycle",3,30);

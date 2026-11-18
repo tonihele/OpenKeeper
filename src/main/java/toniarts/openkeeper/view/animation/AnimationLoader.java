@@ -238,7 +238,7 @@ public final class AnimationLoader {
         double length = composer.getAction(ANIM_WITH_LISTENERS_NAME).getLength();
         if (length <= 0) return;
         var control = root.getControl(AnimationControl.class);
-        boolean once = control != null && (control.isStopAnimation() || control.isHoldLastFrame());
+        boolean once = control != null && control.getPlaybackPolicy() != AnimationControl.PlaybackPolicy.LOOP;
         PlaybackAction playback = (PlaybackAction) composer.getAction(ANIM_WITH_LISTENERS_NAME);
         playback.setReversed(false);
         if (once && age >= length) {
@@ -366,7 +366,9 @@ public final class AnimationLoader {
             if (composer.getSpatial().getParent() != root) return;
 
             // An indicator stays where its animation took it
-            if (animationControl != null && animationControl.isHoldLastFrame()) {
+            AnimationControl.PlaybackPolicy policy = animationControl == null
+                    ? AnimationControl.PlaybackPolicy.LOOP : animationControl.getPlaybackPolicy();
+            if (policy == AnimationControl.PlaybackPolicy.HOLD) {
 
                 // The pose stays where the animation left it while the composer is off, and the next animation
                 // turns its composer on again
@@ -375,7 +377,7 @@ public final class AnimationLoader {
             }
 
             // See if we need to stop
-            if ((animationControl != null && animationControl.isStopAnimation()) || loopMode == LoopMode.DontLoop) {
+            if (policy == AnimationControl.PlaybackPolicy.ONCE || loopMode == LoopMode.DontLoop) {
 
                 // Stop us
                 composer.reset();

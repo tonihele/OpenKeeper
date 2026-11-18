@@ -25,6 +25,14 @@ import com.jme3.scene.control.Control;
  */
 public interface AnimationControl extends Control {
 
+    enum PlaybackPolicy { LOOP, ONCE, HOLD }
+
+    /** Explicit policy with compatibility defaults for existing controls. */
+    default PlaybackPolicy getPlaybackPolicy() {
+        return isHoldLastFrame() ? PlaybackPolicy.HOLD
+                : isStopAnimation() ? PlaybackPolicy.ONCE : PlaybackPolicy.LOOP;
+    }
+
     /**
      * On animation stop
      *

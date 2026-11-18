@@ -477,3 +477,9 @@ Validation: monotonic delayed-clock/prediction/pause tests, registered-component
 PlaybackAction owns the direction of TimedClip; composer time always advances forward. Each completed traversal changes source sampling direction, so CLAMP resources continue oscillating instead of becoming stuck on the first negative-time wrap. Late seeks choose the correct traversal and phase; pause preserves direction. Existing CLAMP-to-Cycle mapping and per-traversal completion notification are retained. This is a repair of that existing policy, not evidence that the mapping itself matches DK2.
 
 Validation: a synthetic animated vertex is advanced for twenty traversals, with repeated ascending and descending positions, backward-phase seeking and pause/resume assertions. Loader, timing and request tests pass. Original-executable CLAMP semantics remain an explicit parity blocker; no source flag is reinterpreted speculatively.
+
+### 11.9 Explicit playback and interruption contract (F07)
+
+`AnimationControl.PlaybackPolicy` defines LOOP, ONCE and HOLD. Compatibility defaults adapt existing controls; loader completion and late seeking consume the same contract. Policy can be supplied by a control without changing the loader. ONCE runs start/main/end and sends one stop notification; HOLD disables sampling while retaining the final visible main pose. Reentrant completion that replaces a visual cannot activate the old end segment. Existing creature state policy is preserved.
+
+Validation: actual composer updates exercise start/main/end, exactly one completion/stop, held visibility and interruption from inside a completion callback; 29 focused loader, request, creature selection and gambling tests pass. Expanding idle/sleep loops or deriving policy from animation names remains blocked on independent original-DK2 behavior evidence. The contract is implemented; the checklist's original-comparison requirement remains open.
