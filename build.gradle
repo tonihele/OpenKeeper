@@ -51,6 +51,20 @@ tasks.register("auditAnimationAssets", JavaExec) {
             providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
 }
 
+tasks.register("benchmarkCharacterAnimation", JavaExec) {
+    group = "verification"
+    description = "Opt-in installed-asset CPU pose/crowd/transition benchmark (not GPU frame time)"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationCrowdBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+    maxHeapSize = '1g'
+    if (providers.gradleProperty('animationJfr').isPresent()) {
+        jvmArgs "-XX:StartFlightRecording=filename=${providers.gradleProperty('animationJfr').get()},settings=profile,dumponexit=true"
+    }
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"

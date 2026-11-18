@@ -358,7 +358,7 @@ Action tracking:
 - [ ] Remove shared mutable transform publication before adding interpolation or workers.
 - Publication aliasing fixed in 11.10; whole-session lifecycle stress remains open.
 - [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence.
-- [ ] Measure representative crowds and transition bursts before optimizing.
+- [x] Measure representative crowds and transition bursts before optimizing. CPU-only baseline in 11.13; whole-game/GPU profiling remains an acceptance limitation.
 - [ ] Skip redundant/hidden deformation with correct visibility re-entry.
 - [ ] Introduce bounded reuse/cache ownership only where measurements support it.
 - [ ] Complete individually verified retreat/drag/recoil/idle/alternate-form policies.
@@ -502,3 +502,23 @@ Validation: walking/running/creeping, absent-art fallback, stationary input, mot
 Footstep frames and normalized marker times are cached once per accepted playback. World footsteps count crossings on the unwrapped simulation request age after the start segment, with explicit once/loop/ping-pong handling; initial seeks, hiding and pause reset the cursor. Multi-loop gaps are detected without iterating every missed cycle. A deliberate maximum of one audible catch-up per render update precedes the existing global three-per-200-ms audio budget. Legacy controls without a replicated clock retain composer-time fallback. Damage, projectiles and work remain simulation-owned.
 
 Paused controls do not schedule digging, chatter or footsteps. Hidden controls release research loops; state exit/removal also releases them. Validation: normalized FPS, exact-boundary exclusion, multi-wrap, reverse traversal, one-shot and duplicate-marker tests, plus clock, pause, loader and request tests pass. Simulation transport latency and composer overshoot during severe render hitches can still separate the audible timeline from the deformed pose; full game pause/audio and contact video acceptance remains open. No contact-time gameplay event changes are inferred from these sound tests.
+
+### 11.13 Measured CPU crowd and transition baseline
+
+Added opt-in `benchmarkCharacterAnimation` over the unchanged installed corpus in 11.1, mixed round-robin. It warms 180 logical updates, measures 600 at 60 Hz, reports median/P95/P99, allocated bytes on the calling thread, and actual dirty position-buffer bytes. Populations are 1/50/200/500/1000; visible, explicitly hidden and zero-delta unchanged sampling are separate. Transition bursts prepare/clone/replace complete playback instances through the production loader. No GL context, material lighting loop, navigation, shadows, draw calls or GPU work is included.
+
+```powershell
+rtk proxy .\gradlew.bat benchmarkCharacterAnimation -PconvertedAssets=D:/Project/OpenKeeper/assets/Converted -PanimationWorkingDir=D:/Project/OpenKeeper -PanimationJfr=D:/Project/OpenKeeper-character-animation/build/animation-before.jfr --console=plain
+```
+
+Java 25.0.4.1, this Windows workstation, baseline at `f659d69` production code. Selected measurements (milliseconds per CPU logical update):
+
+| Count / mode | Median | P95 | P99 | Dirty position bytes/update |
+|---|---:|---:|---:|---:|
+| 200 visible | 0.5713 | 0.9462 | 1.0866 | 811416 |
+| 500 visible | 1.4669 | 2.4422 | 2.7646 | 2027016 |
+| 500 hidden | 1.4581 | 2.4270 | 2.7017 | 2027016 |
+| 500 unchanged | 0.4753 | 0.5363 | 0.6236 | 2027016 |
+| 1000 visible | 3.8386 | 5.7475 | 6.1764 | 4052868 |
+
+Steady-state measured calling-thread allocation is zero at 200/500/1000. The 500-creature transition run made 3000 replacements in 85.783 ms and allocated 44,329,968 bytes (about 14.8 KB/replacement). This supports skipping hidden/unchanged writes and investigating transition reuse; it does not establish a whole-game bottleneck or GPU acceleration benefit. Raw output/JFR are local ignored `build/animation-before.*` evidence; rerun the task to reproduce. Small-population results include warm-up/JIT noise and are not used for optimization claims.
