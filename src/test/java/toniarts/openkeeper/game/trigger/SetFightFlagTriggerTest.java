@@ -46,8 +46,8 @@ class SetFightFlagTriggerTest {
             calls.add(a[0]);
             return null;
         });
-        CreatureTriggerControl creatureControl = new CreatureTriggerControl(null, level, null, null, null, 1, (short) 3, null);
-        creatureControl.setThing(creature);
+        CreatureTriggerControl creatureControl = new CreatureTriggerControl(null, level, null, null, null, 1, (short) 3, null, false);
+        ((AbstractThingTriggerControl<ICreatureController>) creatureControl).setThing(creature);
         TriggerControl control = creatureControl;
 
         for (short available : new short[]{0, 1, 2}) {
