@@ -91,7 +91,7 @@ public final class PrisonController extends DoubleQuadController {
             public boolean isFullCapacity() {
 
                 // A closed Prison takes no captives, like in DK II
-                return !isOpen() || super.isFullCapacity();
+                return !isPrisonOpen() || super.isFullCapacity();
             }
 
         });
@@ -100,16 +100,6 @@ public final class PrisonController extends DoubleQuadController {
     @Override
     public boolean isFullCapacity() {
         return getObjectControl(ObjectType.PRISONER).isFullCapacity();
-    }
-
-    /**
-     * Is the Prison open. Only an open Prison takes in captives
-     *
-     * @return true if the Prison is open
-     */
-    public boolean isOpen() {
-        PrisonStatus prisonStatus = getEntityComponent(PrisonStatus.class);
-        return prisonStatus != null && prisonStatus.open;
     }
 
     /**
@@ -130,7 +120,7 @@ public final class PrisonController extends DoubleQuadController {
         }
 
         // The Prison Door Bar opens and closes the Prison, like in DK II
-        setOpen(!isOpen());
+        setOpen(!isPrisonOpen());
         return true;
     }
 

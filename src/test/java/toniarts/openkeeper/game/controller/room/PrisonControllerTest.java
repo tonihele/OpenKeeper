@@ -55,7 +55,7 @@ class PrisonControllerTest {
     void newPrisonIsOpen() {
         PrisonController prison = buildPrison(3);
 
-        assertTrue(prison.isOpen());
+        assertTrue(prison.isPrisonOpen());
         assertFalse(prison.isFullCapacity());
     }
 
@@ -77,9 +77,9 @@ class PrisonControllerTest {
         entityData.setComponent(doorBar, new ObjectComponent((short) 116, null));
 
         assertTrue(prison.switchFurniture(doorBar));
-        assertFalse(prison.isOpen());
+        assertFalse(prison.isPrisonOpen());
         assertTrue(prison.switchFurniture(doorBar));
-        assertTrue(prison.isOpen());
+        assertTrue(prison.isPrisonOpen());
     }
 
     @Test
@@ -90,7 +90,7 @@ class PrisonControllerTest {
         entityData.setComponent(skull, new ObjectComponent((short) 49, null));
 
         assertFalse(prison.switchFurniture(skull));
-        assertTrue(prison.isOpen());
+        assertTrue(prison.isPrisonOpen());
     }
 
     @Test
@@ -100,7 +100,7 @@ class PrisonControllerTest {
 
         prison.construct();
 
-        assertFalse(prison.isOpen());
+        assertFalse(prison.isPrisonOpen());
     }
 
     @Test

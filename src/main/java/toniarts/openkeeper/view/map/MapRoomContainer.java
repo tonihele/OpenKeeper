@@ -58,6 +58,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
     private final Map<EntityId, AbstractRoomController.ObjectType> storageTypeByRoomCatalog = new HashMap<>();
     private final Map<EntityId, EntityId> roomByRoomCatalog = new HashMap<>();
 
+    private final EntityData entityData;
     private final EntitySet roomCatalogs;
     private final EntitySet dungeonHearts;
     private final Set<EntityId> dungeonHeartIds = new HashSet<>();
@@ -66,6 +67,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
     public MapRoomContainer(EntityData entityData, IKwdFile kwdFile) {
         super(entityData, RoomComponent.class, Owner.class, Health.class);
 
+        this.entityData = entityData;
         roomCatalogs = entityData.getEntities(Storage.class);
         dungeonHearts = entityData.getEntities(DungeonHeart.class);
         heartObjects = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
@@ -214,7 +216,10 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
         @Override
         protected <T extends EntityComponent> T getEntityComponent(Class<T> type) {
-            return entity.get(type);
+
+            // The container entity only carries RoomComponent, Owner and Health, the rest are looked up
+            T component = entity.get(type);
+            return component != null ? component : entityData.getComponent(getEntityId(), type);
         }
 
         /**

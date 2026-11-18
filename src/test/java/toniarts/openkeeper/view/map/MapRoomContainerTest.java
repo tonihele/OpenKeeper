@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PrisonStatus;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.utils.Point;
@@ -93,6 +94,21 @@ class MapRoomContainerTest {
         entityData.setComponent(heartObject, new Health(40000, 100000));
         container.update();
         assertEquals(40, container.getRoomInformation(heart).getHealthPercent());
+    }
+
+    @Test
+    void prisonStatusIsReadFromTheRoomEntity() {
+        EntityId prison = createRoom((short) 11);
+        entityData.setComponent(prison, new PrisonStatus(true));
+        EntityId casino = createRoom((short) 15);
+
+        container.start();
+
+        assertTrue(container.getRoomInformation(prison).isPrisonOpen());
+        assertFalse(container.getRoomInformation(casino).isPrisonOpen());
+
+        entityData.setComponent(prison, new PrisonStatus(false));
+        assertFalse(container.getRoomInformation(prison).isPrisonOpen());
     }
 
     private EntityId createRoom(short roomId) {
