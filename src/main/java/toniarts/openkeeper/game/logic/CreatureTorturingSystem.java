@@ -20,9 +20,14 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -30,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.KeeperInformation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -45,6 +51,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -55,16 +62,38 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class CreatureTorturingSystem extends GameTimeCounter {
 
+    /**
+     * What a torture victim can tell about its keeper. The numbers are DK
+     * II's. OpenKeeper has no panel that shows the keeper information, the
+     * victim only tells it once.
+     */
+    private static final int INFO_ARTISAN = 3;
+    private static final int INFO_THINKER = 4;
+    private static final int INFO_FIGHTER = 5;
+    private static final int INFO_ARTISAN_2 = 7;
+    private static final int INFO_FIGHTER_2 = 8;
+    private static final int INFO_THINKER_2 = 9;
+    private static final int INFO_ANY = 10;
+    private static final int INFO_ROOM = 11;
+
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
     private final GameEventService gameEventService;
     private final int chanceOfDyingWhenConverted;
     private final EntitySet torturedEntities;
+    private final EntitySet keeperInformation;
+    private final Random random;
     private final Map<EntityId, IRoomController> chambersByVictim = new HashMap<>();
 
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
             GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+        this(entityData, creaturesController, mapController, gameEventService, gameSettings, new Random());
+    }
+
+    CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Random random) {
+        this.random = random;
         this.entityData = entityData;
         this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
@@ -73,6 +102,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
 
         // Have the position also here, since the player may move tortured entities between torture rooms, kinda still tortured but not counting towards death at the time
         torturedEntities = entityData.getEntities(CreatureTortured.class, CreatureComponent.class, Position.class, Owner.class);
+        keeperInformation = entityData.getEntities(KeeperInformation.class);
     }
 
     @Override
@@ -194,6 +224,15 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             }
             leaveDevice(victim);
 
+            // An enemy tortured to death tells something about its keeper
+            Owner owner = entityData.getComponent(victim, Owner.class);
+            short playerId = chamber.getRoomInstance().getOwnerId();
+            CreatureComponent creatureComponent = entityData.getComponent(victim, CreatureComponent.class);
+            if (entityData.getComponent(victim, Death.class) != null && owner != null && creatureComponent != null
+                    && owner.ownerId != playerId) {
+                revealInformation(playerId, owner.ownerId, creaturesController.createController(victim).getCreature());
+            }
+
             if (!chamber.getRoomInstance().isDestroyed()
                     || entityData.getComponent(victim, Death.class) != null
                     || entityData.getComponent(victim, InHand.class) != null
@@ -202,10 +241,85 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             }
 
             // Set free
-            Owner owner = entityData.getComponent(victim, Owner.class);
             entityData.setComponent(victim, new Owner(owner.ownerId, owner.ownerId));
             creaturesController.createController(victim).getStateMachine().changeState(CreatureState.IDLE);
         }
+    }
+
+    /**
+     * Like in DK II, the victim tells one thing its keeper's torturer does not
+     * know yet, picked at random. Depending on its job, a creature knows two
+     * things about its keeper, any creature one more, and it can always tell
+     * where one of the keeper's rooms is. OpenKeeper reveals the room, a
+     * room not revealed this way yet. What the torturer knows is kept in a
+     * KeeperInformation entity.
+     *
+     * @param playerId the torturer
+     * @param victimOwnerId the keeper of the victim
+     * @param creature the victim
+     */
+    private void revealInformation(short playerId, short victimOwnerId, Creature creature) {
+        Entity entity = getKeeperInformation(playerId, victimOwnerId);
+        KeeperInformation known = entity.get(KeeperInformation.class);
+        List<Integer> info = new ArrayList<>(4);
+        for (int item : getInformation(creature)) {
+            if (!known.told.contains(item)) {
+                info.add(item);
+            }
+        }
+        info.add(INFO_ROOM);
+
+        int item = info.get(random.nextInt(info.size()));
+        if (item != INFO_ROOM) {
+            Set<Integer> told = new HashSet<>(known.told);
+            told.add(item);
+            entity.set(new KeeperInformation(playerId, victimOwnerId, told, known.roomsRevealed));
+            return;
+        }
+
+        for (IRoomController room : mapController.getRoomControllers()) {
+            RoomInstance roomInstance = room.getRoomInstance();
+            if (roomInstance.getOwnerId() == victimOwnerId && !roomInstance.isDestroyed()
+                    && !known.roomsRevealed.contains(room.getEntityId())) {
+                Set<EntityId> roomsRevealed = new HashSet<>(known.roomsRevealed);
+                roomsRevealed.add(room.getEntityId());
+                entity.set(new KeeperInformation(playerId, victimOwnerId, known.told, roomsRevealed));
+                mapController.revealTiles(new ArrayList<Point>(roomInstance.getCoordinates()), playerId);
+                return;
+            }
+        }
+    }
+
+    private Entity getKeeperInformation(short playerId, short keeperId) {
+        keeperInformation.applyChanges();
+        for (Entity entity : keeperInformation) {
+            KeeperInformation known = entity.get(KeeperInformation.class);
+            if (known.playerId == playerId && known.keeperId == keeperId) {
+                return entity;
+            }
+        }
+
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponent(entityId, new KeeperInformation(playerId, keeperId, Set.of(), Set.of()));
+        keeperInformation.applyChanges();
+        return keeperInformation.getEntity(entityId);
+    }
+
+    private static int[] getInformation(Creature creature) {
+        Creature.JobClass jobClass = (creature != null ? creature.getJobClass() : null);
+        if (jobClass == null) {
+            return new int[]{INFO_ANY};
+        }
+        return switch (jobClass) {
+            case ARTISAN ->
+                new int[]{INFO_ARTISAN, INFO_ARTISAN_2, INFO_ANY};
+            case THINKER ->
+                new int[]{INFO_THINKER, INFO_THINKER_2, INFO_ANY};
+            case FIGHTER ->
+                new int[]{INFO_FIGHTER, INFO_FIGHTER_2, INFO_ANY};
+            default ->
+                new int[]{INFO_ANY};
+        };
     }
 
     private void leaveDevice(EntityId victim) {
@@ -223,6 +337,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     @Override
     public void stop() {
         torturedEntities.release();
+        keeperInformation.release();
         chambersByVictim.clear();
     }
 

@@ -28,9 +28,10 @@ public final class CreatureFixtures {
     private CreatureFixtures() {
     }
 
-    public static Creature creature(short creatureId, short tortureMoodChange, boolean emotionless) {
+    public static Creature creature(short creatureId, short tortureMoodChange, Creature.JobClass jobClass, boolean emotionless) {
         Creature creature = new Creature();
         creature.setCreatureId(creatureId);
+        creature.setJobClass(jobClass);
         creature.setFlags2(emotionless ? EnumSet.of(Creature.CreatureFlag2.IS_EMOTIONLESS) : EnumSet.noneOf(Creature.CreatureFlag2.class));
         creature.getAttributes().setTortureMoodChange(tortureMoodChange);
         return creature;
