@@ -55,26 +55,26 @@ public final class CreatureTriggerLogicController extends AbstractThingTriggerLo
         for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
             if (creature.getTriggerId() != 0) {
                 creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                        creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService, false));
+                        creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService));
             }
         }
         for (Thing.KeeperCreature creature : kwdFile.getThings(Thing.KeeperCreature.class)) {
             if (creature.getTriggerId() != 0) {
                 creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                        creaturesController, creature.getTriggerId(), creature.getPlayerId(), playerService, false));
+                        creaturesController, creature.getTriggerId(), creature.getPlayerId(), playerService));
             }
         }
         for (Thing.NeutralCreature creature : kwdFile.getThings(Thing.NeutralCreature.class)) {
             if (creature.getTriggerId() != 0) {
                 creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                        creaturesController, creature.getTriggerId(), Player.NEUTRAL_PLAYER_ID, playerService, false));
+                        creaturesController, creature.getTriggerId(), Player.NEUTRAL_PLAYER_ID, playerService));
             }
         }
         for (Thing.HeroParty heroParty : kwdFile.getThings(Thing.HeroParty.class)) {
             for (Thing.GoodCreature creature : heroParty.getHeroPartyMembers()) {
                 if (creature.getTriggerId() != 0) {
                     creatureTriggers.put(creature.getTriggerId(), new CreatureTriggerControl(gameController, levelInfo, gameTimer, mapController,
-                            creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService, true));
+                            creaturesController, creature.getTriggerId(), Player.GOOD_PLAYER_ID, playerService));
                 }
             }
         }

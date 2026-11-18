@@ -18,6 +18,8 @@ package toniarts.openkeeper.view;
 
 import com.jme3.app.Application;
 import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppState;
+import com.jme3.math.ColorRGBA;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Node;
@@ -26,11 +28,15 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.map.MapInformation;
+import toniarts.openkeeper.game.sound.GameEventSoundPlayer;
+import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.modelviewer.Debug;
 import toniarts.openkeeper.utils.Point;
@@ -40,14 +46,15 @@ import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.map.FlashTileViewState;
 import toniarts.openkeeper.view.map.MapRoomContainer;
 import toniarts.openkeeper.view.map.MapTileContainer;
+import toniarts.openkeeper.view.map.MapTileEffectTracker;
 import toniarts.openkeeper.view.map.MapViewController;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 
-import java.lang.System.Logger;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.Set;
 import java.util.function.Consumer;
 
 /**
@@ -56,8 +63,6 @@ import java.util.function.Consumer;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public abstract class PlayerMapViewState extends AbstractAppState implements MapListener, PlayerActionListener {
-    
-    private static final Logger logger = System.getLogger(PlayerMapViewState.class.getName());
 
     private Main app;
     private AppStateManager stateManager;
@@ -70,29 +75,35 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     private final EffectManagerState effectManager;
     private final FlashTileViewState flashTileControl;
     private final MapRoomContainer mapRoomContainer;
+    private MapTileEffectTracker tileEffects;
     private final FogOfWarController fogOfWarController;
+    private final GameEventSoundPlayer gameEventSoundPlayer;
 
-    // Creature vision (and the initial fog seeding) can produce tile updates
-    // before MapViewController.load() has built its scene graph - queue those
-    // and flush them once the map actually exists, instead of crashing
-    private volatile boolean mapLoaded = false;
+    // Tile updates (the fog seeding, fog changes from the server) that came
+    // while the map was still loading. Render thread only
+    private final Set<Point> pendingTileUpdates = new HashSet<>();
 
-    // Scripted reveals/conceals (action point triggers) that arrive before the fog has been seeded
-    // would be wiped by the seeding, so they wait for it and are applied right after
-    private final Object fogSeedLock = new Object();
-    private boolean fogSeeded = false;
-    private final List<Runnable> pendingFogChanges = new ArrayList<>();
-    private final ConcurrentLinkedQueue<Point> pendingTileUpdates = new ConcurrentLinkedQueue<>();
+    // Takes in the map entities until the map is complete, see initialize()
+    private final AppState mapEntityLoader = new AbstractAppState() {
 
-    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier) {
-        this(app, kwdFile, assetManager, players, entityData, playerId, loadCompleteNotifier, (entityId) -> {
-        });
-    }
+        @Override
+        public void update(float tpf) {
+            mapRoomContainer.update();
+            mapTileContainer.update();
+            if (tileEffects != null) {
+                stateManager.detach(this);
+            }
+        }
 
-    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
+    };
+
+    protected PlayerMapViewState(Main app, final IKwdFile kwdFile, final AssetManager assetManager, Collection<Keeper> players, EntityData entityData, short playerId, boolean ceilingEnabled, ILoadCompleteNotifier loadCompleteNotifier, Consumer<EntityId> enemySightedNotifier) {
         this.app = app;
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+
+        // We don't update anything until the map has loaded, we enable ourselves then
+        setEnabled(false);
 
         // World node
         worldNode = new Node("World");
@@ -111,33 +122,30 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
                 // Fog must be seeded before the initial geometry is built, since
                 // the renderer consults it while assembling the map
-                synchronized (fogSeedLock) {
-                    fogOfWarController.seedLevelStart();
-                    fogSeeded = true;
-                    pendingFogChanges.forEach(Runnable::run);
-                    pendingFogChanges.clear();
-                }
+                fogOfWarController.seedLevelStart();
 
-                // Don't block the caller, might be called from the render thread...
+                // Snapshot terrain and ownership before rendering any transitions.
+                tileEffects = new MapTileEffectTracker(this, kwdFile, fogOfWarController,
+                        effectManager, worldNode);
+
+                // Build the map on its own thread, we might be on the render
+                // thread, and the client carries on setting up its other states
                 Thread mapLoaderThread = new Thread(() -> {
 
                     Spatial map = mapLoader.load(assetManager, kwdFile);
-                    mapLoaded = true;
 
-                    // Apply any tile updates (fog reveals from the seeding above,
-                    // or from creatures already ticking) that arrived too early to
-                    // be applied directly, while the map wasn't attached yet
-                    if (!pendingTileUpdates.isEmpty()) {
-                        List<Point> pending = new ArrayList<>(pendingTileUpdates.size());
-                        Point p;
-                        while ((p = pendingTileUpdates.poll()) != null) {
-                            pending.add(p);
-                        }
-                        mapLoader.updateTiles(pending.toArray(new Point[0]));
-                    }
-
+                    // The loader is done with the map (and its light rules), from
+                    // here on they are only touched on the render thread
                     app.enqueue(() -> {
                         worldNode.attachChild(map);
+
+                        // Start updating, and refresh the tiles that changed while
+                        // we were loading
+                        setEnabled(true);
+                        if (!pendingTileUpdates.isEmpty()) {
+                            updateTiles(pendingTileUpdates.toArray(new Point[0]));
+                            pendingTileUpdates.clear();
+                        }
 
                         loadCompleteNotifier.onLoadComplete();
                     });
@@ -156,7 +164,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         effectManager = new EffectManagerState(kwdFile, assetManager);
 
         // Create the actual map
-        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId) {
+        mapLoader = new MapViewController(assetManager, kwdFile, mapInformation, fogOfWarController, playerId,
+                Main.getUserSettings().getBoolean(Settings.Setting.TORCHES_ENABLED), ceilingEnabled) {
 
             @Override
             protected void updateProgress(float progress) {
@@ -165,9 +174,23 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
         };
 
+        // The ceiling is only shown while possessing a creature
+        mapLoader.setCeilingVisible(false);
+
         flashTileControl = new FlashTileViewState(mapLoader);
 
-        // Start collecting the map entities
+        gameEventSoundPlayer = new GameEventSoundPlayer(kwdFile,
+                speech -> stateManager.getState(SoundState.class)
+                        .attachMentorSpeech(speech, () -> {
+                            SystemMessageState messages = stateManager.getState(SystemMessageState.class);
+                            if (messages != null) {
+                                messages.addMessage(SystemMessageState.MessageType.INFO,
+                                        String.format("${speech.%d}", speech - 1));
+                            }
+                        }));
+
+        // Start collecting the map entities. In a local game the whole map is
+        // there already and start() loads it, over the network see initialize()
         mapRoomContainer.start();
         mapTileContainer.start();
         fogOfWarController.start();
@@ -179,18 +202,33 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         this.app = (Main) app;
         this.stateManager = stateManager;
 
+        // Over the network the map entities come in batches. We don't update
+        // before the map has loaded, so the loader takes them in until then
+        if (tileEffects == null) {
+            this.stateManager.attach(mapEntityLoader);
+        }
+
         // Effects
         this.stateManager.attach(effectManager);
+
+        // Sounds
+        this.gameEventSoundPlayer.register();
 
         // Tile flash state
         this.stateManager.attach(flashTileControl);
 
         // Attach the world
         this.app.getRootNode().attachChild(worldNode);
+
+        // Lighting: the cursor light lives as long as the world does
+        mapLoader.getLightRules().createCursorLight();
     }
 
     @Override
     public void cleanup() {
+
+        // Lighting
+        mapLoader.getLightRules().destroyCursorLight();
 
         // Detach our map
         if (worldNode != null) {
@@ -201,8 +239,14 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         // Tile flash state
         stateManager.detach(flashTileControl);
 
+        // In case we are still loading
+        stateManager.detach(mapEntityLoader);
+
         // Effects
         stateManager.detach(effectManager);
+
+        // Sounds
+        this.gameEventSoundPlayer.unregister();
 
         // The actual map data
         mapRoomContainer.stop();
@@ -215,10 +259,39 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     @Override
     public void update(float tpf) {
 
-        // Always process rooms before the map tiles
+        // Always process rooms before the map tiles, and the fog of war after
+        // the map is up to date
         mapRoomContainer.update();
         mapTileContainer.update();
         fogOfWarController.update(tpf);
+
+        // Lighting: pick up live settings changes, advance modulators
+        // (pulse/fade/flicker) and re-upload the terrain materials they
+        // touched
+        Settings settings = Main.getUserSettings();
+        float ambient = settings.getFloat(Settings.Setting.AMBIENT_LIGHT);
+        mapLoader.getLightRules().setGlobalAmbient(new ColorRGBA(ambient, ambient, ambient, 1f));
+        mapLoader.getLightRules().setCheapLighting(settings.getBoolean(Settings.Setting.CHEAP_LIGHTING));
+        mapLoader.getLightRules().update(tpf, app.getCamera());
+    }
+
+    public MapViewController getMapLoader() {
+        return mapLoader;
+    }
+
+    /**
+     * {@code false} while the "GameClientMapLoader" background thread is
+     * still populating {@code mapLoader}'s {@code LightRules} (registering
+     * terrain materials, torches, etc.). We are disabled until then. Anything
+     * outside this class that touches {@code LightRules} on the render thread
+     * (entity/effect flat lighting) must gate on this, or it races those
+     * writes with a {@code ConcurrentModificationException}. Render thread
+     * only.
+     *
+     * @return whether the map has been loaded
+     */
+    public boolean isMapLoaded() {
+        return isEnabled();
     }
 
     public AssetManager getAssetManager() {
@@ -266,12 +339,6 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
-        synchronized (fogSeedLock) {
-            if (!fogSeeded) {
-                pendingFogChanges.add(() -> fogOfWarController.revealActionPointTiles(points, explore));
-                return;
-            }
-        }
         fogOfWarController.revealActionPointTiles(points, explore);
     }
 
@@ -287,6 +354,10 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
         fogOfWarController.markPendingTagged(points, tagged);
     }
 
+    public void setCeilingVisible(boolean visible) {
+        mapLoader.setCeilingVisible(visible);
+    }
+
     public void setPossessedCreature(EntityId entityId) {
         fogOfWarController.setPossessedCreature(entityId);
     }
@@ -296,11 +367,20 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     }
 
     private void updateTiles(Point[] points) {
-        if (!mapLoaded) {
-            pendingTileUpdates.addAll(Arrays.asList(points));
-            return;
-        }
-        mapLoader.updateTiles(points);
+        app.enqueue(() -> {
+            if (!isEnabled()) {
+
+                // Still loading, there is no map to update yet
+                pendingTileUpdates.addAll(Arrays.asList(points));
+                return;
+            }
+            tileEffects.update(points);
+            mapLoader.updateTiles(points);
+        });
+    }
+
+    public TerrainDeformer getTerrainDeformer() {
+        return mapLoader.getDeformer();
     }
 
     public IRoomsInformation getRoomsInformation() {

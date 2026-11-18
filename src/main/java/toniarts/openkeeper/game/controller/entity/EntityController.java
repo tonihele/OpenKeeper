@@ -133,10 +133,9 @@ public class EntityController implements IEntityController {
         Gold gold = entityData.getComponent(entityId, Gold.class);
         if (gold != null && gold.gold > 0) {
             Position position = entityData.getComponent(entityId, Position.class);
-            Owner owner = entityData.getComponent(entityId, Owner.class);
             Point point = WorldUtils.vectorToPoint(position.position);
             // TODO: some central place, we need to add more than one pile if it exceeds the max
-            objectsController.addLooseGold(owner.ownerId, point.x, point.y, gold.gold, gold.maxGold);
+            objectsController.addLooseGold(point.x, point.y, gold.gold, gold.maxGold);
             entityData.removeComponent(entityId, Gold.class);
         }
 

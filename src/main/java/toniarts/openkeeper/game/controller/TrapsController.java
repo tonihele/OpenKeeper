@@ -36,6 +36,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -127,6 +128,11 @@ public final class TrapsController implements ITrapsController {
         entityData.setComponent(entity, new TrapViewState(trapId, blueprint));
 
         return entity;
+    }
+
+    @Override
+    public EntityId addTrapBlueprint(short trapId, Point tile, short ownerId) {
+        return loadTrap(tile.x, tile.y, trapId, ownerId, true);
     }
 
     @Override

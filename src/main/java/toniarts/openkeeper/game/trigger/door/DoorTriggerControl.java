@@ -40,32 +40,12 @@ public final class DoorTriggerControl extends AbstractThingTriggerControl<IDoorC
         super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
     }
 
-    private boolean wasDestroyed = false;
-
-    @Override
-    protected void setThing(IDoorController thingInstance) {
-        super.setThing(thingInstance);
-        wasDestroyed = thingInstance != null && thingInstance.isDestroyed();
-    }
-
-    @Override
-    protected void pollEvents() {
-        super.pollEvents();
-
-        // Event: this door was destroyed
-        boolean destroyed = instanceControl.isDestroyed();
-        if (destroyed && !wasDestroyed) {
-            fire(TriggerGeneric.TargetType.DOOR_DESTROYED);
-        }
-        wasDestroyed = destroyed;
-    }
-
     @Override
     protected boolean isActive(TriggerGenericData trigger) {
         TriggerGeneric.TargetType targetType = trigger.getType();
         switch (targetType) {
             case DOOR_DESTROYED:
-                return false; // Event, see pollEvents()
+                return instanceControl.isDestroyed();
             default:
                 return super.isActive(trigger);
         }

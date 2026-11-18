@@ -31,6 +31,8 @@ public final class TriggerGenericData extends TriggerData {
 
     private TriggerGeneric.ComparisonType comparison; // Target comparison type
     private TriggerGeneric.TargetType target;
+    private short repeatTimes; // Repeat x times, 255 = always
+    private TriggerGenericData lastTrigger = null;
     private final SafeArrayList<TriggerData> children = new SafeArrayList<>(TriggerData.class);
 
     public TriggerGenericData() {
@@ -43,7 +45,7 @@ public final class TriggerGenericData extends TriggerData {
 
     public TriggerGenericData(int id, short repeatTimes) {
         super(id);
-        setRepeatTimes(repeatTimes);
+        this.repeatTimes = repeatTimes;
     }
 
     public TriggerGeneric.ComparisonType getComparison() {
@@ -60,6 +62,28 @@ public final class TriggerGenericData extends TriggerData {
 
     protected void setType(TriggerGeneric.TargetType target) {
         this.target = target;
+    }
+
+    protected void setRepeatTimes(short repeatTimes) {
+        this.repeatTimes = repeatTimes;
+    }
+
+    public void subRepeatTimes() {
+        if (repeatTimes != 255 && repeatTimes > 0) {
+            repeatTimes--;
+        }
+    }
+
+    public boolean isRepeateable() {
+        return (repeatTimes > 0);
+    }
+
+    public int getLastTriggerIndex() {
+        return children.indexOf(lastTrigger);
+    }
+
+    public void setLastTrigger(TriggerGenericData lastTrigger) {
+        this.lastTrigger = lastTrigger;
     }
 
     public int getQuantity() {

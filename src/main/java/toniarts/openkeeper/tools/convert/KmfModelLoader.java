@@ -27,7 +27,6 @@ import com.jme3.material.Material;
 import com.jme3.material.RenderState;
 import com.jme3.material.RenderState.FaceCullMode;
 import com.jme3.material.plugin.export.material.J3MExporter;
-import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
@@ -100,6 +99,12 @@ public final class KmfModelLoader implements AssetLoader {
      */
     public static final String MATERIAL_ALTERNATIVE_TEXTURES = "AlternativeTextures";
     public static final String FRAME_FACTOR_FUNCTION = "FrameFactorFunction";
+    /**
+     * User data key on each child of a {@code MESH_COLLECTION} group node,
+     * carrying the part's raw mesh resource name (the child's own node name
+     * is the resolved ".j3o" asset path, not the original name)
+     */
+    public static final String GROUP_PART_NAME = "GroupPartName";
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
@@ -165,6 +170,7 @@ public final class KmfModelLoader implements AssetLoader {
             String key = AssetsConverter.MODELS_FOLDER + File.separator + grop.getName() + ".j3o";
             AssetLinkNode modelLink = new AssetLinkNode(key, new ModelKey(key));
             modelLink.setLocalTranslation(new Vector3f(grop.getPos().x, -grop.getPos().z, grop.getPos().y));
+            modelLink.setUserData(GROUP_PART_NAME, grop.getName());
             groupNode.attachChild(modelLink);
         }
         return groupNode;
@@ -669,16 +675,13 @@ public final class KmfModelLoader implements AssetLoader {
 
             // Create the material
             if (material == null) {
-                material = new Material(assetInfo.getManager(), "Common/MatDefs/Light/Lighting.j3md");
+                material = new Material(assetInfo.getManager(), "MatDefs/DkLighting/Vertex.j3md");
                 material.setName(mat.getName());
             }
 
             //Load up the texture and create the material
             Texture tex = loadTexture(texture, assetInfo);
             material.setTexture("DiffuseMap", tex);
-            material.setColor("Specular", ColorRGBA.Orange); // Dungeons are lit only with fire...? Experimental
-            material.setColor("Diffuse", ColorRGBA.White); // Experimental
-            material.setFloat("Shininess", mat.getShininess());
 
             // Set some flags
             setMaterialFlags(material, mat);

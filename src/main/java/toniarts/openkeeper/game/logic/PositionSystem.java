@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -69,6 +70,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         this.objectsController = objectsController;
         entityWrappers.put(ICreatureController.class, creaturesController);
         entityWrappers.put(IDoorController.class, doorsController);
+        entityWrappers.put(IObjectController.class, objectsController);
 
         // Initialize data structures in a single pass
         int width = mapController.getMapData().getWidth();
@@ -339,18 +341,28 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         });
     }
 
-    private void addSensedEntities(IMapTileInformation tile, int range, Set<EntityId> sensedEntities) {
-        if (tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                || range-- < 0) {
-            return;
+    private void addSensedEntities(IMapTileInformation startTile, int range, Set<EntityId> sensedEntities) {
+
+        // Go out one step at a time, so each tile is looked at only once
+        Set<IMapTileInformation> visitedTiles = new HashSet<>();
+        List<IMapTileInformation> tiles = List.of(startTile);
+        for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
+            List<IMapTileInformation> nextTiles = new ArrayList<>();
+            for (IMapTileInformation tile : tiles) {
+                if (tile == null || !visitedTiles.add(tile)
+                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)) {
+                    continue;
+                }
+
+                sensedEntities.addAll(entitiesByMapTile[tile.getX()][tile.getY()]);
+
+                nextTiles.add(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1));
+                nextTiles.add(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1));
+            }
+            tiles = nextTiles;
         }
-
-        sensedEntities.addAll(getEntitiesInLocation(tile));
-
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() + 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX() - 1, tile.getY()), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() + 1), range, sensedEntities);
-        addSensedEntities(mapController.getMapData().getTile(tile.getX(), tile.getY() - 1), range, sensedEntities);
     }
 
 }

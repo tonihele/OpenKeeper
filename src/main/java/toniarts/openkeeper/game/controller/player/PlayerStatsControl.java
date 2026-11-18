@@ -16,7 +16,6 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -28,6 +27,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
  */
 public final class PlayerStatsControl {
 
+    private int payDays;
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
@@ -38,6 +38,22 @@ public final class PlayerStatsControl {
 
     public boolean hasSlapped(Creature creature) {
         return slapsMap.containsKey(creature);
+    }
+
+    /**
+     * Counts a pay day of the player
+     */
+    public void payDay() {
+        payDays++;
+    }
+
+    /**
+     * Get how many pay days the player has had
+     *
+     * @return the pay days
+     */
+    public int getPayDays() {
+        return payDays;
     }
 
     public void creatureSlapped(Creature creature) {
@@ -75,33 +91,6 @@ public final class PlayerStatsControl {
 
     public void creatureDropped(Creature creature) {
         increaseMapCount(creature, dropsMap);
-    }
-
-    /**
-     * Get how many times each creature type has been slapped
-     *
-     * @return read only view
-     */
-    public Map<Creature, Integer> getSlaps() {
-        return Collections.unmodifiableMap(slapsMap);
-    }
-
-    /**
-     * Get how many times each creature type has been picked up
-     *
-     * @return read only view
-     */
-    public Map<Creature, Integer> getPickUps() {
-        return Collections.unmodifiableMap(pickUpsMap);
-    }
-
-    /**
-     * Get how many times each creature type has been dropped
-     *
-     * @return read only view
-     */
-    public Map<Creature, Integer> getDrops() {
-        return Collections.unmodifiableMap(dropsMap);
     }
 
 }

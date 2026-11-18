@@ -45,6 +45,11 @@ public final class ObjectController extends EntityController implements IObjectC
     }
 
     @Override
+    public short getObjectId() {
+        return entityData.getComponent(entityId, ObjectComponent.class).objectId;
+    }
+
+    @Override
     public int getPickUpPriority() {
         return object.getPickUpPriority();
     }
@@ -61,7 +66,12 @@ public final class ObjectController extends EntityController implements IObjectC
 
     @Override
     public boolean isPickableByPlayerCreature(short playerId) {
-        return entityData.getComponent(entityId, Placeable.class) != null && getTile().getOwnerId() == playerId;
+        if (entityData.getComponent(entityId, Placeable.class) == null) {
+            return false;
+        }
+
+        // In the keeper's hand the object has no position, the creatures can't get to it
+        return getPosition() != null && getTile().getOwnerId() == playerId;
     }
 
     @Override

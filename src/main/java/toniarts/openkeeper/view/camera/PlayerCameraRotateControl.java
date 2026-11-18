@@ -19,21 +19,25 @@ package toniarts.openkeeper.view.camera;
 import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import java.io.IOException;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.control.Control;
+import toniarts.openkeeper.game.control.IContainer;
 import toniarts.openkeeper.view.PlayerCamera;
+import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Orbits the camera around its current look at point: the given angle is spread
- * evenly over the given time, then the control removes itself.
- *
+ * TODO need testing. What about `relative` ?
  * @author ArchDemon
  */
 public final class PlayerCameraRotateControl extends Control {
-
     private PlayerCamera camera;
-    private float remaining;
-    private float rate;
+    private int time;
+    private float angle;
+    private boolean relative;
+    //private float tick = 0;
+    //public static final float SPEED = 1.5f;
 
     /**
      * Constructor used for Serialization.
@@ -41,19 +45,11 @@ public final class PlayerCameraRotateControl extends Control {
     public PlayerCameraRotateControl() {
     }
 
-    /**
-     * @param camera the camera
-     * @param relative the angle is relative to the current view. TODO: the
-     * absolute variant (turn to a compass heading) is not supported, it is
-     * handled like the relative one since the camera does not tell its heading
-     * in the angle convention the maps use
-     * @param angle the angle in degrees, positive and negative
-     * @param time the time to turn the whole angle in, in seconds
-     */
     public PlayerCameraRotateControl(PlayerCamera camera, boolean relative, int angle, int time) {
         this.camera = camera;
-        this.remaining = time;
-        this.rate = time > 0 ? angle * FastMath.DEG_TO_RAD / time : 0;
+        this.relative = relative;
+        this.angle = angle * FastMath.DEG_TO_RAD;
+        this.time = time;
     }
 
     public PlayerCamera getCamera() {
@@ -65,19 +61,29 @@ public final class PlayerCameraRotateControl extends Control {
     }
 
     @Override
+    public void setParent(IContainer parent) {
+        super.setParent(parent);
+
+        if (parent instanceof ActionPoint ap) {
+            Vector3f location = WorldUtils.ActionPointToVector3f(ap);
+            camera.setLookAt(location);
+        }
+    }
+
+    @Override
     public void updateControl(float tpf) {
         if (parent == null || camera == null) {
             return;
         }
 
-        if (remaining > 0) {
-            float step = Math.min(tpf, remaining);
-            camera.rotateAround(rate * step);
-            remaining -= step;
-        }
-        if (remaining <= 0) {
+        if (time > 0) {
+            camera.rotateAround(angle * tpf);
+            time -= tpf;
+        } else {
             parent.removeControl(this);
         }
+
+        //tick += tpf;
     }
 
     @Override
