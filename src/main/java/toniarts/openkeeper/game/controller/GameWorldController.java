@@ -1864,5 +1864,6 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
      */
     public void setRoomAttackMessages(RoomAttackMessages roomAttackMessages) {
         this.roomAttackMessages = roomAttackMessages;
+        mapController.setRoomAttackMessages(roomAttackMessages);
     }
 }

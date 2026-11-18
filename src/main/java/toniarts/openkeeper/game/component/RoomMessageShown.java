@@ -20,8 +20,8 @@ import com.simsilica.es.EntityComponent;
 
 /**
  * When the keeper was last told a room message (under attack, room lost) about
- * a room type. The same message about the same room type is not repeated while
- * the last one is still shown
+ * a room type, or that the dungeon was breached (room type 0). The same message
+ * about the same room type is not repeated while the last one is still shown
  */
 public final class RoomMessageShown implements EntityComponent {
 

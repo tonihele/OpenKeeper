@@ -146,6 +146,26 @@ class RoomAttackMessagesTest {
         assertTrue(messages.isEmpty());
     }
 
+    @Test
+    void tellsTheKeeperWhereTheDungeonWasBreached() {
+        roomAttackMessages.dungeonBreached(KEEPER, TILE);
+
+        // "Your Dungeon has been breached!", message 0xc (0x453100)
+        assertEquals(List.of(message(1150)), messages);
+    }
+
+    @Test
+    void aBreachIsToldOnceIn50Seconds() {
+        roomAttackMessages.dungeonBreached(KEEPER, TILE);
+        gameTime += 49;
+        roomAttackMessages.dungeonBreached(KEEPER, TILE);
+        assertEquals(1, messages.size());
+
+        gameTime += 2;
+        roomAttackMessages.dungeonBreached(KEEPER, TILE);
+        assertEquals(2, messages.size());
+    }
+
     private static Room room(String name, int roomId) {
         Room room = DestroyRoomsFixtures.destroyRoomsRoom(name, (short) 0, Room.RoomFlag.BUILDABLE);
         DestroyRoomsFixtures.setRoomId(room, (short) roomId);

@@ -77,6 +77,7 @@ public final class MapController extends Container implements IMapController {
     private final IMapInformation<IMapTileController> mapInformation;
     private final ILevelInfo levelInfo;
     private final GameEventService gameEventService;
+    private RoomAttackMessages roomAttackMessages;
 
     private final Map<EntityId, IRoomController> roomControllers = new HashMap<>();
     private final SafeArrayList<MapListener> mapListeners = new SafeArrayList<>(MapListener.class);
@@ -365,6 +366,11 @@ public final class MapController extends Container implements IMapController {
         return true;
     }
 
+    @Override
+    public void setRoomAttackMessages(RoomAttackMessages roomAttackMessages) {
+        this.roomAttackMessages = roomAttackMessages;
+    }
+
     private EntityId findBreach(short playerId, boolean enemy) {
         return entityData.findEntity(AndFilter.create(DungeonBreach.class,
                 new FieldFilter<>(DungeonBreach.class, "playerId", playerId),
@@ -573,6 +579,9 @@ public final class MapController extends Container implements IMapController {
                     && terrain.getDestroyedTypeTerrainId() != terrain.getTerrainId()) {
                 addBreach(tile.getOwnerId(), false);
                 addBreach(playerId, true);
+                if (roomAttackMessages != null) {
+                    roomAttackMessages.dungeonBreached(tile.getOwnerId(), point);
+                }
             }
 
             // TODO: effect, drop loot & checks, claimed walls should also get destroyed if all adjacent tiles are not in cotrol anymore

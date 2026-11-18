@@ -31,7 +31,8 @@ import toniarts.openkeeper.utils.WorldUtils;
  * Tells the keeper that his room is under attack or that he has lost a room.
  * Each message has a mentor speech of its own per room type, and the same
  * message about the same room type is not repeated while the last one is
- * still shown (DKII.EXE message table at 0x6A0B00, queue at 0x4C4600)
+ * still shown (DKII.EXE message table at 0x6A0B00, queue at 0x4C4600). Also
+ * tells the keeper where the dungeon was breached, which is not about a room
  */
 public final class RoomAttackMessages {
 
@@ -57,7 +58,11 @@ public final class RoomAttackMessages {
         ONE_DESTROYED(20, 124, Map.ofEntries(Map.entry(1, 110), Map.entry(2, 111), Map.entry(4, 112), Map.entry(6, 121),
                 Map.entry(7, 113), Map.entry(8, 123), Map.entry(9, 122), Map.entry(10, 116), Map.entry(11, 120),
                 Map.entry(12, 119), Map.entry(13, 115), Map.entry(14, 118), Map.entry(15, 117), Map.entry(16, 114),
-                Map.entry(17, 123), Map.entry(22, 123)));
+                Map.entry(17, 123), Map.entry(22, 123))),
+        /**
+         * "Your Dungeon has been breached!", message 0xc
+         */
+        DUNGEON_BREACHED(50, 1150, Map.of());
 
         private final double duration;
         private final int defaultSpeechId;
@@ -97,7 +102,7 @@ public final class RoomAttackMessages {
      * @param tile the tile hit
      */
     public void roomTileAttacked(short ownerId, Room room, Point tile) {
-        show(Message.UNDER_ATTACK, ownerId, room, tile);
+        show(Message.UNDER_ATTACK, ownerId, room.getRoomId(), tile);
     }
 
     /**
@@ -112,11 +117,23 @@ public final class RoomAttackMessages {
      */
     public void roomLost(short ownerId, Room room, int roomsBefore, int roomsAfter, Point tile) {
         if (roomsAfter < roomsBefore) {
-            show(roomsBefore == 1 ? Message.DESTROYED : Message.ONE_DESTROYED, ownerId, room, tile);
+            show(roomsBefore == 1 ? Message.DESTROYED : Message.ONE_DESTROYED, ownerId, room.getRoomId(), tile);
         }
     }
 
-    private void show(Message message, short ownerId, Room room, Point tile) {
+    /**
+     * Another player brought down a wall of the keeper (DKII.EXE 0x453100).
+     * The message carries the tile, so the keeper can zoom there from the
+     * message box
+     *
+     * @param ownerId the owner of the wall
+     * @param tile the tile of the wall
+     */
+    public void dungeonBreached(short ownerId, Point tile) {
+        show(Message.DUNGEON_BREACHED, ownerId, (short) 0, tile);
+    }
+
+    private void show(Message message, short ownerId, short roomId, Point tile) {
         if (playerService == null) {
             return;
         }
@@ -124,15 +141,15 @@ public final class RoomAttackMessages {
         EntityId shown = entityData.findEntity(AndFilter.create(RoomMessageShown.class,
                 new FieldFilter<>(RoomMessageShown.class, "playerId", ownerId),
                 new FieldFilter<>(RoomMessageShown.class, "message", message.ordinal()),
-                new FieldFilter<>(RoomMessageShown.class, "roomId", room.getRoomId())), RoomMessageShown.class);
+                new FieldFilter<>(RoomMessageShown.class, "roomId", roomId)), RoomMessageShown.class);
         if (shown != null && now - entityData.getComponent(shown, RoomMessageShown.class).shownAt < message.duration) {
             return;
         }
         if (shown == null) {
             shown = entityData.createEntity();
         }
-        entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), room.getRoomId(), now));
-        int speechId = message.speechIdsByRoom.getOrDefault((int) room.getRoomId(), message.defaultSpeechId);
+        entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
+        int speechId = message.speechIdsByRoom.getOrDefault((int) roomId, message.defaultSpeechId);
         playerService.showMentorMessage(speechId, WorldUtils.pointToVector3f(tile), ownerId);
     }
 
