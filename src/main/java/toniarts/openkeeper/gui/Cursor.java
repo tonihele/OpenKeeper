@@ -66,7 +66,10 @@ public final class Cursor extends JmeCursor {
         int height = heightFrame % 16 == 0 ? heightFrame : (heightFrame - heightFrame % 16) + 16;
 
         // Image data
-        ByteBuffer data = img.getData(0);
+        // Cached textures share Image data, including between loader/render threads.
+        // Reading a cursor must not move another consumer's buffer position.
+        ByteBuffer pixels = img.getData(0);
+        ByteBuffer data = pixels.duplicate().order(pixels.order());
         data.rewind();
         IntBuffer image = BufferUtils.createIntBuffer(height * width * frames);
         for (int z = 0; z < frames; z++) {
