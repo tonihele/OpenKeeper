@@ -72,7 +72,8 @@ class DugOutWallTest {
             default ->
                 throw new UnsupportedOperationException(name);
         });
-        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> Map.of(KEEPER_ID, new Keeper(false, KEEPER_ID)));
+        Keeper keeper = new Keeper(false, KEEPER_ID);
+        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> "getPlayer".equals(name) ? keeper : Map.of(KEEPER_ID, keeper));
         MapController mapController = new MapController(kwdFile, null,
                 Map.of(MiscType.DIG_ENEMY_WALL_HEALTH, CreatureSleepFixtures.variable(MiscType.DIG_ENEMY_WALL_HEALTH, 100)),
                 null, new DefaultEntityData(), levelInfo, proxy(GameEventService.class, (name, args) -> null));
@@ -103,7 +104,8 @@ class DugOutWallTest {
             default ->
                 throw new UnsupportedOperationException(name);
         });
-        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> Map.of(KEEPER_ID, new Keeper(false, KEEPER_ID)));
+        Keeper keeper = new Keeper(false, KEEPER_ID);
+        ILevelInfo levelInfo = proxy(ILevelInfo.class, (name, args) -> "getPlayer".equals(name) ? keeper : Map.of(KEEPER_ID, keeper));
         MapController mapController = new MapController(kwdFile, null,
                 Map.of(MiscType.MINE_GOLD_HEALTH, CreatureSleepFixtures.variable(MiscType.MINE_GOLD_HEALTH, 75),
                         MiscType.GOLD_MINED_FROM_GEMS, CreatureSleepFixtures.variable(MiscType.GOLD_MINED_FROM_GEMS, 25)),
