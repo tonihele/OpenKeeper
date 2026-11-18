@@ -273,7 +273,7 @@ These are scoped risks/acceptance gaps, not additional confirmed regressions:
 
 Complete the independent regressions first; keep fixes focused and rerun the relevant build/tests after each. This review does not authorize changes or commits.
 
-- [ ] **R1, High, before integration:** make seek/segment activation pause-aware, repair saved resume state, and cover delayed clock plus paused Start/Main/End/hold/replacement.
+- [x] **R1, High, before integration:** make seek/segment activation pause-aware, repair saved resume state, and cover delayed clock plus paused Start/Main/End/hold/replacement. See remediation record R1 below.
 - [ ] **R2, High, before integration:** preserve unwrapped elapsed time/overshoot and use one phase contract for poses and markers; add refresh-rate, irregular-delta and long-run invariance tests.
 - [ ] **R3, High, before integration:** separate logical lifecycle from successful visual state; prove exactly one death presentation across failed art and Position notifications, and release previous activity audio on failure.
 - [ ] **R4, Medium, before shipping opt-in reuse:** restore current owner material/highlight/overlay policy on attach; cover detached hover exit and changed material policies. Keep default retention disabled meanwhile.
@@ -289,3 +289,13 @@ Complete the independent regressions first; keep fixes focused and rerun the rel
 - [ ] Repeat full applicable build/test suite, expanded numerical corpus, fixed-camera GL sequences and final diff/working-tree checks; record actual limits and results.
 
 Approval should be reconsidered after the High findings and transactional contract are fixed, with the cache path corrected or unavailable for use and the remaining fidelity work explicitly scoped. The current numerical and CPU improvements are valuable, but do not establish full animation, gameplay or DK2 fidelity readiness.
+
+## Remediation record (2026-11-19)
+
+The review and measurements above describe `dffb07b7a`; the following entries supersede the corresponding finding's implementation status. Validation gaps remain explicit.
+
+### R1 — resolved: paused segment activation
+
+All live segment enable/disable operations now publish playback intent through one pause-aware helper. A seek changes the saved resume state while keeping actual composers disabled. Start/end completion and HOLD/stop paths use the same mechanism. The regression matrix covers all policies at start, main, end and completed ages, replacement under a paused ancestor, frozen composer times/callback counts and correct visible segment on resume.
+
+Validation: production and test compilation plus loader, request and texture-atlas suites pass: **16 tests, zero failures/errors/skips** (`build/fix-r1-tests.txt`). Sustained clock correctness is handled separately by R2.

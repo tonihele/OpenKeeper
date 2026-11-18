@@ -199,7 +199,7 @@ public final class AnimationLoader {
                 spat.setCullHint(Spatial.CullHint.Inherit);
                 if (animComposer != null) { // Not all are anims
                     animComposer.setCurrentAction(ANIM_WITH_LISTENERS_NAME);
-                    animComposer.setEnabled(true);
+                    setPlaybackEnabled(animComposer, true);
                     sampleAt(animComposer,0);
                 }
             }
@@ -322,7 +322,7 @@ public final class AnimationLoader {
             // Also stop any animations
             var animComposer = child.getControl(AnimComposer.class);
             if (animComposer != null) {
-                animComposer.setEnabled(false);
+                setPlaybackEnabled(animComposer, false);
             }
         }
     }
@@ -358,6 +358,16 @@ public final class AnimationLoader {
         });
     }
 
+    /** Changes playback intent without allowing a paused segment to update. */
+    private static void setPlaybackEnabled(AnimComposer composer, boolean enabled) {
+        if (isPaused(composer.getSpatial())) {
+            composer.getSpatial().setUserData(WAS_ENABLED, enabled);
+            composer.setEnabled(false);
+        } else {
+            composer.setEnabled(enabled);
+        }
+    }
+
     /**
      * Small event listener class to emulate the old AnimationEventListener from
      * jME
@@ -375,11 +385,11 @@ public final class AnimationLoader {
             var mainAnimComposer = mainAnimSpat.getControl(AnimComposer.class);
             mainAnimSpat.setCullHint(Spatial.CullHint.Inherit);
             mainAnimComposer.setCurrentAction(ANIM_WITH_LISTENERS_NAME);
-            mainAnimComposer.setEnabled(true);
+            setPlaybackEnabled(mainAnimComposer, true);
 
             // Hide us
             composer.reset();
-            composer.setEnabled(false);
+            setPlaybackEnabled(composer, false);
             composer.getSpatial().setCullHint(Spatial.CullHint.Always);
         }
 
@@ -389,7 +399,7 @@ public final class AnimationLoader {
 
             // Stop us
             composer.reset();
-            composer.setEnabled(false);
+            setPlaybackEnabled(composer, false);
 
             // Signal stop
             if (animationControl != null) animationControl.onAnimationStop();
@@ -410,7 +420,7 @@ public final class AnimationLoader {
 
                 // The pose stays where the animation left it while the composer is off, and the next animation
                 // turns its composer on again
-                composer.setEnabled(false);
+                setPlaybackEnabled(composer, false);
                 return;
             }
 
@@ -419,7 +429,7 @@ public final class AnimationLoader {
 
                 // Stop us
                 composer.reset();
-                composer.setEnabled(false);
+                setPlaybackEnabled(composer, false);
 
                 // We need to stop
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
@@ -431,7 +441,7 @@ public final class AnimationLoader {
                     var endAnimComposer = endAnimSpat.getControl(AnimComposer.class);
                     endAnimSpat.setCullHint(Spatial.CullHint.Inherit);
                     endAnimComposer.setCurrentAction(ANIM_WITH_LISTENERS_NAME);
-                    endAnimComposer.setEnabled(true);
+                    setPlaybackEnabled(endAnimComposer, true);
                 } else {
 
                     // Signal stop

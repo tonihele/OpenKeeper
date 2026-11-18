@@ -12,6 +12,34 @@ import toniarts.openkeeper.utils.AssetUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationLoaderTest {
+    @Test void pausedSeekingRestoresOnlyTheDesiredSegmentForEveryPolicy() {
+        for (var policy : AnimationControl.PlaybackPolicy.values()) {
+            for (double age : new double[]{.01, .08, .14, 1}) {
+                Node root = new Node(); Node owner = new Node(); root.attachChild(owner);
+                var listener = new Listener(); listener.policy = policy; owner.addControl(listener);
+                var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("paused-segments",3,30);
+                resource.getFlags().add(ArtResource.ArtResourceFlag.HAS_START_ANIMATION);
+                resource.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+                AnimationLoader.pauseAnimations(root);
+                AnimationLoader.playAnimation(owner,resource,AnimationLoaderTest::model,false);
+                AnimationLoader.seekAnimation(owner,resource,age);
+                var composers = owner.getChildren().stream().map(n->n.getControl(AnimComposer.class)).toList();
+                double[] times = composers.stream().mapToDouble(AnimComposer::getTime).toArray();
+                int cycles = listener.cycles, stops = listener.stops;
+                assertTrue(composers.stream().noneMatch(AnimComposer::isEnabled));
+                root.updateLogicalState(.5f);
+                assertArrayEquals(times,composers.stream().mapToDouble(AnimComposer::getTime).toArray());
+                assertEquals(cycles,listener.cycles); assertEquals(stops,listener.stops);
+                AnimationLoader.resumeAnimations(root);
+                long enabled = composers.stream().filter(AnimComposer::isEnabled).count();
+                boolean finished = policy != AnimationControl.PlaybackPolicy.LOOP
+                        && age >= (policy == AnimationControl.PlaybackPolicy.HOLD ? 1.0/30+.1 : 2.0/30+.1);
+                assertEquals(finished ? 0 : 1,enabled,"policy="+policy+" age="+age);
+                for (Spatial child : owner.getChildren()) if(child.getControl(AnimComposer.class).isEnabled())
+                    assertNotEquals(Spatial.CullHint.Always,child.getCullHint());
+            }
+        }
+    }
     @Test void missingAnimatedTextureCannotPublishOrPoisonTheMaterialCache() {
         var assets = new com.jme3.asset.DesktopAssetManager(true);
         Node root = new Node(); var live = new Node("live"); root.attachChild(live);

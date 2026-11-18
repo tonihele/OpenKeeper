@@ -348,13 +348,13 @@ Action tracking:
 
 - [x] Preserve a deterministic sample corpus and asset hashes; promote the useful headless probes into maintained regressions when implementing fixes. See implementation record 11.1.
 - [x] Fix and validate finite terminal poses, including old converted files. See 11.2; original executable visual parity remains unclaimed.
-- [x] Preserve same-animation request identity and authoritative phase. See 11.5 and 11.7; replication latency remains measurable.
+- [ ] Preserve same-animation request identity and authoritative phase. Identity implemented; review R2 reopens sustained phase acceptance.
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions. **Partial / blocked B1a**; implementation in 11.6, acceptance prerequisite in 11.23.
 - [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
 - [ ] Validate and correct CLAMP/cycle behavior. **Partial / blocked B1b**; mechanism fixed in 11.8, original interpretation unverified.
-- [x] Make replacement transactional and fallbacks explicit. See 11.3.
-- [x] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Compatibility contract in 11.9; new behavior rules remain separately blocked.
-- [x] Freeze playback correctly on pause and align presentation markers with shared phase. See 11.7, 11.12 and GL evidence in 11.18; whole-game/audio acceptance remains limited.
+- [ ] Make replacement transactional and fallbacks explicit. Load failures handled; review R3/R5 reopen lifecycle and first-sample acceptance.
+- [ ] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Contract implemented; review composition acceptance is in progress.
+- [ ] Freeze playback correctly on pause and align presentation markers with shared phase. R1 paused-seek repair is tested; sustained pose/marker agreement remains review R2.
 - [x] Remove shared mutable transform publication before adding interpolation or workers. See 11.10; whole-session lifecycle stress remains open before interpolation/workers.
 - [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence. **Partial / blocked B2**; selection in 11.11, remaining protocol/reference acceptance in 11.23.
 - [x] Measure representative crowds and transition bursts before optimizing. CPU-only baseline in 11.13; whole-game/GPU profiling remains an acceptance limitation.
@@ -675,3 +675,9 @@ The final verification commit records this validation/blocker ledger and the las
 An animated-texture helper previously logged a failed atlas creation and then cached/returned the incomplete material. It now propagates an `AssetLoadException` before caching, allowing transactional callers to preserve their valid visuals and deduplicate the diagnostic. Missing optional later atlas frames retain the existing previous-image fallback; failure to create a usable atlas does not publish a black/invalid material.
 
 Validation: a missing animated texture fails twice without changing the live model/revision or poisoning the material cache. Loader, sprite/particle, texture-policy and atlas-clock tests pass; the full build/test suite and shadow-enabled installed-creature capture are repeated for this final revision. The commit containing this section is the last production correction; the ledger above records the preceding focused changes.
+
+## 12. Independent review remediation
+
+The [2026-11-19 review](character-animation-code-review-2026-11-19.md) supersedes section 11's completion claims where it identifies regressions. Work remains on the existing feature branch; fixes are committed individually and are not pushed.
+
+R1: paused segment changes now update desired resume state without enabling composers. The start/main/end/complete matrix across LOOP/ONCE/HOLD and paused ancestors passes with the request/atlas suites (16 tests; `build/fix-r1-tests.txt`). Items 3/7/8/9 are reopened until the combined phase, lifecycle and transaction findings are resolved.
