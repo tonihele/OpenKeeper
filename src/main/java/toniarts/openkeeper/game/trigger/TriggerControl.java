@@ -63,8 +63,7 @@ import toniarts.openkeeper.utils.WorldUtils;
  * {@link #fire(TriggerGeneric.TargetType, int, int)} when they notice the
  * thing happening.
  * <p>
- * Based on the Dungeon Keeper II v1.70 behaviour described in
- * trigger_system_design_paper.md.
+ * Based on the Dungeon Keeper II v1.70 behaviour.
  *
  * @author ArchDemon
  */
