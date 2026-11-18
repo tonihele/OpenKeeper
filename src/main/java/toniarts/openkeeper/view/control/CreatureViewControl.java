@@ -145,14 +145,16 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
-    private void playAnimation(Creature.AnimationType animation) {
-        AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager);
-        if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
+    private boolean playAnimation(Creature.AnimationType animation) {
+        if (AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager)
+                != AnimationLoader.PlaybackResult.STARTED) return false;
+        if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
         }
         isAnimationPlaying = true;
         currentState = animation;
         previousStepTime = -1;
+        return true;
     }
 
     @Override
@@ -264,7 +266,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
         // Play immediately
         if (!Objects.equals(currentState, targetState)) {
-            playAnimation(state);
+            if (!playAnimation(state)) return;
             if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
                 int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
                 digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;

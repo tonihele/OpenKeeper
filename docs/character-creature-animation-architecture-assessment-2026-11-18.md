@@ -352,7 +352,7 @@ Action tracking:
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions.
 - [ ] Bake conservative clip bounds and decide animated picking semantics.
 - [ ] Validate and correct CLAMP/cycle behavior.
-- [ ] Make replacement transactional and fallbacks explicit.
+- [x] Make replacement transactional and fallbacks explicit. See 11.3.
 - [ ] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup.
 - [ ] Freeze playback correctly on pause and align presentation markers with shared phase.
 - [ ] Remove shared mutable transform publication before adding interpolation or workers.
@@ -439,3 +439,9 @@ Zero-length source intervals now use their defined endpoint coordinate. Model co
 Ported the assessment branch's continuous decoded-frame interpolation into the latest-mainline implementation, without importing its unrelated Dungeon Heart changes. Per-instance sample arrays are cleared on cloning/import, sparse vertices retain bind positions, old time origins normalize correctly, and no per-sample vectors are allocated. Added terminal conversion, corrupt-pair, time validation, clone and serialization regressions.
 
 Validation: focused pose and synthetic conversion tests plus the installed corpus pass. The three source hashes in 11.1 are unchanged; 1,340 cached/fresh samples contain zero non-finite output. Bounds remain deficient (1,284 samples outside after continuous sampling) and are deliberately handled as a separate item. Exact DK2 terminal dwell behavior still needs original executable comparison; no authored coordinates or static normals were changed.
+
+### 11.3 Transactional replacement (dependency moved before request identity)
+
+All main/start/end models and actions are prepared before the live subtree changes. `PlaybackResult` distinguishes started, unavailable and failed requests; creature current state is committed only on success. The compatibility fallback is explicitly **retain the last valid visual**, rather than substituting a standing pose for missing death or combat art. Non-removable flowers/effects survive replacement. Failed-resource diagnostics are deduplicated per owner; detached callbacks check ownership before operating, including after callbacks that themselves replace the model. Static resources remain supported.
+
+Validation: `AnimationLoaderTest` covers unavailable resources, loading failure after main preparation, missing composers and successful replacement retaining decorations, using an injected model source and no OpenGL context. Creature-view regressions also pass. This work precedes F03 because request identity must only be accepted after playback has successfully prepared.

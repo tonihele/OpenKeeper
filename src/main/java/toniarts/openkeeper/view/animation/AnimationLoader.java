@@ -23,6 +23,8 @@ import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.List;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -41,24 +43,35 @@ public final class AnimationLoader {
     private static final String END_ANIM_NODE_NAME = "End";
     private static final String ANIM_WITH_LISTENERS_NAME = "animWithListeners";
     private static final AnimEventListener ANIM_EVENT_LISTENER = new AnimEventListener();
+    private static final String MODEL_REVISION = "AnimationLoader.modelRevision";
+    private static final String LAST_FAILURE = "AnimationLoader.lastFailure";
+
+    public enum PlaybackResult { STARTED, UNAVAILABLE, FAILED }
+
+    @FunctionalInterface
+    interface ModelSource {
+        Spatial load(String name, ArtResource resource);
+    }
 
     private AnimationLoader() {
         // No!
     }
 
-    private static void attachResource(final Node root, final AnimationControl animationControl, final ArtResource resource, AssetManager assetManager) {
+    private static List<Spatial> prepareResource(final Node root, final AnimationControl animationControl, final ArtResource resource, ModelSource source) {
+        List<Spatial> prepared = new ArrayList<>(3);
         if (resource != null && (resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
                 || resource.getType() == ArtResource.ArtResourceType.MESH
                 || resource.getType() == ArtResource.ArtResourceType.PROCEDURAL_MESH)) {
-            try {
 
-                Spatial spat = loadModel(assetManager, resource.getName(), resource, root);
+                Spatial spat = loadModel(source, resource.getName(), resource);
+                prepared.add(spat);
                 spat.setName(resource.getName());
 
                 // If the animations has end and/or start, it is located in a different file
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
                     String name = resource.getName() + START_ANIM_NODE_NAME;
-                    Spatial spatStart = loadModel(assetManager, name, resource, root);
+                    Spatial spatStart = loadModel(source, name, resource);
+                    prepared.add(spatStart);
                     spatStart.setName(START_ANIM_NODE_NAME);
 
                     // Create kinda a custom animation control
@@ -70,7 +83,8 @@ public final class AnimationLoader {
                 }
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
                     String name = resource.getName() + END_ANIM_NODE_NAME;
-                    Spatial spatEnd = loadModel(assetManager, name, resource, root);
+                    Spatial spatEnd = loadModel(source, name, resource);
+                    prepared.add(spatEnd);
                     spatEnd.setName(END_ANIM_NODE_NAME);
 
                     // Create kinda a custom animation control
@@ -87,10 +101,8 @@ public final class AnimationLoader {
                     animComposer.setEnabled(false);
                     animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, animComposer.action(KmfModelLoader.DUMMY_ANIM_CLIP_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, animationControl, root, resource, getLoopModeOnChannel(spat)));
                 }
-            } catch (Exception e) {
-                logger.log(Level.WARNING, e.getMessage());
-            }
         }
+        return prepared;
     }
 
     public static LoopMode getLoopModeOnChannel(final Spatial spat) {
@@ -107,13 +119,19 @@ public final class AnimationLoader {
         return LoopMode.DontLoop;
     }
 
-    private static Spatial loadModel(AssetManager assetManager, String resourceName, ArtResource artResource, Node creatureRoot) {
+    private static Spatial loadModel(ModelSource source, String resourceName, ArtResource artResource) {
 
         // Load the model and attach it without the root
-        Spatial model = AssetUtils.loadModel(assetManager, resourceName, artResource);
+        Spatial model = source.load(resourceName, artResource);
+        if (!(model instanceof Node node) || node.getQuantity() == 0) {
+            throw new IllegalArgumentException("Empty model resource: " + resourceName);
+        }
         model = ((Node) model).getChild(0);
+        if (artResource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH
+                && model.getControl(AnimComposer.class) == null) {
+            throw new IllegalArgumentException("Missing animation composer: " + resourceName);
+        }
         model.setCullHint(Spatial.CullHint.Always);
-        creatureRoot.attachChild(model);
         return model;
     }
 
@@ -125,9 +143,17 @@ public final class AnimationLoader {
      * @param assetManager the AssetManager
      * @param endFrame start from the end frame
      */
-    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager, boolean endFrame) {
+    public static PlaybackResult playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager, boolean endFrame) {
+        return playAnimation(spatial, anim, (name, resource) -> AssetUtils.loadModel(assetManager, name, resource), endFrame);
+    }
 
-        Node root = (Node) spatial;
+    static PlaybackResult playAnimation(Spatial spatial, ArtResource anim, ModelSource source, boolean endFrame) {
+        if (!(spatial instanceof Node root) || anim == null || anim.getType() == ArtResource.ArtResourceType.NONE) {
+            return PlaybackResult.UNAVAILABLE;
+        }
+        try {
+            List<Spatial> prepared = prepareResource(root, root.getControl(AnimationControl.class), anim, source);
+            if (prepared.isEmpty()) return PlaybackResult.UNAVAILABLE;
 
         // Attach the anim node and get rid of the rest
         for (Spatial child : root.getChildren()) {
@@ -136,14 +162,9 @@ public final class AnimationLoader {
             }
             child.removeFromParent();
         }
-        attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
-
-        if(anim == null) {
-            logger.log(Level.WARNING, "Animation null!");
-            return;
-        }
-
-        try {
+            for (Spatial child : prepared) root.attachChild(child);
+            root.setUserData(MODEL_REVISION, getModelRevision(root) + 1);
+            root.setUserData(LAST_FAILURE, null);
 
             // Get the anim node
             String animNodeName = anim.getName();
@@ -167,10 +188,13 @@ public final class AnimationLoader {
                     animComposer.setEnabled(true);
                 }
             }
+            return PlaybackResult.STARTED;
         } catch (Exception e) {
-            // FIXME sometimes NPE in CreatureControl.java
-            // line: playAnimation(creature.getAnimEntranceResource());
-            logger.log(Level.ERROR, () -> "Creature animation playing error: " + e.toString(), e);
+            if (!anim.getName().equals(root.getUserData(LAST_FAILURE))) {
+                logger.log(Level.WARNING, "Could not prepare animation " + anim.getName(), e);
+                root.setUserData(LAST_FAILURE, anim.getName());
+            }
+            return PlaybackResult.FAILED;
         }
     }
 
@@ -182,8 +206,13 @@ public final class AnimationLoader {
      * toniarts.openkeeper.tools.convert.map.ArtResource,
      * com.jme3.asset.AssetManager, boolean)
      */
-    public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
-        playAnimation(spatial, anim, assetManager, false);
+    public static PlaybackResult playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
+        return playAnimation(spatial, anim, assetManager, false);
+    }
+
+    public static int getModelRevision(Spatial spatial) {
+        Integer revision = spatial.getUserData(MODEL_REVISION);
+        return revision == null ? 0 : revision;
     }
 
     private static void hideAllNodes(Node root) {
@@ -244,6 +273,7 @@ public final class AnimationLoader {
         }
 
         public void onStartAnimationDone(AnimComposer composer, Node root, ArtResource resource) {
+            if (composer.getSpatial().getParent() != root) return;
 
             // Start the real animation
             var mainAnimSpat = root.getChild(resource.getName());
@@ -259,22 +289,25 @@ public final class AnimationLoader {
         }
 
         public void onEndAnimationDone(AnimComposer composer, AnimationControl animationControl) {
+            if (composer.getSpatial().getParent() == null) return;
 
             // Stop us
             composer.reset();
             composer.setEnabled(false);
 
             // Signal stop
-            animationControl.onAnimationStop();
+            if (animationControl != null) animationControl.onAnimationStop();
         }
 
         public void onAnimationDone(AnimComposer composer, AnimationControl animationControl, Node root, ArtResource resource, LoopMode loopMode) {
+            if (composer.getSpatial().getParent() != root) return;
 
             // Signal that the main animation cycle is done
-            animationControl.onAnimationCycleDone();
+            if (animationControl != null) animationControl.onAnimationCycleDone();
+            if (composer.getSpatial().getParent() != root) return;
 
             // An indicator stays where its animation took it
-            if (animationControl.isHoldLastFrame()) {
+            if (animationControl != null && animationControl.isHoldLastFrame()) {
 
                 // The pose stays where the animation left it while the composer is off, and the next animation
                 // turns its composer on again
@@ -283,7 +316,7 @@ public final class AnimationLoader {
             }
 
             // See if we need to stop
-            if (animationControl.isStopAnimation() || loopMode == LoopMode.DontLoop) {
+            if ((animationControl != null && animationControl.isStopAnimation()) || loopMode == LoopMode.DontLoop) {
 
                 // Stop us
                 composer.reset();
@@ -303,7 +336,7 @@ public final class AnimationLoader {
                 } else {
 
                     // Signal stop
-                    animationControl.onAnimationStop();
+                    if (animationControl != null) animationControl.onAnimationStop();
                 }
             } else if (loopMode == LoopMode.Cycle) {
 
