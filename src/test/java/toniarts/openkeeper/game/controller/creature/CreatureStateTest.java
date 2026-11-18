@@ -25,6 +25,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -120,7 +123,7 @@ class CreatureStateTest {
 
         CreatureState.CAST_SPELL.update(creature);
 
-        assertEquals(List.of("releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
+        assertEquals(List.of("isScared", "releaseCastShot", "isStateTimeExceeded", "changeState FIGHT"), calls);
     }
 
     @Test
@@ -248,6 +251,29 @@ class CreatureStateTest {
     }
 
     @Test
+    void creatureOwedPayLeavesItsRoomJob() {
+        for (TaskType taskType : List.of(TaskType.TRAIN, TaskType.RESEARCH, TaskType.MANUFACTURE)) {
+            AtomicBoolean wentToCollect = new AtomicBoolean();
+            Task task = (Task) Proxy.newProxyInstance(Task.class.getClassLoader(), new Class<?>[]{Task.class},
+                    (proxy, method, args) -> method.getName().equals("getTaskType") ? taskType : defaultValue(method.getReturnType()));
+            ICreatureController creature = (ICreatureController) Proxy.newProxyInstance(
+                    ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                        case "getAssignedTask" -> task;
+                        case "isAssignedTaskValid" -> true;
+                        case "goToCollectPay" -> {
+                            wentToCollect.set(true);
+                            yield true;
+                        }
+                        default -> defaultValue(method.getReturnType());
+                    });
+
+            CreatureState.WORK.update(creature);
+
+            assertTrue(wentToCollect.get(), taskType.toString());
+        }
+    }
+
+    @Test
     void workerWithNothingToDoKeepsItsGold() {
         Worker worker = new Worker(CreatureState.IDLE, false, false);
 
@@ -256,6 +282,41 @@ class CreatureStateTest {
         // As in the original, an imp with some gold and nothing to do doesn't bring it home
         assertEquals(CreatureState.IDLE, worker.state.get());
         assertFalse(worker.wentToTreasury.get());
+    }
+
+    @Test
+    void heroWhoseObjectiveCannotStartStaysWhereItIs() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.IDLE);
+        StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(state);
+        AtomicBoolean triedObjective = new AtomicBoolean();
+        AtomicBoolean walked = new AtomicBoolean();
+        ICreatureController hero = (ICreatureController) Proxy.newProxyInstance(
+                ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "getStateMachine" -> stateMachine;
+                    case "getOwnerId" -> Player.GOOD_PLAYER_ID;
+                    case "hasObjective", "isStopped", "isTimeToReEvaluate", "isClaimed" -> true;
+                    case "followObjective" -> {
+                        triedObjective.set(true);
+                        yield false;
+                    }
+                    case "findWork" -> {
+                        ((Consumer<Boolean>) args[0]).accept(false);
+                        yield null;
+                    }
+                    case "navigateToRandomPoint" -> {
+                        walked.set(true);
+                        yield null;
+                    }
+                    default -> defaultValue(method.getReturnType());
+                });
+
+        CreatureState.IDLE.enter(hero);
+        CreatureState.IDLE.update(hero);
+
+        // In DK II it does nothing and tries again later (0x477850)
+        assertTrue(triedObjective.get());
+        assertFalse(walked.get());
+        assertEquals(CreatureState.IDLE, state.get());
     }
 
     /**
@@ -309,6 +370,9 @@ class CreatureStateTest {
         }
         if (type == char.class) {
             return '\0';
+        }
+        if (type == short.class) {
+            return (short) 0;
         }
         return 0;
     }
