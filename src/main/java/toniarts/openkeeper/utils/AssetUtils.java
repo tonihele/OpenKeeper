@@ -507,7 +507,7 @@ public final class AssetUtils {
                 // Load the texture up
                 mat.setTexture("DiffuseMap", tex);
             } catch (Exception e) {
-                logger.log(Level.ERROR, "Can't create a texture out of " + name + "!", e);
+                throw new com.jme3.asset.AssetLoadException("Could not prepare animated texture " + name, e);
             }
 
             // Add to cache

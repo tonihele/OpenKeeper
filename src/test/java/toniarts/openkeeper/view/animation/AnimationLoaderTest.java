@@ -12,6 +12,19 @@ import toniarts.openkeeper.utils.AssetUtils;
 import static org.junit.jupiter.api.Assertions.*;
 
 class AnimationLoaderTest {
+    @Test void missingAnimatedTextureCannotPublishOrPoisonTheMaterialCache() {
+        var assets = new com.jme3.asset.DesktopAssetManager(true);
+        Node root = new Node(); var live = new Node("live"); root.attachChild(live);
+        var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("missing-animation-texture",3,30);
+        resource.getFlags().add(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE);
+        for(int retry=0;retry<2;retry++) {
+            assertEquals(AnimationLoader.PlaybackResult.FAILED,AnimationLoader.playAnimation(root,resource,(name,art)-> {
+                AssetUtils.createLightningSpriteMaterial(art,assets);
+                return model(name,art);
+            },false));
+            assertSame(live,root.getChild(0)); assertEquals(0,AnimationLoader.getModelRevision(root));
+        }
+    }
     @Test void preparedReuseIsBoundedResetsPlaybackAndNeverCrossesOwners() {
         var first = new Node(); var second = new Node();
         var cache = new PreparedAnimationCache(2,1024); first.addControl(cache);

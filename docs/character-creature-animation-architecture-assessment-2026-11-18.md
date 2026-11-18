@@ -349,18 +349,18 @@ Action tracking:
 - [x] Preserve a deterministic sample corpus and asset hashes; promote the useful headless probes into maintained regressions when implementing fixes. See implementation record 11.1.
 - [x] Fix and validate finite terminal poses, including old converted files. See 11.2; original executable visual parity remains unclaimed.
 - [x] Preserve same-animation request identity and authoritative phase. See 11.5 and 11.7; replication latency remains measurable.
-- [ ] Establish shared timing metadata and resolve original endpoint/segment conventions.
+- [ ] Establish shared timing metadata and resolve original endpoint/segment conventions. **Partial / blocked B1a**; implementation in 11.6, acceptance prerequisite in 11.23.
 - [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
-- [ ] Validate and correct CLAMP/cycle behavior.
+- [ ] Validate and correct CLAMP/cycle behavior. **Partial / blocked B1b**; mechanism fixed in 11.8, original interpretation unverified.
 - [x] Make replacement transactional and fallbacks explicit. See 11.3.
 - [x] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Compatibility contract in 11.9; new behavior rules remain separately blocked.
 - [x] Freeze playback correctly on pause and align presentation markers with shared phase. See 11.7, 11.12 and GL evidence in 11.18; whole-game/audio acceptance remains limited.
 - [x] Remove shared mutable transform publication before adding interpolation or workers. See 11.10; whole-session lifecycle stress remains open before interpolation/workers.
-- [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence.
+- [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence. **Partial / blocked B2**; selection in 11.11, remaining protocol/reference acceptance in 11.23.
 - [x] Measure representative crowds and transition bursts before optimizing. CPU-only baseline in 11.13; whole-game/GPU profiling remains an acceptance limitation.
 - [x] Skip redundant/hidden deformation with correct visibility re-entry. See 11.14; frustum-only scheduling is deliberately excluded.
-- [ ] Introduce bounded reuse/cache ownership only where measurements support it.
-- [ ] Complete individually verified retreat/drag/recoil/idle/alternate-form policies.
+- [ ] Introduce bounded reuse/cache ownership only where measurements support it. **Partial / blocked B3**; validated opt-in reuse in 11.16, global lifecycle acceptance outstanding.
+- [ ] Complete individually verified retreat/drag/recoil/idle/alternate-form policies. **Blocked B4**; catalog evidence and missing references in 11.17.
 - [x] Evaluate GPU vertex interpolation/instancing only if the measured gain justifies compatibility cost. Decision in 11.22: condition not established; retain measured CPU path.
 
 ## 9. Validation and profiling plan
@@ -605,3 +605,73 @@ Validation: a hidden terminal sample is flushed correctly without another compos
 There is no imported skeleton to move to skeletal skinning. GPU vertex interpolation would require a separate representation of sparse source frames, per-instance phase/material/clip metadata, correct picking/bounds, and parity in every color/shadow/debug path. Instancing cannot simply share independently CPU-deformed output meshes. These are implementable future options, but the condition in the checklist (a measured benefit justifying compatibility cost) is not established. The real GL probe proves basic execution, not asynchronous GPU timings or crowd draw-submission attribution.
 
 For the same reason, do not dispatch composer callbacks, scene replacements, material writes or shared navigation services to workers. Owned position snapshots are a prerequisite, not proof that the remaining scene graph is thread-safe. If a representative full-game profile shows pose work constraining the target frame budget, first isolate immutable decode jobs and render-thread publication; benchmark synchronization overhead before adopting parallelism. A GPU prototype should follow only with measured GPU/CPU attribution and reference captures. This closes the conditional evaluation, without claiming an accelerated backend was implemented or proven unnecessary for every future workload.
+
+### 11.23 Complete checklist disposition and precise blockers
+
+Every original checklist entry has been investigated. Eleven are checked complete at their documented validation scope; five remain unchecked with the following explicit blockers. Partial implementations are retained because their independently verified repairs are useful, but these rows are **not** claimed complete.
+
+| ID / original item | Implemented and verified | Blocker, evidence and next acceptance step |
+|---|---|---|
+| B1a: shared timing and original endpoints/segments | Validated FPS, common N/FPS duration, fractional interpolation, terminal dwell, authored marker rates | No independent original-executable timeline establishes N versus N-1 dwell or `startAf/endAf` semantics. The corpus establishes coordinates/metadata only. Capture versioned DK2 start/main/end timelines at the seven observed rates; then change only conventions supported by those traces. Do not expand combat/work durations speculatively. |
+| B1b: CLAMP interpretation | Repeating forward/reverse traversal, late seek and pause tests | Existing CLAMP-to-Cycle mapping is still an interpretation. Synthetic and real-data decoding cannot prove the original flag semantics. Obtain original CLAMP clips such as Electrocute1 over multiple traversals before changing that mapping. |
+| B2: actual-motion/gait fidelity | Displacement detection, stationary navigation/blocked possession, run/creep identity and availability fallback; authored FPS retained | No original contact/cadence trace specifies terrain/level scaling, gait transitions or flyer distinctions. `Position` notifications also lack authoritative per-transform timestamps and discontinuity flags; interpolation across pickup/drop/teleport/removal would currently infer that contract. A timestamp/discontinuity protocol and lifecycle stress fixture must precede interpolation, then validate contact drift at 30/60/120/144 Hz against original captures. Interpolation and generic stride scaling are **not implemented or enabled**. |
+| B3: complete cache ownership/lifetime acceptance | Resource policy isolation, actual-slot prewarming, owner-local entry/byte limits, key policy, eviction/reset/cleanup/clone tests, measured allocation reduction, GL variant/reuse playback | Existing process-global templates are shared by menu/world users and background loading. The current burst/gallery fixtures do not exercise multi-level unload, GC/native residency or different asset roots. No compatible level-exit residency baseline exists from this run. Global eviction/lifetime changes and default enablement remain blocked on that fixture/profile; prepared reuse defaults to zero clips. Do not claim the measured position budget is a total Java/native working-set bound. |
+| B4: individually verified additional behavior policies | Complete installed availability matrix; existing gambling/torture/manufacture behavior retained; supported possession gaits added | Resource names/presence and the manual do not establish retreat, drag entry/exit, recoil direction, idle weighting or alternate-model selection. No independent action/frame traces for these behaviors are supplied. Obtain representative original scenarios, then implement/test each policy separately with explicit missing-art fallback. These behavior changes are **not implemented**. |
+
+Full-game network delay, audio, pickup/drop/removal stress, level residency and original paired-video acceptance remain limitations across these rows. The GL gallery is a real renderer/integration smoke test, not a substitute for those scenarios. The installed original data are available; the missing evidence is controlled original behavior and full-game lifecycle measurements, not an assertion that DK2 binaries/assets are absent.
+
+### 11.24 Final validation and review record
+
+Final production state includes the animated-material failure guard in 11.25. `gradlew build --no-daemon --console=plain` passed, including compile, packaging/distributions and the full applicable JUnit suite: **1449 tests, zero failures/errors, four skipped**, across 268 suites. The four skips are existing `MinimapAssetsTest` assumptions requiring generated `assets/Converted` inside this isolated checkout; they are not new animation exclusions. Installed animation tests explicitly use the existing converted assets via the opt-in tools instead.
+
+Final installed audit: **1340 cached/fresh evaluations, zero non-finite samples, zero out-of-bound samples**, with unchanged hashes in 11.1. Final CPU benchmark/JFR (`build/animation-final-audit.txt`, `build/animation-final.jfr`) confirms 500 hidden median 0.0444 ms, unchanged median 0.0823 ms and zero dirty bytes in both modes. Measured calling-thread steady-state allocation is zero at 500/1000; smaller runs include JIT/library noise. Final paired 500-creature transition burst: **126.149 ms / 69,379,816 allocated bytes without reuse; 16.028 ms / 1,404,360 bytes with three clips**, retaining 18,234,000 counted position bytes. These remain CPU-only workload measurements; no whole-game FPS or GPU timing claim is made.
+
+Real OpenGL capture and shadow-enabled rerun pass finite-pose, pixel-identical pause and visibility re-entry checks; selected walk/attack/death/fallback/shadow frames were inspected. Source review additionally repaired failed-request policy rollback, pre-publication variant preparation, late HOLD seeking, texture-atlas pause and completed hidden one-shots. Diff/whitespace checks pass. No proprietary assets, captures, build outputs, unrelated documents or original-checkout changes are staged. Model conversion version is 16; the standard reconversion path itself was not run against existing asset directories. Network component schema changes require matching client/server builds.
+
+Implementation source map (links refer to the final implementation, unlike historical line anchors above):
+
+| Responsibility | Sources |
+|---|---|
+| Conversion, finite frames, conservative bounds, CPU deformation and lazy picking invalidation | [KmfModelLoader](../src/main/java/toniarts/openkeeper/tools/convert/KmfModelLoader.java), [PoseTrack](../src/main/java/toniarts/openkeeper/animation/PoseTrack.java) |
+| Shared timing and playback policy/direction | [AnimationTiming](../src/main/java/toniarts/openkeeper/animation/AnimationTiming.java), [TimedClip](../src/main/java/toniarts/openkeeper/view/animation/TimedClip.java), [PlaybackAction](../src/main/java/toniarts/openkeeper/view/animation/PlaybackAction.java), [AnimationControl](../src/main/java/toniarts/openkeeper/view/animation/AnimationControl.java) |
+| Transaction, seeking, pause, retained reuse | [AnimationLoader](../src/main/java/toniarts/openkeeper/view/animation/AnimationLoader.java), [PreparedAnimationCache](../src/main/java/toniarts/openkeeper/view/animation/PreparedAnimationCache.java) |
+| Replicated identity/clock and view ownership | [CreatureViewState](../src/main/java/toniarts/openkeeper/game/component/CreatureViewState.java), [SimulationTime](../src/main/java/toniarts/openkeeper/game/component/SimulationTime.java), [PresentationClock](../src/main/java/toniarts/openkeeper/view/animation/PresentationClock.java), [CreatureViewControl](../src/main/java/toniarts/openkeeper/view/control/CreatureViewControl.java), [EntityViewControl](../src/main/java/toniarts/openkeeper/view/control/EntityViewControl.java) |
+| Motion selection and snapshot publication | [CreatureViewSystem](../src/main/java/toniarts/openkeeper/game/logic/CreatureViewSystem.java), [MovementSystem](../src/main/java/toniarts/openkeeper/game/logic/MovementSystem.java), [CreatureFallSystem](../src/main/java/toniarts/openkeeper/game/logic/CreatureFallSystem.java), [Position](../src/main/java/toniarts/openkeeper/game/component/Position.java) |
+| Markers and texture frame clocks | [FootstepMarkers](../src/main/java/toniarts/openkeeper/view/animation/FootstepMarkers.java), [TextureAnimationControl](../src/main/java/toniarts/openkeeper/view/animation/TextureAnimationControl.java), [shared shader selector](../assets/Shaders/AnimationFrame.glsllib) |
+| Templates, variants and preload enumeration | [AssetUtils](../src/main/java/toniarts/openkeeper/utils/AssetUtils.java), [CreatureAnimationCatalog](../src/main/java/toniarts/openkeeper/animation/CreatureAnimationCatalog.java) |
+| Reproducible installed-data, crowd, catalog and GL tools | [AnimationAssetAudit](../src/test/java/toniarts/openkeeper/animation/AnimationAssetAudit.java), [AnimationCrowdBenchmark](../src/test/java/toniarts/openkeeper/animation/AnimationCrowdBenchmark.java), [CreatureCatalogAudit](../src/test/java/toniarts/openkeeper/animation/CreatureCatalogAudit.java), [CharacterAnimationCapture](../src/test/java/toniarts/openkeeper/animation/CharacterAnimationCapture.java) |
+
+Focused local commit ledger (no push or PR):
+
+| Commit | Verified scope |
+|---|---|
+| `42acfb7` | Reproducible installed-asset baseline and preserved assessment |
+| `dabbc6c` | Finite endpoints and continuous decoded-frame interpolation |
+| `dcd3f77` | Transactional model preparation/replacement |
+| `2e0e290` | Clip envelopes and current-pose picking |
+| `d97ec0c` | Complete playback request identity |
+| `fd84c13` | Shared authored timing |
+| `e91de76` | Replicated simulation clock, initial phase and pause |
+| `b560724` | Repeating CLAMP traversal mechanism |
+| `999697a` | Explicit playback completion policies |
+| `dcabe70` | Owned positions and serialized falling |
+| `87e1abd` | Actual locomotion and possession gaits |
+| `f659d69` | Cached normalized markers and sound catch-up policy |
+| `6dd3552` | Crowd/transition benchmark and JFR baseline |
+| `02de746` | Hidden/unchanged pose suppression |
+| `f54ed1a` | Texture policy isolation and complete preload enumeration |
+| `dc5d5da` | Budgeted, configurable owner-local reuse |
+| `5300e16` | Catalog coverage and explicit original-policy gaps |
+| `6809a9f` | Real OpenGL capture harness and executed scenarios |
+| `1d19047` | Failure/held-request review corrections |
+| `8de291f` | Pause-aware texture atlases and shadow-path validation |
+| `c70b1a8` | Completed hidden one-shot re-entry |
+| `8a4c779` | Evidence-based GPU/parallelism decision |
+
+The final verification commit records this validation/blocker ledger and the last asset-failure regression below. The original checkout remains on its original branch with its three pre-existing untracked assessment documents; implementation is entirely on `feat/character-animation` in the isolated worktree named above.
+
+### 11.25 Incomplete animated material rejection (F06 final asset check)
+
+An animated-texture helper previously logged a failed atlas creation and then cached/returned the incomplete material. It now propagates an `AssetLoadException` before caching, allowing transactional callers to preserve their valid visuals and deduplicate the diagnostic. Missing optional later atlas frames retain the existing previous-image fallback; failure to create a usable atlas does not publish a black/invalid material.
+
+Validation: a missing animated texture fails twice without changing the live model/revision or poisoning the material cache. Loader, sprite/particle, texture-policy and atlas-clock tests pass; the full build/test suite and shadow-enabled installed-creature capture are repeated for this final revision. The commit containing this section is the last production correction; the ledger above records the preceding focused changes.
