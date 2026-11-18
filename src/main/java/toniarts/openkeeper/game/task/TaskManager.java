@@ -77,6 +77,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -96,6 +97,7 @@ import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Guard;
+import toniarts.openkeeper.game.task.creature.Leave;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
 import toniarts.openkeeper.game.task.creature.Research;
@@ -1054,9 +1056,41 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 return true;
             }
+            case LEAVE, REBEL: {
+                return assignLeaveTask(creature, assign);
+            }
             default:
                 return false;
         }
+    }
+
+    /**
+     * Like in DK II, a creature that leaves walks out through the nearest
+     * portal, whoever owns it. A rebel does the same
+     */
+    private boolean assignLeaveTask(ICreatureController creature, boolean assign) {
+        Leave task = null;
+        int nearest = Integer.MAX_VALUE;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (!(room instanceof ThreeByThreeController portal)) {
+                continue;
+            }
+
+            // The middle of the portal is a hole, the creature goes in from the tile beside it
+            Point center = portal.getEntranceCoordinate();
+            int distance = WorldUtils.calculateDistance(creature.getCreatureCoordinates(), center);
+            Leave leave = new Leave(navigationService, mapController, new Point(center.x, center.y - 1),
+                    creature.getOwnerId(), portal, entityData);
+            if (distance < nearest && leave.isReachable(creature)) {
+                task = leave;
+                nearest = distance;
+            }
+        }
+        if (task != null && assign) {
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+        }
+        return task != null;
     }
 
     @Override

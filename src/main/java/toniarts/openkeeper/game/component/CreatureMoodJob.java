@@ -21,11 +21,12 @@ import com.simsilica.es.EntityComponent;
 /**
  * When the creature last took a job out of discontent. Like in DK II, an
  * unhappy creature gets a new job from its unhappy list only every now and
- * then
+ * then, and so does an angry creature from its angry list
  */
 public final class CreatureMoodJob implements EntityComponent {
 
     public double unhappyJobTime;
+    public double angryJobTime;
 
     public CreatureMoodJob() {
         // For serialization
@@ -34,9 +35,12 @@ public final class CreatureMoodJob implements EntityComponent {
     /**
      * @param unhappyJobTime game time the creature last got a job from its
      * unhappy list, in seconds
+     * @param angryJobTime game time the creature last got a job from its angry
+     * list, in seconds
      */
-    public CreatureMoodJob(double unhappyJobTime) {
+    public CreatureMoodJob(double unhappyJobTime, double angryJobTime) {
         this.unhappyJobTime = unhappyJobTime;
+        this.angryJobTime = angryJobTime;
     }
 
 }
