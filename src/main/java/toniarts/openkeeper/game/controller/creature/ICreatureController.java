@@ -202,6 +202,20 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean backOff();
 
+    /**
+     * A hero set to return to the hero lair withdraws there from a fight when
+     * it is badly hurt. Starts the walk to the hero lair if so
+     *
+     * @return true if we withdraw to the hero lair
+     */
+    public boolean withdrawToHeroLair();
+
+    /**
+     * Walks to a tile of our own land some way off, as a recuperating hero
+     * does until its health is back
+     */
+    public void wanderOnOwnLand();
+
     public boolean isAttacked();
 
     public boolean isEnoughSleep();
@@ -414,6 +428,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * Makes the creature hungry
      */
     public void makeHungry();
+
+    /**
+     * Sets whether the creature will fight. One that won't doesn't start or
+     * join a fight and drops the one it is in, but it can still be attacked
+     *
+     * @param willFight true if the creature may fight
+     */
+    public void setWillFight(boolean willFight);
 
     /**
      * Get the research points the creature makes on this game tick in the
