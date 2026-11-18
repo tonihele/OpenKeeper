@@ -38,8 +38,10 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
         this.gameTimer = gameTimer;
-        // Start the first attraction cooldown when the Portal is created.
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        // Start a new Portal clock, preserving existing state when rebuilding its controller.
+        if (entityData.getComponent(entityId, CreatureGenerator.class) == null) {
+            entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        }
     }
 
     @Override
@@ -62,7 +64,32 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public void onSpawn(double time, EntityId spawnedEntityId) {
-        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time));
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                generator.generatedCount + 1, generator.lastPreparationTime));
+    }
+
+    @Override
+    public int getGeneratedCount() {
+        return getEntityComponent(CreatureGenerator.class).generatedCount;
+    }
+
+    @Override
+    public boolean onPrepareSpawn(double preparationTime) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        if (generator.lastPreparationTime == preparationTime) {
+            return false;
+        }
+        entityData.setComponent(entityId, new CreatureGenerator(generator.entrance, generator.lastSpawnTime,
+                generator.generatedCount, preparationTime));
+        return true;
+    }
+
+    @Override
+    public void onGenerationCycle(double time) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                generator.generatedCount, generator.lastPreparationTime));
     }
 
     @Override

@@ -26,11 +26,16 @@ import toniarts.openkeeper.game.controller.creature.CreatureState;
  */
 public final class CreatureAi implements EntityComponent {
 
+    private static final int NO_STATE = -1;
+    private static final CreatureState[] CREATURE_STATES = CreatureState.values();
+
     public double stateStartTime;
     private int creatureState;
     public short creatureId;
     // Store the ordinal, as for creatureState, so FieldSerializer can serialize it.
-    private Integer targetState;
+    private int targetState;
+    /** How long the state lasts, for the states that are timed by the cause that put the creature in them. */
+    public double stateDuration;
 
     public CreatureAi() {
     }
@@ -42,15 +47,22 @@ public final class CreatureAi implements EntityComponent {
     /** Creates a state with a request retained until the target is entered. */
     public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId,
             CreatureState targetState) {
+        this(stateStartTime, creatureState, creatureId, targetState, 0);
+    }
+
+    /** Creates a state that lasts for the given time, such as the Chicken spell. */
+    public CreatureAi(double stateStartTime, CreatureState creatureState, short creatureId,
+            CreatureState targetState, double stateDuration) {
+        this.stateDuration = stateDuration;
         this.stateStartTime = stateStartTime;
         this.creatureState = creatureState.ordinal();
         this.creatureId = creatureId;
-        this.targetState = targetState == null || targetState == creatureState ? null : targetState.ordinal();
+        this.targetState = targetState == null || targetState == creatureState ? NO_STATE : targetState.ordinal();
     }
 
     /** Returns the requested state, or null when ordinary state selection applies. */
     public CreatureState getTargetState() {
-        return targetState == null ? null : CreatureState.values()[targetState];
+        return targetState == NO_STATE ? null : CREATURE_STATES[targetState];
     }
 
     public final CreatureState getCreatureState() {
@@ -60,7 +72,7 @@ public final class CreatureAi implements EntityComponent {
          * serialize it. Easiest for us now is just to emulate the serialization
          * like this
          */
-        return CreatureState.class.getEnumConstants()[creatureState];
+        return CREATURE_STATES[creatureState];
     }
 
 }

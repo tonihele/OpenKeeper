@@ -11,6 +11,9 @@ uniform vec4 m_TintOverlay;
 uniform float m_MinLight;
 uniform float m_RockFloor;
 uniform float m_AmbientScale;
+#ifdef MESH_CENTER
+uniform vec3 m_MeshCenter;
+#endif
 #ifdef ANIMATED_TILES
 uniform float g_Time;
 uniform int m_NumberOfTiles;
@@ -45,6 +48,7 @@ attribute vec2 inTexCoord;
 varying vec2 texCoord;
 varying vec3 vVertexColor;
 varying vec3 vOverlay;
+varying vec3 vGlow;
 
 void main() {
     vec4 modelSpacePos = vec4(inPosition, 1.0);
@@ -103,18 +107,26 @@ void main() {
         // not reveal unexplored ground; only the claim-scan glow and the
         // cursor do
         float visibility = (flags & 2) != 0 ? 1.0 : explored;
-        vec3 contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
+        vec3 contribution;
+#ifdef MESH_CENTER
+        if ((flags & 32) != 0) {
+            contribution = visibility * dkMeshCenterLightContribution(worldPos, worldNormal, m_MeshCenter,
+                    posRadius.xyz, posRadius.w, colorIntensity.rgb, colorIntensity.w);
+        } else
+#endif
+        contribution = visibility * dkPointLightContribution(worldPos, worldNormal, posRadius.xyz,
                 posRadius.w, colorIntensity.rgb, colorIntensity.w, (flags & 1) != 0);
+        if ((flags & 8) != 0) {
+            // How far into its own colour this torch lights the vertex, 0..1 (measured before the edge tint)
+            float peak = max(colorIntensity.r, max(colorIntensity.g, colorIntensity.b));
+            float lit = max(contribution.r, max(contribution.g, contribution.b));
+            torchStrength = max(torchStrength, peak > 0.0 ? lit / peak : 0.0);
+            contribution = dkTorchEdgeTint(contribution, colorIntensity.rgb);
+        }
         if ((flags & 4) != 0) {
             yieldingSum += contribution;
         } else {
             sum += contribution;
-        }
-        if ((flags & 8) != 0) {
-            // How far into its own colour this torch lights the vertex, 0..1
-            float peak = max(colorIntensity.r, max(colorIntensity.g, colorIntensity.b));
-            float lit = max(contribution.r, max(contribution.g, contribution.b));
-            torchStrength = max(torchStrength, peak > 0.0 ? lit / peak : 0.0);
         }
     }
     // A torch overrules water and lava glow, so its colour stays pure where
@@ -138,4 +150,5 @@ void main() {
     }
     vOverlay = m_TintOverlay.rgb;
     vVertexColor = lit;
+    vGlow = vec3(0.0);
 }

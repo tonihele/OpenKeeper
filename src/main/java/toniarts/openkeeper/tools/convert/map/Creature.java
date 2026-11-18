@@ -300,6 +300,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         private final int id;
     }
 
+    /**
+     * The kind of an attraction requirement. The original checks the room
+     * (all the keeper's rooms of the type together must have the size), the
+     * keeper's gold and mana, and the creature requirement in a way that never
+     * stops the creature.
+     */
+    public enum AttractionType implements IValueEnum {
+
+        NONE(0),
+        ROOM(1),
+        GOLD(2),
+        MANA(3),
+        CREATURE(4);
+
+        private AttractionType(int id) {
+            this.id = id;
+        }
+
+        @Override
+        public int getValue() {
+            return id;
+        }
+        private final int id;
+    }
+
     public enum JobClass implements IValueEnum {
 
         ARTISAN(0),
@@ -494,7 +519,6 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     private JobPreference angryJobs[];
     private JobType hateJobs[];
     private JobAlternative alternativeJobs[];
-    private int unkea0; // ea0
     private float unkea8; // ea8
     private int unk3ab; // eac
     private int unkee0; // ee0
@@ -1062,14 +1086,6 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         this.alternativeJobs = alternativeJobs;
     }
 
-    public int getUnkea0() {
-        return unkea0;
-    }
-
-    protected void setUnkea0(int unkea0) {
-        this.unkea0 = unkea0;
-    }
-
     public float getUnkea8() {
         return unkea8;
     }
@@ -1564,20 +1580,31 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         return true;
     }
 
+    /**
+     * A requirement for the creature to come in through a Portal. The level
+     * file stores two numbers for each, the converter reads them into the
+     * fields that the {@link #getType() type} tells to be in use.
+     */
     public static final class Attraction {
 
-        private int present; // dac
-        private int roomId; // db0
-        private int roomSize;
+        private AttractionType type;
+        private int roomId; // Room requirement
+        private int roomSize; // Room requirement, the least number of tiles, 0 for any
+        private int amount; // Gold and mana requirement
 
-        public int getPresent() {
-            return present;
+        public AttractionType getType() {
+            return type;
         }
 
-        protected void setPresent(int present) {
-            this.present = present;
+        protected void setType(AttractionType type) {
+            this.type = type;
         }
 
+        /**
+         * Get the required room, only for {@link AttractionType#ROOM}
+         *
+         * @return the room ID
+         */
         public int getRoomId() {
             return roomId;
         }
@@ -1586,12 +1613,32 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
             this.roomId = roomId;
         }
 
+        /**
+         * Get the required room size, only for {@link AttractionType#ROOM}
+         *
+         * @return the least number of tiles in the rooms of the type
+         * together, 0 if any room will do
+         */
         public int getRoomSize() {
             return roomSize;
         }
 
         protected void setRoomSize(int roomSize) {
             this.roomSize = roomSize;
+        }
+
+        /**
+         * Get the required amount, only for {@link AttractionType#GOLD} and
+         * {@link AttractionType#MANA}
+         *
+         * @return the least amount the keeper must have
+         */
+        public int getAmount() {
+            return amount;
+        }
+
+        protected void setAmount(int amount) {
+            this.amount = amount;
         }
     }
 
@@ -1686,6 +1733,18 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
 
         protected void setLevelAvailable(short levelAvailable) {
             this.levelAvailable = levelAvailable;
+        }
+
+        /**
+         * Whether a creature on the level has the spell. A spell comes at its
+         * level and stays with the creature from there on (DKII.EXE
+         * 0x4651A0).
+         *
+         * @param level the creature's level
+         * @return does the creature have the spell
+         */
+        public boolean isAvailableAt(int level) {
+            return levelAvailable <= level;
         }
     }
 
@@ -1841,6 +1900,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
         private int expPerSecondTraining; // f06
         private int researchPerSecond; // researchPointsPerSecond
         private int manufacturePerSecond; // manufacturePointsPerSecond
+        private float width; // Tiles
         private float height; // Tiles
         private float eyeHeight; // Tiles
         private int hp; // health
@@ -1897,6 +1957,14 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
 
         protected void setShuffleSpeed(float shuffleSpeed) {
             this.shuffleSpeed = shuffleSpeed;
+        }
+
+        public float getWidth() {
+            return width;
+        }
+
+        protected void setWidth(float width) {
+            this.width = width;
         }
 
         public float getHeight() {
