@@ -143,7 +143,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
             // Change!
             if (currentState != targetState || restart) {
-                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetState));
+                entityData.setComponent(entityId, state.next(timeElapsed, targetState));
             }
         }
     }

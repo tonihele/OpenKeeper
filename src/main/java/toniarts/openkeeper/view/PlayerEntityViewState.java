@@ -498,7 +498,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, null, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
                 control.setWaterCheck(this::isWater);
                 result.addControl(control);
 
@@ -654,7 +654,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
-        control.setTargetState(viewState.state);
+        ((CreatureViewControl) control).setViewState(creature, viewState);
         setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
         // Trigger the death effect once, when the creature actually dies

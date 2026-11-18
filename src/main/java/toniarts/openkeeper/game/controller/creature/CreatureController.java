@@ -2709,7 +2709,10 @@ public final class CreatureController extends EntityController implements ICreat
         } else {
             return;
         }
-        entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK));
+        CreatureViewState previousView = entityData.getComponent(entityId, CreatureViewState.class);
+        entityData.setComponent(entityId, previousView == null
+                ? new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK)
+                : previousView.next(gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK));
     }
 
     /**

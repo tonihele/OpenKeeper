@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -46,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.animation.CreatureAnimationRequest;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -79,6 +81,23 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
+    private CreatureAnimationRequest lastAttempt;
+
+    /** Accepts restart identity even when the animation enum did not change. */
+    public boolean setViewState(Creature creature, CreatureViewState state) {
+        var request = new CreatureAnimationRequest(state);
+        if (request.equals(lastAttempt)) return false;
+        lastAttempt = request;
+        Creature previous = getDataObject();
+        setDataObject(creature);
+        super.setTargetState(state.state);
+        if (!playAnimation(state.state)) {
+            setDataObject(previous);
+            return false;
+        }
+        playStateSounds(state.state);
+        return true;
+    }
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -267,13 +286,19 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         // Play immediately
         if (!Objects.equals(currentState, targetState)) {
             if (!playAnimation(state)) return;
+            playStateSounds(state);
+        }
+    }
+
+    private void playStateSounds(Creature.AnimationType state) {
+            // State exit always releases a loop, including transitions hidden by fog.
+            playResearchSound(null);
             if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
                 int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
                 digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
                 nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
                 playResearchSound(state);
             }
-        }
     }
 
     @Override
