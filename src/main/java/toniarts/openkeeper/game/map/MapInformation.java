@@ -153,9 +153,17 @@ public final class MapInformation<T extends IMapDataInformation<S>, S extends IM
 
         // See if the terrain is claimable at all
         boolean claimable = false;
-        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM) || terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
+        // Somebody else's land can only be taken if it is attackable, the Hero Lair and the Hero Gates are not
+        if (terrain.getFlags().contains(Terrain.TerrainFlag.ROOM)) {
+            if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)
+                    && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId()))) {
 
-            // Somebody else's land can only be taken if it is attackable, the Hero Lair and the Hero Gates are not
+                // A Dungeon Heart can't be claimed while its keeper is in the game, only once it is destroyed
+                Keeper owner = playersById.get(tile.getOwnerId());
+                claimable = owner == null || owner.isDestroyed()
+                        || !kwdFile.getDungeonHeart().equals(kwdFile.getRoomByTerrain(terrain.getTerrainId()));
+            }
+        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
             if (terrain.getFlags().contains(Terrain.TerrainFlag.ATTACKABLE)
                     && (tile.getOwnerId() == Player.NEUTRAL_PLAYER_ID || !playersById.get(playerId).isAlly(tile.getOwnerId()))) {
                 claimable = true;
