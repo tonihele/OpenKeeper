@@ -18,6 +18,7 @@ package toniarts.openkeeper.view.minimap;
 
 import com.jme3.math.FastMath;
 import com.simsilica.es.Entity;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -25,7 +26,7 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.map.MapColourClass;
 import toniarts.openkeeper.game.map.PlayerNumbers;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -45,6 +46,12 @@ public final class MinimapMarkerPainter {
     private static final int OWN_HEART_RING_COLOUR = 0xFFADD8E6;
 
     private static final int BLACK = 0xFF000000;
+    private static final int WHITE = 0xFFFFFFFF;
+    /**
+     * Rebuilds a possession pulse takes to grow from the creature to the full
+     * Dungeon Heart reporting radius before it restarts
+     */
+    private static final int POSSESSION_PULSE_STEPS = 10;
 
     private final MinimapPalette palette;
     private final short viewerId;
@@ -59,7 +66,7 @@ public final class MinimapMarkerPainter {
         this.viewerId = viewerId;
         creatures = entityData.getEntities(Position.class, Owner.class, CreatureComponent.class);
         doors = entityData.getEntities(Position.class, Owner.class, DoorComponent.class);
-        traps = entityData.getEntities(Position.class, Owner.class, TrapComponent.class);
+        traps = entityData.getEntities(Position.class, Owner.class, TrapViewState.class);
         inHand = entityData.getEntities(InHand.class);
     }
 
@@ -100,10 +107,12 @@ public final class MinimapMarkerPainter {
      * {@code null} if it hasn't been built/located yet
      * @param dungeonHeartReportingDistanceTiles
      * {@code DUNGEON_HEART_REPORTING_DISTANCE_TILES}
+     * @param possessedCreature the creature the viewer is possessing, or
+     * {@code null}; it blinks white and gets an expanding pulse circle
      */
     public void paint(byte[] raster, int mapWidth, int mapHeight, int zoom, float cameraTileX, float cameraTileY,
             IFogOfWarInformation fogOfWarInformation, boolean blinkParity, int dashPhase, int rotationPhase,
-            Point dungeonHeartTile, float dungeonHeartReportingDistanceTiles) {
+            Point dungeonHeartTile, float dungeonHeartReportingDistanceTiles, EntityId possessedCreature) {
         boolean fit = zoom < 0;
         MinimapRasteriser.FitGeometry fitGeometry = fit ? MinimapRasteriser.FitGeometry.of(mapWidth, mapHeight) : null;
         int pixelsPerTile = fit ? 0 : (1 << zoom);
@@ -111,7 +120,7 @@ public final class MinimapMarkerPainter {
         paintOwnHeartRing(raster, dungeonHeartTile, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile,
                 dungeonHeartReportingDistanceTiles);
         paintCreatures(raster, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile, fogOfWarInformation,
-                blinkParity, rotationPhase);
+                blinkParity, rotationPhase, dungeonHeartReportingDistanceTiles * 1.5f, possessedCreature);
         paintTraps(raster, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile, fogOfWarInformation, blinkParity);
         paintDoors(raster, fit, fitGeometry, cameraTileX, cameraTileY, pixelsPerTile, fogOfWarInformation, blinkParity);
         paintHeartDirectionLine(raster, fit, dungeonHeartTile, cameraTileX, cameraTileY, pixelsPerTile, dashPhase);
@@ -139,7 +148,9 @@ public final class MinimapMarkerPainter {
      */
     private void paintCreatures(byte[] raster, boolean fit, MinimapRasteriser.FitGeometry fitGeometry,
             float cameraTileX, float cameraTileY, int pixelsPerTile, IFogOfWarInformation fogOfWarInformation,
-            boolean blinkParity, int rotationPhase) {
+            boolean blinkParity, int rotationPhase, float pulseMaxRadiusTiles,
+            EntityId possessedCreature) {
+        float pixelsPerTileScale = fit ? fitGeometry.pixelsPerTileScale() : pixelsPerTile;
         for (Entity e : creatures) {
             Owner owner = e.get(Owner.class);
             Position position = e.get(Position.class);
@@ -158,14 +169,25 @@ public final class MinimapMarkerPainter {
             float py = toPixelY(position.position.z, fit, fitGeometry, cameraTileY, pixelsPerTile);
             int baseColour = owner.ownerId == Player.NEUTRAL_PLAYER_ID
                     ? MinimapMarkers.neutralRotationColour(rotationPhase) : wallColour(owner.ownerId);
-            int colour = MinimapMarkers.blink(baseColour, BLACK, blinkParity);
+            // the possessed creature blinks white so it stands out as "you"
+            boolean possessed = e.getId().equals(possessedCreature);
+            int blinkColour = possessed ? WHITE : BLACK;
+            int colour = MinimapMarkers.blink(baseColour, blinkColour, blinkParity);
             MinimapMarkers.dot(raster, Math.round(px), Math.round(py), colour);
+            if (possessed) {
+                // white circle expanding from the possessed creature up to
+                // the Dungeon Heart circle's size, then starting over
+                int step = rotationPhase % POSSESSION_PULSE_STEPS + 1;
+                int radius = Math.round(pulseMaxRadiusTiles * pixelsPerTileScale * step / POSSESSION_PULSE_STEPS);
+                MinimapMarkers.circleOutline(raster, Math.round(px), Math.round(py), radius, WHITE);
+            }
         }
     }
 
     /*
      * Marker 4: all traps (own, or explored - hiddenFromMinimap doesn't
-     * exist in this codebase, see this class's own javadoc).
+     * exist in this codebase, see this class's own javadoc). Hidden traps and
+     * blueprints only for their owner.
      */
     private void paintTraps(byte[] raster, boolean fit, MinimapRasteriser.FitGeometry fitGeometry,
             float cameraTileX, float cameraTileY, int pixelsPerTile, IFogOfWarInformation fogOfWarInformation,
@@ -175,7 +197,8 @@ public final class MinimapMarkerPainter {
             Position position = e.get(Position.class);
             Point tile = WorldUtils.vectorToPoint(position.position);
             boolean own = owner.ownerId == viewerId;
-            if (!own && !fogOfWarInformation.isExplored(tile)) {
+            if (!own && !fogOfWarInformation.isExplored(tile)
+                    || !e.get(TrapViewState.class).isShownTo(owner.ownerId, viewerId)) {
                 continue;
             }
             float px = toPixelX(position.position.x, fit, fitGeometry, cameraTileX, pixelsPerTile);

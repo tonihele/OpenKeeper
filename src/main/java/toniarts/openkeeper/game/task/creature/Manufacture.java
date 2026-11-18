@@ -55,7 +55,7 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
         // The workshop is there and has room for another crate, without a creature only that is asked
         return super.isValid(creature)
-                && (creature == null || creature.getManufacturePerSecond() > 0)
+                && (creature == null || creature.getManufacturePerTick() > 0)
                 && manufactureControl.getOrder() != null;
     }
 
@@ -96,14 +96,9 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        // Work a second at a time, the logic runs several ticks a second
-        if (executionDuration - getExecutionDuration(creature) < 1.0f) {
-            return;
-        }
-        setExecutionDuration(creature, getExecutionDuration(creature) + 1.0f);
-
+        // DK II adds the creature's manufacture points per tick on every game tick
         ManufactureOrders.Order order = manufactureControl.getOrder();
-        if (order == null || !manufactureControl.manufacture(creature.getManufacturePerSecond(), order.manufToBuild())) {
+        if (order == null || !manufactureControl.manufacture(creature.getManufacturePerTick(), order.manufToBuild())) {
             return;
         }
 
