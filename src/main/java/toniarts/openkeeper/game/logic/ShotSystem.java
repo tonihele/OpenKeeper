@@ -27,9 +27,11 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -47,6 +49,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
+    private final GameEventService gameEventService;
     private final IShotsController shotsController;
     private final IEntityPositionLookup entityPositionLookup;
     private final IMapInformation<?> mapInformation;
@@ -54,11 +57,12 @@ public final class ShotSystem implements IGameLogicUpdatable {
     private final EntitySet shots;
     private final Vector3f halfway = new Vector3f();
 
-    public ShotSystem(EntityData entityData, IKwdFile kwdFile, IShotsController shotsController,
+    public ShotSystem(EntityData entityData, IKwdFile kwdFile, GameEventService gameEventService, IShotsController shotsController,
             IEntityPositionLookup entityPositionLookup, IMapInformation<?> mapInformation,
             Map<Short, IPlayerController> playerControllers) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameEventService = gameEventService;
         this.shotsController = shotsController;
         this.entityPositionLookup = entityPositionLookup;
         this.mapInformation = mapInformation;
@@ -86,6 +90,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
         EntityId thing = findThingHit(shot, flight, position);
         if (thing != null) {
+            triggerEffect(shot.getHitThingEffectId(), position);
             shotsController.hit(entity.getId(), thing);
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
                 entityData.removeEntity(entity.getId());
@@ -99,24 +104,39 @@ public final class ShotSystem implements IGameLogicUpdatable {
             // A thing halfway along the move, the move ends there so that the shot can't step over it (0x4ABD60)
             velocity = velocity.mult(0.5f);
         }
-        Vector3f newPosition = move(position, velocity);
-        if (newPosition == null && shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
-            entityData.removeEntity(entity.getId());
-            return;
+        Move move = move(position, velocity);
+        if (move.hitWall()) {
+            triggerEffect(shot.getHitSolidEffectId(), move.position());
+            if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
+                entityData.removeEntity(entity.getId());
+                return;
+            }
         }
 
         int health = flight.health;
         if (shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME)) {
             health--;
             if (health < 1) {
+                triggerEffect(shot.getDeathEffectId(), move.position());
                 entityData.removeEntity(entity.getId());
                 return;
             }
             entityData.setComponent(entity.getId(), new ShotFlight(flight, health));
         }
-        if (newPosition != null) {
-            entityData.setComponent(entity.getId(), new Position(entity.get(Position.class).rotation, newPosition));
+        if (!move.hitWall()) {
+            entityData.setComponent(entity.getId(), new Position(entity.get(Position.class).rotation, move.position()));
         }
+    }
+
+    /**
+     * Where a move of a shot ends
+     *
+     * @param position the new position, the last one before the wall if the
+     * shot hit one
+     * @param hitWall whether the shot hit a wall
+     */
+    private record Move(Vector3f position, boolean hitWall) {
+
     }
 
     /**
@@ -124,20 +144,33 @@ public final class ShotSystem implements IGameLogicUpdatable {
      *
      * @param position where the shot is
      * @param velocity the shot's velocity
-     * @return the new position, {@code null} if the shot hit a wall
+     * @return where the move ends
      */
-    private Vector3f move(Vector3f position, Vector3f velocity) {
+    private Move move(Vector3f position, Vector3f velocity) {
         int steps = ShotFlightRules.getSteps(velocity);
         Vector3f step = velocity.divide(steps);
         Vector3f result = new Vector3f(position);
         for (int i = 0; i < steps; i++) {
             result.addLocal(step);
             if (isSolid(result)) {
-                return null;
+                return new Move(result.subtractLocal(step), true);
             }
         }
 
-        return result;
+        return new Move(result, false);
+    }
+
+    /**
+     * Tells the clients to play the shot's effect where it is, the shot's hit
+     * or its death (0x4ABD60, 0x4AB180)
+     *
+     * @param effectId the effect, 0 for none
+     * @param position where to play it
+     */
+    private void triggerEffect(int effectId, Vector3f position) {
+        if (effectId != 0) {
+            gameEventService.emitEffect(effectId, position, 0);
+        }
     }
 
     private boolean isSolid(Vector3f position) {
@@ -148,7 +181,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     /**
      * Looks for a thing the shot touches, on the tiles under the shot. For now
-     * the shots only hit creatures.
+     * the shots hit creatures and traps.
      *
      * @param shot the shot
      * @param flight the shot's flight
@@ -177,19 +210,42 @@ public final class ShotSystem implements IGameLogicUpdatable {
     }
 
     private boolean isHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId) {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         Health health = entityData.getComponent(entityId, Health.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        Position creaturePosition = entityData.getComponent(entityId, Position.class);
-        if (creatureComponent == null || health == null || health.health <= 0 || owner == null || creaturePosition == null
-                || !collidesWith(shot.getCollideType(), flight.ownerId, owner.ownerId)) {
+        Position thingPosition = entityData.getComponent(entityId, Position.class);
+        if (health == null || health.health <= 0 || owner == null || thingPosition == null) {
+            return false;
+        }
+
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        if (creatureComponent == null) {
+            return isTrapHit(shot, flight, position, entityId, owner, thingPosition);
+        }
+        if (!collidesWith(shot.getCollideType(), flight.ownerId, owner.ownerId)) {
             return false;
         }
 
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
 
-        return ShotFlightRules.touches(position, shot.getRadius(), creaturePosition.position,
+        return ShotFlightRules.touches(position, shot.getRadius(), thingPosition.position,
                 creature.getAttributes().getWidth(), creatureComponent.height);
+    }
+
+    /**
+     * An armed enemy trap that isn't hidden is hit by the shots aimed at
+     * enemies (0x4B5800). A trap has no width nor height (0x402AD0 for both).
+     */
+    private boolean isTrapHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId, Owner owner,
+            Position trapPosition) {
+        TrapViewState trapViewState = entityData.getComponent(entityId, TrapViewState.class);
+        boolean hitsEnemies = shot.getCollideType() == Shot.CollideType.ENEMY_CREATURES
+                || shot.getCollideType() == Shot.CollideType.ALL_CREATURES;
+        if (trapViewState == null || trapViewState.blueprint || trapViewState.hidden || !hitsEnemies
+                || !isEnemy(flight.ownerId, owner.ownerId)) {
+            return false;
+        }
+
+        return ShotFlightRules.touches(position, shot.getRadius(), trapPosition.position, 0, 0);
     }
 
     private boolean collidesWith(Shot.CollideType collideType, short shotOwnerId, short creatureOwnerId) {
