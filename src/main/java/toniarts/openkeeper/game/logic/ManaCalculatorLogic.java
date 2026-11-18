@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
@@ -40,6 +41,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     private float tick = 0;
     private final EntitySet manaEntities;
     private final EntitySet possessedEntities;
+    private final EntitySet callToArmsEntities;
     private final Map<EntityId, Short> ownerIdsByEntityId = new HashMap<>();
     private final Map<EntityId, Integer> manaGenerationByEntityId = new HashMap<>();
     private final Map<EntityId, Integer> maxManaGenerationByEntityId = new HashMap<>();
@@ -64,6 +66,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
         manaEntities = entityData.getEntities(Mana.class, Owner.class);
         processAddedEntities(manaEntities);
         possessedEntities = entityData.getEntities(Possessed.class, Owner.class);
+        callToArmsEntities = entityData.getEntities(CallToArms.class, Mana.class, Owner.class);
     }
 
     @Override
@@ -71,8 +74,9 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
         tick += tpf;
         if (tick >= 1) {
 
-            // Right before the mana sources, so the possession cost is in both the gain and the loss
+            // Right before the mana sources, so the possession and Call to Arms upkeep is in both the gain and the loss
             possessedEntities.applyChanges();
+            callToArmsEntities.applyChanges();
             updateManaSources();
             updateManaControls();
             tick -= 1;
@@ -82,15 +86,23 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     private void updateManaControls() {
         for (Map.Entry<Short, PlayerManaControl> entry : manaControls.entrySet()) {
             entry.getValue().updateMana(manaGains.getOrDefault(entry.getKey(), 0), manaLosses.getOrDefault(entry.getKey(), 0),
-                    maxManaGains.getOrDefault(entry.getKey(), 0), getPossessionManaDrain(entry.getKey()));
+                    maxManaGains.getOrDefault(entry.getKey(), 0), getSpellUpkeep(entry.getKey()));
         }
     }
 
-    private int getPossessionManaDrain(short playerId) {
+    /**
+     * The upkeep DKII.EXE also adds to the gain before the limit (0x4C17A0):
+     * the possession cost and the Call to Arms banner's drain
+     */
+    private int getSpellUpkeep(short playerId) {
         return possessedEntities.stream()
                 .filter(entity -> entity.get(Owner.class).ownerId == playerId)
                 .mapToInt(entity -> entity.get(Possessed.class).manaDrain)
-                .sum();
+                .sum()
+                - callToArmsEntities.stream()
+                        .filter(entity -> entity.get(Owner.class).ownerId == playerId)
+                        .mapToInt(entity -> entity.get(Mana.class).manaGeneration)
+                        .sum();
     }
 
     @Override
@@ -102,6 +114,7 @@ public final class ManaCalculatorLogic implements IGameLogicUpdatable {
     public void stop() {
         manaEntities.release();
         possessedEntities.release();
+        callToArmsEntities.release();
     }
 
     private void updateManaSources() {

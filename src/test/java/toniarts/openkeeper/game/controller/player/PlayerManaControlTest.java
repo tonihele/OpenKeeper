@@ -120,22 +120,27 @@ class PlayerManaControlTest {
     }
 
     @Test
-    void possessionEndsWhenTheManaIsBelowTheCost() {
-        keeper.setMana(600);
+    void possessionEndsWhenTheManaLessTheImpUpkeepIsBelowTheCost() {
+
+        // A Vampire costs 600 a second, plus an imp's 7
+        manaControl.updateMana(230, 607, 0, 600);
+
+        keeper.setMana(607);
         assertTrue(manaControl.hasEnoughMana(600));
 
-        keeper.setMana(599);
+        keeper.setMana(606);
         assertFalse(manaControl.hasEnoughMana(600));
     }
 
     @Test
     void manaJustSpentDoesNotEndThePossession() {
-        keeper.setMana(1100);
+        keeper.setMana(2000);
+        manaControl.updateMana(0, 607, 0, 600);
 
-        // The 500 just spent shows in the loss until the next update, but it is gone from the mana already
-        manaControl.spendMana(500);
+        // The mana just spent shows in the loss until the next update, but it is gone from the mana already
+        manaControl.spendMana(1286);
 
-        assertEquals(600, keeper.getMana());
+        assertEquals(607, keeper.getMana());
         assertTrue(manaControl.hasEnoughMana(600));
     }
 

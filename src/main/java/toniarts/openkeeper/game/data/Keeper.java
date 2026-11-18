@@ -45,6 +45,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int mana;
     private int manaGain;
     private int manaLoose;
+    private int manaUpkeep;
     private int maxMana;
     private int attractedCreatures;
     private int portalCreatureCapacity;
@@ -113,6 +114,26 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public int getManaLoose() {
         return manaLoose;
+    }
+
+    /**
+     * Sets the imp and trap upkeep of the last mana update, the part of the
+     * loose that is paid after the gain limit (DKII.EXE CPlayer +0x10d2 and
+     * +0x10d6)
+     *
+     * @param manaUpkeep the imp and trap upkeep per second
+     */
+    public void setManaUpkeep(int manaUpkeep) {
+        this.manaUpkeep = manaUpkeep;
+    }
+
+    /**
+     * Gets the imp and trap upkeep of the last mana update
+     *
+     * @return the imp and trap upkeep per second
+     */
+    public int getManaUpkeep() {
+        return manaUpkeep;
     }
 
     public void setPlayer(Player player) {
@@ -332,6 +353,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
         out.write(manaLoose, "manaLoose", 0);
+        out.write(manaUpkeep, "manaUpkeep", 0);
         out.write(maxMana, "maxMana", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
@@ -355,6 +377,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
         manaLoose = in.readInt("manaLoose", manaLoose);
+        manaUpkeep = in.readInt("manaUpkeep", manaUpkeep);
         maxMana = in.readInt("maxMana", maxMana);
         int x = in.readInt("dungeonHeartLocationX", 0);
         int y = in.readInt("dungeonHeartLocationY", 0);

@@ -24,6 +24,7 @@ import java.util.EnumMap;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
@@ -100,6 +101,37 @@ class ManaCalculatorLogicTest {
     }
 
     @Test
+    void callToArmsUpkeepUnderTheGainLimitCostsNothing() {
+        keeper.setMana(1000);
+        addManaSource(200, 0);
+        addManaSource(30, 0);
+        addCallToArms(150);
+
+        ManaCalculatorLogic logic = new ManaCalculatorLogic(List.of(playerController()), entityData);
+        logic.processTick(1f);
+
+        assertEquals(380, keeper.getManaGain());
+        assertEquals(150, keeper.getManaLoose());
+        assertEquals(1230, keeper.getMana());
+    }
+
+    @Test
+    void callToArmsUpkeepCostsWhatGoesOverTheGainLimit() {
+        keeper.setMana(1000);
+        addManaSource(450, 0);
+        addManaSource(-7, 0); // Imp, paid after the limit
+        addCallToArms(150);
+
+        ManaCalculatorLogic logic = new ManaCalculatorLogic(List.of(playerController()), entityData);
+        logic.processTick(1f);
+
+        assertEquals(500, keeper.getManaGain());
+        assertEquals(157, keeper.getManaLoose());
+        assertEquals(7, keeper.getManaUpkeep());
+        assertEquals(1343, keeper.getMana());
+    }
+
+    @Test
     void anotherKeepersPossessionDoesNotRaiseTheGain() {
         addManaSource(200, 0);
         addManaSource(30, 0);
@@ -117,6 +149,13 @@ class ManaCalculatorLogicTest {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new Mana(manaGeneration, maxManaGeneration), new Owner(PLAYER_ID, PLAYER_ID));
         return entity;
+    }
+
+    private void addCallToArms(int upkeep) {
+
+        // CallToArmsSystem puts the upkeep in the banner's Mana once the casting cost has run out
+        EntityId banner = addManaSource(-upkeep, 0);
+        entityData.setComponent(banner, new CallToArms(0, 0, 0, 0, CallToArms.UP));
     }
 
     private IPlayerController playerController() {
