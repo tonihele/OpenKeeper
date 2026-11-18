@@ -238,7 +238,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
         float time = (float) animComposer.getTime(AnimComposer.DEFAULT_LAYER);
         if (previousStepTime >= 0) {
-            int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength());
+            int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength(),
+                    toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(getAnimationData(currentState)));
             if (event != FootstepSounds.NO_STEP && FootstepSounds.tryAcquire(System.currentTimeMillis())) {
                 LOGGER.log(Logger.Level.DEBUG, "Footstep {0} of {1} at {2}", Integer.toHexString(event), getDataObject().getName(), time);
                 Vector3f position = spatial.getWorldTranslation();

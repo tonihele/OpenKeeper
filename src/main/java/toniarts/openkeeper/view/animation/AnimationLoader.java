@@ -78,7 +78,7 @@ public final class AnimationLoader {
                     var animComposer = spatStart.getControl(AnimComposer.class);
                     if (animComposer != null) {
                         animComposer.setEnabled(false);
-                        animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, animComposer.action(KmfModelLoader.DUMMY_ANIM_CLIP_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "onStartAnimationDone", animComposer, root, resource));
+                        animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, false), Tweens.callMethod(ANIM_EVENT_LISTENER, "onStartAnimationDone", animComposer, root, resource));
                     }
                 }
                 if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
@@ -91,7 +91,7 @@ public final class AnimationLoader {
                     var animComposer = spatEnd.getControl(AnimComposer.class);
                     if (animComposer != null) {
                         animComposer.setEnabled(false);
-                        animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, animComposer.action(KmfModelLoader.DUMMY_ANIM_CLIP_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "onEndAnimationDone", animComposer, animationControl));
+                        animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, false), Tweens.callMethod(ANIM_EVENT_LISTENER, "onEndAnimationDone", animComposer, animationControl));
                     }
                 }
 
@@ -99,7 +99,7 @@ public final class AnimationLoader {
                 var animComposer = spat.getControl(AnimComposer.class);
                 if (animComposer != null) {
                     animComposer.setEnabled(false);
-                    animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, animComposer.action(KmfModelLoader.DUMMY_ANIM_CLIP_NAME), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, animationControl, root, resource, getLoopModeOnChannel(spat)));
+                    animComposer.actionSequence(ANIM_WITH_LISTENERS_NAME, new TimedClip(animComposer, resource, true), Tweens.callMethod(ANIM_EVENT_LISTENER, "onAnimationDone", animComposer, animationControl, root, resource, getLoopModeOnChannel(spat)));
                 }
         }
         return prepared;

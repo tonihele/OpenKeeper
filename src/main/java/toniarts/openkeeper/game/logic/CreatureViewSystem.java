@@ -340,9 +340,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
 
         // A second for an animation without timing
-        Number frames = animation.getData(ArtResource.KEY_FRAMES);
-        Number fps = animation.getData(ArtResource.KEY_FPS);
-        double length = (frames == null || fps == null || fps.intValue() <= 0) ? 1 : frames.doubleValue() / fps.doubleValue();
+        double length = toniarts.openkeeper.animation.AnimationTiming.duration(animation, 1);
         return timeElapsed < state.stateStartTime + plays * length;
     }
 

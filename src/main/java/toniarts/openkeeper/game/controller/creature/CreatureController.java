@@ -2395,10 +2395,7 @@ public final class CreatureController extends EntityController implements ICreat
             return 0;
         }
 
-        int frames = animationResource.getData("frames");
-        int fps = animationResource.getData("fps");
-
-        return frames / (double) fps;
+        return toniarts.openkeeper.animation.AnimationTiming.duration(animationResource, 0);
     }
 
     @Override
