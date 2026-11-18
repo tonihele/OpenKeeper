@@ -107,6 +107,14 @@ public interface GameSessionServiceListener {
     public void onGetGold(int amount, short playerId);
 
     /**
+     * Player wants to take down the Call to Arms banner
+     *
+     * @param playerId who wants it
+     */
+    @Asynchronous
+    public void onCancelCallToArms(short playerId);
+
+    /**
      * Player UI transition has ended
      *
      * @param playerId the player whose transition ended
@@ -146,6 +154,63 @@ public interface GameSessionServiceListener {
      */
     @Asynchronous
     public void onCheatTriggered(CheatState.CheatType cheat, short playerId);
+
+    /**
+     * Player has triggered a creature spawning cheat
+     *
+     * @param creatureId the creature to spawn
+     * @param level the creature level
+     * @param amount how many creatures to spawn
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId);
+
+    /**
+     * Player has triggered a cheat that adds gold
+     *
+     * @param amount how much gold to add
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onAddGoldCheatTriggered(int amount, short playerId);
+
+    /**
+     * Player has triggered a cheat that adds mana
+     *
+     * @param amount how much mana to add
+     * @param playerId the player who wants to cheat
+     */
+    @Asynchronous
+    public void onAddManaCheatTriggered(int amount, short playerId);
+
+    /**
+     * Player wants to steer the possessed creature
+     *
+     * @param direction normalized movement direction on the map plane
+     * @param rotation the facing of the creature
+     * @param speedMode one of the {@code PossessedMovement.SPEED_*} constants
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId);
+
+    /**
+     * Player starts or stops attacking with the possessed creature
+     *
+     * @param attacking whether the attack button is held down
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onSetPossessedAttack(boolean attacking, short playerId);
+
+    /**
+     * Player wants to stop possessing
+     *
+     * @param playerId the player who is possessing
+     */
+    @Asynchronous
+    public void onEndPossession(short playerId);
 
     /**
      * Player wants to cast a spell

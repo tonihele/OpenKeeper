@@ -188,6 +188,15 @@ public class PlayerTriggerControl extends TriggerControl {
                 return getPlayerController(playerId).getSpellControl().isAvailable(keeperSpell);
             }
 
+            case PLAYER_ANGRY_CREATURES:
+                // Always compared to the value, the original has no other player here
+                return compare(trigger, creaturesController.getAngryCreatureCount(playerId, trigger.getUserData("creatureId", short.class)),
+                        trigger.getUserData("value", int.class));
+
+            case PLAYER_KILLED:
+                // Has this player been defeated, by a certain player or by anyone (0)
+                return getPlayer().isKilledBy(trigger.getUserData("playerId", short.class));
+
             case GUI_TRANSITION_ENDS:
                 return !playerService.isInTransition();
 
@@ -237,9 +246,8 @@ public class PlayerTriggerControl extends TriggerControl {
         putStub(result, "Nothing in the game logic announces either, there is no pay day processing to hook into",
                 TriggerGeneric.TargetType.PLAYER_CREATURE_SACKED, TriggerGeneric.TargetType.LEVEL_PAY_DAY);
 
-        // STUB: non-worker creatures that are happy / angry
-        putStub(result, "Creatures only have anger counters per complaint (CreatureMood), the happy (0) and angry (2) mood values of the original and the thresholds that turn the counters into them are not known",
-                TriggerGeneric.TargetType.PLAYER_HAPPY_CREATURES, TriggerGeneric.TargetType.PLAYER_ANGRY_CREATURES);
+        // STUB: non-worker creatures that are happy
+        result.put(TriggerGeneric.TargetType.PLAYER_HAPPY_CREATURES, "Creatures only have anger counters per complaint (CreatureMood), the happy (0) mood value of the original and the thresholds that turn the counters into it are not known");
 
         // STUB: creatures lost / killed, optionally by a certain opponent
         putStub(result, "A creature's death is not attributed to anybody, so there is nothing to count",
@@ -253,9 +261,6 @@ public class PlayerTriggerControl extends TriggerControl {
         putStub(result, "The player creature control only keeps the creature IDs by type, going through them for these needs the creature controller of every one of them",
                 TriggerGeneric.TargetType.PLAYER_CREATURES_AT_LEVEL, TriggerGeneric.TargetType.PLAYER_CREATURES_DYING,
                 TriggerGeneric.TargetType.PLAYER_CREATURES_GROUPED);
-
-        // STUB: has this player been defeated, by a certain player (userdata playerId)
-        result.put(TriggerGeneric.TargetType.PLAYER_KILLED, "The game does not record who defeated a player");
         return result;
     }
 
@@ -303,7 +308,11 @@ public class PlayerTriggerControl extends TriggerControl {
             return false;
         }
         ICreatureEntrance room = ((ICreatureEntrance) rooms.iterator().next());
-        creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        var entityId = creaturesController.spawnCreature(creatureId, playerId, level, WorldUtils.pointToVector2f(room.getEntranceCoordinate()), ICreaturesController.SpawnType.ENTRANCE);
+        if (entityId != null) {
+            // Scripted arrivals count toward the cadence without restarting the generation clock.
+            room.onSpawn(room.getLastSpawnTime(), entityId);
+        }
         return true;
     }
 
@@ -313,7 +322,10 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void followCameraPath(TriggerActionData trigger) { // gui part. Only for keeper x
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
         playerService.doTransition(trigger.getUserData("pathId", short.class), WorldUtils.ActionPointToVector3f(ap), playerId);
     }
 
@@ -331,7 +343,10 @@ public class PlayerTriggerControl extends TriggerControl {
     }
 
     private void rotateAroundActionPoint(TriggerActionData trigger) { // AP part
-        ActionPoint ap = levelInfo.getActionPoint(trigger.getUserData("actionPointId", short.class));
+        ActionPoint ap = getActionPoint(trigger.getUserData("actionPointId", short.class));
+        if (ap == null) {
+            return;
+        }
         boolean isRelative = trigger.getUserData("available", short.class) == 0;
         int angle = (short) (int) trigger.getUserData("angle", int.class); // Signed 16 bit degrees
         int time = trigger.getUserData("time", int.class);

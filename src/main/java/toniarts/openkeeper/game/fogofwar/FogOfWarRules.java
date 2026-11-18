@@ -184,24 +184,6 @@ public final class FogOfWarRules {
     }
 
     /**
-     * Explores every tile whose centre lies within {@code radius} tiles of
-     * (cx, cy), Euclidean distance, ignoring line of sight. Used for the
-     * dungeon-heart start-of-level "unfolding" reveal (§6.6).
-     */
-    public static void exploreDisc(FogState state, int cx, int cy, float radius) {
-        int r = (int) Math.ceil(radius);
-        double radiusSq = (double) radius * radius;
-        for (int dx = -r; dx <= r; dx++) {
-            for (int dy = -r; dy <= r; dy++) {
-                double distSq = (double) dx * dx + (double) dy * dy;
-                if (distSq <= radiusSq) {
-                    explore(state, cx + dx, cy + dy);
-                }
-            }
-        }
-    }
-
-    /**
      * The rendering visibility rule (§8.1), minus the transient reveal
      * window and camera-mode short-circuit, which are folded in by the
      * caller.
