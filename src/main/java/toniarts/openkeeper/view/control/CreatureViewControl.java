@@ -83,6 +83,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private Predicate<Vector3f> waterCheck = position -> false;
     private CreatureAnimationRequest lastAttempt;
     private CreatureAnimationRequest activeRequest;
+    private Creature.AnimationType requestedState;
+    private boolean visualRequestActive;
     private java.util.function.DoubleSupplier gameTime = () -> Double.NaN;
     private ArtResource activeAnimation;
     private int[] stepMarks;
@@ -98,6 +100,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         var request = new CreatureAnimationRequest(state);
         if (request.equals(lastAttempt) || request.equals(activeRequest)) return false;
         lastAttempt = request;
+        acceptLogicalState(state.state);
         Creature previous = getDataObject();
         if (previous != creature && spatial != null) {
             var cache = spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class);
@@ -109,6 +112,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (!playAnimation(state.state)) {
             setDataObject(previous);
             super.setTargetState(previousTarget);
+            holdFailedVisual();
             return false;
         }
         playStateSounds(state.state);
@@ -121,6 +125,30 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
         super(entityId, entityData, data, animation, assetManager, textParser);
+        requestedState = animation;
+    }
+
+    /** Logical activity is independent of whether its art could replace the last valid visual. */
+    public Creature.AnimationType getRequestedState() { return requestedState; }
+
+    private void acceptLogicalState(Creature.AnimationType state) {
+        requestedState = state;
+        stopActivitySounds();
+        previousStepTime = -1;
+        previousMarkerAge = Double.NaN;
+        nextInHandSound = 0;
+    }
+
+    private void holdFailedVisual() {
+        visualRequestActive = false;
+        isAnimationPlaying = false;
+        if (spatial != null) AnimationLoader.holdAnimation(spatial);
+    }
+
+    private void stopActivitySounds() {
+        playResearchSound(null);
+        if (digSound != SoundEngine.NO_HANDLE) SoundManager.stopSound(digSound);
+        digSound = SoundEngine.NO_HANDLE;
     }
 
     @Override
@@ -165,8 +193,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             var cache = spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class);
             if (cache != null) cache.clear();
         }
-        playResearchSound(null);
-        digSound = SoundEngine.NO_HANDLE;
+        stopActivitySounds();
         super.cleanup();
     }
 
@@ -208,6 +235,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             }, false)
                 != AnimationLoader.PlaybackResult.STARTED) return false;
         activeAnimation = resource;
+        visualRequestActive = true;
         isAnimationPlaying = true;
         currentState = animation;
         stepMarks = FootstepSounds.getMarks(getDataObject(), animation);
@@ -221,7 +249,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
-        if (AnimationLoader.isPaused(spatial)) {
+        if (AnimationLoader.isPaused(spatial) || !visualRequestActive || requestedState != currentState) {
             previousStepTime = -1;
             previousMarkerAge = Double.NaN;
             return;
@@ -340,12 +368,13 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public void setTargetState(Creature.AnimationType state) {
+        if (requestedState != state) acceptLogicalState(state);
         Creature.AnimationType previousTarget = targetState;
         super.setTargetState(state);
 
         // Play immediately
-        if (!Objects.equals(currentState, targetState)) {
-            if (!playAnimation(state)) { super.setTargetState(previousTarget); return; }
+        if (!Objects.equals(currentState, targetState) || !visualRequestActive) {
+            if (!playAnimation(state)) { super.setTargetState(previousTarget); holdFailedVisual(); return; }
             activeRequest = null;
             playStateSounds(state);
         }
@@ -353,7 +382,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private void playStateSounds(Creature.AnimationType state) {
             // State exit always releases a loop, including transitions hidden by fog.
-            playResearchSound(null);
+            stopActivitySounds();
             if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
                 int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
                 digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;

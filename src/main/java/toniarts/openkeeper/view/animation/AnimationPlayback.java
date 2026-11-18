@@ -44,6 +44,7 @@ final class AnimationPlayback extends AbstractControl {
     }
 
     double age() { return age; }
+    void holdCurrentPose() { stopped = true; }
     boolean isPlaying() { return !stopped && actions[1] != null; }
     double startLength() { return length(0); }
     private double length(int index) { return actions[index] == null ? 0 : actions[index].getLength(); }

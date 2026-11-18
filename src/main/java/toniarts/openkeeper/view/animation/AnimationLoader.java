@@ -123,6 +123,11 @@ public final class AnimationLoader {
         var playback = spatial.getControl(AnimationPlayback.class);
         return playback == null ? Double.NaN : playback.age();
     }
+    /** Retains the last valid pose when a logical state has no renderable replacement. */
+    public static void holdAnimation(Spatial spatial) {
+        var playback = spatial.getControl(AnimationPlayback.class);
+        if (playback != null) playback.holdCurrentPose();
+    }
     public static double getMainStartDelay(Spatial spatial) {
         var playback = spatial.getControl(AnimationPlayback.class);
         return playback == null ? 0 : playback.startLength();

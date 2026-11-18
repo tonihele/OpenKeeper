@@ -664,13 +664,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         Creature creature = kwdFile.getCreature(viewState.creatureId);
         applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
-        boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
+        boolean wasAlreadyDead = ((CreatureViewControl) control).getRequestedState() == Creature.AnimationType.DEATH_POSE;
         ((CreatureViewControl) control).setViewState(creature, viewState);
         setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
-            int deathEffectId = control.getDeathEffectId();
+            int deathEffectId = creature.getDeathEffectId();
             if (deathEffectId == 0) {
                 // use the default puddle of blood
                 deathEffectId = 129;
