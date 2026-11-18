@@ -83,8 +83,14 @@ public abstract class MovieState extends AbstractAppState {
         player = new TgqPlayer(Paths.get(movie)) {
             @Override
             protected void onPlayingEnd() {
-                app.getStateManager().detach(MovieState.this);
-                MovieState.this.onPlayingEnd();
+
+                // A movie that plays to its end stops on the audio playback thread. Carry on on the render
+                // thread: what comes next (the main menu) shows the cursor, and GLFW only releases a hidden
+                // cursor when that is done on the window's thread
+                app.enqueue(() -> {
+                    app.getStateManager().detach(MovieState.this);
+                    MovieState.this.onPlayingEnd();
+                });
             }
 
             @Override
@@ -109,8 +115,8 @@ public abstract class MovieState extends AbstractAppState {
     };
 
     /**
-     * Called when the playing has finished, you probably want to move on with
-     * your life
+     * Called on the render thread when the playing has finished, you probably
+     * want to move on with your life
      */
     protected abstract void onPlayingEnd();
 
