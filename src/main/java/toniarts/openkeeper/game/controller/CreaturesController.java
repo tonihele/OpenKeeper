@@ -51,6 +51,7 @@ import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
@@ -247,6 +248,11 @@ public final class CreaturesController implements ICreaturesController {
         // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
         if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
             entityData.setComponent(entityId, new Peaceful());
+        }
+
+        // A hero may be set to withdraw to the hero lair when it is badly hurt
+        if (ownerId == Player.GOOD_PLAYER_ID && flags != null && flags.contains(Thing.Creature.CreatureFlag.RETURN_TO_HERO_LAIR)) {
+            entityData.setComponent(entityId, new ReturnToHeroLair());
         }
         return entityId;
     }
