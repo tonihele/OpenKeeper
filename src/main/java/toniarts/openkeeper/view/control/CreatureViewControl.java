@@ -127,7 +127,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         // Like DK II, only own creatures, heroes and neutral creatures have a tooltip, other keepers' creatures have none
         String tooltip;
         if (getOwnerId() == playerId) {
-            tooltip = Utils.getMainTextResourceBundle().getString("2841");
+
+            // The Horned Reaper has a tooltip of its own (0x48D880)
+            tooltip = Utils.getMainTextResourceBundle().getString(
+                    getDataObject().getFlags().contains(Creature.CreatureFlag.IS_HORNY) ? "2793" : "2841");
         } else if (getOwnerId() == Player.GOOD_PLAYER_ID) {
             tooltip = Utils.getMainTextResourceBundle().getString("2412");
         } else if (getOwnerId() == Player.NEUTRAL_PLAYER_ID) {

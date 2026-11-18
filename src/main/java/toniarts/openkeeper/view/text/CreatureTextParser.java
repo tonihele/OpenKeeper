@@ -49,6 +49,11 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
     protected String getReplacement(TextParameter parameter, Entity entity, Creature creature) {
         switch (parameter) {
             case CREATURE_INSTANCE_NAME:
+
+                // The unique creatures have a name of their own (0x48D880)
+                if (creature.getUniqueNameTextId() != 0) {
+                    return Utils.getMainTextResourceBundle().getString(Integer.toString(creature.getUniqueNameTextId()));
+                }
                 CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
                 if (creatureComponent != null) {
                     return creatureComponent.name;
@@ -71,9 +76,9 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                     int unhappyThreshold = CreatureMood.toRuntimeThreshold(
                             creature.getAttributes().getUnhappyThreshold());
                     String textId = switch (creatureMood.getState(unhappyThreshold)) {
-                        case 0 -> "1981"; // Content
-                        case 1 -> "1983"; // Discontent
-                        case 2 -> "1985"; // Angry
+                        case 0 -> "2340"; // Content
+                        case 1 -> "2342"; // Discontent
+                        case 2 -> "2344"; // Angry
                         default -> throw new IllegalStateException("Unknown creature mood state");
                     };
                     return Utils.getMainTextResourceBundle().getString(textId);
@@ -114,7 +119,7 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
             case MELEE_ATTACK:
             case CAST_SPELL:
             case FIGHT: {
-                return Utils.getMainTextResourceBundle().getString("2651");
+                return Utils.getMainTextResourceBundle().getString("2787");
             }
             case DRAGGED:
             case UNCONSCIOUS: {
@@ -156,10 +161,10 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                 return Utils.getMainTextResourceBundle().getString("2627");
             }
             case CAPTURE_ENEMY_CREATURE -> {
-                return Utils.getMainTextResourceBundle().getString("2621");
+                return Utils.getMainTextResourceBundle().getString("2620");
             }
             case CARRY_CREATURE_TO_JAIL -> {
-                return Utils.getMainTextResourceBundle().getString("2619");
+                return Utils.getMainTextResourceBundle().getString("2620");
             }
             case CARRY_CREATURE_TO_LAIR -> {
                 return Utils.getMainTextResourceBundle().getString("2619");
@@ -211,25 +216,37 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                 return Utils.getMainTextResourceBundle().getString("2624");
             }
             case FETCH_TRAP_CRATE -> {
-                return Utils.getMainTextResourceBundle().getString("2612");
+                return Utils.getMainTextResourceBundle().getString("2611");
             }
             case DELIVER_TRAP_CRATE -> {
-                return Utils.getMainTextResourceBundle().getString("2613");
+                return Utils.getMainTextResourceBundle().getString("2611");
             }
             case FETCH_DOOR_CRATE -> {
-                return Utils.getMainTextResourceBundle().getString("2615");
+                return Utils.getMainTextResourceBundle().getString("2614");
             }
             case DELIVER_DOOR_CRATE -> {
-                return Utils.getMainTextResourceBundle().getString("2616");
+                return Utils.getMainTextResourceBundle().getString("2614");
             }
             case GO_TO_EAT -> {
-                return Utils.getMainTextResourceBundle().getString("2668");
+                return Utils.getMainTextResourceBundle().getString("2630");
             }
             case TRAIN -> {
                 return Utils.getMainTextResourceBundle().getString("2633");
             }
             case PRAY -> {
                 return Utils.getMainTextResourceBundle().getString("2632");
+            }
+            case GUARD -> {
+                return Utils.getMainTextResourceBundle().getString("2661");
+            }
+            case GAMBLE, COLLECT_WINNINGS -> {
+                return Utils.getMainTextResourceBundle().getString("2640");
+            }
+            case TORTURE -> {
+                return Utils.getMainTextResourceBundle().getString("2634");
+            }
+            case COLLECT_PAY -> {
+                return Utils.getMainTextResourceBundle().getString("2669");
             }
             default -> {
                 return "";
