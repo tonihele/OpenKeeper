@@ -205,6 +205,20 @@ class CreatureTorturingSystemTest {
     }
 
     @Test
+    void victimWithNoDeviceLeftInTheRebuiltChamberIsSetFree() {
+        EntityId victim = victimOn(TORTURE_WHEEL);
+        tick(1);
+
+        // The chamber was built again and has no free device left for the victim
+        entityData.removeComponent(victim, CreatureTortured.class);
+        tick(1);
+
+        assertEquals(List.of(victim), leftDevice);
+        assertEquals(CreatureState.IDLE, states.get(victim));
+        assertEquals(HERO_ID, entityData.getComponent(victim, Owner.class).controlId);
+    }
+
+    @Test
     void ownCreatureIsNotConverted() {
         EntityId victim = victim(KEEPER_ID, 2);
 
