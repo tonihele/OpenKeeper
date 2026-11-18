@@ -4,11 +4,11 @@ Consolidation proposal for [#1306, O1](https://github.com/tonihele/OpenKeeper/is
 
 ## Decision and contribution history
 
-Use one event-driven lifecycle, following #1133's scheduling direction, with #1131's injection boundary, #1081's readiness contract, and #1012's useful material retention and mutation coverage. The older branches are alternatives to reconcile, rather than dependencies to merge wholesale. All four PRs were opened by adrian-andrzjewski; their original discussions and commits remain available.
+Use one event-driven lifecycle, following #1133's scheduling direction, with #1131's injection boundary, #1081's resource-readiness concerns, and #1012's useful material retention and mutation coverage. Structural preparation now runs once per mutation even before ambient readiness, so reused materials cannot retain another world's resources. The older branches are alternatives to reconcile, rather than dependencies to merge wholesale. All four PRs were opened by adrian-andrzjewski; their original discussions and commits remain available.
 
 | Source / reviewed head | Retained | Replaced or kept separate |
 | --- | --- | --- |
-| [#1081](https://github.com/tonihele/OpenKeeper/pull/1081), `180e874dd90032a59f1e3825694ae8affb2eec74` | Pending setup until ambient readiness; coherent resource publication | Separate configured/pending maps and state-comparison invalidation |
+| [#1081](https://github.com/tonihele/OpenKeeper/pull/1081), `180e874dd90032a59f1e3825694ae8affb2eec74` | Coherent resource publication and eventual binding without another entity event | Separate configured/pending maps, state-comparison invalidation, and deferral of structural ownership until ambient readiness |
 | [#1131](https://github.com/tonihele/OpenKeeper/pull/1131), `03450d8310a336e5f39f23cf845ff3fada3d9c6e` | Injectable provider, resource identity, diagnostic configuration, focused tests | Synchronized weak cache, recurring cache probes and broad factory plumbing |
 | [#1133](https://github.com/tonihele/OpenKeeper/pull/1133), `d233fc812cdeda3c37a27fb83c6f8f8fc790875e` | Creation/replacement notifications and removal of four entity material sweeps | Callback plumbing and incomplete effect context shortcut |
 | [#1012](https://github.com/tonihele/OpenKeeper/pull/1012), `296c25fc845448dae9219a1fd3c9cf080a22e71a` | Retained materials, animation/variant/charred invalidation, allocation-free light following adapted to current semantics | Spatial user-data cache and recurring effect-element sweeps. Page lighting, SMAA and other independent optimizations stay separate |
@@ -26,7 +26,7 @@ Use one event-driven lifecycle, following #1133's scheduling direction, with #11
 
 | Component | Authority |
 | --- | --- |
-| [`EntityMaterialSetup`](../src/main/java/toniarts/openkeeper/view/material/EntityMaterialSetup.java) | Registrations, pending/waiting queues, retained materials, center storage, binding identity and cleanup |
+| [`EntityMaterialSetup`](../src/main/java/toniarts/openkeeper/view/material/EntityMaterialSetup.java) | Registrations, one coalesced pending queue, retained materials, center storage, binding identity and cleanup |
 | [`MaterialProvider`](../src/main/java/toniarts/openkeeper/view/material/MaterialProvider.java) | Injectable `prepare(root, policy, previous)` boundary; no independent cache |
 | [`JmeMaterialProvider`](../src/main/java/toniarts/openkeeper/view/material/JmeMaterialProvider.java) | Supported material conversion, isolation and identity deduplication |
 | [`MaterialSetupPolicy`](../src/main/java/toniarts/openkeeper/view/material/MaterialSetupPolicy.java) | Immutable WORLD, CREATURE and FULL_BRIGHT behavior |
@@ -37,11 +37,8 @@ Each view owns its registrations: entity state, effect manager, hand and menu MP
 ```mermaid
 flowchart LR
     E[Create or replace materials] --> Q[Coalesced pending root]
-    Q --> R{Ambient ready?}
-    R -- no --> W[Wait without traversal]
-    W -- ready snapshot --> Q
-    R -- yes --> P[Prepare and retain materials]
-    P --> B[Bind resources]
+    Q --> P[Prepare and retain current materials]
+    P --> B[Bind current resources or clear obsolete bindings]
     B --> S[Stable: compare center]
     S -- material change --> Q
     S -- resource identity change --> B
@@ -49,18 +46,18 @@ flowchart LR
 ```
 
 1. Register canonical roots once. Requests coalesce by entry; nested registrations delimit ownership even across different view owners.
-2. World-lit roots wait without geometry traversal until ambient resources exist. Full-bright roots do not wait.
+2. Creation/replacement prepares current materials once, even without a lighting context. This isolates reused materials and clears inherited bindings before submission. Stable frames with unavailable ambient resources perform no repeated discovery; a new resource snapshot later rebinds the retained list.
 3. Preparation visits changed geometry only, prunes nested owners, skips unsupported/batched geometry and retains distinct instance-owned materials. Shared source materials are not mutated. Previously owned materials can be reused on invalidation.
-4. Replacing resources rebinds retained materials without recollection. An uninitialized replacement context clears the old ambient binding; a missing context clears all old light bindings. Changing image contents does not invalidate setup.
+4. Replacing resources rebinds retained materials without recollection. An uninitialized replacement context clears the old ambient binding; a missing context clears all old light bindings. Freshly prepared materials are explicitly bound/sanitized even if both stored/current binding identities are null. Changing image contents does not invalidate setup. There is no separate waiting list or readiness flag.
 5. `update()` preserves the former `MeshCenter` sampling phase. Stable roots compare centers with reusable vectors; changed centers update retained materials. jME copies the vector when uploading a uniform.
 6. `render()` calls `flush()` after logical controls, before submission, so replacement geometry is prepared for its first draw.
-7. `unregister()` cancels queued/waiting work and detaches routing. `close()` releases the owner's registrations and retained resources. Child registration/removal queues the nearest parent to recollect its own portion.
+7. `unregister()` cancels queued work and detaches routing. `close()` releases the owner's registrations and retained resources. Child registration/removal queues the nearest parent to recollect its own portion.
 
 Private, unattached loader construction may occur before publication. The first update/flush claims the render thread; subsequent access from another thread fails. There are no locks on the render hot path. Owners are closed on disposal and are not reusable after close.
 
 ### Mutation inventory
 
-`EntityMaterialSetup.materialsChanged(spatial)` walks ancestors to the nearest registered root. Its disabled `InvalidationControl` performs no frame work. The entry is transient and cloning creates an inert observer, preventing registration/cache/context transfer to cloned or exported models.
+`EntityMaterialSetup.materialsChanged(spatial)` walks ancestors to the nearest registered root. Its disabled `InvalidationControl` performs no frame work. The entry is transient and cloning creates an inert observer, preventing registration/cache transfer. Cloned/exported materials can still contain texture parameters; their new owner isolates and sanitizes those parameters on its first flush, including absent/loading contexts.
 
 | Event | Integration |
 | --- | --- |
@@ -73,19 +70,20 @@ Private, unattached loader construction may occur before publication. The first 
 | Menu MPD root replacement | `MainMenuState.update()` tracks actual root identity |
 | Effect creation, delayed context, infinite restart | `VisualEffect.load()` / `registerLightTarget()` |
 | Mesh particles and self-respawn | `EffectEmitter` spawn, death, respawn and `killAllParticles()` |
-| Effect/state removal | `VisualEffect.removeEffect()` / `EffectManagerState.cleanup()` |
+| Effect/state removal | Natural completion and explicit removal share `VisualEffect.removeEffect()`; restart releases its old lighting/target; `EffectManagerState.cleanup()` closes the owner |
+| Model Viewer preview/debug changes | Fixed FULL_BRIGHT effect policy; normals replacement/restoration notify the owning root |
 
 Future material/hierarchy replacements must use this notification. Ordinary parameter edits to a retained material need no recollection. This small dependency in mutation helpers avoids parallel callback, provider-cache and ready-flag systems.
 
-Preparation still allocates on actual geometry changes. A bulk readiness/creation event can cause a preparation burst; work is not spread over frames because the first submitted draw must already be correct. The steady-state benchmarks below do not establish initial-load latency. Missing notifications in future mutation paths remain the main maintenance risk; the uncached diagnostic mode helps isolate them.
+Preparation still allocates on actual geometry changes. Bulk creation can cause a preparation burst; work is not spread over frames because the first submitted draw must already be correct. Ambient readiness alone requires rebinding, not another preparation pass. The steady-state benchmarks below do not establish initial-load latency. Missing notifications in future mutation paths remain a maintenance risk; the uncached diagnostic mode helps isolate them.
 
-Explicit effect removal is terminal: subsequent updates return false without recreating lighting or registrations, including a context that became ready during removal. The manager no longer performs a synthetic negative-time update after destruction. Map cleanup also rejects late publication from its background loader.
+Natural finite completion and explicit effect removal are terminal and idempotent: subsequent updates return false without recreating lighting or registrations, including a context that became ready during removal. Artless effects have no dummy material target; their light/children still follow the ordinary effect lifecycle. Model-bearing lit effects establish material ownership before map readiness. The manager no longer performs a synthetic negative-time update after destruction. Map cleanup also rejects late publication from its background loader.
 
 ### Material correctness and dynamic lighting
 
 Conversion uses existing `AssetUtils.createDkSurfaceMaterial()` and preserves diffuse/animated tile parameters, alpha, transparency, blend, cull and depth state. Preserving authored animation/depth state corrects information lost by the old entity-only conversion; uncommon assets using those flags still warrant maintainer visual review.
 
-Full-bright policy is reversible and clears inherited world resources. `AssetUtils.applyVertexLight()` / `applyFullLight()` remain uncached compatibility facades over the same provider; recurring runtime callers have been removed. The model viewer retains its deliberate one-time full-bright call.
+Full-bright policy is reversible and clears inherited world resources. `AssetUtils.applyVertexLight()` / `applyFullLight()` remain uncached compatibility facades over the same provider, respecting nested ownership boundaries; recurring runtime callers have been removed. Model Viewer explicitly constructs its effect manager with FULL_BRIGHT policy. That policy reaches initial effect models, child effects, later mesh generation and self-respawn without needing world lighting rules. Its one-time compatibility call covers unregistered preview/overlay geometry. Normals material replacement/restoration notify registered roots.
 
 Moving/flickering/pulsing lights continue updating through existing `LightRules`/`SceneLights` and GPU lighting textures. Position updates reuse owned storage and retain owner/color/possession behavior. Content uploads are independent of material preparation. No GLSL or renderer backend is changed. GPU offloading of material ownership/invalidation is unwarranted: those responsibilities are CPU object lifecycle work, while lighting evaluation is already on the GPU. Batching, pose evaluation and partial light uploads require separate profiles and designs.
 
@@ -111,11 +109,23 @@ Page lighting and SMAA are not on this master baseline and are not imported by O
 
 ### Automated checks
 
-Final `gradlew --no-daemon build --rerun-tasks` passed: **1,404 tests in 253 suites, zero failures, errors or skips**. The 22 focused lifecycle tests include the final removal regression. That regression was also run with frozen pre-fix production classes and failed with one retained registration; it passes with the terminal-removal fix. Whitespace validation uses `git -c core.whitespace=cr-at-eol diff --check` to respect existing mixed line endings.
+After the critical-review fixes, `gradlew --no-daemon build --rerun-tasks` passed: **1,411 tests in 253 suites, zero failures, errors or skips**. The 29 lifecycle cases include six new regression methods, with absent/loading contexts parameterized separately. Seven applicable cases (including the strengthened full-bright reversal test) fail against frozen PR-head production classes and pass with the fixes; the preview regression exercises the new policy API. The earlier explicit-removal regression was independently demonstrated against its pre-fix classes too. Binary-roundtrip tests now configure and load with the same importer instance and inspect actual material contents, preventing a swallowed importer error from producing a misleading pass. Whitespace validation uses `git -c core.whitespace=cr-at-eol diff --check` to respect existing mixed line endings.
 
 [`EntityMaterialSetupTest`](../src/test/java/toniarts/openkeeper/view/material/EntityMaterialSetupTest.java) covers stable reuse, late readiness, context/resource/size replacement, absent/loading contexts, coalescing and late flush, actual blueprint restore, moving bounds, shared policy isolation/reversal, nested ownership transfer, clone/binary roundtrip, cleanup, uncached configuration, thread ownership, render-state preservation, batching, real effect restart/respawn/removal, additive page parameters and reusable light positions. Four existing non-rendering effect suites explicitly inject their fake provider.
 
+New cases cover repeated artless natural completion, nested/generated effects, delayed context, bounded self-restart, terminal cleanup after context replacement, blueprint restoration while resources are absent, cloned/imported prebound material sanitation, and no-map initial/new/respawned mesh preview materials including debug-material restoration and clear/reload.
+
 ### Asset-backed visual and gameplay checks
+
+Post-review checks add **19 paired 640×640 transition checkpoints with zero differing pixels**: first rendered frame, unavailable ambient resources, null context, blueprint restore/animation change while unavailable, loading replacement context, charred materials, initialized/recreated ambient maps and moving object lights. Expected texture identity/dimensions were checked on attached Vertex geometry every rendered frame. The reference uses frozen master preparation with the current binder when rules exist and explicit removal of unavailable bindings otherwise. Cold/null/loading images were inspected; a null context correctly shows unlit silhouettes rather than old-world illumination.
+
+A separate no-map preview rendered real **Dig Rock (effect 6)** and self-respawning **3dfe Gems (effect 350)** mesh subsets. Twelve checkpoints, including first draw, clear/reload and self-respawn, match a full-bright material oracle with zero differing pixels. Geometry/animation buffers are shared by the paired views; this isolates mesh material fidelity, rather than certifying all sprite layers or the interactive viewer UI. Mesh lighting parameters were checked before submission. Missing converted `sm16.png`/`GSparkle16.png` warnings were recorded for sprite layers outside that comparison; no new asset changes are submitted.
+
+An actual `Main` application exercised `MainMenuState` and `KeeperHandState` for 244 frames: held Imp creation, emptying/reload, blueprint restoration, hand disposal/recreation, menu creature root replacement and final cleanup. **1,611 material checks passed**, including full-bright hand parameters and world-lit menu bindings; captures were inspected. Temporary local ECS data, an injected menu Imp and a temporary proof light made these paths observable without changing campaign progress. Earlier harness attempts were excluded: they accessed the menu before scene attachment or left an obsolete root in an added proof viewport. The accepted fixture waits for scene attachment and updates that viewport on replacement; no production workaround was added.
+
+Fresh Level20 gameplay after the fixes used 600 warmup + 1,000 inspected frames with normal AI/sound/UI and the existing spawned roster: **2,917,500 geometry checks, 2,907,886 Vertex checks, zero missing bindings**. Dungeon/unit/torch captures were inspected and shutdown completed without a Java exception. This inspector checks binding presence; the separate transition fixture checks exact resource identity/dimensions. Inspection overhead excludes this run from performance comparisons.
+
+The following gameplay and earlier parity captures predate the review fixes and remain historical evidence:
 
 - Real converted Level20 Imp IDLE_1/WALK/IDLE_2, dungeon-heart arch, moving roots/lights, blueprint apply/restore, charred materials, delayed ambient readiness and texture/dimension recreation were rendered at fixed 30 Hz into paired 640×640 framebuffers.
 - Six checkpoints in each of two variants (ordinary lights and the actual object-light/MeshCenter shader branch) had **zero differing pixels**, zero RGB mean absolute error and zero maximum channel delta. Nonblank captures were inspected.
@@ -140,7 +150,7 @@ In the instrumented group, combined entity update+late flush mean fell **1.839�
 
 The contrary groups are retained deliberately: visible triangles/lights and GPU clocks varied, a concurrent torus renderer was observed later without recorded overlap, and quiet-start GPU checks cannot exclude subsequent contention. Those facts do not prove the cause of any slow run. Entity/update allocation savings are established for these samples; uniform whole-game/GPU improvement is not.
 
-#### Final fixed-work asset replay
+#### Fixed-work asset replay before the critical-review fixes
 
 To separate workload variation from setup cost, a separate external SimpleApplication replay rendered 160 real animated Level20 imps and 64 object lights. It used a fixed 60 Hz simulation and frame cap, one scripted animation replacement every third frame, a moving light, ambient initialization at frame 20 and recreation at frame 1,800. Flicker was disabled. Each JVM ran 300 warmup + 1,800 measured frames. The declared schedule was baseline/candidate, candidate/baseline, baseline/candidate (pairs 30–32). No build ran concurrently.
 
@@ -166,6 +176,43 @@ The fixed replay supports lower CPU cost with equivalent submitted geometry and 
 
 Counter-disabled pilot captures (1, 2, 10, 11), a rejected busy start (20), and the 30-frame smoke (99) were preserved and excluded. The pilot bug was deferred StatsAppState initialization overriding the external harness's initial statistics setting; the corrected harness enables counters after initialization and rejects zero-counter samples. No production fix was needed for that instrumentation issue.
 
+#### Fixed-work replay after the critical-review fixes
+
+The same 160-Imp/64-light workload and 300 + 1,800 frame protocol was repeated with the fixed classes, in alternating pairs 60–62. The external harness now detaches its unused `StatsAppState` before initialization so counters remain enabled from the first draw. This matters because eager material preparation can upload the light texture in frame zero. Earlier post-fix pairs 50–52 missed one texture in the memory-object counter; those captures are preserved separately and are not pooled with the corrected group. This was a statistics lifecycle issue, not evidence of an extra GPU texture allocation.
+
+| Post-review replay metric | Master preparation reference | Fixed candidate |
+| --- | ---: | ---: |
+| CPU frame mean / P95 / P99 (ms) | 3.540 / 4.488 / 5.162 | 3.223 / 4.022 / 5.079 |
+| Material update + flush mean / P95 / P99 (ms) | 0.511 / 0.627 / 0.713 | 0.039 / 0.075 / 0.104 |
+| Render-thread allocation (B/frame) | 56,791 | 19,620 |
+| GPU interval mean / P95 / P99 (ms) | 0.946 / 1.730 / 2.197 | 0.967 / 1.767 / 2.240 |
+
+Median CPU mean fell about **9.0%**, setup mean **92.4%**, and allocation **65.5%**. CPU mean improved in every pair. All reported rendering counters, including uniforms and texture-memory-object counts, matched for every paired measured frame; all six final images have the same SHA-256 as the earlier replay. No build or other validation renderer was run concurrently.
+
+| Pair | CPU mean baseline / fixed (ms) | GPU mean baseline / fixed (ms) | Sampled graphics clocks / load |
+| --- | ---: | ---: | --- |
+| 60 | 3.540 / 3.223 | 0.946 / 0.967 | Both 1,470 MHz; peak load 15% |
+| 61 | 3.486 / 3.337 | 0.941 / 1.110 | Candidate mean about 1,925 MHz; peak load 54% |
+| 62 | 9.547 / 3.146 | 1.949 / 0.958 | Baseline mean about 1,626 MHz; peak load 100% |
+
+The adverse/variable GPU results remain included. Their cause is not established: sampled clocks/load changed during two runs, and quiet starts do not guarantee a quiet interval. Even pair 60 has a small candidate GPU increase. These data support CPU savings for this workload, **not** GPU improvement or hardware-wide non-regression. The shared current binder/loader reference limitation still applies. Median GPU mean rose about 0.021 ms and P99 about 0.043 ms; repeat under controlled hardware conditions before making stronger GPU claims.
+
+#### Lifecycle churn and bulk operations
+
+An external headless experiment loaded actual Level20 effect 242 and naturally completed it **50,000 times**. The pre-review consolidation at `7ff4765` retained 50,000 registrations even after clearing active effects; fixed code retained zero throughout. After forced GC, the fixed process settled around 7.04 MB heap, while the pre-fix process reached 48.04 MB. Fixed idle lifecycle update cost remained roughly 0.06–0.10 microseconds in that empty-owner fixture; the pre-fix owner reached about 0.222 ms mean after 50,000 completions. This isolates the leak and accumulated work; it is not a gameplay FPS benchmark or a general heap-size estimate.
+
+A separate 20-repeat synthetic bulk test (one Vertex quad per root, three warmup repetitions, no GPU) measured the lifecycle's initial no-context preparation, later ready binding and removal:
+
+| Roots | Initial preparation mean / P95 (ms) | Ready binding mean / P95 (ms) | Removal mean / P95 (ms) |
+| --- | ---: | ---: | ---: |
+| 160 | 1.210 / 2.148 | 0.311 / 0.408 | 0.110 / 0.262 |
+| 1,000 | 2.620 / 3.202 | 1.165 / 1.388 | 0.483 / 0.624 |
+| 5,000 | 6.295 / 7.609 | 3.638 / 5.089 | 2.606 / 3.441 |
+
+R3 moves structural preparation to the mutation/load event and leaves readiness with binding work. These synthetic numbers do not establish real-asset cold-load latency, but expose burst costs separately. Array-list removal remains linear per entry. The measured 160-root removal did not justify a more complex collection scheme in this fix; very large simultaneous destruction remains a profiling consideration.
+
+An additional headless fixture used **160 actual Imp models / 480 geometries**, cached WALK/IDLE_1 assets, 20 iterations after three warmups, and separate pre-fix/fixed JVMs. Initial no-context preparation mean/P95 moved **0.069/0.074 → 2.237/3.633 ms**; the subsequent ready-bind event fell **2.390/3.501 → 0.487/0.821 ms**. Summed means rose about 0.27 ms for the two one-time stages, trading earlier work for correct material ownership. Preparation after a simultaneous animation replacement averaged **2.443 → 2.407 ms** (P95 **3.029 → 3.868 ms**). Graph cloning itself averaged **6.762 → 7.089 ms** in these sequential batches; that unchanged path and the higher fixed P95 are retained as observations, not attributed to O1. This measures owner initialization and mutation bursts with cached assets, excluding disk loading, shader compilation and GPU cost; it is not a cold application launch benchmark.
+
 ### Reproduction and evidence custody
 
 Run the full suite with JDK 25:
@@ -177,6 +224,10 @@ Run the full suite with JDK 25:
 For renderer comparisons, use separate JVMs and clean class directories for the pinned master and candidate, identical dependencies/assets/settings, no concurrent build or renderer, and at least three alternating pairs. Record individual runs, rejected starts, work counts, GPU clocks/load, sample counts and all contrary results. Do not compare the diagnostic fallback to master as if they were equivalent baselines.
 
 The external evidence set retains scripts, sources, raw CSV, logs, PNGs, class/source snapshots, hashes and summary formulas. It requires local paths and licensed assets; it is not an in-repository benchmark command. The fixed replay protocol above is intentionally narrower than gameplay. Deterministic full-game replay and a second GPU/vendor remain reviewer follow-ups; no statistical confidence interval or universal FPS claim is inferred from three pairs.
+
+Post-review fixes and validation are recorded in [the review follow-up](entity-material-lifecycle-code-review-2026-11-18.md#follow-up-fixes-and-validation), with external evidence under `D:\Project\OpenKeeper-o1-review-fixes-20261118`. Experimental sources, instrumentation and raw artifacts remain outside this PR's production changes.
+
+The separate `OpenKeeper-O1-review-fixes-evidence-20261118.zip` bundle contains the fix patch, reports, sources, raw data, hashes and a configurable reproduction launcher. Its external Gradle classpath helper and launcher were smoke-checked locally (transition renderer and bulk lifecycle). It requires a configured checkout, JDK 25 and locally licensed assets; it supplies no game asset files. The bundle is in local custody and has not been published to GitHub.
 
 ## Review and integration checklist
 
