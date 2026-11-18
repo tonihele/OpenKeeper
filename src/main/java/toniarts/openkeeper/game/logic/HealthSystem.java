@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
@@ -42,11 +43,13 @@ import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Poisoned;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -260,6 +263,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            triggerDestroyedEffect(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
         }
@@ -349,6 +353,38 @@ public final class HealthSystem extends GameTimeCounter {
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
         creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
         entityData.removeComponent(entityId, Navigation.class);
+    }
+
+    /**
+     * A destroyed trap, door or object blows up with its death effect, like the
+     * Trap Explosion, the Wooden Door Group Explosion or the Heart Explosion
+     * Effect
+     *
+     * @param entityId the destroyed entity
+     */
+    private void triggerDestroyedEffect(EntityId entityId) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        int effectId = getDestroyedEffectId(entityId);
+        if (position != null && effectId != 0) {
+            gameEventService.emitEffect(effectId, position.position, 0);
+        }
+    }
+
+    private int getDestroyedEffectId(EntityId entityId) {
+        TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
+        if (trapComponent != null) {
+            return levelInfo.getLevelData().getTrapById(trapComponent.trapId).getDeathEffectId();
+        }
+        DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+        if (doorComponent != null) {
+            return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getDeathEffectId();
+        }
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        if (objectComponent != null) {
+            return levelInfo.getLevelData().getObject(objectComponent.objectId).getDeathEffectId();
+        }
+
+        return 0;
     }
 
     private boolean isLeaveDeadBody(EntityId entityId) {
