@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.data;
 
+import com.jme3.system.AppSettings;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,14 +26,21 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SettingsLevelResultTest {
 
     private final Settings settings = Settings.getInstance();
+    private final AppSettings userSettings = new AppSettings(false);
     private final CampaignLevel level8 = new CampaignLevel(CampaignLevel.LevelType.Level, 8);
-
-    // The reset doesn't clear the attempts (it uses another key), so each test has its own level
     private final CampaignLevel level9 = new CampaignLevel(CampaignLevel.LevelType.Level, 9);
 
     @BeforeEach
-    void resetCampaign() {
-        settings.resetCampaignProgress();
+    void clearSettings() {
+        // Start from the defaults, not the user's settings file, and put the user's settings back after
+        userSettings.copyFrom(settings.getAppSettings());
+        settings.getAppSettings().clear();
+    }
+
+    @AfterEach
+    void restoreSettings() {
+        settings.getAppSettings().clear();
+        settings.getAppSettings().copyFrom(userSettings);
     }
 
     @Test

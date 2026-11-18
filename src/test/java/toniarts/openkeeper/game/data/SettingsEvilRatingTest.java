@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.data;
 
+import com.jme3.system.AppSettings;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -24,10 +26,19 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SettingsEvilRatingTest {
 
     private final Settings settings = Settings.getInstance();
+    private final AppSettings userSettings = new AppSettings(false);
 
     @BeforeEach
-    void resetCampaign() {
-        settings.resetCampaignProgress();
+    void clearSettings() {
+        // Start from the defaults, not the user's settings file, and put the user's settings back after
+        userSettings.copyFrom(settings.getAppSettings());
+        settings.getAppSettings().clear();
+    }
+
+    @AfterEach
+    void restoreSettings() {
+        settings.getAppSettings().clear();
+        settings.getAppSettings().copyFrom(userSettings);
     }
 
     @Test
