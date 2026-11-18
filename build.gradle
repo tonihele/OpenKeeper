@@ -65,6 +65,15 @@ tasks.register("benchmarkCharacterAnimation", JavaExec) {
     }
 }
 
+tasks.register("auditCreatureAnimationCatalog", JavaExec) {
+    group = "verification"
+    description = "Write an installed creature/action availability matrix without changing assets"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CreatureCatalogAudit'
+    args providers.gradleProperty('dk2Root').orElse('').get(), layout.buildDirectory.file('animation-catalog.csv').get().asFile.absolutePath
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"

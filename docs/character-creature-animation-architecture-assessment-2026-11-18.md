@@ -551,3 +551,18 @@ Validation: a shared synthetic model is loaded with 15 FPS, 50 FPS and static te
 Settings: `ANIMATION_CACHE_CLIPS` (default 0, clamped 0..32) and `ANIMATION_CACHE_KIB` (default 256, clamped 0..4096 per creature). Zero disables retention. Counted bytes are owned native output positions plus two decoded float arrays; material/control/other Java objects are separately bounded by clip count, not represented as an exact heap budget. The default remains disabled until full-game variant/lifecycle/residency acceptance, allowing measured opt-in use without claiming universal memory savings.
 
 Validation: LRU eviction, byte rejection, key rate changes, playback reset, distinct owners, clone sanitation and cleanup tests pass. Same-process paired warmed runs through the production loader, 500 creatures / 3000 transitions: no reuse 121.381 ms / 68,680,928 allocated bytes; three retained clips 19.364 ms / 1,404,360 allocated bytes, retaining 18,234,000 counted position bytes. This is approximately 84% less transition CPU time and 98% fewer allocations in that workload. Both runs now include immediate initial-pose evaluation, unlike the older 11.13 burst, so comparisons use this paired run only. Raw output: ignored `build/animation-reuse.txt`. Whole-game working-set/GC/variant acceptance and process-global template cache ownership remain open; this item is not represented as complete at all scopes.
+
+### 11.17 Catalog coverage and behavior-policy blocker (F13)
+
+`auditCreatureAnimationCatalog -Pdk2Root=...` compiled and ran against the installed Alcatraz catalog. It writes all 2208 creature/action combinations, including missing/NONE resources, FPS/frame count and start/end flags, to ignored `build/animation-catalog.csv`. There are 46 creature definitions. SHA-256 of the installed `Data/Editor/Creatures.kwd`: `e215c03c7722e89f7736ced7c710406dc10d6cf48e5ad37bed45faf2055c52e2`.
+
+| Slot | Available definitions out of 46 |
+|---|---:|
+| WALK / RUN / STEALTH_WALK | 46 / 39 / 3 |
+| BACK_OFF / DRAGGED | 36 / 38 |
+| RECOIL_FORWARDS / RECOIL_BACKWARDS | 44 / 44 |
+| IDLE_1 / IDLE_2 / IDLE_3 / IDLE_4 | 45 / 44 / 1 / 1 |
+| DEATH_POSE / DIE | 38 / 44 |
+| TORTURED_CHAIR_SKELETON | 5 |
+
+The matrix validates the need for per-creature fallbacks, but cannot establish retreat selection, drag entry/exit, recoil direction, idle weights, chicken model identity or their interruption rules. The checklist requires individually verified original behavior. **Blocked:** no independent executable action/frame trace for these rules is available in the assessment or repository; the manual establishes inputs, not exact clip/state/timing semantics. Original source addresses cited by existing gambling/torture comments do not prove these other actions. Run/creep selection with availability fallback is implemented in 11.11. The remaining policies stay unchecked; no invented enum/name-based rules or new random idle behavior are shipped. Acceptance requires versioned original captures of those scenarios, followed by one focused policy/test/commit per behavior.
