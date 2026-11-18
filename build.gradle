@@ -40,6 +40,14 @@ tasks.register("modelViewer", JavaExec) {
     mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
+tasks.register("benchmarkCeilingBuild", JavaExec) {
+    group = "verification"
+    description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.view.map.CeilingBuildBenchmark'
+}
+
 configurations.configureEach {
     resolutionStrategy.dependencySubstitution {
         substitute module('com.github.nifty-gui:nifty') using module('com.github.tonihele.nifty-gui:nifty:1.4-SNAPSHOT')
