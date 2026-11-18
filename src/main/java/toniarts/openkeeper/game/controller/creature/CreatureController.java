@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -1291,8 +1292,10 @@ public final class CreatureController extends EntityController implements ICreat
                 health != null && health.health < health.maxHealth / 2;
             case ARMOUR ->
                 isFighting(entity) && entityData.getComponent(entity, Armour.class) == null;
+            case INVULNERABLE ->
+                isFighting(entity) && entityData.getComponent(entity, Invulnerable.class) == null;
             default ->
-                false; // TODO: haste, invulnerability and invisibility have no effect yet
+                false; // TODO: haste and invisibility have no effect yet
         };
     }
 
@@ -1811,6 +1814,10 @@ public final class CreatureController extends EntityController implements ICreat
         Armour armour = entityData.getComponent(entityId, Armour.class);
         if (armour != null && armour.endTime <= gameTimer.getGameTime()) {
             entityData.removeComponent(entityId, Armour.class);
+        }
+        Invulnerable invulnerable = entityData.getComponent(entityId, Invulnerable.class);
+        if (invulnerable != null && invulnerable.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Invulnerable.class);
         }
 
         // A manual drop can already carry its target in AI, but no state may

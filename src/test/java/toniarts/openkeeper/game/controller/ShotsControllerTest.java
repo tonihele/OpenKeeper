@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
@@ -71,6 +72,7 @@ class ShotsControllerTest {
     private static final short HEAL_ID = 4;
     private static final short HEAL_INSTANT_ID = 53;
     private static final short ARMOUR_ID = 9;
+    private static final short INVULNERABLE_ID = 7;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
@@ -104,6 +106,7 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
         addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
+        addShot(INVULNERABLE_ID, Shot.ProcessType.INVUNERABLE);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
@@ -202,6 +205,15 @@ class ShotsControllerTest {
     }
 
     @Test
+    void invulnerableShotLastsItsFirstValueInSeconds() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(INVULNERABLE_ID, 5, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(5.0, entityData.getComponent(creature, Invulnerable.class).endTime);
+    }
+
+    @Test
     void objectShotCreatesTheObjectForThePlayer() {
         Vector3f position = new Vector3f(1.5f, 1f, 2.5f);
 
@@ -289,6 +301,19 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballHitDoesAnInvulnerableCreatureNoHarm() {
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Invulnerable(30));
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, target);
+
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void fireballSetsABadlyHurtCreatureAlightForTenTicks() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         entityData.setComponent(target, new Health(20, 100));
@@ -307,6 +332,18 @@ class ShotsControllerTest {
         hitWithFireball(target);
 
         assertNull(entityData.getComponent(target, OnFire.class));
+    }
+
+    @Test
+    void fireballDoesNotSetAnInvulnerableCreatureAlight() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(10, 100));
+        entityData.setComponent(target, new Invulnerable(30));
+
+        hitWithFireball(target);
+
+        assertNull(entityData.getComponent(target, OnFire.class));
+        assertNull(entityData.getComponent(target, Damage.class));
     }
 
     @Test
