@@ -27,8 +27,10 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureExperienceTimer;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -47,12 +49,14 @@ class CreatureExperienceSystemTest {
     @Test
     void timeWorkingSurvivesANewSystem() {
         EntityData entityData = new DefaultEntityData();
-        EntityId fighter = entityData.createEntity();
+        EntityId worker = entityData.createEntity();
         CreatureComponent creature = new CreatureComponent();
         creature.creatureId = 6;
-        entityData.setComponents(fighter, creature,
+        creature.worker = true;
+        entityData.setComponents(worker, creature,
                 new CreatureExperience(1, 0, 100, 10, 0),
-                new CreatureAi(0, CreatureState.MELEE_ATTACK, (short) 0, null));
+                new CreatureAi(0, CreatureState.WORK, (short) 0, null),
+                new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, true));
 
         // The first tick only starts the timer, then three quarters of a second
         CreatureExperienceSystem system = createSystem(entityData);
@@ -60,18 +64,18 @@ class CreatureExperienceSystemTest {
             system.processTick(0.25f);
         }
         system.stop();
-        assertEquals(0.75, entityData.getComponent(fighter, CreatureExperienceTimer.class).timeWorking, 0.0001);
+        assertEquals(0.75, entityData.getComponent(worker, CreatureExperienceTimer.class).timeWorking, 0.0001);
 
         // Like after loading a save, a new system carries on where the old one was
         system = createSystem(entityData);
         system.processTick(0.25f);
-        assertEquals(10, entityData.getComponent(fighter, CreatureExperience.class).experience);
-        assertEquals(0, entityData.getComponent(fighter, CreatureExperienceTimer.class).timeWorking, 0.0001);
+        assertEquals(1, entityData.getComponent(worker, CreatureExperience.class).experience);
+        assertEquals(0, entityData.getComponent(worker, CreatureExperienceTimer.class).timeWorking, 0.0001);
 
         // Gone when the creature stops being a creature with experience
-        entityData.removeComponent(fighter, CreatureAi.class);
+        entityData.removeComponent(worker, CreatureAi.class);
         system.processTick(0.25f);
-        assertNull(entityData.getComponent(fighter, CreatureExperienceTimer.class));
+        assertNull(entityData.getComponent(worker, CreatureExperienceTimer.class));
     }
 
     private static CreatureExperienceSystem createSystem(EntityData entityData) {
