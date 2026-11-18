@@ -353,10 +353,9 @@ Action tracking:
 - [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
 - [ ] Validate and correct CLAMP/cycle behavior.
 - [x] Make replacement transactional and fallbacks explicit. See 11.3.
-- [ ] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup.
-- [ ] Freeze playback correctly on pause and align presentation markers with shared phase.
-- [ ] Remove shared mutable transform publication before adding interpolation or workers.
-- Publication aliasing fixed in 11.10; whole-session lifecycle stress remains open.
+- [x] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Compatibility contract in 11.9; new behavior rules remain separately blocked.
+- [x] Freeze playback correctly on pause and align presentation markers with shared phase. See 11.7, 11.12 and GL evidence in 11.18; whole-game/audio acceptance remains limited.
+- [x] Remove shared mutable transform publication before adding interpolation or workers. See 11.10; whole-session lifecycle stress remains open before interpolation/workers.
 - [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence.
 - [x] Measure representative crowds and transition bursts before optimizing. CPU-only baseline in 11.13; whole-game/GPU profiling remains an acceptance limitation.
 - [x] Skip redundant/hidden deformation with correct visibility re-entry. See 11.14; frustum-only scheduling is deliberately excluded.
@@ -566,3 +565,15 @@ Validation: LRU eviction, byte rejection, key rate changes, playback reset, dist
 | TORTURED_CHAIR_SKELETON | 5 |
 
 The matrix validates the need for per-creature fallbacks, but cannot establish retreat selection, drag entry/exit, recoil direction, idle weights, chicken model identity or their interruption rules. The checklist requires individually verified original behavior. **Blocked:** no independent executable action/frame trace for these rules is available in the assessment or repository; the manual establishes inputs, not exact clip/state/timing semantics. Original source addresses cited by existing gambling/torture comments do not prove these other actions. Run/creep selection with availability fallback is implemented in 11.11. The remaining policies stay unchecked; no invented enum/name-based rules or new random idle behavior are shipped. Acceptance requires versioned original captures of those scenarios, followed by one focused policy/test/commit per behavior.
+
+### 11.18 OpenGL rendering and transition validation
+
+Added opt-in `captureCharacterAnimation`, which creates a real jME application/context and uses production controls, asset loading, prepared reuse and transitions. It renders Imp, Mistress, Knight, Warlock, Bile Demon, Firefly, Skeleton and Unique Firefly at normalized inspection scales with full light. It records walking, melee, idle, death-pose requests, same-state restarts, pause/resume, explicit hiding and re-entry. Proprietary images/assets remain untracked.
+
+```powershell
+rtk proxy .\gradlew.bat captureCharacterAnimation '-Pdk2Root=C:/GOG Games/Dungeon Keeper 2' -PconvertedAssets=D:/Project/OpenKeeper/assets/Converted -PanimationWorkingDir=D:/Project/OpenKeeper --console=plain
+```
+
+Executed successfully: NVIDIA GeForce RTX 2060 SUPER, OpenGL 3.3.0, NVIDIA 617.42, 1280x720. Thirty-nine PNG frames are generated under ignored `build/animation-capture/`; log is `build/animation-capture.txt`. Inspected walking (060), attacks (150) and death/retained-fallback (330) images: geometry/textures render coherently and unique texture changes survive replacement/reuse. The probe verifies finite current vertex data without changing it. Paused samples at 450/465 retain the same pose hash; hidden 510/525 retain theirs; 555 confirms re-entry updates. No shader/GL exceptions occurred. Optional OGG-loader and SLF4J binding warnings do not affect this audio-disabled probe.
+
+Imp/Skeleton DEATH_POSE requests return unavailable and keep the preceding valid visual, agreeing with the catalog and transactional fallback contract; this is not claimed as the original corpse fallback. The probe is not a full map, navigation, network or audio test. Full light and normalized scale do not establish original lighting/size parity. File capture introduces stalls, so it is not frame-pacing/performance evidence. Original-executable paired videos, contact drift at high refresh, shadows/multiple cameras and gameplay lifecycle acceptance remain unverified. No original gameplay reference is manufactured from these OpenKeeper screenshots.
