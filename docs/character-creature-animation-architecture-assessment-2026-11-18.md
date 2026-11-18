@@ -347,7 +347,7 @@ Impact is expected benefit, not measured speedup. Complexity and risk are relati
 Action tracking:
 
 - [x] Preserve a deterministic sample corpus and asset hashes; promote the useful headless probes into maintained regressions when implementing fixes. See implementation record 11.1.
-- [ ] Fix and validate finite terminal poses, including old converted files.
+- [x] Fix and validate finite terminal poses, including old converted files. See 11.2; original executable visual parity remains unclaimed.
 - [ ] Preserve same-animation request identity and authoritative phase.
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions.
 - [ ] Bake conservative clip bounds and decide animated picking semantics.
@@ -431,3 +431,11 @@ The optional working directory accommodates the existing engine's canonical text
 | Electrocute1 | `5dd27db422336681a28430c430313da1d22be7ada67faa9123d9f08753142ff1` |
 
 Validation: full upstream `gradlew test --no-daemon --console=plain` passed; the audit compiled and executed successfully. Numerical sample outcomes are headless evidence, not original DK2 visual acceptance. Subsequent changes add focused synthetic regressions without redistributing DK2 data.
+
+### 11.2 Finite decoding and continuous pose sampling
+
+Zero-length source intervals now use their defined endpoint coordinate. Model conversion version is 15. The sampler validates frame layouts, finite coordinates, matching vertex indices and increasing key times; malformed data fail with context at import/conversion. Historical NaN weights are accepted only when both endpoints are identical, where the resulting coordinate is unambiguous. Distinct invalid endpoints are rejected. J3O field names remain compatible.
+
+Ported the assessment branch's continuous decoded-frame interpolation into the latest-mainline implementation, without importing its unrelated Dungeon Heart changes. Per-instance sample arrays are cleared on cloning/import, sparse vertices retain bind positions, old time origins normalize correctly, and no per-sample vectors are allocated. Added terminal conversion, corrupt-pair, time validation, clone and serialization regressions.
+
+Validation: focused pose and synthetic conversion tests plus the installed corpus pass. The three source hashes in 11.1 are unchanged; 1,340 cached/fresh samples contain zero non-finite output. Bounds remain deficient (1,284 samples outside after continuous sampling) and are deliberately handled as a separate item. Exact DK2 terminal dwell behavior still needs original executable comparison; no authored coordinates or static normals were changed.
