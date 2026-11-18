@@ -48,6 +48,10 @@ public final class GameResult {
         CREATURES_CONVERTED,
         CREATURE_TRAINING,
         ATTEMPTS_AT_LEVEL,
+        /**
+         * Not shown, a hundredth of the size times the cost per tile of the rooms captured
+         */
+        ROOMS_CAPTURED_VALUE,
     };
 
     /**
@@ -64,6 +68,7 @@ public final class GameResult {
     private static final int CREATURE_COMMANDED_RATING = 20;
     private static final int CREATURE_CONVERTED_RATING = 40;
     private static final int CREATURE_TRAINING_RATING = 50;
+    private static final int ROOMS_CAPTURED_VALUE_RATING = 1;
 
     /**
      * The level rating points for 0 to 4 enemy keepers vanquished, from DK II (0x4C0280)
@@ -107,7 +112,9 @@ public final class GameResult {
 
     /**
      * Calculates the Evil Rating of the level from the statistics. It is a weighted sum of the
-     * statistics, the won or lost status and the time taken don't count. The creature training
+     * statistics, the won or lost status and the time taken don't count. Besides the statistics on
+     * the screen, the worth of the rooms captured counts too (DKII.EXE 0x4BE630 adds CPlayer +0x152
+     * unweighted). The creature training
      * (the average experience level) counts with two decimals, cut off rather than rounded, as DK II
      * does. Statistics that are not set count as zero.
      *
@@ -129,6 +136,7 @@ public final class GameResult {
                 + ITEM_MANUFACTURED_RATING * getInt(ResultType.ITEMS_MANUFACTURED)
                 + CREATURE_COMMANDED_RATING * getInt(ResultType.CREATURES_COMMANDED)
                 + CREATURE_CONVERTED_RATING * getInt(ResultType.CREATURES_CONVERTED)
+                + ROOMS_CAPTURED_VALUE_RATING * getInt(ResultType.ROOMS_CAPTURED_VALUE)
                 + CREATURE_TRAINING_RATING * level + CREATURE_TRAINING_RATING * levelHundredths / 100;
     }
 

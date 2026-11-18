@@ -121,6 +121,10 @@ public final class PlayerRoomControl extends AbstractResearchablePlayerControl<R
     public void onCaptured(IRoomController room) {
         onBuild(room);
 
+        // DK II adds a hundredth of the room's worth to the Evil Rating, bridges too (0x4E5650)
+        keeper.setRoomsCapturedValue(keeper.getRoomsCapturedValue()
+                + room.getRoomInstance().getCoordinates().size() * room.getRoom().getCost() / 100);
+
         // Bridges don't count
         Set<Room.RoomFlag> flags = room.getRoom().getFlags();
         if (!flags.contains(Room.RoomFlag.PLACEABLE_ON_WATER) && !flags.contains(Room.RoomFlag.PLACEABLE_ON_LAVA)) {

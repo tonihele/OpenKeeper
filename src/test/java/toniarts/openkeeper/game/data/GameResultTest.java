@@ -67,6 +67,7 @@ class GameResultTest {
         assertEquals(5, rating(ResultType.ITEMS_MANUFACTURED, 1));
         assertEquals(20, rating(ResultType.CREATURES_COMMANDED, 1));
         assertEquals(40, rating(ResultType.CREATURES_CONVERTED, 1));
+        assertEquals(1, rating(ResultType.ROOMS_CAPTURED_VALUE, 1));
     }
 
     @Test

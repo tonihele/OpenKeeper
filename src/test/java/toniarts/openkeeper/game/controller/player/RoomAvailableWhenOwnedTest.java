@@ -19,6 +19,7 @@ package toniarts.openkeeper.game.controller.player;
 import java.lang.reflect.Proxy;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.OwnedRoomFixtures;
@@ -90,6 +91,7 @@ class RoomAvailableWhenOwnedTest {
         return (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(),
                 new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getRoom" -> type;
+                    case "getRoomInstance" -> new RoomInstance(type);
                     case "isDungeonHeart" -> false;
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
