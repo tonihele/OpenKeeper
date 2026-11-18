@@ -31,12 +31,10 @@ class AnimationLoaderTest {
                 assertArrayEquals(times,composers.stream().mapToDouble(AnimComposer::getTime).toArray());
                 assertEquals(cycles,listener.cycles); assertEquals(stops,listener.stops);
                 AnimationLoader.resumeAnimations(root);
-                long enabled = composers.stream().filter(AnimComposer::isEnabled).count();
                 boolean finished = policy != AnimationControl.PlaybackPolicy.LOOP
                         && age >= (policy == AnimationControl.PlaybackPolicy.HOLD ? 1.0/30+.1 : 2.0/30+.1);
-                assertEquals(finished ? 0 : 1,enabled,"policy="+policy+" age="+age);
-                for (Spatial child : owner.getChildren()) if(child.getControl(AnimComposer.class).isEnabled())
-                    assertNotEquals(Spatial.CullHint.Always,child.getCullHint());
+                assertEquals(!finished,owner.getControl(AnimationPlayback.class).isPlaying(),"policy="+policy+" age="+age);
+                assertTrue(composers.stream().noneMatch(AnimComposer::isEnabled),"only owner playback may advance");
             }
         }
     }
@@ -128,7 +126,7 @@ class AnimationLoaderTest {
         resource.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
         AnimationLoader.playAnimation(root,resource,AnimationLoaderTest::model,false);
         AnimationLoader.seekAnimation(root,resource,2);
-        assertEquals(1,listener.cycles); assertEquals(0,listener.stops);
+        assertEquals(0,listener.cycles); assertEquals(0,listener.stops);
         assertFalse(root.getChild("End").getControl(AnimComposer.class).isEnabled());
         assertNotEquals(Spatial.CullHint.Always,root.getChild("hold-seek").getCullHint());
     }
@@ -181,11 +179,12 @@ class AnimationLoaderTest {
         composer.setGlobalSpeed(-2);
         AnimationLoader.pauseAnimations(root); AnimationLoader.pauseAnimations(root);
         double time = composer.getTime(); root.updateLogicalState(.01f); assertEquals(time,composer.getTime());
-        AnimationLoader.resumeAnimations(root); assertTrue(composer.isEnabled()); assertEquals(-2,composer.getGlobalSpeed());
+        AnimationLoader.resumeAnimations(root); assertFalse(composer.isEnabled()); assertEquals(-2,composer.getGlobalSpeed());
         AnimationLoader.pauseAnimations(root);
         AnimationLoader.playAnimation(owner, resource, AnimationLoaderTest::model, false);
         var replacement = owner.getChild("pause").getControl(AnimComposer.class);
-        assertFalse(replacement.isEnabled()); AnimationLoader.resumeAnimations(root); assertTrue(replacement.isEnabled());
+        assertFalse(replacement.isEnabled()); AnimationLoader.resumeAnimations(root); assertFalse(replacement.isEnabled());
+        root.updateLogicalState(.01f); assertTrue(replacement.getTime() > 0);
     }
     @Test void lateRequestSeeksWithinTheAuthoredDuration() {
         Node root = new Node();

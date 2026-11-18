@@ -84,7 +84,6 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private CreatureAnimationRequest lastAttempt;
     private CreatureAnimationRequest activeRequest;
     private java.util.function.DoubleSupplier gameTime = () -> Double.NaN;
-    private boolean initialSeekPending;
     private ArtResource activeAnimation;
     private int[] stepMarks;
     private toniarts.openkeeper.view.animation.FootstepMarkers normalizedStepMarks;
@@ -114,19 +113,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
         playStateSounds(state.state);
         activeRequest = request;
-        initialSeekPending = true;
-        synchronizeInitialPhase();
+        AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), request.startTime());
+        previousStepTime = -1;
         return true;
-    }
-
-    private void synchronizeInitialPhase() {
-        double now = gameTime.getAsDouble();
-        if (initialSeekPending && Double.isFinite(now)) {
-            AnimationLoader.seekAnimation(spatial, activeAnimation,
-                    Math.max(0, now - activeRequest.startTime()));
-            initialSeekPending = false;
-            previousStepTime = -1;
-        }
     }
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
@@ -232,7 +221,6 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
-        synchronizeInitialPhase();
         if (AnimationLoader.isPaused(spatial)) {
             previousStepTime = -1;
             previousMarkerAge = Double.NaN;
@@ -298,8 +286,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
 
         float time = (float) animComposer.getTime(AnimComposer.DEFAULT_LAYER);
-        double age = activeRequest == null ? Double.NaN : Math.max(0, gameTime.getAsDouble() - activeRequest.startTime()
-                - AnimationLoader.getMainStartDelay(spatial));
+        double age = AnimationLoader.getPlaybackAge(spatial) - AnimationLoader.getMainStartDelay(spatial);
         if (previousStepTime >= 0) {
             int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength(),
                     toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(activeAnimation));
@@ -360,7 +347,6 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (!Objects.equals(currentState, targetState)) {
             if (!playAnimation(state)) { super.setTargetState(previousTarget); return; }
             activeRequest = null;
-            initialSeekPending = false;
             playStateSounds(state);
         }
     }

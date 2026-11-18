@@ -348,12 +348,12 @@ Action tracking:
 
 - [x] Preserve a deterministic sample corpus and asset hashes; promote the useful headless probes into maintained regressions when implementing fixes. See implementation record 11.1.
 - [x] Fix and validate finite terminal poses, including old converted files. See 11.2; original executable visual parity remains unclaimed.
-- [ ] Preserve same-animation request identity and authoritative phase. Identity implemented; review R2 reopens sustained phase acceptance.
+- [x] Preserve same-animation request identity and authoritative phase. Review R2 now drives world poses and markers continuously from one presentation timeline; original behavior acceptance remains separately scoped.
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions. **Partial / blocked B1a**; implementation in 11.6, acceptance prerequisite in 11.23.
 - [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
 - [ ] Validate and correct CLAMP/cycle behavior. **Partial / blocked B1b**; mechanism fixed in 11.8, original interpretation unverified.
 - [ ] Make replacement transactional and fallbacks explicit. Load failures handled; review R3/R5 reopen lifecycle and first-sample acceptance.
-- [ ] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Contract implemented; review composition acceptance is in progress.
+- [x] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Review R1/R2 covers paused segment changes, remainder, silent initial seeks and reentrant replacement; new original behavior rules remain blocked.
 - [ ] Freeze playback correctly on pause and align presentation markers with shared phase. R1 paused-seek repair is tested; sustained pose/marker agreement remains review R2.
 - [x] Remove shared mutable transform publication before adding interpolation or workers. See 11.10; whole-session lifecycle stress remains open before interpolation/workers.
 - [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence. **Partial / blocked B2**; selection in 11.11, remaining protocol/reference acceptance in 11.23.
@@ -681,3 +681,5 @@ Validation: a missing animated texture fails twice without changing the live mod
 The [2026-11-19 review](character-animation-code-review-2026-11-19.md) supersedes section 11's completion claims where it identifies regressions. Work remains on the existing feature branch; fixes are committed individually and are not pushed.
 
 R1: paused segment changes now update desired resume state without enabling composers. The start/main/end/complete matrix across LOOP/ONCE/HOLD and paused ancestors passes with the request/atlas suites (16 tests; `build/fix-r1-tests.txt`). Items 3/7/8/9 are reopened until the combined phase, lifecycle and transaction findings are resolved.
+
+R2: one `AnimationPlayback` owner now carries elapsed time across all segments/traversals and consumes the world presentation clock continuously; markers use the same age. Initial seeks suppress historical notifications; paused and stalled clocks cannot advance samplers. Generic hidden completion and actual deep-clone pose isolation are covered. Full build passes 1456 tests (zero failures/errors, four existing asset-dependent minimap skips); real shadow GL gallery passes execution/pause/re-entry (`build/fix-r2-build.txt`, `build/fix-r2-gl.txt`). See the review's R2 resolution for scope and remaining original-reference limits. R1 commit: `77866cc`.

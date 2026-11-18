@@ -40,8 +40,6 @@ final class TimedClip extends AbstractTween {
 
     void setReversed(boolean reversed) { this.reversed = reversed; }
 
-    void reverse() { reversed = !reversed; }
-
     @Override public void cloneFields(Cloner cloner, Object original) {
         super.cloneFields(cloner, original);
         action = cloner.clone(action);
