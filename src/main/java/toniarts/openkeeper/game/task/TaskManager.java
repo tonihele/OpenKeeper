@@ -100,6 +100,7 @@ import toniarts.openkeeper.game.task.creature.Guard;
 import toniarts.openkeeper.game.task.creature.Leave;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
+import toniarts.openkeeper.game.task.creature.Rebel;
 import toniarts.openkeeper.game.task.creature.Research;
 import toniarts.openkeeper.game.task.creature.Sulk;
 import toniarts.openkeeper.game.task.creature.Torture;
@@ -1056,8 +1057,25 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 }
                 return true;
             }
-            case LEAVE, REBEL: {
+            case LEAVE: {
                 return assignLeaveTask(creature, assign);
+            }
+            case REBEL: {
+
+                // Like in DK II, a rebel walks out through a portal, and turns on its keeper when it can't get to one
+                if (assignLeaveTask(creature, assign)) {
+                    return true;
+                }
+                if (creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                    return false;
+                }
+                if (assign) {
+                    Rebel task = new Rebel(navigationService, mapController, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
             }
             default:
                 return false;

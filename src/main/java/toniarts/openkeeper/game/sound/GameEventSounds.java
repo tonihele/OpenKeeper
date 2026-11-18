@@ -72,6 +72,8 @@ public final class GameEventSounds {
         switch (event.type) {
             case CREATURE_LEVEL_UP ->
                 add(sounds, subject, ThingSounds.CREATURE_LEVEL_UP, event.position);
+            case CREATURE_REBELLED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MOODS004.getId(), null);
             case CREATURE_LAND ->
                 add(sounds, subject, ThingSounds.CREATURE_LAND, event.position);
             case GRAVEYARD_VAMPIRE_RISEN ->
