@@ -16,12 +16,11 @@
  */
 package toniarts.openkeeper.game.navigation.steering;
 
-import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
 import com.badlogic.gdx.ai.steer.behaviors.ReachOrientation;
-import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.math.Vector2;
 import toniarts.openkeeper.utils.Point;
 import java.util.List;
+import java.util.function.ToDoubleFunction;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -34,7 +33,22 @@ public final class EntitySteeringFactory {
     private EntitySteeringFactory() {
     }
 
-    public static EntitySteeringBehavior navigateToPoint(List<Vector2> path, final Point faceTarget, final ISteerableEntity steerable, final Point p) {
+    /**
+     * Steers an entity along its waypoints and turns it to face a target at
+     * the end
+     *
+     * @param path the waypoints, the first one is where the walk started
+     * @param faceTarget the tile to face at the end, if any
+     * @param steerable the entity
+     * @param p the tile the walk ends on
+     * @param crowd the sum of the radii of the creatures round a waypoint
+     * @param worker whether the entity walks like a worker
+     * @param chase whether the entity chases an attack target
+     * @param ticksPerSecond the game ticks a second
+     * @return the steering, null if there is nothing to do
+     */
+    public static EntitySteeringBehavior navigateToPoint(List<Vector2> path, final Point faceTarget, final ISteerableEntity steerable, final Point p,
+            ToDoubleFunction<Vector2> crowd, boolean worker, boolean chase, int ticksPerSecond) {
         if (path.size() > 1 || faceTarget != null) {
 
             EntitySteeringBehavior prioritySteering = new EntitySteeringBehavior(steerable);
@@ -65,11 +79,7 @@ public final class EntitySteeringFactory {
 //                prioritySteering.add(ca);
 
                 // Navigate
-                FollowPath<Vector2, LinePath.LinePathParam> followPath = new FollowPath(steerable,
-                        new LinePath<>(SteeringUtils.pathToArray(path), true), 0.2f);
-                followPath.setDecelerationRadius(0.2f);
-                followPath.setArrivalTolerance(0.1f);
-                prioritySteering.add(followPath);
+                prioritySteering.add(new FollowWaypoints(steerable, path, crowd, worker, chase, ticksPerSecond));
             }
 
             if (faceTarget != null) {

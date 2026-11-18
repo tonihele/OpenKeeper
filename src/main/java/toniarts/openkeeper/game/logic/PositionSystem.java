@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -28,7 +29,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Senses;
@@ -41,6 +44,7 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -51,6 +55,11 @@ import toniarts.openkeeper.utils.WorldUtils;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class PositionSystem implements IGameLogicUpdatable, IEntityPositionLookup {
+
+    /**
+     * How far apart, in tiles, the line of sight is checked for walls
+     */
+    private static final float LINE_OF_SIGHT_STEP = 0.25f;
 
     private final EntityData entityData;
     private final IMapController mapController;
@@ -69,6 +78,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         this.objectsController = objectsController;
         entityWrappers.put(ICreatureController.class, creaturesController);
         entityWrappers.put(IDoorController.class, doorsController);
+        entityWrappers.put(IObjectController.class, objectsController);
 
         // Initialize data structures in a single pass
         int width = mapController.getMapData().getWidth();
@@ -78,7 +88,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
                 entities[x][y] = new HashSet<>();
-                obstacles[x][y] = new HashSet<>();
+
+                // PossessedMovementSystem reads the doors from the steering loop
+                obstacles[x][y] = ConcurrentHashMap.newKeySet();
             }
         }
         entitiesByMapTile = entities;
@@ -111,6 +123,12 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
                 continue;
             }
 
+            // A door is not walked through, whatever path the entity was following
+            if (isWalkingIntoBlockingDoor(entity, currentMapTile)) {
+                pushBack(entity, previousMapTile);
+                continue;
+            }
+
             int x = previousMapTile.getX();
             int y = previousMapTile.getY();
 
@@ -123,6 +141,26 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
             addEntityToTile(currentMapTile, entity);
         }
+    }
+
+    private boolean isWalkingIntoBlockingDoor(Entity entity, IMapTileInformation mapTile) {
+        if (entityData.getComponent(entity.getId(), Navigation.class) == null) {
+            return false;
+        }
+
+        Owner owner = entityData.getComponent(entity.getId(), Owner.class);
+        return owner != null && getBlockingDoor(mapTile.getX(), mapTile.getY(), owner.ownerId) != null;
+    }
+
+    /**
+     * Stops the entity and puts it back to the middle of the tile it came from
+     */
+    private void pushBack(Entity entity, IMapTileInformation mapTile) {
+        Position position = entity.get(Position.class);
+        Vector3f center = WorldUtils.pointToVector3f(mapTile.getX(), mapTile.getY());
+        center.y = position.position.y;
+        entityData.removeComponent(entity.getId(), Navigation.class);
+        entityData.setComponent(entity.getId(), new Position(position.rotation, center));
     }
 
     private void addEntityToTile(IMapTileInformation mapTile, Entity entity) {
@@ -174,6 +212,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
     @Override
     public List<EntityId> getEntitiesInLocation(int x, int y) {
+        if (x < 0 || y < 0 || x >= entitiesByMapTile.length || y >= entitiesByMapTile[x].length) {
+            return Collections.emptyList();
+        }
         Set<EntityId> entityIds = entitiesByMapTile[x][y];
         if (entityIds.isEmpty()) {
             return Collections.emptyList();
@@ -274,9 +315,9 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
         // Objects have solid obstacle property, but that in my opinion doesn't block the whole tile
         // More of a physics thingie that...
-        // So only doors here now...
-        DoorComponent doorComponent = entityData.getComponent(id, DoorComponent.class);
-        return doorComponent != null && !doorComponent.blueprint;
+        // So only doors here now... Also the door blueprints, the door is built where it stands, and
+        // whether it blocks is checked when asked
+        return entityData.getComponent(id, DoorComponent.class) != null;
     }
 
     @Override
@@ -291,27 +332,32 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
 
     @Override
     public boolean isTileBlocked(int x, int y, short playerId) {
+        return getBlockingDoor(x, y, playerId) != null;
+    }
+
+    @Override
+    public EntityId getBlockingDoor(int x, int y, short playerId) {
         Set<EntityId> entityIds = obstaclesByMapTile[x][y];
         if (entityIds.isEmpty()) {
-            return false;
+            return null;
         }
 
         for (EntityId entityId : entityIds) {
             DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
-            if (doorComponent == null) {
+            if (doorComponent == null || doorComponent.blueprint) {
                 continue;
             }
 
             if (doorComponent.locked) {
-                return true;
+                return entityId;
             }
 
             Owner owner = entityData.getComponent(entityId, Owner.class);
 
-            return owner == null || owner.ownerId != playerId;
+            return owner == null || owner.ownerId != playerId ? entityId : null;
         }
 
-        return false;
+        return null;
     }
 
     @Override
@@ -372,9 +418,7 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
         for (int distance = 0; distance <= range && !tiles.isEmpty(); distance++) {
             List<IMapTileInformation> nextTiles = new ArrayList<>();
             for (IMapTileInformation tile : tiles) {
-                if (tile == null || !visitedTiles.add(tile)
-                        || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID)
-                        || (playerId != null && isTileBlocked(tile, playerId))) {
+                if (!visitedTiles.add(tile) || blocksSenses(tile) || (playerId != null && isTileBlocked(tile, playerId))) {
                     continue;
                 }
 
@@ -387,6 +431,28 @@ public final class PositionSystem implements IGameLogicUpdatable, IEntityPositio
             }
             tiles = nextTiles;
         }
+    }
+
+    private boolean blocksSenses(IMapTileInformation tile) {
+        return tile == null || mapController.getTerrain(tile).getFlags().contains(Terrain.TerrainFlag.SOLID);
+    }
+
+    @Override
+    public boolean hasLineOfSight(Vector3f from, Vector3f to) {
+        Point startTile = WorldUtils.vectorToPoint(from);
+        Point endTile = WorldUtils.vectorToPoint(to);
+        float dx = to.x - from.x;
+        float dz = to.z - from.z;
+        int steps = (int) Math.ceil(Math.max(Math.abs(dx), Math.abs(dz)) / LINE_OF_SIGHT_STEP);
+        for (int i = 1; i < steps; i++) {
+            float progress = (float) i / steps;
+            Point tile = WorldUtils.vectorToPoint(from.x + dx * progress, from.z + dz * progress);
+            if (!tile.equals(startTile) && !tile.equals(endTile) && blocksSenses(mapController.getMapData().getTile(tile))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
 }

@@ -19,11 +19,14 @@ package toniarts.openkeeper.game.controller.chicken;
 import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.badlogic.gdx.ai.fsm.StateMachine;
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.math.Vector2;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
+import java.util.List;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -116,8 +119,22 @@ public final class ChickenController extends EntityController implements IChicke
             logger.log(Level.WARNING, "No path from {0} to {1}", new Object[]{getChickenCoordinates(), destination});
             return true;
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, SteeringUtils.pathToList(path)));
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, getWaypoints(path)));
         return false;
+    }
+
+    /**
+     * The waypoints of a path, from where we stand. A path within our tile
+     * stays as it is.
+     */
+    private List<Vector2> getWaypoints(GraphPath<IMapTileInformation> path) {
+        List<Vector2> waypoints = SteeringUtils.pathToList(path);
+        if (waypoints.size() < 2) {
+            return waypoints;
+        }
+        Vector3f position = getPosition();
+        waypoints.addFirst(new Vector2(position.x, position.z));
+        return navigationService.smoothPath(waypoints, chickenObject.getWidth() / 2, this);
     }
 
     @Override
