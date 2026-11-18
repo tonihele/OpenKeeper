@@ -419,6 +419,7 @@ class CreatureBackOffTest {
             case "isCornered" -> cornered.get();
             case "isWithinAttackDistance" -> true;
             case "stopCreature", "executeAttack", "getEntityId" -> null;
+            case "isStopped", "turnToAttackTarget" -> true;
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
