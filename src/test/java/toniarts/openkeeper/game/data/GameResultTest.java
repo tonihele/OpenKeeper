@@ -57,6 +57,7 @@ class GameResultTest {
 
     @Test
     void evilRatingWeighsEachStatistic() {
+        assertEquals(1000, rating(ResultType.ENEMY_KEEPERS_VANQUISHED, 1));
         assertEquals(40, rating(ResultType.ENEMY_CREATURES_KILLED, 1));
         assertEquals(50, rating(ResultType.HEROES_DESTROYED, 1));
         assertEquals(5, rating(ResultType.ROOMS_CAPTURED, 1));
@@ -126,6 +127,18 @@ class GameResultTest {
     }
 
     @Test
+    void levelRatingCountsEnemyKeepersVanquished() {
+        assertEquals(0, keepersBonus(0));
+        assertEquals(6, keepersBonus(1));
+        assertEquals(8, keepersBonus(2));
+        assertEquals(9, keepersBonus(3));
+        assertEquals(10, keepersBonus(4));
+
+        // DK II's table stops at 4 keepers
+        assertEquals(0, keepersBonus(5));
+    }
+
+    @Test
     void levelRatingTimeBonus() {
 
         // The time counts as game ticks times ticks per second, 60 minutes on average:
@@ -138,6 +151,12 @@ class GameResultTest {
 
     private static int timeBonus(double seconds) {
         return goodGame(seconds).calculateLevelRating(1, 60, 4) - goodGame().calculateLevelRating(1, 60, 4);
+    }
+
+    private static int keepersBonus(int keepers) {
+        GameResult result = goodGame();
+        result.setData(ResultType.ENEMY_KEEPERS_VANQUISHED, keepers);
+        return result.calculateLevelRating(1, 60, 4) - goodGame().calculateLevelRating(1, 60, 4);
     }
 
     private static GameResult goodGame() {

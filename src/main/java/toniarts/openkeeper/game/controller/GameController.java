@@ -375,6 +375,16 @@ public final class GameController implements IGameLogicUpdatable, IGameControlle
         gameResult.setData(GameResult.ResultType.ITEMS_MANUFACTURED, stats.getItemsManufactured());
         gameResult.setData(GameResult.ResultType.CREATURES_CONVERTED, stats.getCreaturesConverted());
         gameResult.setData(GameResult.ResultType.ROOMS_CAPTURED, player.getRoomControl().getRoomsCaptured());
+
+        // The enemy keepers whose Dungeon Heart the player destroyed, as DK II counts them (0x4DA560)
+        int keepersVanquished = 0;
+        for (IPlayerController playerController : playerControllers.values()) {
+            Keeper keeper = playerController.getKeeper();
+            if (keeper.getId() != playerId && keeper.isKilledBy(playerId)) {
+                keepersVanquished++;
+            }
+        }
+        gameResult.setData(GameResult.ResultType.ENEMY_KEEPERS_VANQUISHED, keepersVanquished);
         gameResult.setData(GameResult.ResultType.GOLD_MINED, player.getKeeper().getGoldMined());
         gameResult.setData(GameResult.ResultType.MANA_STORED, player.getKeeper().getMana());
 

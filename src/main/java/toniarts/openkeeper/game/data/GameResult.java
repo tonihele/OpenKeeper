@@ -31,6 +31,7 @@ public final class GameResult {
         OVERALL_TOTAL_RATING,
         LEVEL_RATING,
         OWN_CREATURES_KILLED,
+        ENEMY_KEEPERS_VANQUISHED,
         SPECIALS_FOUND,
         SPECIALS_MAX,
 
@@ -52,6 +53,7 @@ public final class GameResult {
     /**
      * The Evil Rating weights per statistic, from DK II
      */
+    private static final int ENEMY_KEEPER_VANQUISHED_RATING = 1000;
     private static final int ENEMY_CREATURE_KILLED_RATING = 40;
     private static final int HERO_DESTROYED_RATING = 50;
     private static final int ROOM_CAPTURED_RATING = 5;
@@ -62,6 +64,11 @@ public final class GameResult {
     private static final int CREATURE_COMMANDED_RATING = 20;
     private static final int CREATURE_CONVERTED_RATING = 40;
     private static final int CREATURE_TRAINING_RATING = 50;
+
+    /**
+     * The level rating points for 0 to 4 enemy keepers vanquished, from DK II (0x4C0280)
+     */
+    private static final int[] ENEMY_KEEPERS_VANQUISHED_LEVEL_RATING = {0, 6, 8, 9, 10};
 
     private Map<ResultType, Object> data = null;
 
@@ -112,7 +119,8 @@ public final class GameResult {
         int level = (int) averageLevel;
         int levelHundredths = (int) ((averageLevel - level) * 100);
 
-        return ENEMY_CREATURE_KILLED_RATING * getInt(ResultType.ENEMY_CREATURES_KILLED)
+        return ENEMY_KEEPER_VANQUISHED_RATING * getInt(ResultType.ENEMY_KEEPERS_VANQUISHED)
+                + ENEMY_CREATURE_KILLED_RATING * getInt(ResultType.ENEMY_CREATURES_KILLED)
                 + HERO_DESTROYED_RATING * getInt(ResultType.HEROES_DESTROYED)
                 + ROOM_CAPTURED_RATING * getInt(ResultType.ROOMS_CAPTURED)
                 + LAND_OWNED_RATING * getInt(ResultType.LAND_OWNED)
@@ -132,8 +140,8 @@ public final class GameResult {
      * own creatures killed take away from a bonus of 10. A quick finish adds up to 10: all of it up
      * to a third of the average time, falling to nothing at twice the average time. DK II counts the
      * time here in game ticks times the ticks per second, so only a very quick finish gets any. The
-     * sum is multiplied by the level's rating multiplier and capped at 100. Enemy keepers vanquished
-     * (up to 10) are not counted yet.
+     * enemy keepers vanquished add 6, 8, 9 or 10 for 1 to 4 keepers (none for more, as in DK II). The
+     * sum is multiplied by the level's rating multiplier and capped at 100.
      *
      * @param levelRating the level's rating multiplier (LEVEL_RATING)
      * @param averageTime the level's average time in minutes (AVERAGE_TIME)
@@ -150,6 +158,10 @@ public final class GameResult {
                 - (int) (67 / (getInt(ResultType.ITEMS_MANUFACTURED) + 6.7))
                 - (int) (33 / (getInt(ResultType.CREATURES_CONVERTED) + 3.3))
                 + (int) (90 / (getInt(ResultType.OWN_CREATURES_KILLED) + 9.0));
+        int keepersVanquished = getInt(ResultType.ENEMY_KEEPERS_VANQUISHED);
+        if (keepersVanquished < ENEMY_KEEPERS_VANQUISHED_LEVEL_RATING.length) {
+            rating += ENEMY_KEEPERS_VANQUISHED_LEVEL_RATING[keepersVanquished];
+        }
         if (isLevelWon()) {
             rating += 10;
         }
