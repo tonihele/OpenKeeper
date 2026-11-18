@@ -34,7 +34,9 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -63,6 +65,7 @@ class ShotSystemTest {
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
+    private final List<Object[]> effects = new ArrayList<>();
     private ShotSystem shotSystem;
 
     @BeforeEach
@@ -98,7 +101,16 @@ class ShotSystemTest {
             default -> throw new UnsupportedOperationException(method.getName());
         });
 
-        shotSystem = new ShotSystem(entityData, kwdFile, shotsController, positionLookup, mapInformation, Map.of());
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("emitEffect")) {
+                        effects.add(args);
+                        return null;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
+
+        shotSystem = new ShotSystem(entityData, kwdFile, gameEventService, shotsController, positionLookup, mapInformation, Map.of());
     }
 
     @AfterEach
@@ -115,6 +127,28 @@ class ShotSystemTest {
 
         assertEquals(1.9f, positionOf(shot).x, DELTA);
         assertEquals(59, entityData.getComponent(shot, ShotFlight.class).health);
+    }
+
+    @Test
+    void shotHitsAnArmedEnemyTrap() {
+        EntityId trap = createTrap(ENEMY_ID, new Vector3f(2, 1, 1), false);
+        EntityId shot = createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(trap, hits.get(0)[1]);
+    }
+
+    @Test
+    void shotFliesOverAHiddenTrap() {
+        createTrap(ENEMY_ID, new Vector3f(2, 1, 1), true);
+        EntityId shot = createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
+        assertNotNull(positionOf(shot));
     }
 
     @Test
@@ -142,6 +176,28 @@ class ShotSystemTest {
         shotSystem.processTick(0.25f);
         assertEquals(1, hits.size());
         assertEquals(enemy, hits.get(0)[1]);
+    }
+
+    @Test
+    void hitSetsOffTheShotsHitEffectWhereTheShotIs() {
+        createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        createShot(new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, effects.size());
+        assertEquals(ShotFixtures.FIREBALL_HIT_EFFECT_ID, effects.get(0)[0]);
+        assertEquals(new Vector3f(1.8f, 1.3f, 1), effects.get(0)[1]);
+    }
+
+    @Test
+    void shotWithoutAWallEffectSetsOffNothingAtTheWall() {
+        solidTiles.add(new Point(2, 1));
+        createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(effects.isEmpty());
     }
 
     @Test
@@ -210,6 +266,17 @@ class ShotSystemTest {
                 new Owner(ownerId, ownerId));
         creatures.add(creature);
         return creature;
+    }
+
+    private EntityId createTrap(short ownerId, Vector3f position, boolean hidden) {
+        EntityId trap = entityData.createEntity();
+        entityData.setComponents(trap,
+                new Position(0, position),
+                new TrapViewState((short) 1, false, hidden),
+                new Health(100, 100),
+                new Owner(ownerId, ownerId));
+        creatures.add(trap);
+        return trap;
     }
 
     private List<EntityId> creaturesOn(Point tile) {
