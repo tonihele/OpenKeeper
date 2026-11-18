@@ -32,6 +32,7 @@
 package toniarts.openkeeper.animation;
 
 import com.jme3.anim.MorphTrack;
+import com.jme3.bounding.BoundingBox;
 import com.jme3.export.InputCapsule;
 import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
@@ -115,6 +116,7 @@ public final class PoseTrack extends MorphTrack {
         super(target, times, new float[times.length], 1);
         this.frames = frames;
         validateFrames();
+        installAnimationBound();
     }
 
     /**
@@ -167,7 +169,38 @@ public final class PoseTrack extends MorphTrack {
                         && !java.util.Arrays.equals(a.getOffsets(), b.getOffsets())) {
                     throw new IllegalArgumentException("Non-finite weight between distinct poses");
                 }
+                if (Float.isFinite(frame.weights[pair]) && (frame.weights[pair] < 0 || frame.weights[pair] > 1)) {
+                    throw new IllegalArgumentException("Pose weight outside its key interval");
+                }
             }
+        }
+    }
+
+    /** A clip-wide envelope is valid for every linear interpolation of its frames. */
+    private void installAnimationBound() {
+        FloatBuffer bindPose = (FloatBuffer) getTarget().getMesh().getBuffer(Type.BindPosePosition).getData();
+        float[] decoded = new float[bindPose.limit()];
+        Vector3f min = new Vector3f(Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY, Float.POSITIVE_INFINITY);
+        Vector3f max = new Vector3f(Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY, Float.NEGATIVE_INFINITY);
+        for (int frame = 0; frame < frames.length; frame++) {
+            decodeFrame(frame, decoded, bindPose);
+            for (int i = 0; i < decoded.length; i += 3) {
+                float x = decoded[i], y = decoded[i + 1], z = decoded[i + 2];
+                if (!Float.isFinite(x) || !Float.isFinite(y) || !Float.isFinite(z)) {
+                    throw new IllegalArgumentException("Non-finite decoded pose coordinate");
+                }
+                min.x = Math.min(min.x, x); min.y = Math.min(min.y, y); min.z = Math.min(min.z, z);
+                max.x = Math.max(max.x, x); max.y = Math.max(max.y, y); max.z = Math.max(max.z, z);
+            }
+        }
+        if (decoded.length != 0) {
+            // Include exact boundary vertices despite center/extent rounding and
+            // BoundingBox.contains() using strict comparisons at its surfaces.
+            float magnitude = Math.max(Math.max(Math.abs(min.x), Math.abs(max.x)),
+                    Math.max(Math.max(Math.abs(min.y), Math.abs(max.y)), Math.max(Math.abs(min.z), Math.abs(max.z))));
+            float padding = Math.max(1e-5f, magnitude * 1e-6f);
+            min.subtractLocal(padding, padding, padding); max.addLocal(padding, padding, padding);
+            getTarget().setModelBound(new BoundingBox(min, max));
         }
     }
 
@@ -229,6 +262,7 @@ public final class PoseTrack extends MorphTrack {
             vertices.put(i, lowerVertices[i] + (upperVertices[i] - lowerVertices[i]) * weight);
         }
         position.updateData(vertices);
+        mesh.clearCollisionData(); // Rebuild lazily if an animated surface is picked.
     }
 
     private void clearSampleCache() {
@@ -295,6 +329,7 @@ public final class PoseTrack extends MorphTrack {
         }
         try {
             validateFrames();
+            installAnimationBound();
         } catch (IllegalArgumentException exception) {
             throw new IOException("Invalid pose animation", exception);
         }

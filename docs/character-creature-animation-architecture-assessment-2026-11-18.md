@@ -350,7 +350,7 @@ Action tracking:
 - [x] Fix and validate finite terminal poses, including old converted files. See 11.2; original executable visual parity remains unclaimed.
 - [ ] Preserve same-animation request identity and authoritative phase.
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions.
-- [ ] Bake conservative clip bounds and decide animated picking semantics.
+- [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
 - [ ] Validate and correct CLAMP/cycle behavior.
 - [x] Make replacement transactional and fallbacks explicit. See 11.3.
 - [ ] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup.
@@ -445,3 +445,9 @@ Validation: focused pose and synthetic conversion tests plus the installed corpu
 All main/start/end models and actions are prepared before the live subtree changes. `PlaybackResult` distinguishes started, unavailable and failed requests; creature current state is committed only on success. The compatibility fallback is explicitly **retain the last valid visual**, rather than substituting a standing pose for missing death or combat art. Non-removable flowers/effects survive replacement. Failed-resource diagnostics are deduplicated per owner; detached callbacks check ownership before operating, including after callbacks that themselves replace the model. Static resources remain supported.
 
 Validation: `AnimationLoaderTest` covers unavailable resources, loading failure after main preparation, missing composers and successful replacement retaining decorations, using an injected model source and no OpenGL context. Creature-view regressions also pass. This work precedes F03 because request identity must only be accepted after playback has successfully prepared.
+
+### 11.4 Clip bounds and animated picking
+
+`PoseTrack` builds one conservative local envelope over decoded frames during construction/import, including sparse bind vertices. All subframe positions are convex combinations of those frames. No per-render bound scan is needed; node hierarchy applies clip offsets normally. Historical caches receive corrected bounds when imported. Model conversion version is 16. Geometry picking retains precise triangle semantics: vertex updates clear the mesh collision cache so the next pick rebuilds from current positions, rather than using a stale BIH tree. No collision rebuild occurs unless requested.
+
+Validation: synthetic subframe and import containment regression; installed cached/fresh corpus checks include clamped endpoints and both traversal directions. The original 1,284 out-of-bound samples are eliminated after this change. Frustum/shadow screenshots remain part of runtime validation, not inferred from bounds arithmetic.

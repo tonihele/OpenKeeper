@@ -13,6 +13,37 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PoseTrackTest {
+    @Test void pickingRebuildsCollisionTreeAfterDeformation() {
+        Mesh mesh = new Mesh();
+        mesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{0,0,0, 1,0,0, 0,1,0});
+        mesh.setBuffer(VertexBuffer.Type.BindPosePosition, 3, new float[]{0,0,0, 1,0,0, 0,1,0});
+        mesh.setBuffer(VertexBuffer.Type.Index, 3, new int[]{0,1,2});
+        Geometry target = new Geometry("pickable", mesh);
+        Pose a = new Pose("a", new Vector3f[]{new Vector3f(), new Vector3f(1,0,0), new Vector3f(0,1,0)}, new int[]{0,1,2});
+        Pose b = new Pose("b", new Vector3f[]{new Vector3f(0,0,1), new Vector3f(1,0,1), new Vector3f(0,1,1)}, new int[]{0,1,2});
+        var track = new PoseTrack(target, new float[]{0,1}, new PoseTrack.PoseFrame[]{
+            new PoseTrack.PoseFrame(new Pose[]{a,b}, new float[]{0}), new PoseTrack.PoseFrame(new Pose[]{a,b}, new float[]{1})});
+        var ray = new com.jme3.math.Ray(new Vector3f(.25f,.25f,3), new Vector3f(0,0,-1));
+        target.updateGeometricState(); track.getDataAtTime(0, null);
+        var initial = new com.jme3.collision.CollisionResults(); target.collideWith(ray, initial);
+        assertEquals(3, initial.getClosestCollision().getDistance(), 1e-6);
+        track.getDataAtTime(1, null);
+        var moved = new com.jme3.collision.CollisionResults(); target.collideWith(ray, moved);
+        assertEquals(2, moved.getClosestCollision().getDistance(), 1e-6);
+    }
+    @Test void clipEnvelopeContainsAllSubframesAndSurvivesImport() throws Exception {
+        var track = track(0);
+        var before = track.getTarget().getModelBound().clone();
+        for (int sample = -10; sample <= 110; sample++) {
+            track.getDataAtTime(sample / 50.0, null);
+            var data = (FloatBuffer)track.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position).getData();
+            assertTrue(before.contains(new Vector3f(data.get(0), data.get(1), data.get(2))));
+        }
+        var bytes = new ByteArrayOutputStream(); BinaryExporter.getInstance().save(track, bytes);
+        var imported = (PoseTrack)BinaryImporter.getInstance().load(new ByteArrayInputStream(bytes.toByteArray()));
+        assertTrue(imported.getTarget().getModelBound().contains(new Vector3f(2, 4, 6)));
+        assertEquals(before, imported.getTarget().getModelBound());
+    }
     @Test void repairsOnlyUnambiguousLegacyTerminalWeights() throws Exception {
         var original = track(0);
         var target = original.getTarget();
