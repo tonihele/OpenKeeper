@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert.map;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -50,7 +51,7 @@ class CreatureHungerTest {
         creatureComponent.hungerFill = HUNGER_FILL;
         entityData.setComponents(entityId, creatureComponent, new CreatureHunger(0, 0));
 
-        creature = new CreatureController(entityId, entityData, data, null, null, () -> gameTime, null,
+        creature = new CreatureController(entityId, entityData, data, null, null, () -> gameTime, Map.of(),
                 null, null, null, null, null, null, null);
     }
 
