@@ -27,9 +27,12 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 public final class CombatRules {
 
     /**
-     * How many creatures can attack the same creature at once in melee
+     * How many creatures can attack the same creature at once in melee, and
+     * how many with spells. DK II keeps a list of 8 of each (creature +0x514
+     * and +0x504, filled in 0x45A9A0)
      */
     public static final int MAX_MELEE_ATTACKERS = 8;
+    public static final int MAX_RANGED_ATTACKERS = 8;
 
     /**
      * The original measures angles in 2048 steps per full circle
