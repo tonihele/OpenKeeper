@@ -16,6 +16,9 @@
  */
 package toniarts.openkeeper.game.trigger.object;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Method;
 import java.lang.reflect.Proxy;
 import java.util.HashMap;
@@ -47,6 +50,8 @@ class ObjectClaimedTriggerTest {
     private final int[] flags = new int[128];
     private short owner = Player.NEUTRAL_PLAYER_ID;
     private boolean removed = false;
+    private final EntityData entityData = new DefaultEntityData();
+    private final EntityId entityId = entityData.createEntity();
 
     private ObjectTriggerControl control(int rootId) {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
@@ -71,11 +76,13 @@ class ObjectClaimedTriggerTest {
         IGameTimer gameTimer = () -> 0;
 
         ObjectTriggerControl control = new ObjectTriggerControl(gameController, levelInfo, gameTimer, null, null, rootId,
-                Player.NEUTRAL_PLAYER_ID, null);
+                Player.NEUTRAL_PLAYER_ID, null, entityData);
         control.setThing((IObjectController) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IObjectController.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getOwnerId" ->
                         owner;
+                    case "getEntityId" ->
+                        entityId;
                     case "isRemoved" ->
                         removed;
                     default ->
