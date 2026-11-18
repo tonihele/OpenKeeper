@@ -36,6 +36,7 @@ import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
+import java.nio.file.StandardOpenOption;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
@@ -275,6 +276,7 @@ public class HdTextures {
         if (todo.isEmpty()) {
             return;
         }
+        excludeFromGit(dest);
         Runtime.getRuntime().addShutdownHook(new Thread(() -> saveManifest(dest, manifest)));
 
         long started = System.nanoTime();
@@ -843,6 +845,36 @@ public class HdTextures {
             Files.deleteIfExists(dest.resolve(PYTHON_MANIFEST_NAME));
         } catch (IOException e) {
             throw new UncheckedIOException(e);
+        }
+    }
+
+    /**
+     * Adds the destination to the repository's {@code .git/info/exclude}, so the
+     * HD textures never show up in {@code git status}. Does nothing if the
+     * destination isn't in a git repository.
+     */
+    static void excludeFromGit(Path dest) {
+        try {
+            Process process = new ProcessBuilder("git", "rev-parse", "--path-format=absolute", "--show-toplevel", "--git-path", "info/exclude")
+                    .directory(dest.getParent().toFile()).redirectError(ProcessBuilder.Redirect.DISCARD).start();
+            List<String> lines = new String(process.getInputStream().readAllBytes(), StandardCharsets.UTF_8).lines().toList();
+            if (process.waitFor() != 0 || lines.size() != 2) {
+                return;
+            }
+            Path root = Paths.get(lines.get(0));
+            Path file = Paths.get(lines.get(1));
+            if (!dest.startsWith(root)) {
+                return;
+            }
+            String entry = "/" + root.relativize(dest).toString().replace('\\', '/') + "/";
+            List<String> existing = Files.exists(file) ? Files.readAllLines(file) : List.of();
+            if (!existing.contains(entry)) {
+                Files.createDirectories(file.getParent());
+                Files.writeString(file, (existing.isEmpty() ? "" : "\n") + "# HD textures from " + HdTextures.class.getName() + "\n" + entry + "\n",
+                        StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            }
+        } catch (IOException | InterruptedException e) {
+            System.out.println("Could not add " + dest + " to .git/info/exclude: " + e.getMessage());
         }
     }
 
