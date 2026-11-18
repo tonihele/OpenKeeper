@@ -149,9 +149,9 @@ public final class KeeperAi implements EntityComponent {
     public boolean goldAttemptLooked;
 
     /**
-     * Gold tiles near the centers of the seams nearest to its rooms when it
-     * last looked, nearest first. DK II heads for the seam of its last look
-     * and then looks again.
+     * The middles of the gold seams nearest to its rooms when it last
+     * looked, the nearest first. DK II heads for the seam of its last look
+     * and then looks again
      */
     public Point[] goldDeposits = new Point[4];
 

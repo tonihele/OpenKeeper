@@ -685,10 +685,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * Groups the gold of the whole map into seams and takes a gold tile near
-     * the center of each of the four seams nearest to one of the player's rooms.
-     * The path planner must target the seam itself so it can dig up to it; a
-     * nearby non-solid tile does not prove that an imp can reach the gold.
+     * Groups the gold of the whole map into seams and takes the middles of
+     * the four seams that are nearest to one of the player's rooms, as DK II
+     * does (0x501C10): the mean of the seam's tiles, or the first tile on
+     * the spiral round it that is not impenetrable rock. A seam that is
+     * being left alone is passed over
      *
      * @return the middles, the nearest first, {@code null} where there are
      * fewer seams
@@ -723,25 +724,16 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                     }
                 }
 
-                Point centre = new Point(sumX / seam.size(), sumY / seam.size());
-                Point target = null;
-                int nearestDistance = Integer.MAX_VALUE;
-                for (Point p : seam) {
-                    int distance = getDistance(centre, p);
-                    if (distance < nearestDistance) {
-                        target = p;
-                        nearestDistance = distance;
-                    }
-                }
-                if (target == null || isWaitingAfterFailedTarget(keeperAi, target)) {
+                Point middle = getNearestReachableTile(new Point(sumX / seam.size(), sumY / seam.size()));
+                if (middle == null || isWaitingAfterFailedTarget(keeperAi, middle)) {
                     continue;
                 }
-                int distance = getDistance(getNearestRoom(playerController, target).getRoomInstance().getCenter(), target);
+                int distance = getDistance(getNearestRoom(playerController, middle).getRoomInstance().getCenter(), middle);
                 for (int i = 0; i < nearest.length; i++) {
                     if (nearest[i] == null || distance < distances[i]) {
                         System.arraycopy(nearest, i, nearest, i + 1, nearest.length - 1 - i);
                         System.arraycopy(distances, i, distances, i + 1, nearest.length - 1 - i);
-                        nearest[i] = target;
+                        nearest[i] = middle;
                         distances[i] = distance;
                         break;
                     }
@@ -1051,48 +1043,13 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
     private int getGoldAttemptWorkRemaining(Point centre) {
         int work = 0;
         for (int i = 0; i < GOLD_TILES_TO_TAG; i++) {
-            Point point = getGoldLookTile(centre, i);
+            Point point = getSpiralTile(centre, i);
             IMapTileInformation tile = mapController.getMapData().getTile(point);
             if (tile != null && mapController.getTerrain(tile).getGoldValue() > 0) {
                 work += tile.getHealth();
             }
         }
         return work;
-    }
-
-    /** The center tile followed by the same spiral used when tagging gold. */
-    private static Point getGoldLookTile(Point centre, int index) {
-        int x = centre.x;
-        int y = centre.y;
-        int dx = 0;
-        int dy = 1;
-        int sideX = 1;
-        int sideY = 1;
-        boolean vertical = true;
-        if (index > 0) {
-            x++;
-        }
-        for (int i = 1; i < index; i++) {
-            if (vertical) {
-                y += dy;
-                sideY--;
-                if (sideY == 0) {
-                    sideX++;
-                    sideY = sideX;
-                    dx = -dy;
-                    vertical = false;
-                }
-            } else {
-                x += dx;
-                sideX--;
-                if (sideX == 0) {
-                    sideX = sideY;
-                    dy = dx;
-                    vertical = true;
-                }
-            }
-        }
-        return new Point(x, y);
     }
 
     private void finishGoldAttempt(KeeperAi keeperAi) {

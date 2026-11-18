@@ -1850,6 +1850,23 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void aimsAtTheMiddleOfASeamEvenWhenTheMiddleHasNoGold() {
+        map[6][10] = '#';
+        map[6][11] = '#';
+        for (int y = 2; y <= 4; y++) {
+            for (int x = 9; x <= 11; x++) {
+                map[y][x] = 'G';
+            }
+        }
+        map[3][10] = '#';
+        KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
+        system.processTick(0.25f);
+
+        // DK II takes the mean of the seam's tiles, rock it can dig is fine
+        assertEquals(new Point(10, 3), getKeeperAi().goldDeposits[0]);
+    }
+
+    @Test
     void headsForTheNextSeamWhenThePathToTheNearestTookTooLong() {
         map[2][13] = 'G';
         KeeperAiSystem system = createSystem(ai(0, 0, 9, 1, 50, 1000, List.of()), 0);
