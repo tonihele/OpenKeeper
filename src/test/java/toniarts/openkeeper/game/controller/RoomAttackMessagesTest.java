@@ -41,7 +41,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * for a lost room (table at 0x6A0B00). Damage to the Dungeon Heart raises
  * message 1 (0x4DA200), which is not repeated for 120 seconds. The heart room's
  * update warns at exactly 50% and 10% health (0x4D9A60), and the destroyed heart
- * is told to its owner and to its destroyer (0x4DA560); none of them has a tile
+ * is told to its owner and to its destroyer (0x4DA560); none of them has a tile.
+ * In a skirmish or multiplayer game every other player hears that the keeper is
+ * defeated (message 0x57)
  */
 class RoomAttackMessagesTest {
 
@@ -53,7 +55,7 @@ class RoomAttackMessagesTest {
     private final PlayerService playerService = (PlayerService) Proxy.newProxyInstance(PlayerService.class.getClassLoader(),
             new Class<?>[]{PlayerService.class}, (proxy, method, args) -> {
                 if (method.getName().equals("showMentorMessage")) {
-                    messages.add(args[0] + "@" + args[1] + ">p" + args[2]);
+                    messages.add(args[0] + "@" + args[1] + ">p" + args[3] + ((Short) args[2] != 0 ? " named p" + args[2] : ""));
                 }
                 return null;
             });
@@ -204,16 +206,27 @@ class RoomAttackMessagesTest {
 
     @Test
     void destroyedHeartIsToldToItsOwnerAndItsDestroyer() {
-        roomAttackMessages.heartDestroyed(KEEPER, Player.KEEPER2_ID);
+        roomAttackMessages.heartDestroyed(KEEPER, Player.KEEPER2_ID, List.of());
 
         // "Your Dungeon Heart has been destroyed!", "You have defeated an enemy Keeper"
         assertEquals(List.of("1291@null>p" + KEEPER, "1162@null>p" + Player.KEEPER2_ID), messages);
     }
 
     @Test
+    void everyOtherPlayerHearsTheKeeperIsDefeatedByName() {
+        roomAttackMessages.heartDestroyed(KEEPER, Player.KEEPER2_ID, List.of(KEEPER, Player.KEEPER2_ID, Player.KEEPER3_ID));
+
+        // "%3 has been defeated", "...crushed", "...banished from this land" or "...demolished", one for all
+        String defeated = messages.get(1).substring(0, 4);
+        assertTrue(List.of("1517", "1518", "1519", "1520").contains(defeated));
+        assertEquals(List.of("1291@null>p" + KEEPER, defeated + "@null>p" + Player.KEEPER2_ID + " named p" + KEEPER,
+                defeated + "@null>p" + Player.KEEPER3_ID + " named p" + KEEPER, "1162@null>p" + Player.KEEPER2_ID), messages);
+    }
+
+    @Test
     void destroyedHeartWithoutADestroyerIsToldOnlyToItsOwner() {
-        roomAttackMessages.heartDestroyed(KEEPER, (short) 0);
-        roomAttackMessages.heartDestroyed(Player.KEEPER2_ID, Player.KEEPER2_ID);
+        roomAttackMessages.heartDestroyed(KEEPER, (short) 0, List.of());
+        roomAttackMessages.heartDestroyed(Player.KEEPER2_ID, Player.KEEPER2_ID, List.of());
 
         assertEquals(List.of("1291@null>p" + KEEPER, "1291@null>p" + Player.KEEPER2_ID), messages);
     }
@@ -226,7 +239,7 @@ class RoomAttackMessagesTest {
         withoutPlayers.roomLost(KEEPER, lair, 1, 0, TILE);
         withoutPlayers.heartAttacked(KEEPER, TILE);
         withoutPlayers.heartHealthChanged(KEEPER, 500, 1000);
-        withoutPlayers.heartDestroyed(KEEPER, Player.KEEPER2_ID);
+        withoutPlayers.heartDestroyed(KEEPER, Player.KEEPER2_ID, List.of(Player.KEEPER2_ID));
 
         assertTrue(messages.isEmpty());
     }

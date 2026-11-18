@@ -16,7 +16,9 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import java.util.Collection;
 import java.util.Map;
+import java.util.concurrent.ThreadLocalRandom;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.AndFilter;
@@ -68,6 +70,15 @@ public final class RoomAttackMessages {
          * who destroyed the heart (0x4DA560). It has no tile
          */
         ENEMY_DEFEATED(20, 1162, Map.of()),
+
+        /**
+         * "%3 has been defeated", "...crushed", "...banished from this land"
+         * or "...demolished", message 0x57, told in a skirmish or multiplayer
+         * game to every player but the owner when a heart is destroyed
+         * (0x4DA560). %3 is the defeated keeper. The four variants are speech
+         * 1517 to 1520. It has no tile
+         */
+        KEEPER_DEFEATED(20, 1517, Map.of()),
 
         /**
          * "Your Lair is under attack", message 0x22
@@ -165,9 +176,19 @@ public final class RoomAttackMessages {
      *
      * @param ownerId the owner of the heart
      * @param destroyerId the player who destroyed it, 0 if not known
+     * @param playerIds the players who hear that the owner is defeated, the
+     * owner left out, all of them in a skirmish or multiplayer game, else none
      */
-    public void heartDestroyed(short ownerId, short destroyerId) {
+    public void heartDestroyed(short ownerId, short destroyerId, Collection<Short> playerIds) {
         show(Message.HEART_DESTROYED, ownerId, (short) 0, null);
+
+        // DK II picks one of the four variants for them all
+        int speechId = Message.KEEPER_DEFEATED.defaultSpeechId + ThreadLocalRandom.current().nextInt(4);
+        for (short playerId : playerIds) {
+            if (playerId != ownerId) {
+                show(Message.KEEPER_DEFEATED, playerId, (short) 0, null, speechId, ownerId);
+            }
+        }
         if (destroyerId != 0 && destroyerId != ownerId) {
             show(Message.ENEMY_DEFEATED, destroyerId, (short) 0, null);
         }
@@ -190,6 +211,10 @@ public final class RoomAttackMessages {
     }
 
     private void show(Message message, short ownerId, short roomId, Point tile) {
+        show(message, ownerId, roomId, tile, message.speechIdsByRoom.getOrDefault((int) roomId, message.defaultSpeechId), (short) 0);
+    }
+
+    private void show(Message message, short ownerId, short roomId, Point tile, int speechId, short namedPlayerId) {
         if (playerService == null) {
             return;
         }
@@ -205,8 +230,7 @@ public final class RoomAttackMessages {
             shown = entityData.createEntity();
         }
         entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
-        int speechId = message.speechIdsByRoom.getOrDefault((int) roomId, message.defaultSpeechId);
-        playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, ownerId);
+        playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, namedPlayerId, ownerId);
     }
 
 }

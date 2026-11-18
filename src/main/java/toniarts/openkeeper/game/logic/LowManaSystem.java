@@ -192,7 +192,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
                 if (stage == POPPING_STAGE - 1 && getCreatures(keeper.getId(), true).size() <= minimumImps) {
                     stage--;
                 }
-                playerService.showMentorMessage(WARNING_SPEECH_IDS[stage - 1], null, keeper.getId());
+                playerService.showMentorMessage(WARNING_SPEECH_IDS[stage - 1], null, (short) 0, keeper.getId());
                 stage++;
                 secondsToWarning += evaluationPeriod;
             }
@@ -251,7 +251,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
         if (chosen.get(CreatureComponent.class).creatureId == impId) {
             entityData.setComponent(chosen.getId(), new ImpPopCountdown(IMP_POP_SECONDS));
         }
-        playerService.showMentorMessage(IMP_POP_SPEECH_ID, null, keeper.getId());
+        playerService.showMentorMessage(IMP_POP_SPEECH_ID, null, (short) 0, keeper.getId());
     }
 
     private Entity getIdleImp(List<Entity> imps) {

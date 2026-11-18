@@ -94,7 +94,7 @@ class LowManaSystemTest {
         });
         PlayerService playerService = stub(PlayerService.class, (method, args) -> {
             if (method.equals("showMentorMessage")) {
-                assertEquals(PLAYER_ID, args[2]);
+                assertEquals(PLAYER_ID, args[3]);
                 speech.add((Integer) args[0]);
             }
             return null;
