@@ -61,6 +61,11 @@ MaterialDef DK Terrain Lighting {
         // the heart's own glow. Models only, terrain never sets it.
         Boolean IgnoreObjectLights
 
+        // World-space centre of the model. When set, object lights
+        // are attenuated once from this point, as the original does for
+        // object / creature meshes, instead of per vertex. Models only.
+        Vector3 MeshCenter
+
         // Animated texture (water): DiffuseMap is a strip of NumberOfTiles
         // equally wide frames, stepped Speed times a second. Unset = static.
         Int NumberOfTiles
@@ -84,6 +89,7 @@ MaterialDef DK Terrain Lighting {
             AMBIENT_MAP : AmbientMap
             LIGHT_DATA : LightData
             IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
+            MESH_CENTER : MeshCenter
         }
     }
 }
