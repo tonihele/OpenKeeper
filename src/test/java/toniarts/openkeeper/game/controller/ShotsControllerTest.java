@@ -25,6 +25,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.filter.FieldFilter;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Decay;
@@ -69,6 +70,7 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
     private static final short HEAL_INSTANT_ID = 53;
+    private static final short ARMOUR_ID = 9;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
@@ -101,6 +103,7 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.GAS_MISSILE_CLOUD_ID, ShotFixtures.gasCloud(ShotFixtures.GAS_MISSILE_CLOUD_ID));
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
+        addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
@@ -186,6 +189,16 @@ class ShotsControllerTest {
         shotsController.createShot(HEAL_INSTANT_ID, 3000, 0, PLAYER_ID, new Vector3f(), creature, warlock);
 
         assertEquals(-3000, entityData.getComponent(creature, Damage.class).damage);
+    }
+
+    @Test
+    void armourShotLastsItsFirstValueInTicks() {
+        EntityId creature = createCreature();
+
+        // Cast Armour: 80 ticks, which is 20 seconds at 4 ticks a second
+        shotsController.createShot(ARMOUR_ID, 80, 50, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(20.0, entityData.getComponent(creature, Armour.class).endTime);
     }
 
     @Test

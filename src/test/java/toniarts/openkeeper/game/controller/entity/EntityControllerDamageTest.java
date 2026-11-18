@@ -20,6 +20,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Possessed;
@@ -46,6 +47,18 @@ class EntityControllerDamageTest {
         EntityId entityId = entityData.createEntity();
         entityData.setComponent(entityId, new Possessed(0, 0));
         assertEquals(5, damageTaken(entityId, 10));
+    }
+
+    @Test
+    void armouredCreatureTakesHalf() {
+        EntityId entityId = creature(CreatureState.FIGHT, false);
+        entityData.setComponent(entityId, new Armour(20));
+        assertEquals(5, damageTaken(entityId, 10));
+
+        // Possession and armour count once
+        EntityId possessed = creature(CreatureState.FIGHT, true);
+        entityData.setComponent(possessed, new Armour(20));
+        assertEquals(5, damageTaken(possessed, 10));
     }
 
     @Test
