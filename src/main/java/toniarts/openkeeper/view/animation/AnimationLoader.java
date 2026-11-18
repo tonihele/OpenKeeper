@@ -285,6 +285,21 @@ public final class AnimationLoader {
         return false;
     }
 
+    public static boolean isHidden(Spatial spatial) {
+        for (Spatial node = spatial; node != null; node = node.getParent())
+            if (node.getCullHint() == Spatial.CullHint.Always) return true;
+        return false;
+    }
+
+    /** Flushes final hidden samples even when their one-shot composer is no longer enabled. */
+    public static void refreshPendingPoses(Spatial root) {
+        root.depthFirstTraversal(node -> {
+            var composer = node.getControl(AnimComposer.class);
+            if (composer != null) for (var clip : composer.getAnimClips()) for (var track : clip.getTracks())
+                if (track instanceof toniarts.openkeeper.animation.PoseTrack pose) pose.refreshPendingPose();
+        });
+    }
+
     /** Authored delay before the main segment, without model or metadata lookup. */
     public static double getMainStartDelay(Spatial spatial) {
         if (!(spatial instanceof Node root)) return 0;

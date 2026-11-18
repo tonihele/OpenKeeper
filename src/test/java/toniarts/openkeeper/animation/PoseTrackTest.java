@@ -13,6 +13,16 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PoseTrackTest {
+    @Test void completedHiddenOneShotCanFlushItsFinalPoseWithoutAnotherComposerUpdate() {
+        var track = track(0); Node root = new Node(); root.attachChild(track.getTarget());
+        track.getDataAtTime(.25,null); assertEquals(.5,x(track),1e-6);
+        root.setCullHint(Spatial.CullHint.Always); track.getDataAtTime(1,null);
+        track.refreshPendingPose(); assertEquals(.5,x(track),1e-6);
+        root.setCullHint(Spatial.CullHint.Dynamic); track.refreshPendingPose();
+        assertEquals(2,x(track),1e-6);
+        var buffer = track.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position); buffer.clearUpdateNeeded();
+        track.refreshPendingPose(); assertFalse(buffer.isUpdateNeeded());
+    }
     @Test void unchangedAndHiddenSamplesDoNotDirtyBuffersButReentryUsesCurrentPhase() {
         var track = track(0); Node owner = new Node(); owner.attachChild(track.getTarget());
         var composer = new com.jme3.anim.AnimComposer();

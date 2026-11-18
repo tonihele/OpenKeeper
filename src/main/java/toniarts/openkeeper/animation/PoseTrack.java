@@ -134,6 +134,7 @@ public final class PoseTrack extends MorphTrack {
     private transient Mesh sampledMesh;
     private transient FloatBuffer sampledBuffer;
     private transient float lastSampleTime = Float.NaN;
+    private transient double pendingSampleTime = Double.NaN;
 
     private void validateFrames() {
         if (frames == null || frames.length != getTimes().length) {
@@ -239,8 +240,12 @@ public final class PoseTrack extends MorphTrack {
         // Explicitly hidden subtrees cannot be visible to any render camera.
         // Do not use last-frame frustum results: shadows/other cameras may need us.
         for (com.jme3.scene.Spatial node = getTarget(); node != null; node = node.getParent()) {
-            if (node.getCullHint() == com.jme3.scene.Spatial.CullHint.Always) return;
+            if (node.getCullHint() == com.jme3.scene.Spatial.CullHint.Always) {
+                pendingSampleTime = time;
+                return;
+            }
         }
+        pendingSampleTime = Double.NaN;
         Mesh mesh = getTarget().getMesh();
         FloatBuffer bindPose = (FloatBuffer) mesh.getBuffer(Type.BindPosePosition).getData();
         VertexBuffer position = mesh.getBuffer(Type.Position);
@@ -284,6 +289,12 @@ public final class PoseTrack extends MorphTrack {
         sampledMesh = null;
         sampledBuffer = null;
         lastSampleTime = Float.NaN;
+        pendingSampleTime = Double.NaN;
+    }
+
+    /** A hidden one-shot may have disabled its composer before becoming visible again. */
+    public void refreshPendingPose() {
+        if (!Double.isNaN(pendingSampleTime)) getDataAtTime(pendingSampleTime,null);
     }
 
     @Override

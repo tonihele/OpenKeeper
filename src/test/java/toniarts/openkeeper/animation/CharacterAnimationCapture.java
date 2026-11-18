@@ -114,6 +114,8 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         if(frame < 450 || frame > 480) gameTime += 1.0/60;
         if(frame == 120) request(Creature.AnimationType.MELEE_ATTACK);
         if(frame == 240) request(Creature.AnimationType.IDLE_1);
+        if(frame == 270) rootNode.setCullHint(Spatial.CullHint.Always);
+        if(frame == 330) rootNode.setCullHint(Spatial.CullHint.Dynamic);
         if(frame == 300) request(Creature.AnimationType.DEATH_POSE);
         if(frame == 360 || frame == 420) request(Creature.AnimationType.WALK);
         if(frame == 450) AnimationLoader.pauseAnimations(rootNode);
