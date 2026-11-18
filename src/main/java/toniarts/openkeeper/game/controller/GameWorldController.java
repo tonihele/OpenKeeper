@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
@@ -1295,8 +1296,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
                 // See if it is gold given to a creature or added to a room
                 ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+                CreatureComponent dropOnCreature = dropOnEntity != null ? entityData.getComponent(dropOnEntity, CreatureComponent.class) : null;
                 if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
                     dropGold(entity, dropOnEntity, roomController, playerId, tile, coordinates);
+                } else if (dropOnCreature != null && dropOnCreature.hungerFill > 0 && entityData.getComponent(entity, Food.class) != null) {
+
+                    // Like in DK II, a chicken dropped on a creature that eats chickens is eaten by it, whoever owns it
+                    creaturesController.createController(dropOnEntity).eat(objectsController.createController(entity));
                 } else {
                     Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
                     entityData.setComponent(entity, new Position(0, pos));
