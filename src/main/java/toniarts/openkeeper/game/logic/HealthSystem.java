@@ -459,13 +459,15 @@ public final class HealthSystem extends GameTimeCounter {
             }
         }
 
-        // A possessed creature heals as it prays (0x499840)
+        // A possessed creature heals as it prays. DK II heals the health per second divided by the ticks per
+        // second on every tick, rounded down (0x499840), so 32 a second for the 33 of the levels at 4 ticks
         entity = prayingEntities.getEntity(entityId);
         if (entity != null) {
             PossessedAbility praying = entity.get(PossessedAbility.class);
             if (praying.ability == Creature.SpecialAbility.PRAY && gameTime - praying.checkTime >= 1) {
                 entityData.setComponent(entityId, new PossessedAbility(praying.ability, praying.checkTime + 1));
-                delta += healthWhilePrayingPerSecond;
+                int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                delta += healthWhilePrayingPerSecond / ticksPerSecond * ticksPerSecond;
             }
         }
 

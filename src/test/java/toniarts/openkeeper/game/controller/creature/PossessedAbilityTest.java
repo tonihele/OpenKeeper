@@ -185,7 +185,7 @@ class PossessedAbilityTest {
     }
 
     @Test
-    void prayingHealsOnceASecond() {
+    void prayingHealsOnceASecondByTheTicksShare() {
         Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings = new HashMap<>();
         for (Variable.MiscVariable.MiscType type : List.of(Variable.MiscVariable.MiscType.CREATURE_DYING_STATE_DURATION_SECONDS,
                 Variable.MiscVariable.MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND,
@@ -195,8 +195,10 @@ class PossessedAbilityTest {
         gameSettings.put(Variable.MiscVariable.MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND,
                 PossessionFixtures.miscVariable(Variable.MiscVariable.MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND, 33));
         entityData.setComponents(us, new Health(100, 1000), new PossessedAbility(Creature.SpecialAbility.PRAY, 0));
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getGameLevel".equals(name) ? ShotFixtures.gameLevel(4) : null);
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> "getLevelData".equals(name) ? kwdFile : null);
         double[] time = {0};
-        HealthSystem healthSystem = new HealthSystem(entityData, null, gameSettings, null, null, List.of(), null, () -> time[0], null);
+        HealthSystem healthSystem = new HealthSystem(entityData, null, gameSettings, null, levelInfo, List.of(), null, () -> time[0], null);
 
         time[0] += 0.5;
         healthSystem.processTick(0.5f);
@@ -206,7 +208,7 @@ class PossessedAbilityTest {
         healthSystem.processTick(0.5f);
         time[0] += 0.5;
         healthSystem.processTick(0.5f);
-        assertEquals(133, entityData.getComponent(us, Health.class).health);
+        assertEquals(132, entityData.getComponent(us, Health.class).health);
     }
 
     @Test
