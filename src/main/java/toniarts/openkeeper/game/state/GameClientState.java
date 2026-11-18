@@ -408,7 +408,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // This might take awhile, don't block
             Thread loadingThread = new Thread(() -> {
-                AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
+                AssetUtils.prewarmAssets(kwdFile, app.getWorldAssetManager(), app);
                 for (Keeper keeper : players) {
                     keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
                     GameClientState.this.players.put(keeper.getId(), keeper);
@@ -421,7 +421,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 // Create player state
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
-                playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
+                playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getWorldAssetManager(), players, gameClientService.getEntityData(), playerId,
                         true, // Built, but hidden until the viewer possesses a creature
                         () -> {
                             synchronized (mapDataLoadingObject) {
@@ -454,7 +454,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 mapInformation = playerMapViewState.getMapInformation();
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getWorldAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
                 guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
                         trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
                 textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
@@ -462,7 +462,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
-                effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
+                effectManagerState = new EffectManagerState(kwdFile, app.getWorldAssetManager());
 
                 // Attach the states
                 stateManager.attach(playerState);

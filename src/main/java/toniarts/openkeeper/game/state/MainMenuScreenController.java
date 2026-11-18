@@ -41,6 +41,7 @@ import de.lessvoid.nifty.screen.Screen;
 import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.tools.SizeValue;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.data.TextureFiltering;
 import toniarts.openkeeper.game.data.CustomMPDLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.HiScores;
@@ -287,7 +288,6 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     @Override
     public void applyGraphicsSettings() {
         // Get the controls settings
-        boolean needToRestart = true;
         Settings settings = Main.getUserSettings();
         DropDown res = screen.findNiftyControl("resolution", DropDown.class);
         DropDown bitDepth = screen.findNiftyControl("bitDepth", DropDown.class);
@@ -296,12 +296,12 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         CheckBox vsync = screen.findNiftyControl("verticalSync", CheckBox.class);
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
-        DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
+        DropDown af = screen.findNiftyControl("textureFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
         DisplayMode mdm = (DisplayMode) res.getSelection();
+        boolean postProcessingChanged = settings.getBoolean(Settings.Setting.SSAO) != ssao.isChecked();
 
-        // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
         // Set the settings
         settings.getAppSettings().setResolution(mdm.getWidth(), mdm.getHeight());
         settings.getAppSettings().setDepthBits((Integer) bitDepth.getSelection());
@@ -310,16 +310,36 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setVSync(vsync.isChecked());
         settings.getAppSettings().setRenderer((String) ogl.getSelection());
         settings.getAppSettings().setSamples((Integer) aa.getSelection());
-        settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
+        settings.setSetting(Settings.Setting.TEXTURE_FILTERING, ((TextureFiltering) af.getSelection()).name());
+        state.app.applyTextureFiltering();
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
         settings.getAppSettings().setGammaCorrection(gamma.isChecked());
 
-        // This fails and crashes on invalid settings
-        if (needToRestart) {
+        // Pause-menu changes can already be saved without being applied to the context.
+        // Filtering alone is live; compare renderer options with the running context.
+        if (requiresContextRestart(state.app.getContext().getSettings(), settings.getAppSettings())) {
             state.restart();
             nifty.resolutionChanged();
+        } else {
+            try {
+                settings.save();
+            } catch (IOException ex) {
+                logger.log(Logger.Level.ERROR, "Failed to save graphics settings", ex);
+            }
         }
-        state.app.setViewProcessors();
+        if (postProcessingChanged) {
+            state.app.setViewProcessors();
+        }
+    }
+
+    static boolean requiresContextRestart(AppSettings current, AppSettings requested) {
+        return current.getWidth() != requested.getWidth() || current.getHeight() != requested.getHeight()
+                || current.getDepthBits() != requested.getDepthBits()
+                || current.getFrequency() != requested.getFrequency()
+                || current.isFullscreen() != requested.isFullscreen() || current.isVSync() != requested.isVSync()
+                || !java.util.Objects.equals(current.getRenderer(), requested.getRenderer())
+                || current.getSamples() != requested.getSamples()
+                || current.isGammaCorrection() != requested.isGammaCorrection();
     }
 
     @Override
@@ -833,14 +853,10 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             aa.selectItem(settings.getSamples());
         }
 
-        // Anisotropic filtering
-        DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
-        af.addAllItems(Settings.ANISOTROPHIES);
-        int selectedAF = Main.getUserSettings().getInteger(Settings.Setting.ANISOTROPY);
-        if (!Settings.ANISOTROPHIES.contains(selectedAF)) {
-            af.addItem(selectedAF);
-        }
-        af.selectItem(selectedAF);
+        // Texture filtering
+        DropDown<TextureFiltering> af = screen.findNiftyControl("textureFiltering", DropDown.class);
+        af.addAllItems(java.util.Arrays.asList(TextureFiltering.values()));
+        af.selectItem(Main.getUserSettings().getTextureFiltering());
 
         // OpenGL
         DropDown ogl = screen.findNiftyControl("openGl", DropDown.class);

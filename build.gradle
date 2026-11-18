@@ -102,6 +102,8 @@ dependencies {
 
 test {
     useJUnitPlatform()
+    // Native regression tests are opt-in so headless CI needs no OpenGL context.
+    systemProperty 'openkeeper.gpuTests', providers.gradleProperty('gpuTests').getOrElse('false')
 }
 
 java {
