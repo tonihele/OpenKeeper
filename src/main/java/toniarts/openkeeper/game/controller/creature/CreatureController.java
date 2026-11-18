@@ -2656,7 +2656,7 @@ public final class CreatureController extends EntityController implements ICreat
             speed *= new Vector2f(forward * (forward < 0 ? POSSESSED_BACKWARD_SPEED_FACTOR : 1f),
                     sideways * POSSESSED_STRAFE_SPEED_FACTOR).length();
         }
-        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
+        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER, speedMode));
     }
 
     @Override
