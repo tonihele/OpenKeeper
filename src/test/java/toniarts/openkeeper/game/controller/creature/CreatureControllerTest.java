@@ -623,6 +623,7 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
                 case "getSensedEntities" -> Set.of();
+                case "getEntityLocation" -> null; // Not on a Hero Lair
                 case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
@@ -641,7 +642,7 @@ class CreatureControllerTest {
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
-            healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);
+            healthSystem = new HealthSystem(data, lookup, settings, null, null, List.of(), map, () -> time, eventService);
         }
 
         Task task(long id, TaskType type) {

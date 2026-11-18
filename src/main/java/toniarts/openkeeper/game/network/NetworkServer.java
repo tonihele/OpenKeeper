@@ -98,6 +98,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.component.Senses;
@@ -264,6 +265,7 @@ public final class NetworkServer {
             Serializer.registerClass(Possessed.class, new FieldSerializer());
             Serializer.registerClass(PossessedMovement.class, new FieldSerializer());
             Serializer.registerClass(Regeneration.class, new FieldSerializer());
+            Serializer.registerClass(ReturnToHeroLair.class, new FieldSerializer());
             Serializer.registerClass(RoomComponent.class, new FieldSerializer());
             Serializer.registerClass(RoomEffect.class, new FieldSerializer());
             Serializer.registerClass(StolenGold.class, new FieldSerializer());
