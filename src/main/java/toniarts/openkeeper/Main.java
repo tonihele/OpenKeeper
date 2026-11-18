@@ -276,6 +276,29 @@ public final class Main extends SimpleApplication {
     }
 
     /**
+     * A minimised window reports a 0x0 framebuffer. Resizing the cameras, the
+     * post processors and Nifty to that breaks them (NaN aspect ratio, empty
+     * layouts), so keep the last real size until the window is restored.
+     * <p>
+     * jME 3.9 passes the 0x0 size on. jME 3.10 keeps the reported sizes at
+     * 16x16 or more, see jME issue
+     * <a href="https://github.com/jMonkeyEngine/jmonkeyengine/issues/2618">#2618</a>
+     * and its fix
+     * <a href="https://github.com/jMonkeyEngine/jmonkeyengine/pull/2619">#2619</a>.
+     * Remove this override once OpenKeeper is on jME 3.10 or later.
+     *
+     * @param w the new width
+     * @param h the new height
+     */
+    @Override
+    public void reshape(int w, int h) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        super.reshape(w, h);
+    }
+
+    /**
      * Sets SWING look and feel
      */
     private static void setLookNFeel() {
