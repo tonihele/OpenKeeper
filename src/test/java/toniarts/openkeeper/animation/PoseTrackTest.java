@@ -13,6 +13,21 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PoseTrackTest {
+    @Test void unchangedAndHiddenSamplesDoNotDirtyBuffersButReentryUsesCurrentPhase() {
+        var track = track(0); Node owner = new Node(); owner.attachChild(track.getTarget());
+        var composer = new com.jme3.anim.AnimComposer();
+        var clip = new com.jme3.anim.AnimClip("test"); clip.setTracks(new PoseTrack[]{track});
+        composer.addAnimClip(clip); owner.addControl(composer); composer.setCurrentAction("test");
+        owner.updateLogicalState(.25f); assertEquals(.5,x(track),1e-6);
+        var positions = track.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position);
+        positions.clearUpdateNeeded(); owner.updateLogicalState(0); assertFalse(positions.isUpdateNeeded());
+        owner.setCullHint(Spatial.CullHint.Always); owner.updateLogicalState(.5f);
+        assertEquals(.75,composer.getTime(),1e-6); assertEquals(.5,x(track),1e-6); assertFalse(positions.isUpdateNeeded());
+        owner.setCullHint(Spatial.CullHint.Dynamic); owner.updateLogicalState(0);
+        assertEquals(1.5,x(track),1e-6); assertTrue(positions.isUpdateNeeded());
+        positions.clearUpdateNeeded(); track.getDataAtTime(100,null); positions.clearUpdateNeeded();
+        track.getDataAtTime(200,null); assertFalse(positions.isUpdateNeeded());
+    }
     @Test void pickingRebuildsCollisionTreeAfterDeformation() {
         Mesh mesh = new Mesh();
         mesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{0,0,0, 1,0,0, 0,1,0});

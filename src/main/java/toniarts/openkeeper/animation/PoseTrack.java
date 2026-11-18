@@ -131,6 +131,9 @@ public final class PoseTrack extends MorphTrack {
     private transient float[] upperVertices;
     private transient int lowerIndex = -1;
     private transient int upperIndex = -1;
+    private transient Mesh sampledMesh;
+    private transient FloatBuffer sampledBuffer;
+    private transient float lastSampleTime = Float.NaN;
 
     private void validateFrames() {
         if (frames == null || frames.length != getTimes().length) {
@@ -233,10 +236,16 @@ public final class PoseTrack extends MorphTrack {
         if (frames == null || frames.length == 0) {
             return;
         }
+        // Explicitly hidden subtrees cannot be visible to any render camera.
+        // Do not use last-frame frustum results: shadows/other cameras may need us.
+        for (com.jme3.scene.Spatial node = getTarget(); node != null; node = node.getParent()) {
+            if (node.getCullHint() == com.jme3.scene.Spatial.CullHint.Always) return;
+        }
         Mesh mesh = getTarget().getMesh();
         FloatBuffer bindPose = (FloatBuffer) mesh.getBuffer(Type.BindPosePosition).getData();
         VertexBuffer position = mesh.getBuffer(Type.Position);
         FloatBuffer vertices = (FloatBuffer) position.getData();
+        if (mesh != sampledMesh || vertices != sampledBuffer) clearSampleCache();
         if (lowerVertices == null || lowerVertices.length != bindPose.limit()) {
             lowerVertices = new float[bindPose.limit()];
             upperVertices = new float[bindPose.limit()];
@@ -246,6 +255,7 @@ public final class PoseTrack extends MorphTrack {
         // MorphTrack.getLength() is lastTime - firstTime. Old converted KMF
         // caches start at 1/30; new/zero-origin tracks work without reconversion.
         float sampleTime = (float) Math.clamp(time + times[0], times[0], times[times.length - 1]);
+        if (sampleTime == lastSampleTime) return;
         int result = java.util.Arrays.binarySearch(times, sampleTime);
         int lower = result >= 0 ? result : Math.max(0, -result - 2);
         int upper = result >= 0 ? result : Math.min(times.length - 1, lower + 1);
@@ -263,11 +273,17 @@ public final class PoseTrack extends MorphTrack {
         }
         position.updateData(vertices);
         mesh.clearCollisionData(); // Rebuild lazily if an animated surface is picked.
+        sampledMesh = mesh;
+        sampledBuffer = vertices;
+        lastSampleTime = sampleTime;
     }
 
     private void clearSampleCache() {
         lowerVertices = upperVertices = null;
         lowerIndex = upperIndex = -1;
+        sampledMesh = null;
+        sampledBuffer = null;
+        lastSampleTime = Float.NaN;
     }
 
     @Override

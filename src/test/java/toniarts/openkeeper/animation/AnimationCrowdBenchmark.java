@@ -62,6 +62,7 @@ public final class AnimationCrowdBenchmark {
         if(mode.equals("hidden")) crowd.setCullHint(Spatial.CullHint.Always);
         float tpf = mode.equals("unchanged") ? 0 : 1f/60;
         for(int frame=0;frame<WARMUP;frame++) crowd.updateLogicalState(tpf);
+        for(PoseTrack track : tracks) track.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position).clearUpdateNeeded();
         long[] times = new long[SAMPLES]; long dirty = 0, allocation = allocated();
         for(int frame=0;frame<SAMPLES;frame++) {
             long start = System.nanoTime(); crowd.updateLogicalState(tpf); times[frame]=System.nanoTime()-start;

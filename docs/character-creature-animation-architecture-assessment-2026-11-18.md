@@ -359,7 +359,7 @@ Action tracking:
 - Publication aliasing fixed in 11.10; whole-session lifecycle stress remains open.
 - [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence.
 - [x] Measure representative crowds and transition bursts before optimizing. CPU-only baseline in 11.13; whole-game/GPU profiling remains an acceptance limitation.
-- [ ] Skip redundant/hidden deformation with correct visibility re-entry.
+- [x] Skip redundant/hidden deformation with correct visibility re-entry. See 11.14; frustum-only scheduling is deliberately excluded.
 - [ ] Introduce bounded reuse/cache ownership only where measurements support it.
 - [ ] Complete individually verified retreat/drag/recoil/idle/alternate-form policies.
 - [ ] Evaluate GPU vertex interpolation/instancing only if the measured gain justifies compatibility cost.
@@ -522,3 +522,18 @@ Java 25.0.4.1, this Windows workstation, baseline at `f659d69` production code. 
 | 1000 visible | 3.8386 | 5.7475 | 6.1764 | 4052868 |
 
 Steady-state measured calling-thread allocation is zero at 200/500/1000. The 500-creature transition run made 3000 replacements in 85.783 ms and allocated 44,329,968 bytes (about 14.8 KB/replacement). This supports skipping hidden/unchanged writes and investigating transition reuse; it does not establish a whole-game bottleneck or GPU acceleration benefit. Raw output/JFR are local ignored `build/animation-before.*` evidence; rerun the task to reproduce. Small-population results include warm-up/JIT noise and are not used for optimization claims.
+
+### 11.14 Hidden and redundant deformation (F11)
+
+`PoseTrack` skips explicitly `CullHint.Always` subtrees while composers and completion callbacks continue logically. A visible sample rewrites the current phase once. Unchanged normalized/clamped sample times do not dirty position buffers or invalidate picking data; held terminal coordinates therefore remain idle. Clone/import and changed mesh/output-buffer identity invalidate per-instance sample caches. Animated position buffers remain owned by their tracks. Frustum-only culling is not used, so other cameras and shadows retain full sampling. No distance quality reduction or worker threads are added.
+
+Validation: composer time advances under a hidden owner without modifying/dirtying vertices; re-entry evaluates the current phase, repeated/clamped samples stay clean, and existing clone/import/picking/timing tests pass. Installed cached/fresh corpus remains finite and contained. Same benchmark and JFR settings as 11.13, selected after measurements:
+
+| Count / mode | Before median / P95 ms | After median / P95 ms | Dirty bytes after |
+|---|---:|---:|---:|
+| 500 visible | 1.4669 / 2.4422 | 1.3792 / 2.3438 | 2027016 |
+| 500 hidden | 1.4581 / 2.4270 | 0.0452 / 0.0628 | 0 |
+| 500 unchanged | 0.4753 / 0.5363 | 0.0816 / 0.0849 | 0 |
+| 1000 hidden | 3.9396 / 5.8480 | 0.0983 / 0.1085 | 0 |
+
+The hidden median reduction is approximately 97% at 500 in this CPU workload; visible differences are too small/noisy for a broad improvement claim. These dirty bytes are CPU update flags, not measured PCIe/GPU traffic. Raw results/JFR: ignored `build/animation-after.*`. No whole-game FPS, GPU duration or frustum/shadow visual acceptance is claimed by this benchmark.
