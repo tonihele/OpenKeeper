@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
@@ -85,6 +86,13 @@ public final class ShotsController implements IShotsController {
      * queues through the message queue (0x4C4600)
      */
     private static final double ALARM_DURATION = 50;
+
+    /**
+     * How many game ticks a creature burns after a fire shot set it alight
+     * (0x4AC420). The shots' burn duration in the data is 0 for every shot and
+     * the original doesn't read it
+     */
+    private static final int ON_FIRE_TICKS = 10;
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -384,6 +392,9 @@ public final class ShotsController implements IShotsController {
 
         // The shot's data 1 is its damage (0x4AC420)
         if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+            if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
+                setAlight(thing);
+            }
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
@@ -406,6 +417,27 @@ public final class ShotsController implements IShotsController {
         // The new shot keeps the old one's values, not its own (0x4AB180)
         addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.shotData1, flight.shotData2, new Vector3f(),
                 new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
+    }
+
+    /**
+     * A fire shot sets a creature alight when the creature has less than 21 %
+     * of its health left before the hit and doesn't stand on water (0x4AC420).
+     * Another hit lights the fire again for the full time
+     *
+     * @param thing the thing the shot hit
+     */
+    private void setAlight(EntityId thing) {
+        Health health = entityData.getComponent(thing, Health.class);
+        Position position = entityData.getComponent(thing, Position.class);
+        if (health == null || health.maxHealth <= 0 || position == null
+                || entityData.getComponent(thing, CreatureComponent.class) == null
+                || health.health * 100 / health.maxHealth >= 21
+                || mapController.isWater(WorldUtils.vectorToPoint(position.position))) {
+            return;
+        }
+
+        int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+        entityData.setComponent(thing, new OnFire(gameTimer.getGameTime() + (double) ON_FIRE_TICKS / ticksPerSecond));
     }
 
 }
