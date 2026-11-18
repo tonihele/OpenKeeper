@@ -28,6 +28,13 @@ class CreatureAnimationRequestTest {
         var control = new CreatureViewControl(id, data, creature, null, assets, null); root.addControl(control);
         var state = new CreatureViewState((short)1, 2, Creature.AnimationType.WALK);
         assertTrue(control.setViewState(creature, state)); assertEquals(1, AnimationLoader.getModelRevision(root));
+        assertFalse(control.isStopAnimation());
+        var unavailable = state.next(2,Creature.AnimationType.DEATH_POSE);
+        assertFalse(control.setViewState(creature,unavailable));
+        assertFalse(control.isStopAnimation());
+        assertEquals(Creature.AnimationType.WALK,control.getCurrentState());
+        control.setTargetState(Creature.AnimationType.DEATH_POSE);
+        assertFalse(control.isStopAnimation());
         assertFalse(control.setViewState(creature, state)); assertEquals(1, AnimationLoader.getModelRevision(root));
         assertTrue(control.setViewState(creature, state.next(2, state.state))); assertEquals(2, AnimationLoader.getModelRevision(root));
         var changed = new CreatureViewState((short)2, 2, state.state, 1);

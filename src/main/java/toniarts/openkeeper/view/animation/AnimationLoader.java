@@ -51,7 +51,8 @@ public final class AnimationLoader {
     public enum PlaybackResult { STARTED, UNAVAILABLE, FAILED }
 
     @FunctionalInterface
-    interface ModelSource {
+    public interface ModelSource {
+        /** Return an owner-isolated model with resource decorations already applied. */
         Spatial load(String name, ArtResource resource);
     }
 
@@ -151,7 +152,7 @@ public final class AnimationLoader {
         return playAnimation(spatial, anim, (name, resource) -> AssetUtils.loadModel(assetManager, name, resource), endFrame);
     }
 
-    static PlaybackResult playAnimation(Spatial spatial, ArtResource anim, ModelSource source, boolean endFrame) {
+    public static PlaybackResult playAnimation(Spatial spatial, ArtResource anim, ModelSource source, boolean endFrame) {
         if (!(spatial instanceof Node root) || anim == null || anim.getType() == ArtResource.ArtResourceType.NONE) {
             return PlaybackResult.UNAVAILABLE;
         }
@@ -257,6 +258,7 @@ public final class AnimationLoader {
         if (once && age >= length) {
             sampleAt(composer, length);
             if (revision != getModelRevision(root)) return;
+            if (control.getPlaybackPolicy() == AnimationControl.PlaybackPolicy.HOLD) return;
             Spatial end = root.getChild(END_ANIM_NODE_NAME);
             if (end != null && end.getControl(AnimComposer.class) != null) {
                 var endComposer = end.getControl(AnimComposer.class);

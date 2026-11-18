@@ -81,6 +81,16 @@ class AnimationLoaderTest {
         assertNotNull(root.getChild("new")); assertNull(root.getChild("End"));
         assertEquals(1,listener.cycles); assertEquals(0,listener.stops);
     }
+    @Test void lateSeekIntoAHeldClipDoesNotRunTheEndSegment() {
+        Node root = new Node(); var listener = new Listener(); listener.policy = AnimationControl.PlaybackPolicy.HOLD; root.addControl(listener);
+        var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("hold-seek",3,30);
+        resource.getFlags().add(ArtResource.ArtResourceFlag.HAS_END_ANIMATION);
+        AnimationLoader.playAnimation(root,resource,AnimationLoaderTest::model,false);
+        AnimationLoader.seekAnimation(root,resource,2);
+        assertEquals(1,listener.cycles); assertEquals(0,listener.stops);
+        assertFalse(root.getChild("End").getControl(AnimComposer.class).isEnabled());
+        assertNotEquals(Spatial.CullHint.Always,root.getChild("hold-seek").getCullHint());
+    }
     @Test void clampTraversesBothDirectionsForMultipleCyclesAndSeeksBackwards() {
         Node root = new Node();
         var resource = toniarts.openkeeper.tools.convert.map.AnimationFixtures.resource("cycle",3,30);

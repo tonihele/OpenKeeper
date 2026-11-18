@@ -118,12 +118,12 @@ public final class CreatureViewSystem extends GameTimeCounter {
             float dz = previous == null || position == null ? 0 : position.position.z - previous.position.z;
             boolean moving = dx * dx + dz * dz > 1e-8f;
             boolean restart = false;
-            if (entityData.getComponent(entityId, Death.class) != null) {
+            if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+                targetState = Creature.AnimationType.FALLBACK;
+            } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
                 targetState = Creature.AnimationType.DIE;
-            } else if (entityData.getComponent(entityId, CreatureFall.class) != null) {
-                targetState = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Possessed.class) != null) {
                 targetState = getPossessedAnimation(entityId, state, moving);
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {

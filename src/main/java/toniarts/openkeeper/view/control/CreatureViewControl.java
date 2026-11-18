@@ -97,7 +97,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     /** Accepts restart identity even when the animation enum did not change. */
     public boolean setViewState(Creature creature, CreatureViewState state) {
         var request = new CreatureAnimationRequest(state);
-        if (request.equals(lastAttempt)) return false;
+        if (request.equals(lastAttempt) || request.equals(activeRequest)) return false;
         lastAttempt = request;
         Creature previous = getDataObject();
         if (previous != creature && spatial != null) {
@@ -105,9 +105,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             if (cache != null) cache.clear();
         }
         setDataObject(creature);
+        Creature.AnimationType previousTarget = targetState;
         super.setTargetState(state.state);
         if (!playAnimation(state.state)) {
             setDataObject(previous);
+            super.setTargetState(previousTarget);
             return false;
         }
         playStateSounds(state.state);
@@ -207,12 +209,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private boolean playAnimation(Creature.AnimationType animation) {
         ArtResource resource = getAnimationData(animation);
-        if (AnimationLoader.playAnimation(getSpatial(), resource, assetManager)
+        if (AnimationLoader.playAnimation(getSpatial(), resource, (name, art) -> {
+                Spatial model = toniarts.openkeeper.utils.AssetUtils.loadModel(assetManager,name,art);
+                if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE))
+                    CreatureVariantTextures.apply(model,assetManager);
+                return model;
+            }, false)
                 != AnimationLoader.PlaybackResult.STARTED) return false;
         activeAnimation = resource;
-        if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
-            CreatureVariantTextures.apply(getSpatial(), assetManager);
-        }
         isAnimationPlaying = true;
         currentState = animation;
         stepMarks = FootstepSounds.getMarks(getDataObject(), animation);
@@ -347,11 +351,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public void setTargetState(Creature.AnimationType state) {
+        Creature.AnimationType previousTarget = targetState;
         super.setTargetState(state);
 
         // Play immediately
         if (!Objects.equals(currentState, targetState)) {
-            if (!playAnimation(state)) return;
+            if (!playAnimation(state)) { super.setTargetState(previousTarget); return; }
+            activeRequest = null;
+            initialSeekPending = false;
             playStateSounds(state);
         }
     }
