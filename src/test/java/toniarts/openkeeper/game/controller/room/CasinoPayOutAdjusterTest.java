@@ -56,7 +56,8 @@ class CasinoPayOutAdjusterTest {
         // The furniture stands on (2, 2), (2, 4), (3, 3), (4, 2) and (4, 4)
         assertEquals(new Point(2, 2), getTile(findObject(PAY_OUT_ADJUSTER)));
         assertEquals(4, casino.getFloorFurnitureCount());
-        assertEquals(4, casino.getMaxCapacity(ObjectType.GAMBLER));
+        // One more gambler than there is furniture to gamble at (#1149)
+        assertEquals(5, casino.getMaxCapacity(ObjectType.GAMBLER));
     }
 
     @Test
