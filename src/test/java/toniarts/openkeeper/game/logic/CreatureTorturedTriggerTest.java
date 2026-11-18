@@ -246,6 +246,20 @@ class CreatureTorturedTriggerTest {
         }
     }
 
+    @Test
+    void refreshingDevicesDoesNotDeliverAnotherAdmission() {
+        try (Fixture f = new Fixture(255, false)) {
+            f.data.removeComponent(f.entity, Trigger.class);
+            f.factory(true);
+            f.bindScripts(); f.tick();
+            assertEquals(1, f.flags[0]);
+            f.storage.refreshDevices();
+            f.tick();
+            assertEquals(1, f.flags[0]);
+            assertEquals(f.device, f.data.getComponent(f.lastAdmission, CreatureTortured.class).device);
+        }
+    }
+
     private static final class Fixture implements AutoCloseable {
         final EntityData data=new DefaultEntityData();
         final EntityId entity=data.createEntity();
