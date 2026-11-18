@@ -89,7 +89,7 @@ class TortureAdmissionTest {
     @Test
     void realSpawnUsesTheSameAdmissionAndKeepsTheSelectedPosition() {
         try (var f = new Fixture()) {
-            var factory = new CreaturesController(f.kwd, f.data, Map.of(), () -> 20, null, f.map, null);
+            var factory = new CreaturesController(f.kwd, f.data, Map.of(), () -> 20, f.game, f.map, null);
             EntityId victim = factory.spawnCreature((short) 6, (short) 1, 1, new Vector2f(1, 0), ICreaturesController.SpawnType.DROP);
             assertEquals(f.wheel, f.data.getComponent(victim, CreatureTortured.class).device);
             assertEquals(CreatureState.TORTURED, f.data.getComponent(victim, CreatureAi.class).getCreatureState());
@@ -101,7 +101,7 @@ class TortureAdmissionTest {
     @Test
     void ordinaryPlacementDoesNotAdmitButOwnRoomDropDoes() {
         try (var f = new Fixture()) {
-            var factory = new CreaturesController(f.kwd, f.data, Map.of(), () -> 20, null, f.map, null);
+            var factory = new CreaturesController(f.kwd, f.data, Map.of(), () -> 20, f.game, f.map, null);
             EntityId placed = factory.spawnCreature((short) 6, (short) 1, 1, new Vector2f(), ICreaturesController.SpawnType.PLACE);
             assertNull(f.data.getComponent(placed, CreatureTortured.class));
             EntityId dropped = factory.spawnCreature((short) 6, (short) 3, 1, new Vector2f(), ICreaturesController.SpawnType.DROP);
@@ -182,6 +182,14 @@ class TortureAdmissionTest {
         final RoomTortureeControl control = new RoomTortureeControl(kwd, room, data, () -> 20) {
             @Override protected int getNumberOfAccessibleTiles() { return devices.size(); }
         };
+        final IGameController game = proxy(IGameController.class, (name, args) -> {
+            if (!name.equals("onCreatureTortured")) throw new UnsupportedOperationException(name);
+            EntityId victim = (EntityId) args[0];
+            assertNotNull(data.getComponent(victim, Stored.class));
+            assertEquals(CreatureState.TORTURED, data.getComponent(victim, CreatureAi.class).getCreatureState());
+            assertNotNull(data.getComponent(victim, CreatureTortured.class).device);
+            return null;
+        });
         final IMapController map = proxy(IMapController.class, (name, args) -> room);
         Fixture() { instance.setOwnerId((short) 3); }
         RoomTortureeControl storage() { return control; }
