@@ -2240,7 +2240,7 @@ public final class CreatureController extends EntityController implements ICreat
 
         // To the first hero lair action point we can get to, else we fight on (DK II 0x4611D0)
         for (ActionPoint actionPoint : levelInfo.getActionPoints()) {
-            if (actionPoint.getFlags().contains(Thing.ActionPoint.ActionPointFlag.HERO_LAIR) && navigateTo(actionPoint.getStart())) {
+            if (actionPoint.getFlags().contains(Thing.ActionPoint.ActionPointFlag.HERO_LAIR) && !createNavigation(getCreatureCoordinates(), actionPoint.getStart(), null)) {
                 return true;
             }
         }
@@ -2265,24 +2265,10 @@ public final class CreatureController extends EntityController implements ICreat
             };
             IMapTileInformation mapTile = mapController.getMapData().getTile(destination);
             if (mapTile != null && mapTile.getOwnerId() == getOwnerId() && !mapController.isSolid(destination)) {
-                navigateTo(destination);
+                createNavigation(tile, destination, null);
                 return;
             }
         }
-    }
-
-    /**
-     * Walks to the tile, if there is a way there
-     *
-     * @param destination the tile to go to
-     * @return true if we are on our way
-     */
-    private boolean navigateTo(Point destination) {
-        GraphPath<IMapTileInformation> path = navigationService.findPath(getCreatureCoordinates(), destination, this);
-        if (path != null) {
-            entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
-        }
-        return path != null;
     }
 
     private boolean isFleeing(EntityId entity) {
