@@ -175,12 +175,13 @@ public final class GameLoopManager {
                         entityData,
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
                         levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
-                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService),
-                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData, gameWorldController.getMapController()),
+        loops.add(new GameLoop(new GameLogicManager(
+                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService),
+                new MovementSystem(entityData, gameWorldController.getMapController()),
                 new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }

@@ -20,7 +20,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple entity position class
+ * Published position snapshot. Treat fields as read-only outside deserialization.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
@@ -34,8 +34,12 @@ public final class Position implements EntityComponent {
     }
 
     public Position(float rotation, Vector3f position) {
+        this(rotation, position.x, position.y, position.z);
+    }
+
+    public Position(float rotation, float x, float y, float z) {
         this.rotation = rotation;
-        this.position = position;
+        this.position = new Vector3f(x, y, z);
     }
 
 }

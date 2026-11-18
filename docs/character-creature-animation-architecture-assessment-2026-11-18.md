@@ -356,6 +356,7 @@ Action tracking:
 - [ ] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup.
 - [ ] Freeze playback correctly on pause and align presentation markers with shared phase.
 - [ ] Remove shared mutable transform publication before adding interpolation or workers.
+- Publication aliasing fixed in 11.10; whole-session lifecycle stress remains open.
 - [ ] Implement and validate actual-motion/gait presentation, preserving authored DK2 cadence.
 - [ ] Measure representative crowds and transition bursts before optimizing.
 - [ ] Skip redundant/hidden deformation with correct visibility re-entry.
@@ -483,3 +484,9 @@ Validation: a synthetic animated vertex is advanced for twenty traversals, with 
 `AnimationControl.PlaybackPolicy` defines LOOP, ONCE and HOLD. Compatibility defaults adapt existing controls; loader completion and late seeking consume the same contract. Policy can be supplied by a control without changing the loader. ONCE runs start/main/end and sends one stop notification; HOLD disables sampling while retaining the final visible main pose. Reentrant completion that replaces a visual cannot activate the old end segment. Existing creature state policy is preserved.
 
 Validation: actual composer updates exercise start/main/end, exactly one completion/stop, held visibility and interruption from inside a completion callback; 29 focused loader, request, creature selection and gambling tests pass. Expanding idle/sleep loops or deriving policy from animation names remains blocked on independent original-DK2 behavior evidence. The contract is implemented; the checklist's original-comparison requirement remains open.
+
+### 11.10 Transform snapshot ownership (F09)
+
+`Position` defensively copies constructor input, with a coordinate constructor to allocate exactly one owned vector. Steering publishes a new value without changing retained snapshots. Falling computes a fresh value. Falling now runs before navigation/possession in the same 60 Hz loop; navigation is cancelled when falling, possessed, hauled, dead or unconscious. Possessed motion skips falling/dead/unconscious entities. These owners no longer independently integrate the same active creature. Position fields remain public for existing ECS serialization, with an explicit read-only publication contract.
+
+Validation: retained steering/falling snapshots and constructor inputs stay unchanged; a fall with stale navigation descends without planar integration and cancels that navigation. Movement speed, facing, position lookup, hauling and network serialization tests pass. Broader commands (pickup/removal/teleport from the logic loop) still use the existing ECS lifecycle. A whole-session concurrent command stress trace is not established by these tests; no transform interpolation or parallel workers are enabled on the strength of this local ownership repair alone.

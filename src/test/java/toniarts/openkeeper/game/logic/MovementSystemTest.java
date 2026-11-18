@@ -39,6 +39,27 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MovementSystemTest {
 
+    @Test void publishedSnapshotsRemainUnchangedWhileSteeringAndFalling() {
+        EntityData data = new DefaultEntityData(); EntityId id = data.createEntity();
+        Vector3f input = new Vector3f(10,3,23); Position retained = new Position(0,input);
+        input.x = 99;
+        assertEquals(10,retained.position.x);
+        data.setComponents(id,retained,new Mobile(false,false,false,1),new toniarts.openkeeper.game.component.CreatureComponent(),
+                new Navigation(new Point(20,23),null,List.of(new Vector2(10,23),new Vector2(20,23))));
+        MovementSystem movement = new MovementSystem(data,map(false,false));
+        for(int i=0;i<60;i++) movement.processTick(1f/60);
+        assertEquals(new Vector3f(10,3,23),retained.position);
+        Position beforeFall = data.getComponent(id,Position.class);
+        data.setComponent(id,new toniarts.openkeeper.game.component.CreatureFall());
+        new CreatureFallSystem(data,()->1,null).processTick(.1f);
+        movement.processTick(.1f);
+        assertEquals(3,beforeFall.position.y);
+        assertEquals(2.8f,data.getComponent(id,Position.class).position.y,1e-6);
+        assertEquals(beforeFall.position.x,data.getComponent(id,Position.class).position.x);
+        assertNull(data.getComponent(id,Navigation.class));
+        movement.stop();
+    }
+
     /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
      * (sin r, cos r) on x, z for the Position rotation r.
