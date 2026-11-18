@@ -36,16 +36,21 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -62,9 +67,12 @@ import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -425,6 +433,97 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void chickenGivenToAPrisonerFeedsItWithoutLettingItOut() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 1));
+            f.controller.getStateMachine().changeState(CreatureState.IMPRISONED);
+            EntityId chicken = f.data.createEntity();
+            f.data.setComponent(chicken, new Health(1000, 1000));
+
+            f.controller.eat(proxy(IEntityController.class, (method, args) -> switch (method) {
+                case "getEntityId" -> chicken;
+                case "remove" -> {
+                    f.data.removeEntity(chicken);
+                    yield null;
+                }
+                default -> throw new UnsupportedOperationException(method);
+            }));
+
+            assertEquals(CreatureState.IMPRISONED, f.state());
+            assertNull(f.data.getComponent(chicken, Health.class));
+            assertEquals(0, f.data.getComponent(f.entity, CreatureHunger.class).amountNeeded);
+            assertEquals(-250, f.data.getComponent(f.entity, Damage.class).damage);
+        }
+    }
+
+    @Test
+    void chickenGivesNothingToACreatureThatIsNotHungry() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new CreatureHunger(0, 0));
+
+            f.controller.sate();
+
+            assertNull(f.data.getComponent(f.entity, Damage.class));
+        }
+    }
+
+    @Test
+    void prisonerKeepsItsDyingTimeAsHealthAndGetsATenthOfItsMaximumOnTop() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponents(f.entity, new Health(0, 1000), new Unconscious(0));
+            f.time = 10;
+
+            f.controller.imprison((short) 4, f.room);
+
+            // 50 seconds of dying time left at 4 ticks a second, and 1000 / 10
+            assertEquals(300, f.health());
+            assertNull(f.data.getComponent(f.entity, Unconscious.class));
+        }
+    }
+
+    @Test
+    void prisonerThatIsAwakeGetsATenthOfItsMaximumHealth() {
+        try (Fixture f = new Fixture(9)) {
+            f.controller.imprison((short) 4, f.room);
+
+            assertEquals(350, f.health());
+        }
+    }
+
+    @Test
+    void asksTheTaskForItsTargetOnceAndOnlyWhenStopped() {
+        try (Fixture f = new Fixture(9)) {
+            f.startWork(TaskType.TRAIN);
+            f.targetQueries = 0;
+
+            // On its way, a task may search a path for its target
+            f.data.setComponent(f.entity, new Navigation(new Point(3, 4), null, List.of()));
+            assertFalse(f.controller.isAtAssignedTaskTarget());
+            assertEquals(0, f.targetQueries);
+
+            f.data.removeComponent(f.entity, Navigation.class);
+            assertTrue(f.controller.isAtAssignedTaskTarget());
+            assertEquals(1, f.targetQueries);
+        }
+    }
+
+    @Test
+    void idleHeroTriesItsObjectiveAgainEveryTwelveTicks() {
+        try (Fixture f = new Fixture(9)) {
+            f.data.setComponent(f.entity, new Owner(Player.GOOD_PLAYER_ID, Player.GOOD_PLAYER_ID));
+            f.data.setComponent(f.entity, new Objective(Thing.HeroParty.Objective.KILL_PLAYER, (short) 3, 0));
+            f.data.removeComponent(f.entity, CreatureSleep.class);
+            f.controller.getStateMachine().changeState(CreatureState.IDLE);
+            for (int i = 0; i < 24; i++) {
+                f.tick();
+            }
+
+            // DK II's hero idle state does nothing for 12 ticks when the objective can't start (0x477850)
+            assertEquals(List.of(0d, 3d, 6d), f.objectiveAttempts);
+        }
+    }
+
     private static CreatureComponent workerComponent() {
         CreatureComponent component = new CreatureComponent();
         component.creatureId = 6;
@@ -452,8 +551,10 @@ class CreatureControllerTest {
             return null;
         });
         final List<Double> eatAttempts = new java.util.ArrayList<>();
+        final List<Double> objectiveAttempts = new java.util.ArrayList<>();
         int sleepAssignments;
         int oldJobUnassignments;
+        int targetQueries;
         double time;
 
         Fixture(int timeSleep) {
@@ -482,6 +583,10 @@ class CreatureControllerTest {
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
                 case "getTaskById" -> tasks.get((Long) args[0]);
                 case "addToUnemployedWorkerQueue" -> null;
+                case "assignObjectiveTask" -> {
+                    objectiveAttempts.add(time);
+                    yield false;
+                }
                 case "isTaskAvailable" -> false;
                 case "assignSleepTask" -> {
                     sleepAssignments++;
@@ -518,6 +623,8 @@ class CreatureControllerTest {
                     CreatureSleepFixtures.variable(MiscType.MODIFY_ANGER_OF_CREATURE_IN_LAIR_PER_SECOND, -550));
             IEntityPositionLookup lookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
                 case "getSensedEntities" -> Set.of();
+                case "getEntityLocation" -> null; // Not on a Hero Lair
+                case "getBlockingDoor" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
@@ -535,7 +642,7 @@ class CreatureControllerTest {
             controller = controllers.get();
             sleepSystem = new CreatureSleepSystem(data, kwd, () -> time);
             moodSystem = new CreatureMoodSystem(data, kwd, List.of(), () -> time, settings);
-            healthSystem = new HealthSystem(data, null, settings, null, null, List.of(), map, () -> time, eventService);
+            healthSystem = new HealthSystem(data, lookup, settings, null, null, List.of(), map, () -> time, eventService);
         }
 
         Task task(long id, TaskType type) {
@@ -543,7 +650,7 @@ class CreatureControllerTest {
                 case "getId" -> id;
                 case "getTaskType" -> type;
                 case "isValid" -> true;
-                case "getTarget" -> new Vector2f(3, 4);
+                case "getTarget" -> { targetQueries++; yield new Vector2f(3, 4); }
                 case "getWorkPosition" -> null;
                 case "getTaskTarget", "getTaskLocation", "executeTask" -> null;
                 case "unassign" -> { oldJobUnassignments++; yield null; }

@@ -47,9 +47,11 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
@@ -63,6 +65,7 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -239,8 +242,19 @@ public final class CreaturesController implements ICreaturesController {
 
         // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
         SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+        EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
+        if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
+            entityData.setComponent(entityId, new Peaceful());
+        }
+
+        // A hero may be set to withdraw to the hero lair when it is badly hurt
+        if (ownerId == Player.GOOD_PLAYER_ID && flags != null && flags.contains(Thing.Creature.CreatureFlag.RETURN_TO_HERO_LAIR)) {
+            entityData.setComponent(entityId, new ReturnToHeroLair());
+        }
+        return entityId;
     }
 
     @Override
@@ -467,7 +481,7 @@ public final class CreaturesController implements ICreaturesController {
 
             // See if tortured or imprisoned
             // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+            if (room instanceof PrisonController prison && prison.isCageTile(location)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;

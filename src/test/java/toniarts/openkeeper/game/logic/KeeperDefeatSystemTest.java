@@ -23,11 +23,15 @@ import java.lang.reflect.InvocationHandler;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -52,6 +56,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -64,6 +69,7 @@ class KeeperDefeatSystemTest {
     private static final short HUMAN = Player.KEEPER1_ID;
     private static final short RIVAL = Player.KEEPER2_ID;
     private static final short OTHER_RIVAL = Player.KEEPER3_ID;
+    private static final short FOURTH_RIVAL = Player.KEEPER4_ID;
     private static final short PORTAL_GEM = 28;
     private static final int HEART_GOLD = 2000;
     private static final int HEART_CAPACITY = 16000;
@@ -131,6 +137,30 @@ class KeeperDefeatSystemTest {
                 new Point(2, 1), "terrain " + DIRT_PATH + neutral,
                 new Point(3, 1), "terrain " + ROCK + neutral), alteredTiles);
         assertEquals(List.of("rival's lair to " + Player.NEUTRAL_PLAYER_ID), transferredRooms);
+    }
+
+    @Test
+    void defeatedKeepersImpsDieSoNobodyClaimsHisLandBack() {
+        EntityId imp = creature(RIVAL, true);
+        EntityId fighter = creature(RIVAL, false);
+        EntityId humansImp = creature(HUMAN, true);
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+
+        entityData.removeEntity(hearts.get(RIVAL));
+        system.processTick(0.25f);
+
+        assertEquals(300, entityData.getComponent(imp, Damage.class).damage);
+        assertNull(entityData.getComponent(fighter, Damage.class));
+        assertNull(entityData.getComponent(humansImp, Damage.class));
+    }
+
+    private EntityId creature(short ownerId, boolean worker) {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.worker = worker;
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, creatureComponent, new Owner(ownerId, ownerId), new Health(300, 400));
+
+        return entityId;
     }
 
     @Test
@@ -251,6 +281,44 @@ class KeeperDefeatSystemTest {
     }
 
     @Test
+    void lastAiKeeperWinsAnAiOnlySkirmish() {
+        KeeperDefeatSystem system = skirmish(RIVAL, OTHER_RIVAL);
+
+        entityData.removeEntity(hearts.get(OTHER_RIVAL));
+        system.processTick(0.25f);
+
+        assertEquals(List.of(RIVAL + " won"), endings);
+    }
+
+    @Test
+    void alliedLastKeepersEachReceiveTheSkirmishWin() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL, FOURTH_RIVAL);
+        keepers.get(HUMAN).createAlliance(RIVAL);
+        keepers.get(RIVAL).createAlliance(HUMAN);
+
+        entityData.removeEntity(hearts.get(OTHER_RIVAL));
+        system.processTick(0.25f);
+        assertTrue(endings.isEmpty());
+
+        entityData.removeEntity(hearts.get(FOURTH_RIVAL));
+        system.processTick(0.25f);
+
+        assertEquals(2, endings.size());
+        assertEquals(Set.of(HUMAN + " won", RIVAL + " won"), new HashSet<>(endings));
+    }
+
+    @Test
+    void oneSidedAllianceDoesNotEndTheMatch() {
+        KeeperDefeatSystem system = skirmish(HUMAN, RIVAL, OTHER_RIVAL);
+        keepers.get(HUMAN).createAlliance(RIVAL);
+
+        entityData.removeEntity(hearts.get(OTHER_RIVAL));
+        system.processTick(0.25f);
+
+        assertTrue(endings.isEmpty());
+    }
+
+    @Test
     void skirmishTellsAiFromHumanByTheLobbyNotTheMapRecord() {
         KeeperDefeatSystem system = skirmish(HUMAN, RIVAL);
         keepers.get(HUMAN).setPlayer(KeeperDefeatFixtures.player(HUMAN, true));
@@ -259,8 +327,8 @@ class KeeperDefeatSystemTest {
         entityData.removeEntity(hearts.get(HUMAN));
         system.processTick(0.25f);
 
-        // The human lost although his map record is an AI one, and the AI rival's win is no result
-        assertEquals(List.of(HUMAN + " lost"), endings);
+        // The human lost although his map record is an AI one, and the AI rival wins
+        assertEquals(List.of(HUMAN + " lost", RIVAL + " won"), endings);
     }
 
     @Test
