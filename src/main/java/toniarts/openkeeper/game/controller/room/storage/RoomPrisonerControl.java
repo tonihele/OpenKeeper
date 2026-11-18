@@ -102,7 +102,7 @@ public abstract class RoomPrisonerControl extends AbstractRoomObjectControl<Enti
     /**
      * Sets all the prisoners held here free
      */
-    private void releasePrisoners() {
+    public void releasePrisoners() {
         for (EntityId prisoner : getItems()) {
             removeItem(prisoner);
             release(prisoner);
