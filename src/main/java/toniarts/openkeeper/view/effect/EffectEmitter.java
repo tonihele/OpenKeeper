@@ -52,14 +52,21 @@ public abstract class EffectEmitter extends Node {
     private EffectElement effectElement;
     private Effect effect;
     private transient EntityMaterialSetup materialSetup;
+    private MaterialSetupPolicy materialPolicy = MaterialSetupPolicy.WORLD;
 
     public EffectEmitter(EffectElement effectElement, Effect effect) {
         this(effectElement, effect, null);
     }
 
     public EffectEmitter(EffectElement effectElement, Effect effect, EntityMaterialSetup materialSetup) {
+        this(effectElement, effect, materialSetup, MaterialSetupPolicy.WORLD);
+    }
+
+    public EffectEmitter(EffectElement effectElement, Effect effect, EntityMaterialSetup materialSetup,
+            MaterialSetupPolicy materialPolicy) {
         super(effectElement.getName());
         this.materialSetup = materialSetup;
+        this.materialPolicy = java.util.Objects.requireNonNull(materialPolicy);
         this.effectElement = effectElement;
         this.effect = effect;
         this.setShadowMode(RenderQueue.ShadowMode.Off);
@@ -222,7 +229,7 @@ public abstract class EffectEmitter extends Node {
 
     private void register(Spatial instance) {
         if (materialSetup != null) {
-            materialSetup.register(instance, MaterialSetupPolicy.WORLD);
+            materialSetup.register(instance, materialPolicy);
         }
     }
 

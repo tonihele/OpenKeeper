@@ -150,10 +150,6 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
             this.height = height;
         }
 
-        public boolean isAmbientReady() {
-            return ambient != null;
-        }
-
         public void bindMaterials(List<Material> materials) {
             for (int i = 0; i < materials.size(); i++) {
                 Material material = materials.get(i);

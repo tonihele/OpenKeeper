@@ -82,6 +82,8 @@ import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightSource;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -278,7 +280,7 @@ public final class ModelViewer extends SimpleApplication {
         assetManager.registerLoader(MP2Loader.class, "mp2");
 
         // Effects manager
-        this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
+        this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager, MaterialSetupPolicy.FULL_BRIGHT);
         stateManager.attach(effectManagerState);
 
         // Sound system, used for previewing the sound files
@@ -517,7 +519,10 @@ public final class ModelViewer extends SimpleApplication {
     }
 
     private void restoreNormalMaterials() {
-        originalNormalMaterials.forEach(Geometry::setMaterial);
+        originalNormalMaterials.forEach((geometry, material) -> {
+            geometry.setMaterial(material);
+            EntityMaterialSetup.materialsChanged(geometry);
+        });
         originalNormalMaterials.clear();
     }
 
@@ -561,6 +566,7 @@ public final class ModelViewer extends SimpleApplication {
                                         "Common/MatDefs/Misc/ShowNormals.j3md");
                                 normalsMaterial.getAdditionalRenderState().setWireframe(wireframe);
                                 g.setMaterial(normalsMaterial);
+                                EntityMaterialSetup.materialsChanged(g);
                             }
                         }
                     }

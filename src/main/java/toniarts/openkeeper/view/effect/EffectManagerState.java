@@ -28,6 +28,7 @@ import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 import java.lang.System.Logger;
 import java.util.ArrayList;
@@ -51,15 +52,27 @@ public class EffectManagerState extends AbstractAppState {
     private AppStateManager stateManager;
     private Supplier<LightRules> lightRulesSupplier;
     private final EntityMaterialSetup materialSetup;
+    private final MaterialSetupPolicy materialPolicy;
 
     public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager) {
-        this(kwdFile, assetManager, new EntityMaterialSetup(assetManager));
+        this(kwdFile, assetManager, new EntityMaterialSetup(assetManager), MaterialSetupPolicy.WORLD);
+    }
+
+    /** Creates an effect scene with a fixed lighting policy (for example, a full-bright preview). */
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, MaterialSetupPolicy materialPolicy) {
+        this(kwdFile, assetManager, new EntityMaterialSetup(assetManager), materialPolicy);
     }
 
     public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, EntityMaterialSetup materialSetup) {
+        this(kwdFile, assetManager, materialSetup, MaterialSetupPolicy.WORLD);
+    }
+
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, EntityMaterialSetup materialSetup,
+            MaterialSetupPolicy materialPolicy) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.materialSetup = java.util.Objects.requireNonNull(materialSetup);
+        this.materialPolicy = java.util.Objects.requireNonNull(materialPolicy);
     }
 
     @Override
@@ -97,6 +110,10 @@ public class EffectManagerState extends AbstractAppState {
 
     public EntityMaterialSetup getMaterialSetup() {
         return materialSetup;
+    }
+
+    public MaterialSetupPolicy getMaterialPolicy() {
+        return materialPolicy;
     }
 
     /**

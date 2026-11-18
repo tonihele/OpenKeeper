@@ -45,4 +45,37 @@ public final class MaterialLifecycleFixtures {
         element.setMaxScale(1);
         return element;
     }
+
+    public static Effect artlessEffect(int id, List<Integer> children, int deathEffectId) {
+        var effect = effect();
+        effect.setEffectId(id);
+        effect.setArtResource(null);
+        effect.setFlags(EnumSet.of(children.isEmpty()
+                ? Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS : Effect.EffectFlag.GENERATE_EFFECTS));
+        effect.setGenerateIds(children);
+        effect.setDeathEffectId(deathEffectId);
+        return effect;
+    }
+
+    public static Effect meshEffect(String modelName) {
+        var effect = effect();
+        effect.setArtResource(meshArt(modelName));
+        effect.setFlags(EnumSet.of(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS));
+        effect.setGenerationType(Effect.GenerationType.DEFAULT);
+        effect.setGenerateIds(List.of(1));
+        effect.setElementsPerTurn((short) 1);
+        return effect;
+    }
+
+    public static EffectElement meshElement(String modelName) {
+        var element = element();
+        element.setArtResource(meshArt(modelName));
+        return element;
+    }
+
+    private static ArtResource meshArt(String modelName) {
+        var art = new ArtResource(modelName, ArtResource.ArtResourceType.MESH);
+        art.setData(ArtResource.KEY_SCALE, 1f);
+        return art;
+    }
 }

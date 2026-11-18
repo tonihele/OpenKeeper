@@ -158,7 +158,7 @@ public class VisualEffect {
     private void load() {
         ArtResource resource = effect.getArtResource();
 
-        Spatial model = new Node();
+        Spatial model = null;
         if (resource != null) {
             model = createEffectModel(resource);
             model.addControl(createEffectControl());
@@ -182,11 +182,10 @@ public class VisualEffect {
         tickAccumulator = EFFECT_TICK;
 
         // Light
-        effectManagerState.getMaterialSetup().unregister(lightTarget);
+        releaseLightTarget();
         lightTarget = model;
-        targetMaterialRegistered = false;
         applyEffectLight(effect.getLight());
-        registerLightTarget(getLightRules());
+        registerLightTarget();
         // Elements/effects
         generateChildren();
 
@@ -562,7 +561,7 @@ public class VisualEffect {
     }
 
     private EffectEmitter newEffectEmitter(EffectElement element) {
-        return new EffectEmitter(element, effect, effectManagerState.getMaterialSetup()) {
+        return new EffectEmitter(element, effect, effectManagerState.getMaterialSetup(), effectManagerState.getMaterialPolicy()) {
 
             @Override
             public void onDeath(Vector3f location) {
@@ -741,7 +740,7 @@ public class VisualEffect {
         if (lightRules != lightingContext) {
             applyEffectLight(effect.getLight());
         }
-        registerLightTarget(lightRules);
+        registerLightTarget();
 
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
@@ -766,12 +765,27 @@ public class VisualEffect {
         return handleEffectCompletion();
     }
 
-    private void registerLightTarget(LightRules lightRules) {
-        if (!targetMaterialRegistered && lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
-            effectManagerState.getMaterialSetup().register(lightTarget,
-                    MaterialSetupPolicy.WORLD);
+    private void registerLightTarget() {
+        MaterialSetupPolicy policy = effectManagerState.getMaterialPolicy();
+        if (!targetMaterialRegistered && lightTarget != null && (policy.fullBright()
+                || LightConstants.isLightEnabled(effect.getLight()))) {
+            effectManagerState.getMaterialSetup().register(lightTarget, policy);
             targetMaterialRegistered = true;
         }
+    }
+
+    private void releaseLightTarget() {
+        effectManagerState.getMaterialSetup().unregister(lightTarget);
+        lightTarget = null;
+        targetMaterialRegistered = false;
+    }
+
+    private void releaseLighting() {
+        if (lightingContext != null) {
+            lightingContext.removeThingLight(this);
+            lightingContext = null;
+        }
+        releaseLightTarget();
     }
 
     private void updateCircularPath(float tpf) {
@@ -855,18 +869,12 @@ public class VisualEffect {
      */
     private boolean handleEffectCompletion() {
         if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
-            LightRules lightRules = getLightRules();
-            // If infitine, just restart
+            // If infinite, release the old instance before restarting.
             if (infinite) {
-                if (lightRules != null) {
-                    lightRules.removeThingLight(this);
-                }
+                releaseLighting();
                 load();
             } else {
-                if (lightRules != null) {
-                    lightRules.removeThingLight(this);
-                }
-                effectNode.removeFromParent();
+                removeEffect();
                 return false;
             }
         }
@@ -881,15 +889,12 @@ public class VisualEffect {
     }
 
     public void removeEffect() {
-        removed = true;
-        if (lightingContext != null) {
-            lightingContext.removeThingLight(this);
-            lightingContext = null;
+        if (removed) {
+            return;
         }
+        removed = true;
+        releaseLighting();
         effectNode.depthFirstTraversal(effectManagerState.getMaterialSetup()::unregister);
-        effectManagerState.getMaterialSetup().unregister(lightTarget);
-        lightTarget = null;
-        targetMaterialRegistered = false;
         effects.forEach(VisualEffect::removeEffect);
         effects.clear();
         effectElements.clear();

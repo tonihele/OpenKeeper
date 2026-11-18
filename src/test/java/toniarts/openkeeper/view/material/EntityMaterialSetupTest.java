@@ -5,6 +5,8 @@
 package toniarts.openkeeper.view.material;
 
 import com.jme3.asset.DesktopAssetManager;
+import com.jme3.asset.ModelKey;
+import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.export.binary.BinaryExporter;
 import com.jme3.export.binary.BinaryImporter;
@@ -30,7 +32,10 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.MaterialLifecycleFixtures;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.effect.EffectEmitter;
@@ -100,13 +105,15 @@ class EntityMaterialSetupTest {
         try (var setup = setup(true)) {
             setup.register(model, MaterialSetupPolicy.CREATURE);
             setup.update(null);
+            assertEquals(1, preparations.get());
+            assertNull(model.getMaterial().getTextureParam("LightData"));
             setup.update(rules);
             EntityMaterialSetup.materialsChanged(model);
             setup.update(rules);
-            assertEquals(0, preparations.get());
+            assertEquals(2, preparations.get());
             rules.initAmbientMap(4, 5);
             setup.flush(rules);
-            assertEquals(1, preparations.get());
+            assertEquals(2, preparations.get());
             assertNotNull(model.getMaterial().getTextureParam("AmbientMap"));
             assertEquals(0f, model.getMaterial().getParam("AmbientScale").getValue());
         }
@@ -295,6 +302,10 @@ class EntityMaterialSetupTest {
             assertNull(material.getParam("AmbientMapSize"));
             assertNull(material.getParam("MeshCenter"));
             setup.register(mesh, MaterialSetupPolicy.CREATURE);
+            setup.update(null);
+            assertEquals(0f, material.getParam("RockFloor").getValue());
+            assertEquals(0f, material.getParam("MinLight").getValue());
+            assertNull(material.getTextureParam("AmbientMap"));
             setup.update(rules);
             assertSame(material, mesh.getMaterial());
             assertEquals(0f, material.getParam("RockFloor").getValue());
@@ -319,8 +330,9 @@ class EntityMaterialSetupTest {
             assertNotSame(((Geometry) root.getChild(0)).getMaterial(), ((Geometry) clone.getChild(0)).getMaterial());
             var bytes = new ByteArrayOutputStream();
             BinaryExporter.getInstance().save(root, bytes);
-            BinaryImporter.getInstance().setAssetManager(assets);
-            Spatial loaded = (Spatial) BinaryImporter.getInstance().load(new ByteArrayInputStream(bytes.toByteArray()));
+            var importer = BinaryImporter.getInstance();
+            importer.setAssetManager(assets);
+            Spatial loaded = (Spatial) importer.load(new ByteArrayInputStream(bytes.toByteArray()));
             second.register(loaded, MaterialSetupPolicy.WORLD);
             second.update(rules);
             assertEquals(3, preparations.get());
@@ -332,8 +344,8 @@ class EntityMaterialSetupTest {
         var mesh = geometry("removed");
         var setup = setup(true);
         setup.register(mesh, MaterialSetupPolicy.WORLD);
-        setup.update(null);
         setup.unregister(mesh);
+        setup.update(null);
         setup.update(rules(3, 3));
         assertEquals(0, preparations.get());
         assertEquals(0, setup.registeredModels());
@@ -423,7 +435,7 @@ class EntityMaterialSetupTest {
         var world = new Node("world");
         var visual = manager.load(world, Vector3f.ZERO, 1, true);
         manager.update(0.001f);
-        assertEquals(0, preparations.get());
+        assertEquals(1, preparations.get());
         var first = rules(2, 2);
         context.set(first);
         manager.update(0.001f);
@@ -558,6 +570,246 @@ class EntityMaterialSetupTest {
         assertEquals(new Vector3f(2.5f, 4, 6), stored);
         assertEquals(new Vector3f(2, 3, 4), position);
         assertEquals(new Vector3f(0.5f, 1, 2), offset);
+    }
+
+    private static IKwdFile effects(Effect... definitions) {
+        return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, arguments) -> {
+                    if (method.getName().equals("getEffect")) {
+                        for (var effect : definitions) {
+                            if (effect.getEffectId() == (int) arguments[0]) return effect;
+                        }
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
+    }
+
+    @Test
+    void artlessEffectsReleaseRegistrationsAndStayTerminalAfterNaturalCompletion() {
+        var setup = setup(true);
+        var manager = new EffectManagerState(effects(MaterialLifecycleFixtures.artlessEffect(1, List.of(), 0)), assets, setup);
+        var context = new AtomicReference<>(rules(2, 2));
+        manager.setLightRulesSupplier(context::get);
+        var world = new Node("world");
+        for (int i = 0; i < 100; i++) {
+            var visual = manager.load(world, null, 1, false);
+            manager.update(0.1f);
+            assertEquals(0, world.getQuantity());
+            assertNull(context.get().getThingLight(visual));
+            assertEquals(0, setup.registeredModels());
+            context.set(rules(3, 3));
+            assertFalse(visual.update(0.1f));
+            assertNull(context.get().getThingLight(visual));
+            visual.removeEffect();
+        }
+        manager.clearActiveEffects();
+        assertEquals(0, setup.registeredModels());
+        manager.cleanup();
+    }
+
+    @Test
+    void artlessParentAndGeneratedChildFinishAfterDelayedContextWithoutOrphanRegistrations() {
+        var setup = setup(true);
+        var parent = MaterialLifecycleFixtures.artlessEffect(2, List.of(1), 0);
+        var manager = new EffectManagerState(effects(parent, MaterialLifecycleFixtures.effect()), assets, setup);
+        var context = new AtomicReference<LightRules>();
+        manager.setLightRulesSupplier(context::get);
+        var world = new Node("world");
+        var visual = manager.load(world, null, 2, false);
+        manager.update(0.001f);
+        context.set(rules(2, 2));
+        manager.update(0.001f);
+        assertEquals(1, setup.registeredModels()); // The model-bearing child only.
+        world.updateLogicalState(0.1f);
+        manager.update(0.1f);
+        assertEquals(0, world.getQuantity());
+        assertEquals(0, setup.registeredModels());
+        assertNull(context.get().getThingLight(visual));
+        manager.cleanup();
+    }
+
+    @Test
+    void artlessSelfRestartIsBoundedAcrossContextReadinessAndExplicitRemoval() {
+        var setup = setup(true);
+        var manager = new EffectManagerState(effects(MaterialLifecycleFixtures.artlessEffect(1, List.of(), 1)), assets, setup);
+        var context = new AtomicReference<LightRules>();
+        manager.setLightRulesSupplier(context::get);
+        var world = new Node("world");
+        var visual = manager.load(world, null, 1, false);
+        for (int i = 0; i < 100; i++) {
+            if (i == 5) context.set(rules(2, 2));
+            manager.update(0.1f);
+            assertEquals(1, world.getQuantity());
+            assertEquals(0, setup.registeredModels());
+        }
+        assertNotNull(context.get().getThingLight(visual));
+        manager.clearActiveEffects();
+        assertNull(context.get().getThingLight(visual));
+        assertEquals(0, world.getQuantity());
+        assertFalse(visual.update(0.1f));
+        manager.cleanup();
+    }
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void blueprintRestorationClearsInheritedBindingsWhileTheContextIsMissingOrLoading(boolean loadingContext) {
+        var root = new Node("restored");
+        var mesh = geometry("mesh");
+        root.attachChild(mesh);
+        var originalContext = rules(2, 2);
+        var loading = new LightRules();
+        LightRules pendingContext = loadingContext ? loading : null;
+        try (var setup = setup(true)) {
+            setup.register(root, MaterialSetupPolicy.WORLD);
+            setup.update(originalContext);
+            var oldMaterial = mesh.getMaterial();
+            var oldLight = oldMaterial.getTextureParam("LightData").getTextureValue();
+            var oldAmbient = oldMaterial.getTextureParam("AmbientMap").getTextureValue();
+            AssetUtils.setBlueprint(assets, root);
+            setup.flush(originalContext);
+            setup.flush(pendingContext);
+            AssetUtils.removeBlueprint(root);
+            setup.flush(pendingContext);
+            if (loadingContext) {
+                assertNotSame(oldLight, mesh.getMaterial().getTextureParam("LightData").getTextureValue());
+            } else {
+                assertNull(mesh.getMaterial().getTextureParam("LightData"));
+            }
+            assertNull(mesh.getMaterial().getTextureParam("AmbientMap"));
+            assertNull(mesh.getMaterial().getParam("AmbientMapSize"));
+            setup.flush(loading);
+            assertNotSame(oldLight, mesh.getMaterial().getTextureParam("LightData").getTextureValue());
+            assertNull(mesh.getMaterial().getTextureParam("AmbientMap"));
+            int count = preparations.get();
+            for (int i = 0; i < 100; i++) setup.update(loading);
+            assertEquals(count, preparations.get());
+            loading.initAmbientMap(3, 4);
+            setup.flush(loading);
+            assertNotSame(oldAmbient, mesh.getMaterial().getTextureParam("AmbientMap").getTextureValue());
+            assertEquals(new Vector2f(3, 4), mesh.getMaterial().getParam("AmbientMapSize").getValue());
+            assertEquals(count, preparations.get());
+        }
+    }
+
+    @Test
+    void preparedClonesAndImportedModelsAreSanitizedBeforeAmbientReadiness() throws Exception {
+        var root = new Node("template");
+        var mesh = geometry("mesh");
+        root.attachChild(mesh);
+        try (var first = setup(true); var second = setup(true)) {
+            first.register(root, MaterialSetupPolicy.WORLD);
+            first.update(rules(2, 2));
+            var original = mesh.getMaterial();
+            var oldAmbient = original.getTextureParam("AmbientMap").getTextureValue();
+            Node clone = (Node) root.clone();
+            var bytes = new ByteArrayOutputStream();
+            BinaryExporter.getInstance().save(root, bytes);
+            var importer = BinaryImporter.getInstance();
+            importer.setAssetManager(assets);
+            var loaded = (Node) importer.load(new ByteArrayInputStream(bytes.toByteArray()));
+            var loading = new LightRules();
+            for (var reused : List.of(clone, loaded)) {
+                var reusedMesh = (Geometry) reused.getChild(0);
+                var inherited = reusedMesh.getMaterial();
+                second.register(reused, MaterialSetupPolicy.CREATURE);
+                second.flush(null);
+                assertNotSame(inherited, reusedMesh.getMaterial());
+                assertNull(reusedMesh.getMaterial().getTextureParam("LightData"));
+                assertNull(reusedMesh.getMaterial().getTextureParam("AmbientMap"));
+                assertNull(reusedMesh.getMaterial().getParam("AmbientMapSize"));
+                second.flush(loading);
+                assertNotNull(reusedMesh.getMaterial().getTextureParam("LightData"));
+                assertNull(reusedMesh.getMaterial().getTextureParam("AmbientMap"));
+            }
+            assertSame(oldAmbient, original.getTextureParam("AmbientMap").getTextureValue());
+            int count = preparations.get();
+            loading.initAmbientMap(4, 5);
+            second.flush(loading);
+            assertEquals(count, preparations.get());
+            for (var reused : List.of(clone, loaded)) {
+                assertEquals(new Vector2f(4, 5), ((Geometry) reused.getChild(0)).getMaterial().getParam("AmbientMapSize").getValue());
+            }
+        }
+    }
+
+    @Test
+    void noMapEffectPreviewKeepsInitialNewAndRespawnedMeshesFullBright() {
+        String modelName = "O1-full-bright-preview-fixture";
+        var source = geometry("preview mesh");
+        source.setMaterial(new Material(assets, "MatDefs/DkLighting/Vertex.j3md"));
+        var texture = new Texture2D(new Image(Image.Format.RGBA8, 1, 1, ByteBuffer.allocateDirect(4)));
+        texture.setKey(new TextureKey("preview-fixture.png", false));
+        source.getMaterial().setTexture("DiffuseMap", texture);
+        var template = new Node("model");
+        template.attachChild(source);
+        var previewAssets = new DesktopAssetManager(true) {
+            @Override public Spatial loadModel(ModelKey key) {
+                assertTrue(key.getName().endsWith(modelName + ".j3o"));
+                return template.clone();
+            }
+        };
+        var effect = MaterialLifecycleFixtures.meshEffect(modelName);
+        var element = MaterialLifecycleFixtures.meshElement(modelName);
+        var kwd = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, arguments) -> switch (method.getName()) {
+                    case "getEffect" -> effect;
+                    case "getEffectElement" -> element;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+        var setup = new EntityMaterialSetup(previewAssets);
+        var manager = new EffectManagerState(kwd, previewAssets, setup, MaterialSetupPolicy.FULL_BRIGHT);
+        var preview = new Node("preview");
+        var visual = manager.load(preview, null, 1, false);
+        // The viewer's compatibility walk must respect the nested owners.
+        AssetUtils.applyFullLight(preview);
+        manager.render(null);
+        assertEquals(2, setup.registeredModels());
+        assertFullBright(preview);
+        var emitter = (EffectEmitter) visual.getEffectNode().getChildren().stream()
+                .filter(EffectEmitter.class::isInstance).findFirst().orElseThrow();
+        Spatial dying = emitter.getChild(0);
+        preview.updateLogicalState(0.1f);
+        manager.render(null);
+        assertEquals(1, setup.registeredModels());
+        assertNotSame(dying, emitter.getChild(0));
+        emitter.emitOne();
+        manager.render(null);
+        assertEquals(2, setup.registeredModels());
+        assertFullBright(preview);
+
+        var mesh = (Geometry) ((Node) emitter.getChild(0)).getChild(0);
+        var restored = mesh.getMaterial();
+        mesh.setMaterial(new Material(assets, "Common/MatDefs/Misc/ShowNormals.j3md"));
+        EntityMaterialSetup.materialsChanged(mesh);
+        manager.render(null);
+        mesh.setMaterial(restored);
+        EntityMaterialSetup.materialsChanged(mesh);
+        manager.render(null);
+        assertFullBright(preview);
+        manager.clearActiveEffects();
+        assertEquals(0, setup.registeredModels());
+        assertEquals(0, preview.getQuantity());
+        manager.loadSingleEffect(preview, null, 1, false);
+        manager.render(null);
+        assertFullBright(preview);
+        assertEquals(0f, source.getMaterial().getParam("RockFloor").getValue());
+        manager.cleanup();
+        assertEquals(0, setup.registeredModels());
+    }
+
+    private static void assertFullBright(Spatial root) {
+        var count = new AtomicInteger();
+        root.depthFirstTraversal(spatial -> {
+            if (spatial instanceof Geometry geometry && AssetUtils.isVertexMaterial(geometry.getMaterial())) {
+                var material = geometry.getMaterial();
+                assertEquals(1f, material.getParam("RockFloor").getValue());
+                assertEquals(1f, material.getParam("MinLight").getValue());
+                assertNull(material.getTextureParam("LightData"));
+                assertNull(material.getTextureParam("AmbientMap"));
+                count.incrementAndGet();
+            }
+        });
+        assertTrue(count.get() > 0);
     }
 
 }

@@ -31,7 +31,6 @@ public final class EntityMaterialSetup implements AutoCloseable {
     private final IdentityHashMap<Spatial, Entry> entries = new IdentityHashMap<>();
     private final List<Entry> active = new ArrayList<>();
     private final ArrayDeque<Entry> pending = new ArrayDeque<>();
-    private final List<Entry> waiting = new ArrayList<>();
     private MaterialBinding binding;
     private boolean closed;
     private Thread ownerThread;
@@ -71,8 +70,6 @@ public final class EntityMaterialSetup implements AutoCloseable {
             materialsChanged(root.getParent());
         } else if (!entry.policy.equals(policy)) {
             entry.policy = policy;
-            waiting.remove(entry);
-            entry.waiting = false;
             queue(entry);
         }
     }
@@ -84,7 +81,6 @@ public final class EntityMaterialSetup implements AutoCloseable {
         if (entry != null) {
             active.remove(entry);
             pending.remove(entry);
-            waiting.remove(entry);
             entry.control.entry = null;
             root.removeControl(entry.control);
             entry.materials = List.of();
@@ -136,39 +132,28 @@ public final class EntityMaterialSetup implements AutoCloseable {
         MaterialBinding next = rules == null ? null : rules.getMaterialBinding();
         boolean bindingsChanged = next != binding;
         binding = next;
-        if (bindingsChanged && binding != null && binding.isAmbientReady()) {
-            for (int i = 0; i < waiting.size(); i++) {
-                Entry current = waiting.get(i);
-                current.waiting = false;
-                queue(current);
-            }
-            waiting.clear();
-        }
         Entry entry;
         while ((entry = pending.pollFirst()) != null) {
             entry.queued = false;
-            if (!entry.policy.fullBright() && (binding == null || !binding.isAmbientReady())) {
-                entry.waiting = true;
-                waiting.add(entry);
-                continue;
-            }
+            // Reused/restored materials may carry another world's bindings.
+            // Establish ownership once per mutation, even before ambient readiness.
             entry.materials = provider.prepare(entry.root, entry.policy, entry.materials);
-            entry.bound = null;
             entry.centerValid = false;
             updateCenter(entry);
-            bind(entry);
+            bind(entry, true);
         }
         // Only a resource transition or freshly prepared entry needs binding.
-        // No traversal or allocation is involved while ambient resources are pending.
+        // Stable frames need no material traversal, including pending ambient resources.
         if (bindingsChanged) {
             for (int i = 0; i < active.size(); i++) {
-                bind(active.get(i));
+                bind(active.get(i), false);
             }
         }
     }
 
-    private void bind(Entry entry) {
-        if (!entry.policy.fullBright() && entry.bound != binding) {
+    private void bind(Entry entry, boolean freshlyPrepared) {
+        // Fresh materials need sanitizing even when both binding identities are null.
+        if (!entry.policy.fullBright() && (freshlyPrepared || entry.bound != binding)) {
             if (binding == null) {
                 for (int i = 0; i < entry.materials.size(); i++) {
                     Material material = entry.materials.get(i);
@@ -185,7 +170,7 @@ public final class EntityMaterialSetup implements AutoCloseable {
 
     private void queue(Entry entry) {
         checkThread(false);
-        if (!closed && !entry.queued && !entry.waiting) {
+        if (!closed && !entry.queued) {
             entry.queued = true;
             pending.addLast(entry);
         }
@@ -219,7 +204,6 @@ public final class EntityMaterialSetup implements AutoCloseable {
         entries.clear();
         active.clear();
         pending.clear();
-        waiting.clear();
         binding = null;
     }
 
@@ -245,7 +229,6 @@ public final class EntityMaterialSetup implements AutoCloseable {
         private List<Material> materials = List.of();
         private MaterialBinding bound;
         private boolean queued;
-        private boolean waiting;
         private boolean centerValid;
 
         private Entry(Spatial root, MaterialSetupPolicy policy, InvalidationControl control) {
