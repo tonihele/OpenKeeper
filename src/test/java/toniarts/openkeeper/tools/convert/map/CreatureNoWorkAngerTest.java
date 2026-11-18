@@ -21,6 +21,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumSet;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -85,7 +86,7 @@ class CreatureNoWorkAngerTest {
             case "isTaskAvailable", "assignTask" -> jobAvailable;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        return new CreatureController(entityId, entityData, mistress, null, taskManager, null, null,
+        return new CreatureController(entityId, entityData, mistress, null, taskManager, null, Map.of(),
                 null, null, null, null, null, null, null);
     }
 
