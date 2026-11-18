@@ -172,6 +172,18 @@ class HeroLairTest {
     }
 
     @Test
+    void badlyHurtHeroWithdrawsToTheLairRatherThanFleeing() {
+
+        // DK II withdraws to the hero lair before it weighs fear (0x45F030)
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        ICreatureController creature = creature(state, Map.of("withdrawToHeroLair", true, "shouldFleeOrAttack", true), new ArrayList<>());
+
+        CreatureState.FIGHT.update(creature);
+
+        assertEquals(CreatureState.HERO_RECUPERATING, state.get());
+    }
+
+    @Test
     void recuperatingHeroGoesBackToItsJobOnceItsHealthIsBack() {
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.HERO_RECUPERATING);
         List<String> calls = new ArrayList<>();
@@ -280,7 +292,7 @@ class HeroLairTest {
             if (method.equals("changeState")) {
                 state.set((CreatureState) args[0]);
             }
-            return null;
+            return method.equals("isInState") ? state.get() == args[0] : null;
         });
         AtomicReference<ICreatureController> self = new AtomicReference<>();
         self.set(stub(ICreatureController.class, (method, args) -> {
@@ -288,6 +300,14 @@ class HeroLairTest {
             return switch (method) {
                 case "getStateMachine" -> stateMachine;
                 case "getAttackTarget" -> self.get();
+                case "shouldFleeOrAttack" -> {
+
+                    // Like the controller, one that should flee goes to FLEE itself
+                    if (Boolean.TRUE.equals(answers.get(method))) {
+                        state.set(CreatureState.FLEE);
+                    }
+                    yield answers.get(method);
+                }
                 default -> answers.get(method);
             };
         }));
