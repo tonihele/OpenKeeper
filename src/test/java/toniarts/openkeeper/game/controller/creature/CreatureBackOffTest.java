@@ -424,6 +424,7 @@ class CreatureBackOffTest {
             case "withdrawToHeroLair" -> false;
             case "canStepBack" -> stepsBack.get();
             case "isStateTimeExceeded" -> false;
+            case "releaseCastShot" -> null;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();
