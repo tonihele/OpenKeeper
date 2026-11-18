@@ -42,8 +42,9 @@ public interface IShotsController {
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter);
 
     /**
-     * A creature fires a shot at its target. A shot that flies is sent on its
-     * way, it does what it does when it hits.
+     * A creature fires a shot at its target. A shot that flies, or an instant
+     * shot that goes onto its target, is sent on its way, it does what it does
+     * when it hits.
      *
      * @param shotTypeId shot type to fire
      * @param shotData1 arbitrary value, interpreted per shot
