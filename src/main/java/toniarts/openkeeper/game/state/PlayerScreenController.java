@@ -1313,8 +1313,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/hilight.png"),
                 AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Spells/" + activeImage + ".png"),
                 tooltip, tooltip, keeperSpell != null ? "select(spell, " + keeperSpell.getId() + ")" : "");
-        cb.width("64px");
-        cb.height("64px");
+        cb.width("128px");
+        cb.height("128px");
         Element element = cb.build(panel);
         if (keeperSpell == null) {
             element.startEffect(EffectEventId.onCustom, null, "unaffordable");
