@@ -20,7 +20,6 @@ import com.jme3.animation.AnimControl;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
-import com.jme3.light.PointLight;
 import com.jme3.material.Material;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.FastMath;
@@ -35,6 +34,10 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Color;
 import toniarts.openkeeper.utils.MapThumbnailGenerator;
 import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
+import toniarts.openkeeper.view.PlayerMapViewState;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -64,7 +67,14 @@ public class VisualEffect {
      */
     private static final float GRAVITY_FACTOR = 25f;
 
+    private static final float EFFECT_TICK = 1f / 20f;
     private final Effect effect;
+    private final boolean emitOverLifetime;
+    // The emitters fed every effect tick, and how long the effect still emits
+    private final List<ParticleEmitter> lifetimeEmitters = new ArrayList<>();
+    private float lifetimeLeft;
+    private boolean started;
+    private float tickAccumulator;
     // Keyed by the spawned spatial (unique per instance), not the shared
     // EffectElement definition -- a burst spawns elementsPerTurn separate
     // instances of the same element id, which would otherwise collide as
@@ -77,7 +87,9 @@ public class VisualEffect {
     private final EffectManagerState effectManagerState;
     private final short ownerId;
     private boolean infinite;
-    private PointLight light;
+    private int generationStepsRemaining;
+    private double generationStepRemainder;
+    private Spatial lightTarget;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.
@@ -95,8 +107,24 @@ public class VisualEffect {
         this(effectManagerState, node, location, effect, infinite, Player.NEUTRAL_PLAYER_ID);
     }
 
+    /**
+     * @param ownerId the player the effect belongs to, used for the colour of
+     * {@code PLAYER_COLOURED} effect lights; {@code null} if none (the
+     * light then takes the fallback player colour)
+     */
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite, short ownerId) {
+        this(effectManagerState, node, location, effect, infinite, ownerId, false);
+    }
+
+    /**
+     * @param emitOverLifetime emit the particle elements every effect tick
+     * ({@link #EFFECT_TICK}) while the effect's hp lasts, instead of a single
+     * burst. Only for the sprite particle elements.
+     */
+    public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite,
+            short ownerId, boolean emitOverLifetime) {
         this.effect = effect;
+        this.emitOverLifetime = emitOverLifetime;
         this.kwdFile = effectManagerState.getKwdFile();
         this.assetManager = effectManagerState.getAssetManger();
         this.effectManagerState = effectManagerState;
@@ -137,12 +165,21 @@ public class VisualEffect {
             }
         }
 
-        // Light
-        light = getLight(effect.getLight());
-        if (light != null) {
-            model.addLight(light);
+        // The first batch comes on the next update
+        lifetimeEmitters.clear();
+        lifetimeLeft = emitOverLifetime ? effect.getMaxHp() * EFFECT_TICK : 0;
+        if (emitOverLifetime && !started) {
+            // Every instance is loaded at the same moment and would restart in lockstep forever. Cut the first
+            // cycle short by a random amount so they end up at different points of their cycle (the original's
+            // slabs drift apart through its random element lifetimes)
+            lifetimeLeft *= 0.1f + 0.9f * FastMath.nextRandomFloat();
         }
+        started = true;
+        tickAccumulator = EFFECT_TICK;
 
+        // Light
+        lightTarget = model;
+        applyEffectLight(effect.getLight());
         // Elements/effects
         generateChildren();
 
@@ -168,7 +205,7 @@ public class VisualEffect {
                 break;
 
             case PROCEDURAL_MESH:
-                model = AssetUtils.createProceduralMesh(resource);
+                model = ProceduralMeshFactory.create(resource, assetManager);
                 break;
 
             case MESH_COLLECTION:
@@ -180,7 +217,7 @@ public class VisualEffect {
             case ADDITIVE_ALPHA:
             case SPRITE:
                 EffectGeometry g = new EffectGeometry("effect", resource.getFlags().contains(ArtResource.ArtResourceFlag.FLAT));
-                g.setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+                g.setFrames(AssetUtils.getAnimationFrameCount(resource, assetManager));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 g.setMaterial(material);
@@ -206,8 +243,7 @@ public class VisualEffect {
             model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
 
         } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
-
-             AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
+            AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
             if (animControl != null) {
 //                    AnimChannel channel = animControl.getChannel(0);
 //                    channel.setAnim(ANIM_NAME);
@@ -238,7 +274,11 @@ public class VisualEffect {
     }
 
     private void handleEffectHit(Vector3f location) {
-        IMapTileInformation tile = effectManagerState.getPlayerMapViewState().getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        if (mapViewState == null) {
+            return;
+        }
+        IMapTileInformation tile = mapViewState.getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
         if (tile == null) {
             logger.log(Level.WARNING, "Effect hit error");
             return;
@@ -321,7 +361,11 @@ public class VisualEffect {
             effectElements.put(emitter, effectElement);
             effectNode.attachChild(emitter);
             if (emitter instanceof ParticleEmitter particleEmitter) {
-                particleEmitter.emitAllParticles();
+                if (emitOverLifetime) {
+                    lifetimeEmitters.add(particleEmitter);
+                } else {
+                    particleEmitter.emitAllParticles();
+                }
             } else if (emitter instanceof EffectEmitter effectEmitter) {
                 effectEmitter.emitAllParticles();
             }
@@ -359,9 +403,11 @@ public class VisualEffect {
     }
 
     private ParticleEmitter createParticleElement(EffectElement element, ArtResource resource) {
+        // Over the lifetime, the pool has to hold everything emitted while the first one is still alive
+        int poolSize = emitOverLifetime ? effect.getElementsPerTurn() * (element.getMaxHp() + 1) : effect.getElementsPerTurn();
         ParticleEmitter emitter = new EffectParticleEmitter(element.getName(),
                 ParticleMesh.Type.Triangle,
-                effect.getElementsPerTurn(),
+                poolSize,
                 element.getAirFriction(),
                 element.getElasticity(),
                 element.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION),
@@ -375,7 +421,7 @@ public class VisualEffect {
 
         Material material = AssetUtils.createParticleMaterial(resource, assetManager);
         emitter.setMaterial(material);
-        emitter.setImagesX(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+        emitter.setImagesX(AssetUtils.getAnimationFrameCount(resource, assetManager));
         emitter.setImagesY(1);
         emitter.setSelectRandomImage(resource.getFlags().contains(ArtResource.ArtResourceFlag.RANDOM_START_FRAME));
         emitter.setInWorldSpace(false);
@@ -411,7 +457,10 @@ public class VisualEffect {
     }
 
     private void configureParticleEmissionRate(ParticleEmitter emitter, EffectElement element) {
-        if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
+        if (emitOverLifetime) {
+            // Fed by hand every effect tick, see update()
+            emitter.setParticlesPerSec(0);
+        } else if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
             // keep the pool topped up forever via
             // jME3's own continuous emission instead of a single burst that
             // fades away for good.
@@ -429,6 +478,15 @@ public class VisualEffect {
         }
 
         ColorRGBA rgb = getElementColor(element);
+        if (element.getArtResource().getType() == ArtResourceType.ADDITIVE_ALPHA) {
+            // ONE/ONE ignores alpha for RGB blending. DKII fades the colour
+            // channels themselves, once per native update (0x4364dd..0x436566).
+            emitter.setStartColor(rgb);
+            emitter.setEndColor(rgb);
+            ((EffectParticleEmitter) emitter).setAdditiveColor(rgb,
+                    element.getFlags().contains(EffectElement.EffectElementFlag.FADE));
+            return;
+        }
         emitter.setStartColor(new ColorRGBA(rgb.r, rgb.g, rgb.b, 1f));
         emitter.setEndColor(new ColorRGBA(rgb.r, rgb.g, rgb.b, alpha));
     }
@@ -447,6 +505,12 @@ public class VisualEffect {
         }
 
         Color color = element.getColor();
+        if (element.getArtResource().getType() == ArtResourceType.ADDITIVE_ALPHA) {
+            // Native initialization copies the authored bytes, without normalizing
+            // the largest channel to white (0x43639b..0x4363b4).
+            return new ColorRGBA(color.getRed() / 255f, color.getGreen() / 255f,
+                    color.getBlue() / 255f, 1f);
+        }
         int maxComponent = Math.max(color.getRed(), Math.max(color.getGreen(), color.getBlue()));
         if (maxComponent == 0) {
             return new ColorRGBA(1f, 1f, 1f, 1f);
@@ -478,7 +542,7 @@ public class VisualEffect {
 
         Node model;
         if (resource.getType() == ArtResourceType.PROCEDURAL_MESH) {
-            model = (Node) AssetUtils.createProceduralMesh(resource);
+            model = ProceduralMeshFactory.create(resource, assetManager);
         } else {
             model = (Node) AssetUtils.loadModel(assetManager, resource.getName(), resource);
         }
@@ -560,7 +624,11 @@ public class VisualEffect {
     }
 
     private void handleElementHit(EffectElement element, Vector3f location) {
-        IMapTileInformation tile = effectManagerState.getPlayerMapViewState().getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
+        PlayerMapViewState mapViewState = effectManagerState.getPlayerMapViewState();
+        if (mapViewState == null) {
+            return;
+        }
+        IMapTileInformation tile = mapViewState.getMapInformation().getMapData().getTile(WorldUtils.vectorToPoint(location));
         if (tile == null) {
             logger.log(Level.WARNING, "Effect hit error");
             return;
@@ -586,19 +654,43 @@ public class VisualEffect {
         removeEffect();
     }
 
-    private PointLight getLight(Light effectLight) {
-        if (effectLight == null) {
-            return null;
+    /**
+     * The thing-light formula, applied to this effect
+     * (owner = the effect itself). Fade modulators are left to
+     * the effect system to trigger via {@code LightSource.startFade}.
+     * {@code PLAYER_COLOURED} lights take the colour of the effect's owner.
+     */
+    private void applyEffectLight(Light effectLight) {
+        LightRules lightRules = getLightRules();
+        if (lightRules == null) {
+            return;
         }
+        if (!LightConstants.isLightEnabled(effectLight)) {
+            lightRules.removeThingLight(this);
+            return;
+        }
+        lightRules.addThingLight(this, effectNode.getWorldTranslation(), effectLight, ownerId,
+                LightConstants.EFFECT_LIGHT_INTENSITY, LightConstants.OBJECT_LIGHTS_PULSE);
+    }
 
-        PointLight realLight = new PointLight();
-        realLight.setColor(new ColorRGBA(effectLight.getColor().getRed() / 255f,
-                effectLight.getColor().getGreen() / 255f,
-                effectLight.getColor().getBlue() / 255f,
-                effectLight.getColor().getAlpha() / 255f));
-        realLight.setRadius(effectLight.getRadius());
-        realLight.setPosition(new Vector3f(effectLight.getmKPos().x, effectLight.getmKPos().y, effectLight.getmKPos().z));
-        return realLight;
+    private LightRules getLightRules() {
+        return effectManagerState.getLightRules();
+    }
+
+    /**
+     * Emit particle elements each effect tick for the effect's authored lifetime.
+     * Portal build-up needs a sustained emitter instead of the legacy one-shot burst.
+     */
+    public void generateThroughoutLifetime() {
+        generationStepsRemaining = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp());
+        generationStepRemainder = 0;
+        for (Entry<Spatial, EffectElement> entry : effectElements.entrySet()) {
+            if (entry.getKey() instanceof ParticleEmitter emitter) {
+                int perTick = effect.getElementsPerTurn();
+                emitter.setNumParticles(Math.max(perTick, perTick * (entry.getValue().getMaxHp() + 1)));
+                emitter.setParticlesPerSec(0);
+            }
+        }
     }
 
     /**
@@ -609,10 +701,35 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if the effect has died
      */
     public boolean update(float tpf) {
+        if (generationStepsRemaining > 0) {
+            generationStepRemainder += tpf;
+            int steps = (int) ((generationStepRemainder + 1e-7) / 0.05);
+            if (steps > 0) {
+                generationStepRemainder -= steps * 0.05;
+                // Native CBridge advances life by elapsed 50 ms steps, but CUBE_GEN
+                // emits one packet per update call, including when that call catches up.
+                for (Spatial element : effectElements.keySet()) {
+                    if (element instanceof ParticleEmitter emitter) {
+                        emitter.emitParticles(effect.getElementsPerTurn());
+                    }
+                }
+                generationStepsRemaining -= steps;
+            }
+        }
         updateCircularPath(tpf);
+
+        // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
+        // own position is set once at construction and never moves.
+        LightRules lightRules = getLightRules();
+        if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
+            AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);
+        }
+        lightMeshElements(lightRules);
 
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
+
+        emitLifetimeElements(tpf);
 
         // Check the elements
         spawnDeathElements(updateElements());
@@ -621,10 +738,33 @@ public class VisualEffect {
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS) && effectElements.isEmpty()
                 && effect.getDeathEffectId() != 0 && !deathEffectSpawned) {
             deathEffectSpawned = true;
-            addEffect(effect.getDeathEffectId(), null);
+            if (kwdFile.getEffect(effect.getDeathEffectId()) == effect) {
+                // Dies into itself (e.g. "3dfe lightbeam light"), i.e. it just loops. Nesting a copy each time
+                // would grow the scene graph by a level per cycle until it overflows the stack, so restart instead.
+                infinite = true;
+            } else {
+                addEffect(effect.getDeathEffectId(), null);
+            }
         }
 
         return handleEffectCompletion();
+    }
+
+    /**
+     * Lights the spawned mesh elements (dig rock / gold debris...). They move
+     * on their own, so each one is vertex lit; they need no thing light of their own to be lit.
+     */
+    private void lightMeshElements(LightRules lightRules) {
+        if (lightRules == null) {
+            return;
+        }
+        for (Spatial element : effectElements.keySet()) {
+            if (element instanceof EffectEmitter emitter) {
+                for (Spatial instance : emitter.getChildren()) {
+                    AssetUtils.applyVertexLight(assetManager, instance, lightRules, false);
+                }
+            }
+        }
     }
 
     private void updateCircularPath(float tpf) {
@@ -639,10 +779,34 @@ public class VisualEffect {
     }
 
     /**
+     * One batch of {@code elementsPerTurn} particles per element and effect
+     * tick while the effect's hp lasts. Several ticks within a single frame
+     * still give one batch.
+     */
+    private void emitLifetimeElements(float tpf) {
+        if (lifetimeLeft <= 0) {
+            return;
+        }
+        lifetimeLeft -= tpf;
+        tickAccumulator += tpf;
+        if (tickAccumulator < EFFECT_TICK) {
+            return;
+        }
+        tickAccumulator = Math.min(tickAccumulator - EFFECT_TICK, EFFECT_TICK);
+        for (ParticleEmitter emitter : lifetimeEmitters) {
+            emitter.emitParticles(effect.getElementsPerTurn());
+        }
+    }
+
+    /**
      * Removes depleted effect elements and collects the death elements they
      * should spawn in their place.
      */
     private List<Integer> updateElements() {
+        if (lifetimeLeft > 0) {
+            // Still emitting, an empty emitter is not depleted yet
+            return null;
+        }
         Iterator<Entry<Spatial, EffectElement>> iter = effectElements.entrySet().iterator();
         List<Integer> deathEffectElements = null;
         while (iter.hasNext()) {
@@ -650,7 +814,7 @@ public class VisualEffect {
             Spatial value = entry.getKey();
             boolean depleted = (value instanceof ParticleEmitter particleEmitter && particleEmitter.getNumVisibleParticles() == 0)
                     || (value instanceof EffectEmitter effectEmitter && effectEmitter.getQuantity() == 0);
-            if (depleted) {
+            if (depleted && generationStepsRemaining <= 0) {
 
                 // Kill
                 value.removeFromParent();
@@ -684,13 +848,17 @@ public class VisualEffect {
      */
     private boolean handleEffectCompletion() {
         if (effectElements.isEmpty() && effects.isEmpty() && effectNode.getQuantity() == 0) {
+            LightRules lightRules = getLightRules();
             // If infitine, just restart
             if (infinite) {
-                if (light != null) {
-                    effectNode.removeLight(light);
+                if (lightRules != null) {
+                    lightRules.removeThingLight(this);
                 }
                 load();
             } else {
+                if (lightRules != null) {
+                    lightRules.removeThingLight(this);
+                }
                 effectNode.removeFromParent();
                 return false;
             }
@@ -698,9 +866,22 @@ public class VisualEffect {
         return true;
     }
 
+    /**
+     * @return the node everything of this effect hangs from, for placing it
+     */
+    public Node getEffectNode() {
+        return effectNode;
+    }
+
     public void removeEffect() {
+        effects.forEach(VisualEffect::removeEffect);
         effects.clear();
         effectElements.clear();
+        effectNode.detachAllChildren();
+        effectNode.removeFromParent();
+        lifetimeEmitters.clear();
+        lifetimeLeft = 0;
         infinite = false;
+        generationStepsRemaining = 0;
     }
 }
