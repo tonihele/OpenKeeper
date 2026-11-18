@@ -180,19 +180,10 @@ public final class ActionPointTriggerControl extends TriggerControl {
         short type = typeValue;
         int value = valueValue;
 
-        int target = switch (type) {
-            // Stock maps use both zero and three for creature counts. In either
-            // case a targetId of zero means any creature type.
-            case 0, 3 -> countCreatures(playerId, targetId);
-            case 6 -> countObjects(playerId, targetId);
-            default -> {
-                warnInvalidCongregateIn(trigger, "unknown targetType " + type);
-                yield -1;
-            }
-        };
-        if (target < 0) {
-            return false;
-        }
+        // DK II counts objects for target type six and creatures for every other
+        // value (DKII.EXE 0x4B0D70). Stock maps use zero and three for creatures.
+        // A targetId of zero means any type.
+        int target = type == 6 ? countObjects(playerId, targetId) : countCreatures(playerId, targetId);
 
         TriggerGeneric.ComparisonType comparisonType = trigger.getComparison();
         if (comparisonType == null || comparisonType == TriggerGeneric.ComparisonType.NONE) {

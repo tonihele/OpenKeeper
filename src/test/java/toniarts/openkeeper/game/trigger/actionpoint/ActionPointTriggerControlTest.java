@@ -532,13 +532,20 @@ class ActionPointTriggerControlTest {
     }
 
     @Test
-    void unsupportedSelectorsMissingComparisonsAndOutOfMapAreasFailClosed() {
-        IKwdFile unsupported = APCongregateInTriggerFixtures.congregateIn(TriggerGeneric.ComparisonType.EQUAL_TO,
-                (short) 0, (short) 0, (short) 5, 0);
-        Fixture fixture = new Fixture(unsupported, ACTION_POINT, 4, 4);
+    void everyTargetTypeButObjectsCountsCreatures() {
+        IKwdFile kwd = APCongregateInTriggerFixtures.congregateIn(TriggerGeneric.ComparisonType.EQUAL_TO,
+                (short) 0, (short) 0, (short) 5, 2);
+        Fixture fixture = new Fixture(kwd, ACTION_POINT, 4, 4);
         fixture.addCreature((short) 1, (short) 7, 1, 1);
-        assertFalse(fixture.isActive());
+        fixture.addObject((short) 1, (short) 74, 1, 2);
+        assertFalse(fixture.isActive(), "the object is not counted");
 
+        fixture.addCreature((short) 2, (short) 8, 2, 2);
+        assertTrue(fixture.isActive());
+    }
+
+    @Test
+    void missingComparisonsAndOutOfMapAreasFailClosed() {
         IKwdFile noComparison = APCongregateInTriggerFixtures.congregateIn(null,
                 (short) 0, (short) 0, (short) 3, 0);
         assertFalse(new Fixture(noComparison, ACTION_POINT, 4, 4).isActive());
