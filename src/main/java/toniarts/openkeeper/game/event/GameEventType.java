@@ -30,6 +30,10 @@ public enum GameEventType {
      */
     GRAVEYARD_VAMPIRE_RISEN,
     /**
+     * A creature left the dungeon for good, only its keeper gets this
+     */
+    CREATURE_LEFT,
+    /**
      * The creature took damage. Not restarted while the previous one of the same creature still goes on.
      */
     CREATURE_HURT,

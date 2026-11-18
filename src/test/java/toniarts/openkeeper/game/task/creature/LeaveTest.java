@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -44,6 +46,7 @@ class LeaveTest {
     private EntityId entity;
     private ICreatureController creature;
     private boolean portalRemoved;
+    private Vector3f position = new Vector3f(5, 0, 2);
     private Leave leave;
 
     @BeforeEach
@@ -53,6 +56,7 @@ class LeaveTest {
         creature = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getEntityId" -> entity;
+                    case "getPosition" -> position;
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     case "toString" -> "creature " + entity;
@@ -89,6 +93,15 @@ class LeaveTest {
         leaveSystem.processTick(0.25f);
 
         assertEquals(List.of(entity), left);
+    }
+
+    @Test
+    void creatureStepsIntoTheMiddleOfThePortalFromItsOwnSide() {
+        assertEquals(new Vector2f(5, 3.75f), leave.getWorkPosition(creature));
+
+        position = new Vector3f(5, 0, 6);
+
+        assertEquals(new Vector2f(5, 4.25f), leave.getWorkPosition(creature));
     }
 
     @Test
