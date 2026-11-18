@@ -22,6 +22,8 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import java.util.random.RandomGenerator;
+import toniarts.openkeeper.view.control.SpatialOpacity;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -57,6 +59,8 @@ public abstract class EffectElementControl extends AbstractControl {
     private float spinZ;
     private boolean landed;
     private boolean whirled;
+    private RandomGenerator random = FastMath.rand;
+    private SpatialOpacity opacity;
 
     /**
      * For serialization only. Do not use.
@@ -68,10 +72,16 @@ public abstract class EffectElementControl extends AbstractControl {
     }
 
     protected EffectElementControl(EffectElement effect, int spinRateRange, int whirlpoolRate) {
+        this(effect, spinRateRange, whirlpoolRate, FastMath.rand);
+    }
+
+    protected EffectElementControl(EffectElement effect, int spinRateRange, int whirlpoolRate,
+            RandomGenerator random) {
         this.effect = effect;
         this.whirlpoolRate = whirlpoolRate;
-        initialize(EffectControl.randomSpinRate(spinRateRange), EffectControl.randomSpinRate(spinRateRange),
-                EffectControl.randomSpinRate(spinRateRange));
+        this.random = random;
+        initialize(EffectControl.randomSpinRate(spinRateRange, random), EffectControl.randomSpinRate(spinRateRange, random),
+                EffectControl.randomSpinRate(spinRateRange, random));
     }
 
     /**
@@ -86,9 +96,9 @@ public abstract class EffectElementControl extends AbstractControl {
     }
 
     private void initialize(float spinX, float spinY, float spinZ) {
-        hp = hpCurrent = FastMath.nextRandomInt(effect.getMinHp(), effect.getMaxHp()) / 20f;
+        hp = hpCurrent = Math.max(1, random.nextInt(effect.getMinHp(), effect.getMaxHp() + 1)) / 20f;
 
-        velocity = calculateVelocity(effect);
+        velocity = calculateVelocity(effect, random);
 
         this.spinX = spinX;
         this.spinY = spinY;
@@ -101,7 +111,7 @@ public abstract class EffectElementControl extends AbstractControl {
             scale = new FloatLimit(effect.getMinScale());
             scaleRatio = (effect.getMaxScale() - effect.getMinScale()) / hp;
         } else {
-            scale = new FloatLimit(effect.getMinScale() + FastMath.nextRandomFloat() * (effect.getMaxScale() - effect.getMinScale()));
+            scale = new FloatLimit(effect.getMinScale() + random.nextFloat() * (effect.getMaxScale() - effect.getMinScale()));
             scaleRatio = 0;
         }
     }
@@ -124,6 +134,9 @@ public abstract class EffectElementControl extends AbstractControl {
 
         if (spatial != null) {
             this.spatial.setLocalScale(scale.getValue());
+            if (opacity == null && effect.getFlags().contains(EffectElement.EffectElementFlag.FADE)) {
+                opacity = new SpatialOpacity(spatial);
+            }
         }
     }
 
@@ -137,6 +150,9 @@ public abstract class EffectElementControl extends AbstractControl {
         updateSpin(tpf);
         updateMovement(tpf);
         updateLifetime(tpf);
+        if (opacity != null) {
+            opacity.set(Math.max(0, hpCurrent / hp));
+        }
     }
 
     private void updateScale(float tpf) {
@@ -202,6 +218,12 @@ public abstract class EffectElementControl extends AbstractControl {
     }
 
     private void applyFloorCollision(Vector3f location, float floorHeightLocal) {
+        if (effect.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
+            location.y = floorHeightLocal;
+            hpCurrent = 0;
+            onHit(location);
+            return;
+        }
         boolean directionalFriction = effect.getFlags().contains(EffectElement.EffectElementFlag.DIRECTIONAL_FRICTION);
         if (directionalFriction) {
             // Sticks where it lands instead of bouncing - elasticity is

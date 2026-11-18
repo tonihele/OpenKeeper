@@ -39,6 +39,7 @@ public final class GameLoop {
 
     private final long updateRate;
     private final AtomicBoolean pauseFlag = new AtomicBoolean(false);
+    private final Object tickLock = new Object();
 
     public GameLoop(IGameLogicUpdatable gameLoopManager) {
         this(gameLoopManager, INTERVAL_FPS_60); // 60 FPS
@@ -72,8 +73,11 @@ public final class GameLoop {
         loop.close();
     }
 
+    /** Pause at a tick boundary; no system update is running when this returns. */
     public void pause() {
-        pauseFlag.set(true);
+        synchronized (tickLock) {
+            pauseFlag.set(true);
+        }
     }
 
     public void resume() {
@@ -108,7 +112,9 @@ public final class GameLoop {
 
         @Override
         public void run() {
-            gameLoopManager.start();
+            synchronized (tickLock) {
+                gameLoopManager.start();
+            }
 
             long frameRate = 0;
             long lastTime = System.nanoTime();
@@ -135,7 +141,12 @@ public final class GameLoop {
                 if (delta + frameRate >= updateRate) {
                     lastTime = time;
                     frameRate += delta - updateRate;
-                    gameLoopManager.processTick(delta / 1_000_000_000f);
+                    synchronized (tickLock) {
+                        // Pause may have been requested after the outer flag check.
+                        if (!pauseFlag.get()) {
+                            gameLoopManager.processTick(delta / 1_000_000_000f);
+                        }
+                    }
                     long tickTime = System.nanoTime() - time;
                     // Logging
                     logger.log(tickTime < updateRate ? Level.TRACE : Level.ERROR, "Loop \"{0}\" took {1} ms!",

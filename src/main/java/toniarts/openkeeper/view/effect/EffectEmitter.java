@@ -17,10 +17,12 @@
 package toniarts.openkeeper.view.effect;
 
 import com.jme3.anim.AnimComposer;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import java.util.random.RandomGenerator;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
@@ -49,12 +51,21 @@ public abstract class EffectEmitter extends Node {
     //variable that helps with computations
     private EffectElement effectElement;
     private Effect effect;
+    private RandomGenerator random = FastMath.rand;
+    private EffectPlayback playback;
 
     public EffectEmitter(EffectElement effectElement, Effect effect) {
         super(effectElement.getName());
         this.effectElement = effectElement;
         this.effect = effect;
         this.setShadowMode(RenderQueue.ShadowMode.Off);
+    }
+
+    public EffectEmitter(EffectElement element, Effect effect, RandomGenerator random,
+            EffectPlayback playback) {
+        this(element, effect);
+        this.random = random;
+        this.playback = playback;
     }
 
     /**
@@ -145,7 +156,7 @@ public abstract class EffectEmitter extends Node {
     }
 
     private void spawnOne(boolean cubeGen) {
-        Spatial s = spatial.clone();
+        Spatial s = newInstance();
         startAnimation(s);
         if (effect.getFlags().contains(Effect.EffectFlag.RANDOM_DISTRIBUTION)) {
 
@@ -156,10 +167,10 @@ public abstract class EffectEmitter extends Node {
             // Each burst element gets its own random spot in the annulus/
             // height band and its own initial facing, instead of the whole
             // burst stacking on one shared point
-            s.setLocalTranslation(EffectControl.randomOriginOffset(effect));
-            s.setLocalRotation(EffectControl.randomOrientation(effect.getOrientationRange()));
+            s.setLocalTranslation(EffectControl.randomOriginOffset(effect, random));
+            s.setLocalRotation(EffectControl.randomOrientation(effect.getOrientationRange(), random));
         }
-        s.addControl(new EffectElementControl(effectElement, effect.getSpriteSpinRateRange(), effect.getWhirlpoolRate()) {
+        s.addControl(new EffectElementControl(effectElement, effect.getSpriteSpinRateRange(), effect.getWhirlpoolRate(), random) {
 
             @Override
             public void onDie(Vector3f location) {
@@ -177,6 +188,9 @@ public abstract class EffectEmitter extends Node {
         });
 
         this.attachChild(s);
+        if (playback != null) {
+            playback.manage(s);
+        }
     }
 
     /**
@@ -184,7 +198,7 @@ public abstract class EffectEmitter extends Node {
      * in place, carrying over its position and spin rate
      */
     private void respawnSelf(EffectElementControl dying, Vector3f location) {
-        Spatial replacement = spatial.clone();
+        Spatial replacement = newInstance();
         startAnimation(replacement);
         replacement.setLocalTranslation(location);
         replacement.setLocalRotation(dying.getSpatial().getLocalRotation());
@@ -206,6 +220,22 @@ public abstract class EffectEmitter extends Node {
         });
 
         this.attachChild(replacement);
+        if (playback != null) {
+            playback.manage(replacement);
+        }
+    }
+
+    private Spatial newInstance() {
+        Spatial model = spatial.clone();
+        if (playback == null) {
+            return model;
+        }
+        // The element's animated scale is independent of the art resource's
+        // scale (notably plugbeam's 3x). Keep the authored transform on the
+        // model and let the lifetime/physics control transform its parent.
+        Node instance = new Node(model.getName());
+        instance.attachChild(model);
+        return instance;
     }
 
     /**

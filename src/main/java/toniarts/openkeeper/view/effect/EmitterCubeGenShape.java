@@ -21,6 +21,7 @@ import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.math.Vector3f;
 import com.jme3.util.clone.Cloner;
+import java.util.random.RandomGenerator;
 import toniarts.openkeeper.tools.convert.map.Effect;
 
 import java.io.IOException;
@@ -35,6 +36,7 @@ import java.io.IOException;
 public class EmitterCubeGenShape implements EmitterShape {
 
     private Effect effect;
+    private RandomGenerator random = com.jme3.math.FastMath.rand;
 
     /**
      * For serialization only. Do not use.
@@ -46,9 +48,14 @@ public class EmitterCubeGenShape implements EmitterShape {
         this.effect = effect;
     }
 
+    public EmitterCubeGenShape(Effect effect, RandomGenerator random) {
+        this.effect = effect;
+        this.random = random;
+    }
+
     @Override
     public void getRandomPoint(Vector3f store) {
-        store.set(EffectControl.randomOriginOffset(effect));
+        store.set(EffectControl.randomOriginOffset(effect, random));
     }
 
     @Override
@@ -59,12 +66,12 @@ public class EmitterCubeGenShape implements EmitterShape {
 
     @Override
     public EmitterShape deepClone() {
-        return new EmitterCubeGenShape(effect);
+        return new EmitterCubeGenShape(effect, random);
     }
 
     @Override
     public Object jmeClone() {
-        return new EmitterCubeGenShape(effect);
+        return new EmitterCubeGenShape(effect, random);
     }
 
     @Override

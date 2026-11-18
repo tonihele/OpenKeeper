@@ -31,7 +31,11 @@ import java.lang.System.Logger;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.function.Supplier;
+import com.jme3.renderer.RenderManager;
+import toniarts.openkeeper.tools.convert.map.Effect;
 
 /**
  * An app state to manage ALL the effects in the world. Mainly their lifetime.
@@ -94,9 +98,44 @@ public class EffectManagerState extends AbstractAppState {
         while (iterator.hasNext()) {
             VisualEffect visualEffect = iterator.next();
             visualEffect.removeEffect();
-            visualEffect.update(-1);
         }
         activeEffects.clear();
+    }
+
+    @Override
+    public void cleanup() {
+        clearActiveEffects();
+        stateManager = null;
+        super.cleanup();
+    }
+
+    /** Load and compile finite sequence assets before the level's ready signal. */
+    public void prewarm(RenderManager renderer, int... roots) {
+        var pending = new ArrayDeque<Integer>();
+        var visited = new HashSet<Integer>();
+        for (int id : roots) {
+            pending.add(id);
+        }
+        while (!pending.isEmpty()) {
+            int id = pending.remove();
+            if (id == 0 || !visited.add(id)) {
+                continue;
+            }
+            Effect effect = kwdFile.getEffect(id);
+            if (effect == null) {
+                continue;
+            }
+            Node scene = new Node("Effect prewarm");
+            try (EffectPlayback playback = new EffectPlayback(this, scene, (short) 0, 0)) {
+                playback.spawn(id, Vector3f.ZERO);
+                renderer.preloadScene(scene);
+            }
+            pending.add(effect.getNextEffectId());
+            pending.add(effect.getDeathEffectId());
+            if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
+                pending.addAll(effect.getGenerateIds());
+            }
+        }
     }
 
     /**
