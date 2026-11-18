@@ -42,6 +42,32 @@ public final class ShotFixtures {
      */
     public static final int FIREBALL_HIT_EFFECT_ID = 234;
 
+    /**
+     * Shot 3 as it ships in the original data, the Bile Demon's Gas Cloud
+     */
+    public static final short GAS_CLOUD_ID = 3;
+
+    /**
+     * Shot 23 as it ships in the original data, the Bile Demon's Gas Missile
+     */
+    public static final short GAS_MISSILE_ID = 23;
+
+    /**
+     * Shot 55 as it ships in the original data, the cloud the Gas Missile
+     * leaves
+     */
+    public static final short GAS_MISSILE_CLOUD_ID = 55;
+
+    /**
+     * Shot 18 as it ships in the original data, the Elven Archer's Grenade
+     */
+    public static final short GRENADE_ID = 18;
+
+    /**
+     * Shot 19 as it ships in the original data, the Grenade's explosion
+     */
+    public static final short GRENADE_EXPLOSION_ID = 19;
+
     private ShotFixtures() {
     }
 
@@ -65,8 +91,57 @@ public final class ShotFixtures {
         shot.setRadius(0.2f);
         shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
         shot.setDamageType(Shot.DamageType.HIT_THING);
+        shot.setAttackCategory(Shot.AttackCategory.FIRE);
         shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
+                Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * The Gas Cloud or the Gas Missile's cloud, with the values of the
+     * original data
+     *
+     * @param shotId {@link #GAS_CLOUD_ID} or {@link #GAS_MISSILE_CLOUD_ID}
+     */
+    public static Shot gasCloud(short shotId) {
+        Shot shot = shot(shotId, Shot.ProcessType.GAS, 5, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setAttackCategory(Shot.AttackCategory.GAS);
+        shot.setSpeed(1f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.RANGE_FROM_ORIGIN);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME));
+        return shot;
+    }
+
+    /**
+     * The Gas Missile, with the values of the original data
+     */
+    public static Shot gasMissile() {
+        Shot shot = shot(GAS_MISSILE_ID, Shot.ProcessType.NONE, 16, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setHitSolidShotId(GAS_MISSILE_CLOUD_ID);
+        shot.setHitThingShotId(GAS_MISSILE_CLOUD_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.MOVE_TOWARDS_TARGET,
+                Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * The Grenade, with the values of the original data
+     */
+    public static Shot grenade() {
+        Shot shot = shot(GRENADE_ID, Shot.ProcessType.NONE, 16, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setSpeed(0.3f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.NONE);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setDeathShotId(GRENADE_EXPLOSION_ID);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.BOUNCE, Shot.ShotFlag.THROWN_PROJECTILE,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
         return shot;
     }
