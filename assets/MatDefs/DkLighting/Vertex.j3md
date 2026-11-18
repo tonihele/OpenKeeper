@@ -70,6 +70,8 @@ MaterialDef DK Terrain Lighting {
         // equally wide frames, stepped Speed times a second. Unset = static.
         Int NumberOfTiles
         Int Speed
+        Boolean UseAnimationFrame
+        Int AnimationFrame : 0
     }
 
     Technique {
@@ -84,6 +86,7 @@ MaterialDef DK Terrain Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             ANIMATED_TILES : NumberOfTiles
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap

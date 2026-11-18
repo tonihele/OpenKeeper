@@ -41,6 +41,8 @@ public final class CharacterAnimationCapture extends SimpleApplication {
     private long sequence;
     private double gameTime;
     private long pauseHash, hiddenHash;
+    private int pausedPixels;
+    private boolean shadows;
 
     private CharacterAnimationCapture(String dk2, String converted, Path output) {
         catalog = KwdFile.load(dk2,Path.of(dk2,"Data","Editor","Maps","Alcatraz.kwd"));
@@ -48,8 +50,10 @@ public final class CharacterAnimationCapture extends SimpleApplication {
     }
 
     public static void main(String[] args) throws Exception {
-        if(args.length != 3) throw new IllegalArgumentException("Expected DK2 root, converted root, output directory");
-        var app = new CharacterAnimationCapture(args[0],args[1],Path.of(args[2]));
+        if(args.length < 3) throw new IllegalArgumentException("Expected DK2 root, converted root, output directory, optional shadows");
+        boolean shadows = args.length > 3 && Boolean.parseBoolean(args[3]);
+        var app = new CharacterAnimationCapture(args[0],args[1],shadows ? Path.of(args[2],"shadows") : Path.of(args[2]));
+        app.shadows = shadows;
         Files.createDirectories(app.output);
         var settings = new AppSettings(true); settings.setResolution(1280,720);
         settings.setRenderer(AppSettings.LWJGL_OPENGL33); settings.setAudioRenderer(null);
@@ -67,6 +71,15 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         cam.setParallelProjection(true); cam.setFrustum(.1f,100,-10,10,5.625f,-5.625f);
         cam.setLocation(new Vector3f(0,14,18)); cam.lookAt(new Vector3f(0,1,0),Vector3f.UNIT_Y);
         rootNode.addLight(new AmbientLight(ColorRGBA.White));
+        if (shadows) {
+            var light = new com.jme3.light.DirectionalLight(new Vector3f(-1,-2,-1).normalizeLocal(),ColorRGBA.White);
+            rootNode.addLight(light); rootNode.setShadowMode(com.jme3.renderer.queue.RenderQueue.ShadowMode.CastAndReceive);
+            var shadowRenderer = new com.jme3.shadow.DirectionalLightShadowRenderer(assetManager,1024,2);
+            shadowRenderer.setLight(light); viewPort.addProcessor(shadowRenderer);
+            var floor = new Geometry("capture-floor",new com.jme3.scene.shape.Box(10,.05f,6)); floor.setLocalTranslation(0,-.05f,0);
+            var material = new com.jme3.material.Material(assetManager,"Common/MatDefs/Misc/Unshaded.j3md");
+            material.setColor("Color",new ColorRGBA(.2f,.2f,.22f,1)); floor.setMaterial(material); rootNode.attachChild(floor);
+        }
         pixels = BufferUtils.createByteBuffer(1280*720*4);
         List<Creature> examples = new ArrayList<>();
         for(String token : new String[]{"imp","mistress","knight","warlock","bile","firefly","skeleton"}) {
@@ -131,6 +144,9 @@ public final class CharacterAnimationCapture extends SimpleApplication {
                 long hash = poseHash();
                 if(frame == 450) pauseHash = hash;
                 if(frame == 465 && pauseHash != hash) throw new AssertionError("Paused pose changed");
+                int pixelHash = Arrays.hashCode(((java.awt.image.DataBufferByte)image.getRaster().getDataBuffer()).getData());
+                if(frame == 450) pausedPixels = pixelHash;
+                if(frame == 465 && pausedPixels != pixelHash) throw new AssertionError("Paused rendered pixels changed");
                 if(frame == 510) hiddenHash = hash;
                 if(frame == 525 && hiddenHash != hash) throw new AssertionError("Hidden pose was deformed");
                 if(frame == 555 && hiddenHash == hash) throw new AssertionError("Visible re-entry did not update pose");

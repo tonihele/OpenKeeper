@@ -213,6 +213,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
                 Spatial model = toniarts.openkeeper.utils.AssetUtils.loadModel(assetManager,name,art);
                 if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE))
                     CreatureVariantTextures.apply(model,assetManager);
+                toniarts.openkeeper.view.animation.TextureAnimationControl.install(model,()->gameTime.getAsDouble(),
+                        toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(art));
                 return model;
             }, false)
                 != AnimationLoader.PlaybackResult.STARTED) return false;

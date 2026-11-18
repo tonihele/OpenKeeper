@@ -83,7 +83,8 @@ tasks.register("captureCharacterAnimation", JavaExec) {
     workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
     args providers.gradleProperty('dk2Root').orElse('').get(),
             providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
-            layout.buildDirectory.dir('animation-capture').get().asFile.absolutePath
+            layout.buildDirectory.dir('animation-capture').get().asFile.absolutePath,
+            providers.gradleProperty('animationShadows').orElse('false').get()
 }
 
 tasks.register("benchmarkCeilingBuild", JavaExec) {

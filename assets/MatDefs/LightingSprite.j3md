@@ -5,6 +5,8 @@ MaterialDef Phong Lighting {
 	// Animation
         Int NumberOfTiles : 1
         Int Speed
+        Boolean UseAnimationFrame
+        Int AnimationFrame : 0
 
         Int BoundDrawBuffer
 
@@ -158,6 +160,7 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             BOUND_DRAW_BUFFER: BoundDrawBuffer
             VERTEX_COLOR : UseVertexColor
             VERTEX_LIGHTING : VertexLighting
@@ -210,6 +213,7 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             BOUND_DRAW_BUFFER: BoundDrawBuffer
             VERTEX_COLOR : UseVertexColor
             VERTEX_LIGHTING : VertexLighting
@@ -257,6 +261,7 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             BOUND_DRAW_BUFFER: BoundDrawBuffer
             DISCARD_ALPHA : AlphaDiscardThreshold
             NUM_BONES : NumberOfBones
@@ -291,6 +296,7 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             BOUND_DRAW_BUFFER: BoundDrawBuffer
             HARDWARE_SHADOWS : HardwareShadows
             FILTER_MODE : FilterMode
@@ -328,6 +334,7 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             BOUND_DRAW_BUFFER: BoundDrawBuffer
             DIFFUSEMAP_ALPHA : DiffuseMap
             NUM_BONES : NumberOfBones
@@ -350,6 +357,7 @@ MaterialDef Phong Lighting {
         }
 
         Defines {
+            CONTROLLED_ANIMATION : UseAnimationFrame
             BOUND_DRAW_BUFFER: BoundDrawBuffer
             NEED_TEXCOORD1
             HAS_GLOWMAP : GlowMap

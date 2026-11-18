@@ -2,6 +2,7 @@
 #import "Common/ShaderLib/Instancing.glsllib"
 #import "Common/ShaderLib/Skinning.glsllib"
 #import "Common/ShaderLib/MorphAnim.glsllib"
+#import "Shaders/AnimationFrame.glsllib"
 
 uniform mat4 m_LightViewProjectionMatrix0;
 uniform mat4 m_LightViewProjectionMatrix1;
@@ -87,7 +88,7 @@ void main(){
 
         int selectedTile = 0;
 
-        selectedTile += int(g_Time*float(m_Speed));
+        selectedTile += animationFrame(g_Time,m_Speed);
 
         texCoord.x = (float((texCoord.x + mod(float(selectedTile),  float(iNumberOfTiles))) / float(iNumberOfTiles))); ///selectedTile;
         // Animation end
