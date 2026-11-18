@@ -18,11 +18,8 @@ package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
-import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.EntitySet;
-import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureEfficiency;
@@ -473,9 +470,8 @@ public final class CreaturesController implements ICreaturesController {
     public void levelUpCreatures(short playerId, int level) {
 
         // Find all the living creatures of the wanted player
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
-        for (Entity entity : entities) {
-            levelUpCreature(entity.getId(), level, 0);
+        for (EntityId entityId : getPlayerEntities(playerId, CreatureComponent.class, Health.class)) {
+            levelUpCreature(entityId, level, 0);
         }
     }
 
@@ -483,10 +479,9 @@ public final class CreaturesController implements ICreaturesController {
     public void increaseLevelOfCreatures(short playerId, int levelIncrease) {
 
         // Find all the living creatures of the wanted player and bump each one up individually
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, CreatureExperience.class, Health.class);
-        for (Entity entity : entities) {
-            int newLevel = Math.min(entity.get(CreatureExperience.class).level + levelIncrease, Utils.MAX_CREATURE_LEVEL);
-            levelUpCreature(entity.getId(), newLevel, 0);
+        for (EntityId entityId : getPlayerEntities(playerId, CreatureComponent.class, CreatureExperience.class, Health.class)) {
+            int newLevel = Math.min(entityData.getComponent(entityId, CreatureExperience.class).level + levelIncrease, Utils.MAX_CREATURE_LEVEL);
+            levelUpCreature(entityId, newLevel, 0);
         }
     }
 
@@ -737,60 +732,48 @@ public final class CreaturesController implements ICreaturesController {
     @Override
 
     public int getAngryCreatureCount(short playerId, short creatureId) {
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId),
-                Owner.class, CreatureComponent.class, Health.class, CreatureMood.class);
-        try {
-            int count = 0;
-            for (Entity entity : entities) {
-                short type = entity.get(CreatureComponent.class).creatureId;
-                if (creatureId != 0 && type != creatureId) {
-                    continue;
-                }
-                Creature creature = kwdFile.getCreature(type);
-                if (creature == null || creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
-                    continue;
-                }
-                int unhappyThreshold = CreatureMood.toRuntimeThreshold(
-                        creature.getAttributes().getUnhappyThreshold());
-                if (entity.get(CreatureMood.class).getState(unhappyThreshold) == 2) {
-                    count++;
-                }
+        int count = 0;
+        for (EntityId entityId : getPlayerEntities(playerId, CreatureComponent.class, Health.class, CreatureMood.class)) {
+            short type = entityData.getComponent(entityId, CreatureComponent.class).creatureId;
+            if (creatureId != 0 && type != creatureId) {
+                continue;
             }
-            return count;
-        } finally {
-            entities.release();
+            Creature creature = kwdFile.getCreature(type);
+            if (creature == null || creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER)) {
+                continue;
+            }
+            int unhappyThreshold = CreatureMood.toRuntimeThreshold(
+                    creature.getAttributes().getUnhappyThreshold());
+            if (entityData.getComponent(entityId, CreatureMood.class).getState(unhappyThreshold) == 2) {
+                count++;
+            }
         }
+        return count;
     }
 
     @Override
     public EntityId getPossessedCreature(short playerId) {
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, Possessed.class);
-        try {
-            return entities.isEmpty() ? null : entities.iterator().next().getId();
-        } finally {
-            entities.release();
-        }
+        List<EntityId> possessed = getPlayerEntities(playerId, Possessed.class);
+        return possessed.isEmpty() ? null : possessed.getFirst();
     }
 
     public void healCreatures(short playerId) {
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
-        for (Entity entity : entities) {
-            Health health = entity.get(Health.class);
-            entityData.setComponent(entity.getId(), new Health(health.maxHealth, health.maxHealth));
+        for (EntityId entityId : getPlayerEntities(playerId, CreatureComponent.class, Health.class)) {
+            Health health = entityData.getComponent(entityId, Health.class);
+            entityData.setComponent(entityId, new Health(health.maxHealth, health.maxHealth));
 
             // Wake up anyone that was left unconscious, healing them to full wouldn't otherwise revive them
-            if (entityData.getComponent(entity.getId(), Unconscious.class) != null) {
-                entityData.removeComponent(entity.getId(), Unconscious.class);
-                createController(entity.getId()).getStateMachine().changeState(CreatureState.IDLE);
+            if (entityData.getComponent(entityId, Unconscious.class) != null) {
+                entityData.removeComponent(entityId, Unconscious.class);
+                createController(entityId).getStateMachine().changeState(CreatureState.IDLE);
             }
         }
     }
 
     @Override
     public void makeCreaturesHappy(short playerId) {
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureMood.class);
-        for (Entity entity : entities) {
-            entityData.setComponent(entity.getId(), new CreatureMood());
+        for (EntityId entityId : getPlayerEntities(playerId, CreatureMood.class)) {
+            entityData.setComponent(entityId, new CreatureMood());
         }
     }
 
@@ -812,12 +795,11 @@ public final class CreaturesController implements ICreaturesController {
     
     @Override
     public void angerEnemyCreatures(short playerId) {
-        EntitySet entities = entityData.getEntities(Owner.class, CreatureMood.class);
-        for (Entity entity : entities) {
-            if (entity.get(Owner.class).ownerId == playerId) {
+        for (EntityId entityId : entityData.findEntities(null, CreatureMood.class, Owner.class)) {
+            if (entityData.getComponent(entityId, Owner.class).ownerId == playerId) {
                 continue;
             }
-            entityData.setComponent(entity.getId(), new CreatureMood(CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER,
+            entityData.setComponent(entityId, new CreatureMood(CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER,
                     CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER, CreatureMood.MAX_ANGER));
         }
     }
@@ -825,16 +807,34 @@ public final class CreaturesController implements ICreaturesController {
     @Override
     public void stunImps(short playerId) {
         short impId = kwdFile.getImp().getId();
-        EntitySet entities = entityData.getEntities(new FieldFilter<>(Owner.class, "ownerId", playerId), Owner.class, CreatureComponent.class, Health.class);
-        for (Entity entity : entities) {
-            if (entity.get(CreatureComponent.class).creatureId != impId) {
+        for (EntityId entityId : getPlayerEntities(playerId, CreatureComponent.class, Health.class)) {
+            if (entityData.getComponent(entityId, CreatureComponent.class).creatureId != impId) {
                 continue;
             }
 
             // Stunned creatures are unconscious, same as being knocked out in a fight
-            EntityId entityId = entity.getId();
             createController(entityId).getStateMachine().changeState(CreatureState.STUNNED);
         }
+    }
+
+    /**
+     * Gets the player's entities that have all the given components. The owner is compared entity by
+     * entity: a filter on the owner goes through the owner of every entity in the game, map tiles
+     * included. And no entity set is made, it would keep collecting changes until it is released
+     *
+     * @param playerId the owner
+     * @param types the components the entities need to have, the rarest first
+     * @return the player's entities
+     */
+    private List<EntityId> getPlayerEntities(short playerId, Class... types) {
+        List<EntityId> entities = new ArrayList<>();
+        for (EntityId entityId : entityData.findEntities(null, types)) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            if (owner != null && owner.ownerId == playerId) {
+                entities.add(entityId);
+            }
+        }
+        return entities;
     }
 
     private void setSpells(EntityId entityId, Creature creature, int level) {
