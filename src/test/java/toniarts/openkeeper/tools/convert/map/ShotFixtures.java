@@ -69,6 +69,7 @@ public final class ShotFixtures {
         shot.setRadius(0.2f);
         shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
         shot.setDamageType(Shot.DamageType.HIT_THING);
+        shot.setAttackCategory(Shot.AttackCategory.FIRE);
         shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));

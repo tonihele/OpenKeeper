@@ -28,6 +28,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
@@ -181,7 +182,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     /**
      * Looks for a thing the shot touches, on the tiles under the shot. For now
-     * the shots only hit creatures and dead bodies.
+     * the shots hit creatures, dead bodies and traps.
      *
      * @param shot the shot
      * @param flight the shot's flight
@@ -210,15 +211,25 @@ public final class ShotSystem implements IGameLogicUpdatable {
     }
 
     private boolean isHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId) {
+        Position thingPosition = entityData.getComponent(entityId, Position.class);
+        if (thingPosition == null) {
+            return false;
+        }
+
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
-        Position creaturePosition = entityData.getComponent(entityId, Position.class);
-        if (creatureComponent == null || creaturePosition == null || !collidesWith(shot.getCollideType(), flight.ownerId, entityId)) {
+        if (creatureComponent == null) {
+            Health health = entityData.getComponent(entityId, Health.class);
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            return health != null && health.health > 0 && owner != null
+                    && isTrapHit(shot, flight, position, entityId, owner, thingPosition);
+        }
+        if (!collidesWith(shot.getCollideType(), flight.ownerId, entityId)) {
             return false;
         }
 
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
 
-        return ShotFlightRules.touches(position, shot.getRadius(), creaturePosition.position,
+        return ShotFlightRules.touches(position, shot.getRadius(), thingPosition.position,
                 creature.getAttributes().getWidth(), creatureComponent.height);
     }
 
@@ -244,6 +255,23 @@ public final class ShotSystem implements IGameLogicUpdatable {
             default ->
                 false;
         };
+    }
+
+    /**
+     * An armed enemy trap that isn't hidden is hit by the shots aimed at
+     * enemies (0x4B5800). A trap has no width nor height (0x402AD0 for both).
+     */
+    private boolean isTrapHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId, Owner owner,
+            Position trapPosition) {
+        TrapViewState trapViewState = entityData.getComponent(entityId, TrapViewState.class);
+        boolean hitsEnemies = shot.getCollideType() == Shot.CollideType.ENEMY_CREATURES
+                || shot.getCollideType() == Shot.CollideType.ALL_CREATURES;
+        if (trapViewState == null || trapViewState.blueprint || trapViewState.hidden || !hitsEnemies
+                || !isEnemy(flight.ownerId, owner.ownerId)) {
+            return false;
+        }
+
+        return ShotFlightRules.touches(position, shot.getRadius(), trapPosition.position, 0, 0);
     }
 
     private boolean isEnemy(short shotOwnerId, short creatureOwnerId) {
