@@ -28,6 +28,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.controller.CreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -42,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * A creature placed in the level editor on a prison of another player is a
  * prisoner only when it is set to act as dropped. On level8 the heroes standing
  * in Keeper Dante's ruined prison are not, the neutral creatures there are.
+ * And a creature placed without "will fight" won't fight.
  */
 class ActAsDroppedTest {
 
@@ -61,6 +63,22 @@ class ActAsDroppedTest {
         EntityId entityId = creaturesController(entityData).spawnCreature(hero, new Vector2f(3, 3));
 
         assertEquals(state, entityData.getComponent(entityId, CreatureAi.class).getCreatureState());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true, false", "false, true"})
+    void aCreaturePlacedWithoutWillFightIsPeaceful(boolean willFight, boolean peaceful) {
+        EntityData entityData = new DefaultEntityData();
+        Thing.GoodCreature hero = new Thing.GoodCreature();
+        hero.setCreatureId(DWARF);
+        hero.setLevel((short) 1);
+        hero.setInitialHealth(100);
+        hero.setFlags(willFight ? EnumSet.of(Thing.Creature.CreatureFlag.WILL_FIGHT)
+                : EnumSet.of(Thing.Creature.CreatureFlag.WILL_BE_ATTACKED));
+
+        EntityId entityId = creaturesController(entityData).spawnCreature(hero, new Vector2f(3, 3));
+
+        assertEquals(peaceful, entityData.getComponent(entityId, Peaceful.class) != null);
     }
 
     private static CreaturesController creaturesController(EntityData entityData) {
