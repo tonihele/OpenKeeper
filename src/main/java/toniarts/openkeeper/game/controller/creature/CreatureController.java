@@ -2363,12 +2363,8 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean withdrawToHeroLair() {
-
-        // Below a sixth of its health, unless it is fearless (DK II 0x45EDA0)
-        Health health = entityData.getComponent(entityId, Health.class);
         if (getOwnerId() != Player.GOOD_PLAYER_ID || entityData.getComponent(entityId, ReturnToHeroLair.class) == null
-                || entityData.getComponent(entityId, Fearless.class) != null || isCombatPitFighter()
-                || health == null || health.health >= health.maxHealth / 6) {
+                || !isBadlyHurt()) {
             return false;
         }
 
@@ -2380,6 +2376,29 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    @Override
+    public boolean shouldWithdrawToHeart() {
+
+        // More than 5 tiles from our heart, along either axis (DK II 0x45EDA0, the heroes' check is the lair one)
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (getOwnerId() == Player.GOOD_PLAYER_ID || heart == null || !isBadlyHurt()) {
+            return false;
+        }
+        Point tile = getCreatureCoordinates();
+        return Math.max(Math.abs(tile.x - heart.x), Math.abs(tile.y - heart.y)) > 5;
+    }
+
+    /**
+     * Below a sixth of its health, unless it is fearless or fighting in the
+     * Combat Pit (DK II 0x45EDA0, 0x48F250)
+     */
+    private boolean isBadlyHurt() {
+        Health health = entityData.getComponent(entityId, Health.class);
+        return entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter()
+                && health != null && health.health < health.maxHealth / 6;
     }
 
     @Override

@@ -364,11 +364,16 @@ public enum CreatureState implements State<ICreatureController> {
             }
 
             // DK II checks first whether we are cornered (0x45F030 calls 0x460C50). Only one that isn't may withdraw,
-            // a badly hurt hero to the hero lair (0x45EDA0, 0x4611D0), and then weigh its fear: a scared creature backs
-            // off from its target for a while, then withdraws (0x45EC80)
+            // a badly hurt hero to the hero lair and a keeper's badly hurt creature far from its heart towards the
+            // heart (0x45EDA0, 0x4611D0), and then weigh its fear: a scared creature backs off from its target for a
+            // while, then withdraws (0x45EC80)
             if (!entity.isCornered()) {
                 if (entity.withdrawToHeroLair()) {
                     entity.getStateMachine().changeState(HERO_RECUPERATING);
+                    return;
+                }
+                if (entity.shouldWithdrawToHeart()) {
+                    entity.getStateMachine().changeState(FLEE);
                     return;
                 }
                 if (entity.isScared()) {

@@ -70,6 +70,7 @@ class CreatureBackOffTest {
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private final Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
     private final AtomicReference<Boolean> cornered = new AtomicReference<>(false);
+    private final AtomicReference<Boolean> withdraws = new AtomicReference<>(false);
     private final Set<Point> walkable = new HashSet<>();
     private double time;
 
@@ -352,6 +353,54 @@ class CreatureBackOffTest {
         assertTrue(controller(goblin).isCornered());
     }
 
+    @Test
+    void badlyHurtCreatureFarFromItsHeartWithdrawsToIt() {
+
+        // Below a sixth of its health and more than 5 tiles from the heart along either axis (DK II 0x45EDA0, 0x48F250)
+        EntityId goblin = creature(Player.KEEPER1_ID, 10, GOBLIN_FEAR, 37, 1.26f);
+        keeper.setDungeonHeartLocation(new Point(4, 12));
+        data.setComponent(goblin, new Health(166, 1000));
+        assertFalse(controller(goblin).shouldWithdrawToHeart());
+
+        data.setComponent(goblin, new Health(165, 1000));
+        assertTrue(controller(goblin).shouldWithdrawToHeart());
+
+        keeper.setDungeonHeartLocation(new Point(5, 15));
+        assertFalse(controller(goblin).shouldWithdrawToHeart(), "5 tiles away");
+
+        keeper.setDungeonHeartLocation(new Point(10, 16));
+        assertTrue(controller(goblin).shouldWithdrawToHeart());
+
+        data.setComponent(goblin, new Fearless(null));
+        assertFalse(controller(goblin).shouldWithdrawToHeart());
+    }
+
+    @Test
+    void badlyHurtHeroLeavesTheHeartWithdrawToTheLairCheck() {
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 10, 533, 213, 0.9f);
+        data.setComponent(knight, new Health(1, 1000));
+
+        assertFalse(controller(knight).shouldWithdrawToHeart());
+    }
+
+    @Test
+    void badlyHurtCreatureWithdrawsFromTheFightBeforeWeighingItsFear() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false),
+                new AtomicReference<>(true), new AtomicReference<>(true));
+        withdraws.set(true);
+
+        // DK II's fight state withdraws before it weighs the fear (0x45F030 calls 0x45EDA0, then 0x45EC80)
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FLEE, state.get());
+
+        // Cornered, it fights on (0x460C50 comes first)
+        state.set(CreatureState.FIGHT);
+        cornered.set(true);
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+    }
+
     private EntityId creature(short ownerId, float x, int fear, int threat, float runSpeed) {
         EntityId entity = data.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -422,6 +471,7 @@ class CreatureBackOffTest {
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
+            case "shouldWithdrawToHeart" -> withdraws.get();
             case "canStepBack" -> stepsBack.get();
             case "isStateTimeExceeded" -> false;
             case "releaseCastShot" -> null;

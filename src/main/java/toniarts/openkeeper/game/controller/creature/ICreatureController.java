@@ -210,6 +210,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean withdrawToHeroLair();
 
     /**
+     * A keeper's creature withdraws from a fight towards its Dungeon Heart when
+     * it is badly hurt and far from the heart
+     *
+     * @return true if we should withdraw to our heart
+     */
+    public boolean shouldWithdrawToHeart();
+
+    /**
      * Walks to a tile of our own land some way off, as a recuperating hero
      * does until its health is back
      */
