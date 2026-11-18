@@ -16,22 +16,26 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
-import com.jme3.util.SafeArrayList;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.listener.PlayerGoldListener;
 
 /**
+ * The player's gold, kept in the {@link Gold} component on the player's entity
  *
  * @author ArchDemon
  */
 public final class PlayerGoldControl {
 
-    private int goldMax = 0;
     private final Keeper keeper;
-    private final SafeArrayList<PlayerGoldListener> listeners = new SafeArrayList<>(PlayerGoldListener.class);
+    private final EntityData entityData;
 
-    public PlayerGoldControl(Keeper keeper) {
+    public PlayerGoldControl(Keeper keeper, EntityData entityData) {
         this.keeper = keeper;
+        this.entityData = entityData;
     }
 
     public void addGold(int value) {
@@ -39,43 +43,51 @@ public final class PlayerGoldControl {
             return;
         }
 
-        keeper.setGold(Math.min(keeper.getGold() + value, goldMax));
+        Gold gold = getGoldComponent();
+        setGold(Math.min(gold.gold + value, gold.maxGold), gold.maxGold);
         keeper.setGoldMined(keeper.getGoldMined() + value); // Nope, need to get this some other way
-        updateListeners();
     }
 
     public boolean subGold(int value) {
-        if (keeper.getGold() >= value && value > 0) {
-            keeper.setGold(keeper.getGold() - value);
-            updateListeners();
+        Gold gold = getGoldComponent();
+        if (gold.gold >= value && value > 0) {
+            setGold(gold.gold - value, gold.maxGold);
             return true;
         }
         return false;
     }
 
-    public void addListener(PlayerGoldListener listener) {
-        listeners.add(listener);
-    }
-
-    public void removeListener(PlayerGoldListener listener) {
-        listeners.remove(listener);
-    }
-
-    private void updateListeners() {
-        for (PlayerGoldListener listener : listeners.getArray()) {
-            listener.onGoldChange(keeper.getId(), keeper.getGold());
-        }
+    /**
+     * Get the player's gold
+     *
+     * @return the amount of gold the player has
+     */
+    public int getGold() {
+        return getGoldComponent().gold;
     }
 
     public void setGoldMax(int goldMax) {
-        this.goldMax = goldMax;
+        setGold(getGold(), goldMax);
     }
 
     public int getGoldMax() {
-        return goldMax;
+        return getGoldComponent().maxGold;
     }
 
     public boolean isFullCapacity() {
-        return keeper.getGold() >= goldMax;
+        Gold gold = getGoldComponent();
+        return gold.gold >= gold.maxGold;
+    }
+
+    private Gold getGoldComponent() {
+        return entityData.getComponent(getEntityId(), Gold.class);
+    }
+
+    private void setGold(int gold, int maxGold) {
+        entityData.setComponent(getEntityId(), new Gold(gold, maxGold));
+    }
+
+    private EntityId getEntityId() {
+        return entityData.findEntity(new FieldFilter(KeeperComponent.class, "playerId", keeper.getId()), KeeperComponent.class);
     }
 }
