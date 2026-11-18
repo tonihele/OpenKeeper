@@ -298,7 +298,6 @@ public final class CreaturesController implements ICreaturesController {
 
         setFlagDrivenComponents(entity, creature);
 
-
         // Regeneration
         Regeneration regeneration = new Regeneration();
 
