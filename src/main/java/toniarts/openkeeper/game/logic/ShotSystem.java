@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
@@ -41,8 +42,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Moves the flying shots, one move a turn, and lets them hit. The order is
- * DKII.EXE's shot turn (0x4AB180): the range, a hit on a thing, the move with
- * a hit on a wall, then the shot's lifetime.
+ * DKII.EXE's shot turn (0x4AB180): the range, a hit on a thing, the damage
+ * around the shot, the move with a hit on a wall, then the shot's lifetime.
  */
 public final class ShotSystem implements IGameLogicUpdatable {
 
@@ -82,20 +83,24 @@ public final class ShotSystem implements IGameLogicUpdatable {
         ShotFlight flight = entity.get(ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
         Vector3f position = entity.get(Position.class).position;
+
+        // A shot out of its range, or one that dies when it hits a thing, has the rest of its turn and dies at the end
+        // of it, it leaves its death shot (0x4AB180)
+        int health = flight.health;
         if (ShotFlightRules.isOutOfRange(flight.start, position, flight.maxRange)) {
-            entityData.removeEntity(entity.getId());
-            return;
+            health = 0;
         }
 
         EntityId thing = findThingHit(shot, flight, position);
         if (thing != null) {
             triggerEffect(shot.getHitThingEffectId(), position);
+            createChildShot(entity.getId(), shot.getHitThingShotId(), position);
             shotsController.hit(entity.getId(), thing);
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
-                entityData.removeEntity(entity.getId());
-                return;
+                health = 0;
             }
         }
+        shotsController.damageArea(entity.getId());
 
         Vector3f velocity = flight.velocity;
         if (thing == null && findThingHit(shot, flight, halfway.set(velocity).multLocal(0.5f).addLocal(position)) != null) {
@@ -106,20 +111,23 @@ public final class ShotSystem implements IGameLogicUpdatable {
         Move move = move(position, velocity);
         if (move.hitWall()) {
             triggerEffect(shot.getHitSolidEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getHitSolidShotId(), move.position());
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
                 entityData.removeEntity(entity.getId());
                 return;
             }
         }
 
-        int health = flight.health;
         if (shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME)) {
             health--;
-            if (health < 1) {
-                triggerEffect(shot.getDeathEffectId(), move.position());
-                entityData.removeEntity(entity.getId());
-                return;
-            }
+        }
+        if (health < 1) {
+            triggerEffect(shot.getDeathEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getDeathShotId(), move.position());
+            entityData.removeEntity(entity.getId());
+            return;
+        }
+        if (health != flight.health) {
             entityData.setComponent(entity.getId(), new ShotFlight(flight, health));
         }
         if (!move.hitWall()) {
@@ -172,6 +180,20 @@ public final class ShotSystem implements IGameLogicUpdatable {
         }
     }
 
+    /**
+     * The shot leaves its hit or death shot where it is, like the cloud of the
+     * Gas Missile (0x4ABD60, 0x4AB180)
+     *
+     * @param shot the shot entity
+     * @param shotTypeId the shot to leave, 0 for none
+     * @param position where to leave it
+     */
+    private void createChildShot(EntityId shot, short shotTypeId, Vector3f position) {
+        if (shotTypeId != 0) {
+            shotsController.createChildShot(shot, shotTypeId, position);
+        }
+    }
+
     private boolean isSolid(Vector3f position) {
         Point tile = WorldUtils.vectorToPoint(position);
 
@@ -180,7 +202,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     /**
      * Looks for a thing the shot touches, on the tiles under the shot. For now
-     * the shots only hit creatures.
+     * the shots hit creatures and traps.
      *
      * @param shot the shot
      * @param flight the shot's flight
@@ -209,19 +231,42 @@ public final class ShotSystem implements IGameLogicUpdatable {
     }
 
     private boolean isHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId) {
-        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         Health health = entityData.getComponent(entityId, Health.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        Position creaturePosition = entityData.getComponent(entityId, Position.class);
-        if (creatureComponent == null || health == null || health.health <= 0 || owner == null || creaturePosition == null
-                || !collidesWith(shot.getCollideType(), flight.ownerId, owner.ownerId)) {
+        Position thingPosition = entityData.getComponent(entityId, Position.class);
+        if (health == null || health.health <= 0 || owner == null || thingPosition == null) {
+            return false;
+        }
+
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        if (creatureComponent == null) {
+            return isTrapHit(shot, flight, position, entityId, owner, thingPosition);
+        }
+        if (!collidesWith(shot.getCollideType(), flight.ownerId, owner.ownerId)) {
             return false;
         }
 
         Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
 
-        return ShotFlightRules.touches(position, shot.getRadius(), creaturePosition.position,
+        return ShotFlightRules.touches(position, shot.getRadius(), thingPosition.position,
                 creature.getAttributes().getWidth(), creatureComponent.height);
+    }
+
+    /**
+     * An armed enemy trap that isn't hidden is hit by the shots aimed at
+     * enemies (0x4B5800). A trap has no width nor height (0x402AD0 for both).
+     */
+    private boolean isTrapHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId, Owner owner,
+            Position trapPosition) {
+        TrapViewState trapViewState = entityData.getComponent(entityId, TrapViewState.class);
+        boolean hitsEnemies = shot.getCollideType() == Shot.CollideType.ENEMY_CREATURES
+                || shot.getCollideType() == Shot.CollideType.ALL_CREATURES;
+        if (trapViewState == null || trapViewState.blueprint || trapViewState.hidden || !hitsEnemies
+                || !isEnemy(flight.ownerId, owner.ownerId)) {
+            return false;
+        }
+
+        return ShotFlightRules.touches(position, shot.getRadius(), trapPosition.position, 0, 0);
     }
 
     private boolean collidesWith(Shot.CollideType collideType, short shotOwnerId, short creatureOwnerId) {
