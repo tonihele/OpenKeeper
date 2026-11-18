@@ -385,9 +385,7 @@
                             </image>
                         </panel>
                         <!-- Reaper -->
-                        <panel childLayout="center" align="center" valign="center" height="*" width="100%">
-                            <control name="reaperTalisman"/>
-                        </panel>
+                        <panel id="reaper-talisman" childLayout="center" align="center" valign="center" height="*" width="100%" />
                     </panel>
                 </panel>
             </panel>
