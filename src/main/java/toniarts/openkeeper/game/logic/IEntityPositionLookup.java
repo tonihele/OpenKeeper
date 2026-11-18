@@ -144,7 +144,7 @@ public interface IEntityPositionLookup {
 
     /**
      * Checks if an entity you sense is behind a door that blocks you, like an
-     * enemy or a locked door. You sense through doors, but you can't walk
+     * enemy or a locked door. You see over a barricade, but you can't walk
      * there
      *
      * @param entityId you, the entity
