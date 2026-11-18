@@ -369,12 +369,8 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // DK II weighs withdrawing on every turn of a fight too (0x45F030 calls 0x45EC80)
-            if (entity.shouldFleeOrAttack() && entity.getStateMachine().isInState(FLEE)) {
-                return;
-            }
-
-            // A scared creature backs off from its target for a while (DK II 0x45F030)
+            // A scared creature backs off from its target for a while, then withdraws (DK II 0x45F030 calls 0x45EC80
+            // on every turn of a fight)
             if (entity.isScared()) {
                 entity.getStateMachine().changeState(BACK_OFF);
                 return;
@@ -769,8 +765,8 @@ public enum CreatureState implements State<ICreatureController> {
         public void update(ICreatureController entity) {
 
             // A worker weighs withdrawing during its own swing too
-            if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER
-                    && entity.shouldFleeOrAttack() && entity.getStateMachine().isInState(FLEE)) {
+            if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER && entity.isScared()) {
+                entity.getStateMachine().changeState(BACK_OFF);
                 return;
             }
             if (entity.isStateTimeExceeded()) {
