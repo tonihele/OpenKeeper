@@ -31,6 +31,7 @@ import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.effect.VisualEffect;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.map.MapTileEffectTracker;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 import static org.junit.jupiter.api.Assertions.*;
 
 class RoomClaimEffectTest {
@@ -115,7 +116,9 @@ class RoomClaimEffectTest {
 
     private static final class RecordingEffects extends EffectManagerState {
         final List<Spawn> spawns = new ArrayList<>();
-        RecordingEffects() { super(null, null); }
+        RecordingEffects() {
+            super(null, null, new EntityMaterialSetup((root, policy, previous) -> List.of(), true));
+        }
         @Override
         public VisualEffect load(Node parent, Vector3f position, int id, boolean infinite, short owner) {
             assertFalse(infinite);

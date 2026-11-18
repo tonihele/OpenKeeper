@@ -84,9 +84,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
     private final Texture2D lightData;
     private final FloatBuffer lightFloats;
     private boolean warnedAboutLightCount;
-    private volatile Texture2D ambientMap;
-    private int ambientMapWidth;
-    private int ambientMapHeight;
+    private volatile MaterialBinding materialBinding;
 
     public SceneLights() {
         int width = 1 + TEXELS_PER_LIGHT * MAX_LIGHTS;
@@ -97,6 +95,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         lightData.setMagFilter(Texture.MagFilter.Nearest);
         lightData.setMinFilter(Texture.MinFilter.NearestNoMipMaps);
         lightData.setWrap(Texture.WrapMode.EdgeClamp);
+        materialBinding = new MaterialBinding(lightData, null, 0, 0);
     }
 
     /**
@@ -129,11 +128,54 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      * undo. Binding the same material again is harmless.
      */
     public void bindMaterials(List<Material> materials) {
-        for (Material material : materials) {
-            if (material.getTextureParam("LightData") == null) {
-                material.setTexture("LightData", lightData);
+        materialBinding.bindMaterials(materials);
+    }
+
+    /** A single publication contains the textures and their matching dimensions. */
+    public MaterialBinding getMaterialBinding() {
+        return materialBinding;
+    }
+
+    /** Immutable binding identity; image-content uploads do not replace this snapshot. */
+    public static final class MaterialBinding {
+        private final Texture2D lights;
+        private final Texture2D ambient;
+        private final int width;
+        private final int height;
+
+        private MaterialBinding(Texture2D lights, Texture2D ambient, int width, int height) {
+            this.lights = lights;
+            this.ambient = ambient;
+            this.width = width;
+            this.height = height;
+        }
+
+        public boolean isAmbientReady() {
+            return ambient != null;
+        }
+
+        public void bindMaterials(List<Material> materials) {
+            for (int i = 0; i < materials.size(); i++) {
+                Material material = materials.get(i);
+                var currentLights = material.getTextureParam("LightData");
+                if (currentLights == null || currentLights.getTextureValue() != lights) {
+                    material.setTexture("LightData", lights);
+                }
+                var currentAmbient = material.getTextureParam("AmbientMap");
+                if (ambient == null) {
+                    material.clearParam("AmbientMap");
+                    material.clearParam("AmbientMapSize");
+                } else {
+                    if (currentAmbient == null || currentAmbient.getTextureValue() != ambient) {
+                        material.setTexture("AmbientMap", ambient);
+                    }
+                    var size = material.getParam("AmbientMapSize");
+                    if (size == null || !(size.getValue() instanceof Vector2f value)
+                            || value.x != width || value.y != height) {
+                        material.setVector2("AmbientMapSize", new Vector2f(width, height));
+                    }
+                }
             }
-            bindAmbientMap(material);
         }
     }
 
@@ -285,9 +327,7 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
         texture.setMagFilter(Texture.MagFilter.Bilinear);
         texture.setMinFilter(Texture.MinFilter.BilinearNoMipMaps);
         texture.setWrap(Texture.WrapMode.EdgeClamp);
-        ambientMap = texture;
-        ambientMapWidth = width;
-        ambientMapHeight = height;
+        materialBinding = new MaterialBinding(lightData, texture, width, height);
     }
 
     /**
@@ -296,12 +336,13 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
      * for re-upload, which the render thread performs.
      */
     public void setTileAmbient(int x, int y, ColorRGBA ambient, boolean explored) {
-        Texture2D texture = ambientMap;
-        if (texture == null || x < 0 || y < 0 || x >= ambientMapWidth || y >= ambientMapHeight) {
+        MaterialBinding binding = materialBinding;
+        Texture2D texture = binding.ambient;
+        if (texture == null || x < 0 || y < 0 || x >= binding.width || y >= binding.height) {
             return;
         }
         ByteBuffer data = texture.getImage().getData(0);
-        int index = (y * ambientMapWidth + x) * 4;
+        int index = (y * binding.width + x) * 4;
         data.put(index, toByte(ambient.r / 2f));
         data.put(index + 1, toByte(ambient.g / 2f));
         data.put(index + 2, toByte(ambient.b / 2f));
@@ -311,13 +352,6 @@ w     * (r, g, b, intensity), (flags, 0, 0, 0). One row, RGBA32F. The flag bits
 
     private static byte toByte(float value) {
         return (byte) Math.round(Math.max(0f, Math.min(1f, value)) * 255f);
-    }
-
-    private void bindAmbientMap(Material material) {
-        if (ambientMap != null && material.getTextureParam("AmbientMap") == null) {
-            material.setTexture("AmbientMap", ambientMap);
-            material.setVector2("AmbientMapSize", new Vector2f(ambientMapWidth, ambientMapHeight));
-        }
     }
 
     /**

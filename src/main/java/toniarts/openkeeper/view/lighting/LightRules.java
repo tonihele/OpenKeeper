@@ -174,6 +174,11 @@ public final class LightRules {
         sceneLights.bindMaterials(materials);
     }
 
+    /** Identity changes only when binding resources change, never for a light tick. */
+    public SceneLights.MaterialBinding getMaterialBinding() {
+        return sceneLights.getMaterialBinding();
+    }
+
     /**
      * The "flat" sample for a thing/effect's material. Callers own re-deriving {@code worldPos} each frame
      * from the owner's current position + light offset.
@@ -368,7 +373,7 @@ public final class LightRules {
     public void updateThingLightPosition(Object owner, Vector3f ownerPosition, Vector3f offset) {
         LightSource light = thingLights.get(owner);
         if (light != null) {
-            light.setPosition(ownerPosition.add(offset));
+            light.getPosition().set(ownerPosition).addLocal(offset);
         }
     }
 

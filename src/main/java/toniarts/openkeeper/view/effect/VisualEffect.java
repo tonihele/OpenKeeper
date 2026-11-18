@@ -38,6 +38,7 @@ import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightConstants;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
@@ -90,6 +91,9 @@ public class VisualEffect {
     private int generationStepsRemaining;
     private double generationStepRemainder;
     private Spatial lightTarget;
+    private boolean targetMaterialRegistered;
+    private LightRules lightingContext;
+    private boolean removed;
     // Populated only for a MESH_COLLECTION effect:
     // one entry per part in the .kmf group, read once at load() and spawned
     // as debris regardless of the effect's own generation flags.
@@ -178,8 +182,11 @@ public class VisualEffect {
         tickAccumulator = EFFECT_TICK;
 
         // Light
+        effectManagerState.getMaterialSetup().unregister(lightTarget);
         lightTarget = model;
+        targetMaterialRegistered = false;
         applyEffectLight(effect.getLight());
+        registerLightTarget(getLightRules());
         // Elements/effects
         generateChildren();
 
@@ -261,6 +268,7 @@ public class VisualEffect {
 
             @Override
             public void onDie(Vector3f location) {
+                effectManagerState.getMaterialSetup().unregister(getSpatial());
                 if (effect.getDeathEffectId() != 0) {
                     VisualEffect.this.addEffect(effect.getDeathEffectId(), location);
                 }
@@ -268,6 +276,7 @@ public class VisualEffect {
 
             @Override
             public void onHit(Vector3f location) {
+                effectManagerState.getMaterialSetup().unregister(getSpatial());
                 handleEffectHit(location);
             }
         };
@@ -553,7 +562,7 @@ public class VisualEffect {
     }
 
     private EffectEmitter newEffectEmitter(EffectElement element) {
-        return new EffectEmitter(element, effect) {
+        return new EffectEmitter(element, effect, effectManagerState.getMaterialSetup()) {
 
             @Override
             public void onDeath(Vector3f location) {
@@ -662,6 +671,12 @@ public class VisualEffect {
      */
     private void applyEffectLight(Light effectLight) {
         LightRules lightRules = getLightRules();
+        if (lightingContext != lightRules) {
+            if (lightingContext != null) {
+                lightingContext.removeThingLight(this);
+            }
+            lightingContext = lightRules;
+        }
         if (lightRules == null) {
             return;
         }
@@ -701,6 +716,9 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if the effect has died
      */
     public boolean update(float tpf) {
+        if (removed) {
+            return false;
+        }
         if (generationStepsRemaining > 0) {
             generationStepRemainder += tpf;
             int steps = (int) ((generationStepRemainder + 1e-7) / 0.05);
@@ -718,13 +736,12 @@ public class VisualEffect {
         }
         updateCircularPath(tpf);
 
-        // Lighting: bind the effect model to the vertex light every frame -- nearby lights flicker/pulse even though effectNode's
-        // own position is set once at construction and never moves.
+        // Each replacement target has its own registration, including infinite restarts.
         LightRules lightRules = getLightRules();
-        if (lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
-            AssetUtils.applyVertexLight(assetManager, lightTarget, lightRules, false);
+        if (lightRules != lightingContext) {
+            applyEffectLight(effect.getLight());
         }
-        lightMeshElements(lightRules);
+        registerLightTarget(lightRules);
 
         // Update the child effects
         effects.removeIf(visualEffect -> !visualEffect.update(tpf));
@@ -739,8 +756,7 @@ public class VisualEffect {
                 && effect.getDeathEffectId() != 0 && !deathEffectSpawned) {
             deathEffectSpawned = true;
             if (kwdFile.getEffect(effect.getDeathEffectId()) == effect) {
-                // Dies into itself (e.g. "3dfe lightbeam light"), i.e. it just loops. Nesting a copy each time
-                // would grow the scene graph by a level per cycle until it overflows the stack, so restart instead.
+                // Dies into itself: restart without nesting another effect tree.
                 infinite = true;
             } else {
                 addEffect(effect.getDeathEffectId(), null);
@@ -750,20 +766,11 @@ public class VisualEffect {
         return handleEffectCompletion();
     }
 
-    /**
-     * Lights the spawned mesh elements (dig rock / gold debris...). They move
-     * on their own, so each one is vertex lit; they need no thing light of their own to be lit.
-     */
-    private void lightMeshElements(LightRules lightRules) {
-        if (lightRules == null) {
-            return;
-        }
-        for (Spatial element : effectElements.keySet()) {
-            if (element instanceof EffectEmitter emitter) {
-                for (Spatial instance : emitter.getChildren()) {
-                    AssetUtils.applyVertexLight(assetManager, instance, lightRules, false);
-                }
-            }
+    private void registerLightTarget(LightRules lightRules) {
+        if (!targetMaterialRegistered && lightRules != null && lightTarget != null && lightRules.getThingLight(this) != null) {
+            effectManagerState.getMaterialSetup().register(lightTarget,
+                    MaterialSetupPolicy.WORLD);
+            targetMaterialRegistered = true;
         }
     }
 
@@ -874,6 +881,15 @@ public class VisualEffect {
     }
 
     public void removeEffect() {
+        removed = true;
+        if (lightingContext != null) {
+            lightingContext.removeThingLight(this);
+            lightingContext = null;
+        }
+        effectNode.depthFirstTraversal(effectManagerState.getMaterialSetup()::unregister);
+        effectManagerState.getMaterialSetup().unregister(lightTarget);
+        lightTarget = null;
+        targetMaterialRegistered = false;
         effects.forEach(VisualEffect::removeEffect);
         effects.clear();
         effectElements.clear();

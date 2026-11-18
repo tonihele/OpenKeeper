@@ -34,6 +34,7 @@ import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 
 /**
  * View control that is intended specifically for doors
@@ -174,6 +175,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
         if (lockSpatial != null) {
             ((Node) getSpatial()).detachChild(lockSpatial);
             lockSpatial = null;
+            EntityMaterialSetup.materialsChanged(getSpatial());
         }
     }
 
@@ -182,6 +184,7 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
             lockSpatial = AssetUtils.loadModel(assetManager, lockObject.getMeshResource().getName(), lockObject.getMeshResource());
             lockSpatial.setUserData(AssetUtils.USER_DATA_KEY_REMOVABLE, false);
             ((Node) getSpatial()).attachChild(lockSpatial);
+            EntityMaterialSetup.materialsChanged(getSpatial());
         }
     }
 }

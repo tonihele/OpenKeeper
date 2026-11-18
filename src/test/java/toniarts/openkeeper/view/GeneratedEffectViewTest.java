@@ -23,6 +23,7 @@ import com.jme3.scene.Node;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.tools.convert.map.Effect;
@@ -30,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.effect.VisualEffect;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GeneratedEffectViewTest {
@@ -41,7 +43,7 @@ class GeneratedEffectViewTest {
         var fog = (IFogOfWarInformation) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{IFogOfWarInformation.class}, (p, m, a) -> visible[0]);
         var positions = new ArrayList<Vector3f>();
-        var effects = new EffectManagerState(data, null) {
+        var effects = new EffectManagerState(data, null, new EntityMaterialSetup((root, policy, previous) -> List.of(), true)) {
             @Override public VisualEffect load(Node parent, Vector3f position, int id, boolean infinite) {
                 assertEquals(123, id);
                 assertFalse(infinite);
@@ -56,7 +58,8 @@ class GeneratedEffectViewTest {
         states.attach(effects);
         var entities = new DefaultEntityData();
         try {
-            var view = new PlayerEntityViewState(data, null, entities, (short) 3, null, new Node(), null, fog);
+            var view = new PlayerEntityViewState(data, null, entities, (short) 3, null, new Node(), null, fog,
+                    new EntityMaterialSetup((root, policy, previous) -> List.of(), true));
             view.initialize(states, app);
             try {
                 var show = PlayerEntityViewState.class.getDeclaredMethod("showGeneratedEffect", GeneratedEffect.class);

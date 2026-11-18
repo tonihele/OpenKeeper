@@ -94,6 +94,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     // Tile updates (the fog seeding, fog changes from the server) that came
     // while the map was still loading. Render thread only
     private final Set<Point> pendingTileUpdates = new HashSet<>();
+    private boolean disposed;
 
     // Takes in the map entities until the map is complete, see initialize()
     private final AppState mapEntityLoader = new AbstractAppState() {
@@ -149,6 +150,9 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
                     // The loader is done with the map (and its light rules), from
                     // here on they are only touched on the render thread
                     app.enqueue(() -> {
+                        if (disposed) {
+                            return;
+                        }
                         worldNode.attachChild(map);
 
                         // Start updating, and refresh the tiles that changed while
@@ -241,6 +245,8 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void cleanup() {
+        disposed = true;
+        setEnabled(false);
 
         // Lighting
         mapLoader.getLightRules().destroyCursorLight();
@@ -321,7 +327,7 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
      * @return whether the map has been loaded
      */
     public boolean isMapLoaded() {
-        return isEnabled();
+        return !disposed && isEnabled();
     }
 
     public AssetManager getAssetManager() {

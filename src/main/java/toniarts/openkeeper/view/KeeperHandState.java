@@ -60,6 +60,8 @@ import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 /**
  * TODO I think we need to move cursor here
@@ -79,6 +81,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
     private Main app;
     private AssetManager assetManager;
+    private EntityMaterialSetup materialSetup;
     private AppStateManager stateManager;
     private InputManager inputManager;
     private final List<KeeperHandItem> queue;
@@ -137,6 +140,8 @@ public abstract class KeeperHandState extends AbstractAppState {
 
         this.app = (Main) app;
         this.assetManager = this.app.getAssetManager();
+        materialSetup = new EntityMaterialSetup(assetManager);
+        materialSetup.register(handRootNode, MaterialSetupPolicy.FULL_BRIGHT);
         this.stateManager = this.app.getStateManager();
         this.inputManager = this.app.getInputManager();
 
@@ -157,13 +162,15 @@ public abstract class KeeperHandState extends AbstractAppState {
         updateHandCamera();
 
         // Held things are outside the world's lighting: always fully lit
-        AssetUtils.applyFullLight(handRootNode);
+        materialSetup.update(null);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
+        materialSetup.flush(null);
     }
 
     @Override
     public void cleanup() {
+        materialSetup.close();
         inHandLoader.stop();
         queue.clear();
         app.getGuiNode().detachChild(rootNode);
@@ -313,6 +320,7 @@ public abstract class KeeperHandState extends AbstractAppState {
     }
 
     private void updateHand() {
+        EntityMaterialSetup.materialsChanged(handRootNode);
 
         // While it is fairly certain that we always have an intact situation on the client...
         // wise not to bet on it, as really the amount of data is so insignifigant that any optimization doesn't give much

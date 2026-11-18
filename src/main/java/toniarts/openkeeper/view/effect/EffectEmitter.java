@@ -24,6 +24,8 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 /**
  *
@@ -49,9 +51,15 @@ public abstract class EffectEmitter extends Node {
     //variable that helps with computations
     private EffectElement effectElement;
     private Effect effect;
+    private transient EntityMaterialSetup materialSetup;
 
     public EffectEmitter(EffectElement effectElement, Effect effect) {
+        this(effectElement, effect, null);
+    }
+
+    public EffectEmitter(EffectElement effectElement, Effect effect, EntityMaterialSetup materialSetup) {
         super(effectElement.getName());
+        this.materialSetup = materialSetup;
         this.effectElement = effectElement;
         this.effect = effect;
         this.setShadowMode(RenderQueue.ShadowMode.Off);
@@ -163,6 +171,7 @@ public abstract class EffectEmitter extends Node {
 
             @Override
             public void onDie(Vector3f location) {
+                unregister(getSpatial());
                 if (effectElement.getDeathElementId() == effectElement.getEffectElementId()) {
                     EffectEmitter.this.respawnSelf(this, location);
                 } else {
@@ -177,6 +186,7 @@ public abstract class EffectEmitter extends Node {
         });
 
         this.attachChild(s);
+        register(s);
     }
 
     /**
@@ -192,6 +202,7 @@ public abstract class EffectEmitter extends Node {
 
             @Override
             public void onDie(Vector3f loc) {
+                unregister(getSpatial());
                 if (effectElement.getDeathElementId() == effectElement.getEffectElementId()) {
                     EffectEmitter.this.respawnSelf(this, loc);
                 } else {
@@ -206,6 +217,19 @@ public abstract class EffectEmitter extends Node {
         });
 
         this.attachChild(replacement);
+        register(replacement);
+    }
+
+    private void register(Spatial instance) {
+        if (materialSetup != null) {
+            materialSetup.register(instance, MaterialSetupPolicy.WORLD);
+        }
+    }
+
+    private void unregister(Spatial instance) {
+        if (materialSetup != null) {
+            materialSetup.unregister(instance);
+        }
     }
 
     /**
@@ -223,6 +247,7 @@ public abstract class EffectEmitter extends Node {
 
     public void killAllParticles() {
         for (Spatial s : this.getChildren()) {
+            unregister(s);
             s.removeFromParent();
         }
     }

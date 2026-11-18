@@ -33,6 +33,7 @@ import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 
 /**
  * Lays the charred texture over a model's diffuse textures, used for dead
@@ -79,6 +80,7 @@ public final class CharredOverlay {
                 charr(geometry, charred);
             }
         });
+        EntityMaterialSetup.materialsChanged(spatial);
     }
 
     /**

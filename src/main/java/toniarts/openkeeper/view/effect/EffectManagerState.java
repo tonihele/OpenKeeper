@@ -21,11 +21,13 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 
 import java.lang.System.Logger;
 import java.util.ArrayList;
@@ -48,10 +50,16 @@ public class EffectManagerState extends AbstractAppState {
     private final List<VisualEffect> activeEffects = new ArrayList<>();
     private AppStateManager stateManager;
     private Supplier<LightRules> lightRulesSupplier;
+    private final EntityMaterialSetup materialSetup;
 
     public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager) {
+        this(kwdFile, assetManager, new EntityMaterialSetup(assetManager));
+    }
+
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, EntityMaterialSetup materialSetup) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.materialSetup = java.util.Objects.requireNonNull(materialSetup);
     }
 
     @Override
@@ -71,6 +79,24 @@ public class EffectManagerState extends AbstractAppState {
                 iterator.remove();
             }
         }
+        materialSetup.update(getLightRules());
+    }
+
+    @Override
+    public void render(RenderManager renderManager) {
+        materialSetup.flush(getLightRules());
+    }
+
+    @Override
+    public void cleanup() {
+        clearActiveEffects();
+        materialSetup.close();
+        stateManager = null;
+        super.cleanup();
+    }
+
+    public EntityMaterialSetup getMaterialSetup() {
+        return materialSetup;
     }
 
     /**
@@ -94,7 +120,6 @@ public class EffectManagerState extends AbstractAppState {
         while (iterator.hasNext()) {
             VisualEffect visualEffect = iterator.next();
             visualEffect.removeEffect();
-            visualEffect.update(-1);
         }
         activeEffects.clear();
     }
