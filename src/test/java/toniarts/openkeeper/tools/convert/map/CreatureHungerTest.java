@@ -24,14 +24,17 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureHunger;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
- * Hunger adds up over the meals a creature misses
+ * Hunger adds up over the meals a creature misses, except while it gambles
  */
 class CreatureHungerTest {
 
@@ -94,6 +97,37 @@ class CreatureHungerTest {
         gameTime = 2 * HUNGER_RATE + 20;
         creature.isHungry();
         assertEquals(2 * HUNGER_FILL - 1, hunger().amountNeeded);
+    }
+
+    @Test
+    void noHungerBuildsUpWhileGamblingButAMealIsDueOnceItStops() {
+        entityData.setComponent(entityId, new TaskComponent(1, null, new Point(1, 1), TaskType.GAMBLE, 0, true));
+
+        // DK II's Casino states have flag 8, so 0x477C20 adds no meal while gambling
+        gameTime = 3 * HUNGER_RATE + 5;
+        assertFalse(creature.isHungry());
+        assertEquals(0, hunger().amountNeeded);
+
+        // Its clock ran on, so one meal is owed as soon as it stops, and the clock starts again
+        entityData.removeComponent(entityId, TaskComponent.class);
+        gameTime += 1;
+        assertTrue(creature.isHungry());
+        assertEquals(HUNGER_FILL, hunger().amountNeeded);
+
+        gameTime += HUNGER_RATE - 2;
+        creature.isHungry();
+        assertEquals(HUNGER_FILL, hunger().amountNeeded);
+    }
+
+    @Test
+    void creatureHungryBeforeGamblingStaysHungry() {
+        gameTime = HUNGER_RATE;
+        creature.isHungry();
+        entityData.setComponent(entityId, new TaskComponent(1, null, new Point(1, 1), TaskType.GAMBLE, 0, true));
+
+        gameTime = 3 * HUNGER_RATE;
+        assertTrue(creature.isHungry());
+        assertEquals(HUNGER_FILL, hunger().amountNeeded);
     }
 
     private CreatureHunger hunger() {
