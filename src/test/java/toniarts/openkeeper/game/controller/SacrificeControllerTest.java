@@ -93,6 +93,7 @@ class SacrificeControllerTest {
 
         Map<MiscType, MiscVariable> gameSettings = new EnumMap<>(MiscType.class);
         gameSettings.put(MiscType.MAXIMUM_MANA_THRESHOLD, TempleFixtures.miscVariable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
+        gameSettings.put(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, TempleFixtures.miscVariable(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, 500));
         keeper = new Keeper(false, OWNER);
         PlayerManaControl manaControl = new PlayerManaControl(keeper, gameSettings);
         IPlayerController playerController = (IPlayerController) Proxy.newProxyInstance(

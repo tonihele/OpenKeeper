@@ -74,6 +74,7 @@ class LowManaSystemTest {
     LowManaSystemTest() {
         Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
         setting(settings, MiscType.MAXIMUM_MANA_THRESHOLD, 200000);
+        setting(settings, MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, 1000);
         setting(settings, MiscType.LOW_MANA_WARNING_THRESHOLD, THRESHOLD);
         setting(settings, MiscType.INSUFFICIENT_MANA_IMP_EVALUATION_PERIOD_SECONDS, PERIOD);
         setting(settings, MiscType.MINIMUM_IMP_THRESHOLD, MINIMUM_IMPS);

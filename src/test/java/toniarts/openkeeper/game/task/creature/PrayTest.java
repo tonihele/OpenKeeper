@@ -69,6 +69,8 @@ class PrayTest {
                 TempleFixtures.miscVariable(MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND, HEALTH_PER_SECOND));
         gameSettings.put(MiscType.MAXIMUM_MANA_THRESHOLD,
                 TempleFixtures.miscVariable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
+        gameSettings.put(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND,
+                TempleFixtures.miscVariable(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, 500));
         keeper = new Keeper(false, PLAYER_ID);
         PlayerManaControl manaControl = new PlayerManaControl(keeper, gameSettings);
 
