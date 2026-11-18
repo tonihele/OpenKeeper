@@ -35,15 +35,18 @@ import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -56,6 +59,7 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -71,6 +75,11 @@ import java.util.Set;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class HealthSystem extends GameTimeCounter {
+
+    /**
+     * The Hero Lair terrain, DK II tells it by its id (DKII.EXE 0x488930)
+     */
+    private static final short HERO_LAIR_TERRAIN_ID = 35;
 
     private final EntityData entityData;
     private final IGameTimer gameTimer;
@@ -227,6 +236,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            triggerDestroyedEffect(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
         }
@@ -318,6 +328,38 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, Navigation.class);
     }
 
+    /**
+     * A destroyed trap, door or object blows up with its death effect, like the
+     * Trap Explosion, the Wooden Door Group Explosion or the Heart Explosion
+     * Effect
+     *
+     * @param entityId the destroyed entity
+     */
+    private void triggerDestroyedEffect(EntityId entityId) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        int effectId = getDestroyedEffectId(entityId);
+        if (position != null && effectId != 0) {
+            gameEventService.emitEffect(effectId, position.position, 0);
+        }
+    }
+
+    private int getDestroyedEffectId(EntityId entityId) {
+        TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
+        if (trapComponent != null) {
+            return levelInfo.getLevelData().getTrapById(trapComponent.trapId).getDeathEffectId();
+        }
+        DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+        if (doorComponent != null) {
+            return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getDeathEffectId();
+        }
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        if (objectComponent != null) {
+            return levelInfo.getLevelData().getObject(objectComponent.objectId).getDeathEffectId();
+        }
+
+        return 0;
+    }
+
     private boolean isLeaveDeadBody(EntityId entityId) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         return creatureComponent != null && levelInfo.getLevelData()
@@ -366,8 +408,12 @@ public final class HealthSystem extends GameTimeCounter {
             }
         }
 
+        // A hero on the Hero Lair heals every turn, instead of regenerating on its own land (DK II 0x488930)
+        int heroLairHealing = health.health != health.maxHealth ? getHeroLairHealing(entityId) : 0;
+        delta += heroLairHealing;
+
         // Regeneration (with little bit optimization if already at full health)
-        if (health.health != health.maxHealth) {
+        if (health.health != health.maxHealth && heroLairHealing == 0) {
             entity = regeneratedEntities.getEntity(entityId);
             if (entity != null) {
                 Regeneration regeneration = entity.get(Regeneration.class);
@@ -406,6 +452,25 @@ public final class HealthSystem extends GameTimeCounter {
         }
 
         return delta;
+    }
+
+    /**
+     * Gets how much a hero standing on the Hero Lair heals in a turn. The
+     * terrain's damage is negative there, a short in the level data
+     *
+     * @param entityId the entity
+     * @return the health gained, 0 if not a hero on the Hero Lair
+     */
+    private int getHeroLairHealing(EntityId entityId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId != Player.GOOD_PLAYER_ID || entityData.getComponent(entityId, CreatureComponent.class) == null) {
+            return 0;
+        }
+        IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+        if (tile == null || tile.getTerrainId() != HERO_LAIR_TERRAIN_ID) {
+            return 0;
+        }
+        return -(short) levelInfo.getLevelData().getTerrain(HERO_LAIR_TERRAIN_ID).getDamage();
     }
 
     private void processDeath(EntityId entityId) {
