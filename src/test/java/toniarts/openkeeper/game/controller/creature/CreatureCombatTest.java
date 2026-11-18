@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
+import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
@@ -134,6 +136,31 @@ class CreatureCombatTest {
     }
 
     @Test
+    void creatureThatWontFightPicksNoEnemyUntilItMayFightAgain() {
+        EntityId enemy = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        sensed.put(us, Set.of(enemy));
+        CreatureController controller = createController(us);
+
+        controller.setWillFight(false);
+        assertNull(controller.getAttackTarget());
+
+        controller.setWillFight(true);
+        assertEquals(enemy, controller.getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureThatStopsFightingDropsItsTarget() {
+        EntityId enemy = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        entityData.setComponent(us, new AttackTarget(enemy));
+        CreatureController controller = createController(us);
+
+        controller.setWillFight(false);
+
+        assertNull(controller.getAttackTarget());
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
     void hitInTheBackGetsTheRearAttackBonus() {
         EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 5), 0);
 
@@ -162,6 +189,33 @@ class CreatureCombatTest {
         assertNull(entityData.getComponent(target, Damage.class));
     }
 
+    @Test
+    void attackersWithSpellsLeaveRoomForMeleeAttackers() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        EntityId other = createCreature(HERO, FIGHTER, new Vector3f(8, 0, 4), 0);
+        for (int i = 0; i < CombatRules.MAX_RANGED_ATTACKERS; i++) {
+            EntityId caster = entityData.createEntity();
+            giveAttackSpell(caster);
+            entityData.setComponent(caster, new AttackTarget(target));
+        }
+        sensed.put(us, new LinkedHashSet<>(List.of(target, other)));
+
+        assertEquals(target, createController(us).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void attackerWithSpellsJoinsAFullSetOfMeleeAttackers() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        EntityId other = createCreature(HERO, FIGHTER, new Vector3f(8, 0, 4), 0);
+        for (int i = 0; i < CombatRules.MAX_MELEE_ATTACKERS; i++) {
+            entityData.setComponent(entityData.createEntity(), new AttackTarget(target));
+        }
+        giveAttackSpell(us);
+        sensed.put(us, new LinkedHashSet<>(List.of(target, other)));
+
+        assertEquals(target, createController(us).getAttackTarget().getEntityId());
+    }
+
     private EntityId createCreature(short ownerId, short creatureId, Vector3f position, float rotation) {
         EntityId entity = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -171,9 +225,19 @@ class CreatureCombatTest {
         return entity;
     }
 
+    private void giveAttackSpell(EntityId creature) {
+        EntityId spell = entityData.createEntity();
+        entityData.setComponent(spell, new CreatureSpell((short) 1, creature, 1, 5));
+        entityData.setComponent(creature, new CreatureSpells(List.of(spell)));
+    }
+
     private CreatureController createController(EntityId entity) {
         Map<Short, Keeper> keepers = Map.of(KEEPER, new Keeper(false, KEEPER), HERO, new Keeper(false, HERO));
-        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreature".equals(name) ? creatures.get((Short) args[0]) : null);
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getCreature" -> creatures.get((Short) args[0]);
+            case "getCreatureSpellById" -> CombatCreatureFixtures.attackSpell();
+            default -> null;
+        });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
             case "getLevelData" -> kwdFile;
             case "getPlayer" -> keepers.get((Short) args[0]);
