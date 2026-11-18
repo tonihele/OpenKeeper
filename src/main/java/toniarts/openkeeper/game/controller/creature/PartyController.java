@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.creature;
 
-import java.util.ArrayList;
+import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -26,13 +26,11 @@ import java.util.SequencedMap;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicLong;
 import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.game.controller.door.IDoorController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
-import toniarts.openkeeper.utils.Utils;
 
 /**
  * Represents a party, a group of creatures. When the Leader is incapacitated, a
@@ -175,29 +173,25 @@ public final class PartyController implements IPartyController {
     }
 
     /**
-     * A party member is incapacitated, if it was the leader. Swap the duties
-     * and objectives
+     * The party leader is incapacitated. The first member in party order that
+     * has the follower flag and is still standing takes over the duties and
+     * objectives (DKII.EXE 0x4B2CE0). Without such a member the party stays
+     * leaderless.
      */
     private void checkPartyLeader() {
         if (leader != null && leader.isIncapacitated()) {
-            List<ICreatureController> leaderCandidates = new ArrayList<>(getActualMembers());
-            Iterator<ICreatureController> iter = leaderCandidates.iterator();
-            while (iter.hasNext()) {
-                ICreatureController c = iter.next();
-                if (c.isIncapacitated()) {
-                    iter.remove();
+            for (Map.Entry<Thing.GoodCreature, ICreatureController> member : members.entrySet()) {
+                ICreatureController candidate = member.getValue();
+                if (candidate != null && member.getKey().getFlags().contains(Thing.Creature.CreatureFlag.FOLLOWER)
+                        && !candidate.isIncapacitated()) {
+
+                    // Swap duties
+                    // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
+                    candidate.setObjectiveTargetActionPointId(leader.getObjectiveTargetActionPointId());
+                    candidate.setObjective(leader.getObjective());
+                    leader = candidate;
+                    return;
                 }
-            }
-
-            // See if any left
-            if (!leaderCandidates.isEmpty()) {
-                ICreatureController oldLeader = leader;
-                leader = Utils.getRandomItem(leaderCandidates);
-
-                // Swap duties
-                // TODO: this works only when the old leader hasn't already died, so need to signal this somehow (PartySystem?)
-                leader.setObjectiveTargetActionPointId(oldLeader.getObjectiveTargetActionPointId());
-                leader.setObjective(oldLeader.getObjective());
             }
         }
     }
@@ -258,7 +252,7 @@ public final class PartyController implements IPartyController {
         Float cost = IPartyController.super.getCost(from, to, mapController, entityPositionLookup);
         if (cost == null) {
 
-            // No path by ordinary means, but we might want to tunnel or smash our way through obstacles
+            // No path by ordinary means, but we might want to tunnel our way through
             Terrain terrain = mapController.getTerrain(to);
             if (isWorkersAvailable()) {
                 Float tunnelCost = Tunneller.getTunnelCost(terrain);
@@ -266,16 +260,21 @@ public final class PartyController implements IPartyController {
                     return tunnelCost;
                 }
             }
-
-            // Check if any obstacles lies in our path, we can smash through enemy doors but not our own locked doors
-            // FIXME: now just doors
-            for (IDoorController doorController : entityPositionLookup.getEntityTypesInLocation(to, IDoorController.class)) {
-                if (doorController.getOwnerId() != getOwnerId()) {
-                    return 3f;
-                }
-            }
         }
         return cost;
+    }
+
+    /**
+     * The party takes the way its leader takes, so it breaks the doors its
+     * leader breaks
+     *
+     * @param door the door entity
+     * @return true if the leader breaks the door down when it is in the way
+     */
+    @Override
+    public boolean canBreakDoor(EntityId door) {
+        ICreatureController partyLeader = getPartyLeader();
+        return partyLeader != null && partyLeader.canBreakDoor(door);
     }
 
     @Override
