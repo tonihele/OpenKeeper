@@ -98,6 +98,14 @@ public interface IPlayerScreenController extends ScreenController {
     public void zoomToPosition(Vector3f position);
 
     /**
+     * Get the current position of an entity
+     *
+     * @param entityId the entity ID
+     * @return the position, or {@code null} if the entity no longer exists
+     */
+    public Vector3f getEntityPosition(EntityId entityId);
+
+    /**
      * Pick up an entity
      *
      * @param entityId the entity ID to pick up

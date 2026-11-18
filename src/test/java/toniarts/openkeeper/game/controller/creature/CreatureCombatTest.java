@@ -97,6 +97,31 @@ class CreatureCombatTest {
     }
 
     @Test
+    void creatureThatWontFightPicksNoEnemyUntilItMayFightAgain() {
+        EntityId enemy = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        sensed.put(us, Set.of(enemy));
+        CreatureController controller = createController(us);
+
+        controller.setWillFight(false);
+        assertNull(controller.getAttackTarget());
+
+        controller.setWillFight(true);
+        assertEquals(enemy, controller.getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void creatureThatStopsFightingDropsItsTarget() {
+        EntityId enemy = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        entityData.setComponent(us, new AttackTarget(enemy));
+        CreatureController controller = createController(us);
+
+        controller.setWillFight(false);
+
+        assertNull(controller.getAttackTarget());
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
     void hitInTheBackGetsTheRearAttackBonus() {
         EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 5), 0);
 

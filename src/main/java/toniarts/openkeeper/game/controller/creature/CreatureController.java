@@ -60,11 +60,13 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -83,6 +85,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
@@ -152,6 +155,11 @@ public final class CreatureController extends EntityController implements ICreat
      * DKII.EXE adds to the effect radius is 2, the radius is guessed at 5
      */
     private static final int FLEE_DISTANCE = 7;
+    /**
+     * How far, in tiles, a recuperating hero wanders on its own land (DK II
+     * 0x461B50 asks 0x461BB0 for a tile this far)
+     */
+    private static final int OWN_LAND_WANDER_DISTANCE = 10;
 
     /**
      * Possessed movement speed relative to walking forward
@@ -199,6 +207,7 @@ public final class CreatureController extends EntityController implements ICreat
     private final ICreaturesController creaturesController;
     private final IEntityPositionLookup entityPositionLookup;
     private final ILevelInfo levelInfo;
+    private final RoomDestructionTrigger roomDestructionTrigger = new RoomDestructionTrigger();
     private final IShotsController shotsController;
     private final GameEventService gameEventService;
     // TODO: All the data is not supposed to be on entities as they become too big, but I don't want these here either
@@ -803,6 +812,12 @@ public final class CreatureController extends EntityController implements ICreat
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null) {
             return getCombatPitOpponent(pitFighter.pit);
+        }
+
+        // One that won't fight neither picks a target nor keeps the one it has (DK II 0x45A6D0, 0x45F030)
+        if (entityData.getComponent(entityId, Peaceful.class) != null) {
+            setAttackTarget(null);
+            return null;
         }
         AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
         if (attackTarget != null && DungeonHeartTarget.isDungeonHeart(entityData, attackTarget.entityId)) {
@@ -1748,6 +1763,8 @@ public final class CreatureController extends EntityController implements ICreat
             motionless = 0;
         }
 
+        destroyRoomOnTheWay();
+
         // Task timer
         TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
         if (taskComponent != null && taskComponent.taskStarted) {
@@ -1768,6 +1785,29 @@ public final class CreatureController extends EntityController implements ICreat
         if (creatureAi == null || stateMachine.getCurrentState() != creatureAi.getCreatureState()) {
             entityData.setComponent(entityId, new CreatureAi(gameTimer.getGameTime(), stateMachine.getCurrentState(), creature.getId(),
                     creatureAi == null ? null : creatureAi.getTargetState()));
+        }
+    }
+
+    /**
+     * A hero with the DESTROY_ROOMS flag wrecks the keeper's room tiles he
+     * steps on, on his way to wherever he is going (DKII.EXE 0x488930)
+     */
+    private void destroyRoomOnTheWay() {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        Position position = entityData.getComponent(entityId, Position.class);
+        Point tile = roomDestructionTrigger.onTheWay(position != null ? position.position : null, stateMachine.getCurrentState(),
+                creatureComponent != null && creatureComponent.destroysRooms, getOwnerId());
+        if (tile == null || entityData.getComponent(entityId, Possessed.class) != null
+                || !taskManager.assignDestroyRoomTask(this, tile)) {
+            return;
+        }
+
+        // Stop on the tile and swing at it
+        if (stateMachine.isInState(CreatureState.WORK)) {
+            stopCreature();
+            navigateToAssignedTask();
+        } else {
+            stateMachine.changeState(CreatureState.WORK);
         }
     }
 
@@ -2242,6 +2282,50 @@ public final class CreatureController extends EntityController implements ICreat
         return false;
     }
 
+    @Override
+    public boolean withdrawToHeroLair() {
+
+        // Below a sixth of its health, unless it is fearless (DK II 0x45EDA0)
+        Health health = entityData.getComponent(entityId, Health.class);
+        if (getOwnerId() != Player.GOOD_PLAYER_ID || entityData.getComponent(entityId, ReturnToHeroLair.class) == null
+                || entityData.getComponent(entityId, Fearless.class) != null || isCombatPitFighter()
+                || health == null || health.health >= health.maxHealth / 6) {
+            return false;
+        }
+
+        // To the first hero lair action point we can get to, else we fight on (DK II 0x4611D0)
+        for (ActionPoint actionPoint : levelInfo.getActionPoints()) {
+            if (actionPoint.getFlags().contains(Thing.ActionPoint.ActionPointFlag.HERO_LAIR) && !createNavigation(getCreatureCoordinates(), actionPoint.getStart(), null)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public void wanderOnOwnLand() {
+
+        // A tile of our own on the square 10 tiles round us. DK II goes round the square from a random start
+        // to its end only, so it may find nothing this time (0x461BB0)
+        Point tile = getCreatureCoordinates();
+        int side = OWN_LAND_WANDER_DISTANCE * 2;
+        for (int i = ThreadLocalRandom.current().nextInt(side * 4); i < side * 4; i++) {
+            int offset = i % side - OWN_LAND_WANDER_DISTANCE;
+            Point destination = switch (i / side) {
+                case 0 -> new Point(tile.x + offset, tile.y - OWN_LAND_WANDER_DISTANCE);
+                case 1 -> new Point(tile.x + OWN_LAND_WANDER_DISTANCE, tile.y + offset);
+                case 2 -> new Point(tile.x + offset, tile.y + OWN_LAND_WANDER_DISTANCE);
+                default -> new Point(tile.x - OWN_LAND_WANDER_DISTANCE, tile.y + offset);
+            };
+            IMapTileInformation mapTile = mapController.getMapData().getTile(destination);
+            if (mapTile != null && mapTile.getOwnerId() == getOwnerId() && !mapController.isSolid(destination)) {
+                createNavigation(tile, destination, null);
+                return;
+            }
+        }
+    }
+
     private boolean isFleeing(EntityId entity) {
         CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
         if (creatureAi != null) {
@@ -2489,6 +2573,15 @@ public final class CreatureController extends EntityController implements ICreat
     private void makeHungry(CreatureHunger creatureHunger) {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         entityData.setComponent(entityId, new CreatureHunger(creatureHunger.lastEatTime, creatureComponent.hungerFill));
+    }
+
+    @Override
+    public void setWillFight(boolean willFight) {
+        if (willFight) {
+            entityData.removeComponent(entityId, Peaceful.class);
+        } else {
+            entityData.setComponent(entityId, new Peaceful());
+        }
     }
 
     @Override
