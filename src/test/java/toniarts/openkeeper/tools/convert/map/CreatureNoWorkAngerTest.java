@@ -100,7 +100,7 @@ class CreatureNoWorkAngerTest {
         Creature fighter = new Creature();
         fighter.getAttributes().setAngerNoWork((short) 50);
 
-        new CreatureController(entityId, entityData, fighter, navigationService, null, null, null,
+        new CreatureController(entityId, entityData, fighter, navigationService, null, null, Map.of(),
                 null, null, mapController, null, null, null, null).navigateToRandomPointInCombatPit();
 
         assertEquals(50 / 4, entityData.getComponent(entityId, CreatureMood.class).noWork);
