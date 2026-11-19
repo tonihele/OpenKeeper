@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -375,6 +376,16 @@ class PossessedSpellTest {
     }
 
     @Test
+    void impHasteShowsTheSpeedBlurForThePercentageInGameTicks() {
+        possessImpWithHaste();
+
+        cast(createController(), 1);
+
+        // 0x514830 sets the blur timer to the spell's 150, 4 ticks a second here
+        assertEquals(gameTime + 150 / 4.0, entityData.getComponent(us, SpeedBlur.class).endTime);
+    }
+
+    @Test
     void impHasteDoesNotStackOnASlap() {
         possessImpWithHaste();
 
@@ -506,6 +517,7 @@ class PossessedSpellTest {
             case "getCreatureFirstPersonStats" -> firstPersonStats;
             case "getCreatureSpellById" -> levelSpells.get((Short) args[0]);
             case "getShotById" -> ShotFixtures.fireball();
+            case "getGameLevel" -> ShotFixtures.gameLevel(4);
             default -> null;
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
