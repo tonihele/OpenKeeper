@@ -1058,12 +1058,12 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return true;
             }
             case LEAVE: {
-                return assignLeaveTask(creature, assign);
+                return assignLeaveTask(creature, false, assign);
             }
             case REBEL: {
 
                 // Like in DK II, a rebel walks out through a portal, and turns on its keeper when it can't get to one
-                if (assignLeaveTask(creature, assign)) {
+                if (assignLeaveTask(creature, true, assign)) {
                     return true;
                 }
                 if (creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
@@ -1083,24 +1083,32 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
-     * Like in DK II, a creature that leaves walks out through the nearest
-     * portal, whoever owns it. A rebel does the same
+     * Like in DK II, a creature that leaves walks out through the portal
+     * nearest in a straight line, whoever owns it, even when another portal is
+     * a shorter walk or it can't get to that one at all (0x459DE0). A rebel
+     * takes the nearest of its own keeper's portals, and only when it can get
+     * to it (0x475170)
      */
-    private boolean assignLeaveTask(ICreatureController creature, boolean assign) {
-        Leave task = null;
-        int nearest = Integer.MAX_VALUE;
+    private boolean assignLeaveTask(ICreatureController creature, boolean rebel, boolean assign) {
+        ThreeByThreeController nearest = null;
+        float nearestDistance = Float.MAX_VALUE;
         for (IRoomController room : mapController.getRoomControllers()) {
-            if (!(room instanceof ThreeByThreeController portal)) {
+            if (!(room instanceof ThreeByThreeController portal) || (rebel && portal.getOwnerId() != creature.getOwnerId())) {
                 continue;
             }
 
-            Point center = portal.getEntranceCoordinate();
-            int distance = WorldUtils.calculateDistance(creature.getCreatureCoordinates(), center);
-            Leave leave = new Leave(navigationService, mapController, center, creature.getOwnerId(), portal, entityData);
-            if (distance < nearest && leave.isReachable(creature)) {
-                task = leave;
-                nearest = distance;
+            // DK II compares the squared distance to the middle of each portal
+            float distance = WorldUtils.pointToVector2f(portal.getEntranceCoordinate())
+                    .distanceSquared(creature.getPosition().x, creature.getPosition().z);
+            if (distance < nearestDistance) {
+                nearest = portal;
+                nearestDistance = distance;
             }
+        }
+        Leave task = nearest == null ? null
+                : new Leave(navigationService, mapController, nearest.getEntranceCoordinate(), creature.getOwnerId(), nearest, entityData);
+        if (task != null && rebel && !task.isReachable(creature)) {
+            return false;
         }
         if (task != null && assign) {
             task.assign(creature, true);
