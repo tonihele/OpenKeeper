@@ -16,16 +16,25 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
+import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.PossessionFixtures;
+import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -33,12 +42,20 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 
 /**
  * An Imp carries a knocked out creature only while it is on the job of
- * carrying it
+ * carrying it. A possessed Bile Demon holds the worker it carries in front of
+ * it on every game logic tick.
  */
 class HaulingSystemTest {
 
+    private static final float BILE_DEMON_EYE_HEIGHT = 0.37f;
+
     private final EntityData entityData = new DefaultEntityData();
-    private final HaulingSystem haulingSystem = new HaulingSystem(entityData);
+    private final Creature bileDemon = ShotFixtures.creature((short) 3, EnumSet.noneOf(Creature.CreatureFlag.class),
+            EnumSet.noneOf(Creature.CreatureFlag3.class));
+    private final HaulingSystem haulingSystem = new HaulingSystem(entityData, (ICreaturesController) Proxy.newProxyInstance(
+            ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+            (proxy, method, args) -> Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
+                    new Class<?>[]{ICreatureController.class}, (controller, controllerMethod, controllerArgs) -> "getCreature".equals(controllerMethod.getName()) ? bileDemon : null)));
     private final EntityId imp = entityData.createEntity();
     private final EntityId creature = entityData.createEntity();
 
@@ -80,5 +97,49 @@ class HaulingSystemTest {
 
         assertNull(entityData.getComponent(creature, HauledBy.class));
         assertEquals(2, entityData.getComponent(creature, Position.class).position.x);
+    }
+
+    @Test
+    void carriedWorkerIsHeldHalfATileInFrontAtTheEyeHeightOnEachTick() {
+        PossessionFixtures.setEyeHeight(bileDemon, BILE_DEMON_EYE_HEIGHT);
+        EntityId demon = entityData.createEntity();
+        EntityId worker = entityData.createEntity();
+        entityData.setComponents(demon, new Position(0, new Vector3f(10, 0, 2)),
+                new PossessedAbility(Creature.SpecialAbility.PICK_UP_WORKERS, 0, worker));
+        entityData.setComponent(worker, new Position(1, new Vector3f(10, 0, 2.6f)));
+
+        haulingSystem.processTick(0.25f);
+
+        assertEquals(new Vector3f(10, BILE_DEMON_EYE_HEIGHT, 2.5f), entityData.getComponent(worker, Position.class).position);
+        assertEquals(0, entityData.getComponent(worker, Position.class).rotation);
+
+        // The steering moves and turns the Bile Demon, the worker follows on the next logic tick
+        entityData.setComponent(demon, new Position(FastMath.HALF_PI, new Vector3f(11, 0, 2)));
+        assertEquals(new Vector3f(10, BILE_DEMON_EYE_HEIGHT, 2.5f), entityData.getComponent(worker, Position.class).position);
+
+        haulingSystem.processTick(0.25f);
+
+        Position held = entityData.getComponent(worker, Position.class);
+        assertEquals(11.5f, held.position.x, 0.0001f);
+        assertEquals(BILE_DEMON_EYE_HEIGHT, held.position.y, 0.0001f);
+        assertEquals(2, held.position.z, 0.0001f);
+        assertEquals(FastMath.HALF_PI, held.rotation);
+    }
+
+    @Test
+    void thrownWorkerIsNotHeldAnyMore() {
+        EntityId demon = entityData.createEntity();
+        EntityId worker = entityData.createEntity();
+        entityData.setComponents(demon, new Position(0, new Vector3f(10, 0, 2)),
+                new PossessedAbility(Creature.SpecialAbility.PICK_UP_WORKERS, 0, worker));
+        entityData.setComponent(worker, new Position(0, new Vector3f(10, 0.5f, 2.5f)));
+        haulingSystem.processTick(0.25f);
+
+        entityData.removeComponent(demon, PossessedAbility.class);
+        entityData.setComponent(worker, new Position(0, new Vector3f(10, 0.5f, 4.5f)));
+        entityData.setComponent(demon, new Position(0, new Vector3f(12, 0, 2)));
+        haulingSystem.processTick(0.25f);
+
+        assertEquals(new Vector3f(10, 0.5f, 4.5f), entityData.getComponent(worker, Position.class).position);
     }
 }

@@ -58,6 +58,10 @@ public final class PossessionFixtures {
         creature.setFirstPersonSpecialAbility2(ability2);
     }
 
+    public static void setEyeHeight(Creature creature, float eyeHeight) {
+        creature.getAttributes().setEyeHeight(eyeHeight);
+    }
+
     public static Creature.Spell spell(short creatureSpellId, int levelAvailable, float shotDelay) {
         Creature.Spell spell = new Creature.Spell();
         spell.setCreatureSpellId(creatureSpellId);

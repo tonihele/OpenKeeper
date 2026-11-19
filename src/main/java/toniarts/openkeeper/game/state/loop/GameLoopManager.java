@@ -160,7 +160,7 @@ public final class GameLoopManager {
                 new DoorViewSystem(entityData, positionSystem),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
-                new HaulingSystem(entityData),
+                new HaulingSystem(entityData, gameWorldController.getCreaturesController()),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
                         gameWorldController.getShotsController()),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),

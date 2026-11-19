@@ -217,8 +217,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     /**
      * A possessed Bile Demon picks up a worker closer than a tile (0x516EC0)
-     * and holds it half a tile in front of it (0x4831D0). It throws the worker
-     * forward two tiles a turn and up a quarter of a tile a turn (0x4831D0).
+     * and holds it half a tile in front of it, at its eye height (0x4831D0).
+     * It throws the worker forward two tiles a turn and up a quarter of a tile
+     * a turn (0x4831D0).
      */
     private static final float POSSESSED_PICK_UP_REACH = WorldUtils.TILE_WIDTH;
     private static final float POSSESSED_CARRY_DISTANCE = WorldUtils.TILE_WIDTH / 2;
@@ -3107,7 +3108,7 @@ public final class CreatureController extends EntityController implements ICreat
 
         Vector3f direction = new Vector3f(FastMath.sin(position.rotation), 0, FastMath.cos(position.rotation));
         Vector3f start = position.position.add(direction.mult(POSSESSED_CARRY_DISTANCE));
-        start.y += creature.getAttributes().getHeight();
+        start.y += creature.getAttributes().getEyeHeight();
         Vector3f velocity = thrown ? direction.multLocal(THROWN_WORKER_SPEED).setY(THROWN_WORKER_LIFT) : new Vector3f();
 
         entityData.setComponent(worker, new Position(position.rotation, start));
