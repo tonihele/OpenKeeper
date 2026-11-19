@@ -39,6 +39,39 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MovementSystemTest {
 
+    @Test
+    void movingCreatureTurnsAtItsAuthoredRateInsteadOfSnapping() throws Exception {
+        EntityData entities = new DefaultEntityData();
+        var definition = new toniarts.openkeeper.tools.convert.map.Creature();
+        var field = definition.getClass().getDeclaredField("unk3cc");
+        field.setAccessible(true);
+        field.setFloat(definition, .125f); // Synthetic 90 degrees per second.
+        var level = (toniarts.openkeeper.tools.convert.map.IKwdFile) Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{toniarts.openkeeper.tools.convert.map.IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? definition : null);
+        EntityId id = entities.createEntity();
+        var creature = new toniarts.openkeeper.game.component.CreatureComponent();
+        creature.creatureId = 7;
+        entities.setComponents(id, creature, new Position(0, new Vector3f(10, 0, 10)),
+                new Mobile(false, false, false, 1), new Navigation(new Point(18, 10), null,
+                        List.of(new Vector2(10, 10), new Vector2(18, 10))));
+        MovementSystem movement = new MovementSystem(entities, map(false, false), level);
+        float previous = 0;
+        for (int frame = 0; frame < 30; frame++) {
+            movement.processTick(1f / 60);
+            float rotation = entities.getComponent(id, Position.class).rotation;
+            assertTrue(Math.abs(rotation - previous) <= Math.PI / 120 + 1e-5,
+                    "Facing snapped beyond the authored turn limit");
+            previous = rotation;
+        }
+        assertTrue(previous > .70f && previous < .80f, "Expected about 45 degrees after half a second");
+        for (int frame = 0; frame < 60; frame++) {
+            movement.processTick(1f / 60);
+        }
+        assertEquals((float) Math.PI / 2, entities.getComponent(id, Position.class).rotation, 1e-4f);
+        movement.stop();
+    }
+
     /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
      * (sin r, cos r) on x, z for the Position rotation r.
