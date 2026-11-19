@@ -23,6 +23,7 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.view.effect.EffectGeometry;
+import toniarts.openkeeper.view.effect.procedural.ProceduralMeshFactory;
 
 /**
  *
@@ -63,14 +64,14 @@ public final class UniversalArtResourceLoader {
                 break;
 
             case PROCEDURAL_MESH:
-                result = AssetUtils.createProceduralMesh(resource);
+                result = ProceduralMeshFactory.create(resource, assetManager);
                 break;
 
             case ALPHA:
             case ADDITIVE_ALPHA:
             case SPRITE:
                 result = new EffectGeometry("effect");
-                ((EffectGeometry) result).setFrames(Math.max(1, resource.getData(ArtResource.KEY_FRAMES)));
+                ((EffectGeometry) result).setFrames(AssetUtils.getAnimationFrameCount(resource, assetManager));
 
                 Material material = AssetUtils.createParticleMaterial(resource, assetManager);
                 result.setMaterial(material);

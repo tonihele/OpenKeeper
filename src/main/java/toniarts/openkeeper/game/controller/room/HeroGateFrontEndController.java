@@ -20,6 +20,7 @@ import com.jme3.math.FastMath;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.game.component.RoomEffect;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
@@ -35,11 +36,17 @@ public final class HeroGateFrontEndController extends NormalRoomController {
     private static final short OBJECT_BANNER_ONE_ID = 89;
     //private static final int OBJECT_CANDLE_STICK_ID = 110;  // empty resource?
     //private static final int OBJECT_ARROW_ID = 115;  // empty resource?
+    private static final short OBJECT_TABLE_ID = 102;
     private static final short OBJECT_GEM_HOLDER_ID = 131;
     private static final short OBJECT_CHAIN_ID = 132;
     private static final short OBJECT_BANNER_TWO_ID = 134;
     private static final short OBJECT_BANNER_THREE_ID = 135;
     private static final short OBJECT_BANNER_FOUR_ID = 136;
+    private static final int ROOM_WIDTH = 3;
+    private static final int EFFECT_3DFE_ARCH_MIST = 348;
+    private static final int EFFECT_3DFE_MPD_ARCH_MIST = 360;
+    private static final int EFFECT_3DFE_LIGHTBEAMS = 349;
+    private static final int EFFECT_3DFE_GEMS = 350;
 
     public HeroGateFrontEndController(EntityId entityId, EntityData entityData, IKwdFile kwdFile,
             toniarts.openkeeper.common.RoomInstance roomInstance, IObjectsController objectsController) {
@@ -63,6 +70,12 @@ public final class HeroGateFrontEndController extends NormalRoomController {
 
                     // The "candles"
                     addCandles(p);
+
+                    entityData.setComponent(entityId, new RoomEffect(EFFECT_3DFE_GEMS, p));
+
+                    // RoomEffect holds a single effect, so the light beams get an entity of their own
+                    EntityId beamsEntityId = entityData.createEntity();
+                    entityData.setComponent(beamsEntityId, new RoomEffect(EFFECT_3DFE_LIGHTBEAMS, p, FastMath.PI, -0.5f));
                     break;
                 case 5:
 
@@ -86,6 +99,11 @@ public final class HeroGateFrontEndController extends NormalRoomController {
                     break;
                 case 11:
 
+                    // The campaign map table, on the same tile as the map pieces. The original has one
+                    // of these per level, all at this spot, and keeps the light of only the first, so
+                    // one object is all it takes. It has no mesh, the map pieces are the map's own
+                    floorFurniture.add(objectsController.loadObject(OBJECT_TABLE_ID, roomInstance.getOwnerId(), p.x, p.y));
+
                     // Banners
                     floorFurniture.add(objectsController.loadObject(OBJECT_BANNER_ONE_ID, roomInstance.getOwnerId(), p.x, p.y));
                     floorFurniture.add(objectsController.loadObject(OBJECT_BANNER_TWO_ID, roomInstance.getOwnerId(), p.x, p.y));
@@ -98,6 +116,43 @@ public final class HeroGateFrontEndController extends NormalRoomController {
 
             i++;
         }
+
+        spawnArchMist();
+    }
+
+    /**
+     * The mist along the two side columns. The original code switches on the
+     * slab index, which runs row by row ({@code (y - minY) * 3 + (x - minX)}),
+     * not in the flood fill order of the coordinates.
+     */
+    private void spawnArchMist() {
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        for (Point p : roomInstance.getCoordinates()) {
+            minX = Math.min(minX, p.x);
+            minY = Math.min(minY, p.y);
+        }
+
+        for (Point p : roomInstance.getCoordinates()) {
+            int slab = (p.y - minY) * ROOM_WIDTH + (p.x - minX);
+            switch (slab) {
+                case 0, 2, 3, 5, 8, 9, 11 -> spawnRoomEffect(EFFECT_3DFE_ARCH_MIST, p, false);
+                // Has no death effect, so it mists up only once
+                case 6 -> spawnRoomEffect(EFFECT_3DFE_MPD_ARCH_MIST, p, true);
+                default -> {
+                    // The middle column and the slabs after the 12th have no mist
+                }
+            }
+        }
+    }
+
+    /**
+     * RoomEffect holds a single effect, so every effect gets an entity of its own.
+     * The mist sits on the slab centre (the view adds half a tile, cancel that).
+     */
+    private void spawnRoomEffect(int effectId, Point p, boolean once) {
+        EntityId effectEntityId = entityData.createEntity();
+        entityData.setComponent(effectEntityId, new RoomEffect(effectId, p, 0, -0.5f, once, true));
     }
 
     private void addCandles(Point p) {

@@ -14,6 +14,7 @@
 
     <!-- custom effects -->
     <registerEffect name="textGlow" class="toniarts.openkeeper.gui.nifty.effect.TextGlowEffect" />
+    <registerEffect name="engineSound" class="toniarts.openkeeper.gui.nifty.effect.EngineSoundEffect" />
 
     <style id="text">
         <attributes font="Interface/Fonts/Frontend14.fnt" color="#bbbcbb" />
@@ -25,7 +26,8 @@
         <attributes font="Interface/Fonts/Frontend28.fnt" color="#bbbcbb" />
         <effect>
             <onHover name="textColorAnimated" start="#bbbcbb" end="#ffffff" />
-            <onClick neverStopRendering="true" name="playSound" sound="menuClick"/>
+            <onStartHover neverStopRendering="true" name="engineSound" category="FRONT_END" event="0x30F"/>
+            <onClick neverStopRendering="true" name="engineSound" category="FRONT_END" event="0x30A"/>
         </effect>
     </style>
     <style id="menuTextDisabled">
@@ -299,31 +301,31 @@
                                 <text text="${menu.1636}" id="label_attemptsAtLevel" align="left" style="menuTextSmall" />
                             </panel>
                             <panel childLayout="vertical" width="*" paddingRight="30px">
-                                <control name="label" id="levelWon" text="?" style="menuHeaderText"
+                                <control name="label" id="levelWon" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="timeTaken" text="?" style="menuHeaderText"
+                                <control name="label" id="timeTaken" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuHeaderText"
+                                <control name="label" id="enemyCreaturesKilled" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="heroesDestroyed" text="?" style="menuHeaderText"
+                                <control name="label" id="heroesDestroyed" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="roomsCaptured" text="?" style="menuHeaderText"
+                                <control name="label" id="roomsCaptured" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="landOwned" text="?" style="menuHeaderText"
+                                <control name="label" id="landOwned" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="goldMined" text="?" style="menuHeaderText"
+                                <control name="label" id="goldMined" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="manaStored" text="?" style="menuHeaderText"
+                                <control name="label" id="manaStored" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="itemsManufactured" text="?" style="menuHeaderText"
+                                <control name="label" id="itemsManufactured" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creaturesCommanded" text="?" style="menuHeaderText"
+                                <control name="label" id="creaturesCommanded" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creaturesConverted" text="?" style="menuHeaderText"
+                                <control name="label" id="creaturesConverted" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="creatureTraining" text="?" style="menuHeaderText"
+                                <control name="label" id="creatureTraining" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
-                                <control name="label" id="attemptsAtLevel" text="?" style="menuHeaderText"
+                                <control name="label" id="attemptsAtLevel" text="?" style="menuTextSmall"
                                          textHAlign="right" textVAlign="center" width="100%" />
                             </panel>
                         </panel>
@@ -408,6 +410,10 @@
                     <panel childLayout="horizontal" padding="10px">
                         <control name="checkbox" id="ssao" />
                         <text style="menuTextSmall" text=" SSAO" />
+                    </panel>
+                    <panel childLayout="horizontal" padding="10px">
+                        <control name="checkbox" id="gammaCorrection" />
+                        <text style="menuTextSmall" text=" Gamma correction" />
                     </panel>
                 </panel>
                 <!--Right side options panel-->
