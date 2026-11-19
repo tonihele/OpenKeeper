@@ -22,6 +22,8 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.HauledBy;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
@@ -97,7 +99,7 @@ class CreatureViewSystemTest {
     void mistressWhipsTheVictimSheTortures() {
         EntityId victim = entityData.createEntity();
         entityData.setComponent(victim, new CreatureComponent());
-        assertEquals(Creature.AnimationType.SPECIAL_1, torturerAnimation(victim));
+        assertEquals(Creature.AnimationType.TORTURE_VICTIM, torturerAnimation(victim));
     }
 
     @Test
@@ -147,4 +149,34 @@ class CreatureViewSystemTest {
 
         assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(creature));
     }
+    @Test
+    void workerTasksUseActionsRatherThanFighterNames() {
+        assertEquals(Creature.AnimationType.CLAIM_FLOOR, CreatureViewSystem.getAnimation(TaskType.CLAIM_TILE));
+        assertEquals(Creature.AnimationType.CLAIM_FLOOR, CreatureViewSystem.getAnimation(TaskType.CLAIM_ROOM));
+        assertEquals(Creature.AnimationType.REINFORCE_WALL, CreatureViewSystem.getAnimation(TaskType.CLAIM_WALL));
+        assertEquals(Creature.AnimationType.REINFORCE_WALL, CreatureViewSystem.getAnimation(TaskType.REPAIR_WALL));
+        assertEquals(Creature.AnimationType.DIGGING, CreatureViewSystem.getAnimation(TaskType.DIG_TILE));
+    }
+
+    @Test
+    void haulerUsesHaulActionOnlyWhileCarryingSomething() {
+        EntityId worker = entityData.createEntity();
+        entityData.setComponents(worker, new CreatureViewState((short) 1, 0, Creature.AnimationType.WALK),
+                new Position(0, new Vector3f()), new Navigation());
+        EntityId cargo = entityData.createEntity();
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+        try {
+            system.processTick(0.25f);
+            assertEquals(Creature.AnimationType.WALK, entityData.getComponent(worker, CreatureViewState.class).state);
+            entityData.setComponent(cargo, new HauledBy(worker));
+            system.processTick(0.25f);
+            assertEquals(Creature.AnimationType.HAUL, entityData.getComponent(worker, CreatureViewState.class).state);
+            entityData.removeComponent(cargo, HauledBy.class);
+            system.processTick(0.25f);
+            assertEquals(Creature.AnimationType.WALK, entityData.getComponent(worker, CreatureViewState.class).state);
+        } finally {
+            system.stop();
+        }
+    }
+
 }

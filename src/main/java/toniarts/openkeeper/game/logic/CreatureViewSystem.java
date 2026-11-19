@@ -25,6 +25,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -74,6 +76,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final EntitySet creatureViewEntities;
+    private final EntitySet hauledEntities;
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
@@ -82,6 +85,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
 
+        hauledEntities = entityData.getEntities(HauledBy.class);
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
     }
@@ -95,6 +99,12 @@ public final class CreatureViewSystem extends GameTimeCounter {
             processDeletedEntities(creatureViewEntities.getRemovedEntities());
         }
 
+        hauledEntities.applyChanges();
+        Set<EntityId> haulers = new HashSet<>();
+        for (Entity hauled : hauledEntities) {
+            haulers.add(hauled.get(HauledBy.class).entityId);
+        }
+
         // Process ticks
         for (EntityId entityId : creatureEntities.getArray()) {
 
@@ -106,7 +116,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = Creature.AnimationType.WALK;
+                targetState = haulers.contains(entityId) ? Creature.AnimationType.HAUL : Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
@@ -189,6 +199,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
     @Override
     public void stop() {
         creatureViewEntities.release();
+        hauledEntities.release();
         creatureEntities.clear();
     }
 
@@ -222,7 +233,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      */
     private Creature.AnimationType getTorturerAnimation(EntityId target, CreatureViewState state) {
         if (target != null && entityData.getComponent(target, CreatureComponent.class) != null) {
-            return Creature.AnimationType.SPECIAL_1;
+            return Creature.AnimationType.TORTURE_VICTIM;
         }
         return getTortureAnimation(target, state);
     }
@@ -276,16 +287,16 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
     }
 
-    private static Creature.AnimationType getAnimation(TaskType taskType) {
+    static Creature.AnimationType getAnimation(TaskType taskType) {
         switch (taskType) {
             case CLAIM_ROOM:
             case CLAIM_TILE:
-                return Creature.AnimationType.EATING;
+                return Creature.AnimationType.CLAIM_FLOOR;
             case REPAIR_WALL:
             case CLAIM_WALL:
-                return Creature.AnimationType.SLEEPING;
+                return Creature.AnimationType.REINFORCE_WALL;
             case DIG_TILE:
-                return Creature.AnimationType.DIG;
+                return Creature.AnimationType.DIGGING;
             case TRAIN:
                 return Creature.AnimationType.MELEE_ATTACK;
             case RESEARCH:
@@ -334,7 +345,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * Is the creature still playing its animation the given number of times
      */
     private boolean isPlaying(CreatureViewState state, int plays) {
-        ArtResource animation = kwdFile.getCreature(state.creatureId).getAnimation(state.state);
+        ArtResource animation = kwdFile.getCreature(state.creatureId).getAnimationForAction(state.state);
         if (animation == null) {
             return false;
         }

@@ -159,8 +159,12 @@ public final class ThingSounds {
             return -1;
         }
         return switch (animation) {
-            case DIG ->
+            case DIG, DIGGING ->
                 CREATURE_DIG;
+            case CLAIM_FLOOR ->
+                CREATURE_CLAIM;
+            case REINFORCE_WALL ->
+                CREATURE_REINFORCE;
             case MELEE_ATTACK, SWIPE ->
                 CREATURE_MELEE;
             case CAST_SPELL ->

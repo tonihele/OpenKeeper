@@ -142,7 +142,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK
+                && currentState != Creature.AnimationType.HAUL
+                && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
     private void playAnimation(Creature.AnimationType animation) {
@@ -181,7 +183,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      * The digging sound is restarted when it ends so that it lasts as long as the work
      */
     private void playDigSound() {
-        if (currentState != Creature.AnimationType.DIG || spatial == null
+        if ((currentState != Creature.AnimationType.DIG && currentState != Creature.AnimationType.DIGGING) || spatial == null
                 || spatial.getCullHint() == Spatial.CullHint.Always) {
             digSound = SoundEngine.NO_HANDLE;
             return;
@@ -236,7 +238,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private AnimComposer getAnimComposer() {
-        ArtResource animation = getDataObject().getAnimation(currentState);
+        ArtResource animation = getDataObject().getAnimationForAction(currentState);
         if (animation == null || !(spatial instanceof Node node)) {
             return null;
         }
@@ -267,7 +269,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             playAnimation(state);
             if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
                 int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
-                digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
+                digSound = (state == Creature.AnimationType.DIG || state == Creature.AnimationType.DIGGING) ? handle : SoundEngine.NO_HANDLE;
                 nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
                 playResearchSound(state);
             }
@@ -291,7 +293,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public ArtResource getInHandMesh() {
-        return getDataObject().getAnimation(Creature.AnimationType.IN_HAND);
+        return getDataObject().getAnimationForAction(Creature.AnimationType.IN_HAND);
     }
 
     @Override
@@ -305,7 +307,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         if (animation == null && state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
             return ELECTROCUTE_SKELETONS[ThreadLocalRandom.current().nextInt(ELECTROCUTE_SKELETONS.length)];
         }
-        return animation;
+        return getDataObject().getAnimationForAction(state);
     }
 
     /**
