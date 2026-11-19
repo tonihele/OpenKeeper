@@ -29,7 +29,7 @@ class TortureAdmissionTest {
     void admissionPublishesTheDevicePositionStateAndOwnerTogether() {
         try (var f = new Fixture()) {
             EntityId victim = f.victim((short) 6, (short) 1);
-            assertEquals(f.wheel, f.control.admit(victim, new Vector2f(1, 0)));
+            assertEquals(f.wheel, f.control.admit(victim, new Vector2f(.25f, 0)));
             assertEquals(f.wheel, f.data.getComponent(victim, CreatureTortured.class).device);
             assertEquals(CreatureState.TORTURED, f.data.getComponent(victim, CreatureAi.class).getCreatureState());
             assertEquals(new Vector3f(0, WorldUtils.FLOOR_HEIGHT, 0), f.data.getComponent(victim, Position.class).position);
@@ -43,10 +43,10 @@ class TortureAdmissionTest {
     }
 
     @Test
-    void nearestDeviceUsesStraightLineDistanceFromTheActualDropPoint() {
+    void legacySelectionRetainsNearestDeviceFallback() {
         try (var f = new Fixture()) {
             EntityId diagonal = f.device(2, 2);
-            assertEquals(diagonal, f.control.admit(f.victim((short) 6, (short) 1), new Vector2f(3, 0)));
+            assertEquals(diagonal, f.control.addItem(f.victim((short) 6, (short) 1), new Point(3, 0)));
         }
     }
 
@@ -66,11 +66,62 @@ class TortureAdmissionTest {
             f.data.setComponent(voluntary, new TaskComponent(1, f.wheel, new Point(),
                     toniarts.openkeeper.game.task.TaskType.TORTURE, 0, true));
             EntityId other = f.device(2, 0);
-            assertEquals(other, f.control.admit(f.victim((short) 6, (short) 1), new Vector2f()));
+            assertNull(f.control.admit(f.victim((short) 6, (short) 1), new Vector2f()));
+            assertEquals(other, f.control.admit(f.victim((short) 6, (short) 1), new Vector2f(2, 0)));
             EntityId refused = f.victim((short) 6, (short) 1);
             assertNull(f.control.admit(refused, new Vector2f()));
             assertNull(f.data.getComponent(refused, Stored.class));
             assertNull(f.data.getComponent(refused, CreatureTortured.class));
+        }
+    }
+
+    @Test
+    void neighboringDeviceIsRejectedEvenWhenItIsClose() {
+        try (var f = new Fixture()) {
+            f.data.setComponent(f.wheel, new Position(0, new Vector3f(.49f, 0, 0)));
+            EntityId victim = f.victim((short) 6, (short) 1);
+            assertNull(f.control.admit(victim, new Vector2f(.51f, 0)));
+            assertNull(f.data.getComponent(victim, Stored.class));
+            assertNull(f.data.getComponent(victim, Position.class));
+            assertNull(f.data.getComponent(victim, CreatureAi.class));
+            assertNull(f.data.getComponent(victim, CreatureTortured.class));
+            assertEquals(1, f.data.getComponent(victim, Owner.class).controlId);
+            assertEquals(0, f.control.getCurrentCapacity());
+            assertTrue(f.control.getItems().isEmpty());
+        }
+    }
+
+    @Test
+    void sameTileStillRequiresTheNativeEntryDistance() {
+        try (var f = new Fixture()) {
+            f.data.setComponent(f.wheel, new Position(0, new Vector3f(-.49f, 0, -.49f)));
+            assertNull(f.control.admit(f.victim((short) 6, (short) 1), new Vector2f(.49f, .49f)));
+            assertEquals(0, f.control.getCurrentCapacity());
+            assertEquals(f.wheel, f.control.admit(f.victim((short) 6, (short) 1), new Vector2f(.2f, .2f)));
+        }
+    }
+
+    @Test
+    void exactEntryDistanceIsRejected() {
+        try (var f = new Fixture()) {
+            f.data.setComponent(f.wheel, new Position(0, new Vector3f(-.375f, 0, -.375f)));
+            // Both points are on tile (0,0); squared fixed-point distance is exactly one.
+            assertNull(f.control.admit(f.victim((short) 6, (short) 1), new Vector2f(.22509765625f, .425048828125f)));
+            assertEquals(0, f.control.getCurrentCapacity());
+        }
+    }
+
+    @Test
+    void rejectedDropSpawnKeepsItsOrdinaryDropStateAndPosition() {
+        try (var f = new Fixture()) {
+            var factory = new CreaturesController(f.kwd, f.data, Map.of(), () -> 20, f.game, f.map, null);
+            EntityId victim = factory.spawnCreature((short) 6, (short) 1, 1, new Vector2f(1, 0), ICreaturesController.SpawnType.DROP);
+            assertNull(f.data.getComponent(victim, CreatureTortured.class));
+            assertNull(f.data.getComponent(victim, Stored.class));
+            assertEquals(CreatureState.IDLE, f.data.getComponent(victim, CreatureAi.class).getCreatureState());
+            assertEquals(1, f.data.getComponent(victim, Position.class).position.x);
+            assertEquals(1, f.data.getComponent(victim, Owner.class).controlId);
+            assertEquals(0, f.control.getCurrentCapacity());
         }
     }
 
@@ -90,7 +141,7 @@ class TortureAdmissionTest {
     void realSpawnUsesTheSameAdmissionAndKeepsTheSelectedPosition() {
         try (var f = new Fixture()) {
             var factory = new CreaturesController(f.kwd, f.data, Map.of(), () -> 20, f.game, f.map, null);
-            EntityId victim = factory.spawnCreature((short) 6, (short) 1, 1, new Vector2f(1, 0), ICreaturesController.SpawnType.DROP);
+            EntityId victim = factory.spawnCreature((short) 6, (short) 1, 1, new Vector2f(.25f, 0), ICreaturesController.SpawnType.DROP);
             assertEquals(f.wheel, f.data.getComponent(victim, CreatureTortured.class).device);
             assertEquals(CreatureState.TORTURED, f.data.getComponent(victim, CreatureAi.class).getCreatureState());
             assertEquals(new Vector3f(0, WorldUtils.FLOOR_HEIGHT, 0), f.data.getComponent(victim, Position.class).position);

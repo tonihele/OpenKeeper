@@ -84,11 +84,12 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
      */
     @Override
     public synchronized EntityId addItem(EntityId torturee, Point p) {
-        return reserveDevice(torturee, p == null ? null : WorldUtils.pointToVector2f(p));
+        return reserveDevice(torturee, p == null ? null : WorldUtils.pointToVector2f(p), false);
     }
 
     /**
-     * Stores a new admission under the same room lock used for removal and
+     * Admits a drop only on the selected device's tile and within its native
+     * entry distance. Stores admission under the same room lock used for removal and
      * reconstruction. Callers may notify scripts after success; device refresh
      * and saved-game restoration do not call this method.
      *
@@ -105,7 +106,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
                 || (owner.ownerId == parent.getOwnerId() && creature.creatureId == kwdFile.getImp().getCreatureId())) {
             return null;
         }
-        EntityId device = reserveDevice(victim, dropPosition);
+        EntityId device = reserveDevice(victim, dropPosition, true);
         if (device == null) {
             return null;
         }
@@ -122,12 +123,12 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return device;
     }
 
-    private EntityId reserveDevice(EntityId torturee, Vector2f p) {
+    private EntityId reserveDevice(EntityId torturee, Vector2f p, boolean dropped) {
         if (destroyed || isVictim(torturee)) {
             return null;
         }
         EntityId device = getFreeDevice(p);
-        if (device == null) {
+        if (device == null || (dropped && !canDropAtDevice(p, device))) {
             return null;
         }
 
@@ -137,6 +138,18 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         killIfNotElectrocutable(torturee, device);
 
         return device;
+    }
+
+    /** The native entry guard is separate from the nearest-device selector. */
+    private boolean canDropAtDevice(Vector2f dropPosition, EntityId device) {
+        if (!getDevicePoint(device).equals(WorldUtils.vectorToPoint(dropPosition))) {
+            return false;
+        }
+        Position position = entityData.getComponent(device, Position.class);
+        // DK II uses 12 fractional bits and truncates each squared axis separately.
+        long dx = Math.round((double) position.position.x * 4096) - Math.round((double) dropPosition.x * 4096);
+        long dy = Math.round((double) position.position.z * 4096) - Math.round((double) dropPosition.y * 4096);
+        return (dx * dx >> 12) + (dy * dy >> 12) < 4096;
     }
 
     /**

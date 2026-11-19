@@ -47,9 +47,11 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
@@ -66,6 +68,7 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
 import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -131,6 +134,11 @@ public final class CreaturesController implements ICreaturesController {
     private final static Set<Short> CREATURES_THAT_DIE_INSTANTLY = Set.of((short) 21, (short) 28, (short) 29);
 
     /**
+     * The Hero Lair terrain, the Hero Toolbox creatures stand on it
+     */
+    final static short HERO_LAIR_TERRAIN_ID = 35;
+
+    /**
      * Load creatures from a KWD file straight (new game)
      *
      * @param kwdFile the KWD file
@@ -158,7 +166,12 @@ public final class CreaturesController implements ICreaturesController {
     private void loadCreatures() {
         for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
             try {
-                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+                EntityId entityId = spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+                if (creature.getFlags2() != null && creature.getFlags2().contains(Thing.Creature.CreatureFlag2.I_AM_A_TOOL)) {
+                    CreatureComponent creatureComponent = new CreatureComponent(entityData.getComponent(entityId, CreatureComponent.class));
+                    creatureComponent.tool = true;
+                    entityData.setComponent(entityId, creatureComponent);
+                }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
@@ -240,8 +253,19 @@ public final class CreaturesController implements ICreaturesController {
 
         // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
         SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+        EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
                 triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
+        if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
+            entityData.setComponent(entityId, new Peaceful());
+        }
+
+        // A hero may be set to withdraw to the hero lair when it is badly hurt
+        if (ownerId == Player.GOOD_PLAYER_ID && flags != null && flags.contains(Thing.Creature.CreatureFlag.RETURN_TO_HERO_LAIR)) {
+            entityData.setComponent(entityId, new ReturnToHeroLair());
+        }
+        return entityId;
     }
 
     @Override
@@ -490,6 +514,21 @@ public final class CreaturesController implements ICreaturesController {
         for (Entity entity : entities) {
             levelUpCreature(entity.getId(), level, 0);
         }
+    }
+
+    @Override
+    public void levelUpTools(int level) {
+
+        // The tools still in the Hero Toolbox, i.e. standing on the Hero Lair
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(CreatureComponent.class, "tool", true), CreatureComponent.class, CreatureExperience.class, Health.class, Position.class);
+        for (Entity entity : entities) {
+            Point tile = WorldUtils.vectorToPoint(entity.get(Position.class).position);
+            IMapTileController mapTile = mapController.getMapData().getTile(tile);
+            if (mapTile != null && mapTile.getTerrainId() == HERO_LAIR_TERRAIN_ID && entity.get(CreatureExperience.class).level != level) {
+                levelUpCreature(entity.getId(), level, 0);
+            }
+        }
+        entities.release();
     }
 
     @Override
