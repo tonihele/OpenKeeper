@@ -72,11 +72,14 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
 
     private final Set<Integer> keys = new HashSet<>();
     private boolean mouseRotating = false;
+    private boolean speedScroll = false;
 
     // Extra keys
     private static final float ZOOM_MOUSE = 0.08f;
     private static final float ZOOM_SPEED = 20f;
     private static final float MOVE_SPEED = 10f;
+    private static final float SPEED_SCROLL_FACTOR = 8f;
+    private static final Set<Integer> SHIFT_KEYS = Set.of(KeyInput.KEY_LSHIFT, KeyInput.KEY_RSHIFT);
     private static final float ROTATION_SPEED = 4f;
     private static final float EDGE_SCROLL_MARGIN = 5f;
     private static final float CAMERA_MODE_BLEND_TIME = 0.5f;
@@ -115,6 +118,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         Setting.ISOMETRIC_CAMERA.name(),
         Setting.TOP_DOWN_CAMERA.name(),
         Setting.OBLIQUE_CAMERA.name(),
+        Setting.SPEED_SCROLL.name(),
         CAMERA_MOUSE_ZOOM_IN,
         CAMERA_MOUSE_ZOOM_OUT,
         CAMERA_MOUSE_ROTATE,
@@ -405,6 +409,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         addKeyMapping(Setting.ISOMETRIC_CAMERA);
         addKeyMapping(Setting.TOP_DOWN_CAMERA);
         addKeyMapping(Setting.OBLIQUE_CAMERA);
+        addKeyMapping(Setting.SPEED_SCROLL);
 
         inputManager.addMapping(SPECIAL_KEY_ALT, new KeyTrigger(KeyInput.KEY_LMENU), new KeyTrigger(KeyInput.KEY_RMENU));
         inputManager.addMapping(SPECIAL_KEY_CONTROL, new KeyTrigger(KeyInput.KEY_LCONTROL), new KeyTrigger(KeyInput.KEY_RCONTROL));
@@ -466,6 +471,10 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
                 setCameraMode(Thing.Camera.CameraMode.FAR);
                 return;
             }
+        }
+
+        if (name.equals(Setting.SPEED_SCROLL.name())) {
+            speedScroll = isPressed;
         }
 
         switch (name) {
@@ -580,14 +589,14 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
             }
             camera.zoom(-value * ZOOM_SPEED);
 
-        } else if (isCombinationPressed(name, Setting.CAMERA_UP)) {
-            camera.move(0, value * getMoveSpeed());
-        } else if (isCombinationPressed(name, Setting.CAMERA_DOWN)) {
-            camera.move(0, -value * getMoveSpeed());
-        } else if (isCombinationPressed(name, Setting.CAMERA_LEFT)) {
-            camera.move(value * getMoveSpeed(), 0);
-        } else if (isCombinationPressed(name, Setting.CAMERA_RIGHT)) {
-            camera.move(-value * getMoveSpeed(), 0);
+        } else if (isScrollKeyPressed(name, Setting.CAMERA_UP)) {
+            camera.move(0, value * getScrollKeySpeed());
+        } else if (isScrollKeyPressed(name, Setting.CAMERA_DOWN)) {
+            camera.move(0, -value * getScrollKeySpeed());
+        } else if (isScrollKeyPressed(name, Setting.CAMERA_LEFT)) {
+            camera.move(value * getScrollKeySpeed(), 0);
+        } else if (isScrollKeyPressed(name, Setting.CAMERA_RIGHT)) {
+            camera.move(-value * getScrollKeySpeed(), 0);
         } else if (isCombinationPressed(name, Setting.CAMERA_ROTATE_LEFT)) {
             camera.rotateAround(-value * ROTATION_SPEED);
         } else if (isCombinationPressed(name, Setting.CAMERA_ROTATE_RIGHT)) {
@@ -622,6 +631,23 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
             }
         }
         return false;
+    }
+
+    /**
+     * The speed scroll key, Shift by default, doesn't stop the scroll keys like
+     * the other special keys do, it speeds them up
+     */
+    private boolean isScrollKeyPressed(String name, Setting s) {
+        return isCombinationPressed(name, s) || speedScroll && name.equals(s.name()) && SHIFT_KEYS.containsAll(keys);
+    }
+
+    /**
+     * Like DK II, the scroll keys move the view 8 times as fast while the speed
+     * scroll key is held (0x442140). Scrolling at the screen edges is never
+     * sped up (0x406DF0).
+     */
+    private float getScrollKeySpeed() {
+        return speedScroll ? getMoveSpeed() * SPEED_SCROLL_FACTOR : getMoveSpeed();
     }
 
     private boolean isCombinationPressed(String name, Setting s) {
