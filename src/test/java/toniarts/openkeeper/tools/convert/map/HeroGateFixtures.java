@@ -17,7 +17,6 @@
 package toniarts.openkeeper.tools.convert.map;
 
 import java.util.Collections;
-import java.util.EnumSet;
 
 /**
  * Builds hero gate {@link Room} fixtures for tests. Lives in {@code Room}'s
@@ -42,7 +41,6 @@ public final class HeroGateFixtures {
         room.setRoomId(roomId);
         room.setName(name);
         room.setTileConstruction(tileConstruction);
-        room.setFlags(EnumSet.of(Room.RoomFlag.ATTACKABLE));
         room.setObjects(Collections.nCopies(8, (short) 0));
         return room;
     }

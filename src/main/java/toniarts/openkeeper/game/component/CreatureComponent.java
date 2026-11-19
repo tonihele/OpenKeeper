@@ -33,8 +33,8 @@ public final class CreatureComponent implements EntityComponent {
     public int maxGoldHeld;
     public int hungerFill;
     public int manaGenPrayer;
-    public int researchPerSecond; // TODO: Researcher component?
-    public int manufacturePerSecond; // TODO: Manufacturer component?
+    public int researchPerTick; // TODO: Researcher component?
+    public int manufacturePerTick; // TODO: Manufacturer component?
     public int decomposeValue;
     public float speed;
     public float runSpeed;
@@ -42,6 +42,7 @@ public final class CreatureComponent implements EntityComponent {
     public int posessionManaCost;
     public float stunDuration;
     public boolean worker;
+    public boolean tool; // A Hero Toolbox creature, "I am a tool"
     public short creatureId;
     public boolean diesInstantly;
 
@@ -58,8 +59,8 @@ public final class CreatureComponent implements EntityComponent {
         this.maxGoldHeld = creatureComponent.maxGoldHeld;
         this.hungerFill = creatureComponent.hungerFill;
         this.manaGenPrayer = creatureComponent.manaGenPrayer;
-        this.researchPerSecond = creatureComponent.researchPerSecond;
-        this.manufacturePerSecond = creatureComponent.manufacturePerSecond;
+        this.researchPerTick = creatureComponent.researchPerTick;
+        this.manufacturePerTick = creatureComponent.manufacturePerTick;
         this.decomposeValue = creatureComponent.decomposeValue;
         this.speed = creatureComponent.speed;
         this.runSpeed = creatureComponent.runSpeed;
@@ -67,6 +68,7 @@ public final class CreatureComponent implements EntityComponent {
         this.posessionManaCost = creatureComponent.posessionManaCost;
         this.stunDuration = creatureComponent.stunDuration;
         this.worker = creatureComponent.worker;
+        this.tool = creatureComponent.tool;
         this.creatureId = creatureComponent.creatureId;
         this.diesInstantly = creatureComponent.diesInstantly;
     }

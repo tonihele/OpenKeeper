@@ -135,16 +135,19 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      *
      * @param point tile coordinate
      * @param playerId for the player
+     * @param creature the worker, its efficiency scales the work
      */
-    void applyClaimTile(Point point, short playerId);
+    void applyClaimTile(Point point, short playerId, ICreatureController creature);
 
     /**
      * Heal a tile
      *
      * @param point the point
      * @param playerId the player applying the healing
+     * @param creature the worker, its efficiency scales the work, {@code null}
+     * if nobody is working
      */
-    void healTile(Point point, short playerId);
+    void healTile(Point point, short playerId, ICreatureController creature);
 
     /**
      * Alter terrain type
@@ -154,6 +157,15 @@ public interface IMapController extends IMapInformation<IMapTileController>, IGa
      * @param playerId the new tile owner
      */
     void alterTerrain(Point pos, short terrainId, short playerId);
+
+    /**
+     * Hands a whole room, with what it holds, over to another player, as
+     * when it is claimed
+     *
+     * @param room the room
+     * @param playerId the new owner
+     */
+    void transferRoom(IRoomController room, short playerId);
 
     /**
      * Set specified tiles flashing for certain period of time

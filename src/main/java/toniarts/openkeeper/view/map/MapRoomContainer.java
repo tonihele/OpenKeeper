@@ -22,16 +22,21 @@ import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.component.Storage;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomInformation;
+import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.map.IRoomInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger.Level;
 import java.util.*;
@@ -56,12 +61,15 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
     private final EntitySet roomCatalogs;
     private final EntitySet dungeonHearts;
     private final Set<EntityId> dungeonHeartIds = new HashSet<>();
+    private final EntitySet heartObjects;
 
     public MapRoomContainer(EntityData entityData, IKwdFile kwdFile) {
         super(entityData, RoomComponent.class, Owner.class, Health.class);
 
         roomCatalogs = entityData.getEntities(Storage.class);
         dungeonHearts = entityData.getEntities(DungeonHeart.class);
+        heartObjects = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
+                ObjectComponent.class, Position.class, Health.class);
     }
 
     @Override
@@ -129,6 +137,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
             dungeonHearts.getRemovedEntities().forEach(e -> dungeonHeartIds.remove(e.getId()));
             dungeonHearts.getAddedEntities().forEach(e -> dungeonHeartIds.add(e.getId()));
         }
+        heartObjects.applyChanges();
 
         return changes;
     }
@@ -142,6 +151,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
         dungeonHearts.applyChanges();
         dungeonHearts.forEach(e -> dungeonHeartIds.add(e.getId()));
+        heartObjects.applyChanges();
     }
 
     @Override
@@ -155,6 +165,7 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
 
         dungeonHearts.release();
         dungeonHeartIds.clear();
+        heartObjects.release();
 
         super.stop();
     }
@@ -213,6 +224,24 @@ public class MapRoomContainer extends EntityContainer<IRoomInformation> implemen
         @Override
         public boolean isDungeonHeart() {
             return dungeonHeartIds.contains(getEntityId());
+        }
+
+        /**
+         * The Dungeon Heart shows the health of the heart object in its
+         * middle, which is the one creatures attack, not the room's
+         */
+        @Override
+        public Integer getHealthPercent() {
+            if (isDungeonHeart()) {
+                for (Entity heart : heartObjects) {
+                    if (getLocation().equals(WorldUtils.vectorToPoint(heart.get(Position.class).position))) {
+                        Health health = heart.get(Health.class);
+                        return health.health * 100 / health.maxHealth;
+                    }
+                }
+            }
+
+            return super.getHealthPercent();
         }
 
         @Override
