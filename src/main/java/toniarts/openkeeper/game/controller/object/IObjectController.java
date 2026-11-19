@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.object;
 
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -26,6 +27,14 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public interface IObjectController extends IEntityController {
+
+    /** Starts actual use, idempotently for this creature. Not a reservation. */
+    public void beginUse(EntityId creatureId);
+
+    /** Ends only this creature's use; other users retain their interaction. */
+    public void endUse(EntityId creatureId);
+
+    public short getObjectId();
 
     public int getPickUpPriority();
 

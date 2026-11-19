@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
 import toniarts.openkeeper.game.component.CreatureSleep;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -242,7 +243,19 @@ public final class CreatureController extends EntityController implements ICreat
                     entityData.setComponent(entityId, new CreatureAi(ai.stateStartTime,
                             ai.getCreatureState(), ai.creatureId));
                 }
+                CreatureState previous = getCurrentState();
                 super.changeState(newState);
+                CreatureState current = getCurrentState();
+                if (current == null || previous == CreatureState.SLEEPING || previous == CreatureState.RECUPERATING) {
+                    endFurnitureUse();
+                }
+                if (current == CreatureState.SLEEPING || current == CreatureState.RECUPERATING) {
+                    CreatureSleep sleep = entityData.getComponent(entityId, CreatureSleep.class);
+                    if (sleep != null && sleep.lairObjectId != null
+                            && entityData.getComponent(sleep.lairObjectId, ObjectViewState.class) != null) {
+                        objectsController.createController(sleep.lairObjectId).beginUse(entityId);
+                    }
+                }
             }
         };
     }

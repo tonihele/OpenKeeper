@@ -27,7 +27,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.navigation.INavigationService;
-import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
+import toniarts.openkeeper.game.task.AbstractFurnitureTask;
+import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.task.TaskManager;
 import toniarts.openkeeper.game.task.TaskType;
 
@@ -36,14 +37,14 @@ import toniarts.openkeeper.game.task.TaskType;
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
-public final class Research extends AbstractCapacityCriticalRoomTask {
+public final class Research extends AbstractFurnitureTask {
 
     private final PlayerResearchControl researchControl;
     private final IObjectsController objectsController;
 
     public Research(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
             TaskManager taskManager, PlayerResearchControl researchControl, IObjectsController objectsController) {
-        super(navigationService, mapController, p, playerId, room, taskManager);
+        super(navigationService, mapController, p, playerId, room, taskManager, objectsController);
 
         this.researchControl = researchControl;
         this.objectsController = objectsController;
@@ -51,7 +52,7 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public boolean isValid(ICreatureController creature) {
-        return (researchControl.isAnythingToReaseach() && !getRoom().getObjectControl(getRoomObjectType()).isFullCapacity());
+        return super.isValid(creature) && researchControl.isAnythingToReaseach();
     }
 
     @Override
@@ -79,7 +80,7 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
     }
 
     @Override
-    public void executeTask(ICreatureController creature, float executionDuration) {
+    protected void executeFurnitureTask(ICreatureController creature, float executionDuration) {
 
         // Advance players spell research, DK II adds the creature's research
         // points per tick on every game tick
@@ -102,6 +103,11 @@ public final class Research extends AbstractCapacityCriticalRoomTask {
                 researchControl.completeResearch();
             }
         }
+    }
+
+    @Override
+    protected boolean acceptsFurniture(IObjectController object) {
+        return true;
     }
 
     @Override
