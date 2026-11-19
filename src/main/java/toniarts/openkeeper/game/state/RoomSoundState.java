@@ -25,12 +25,15 @@ import com.simsilica.es.EntitySet;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.function.LongSupplier;
+import toniarts.openkeeper.game.component.DungeonHeartIntroduction;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /**
  * The sounds rooms make on their own: the steam and air blasts of the workshop and the beating of the dungeon
@@ -51,15 +54,29 @@ public final class RoomSoundState extends AbstractPauseAwareState {
 
     private final EntityData entityData;
     private final IKwdFile kwdFile;
+    private final LongSupplier clock;
+    private final double heartPeriod;
     private final Random random = new Random();
     private final Map<EntityId, RoomTimers> timers = new HashMap<>();
 
     private EntitySet roomEntities;
+    private EntitySet introductions;
     private double timeElapsed;
 
     public RoomSoundState(EntityData entityData, IKwdFile kwdFile) {
+        this(entityData, kwdFile, System::nanoTime);
+    }
+
+    public RoomSoundState(EntityData entityData, IKwdFile kwdFile, LongSupplier clock) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.clock = clock;
+        var heart = kwdFile.getObject(13);
+        ArtResource art = heart == null ? null : heart.getMeshResource();
+        Number fps = art == null ? null : art.getData(ArtResource.KEY_FPS);
+        Number frames = art == null ? null : art.getData(ArtResource.KEY_FRAMES);
+        heartPeriod = fps != null && fps.doubleValue() > 0 && frames != null && frames.doubleValue() > 0
+                ? frames.doubleValue() / fps.doubleValue() : HEART_BEAT_INTERVAL;
     }
 
     @Override
@@ -71,6 +88,7 @@ public final class RoomSoundState extends AbstractPauseAwareState {
     public void initialize(AppStateManager stateManager, Application app) {
         super.initialize(stateManager, app);
         roomEntities = entityData.getEntities(RoomComponent.class);
+        introductions = entityData.getEntities(DungeonHeartIntroduction.class);
     }
 
     @Override
@@ -81,6 +99,7 @@ public final class RoomSoundState extends AbstractPauseAwareState {
         timeElapsed += tpf;
 
         roomEntities.applyChanges();
+        introductions.applyChanges();
         timers.keySet().retainAll(roomEntities.getEntityIds());
         for (Entity entity : roomEntities) {
             RoomComponent roomComponent = entity.get(RoomComponent.class);
@@ -115,6 +134,23 @@ public final class RoomSoundState extends AbstractPauseAwareState {
 
     private void tickHeart(EntityId roomId, RoomComponent room, String category) {
         RoomTimers roomTimers = timers.computeIfAbsent(roomId, id -> new RoomTimers(timeElapsed));
+        Entity introduction = introductions.getEntity(roomId);
+        if (introduction != null) {
+            double age = introduction.get(DungeonHeartIntroduction.class).age(clock.getAsLong());
+            // Formation audio owns the opening. Afterwards follow the same
+            // absolute WRAP phase as the mesh, without accumulating tpf drift.
+            if (age < DungeonHeartIntroduction.COMPLETE_TIME) {
+                return;
+            }
+            long cycle = (long) Math.floor(age / heartPeriod);
+            if (cycle != roomTimers.heartCycle) {
+                if (roomTimers.heartCycle != Long.MIN_VALUE) {
+                    ThingSounds.play(category, ThingSounds.ROOM_HEART_BEAT, room.location);
+                }
+                roomTimers.heartCycle = cycle;
+            }
+            return;
+        }
         if (timeElapsed < roomTimers.nextSound) {
             return;
         }
@@ -128,6 +164,10 @@ public final class RoomSoundState extends AbstractPauseAwareState {
             roomEntities.release();
             roomEntities = null;
         }
+        if (introductions != null) {
+            introductions.release();
+            introductions = null;
+        }
         timers.clear();
         super.cleanup();
     }
@@ -140,6 +180,7 @@ public final class RoomSoundState extends AbstractPauseAwareState {
 
         private double nextSound;
         private int handle = SoundEngine.NO_HANDLE;
+        private long heartCycle = Long.MIN_VALUE;
 
         RoomTimers(double nextSound) {
             this.nextSound = nextSound;

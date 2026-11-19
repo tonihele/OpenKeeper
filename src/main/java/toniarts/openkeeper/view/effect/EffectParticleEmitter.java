@@ -22,6 +22,7 @@ import com.jme3.effect.ParticleMesh;
 import com.jme3.math.FastMath;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
+import java.util.random.RandomGenerator;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -43,6 +44,10 @@ public class EffectParticleEmitter extends ParticleEmitter {
     private static final float DIRECTIONAL_FRICTION_DRIFT_AMPLITUDE = 0.2f;
 
     private AdditiveParticleColor additiveColor;
+    private RandomGenerator playbackRandom;
+    private boolean[] alive;
+    private int minimumLifetimeTicks;
+    private int maximumLifetimeTicks;
 
     private final float airFriction;
     private final float elasticity;
@@ -60,6 +65,50 @@ public class EffectParticleEmitter extends ParticleEmitter {
 
     void setAdditiveColor(ColorRGBA color, boolean fade) {
         additiveColor = new AdditiveParticleColor(color, fade);
+    }
+
+    void setPlaybackRandom(RandomGenerator random) {
+        playbackRandom = random;
+        alive = new boolean[getParticles().length];
+        minimumLifetimeTicks = Math.max(1, Math.round(getLowLife() / (float) EffectPlayback.STEP));
+        maximumLifetimeTicks = Math.max(minimumLifetimeTicks,
+                Math.round(getHighLife() / (float) EffectPlayback.STEP));
+    }
+
+    @Override
+    public void emitParticles(int count) {
+        super.emitParticles(count);
+        if (playbackRandom == null) {
+            return;
+        }
+        Particle[] particles = getParticles();
+        for (int i = 0; i < particles.length; i++) {
+            Particle particle = particles[i];
+            if (particle.life > 0 && !alive[i]) {
+                // jME's private birth routine uses a global RNG for these fields.
+                // Replace them with sequence-local samples; shape/velocity already
+                // use that same generator through our influencer.
+                particle.life = particle.startlife = (float) EffectPlayback.STEP
+                        * playbackRandom.nextInt(minimumLifetimeTicks, maximumLifetimeTicks + 1);
+                particle.angle = playbackRandom.nextFloat() * FastMath.TWO_PI;
+                particle.rotateSpeed = (playbackRandom.nextFloat() * 2 - 1) * getRotateSpeed();
+                if (isSelectRandomImage()) {
+                    particle.imageIndex = playbackRandom.nextInt(getImagesX() * getImagesY());
+                }
+                alive[i] = true;
+            }
+        }
+    }
+
+    @Override
+    public void updateFromControl(float tpf) {
+        super.updateFromControl(tpf);
+        if (alive != null) {
+            Particle[] particles = getParticles();
+            for (int i = 0; i < particles.length; i++) {
+                alive[i] = particles[i].life > 0;
+            }
+        }
     }
 
     @Override

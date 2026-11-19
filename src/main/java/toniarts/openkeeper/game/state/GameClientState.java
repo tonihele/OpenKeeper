@@ -54,6 +54,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.view.PlayerCameraState;
+import toniarts.openkeeper.view.DungeonHeartIntroductionState;
 import toniarts.openkeeper.view.PlayerEntityViewState;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.SystemMessageState;
@@ -117,6 +118,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private FullscreenMapState fullscreenMapState;
     private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
+    private DungeonHeartIntroductionState heartIntroduction;
     private TextParser textParser;
     private GuardPostCounter guardPostCounter;
     private volatile EntitySet portalLimits;
@@ -202,6 +204,10 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
+        if (heartIntroduction != null) {
+            stateManager.detach(heartIntroduction);
+            heartIntroduction = null;
+        }
         stateManager.detach(effectManagerState);
         stateManager.detach(guardPostCounter);
         stateManager.detach(playerModelViewState);
@@ -463,6 +469,10 @@ public final class GameClientState extends AbstractPauseAwareState {
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
                         getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
                 effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
+                heartIntroduction = new DungeonHeartIntroductionState(
+                        gameClientService.getEntityData(), playerId, app.getRootNode(), effectManagerState,
+                        playerModelViewState::getEntitySpatial, fogOfWarInformation::isVisible,
+                        gameClientService::getServerTime);
 
                 // Attach the states
                 stateManager.attach(playerState);
@@ -473,6 +483,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
                 stateManager.attach(effectManagerState);
+                stateManager.attach(heartIntroduction);
                 stateManager.attach(guardPostCounter);
 
                 // Wait until loaded
@@ -493,6 +504,8 @@ public final class GameClientState extends AbstractPauseAwareState {
 
                     // Prewarm the whole scene
                     app.getRenderManager().preloadScene(app.getRootNode());
+                    effectManagerState.prewarm(app.getRenderManager(), 223, 225, 314);
+                    heartIntroduction.prewarmAudio(app.getAssetManager());
 
                     // Signal our readiness
                     gameClientService.loadComplete();
@@ -527,6 +540,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                 musicLevelState = new MusicLevelState(gameClientService.getEntityData(), players.get(playerId), kwdFile);
                 stateManager.attach(musicLevelState);
                 playerState.setEnabled(true);
+                heartIntroduction.start();
 
                 // The background sounds of the level
                 if (playerMapViewState != null) {
@@ -535,7 +549,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                     stateManager.attach(ambienceState);
                 }
 
-                roomSoundState = new RoomSoundState(gameClientService.getEntityData(), kwdFile);
+                roomSoundState = new RoomSoundState(gameClientService.getEntityData(), kwdFile,
+                        gameClientService::getServerTime);
                 stateManager.attach(roomSoundState);
 
                 // Release the lock and enter to the game phase
@@ -625,6 +640,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onGamePaused() {
             app.enqueue(() -> {
                 playerState.onPaused(true);
+                if (heartIntroduction != null) {
+                    heartIntroduction.setPaused(true);
+                }
             });
         }
 
@@ -632,6 +650,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onGameResumed() {
             app.enqueue(() -> {
                 playerState.onPaused(false);
+                if (heartIntroduction != null) {
+                    heartIntroduction.setPaused(false);
+                }
             });
         }
 

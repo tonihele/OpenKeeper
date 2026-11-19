@@ -41,6 +41,7 @@ public final class AnimationLoader {
     private static final String END_ANIM_NODE_NAME = "End";
     private static final String ANIM_WITH_LISTENERS_NAME = "animWithListeners";
     private static final AnimEventListener ANIM_EVENT_LISTENER = new AnimEventListener();
+    private static final String MODEL_REVISION = "AnimationLoader.modelRevision";
 
     private AnimationLoader() {
         // No!
@@ -128,6 +129,7 @@ public final class AnimationLoader {
     public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager, boolean endFrame) {
 
         Node root = (Node) spatial;
+        root.setUserData(MODEL_REVISION, getModelRevision(root) + 1);
 
         // Attach the anim node and get rid of the rest
         for (Spatial child : root.getChildren()) {
@@ -184,6 +186,12 @@ public final class AnimationLoader {
      */
     public static void playAnimation(Spatial spatial, ArtResource anim, AssetManager assetManager) {
         playAnimation(spatial, anim, assetManager, false);
+    }
+
+    /** Changes when the loader replaces a model's children/material instances. */
+    public static int getModelRevision(Spatial spatial) {
+        Integer revision = spatial.getUserData(MODEL_REVISION);
+        return revision == null ? 0 : revision;
     }
 
     private static void hideAllNodes(Node root) {

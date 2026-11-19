@@ -28,6 +28,7 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
+import com.simsilica.ethereal.EtherealClient;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
@@ -67,6 +68,11 @@ public final class GameClientService extends AbstractClientService
     @Override
     public void loadComplete() {
         getDelegate().loadComplete();
+    }
+
+    @Override
+    public long getServerTime() {
+        return getService(EtherealClient.class).getTimeSource().getTime();
     }
 
     @Override

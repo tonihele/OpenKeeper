@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.DungeonHeart;
+import toniarts.openkeeper.game.component.DungeonHeartIntroduction;
 import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IObjectsController;
@@ -30,6 +31,7 @@ import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
 
 import java.util.Map;
+import java.util.Collections;
 
 /**
  * Constructs 5 by 5 "rotated" buildings. As far as I know, only Dungeon Heart
@@ -60,6 +62,8 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     @Override
     public void destroy() {
         super.destroy();
+
+        entityData.removeComponent(entityId, DungeonHeartIntroduction.class);
 
         entityData.removeComponent(entityId, ImpGenerator.class);
 
@@ -93,9 +97,8 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     @Override
     protected void constructObjects() {
 
-        // We contruct the Dungeon Heart here
-        // Because of physics and whatnot, the object are on server, so what about the creation animation?
-        // The creation animation should be on the client perhaps... We don't care about it...
+        // Gameplay owns furniture. The persistent introduction component lets
+        // clients present its formation without changing health or visibility.
         Point center = roomInstance.getCenter();
         if (isDestroyed()) {
             constructDestroyed(center);
@@ -105,18 +108,18 @@ public final class FiveByFiveRotatedController extends AbstractRoomController im
     }
 
     private void constructNonDestroyed(Point center) {
-        floorFurniture.add(objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y));
+        EntityId heart = objectsController.loadObject(OBJECT_HEART_ID, roomInstance.getOwnerId(), center.x, center.y);
+        EntityId arches = objectsController.loadObject(OBJECT_ARCHES_ID, roomInstance.getOwnerId(), center.x, center.y);
+        EntityId step0 = objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y);
+        EntityId step1 = objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, -FastMath.TWO_PI / 3);
+        EntityId step2 = objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, FastMath.TWO_PI / 3);
+        Collections.addAll(floorFurniture, heart, arches, step0, step1, step2);
 
-        // Construct the plug
-        floorFurniture.add(objectsController.loadObject(OBJECT_PLUG_ID, roomInstance.getOwnerId(), center.x, center.y));
-
-        // The arches
-        floorFurniture.add(objectsController.loadObject(OBJECT_ARCHES_ID, roomInstance.getOwnerId(), center.x, center.y));
-
-        // The steps between the arches
-        floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y));
-        floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, -FastMath.TWO_PI / 3));
-        floorFurniture.add(objectsController.loadObject(OBJECT_BIG_STEPS_ID, roomInstance.getOwnerId(), center.x, center.y, FastMath.TWO_PI / 3));
+        // 225 -> 224 -> 208 owns the intact/cracked plug and its explosion.
+        // A persistent object 96 would cover those meshes and explode twice.
+        entityData.setComponent(entityId, new DungeonHeartIntroduction(
+                entityData.getComponent(entityId, DungeonHeartIntroduction.class),
+                heart, arches, step0, step1, step2));
     }
 
     private void constructDestroyed(Point center) {

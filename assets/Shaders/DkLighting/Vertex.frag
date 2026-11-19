@@ -1,6 +1,7 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
 
 uniform sampler2D m_DiffuseMap;
+uniform float m_Opacity;
 
 #ifdef DISCARD_ALPHA
 uniform float m_AlphaDiscardThreshold;
@@ -29,5 +30,5 @@ void main() {
     // Surface glow (water / lava): added on top, and opaque enough to show
     colour += vGlow;
     float alpha = max(diffuse.a, max(max(vGlow.r, vGlow.g), vGlow.b));
-    gl_FragColor = vec4(colour, alpha);
+    gl_FragColor = vec4(colour, alpha * m_Opacity);
 }

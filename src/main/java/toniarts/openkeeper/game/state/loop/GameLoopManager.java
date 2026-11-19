@@ -22,7 +22,6 @@ import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IPlayerController;
-import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
@@ -88,6 +87,7 @@ public final class GameLoopManager {
     private final GameSessionServerService gameService;
 
     private final IGameController gameController;
+    private final DungeonHeartConstruction heartConstruction;
 
     /**
      * Single use game states
@@ -109,8 +109,14 @@ public final class GameLoopManager {
         final ITaskManager taskManager = gameController.getTaskManager();
         final GameEventService gameEventService = gameController.getGameEventService();
 
-        // Game logic
+        heartConstruction = new DungeonHeartConstruction(
+                        entityData,
+                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+
+        // Game logic: Heart scheduling shares room construction and destruction ownership.
         final GameLogicManager gameLogicThread = new GameLogicManager(
+                heartConstruction,
                 gameWorldController.getMapController(),
                 new DecaySystem(entityData),
                 new WoodenBridgeDecaySystem(entityData, gameController.getGameTimer(), gameWorldController,
@@ -174,11 +180,6 @@ public final class GameLoopManager {
 
         // Animation systems
         final GameLogicManager gameAnimationThread = new GameLogicManager(
-                new DungeonHeartConstruction(
-                        entityData,
-                        gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
-                        levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
-                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService),
                 new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
@@ -188,12 +189,15 @@ public final class GameLoopManager {
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }
 
-    public void pause() {
+    public synchronized void pause() {
         loops.stream().forEach(GameLoop::pause);
+        // Room reconstruction and timeline publication must not overlap.
+        heartConstruction.pause();
         gameService.setGamePaused(true);
     }
 
-    public void resume() {
+    public synchronized void resume() {
+        heartConstruction.resume();
         loops.stream().forEach(GameLoop::resume);
         gameService.setGamePaused(false);
     }

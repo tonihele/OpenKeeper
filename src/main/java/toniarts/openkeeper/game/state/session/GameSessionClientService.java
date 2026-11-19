@@ -23,6 +23,11 @@ package toniarts.openkeeper.game.state.session;
  */
 public interface GameSessionClientService extends GameSession {
 
+    /** Server monotonic nanoseconds, or zero until synchronized; local sessions share the JVM clock. */
+    default long getServerTime() {
+        return System.nanoTime();
+    }
+
     public void addGameSessionListener(GameSessionListener l);
 
     public void removeGameSessionListener(GameSessionListener l);

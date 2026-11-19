@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.view.effect;
 
-import com.jme3.animation.AnimControl;
+import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetManager;
 import com.jme3.effect.ParticleEmitter;
 import com.jme3.effect.ParticleMesh;
@@ -43,6 +43,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.Map.Entry;
+import java.util.random.RandomGenerator;
 
 /**
  * An effect & its elements, or a tree of effects & their elements. The logic is
@@ -95,6 +96,14 @@ public class VisualEffect {
     // as debris regardless of the effect's own generation flags.
     private List<MeshCollectionPart> meshCollectionParts;
     private boolean deathEffectSpawned;
+    private final EffectPlayback playback;
+    private final RandomGenerator random;
+    private int remainingTicks;
+    private Spatial effectModel;
+    private int elapsedTicks;
+    private int[] lightColour;
+    private Set<Integer> failedEffects;
+    private Set<Integer> failedElements;
 
     private record MeshCollectionPart(String name, Vector3f offset) {
     }
@@ -123,7 +132,14 @@ public class VisualEffect {
      */
     public VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite,
             short ownerId, boolean emitOverLifetime) {
+        this(effectManagerState, node, location, effect, infinite, ownerId, emitOverLifetime, null, FastMath.rand);
+    }
+
+    VisualEffect(EffectManagerState effectManagerState, Node node, Vector3f location, Effect effect, boolean infinite,
+            short ownerId, boolean emitOverLifetime, EffectPlayback playback, RandomGenerator random) {
         this.effect = effect;
+        this.playback = playback;
+        this.random = random;
         this.emitOverLifetime = emitOverLifetime;
         this.kwdFile = effectManagerState.getKwdFile();
         this.assetManager = effectManagerState.getAssetManger();
@@ -134,7 +150,8 @@ public class VisualEffect {
         // Create the lists
         if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
             effects = new ArrayList<>();
-            effectElements = HashMap.newHashMap(effect.getGenerateIds().size());
+            effectElements = playback == null ? HashMap.newHashMap(effect.getGenerateIds().size())
+                    : new LinkedHashMap<>();
         } else {
             effects = new ArrayList<>(effect.getGenerateIds().size());
             effectElements = Collections.emptyMap();
@@ -148,7 +165,12 @@ public class VisualEffect {
         node.attachChild(effectNode); // We need to attach before emiting, it doesn't work otherwise
 
         // Load the effect
-        load();
+        try {
+            load();
+        } catch (RuntimeException ex) {
+            removeEffect();
+            throw ex;
+        }
     }
 
     private void load() {
@@ -157,8 +179,14 @@ public class VisualEffect {
         Spatial model = new Node();
         if (resource != null) {
             model = createEffectModel(resource);
-            model.addControl(createEffectControl());
-            effectNode.attachChild(model);
+            if (playback == null || resource.getType() != ArtResourceType.MESH_COLLECTION) {
+                model.addControl(createEffectControl());
+                effectNode.attachChild(model);
+                effectModel = model;
+                if (playback != null) {
+                    playback.manage(model);
+                }
+            }
 
             if (resource.getType() == ArtResourceType.MESH_COLLECTION) {
                 meshCollectionParts = loadMeshCollectionParts(resource);
@@ -181,6 +209,7 @@ public class VisualEffect {
         lightTarget = model;
         applyEffectLight(effect.getLight());
         // Elements/effects
+        remainingTicks = playback == null ? 0 : Math.max(1, random.nextInt(effect.getMinHp(), effect.getMaxHp() + 1));
         generateChildren();
 
         // A MESH_COLLECTION's parts break off regardless of the effect's own
@@ -189,8 +218,8 @@ public class VisualEffect {
             generateMeshCollectionParts();
         }
 
-        // The next effect is chaining the effects, they'll start immediately
-        // TODO: probably start this after the effect is through!
+        // Native CBridge::fun_440350 creates nextEffect immediately, independently
+        // of the parent's lifetime. Only deathEffect waits for expiry.
         if (effect.getNextEffectId() != 0) {
             addEffect(effect.getNextEffectId(), null);
         }
@@ -243,16 +272,13 @@ public class VisualEffect {
             model.setLocalScale(resource.getData(ArtResource.KEY_SCALE));
 
         } else if (resource.getType() == ArtResourceType.ANIMATING_MESH) {
-            AnimControl animControl = (AnimControl) model.getControl(AnimControl.class);
-            if (animControl != null) {
-//                    AnimChannel channel = animControl.getChannel(0);
-//                    channel.setAnim(ANIM_NAME);
-//                    resource.getData(ArtResource.KEY_FPS);
-//                    resource.getData(ArtResource.KEY_FRAMES);
-//                    channel.setSpeed(speed);
-//                    channel.setTime(time);
-                animControl.setEnabled(true);
-            }
+            model.depthFirstTraversal(spatial -> {
+                AnimComposer composer = spatial.getControl(AnimComposer.class);
+                if (composer != null && composer.hasAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME)) {
+                    composer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                    composer.setEnabled(true);
+                }
+            });
         }
     }
 
@@ -261,7 +287,7 @@ public class VisualEffect {
 
             @Override
             public void onDie(Vector3f location) {
-                if (effect.getDeathEffectId() != 0) {
+                if (playback == null && effect.getDeathEffectId() != 0) {
                     VisualEffect.this.addEffect(effect.getDeathEffectId(), location);
                 }
             }
@@ -334,26 +360,58 @@ public class VisualEffect {
      * stacking them all at the same spot.
      */
     private Vector3f randomGenerationOffset() {
-        return EffectControl.randomOriginOffset(effect);
+        return EffectControl.randomOriginOffset(effect, random);
     }
 
     private void addEffect(Integer id, Vector3f location) {
-        if (id.equals(0)) {
+        if (id.equals(0) || failedEffects != null && failedEffects.contains(id)) {
             return;
         }
 
-        VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, kwdFile.getEffect(id), false, ownerId);
-        effects.add(visualEffect);
-        effectNode.attachChild(visualEffect.effectNode);
+        Effect child = kwdFile.getEffect(id);
+        if (child == null) {
+            return;
+        }
+        try {
+            VisualEffect visualEffect = new VisualEffect(effectManagerState, effectNode, location, child,
+                    false, ownerId, false, playback, random);
+            effects.add(visualEffect);
+        } catch (RuntimeException ex) {
+            if (playback == null) {
+                throw ex;
+            }
+            // The constructor releases any partially loaded subtree and light.
+            if (failedEffects == null) {
+                failedEffects = new HashSet<>();
+            }
+            failedEffects.add(id);
+            logger.log(Level.WARNING, "Unable to create timed child effect " + id, ex);
+        }
     }
 
     private void addEffectElement(Integer id, Vector3f location) {
-        if (id.equals(0)) {
+        if (id.equals(0) || failedElements != null && failedElements.contains(id)) {
             return;
         }
 
         EffectElement effectElement = kwdFile.getEffectElement(id);
-        Spatial emitter = loadElement(effectElement);
+        if (effectElement == null) {
+            return;
+        }
+        Spatial emitter;
+        try {
+            emitter = loadElement(effectElement);
+        } catch (RuntimeException ex) {
+            if (playback == null) {
+                throw ex;
+            }
+            if (failedElements == null) {
+                failedElements = new HashSet<>();
+            }
+            failedElements.add(id);
+            logger.log(Level.WARNING, "Unable to create timed effect element " + id, ex);
+            return;
+        }
         if (emitter != null) {
             if (location != null) {
                 emitter.setLocalTranslation(location);
@@ -361,13 +419,20 @@ public class VisualEffect {
             effectElements.put(emitter, effectElement);
             effectNode.attachChild(emitter);
             if (emitter instanceof ParticleEmitter particleEmitter) {
-                if (emitOverLifetime) {
+                if (emitOverLifetime && playback == null) {
                     lifetimeEmitters.add(particleEmitter);
                 } else {
-                    particleEmitter.emitAllParticles();
+                    if (playback != null) {
+                        particleEmitter.emitParticles(effect.getElementsPerTurn());
+                    } else {
+                        particleEmitter.emitAllParticles();
+                    }
                 }
             } else if (emitter instanceof EffectEmitter effectEmitter) {
                 effectEmitter.emitAllParticles();
+            }
+            if (playback != null) {
+                playback.manage(emitter);
             }
         }
 
@@ -404,7 +469,9 @@ public class VisualEffect {
 
     private ParticleEmitter createParticleElement(EffectElement element, ArtResource resource) {
         // Over the lifetime, the pool has to hold everything emitted while the first one is still alive
-        int poolSize = emitOverLifetime ? effect.getElementsPerTurn() * (element.getMaxHp() + 1) : effect.getElementsPerTurn();
+        int poolSize = playback != null
+                ? effect.getElementsPerTurn() * (Math.min(effect.getMaxHp(), element.getMaxHp()) + 1)
+                : emitOverLifetime ? effect.getElementsPerTurn() * (element.getMaxHp() + 1) : effect.getElementsPerTurn();
         ParticleEmitter emitter = new EffectParticleEmitter(element.getName(),
                 ParticleMesh.Type.Triangle,
                 poolSize,
@@ -415,7 +482,7 @@ public class VisualEffect {
         if (effect.getGenerationType() == Effect.GenerationType.CUBE_GEN) {
             // Scatter each particle's spawn point across the annulus/
             // height band instead of jME3's default emission point
-            emitter.setShape(new EmitterCubeGenShape(effect));
+            emitter.setShape(new EmitterCubeGenShape(effect, random));
         }
         configureParticleEmissionRate(emitter, element);
 
@@ -432,7 +499,7 @@ public class VisualEffect {
         // full minSpeedXy/maxSpeedXy/minSpeedYz/maxSpeedYz range, instead of
         // jME3's default of sharing one vector across the whole burst and
         // only lightly varying it (see EffectParticleInfluencer).
-        emitter.setParticleInfluencer(new EffectParticleInfluencer(element));
+        emitter.setParticleInfluencer(new EffectParticleInfluencer(element, random));
         //
         applyParticleScale(emitter, element);
         //
@@ -448,16 +515,19 @@ public class VisualEffect {
         emitter.setFacingVelocity(!flat && element.getFlags().contains(EffectElement.EffectElementFlag.ROTATE_TO_MOVEMENT_DIRECTION));
         //
         emitter.setRandomAngle(true);
-        emitter.setRotateSpeed(Math.abs(EffectControl.randomSpinRate(effect.getSpriteSpinRateRange())));
+        emitter.setRotateSpeed(Math.abs(EffectControl.randomSpinRate(effect.getSpriteSpinRateRange(), random)));
         emitter.setGravity(0, element.getMass() * GRAVITY_FACTOR, 0);
         emitter.setLowLife(element.getMinHp() / 20f);
         emitter.setHighLife(element.getMaxHp() / 20f);
+        if (playback != null) {
+            ((EffectParticleEmitter) emitter).setPlaybackRandom(random);
+        }
 
         return emitter;
     }
 
     private void configureParticleEmissionRate(ParticleEmitter emitter, EffectElement element) {
-        if (emitOverLifetime) {
+        if (emitOverLifetime || playback != null) {
             // Fed by hand every effect tick, see update()
             emitter.setParticlesPerSec(0);
         } else if (element.getDeathElementId() == element.getEffectElementId() && element.getMaxHp() > 0) {
@@ -553,7 +623,7 @@ public class VisualEffect {
     }
 
     private EffectEmitter newEffectEmitter(EffectElement element) {
-        return new EffectEmitter(element, effect) {
+        return new EffectEmitter(element, effect, random, playback) {
 
             @Override
             public void onDeath(Vector3f location) {
@@ -581,13 +651,21 @@ public class VisualEffect {
         }
 
         List<MeshCollectionPart> parts = new ArrayList<>(groupNode.getQuantity());
-        for (Spatial child : groupNode.getChildren()) {
-            String partName = child.getUserData(KmfModelLoader.GROUP_PART_NAME);
-            if (partName != null) {
-                parts.add(new MeshCollectionPart(partName, child.getLocalTranslation()));
+        collectMeshCollectionParts(groupNode, new com.jme3.math.Transform(), parts);
+        return parts;
+    }
+
+    private static void collectMeshCollectionParts(Spatial spatial, com.jme3.math.Transform parent,
+            List<MeshCollectionPart> parts) {
+        com.jme3.math.Transform transform = spatial.getLocalTransform().clone().combineWithParent(parent);
+        String partName = spatial.getUserData(KmfModelLoader.GROUP_PART_NAME);
+        if (partName != null) {
+            parts.add(new MeshCollectionPart(partName, transform.getTranslation().clone()));
+        } else if (spatial instanceof Node node) {
+            for (Spatial child : node.getChildren()) {
+                collectMeshCollectionParts(child, transform, parts);
             }
         }
-        return parts;
     }
 
     /**
@@ -608,6 +686,9 @@ public class VisualEffect {
             effectElements.put(emitter, effectElement);
             effectNode.attachChild(emitter);
             emitter.emitOne();
+            if (playback != null) {
+                playback.manage(emitter);
+            }
         }
     }
 
@@ -643,15 +724,10 @@ public class VisualEffect {
             addEffectElement(element.getHitWaterElementId(), location);
         } else if (element.getHitSolidElementId() != 0) {
             // && tile.getTerrain().getFlags().contains(Terrain.TerrainFlag.SOLID)) {
-            if (element.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
-                if (element.getDeathElementId() != 0) {
-                    addEffectElement(element.getDeathElementId(), location);
-                }
-            } else {
+            if (!element.getFlags().contains(EffectElement.EffectElementFlag.DIE_WHEN_HIT_SOLID)) {
                 addEffectElement(element.getHitSolidElementId(), location);
             }
         }
-        removeEffect();
     }
 
     /**
@@ -669,8 +745,11 @@ public class VisualEffect {
             lightRules.removeThingLight(this);
             return;
         }
-        lightRules.addThingLight(this, effectNode.getWorldTranslation(), effectLight, ownerId,
+        var source = lightRules.addThingLight(this, effectNode.getWorldTranslation(), effectLight, ownerId,
                 LightConstants.EFFECT_LIGHT_INTENSITY, LightConstants.OBJECT_LIGHTS_PULSE);
+        if (playback != null && effect.getFlags().contains(Effect.EffectFlag.FADE_OUT)) {
+            lightColour = new int[]{source.getRed(), source.getGreen(), source.getBlue()};
+        }
     }
 
     private LightRules getLightRules() {
@@ -701,6 +780,9 @@ public class VisualEffect {
      * @return true if the effect is still valid, false if the effect has died
      */
     public boolean update(float tpf) {
+        if (playback != null) {
+            return updateTimed(tpf);
+        }
         if (generationStepsRemaining > 0) {
             generationStepRemainder += tpf;
             int steps = (int) ((generationStepRemainder + 1e-7) / 0.05);
@@ -748,6 +830,54 @@ public class VisualEffect {
         }
 
         return handleEffectCompletion();
+    }
+
+    /** One fixed visual tick; parent emission lifetime is independent of art and children. */
+    private boolean updateTimed(float tpf) {
+        elapsedTicks++;
+        for (int i = effects.size() - 1; i >= 0; i--) {
+            if (!effects.get(i).update(tpf)) {
+                effects.remove(i);
+            }
+        }
+        if (remainingTicks > 0 && --remainingTicks > 0 && meshCollectionParts == null) {
+            if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECT_ELEMENTS)) {
+                for (Spatial element : effectElements.keySet()) {
+                    if (element instanceof ParticleEmitter emitter) {
+                        emitter.emitParticles(effect.getElementsPerTurn());
+                    } else if (element instanceof EffectEmitter emitter) {
+                        emitter.emitAllParticles();
+                    }
+                }
+            } else if (effect.getFlags().contains(Effect.EffectFlag.GENERATE_EFFECTS)) {
+                generateChildren();
+            }
+        }
+        if (remainingTicks <= 0) {
+            spawnDeathElements(updateElements());
+            if (effectElements.isEmpty() && !deathEffectSpawned) {
+                deathEffectSpawned = true;
+                if (effectModel != null) {
+                    effectModel.removeFromParent();
+                }
+                addEffect(effect.getDeathEffectId(), null);
+            }
+        }
+        updateCircularPath(tpf);
+        LightRules rules = getLightRules();
+        if (rules != null) {
+            var source = rules.getThingLight(this);
+            if (source != null && lightColour != null && effect.getFadeDuration() > 0) {
+                float fade = Math.max(0, 1f - (float) elapsedTicks / effect.getFadeDuration());
+                source.setBaseColour(Math.round(lightColour[0] * fade), Math.round(lightColour[1] * fade),
+                        Math.round(lightColour[2] * fade));
+            }
+            if (lightTarget != null) {
+                AssetUtils.applyVertexLight(assetManager, lightTarget, rules, false);
+            }
+            lightMeshElements(rules);
+        }
+        return remainingTicks > 0 || handleEffectCompletion();
     }
 
     /**
@@ -874,6 +1004,10 @@ public class VisualEffect {
     }
 
     public void removeEffect() {
+        LightRules rules = getLightRules();
+        if (rules != null) {
+            rules.removeThingLight(this);
+        }
         effects.forEach(VisualEffect::removeEffect);
         effects.clear();
         effectElements.clear();
@@ -883,5 +1017,6 @@ public class VisualEffect {
         lifetimeLeft = 0;
         infinite = false;
         generationStepsRemaining = 0;
+        remainingTicks = 0;
     }
 }

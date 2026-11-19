@@ -24,6 +24,7 @@ import com.jme3.export.JmeExporter;
 import com.jme3.export.JmeImporter;
 import com.jme3.math.Vector3f;
 import com.jme3.util.clone.Cloner;
+import java.util.random.RandomGenerator;
 import toniarts.openkeeper.tools.convert.map.EffectElement;
 
 import java.io.IOException;
@@ -42,6 +43,7 @@ import java.io.IOException;
 public class EffectParticleInfluencer implements ParticleInfluencer {
 
     private EffectElement element;
+    private RandomGenerator random = com.jme3.math.FastMath.rand;
 
     /**
      * For serialization only. Do not use.
@@ -53,11 +55,16 @@ public class EffectParticleInfluencer implements ParticleInfluencer {
         this.element = element;
     }
 
+    public EffectParticleInfluencer(EffectElement element, RandomGenerator random) {
+        this.element = element;
+        this.random = random;
+    }
+
     @Override
     public void influenceParticle(Particle particle, EmitterShape emitterShape) {
         emitterShape.getRandomPoint(particle.position);
 
-        Vector3f velocity = EffectControl.calculateVelocity(element);
+        Vector3f velocity = EffectControl.calculateVelocity(element, random);
         particle.velocity.set(velocity);
     }
 

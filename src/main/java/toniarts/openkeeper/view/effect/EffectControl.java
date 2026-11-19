@@ -23,6 +23,7 @@ import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
+import java.util.random.RandomGenerator;
 import toniarts.openkeeper.tools.convert.map.Effect;
 
 import java.lang.System.Logger;
@@ -83,13 +84,17 @@ public abstract class EffectControl extends AbstractControl {
     }
 
     public static Vector3f calculateVelocity(IEffect speed) {
+        return calculateVelocity(speed, FastMath.rand);
+    }
 
-        float xzAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-        float xzSpeed = speed.getMinSpeedXy()+ FastMath.nextRandomFloat() * (speed.getMaxSpeedXy() - speed.getMinSpeedXy());
+    public static Vector3f calculateVelocity(IEffect speed, RandomGenerator random) {
+
+        float xzAngle = random.nextFloat() * FastMath.TWO_PI;
+        float xzSpeed = speed.getMinSpeedXy()+ random.nextFloat() * (speed.getMaxSpeedXy() - speed.getMinSpeedXy());
         Vector3f vel = new Vector3f(-(float) Math.sin(xzAngle), 0, (float) Math.cos(xzAngle)).multLocal(xzSpeed);
 
         // float zyAngle = FastMath.nextRandomFloat() * FastMath.TWO_PI;
-        float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
+        float zySpeed = speed.getMinSpeedYz() + random.nextFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
         vel.y = zySpeed;
 
         return vel;
@@ -117,13 +122,17 @@ public abstract class EffectControl extends AbstractControl {
      * stacking them all at the same spot (a {@code CUBE_GEN} burst
      */
     public static Vector3f randomOriginOffset(Effect effect) {
+        return randomOriginOffset(effect, FastMath.rand);
+    }
+
+    public static Vector3f randomOriginOffset(Effect effect, RandomGenerator random) {
         float rMin = effect.getInnerOriginRange() * 23f / 4096f;
         float rMax = effect.getOuterOriginRange() * 23f / 4096f;
-        float r = rMin + FastMath.nextRandomFloat() * (rMax - rMin);
-        float h = FastMath.nextRandomFloat() * FastMath.TWO_PI;
+        float r = rMin + random.nextFloat() * (rMax - rMin);
+        float h = random.nextFloat() * FastMath.TWO_PI;
         float zMin = effect.getLowerHeightLimit() * 16f / 4096f;
         float zMax = effect.getUpperHeightLimit() * 16f / 4096f;
-        float z = zMin + FastMath.nextRandomFloat() * (zMax - zMin);
+        float z = zMin + random.nextFloat() * (zMax - zMin);
         return new Vector3f(-(float) Math.sin(h) * r, z, (float) Math.cos(h) * r);
     }
 
@@ -133,8 +142,12 @@ public abstract class EffectControl extends AbstractControl {
      * ±128 and {@code orientationRange} 255 -> ±1020
      */
     public static float randomSpread(int range) {
+        return randomSpread(range, FastMath.rand);
+    }
+
+    private static float randomSpread(int range, RandomGenerator random) {
         float r = range * 8f;
-        return r == 0 ? 0f : FastMath.nextRandomFloat() * r - r / 2f;
+        return r == 0 ? 0f : random.nextFloat() * r - r / 2f;
     }
 
     /**
@@ -143,7 +156,11 @@ public abstract class EffectControl extends AbstractControl {
      * effect clock.
      */
     public static float randomSpinRate(int spinRateRange) {
-        return randomSpread(spinRateRange) * FastMath.TWO_PI / 2048f * 20f;
+        return randomSpinRate(spinRateRange, FastMath.rand);
+    }
+
+    public static float randomSpinRate(int spinRateRange, RandomGenerator random) {
+        return randomSpread(spinRateRange, random) * FastMath.TWO_PI / 2048f * 20f;
     }
 
     /**
@@ -152,14 +169,18 @@ public abstract class EffectControl extends AbstractControl {
      * applied once at spawn.
      */
     public static Quaternion randomOrientation(int orientationRange) {
+        return randomOrientation(orientationRange, FastMath.rand);
+    }
+
+    public static Quaternion randomOrientation(int orientationRange, RandomGenerator random) {
         if (orientationRange == 0) {
             return Quaternion.IDENTITY;
         }
         float toRad = FastMath.TWO_PI / 2048f;
         return new Quaternion().fromAngles(
-                randomSpread(orientationRange) * toRad,
-                randomSpread(orientationRange) * toRad,
-                randomSpread(orientationRange) * toRad);
+                randomSpread(orientationRange, random) * toRad,
+                randomSpread(orientationRange, random) * toRad,
+                randomSpread(orientationRange, random) * toRad);
     }
 
     /**

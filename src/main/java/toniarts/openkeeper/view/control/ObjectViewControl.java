@@ -244,9 +244,8 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         super.setTargetState(state);
 
         // Play immediately
-        if (!Objects.equals(currentState, targetState)) {
+        if (!sameAnimation(currentState, targetState)) {
             playAnimation(state);
-            currentState = targetState;
 
             // Every spin starts over, one way or the other
             if (state.state == GameObject.State.SPINNING && ticksPerSecond > 0) {
@@ -254,6 +253,13 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
                 spinDirection = ThreadLocalRandom.current().nextBoolean() ? 1 : -1;
             }
         }
+        currentState = targetState;
+    }
+
+    static boolean sameAnimation(ObjectViewState a, ObjectViewState b) {
+        return a == b || a != null && b != null && a.objectId == b.objectId
+                && a.state == b.state && a.animState == b.animState
+                && a.lairCreatureTypeId == b.lairCreatureTypeId;
     }
 
     @Override
