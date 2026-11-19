@@ -770,3 +770,19 @@ The classic-default, shadow-enabled `captureCharacterAnimation` repeats successf
 The enhanced real local-game smoke and packed corpus/coverage evidence are revision-scoped in section 13. Later documentation-only edits do not change the measured code. Final self-review checked cache/load publication, immutable versus owner-local data, fallback/serialization and motion epoch/attachment paths; it leaves the explicit session-loader and GPU/metadata integration work above open. The benchmark owns one query pool for its standalone GL context: the pinned Renderer exposes no query-delete method, and the fixture destroys that context on exit rather than allocating pools per workload. No generated/proprietary assets or local validation scripts are staged.
 
 Documentation consistency verification passes: exactly 18 original broad checkboxes and 18 unique status rows, balanced code fences, valid local Markdown file targets and no trailing whitespace in the four updated guides/reports. The check independently re-reads full/installed JUnit XML, compares all 39 classic hashes and re-hashes all four paired rendered PNGs. Both the upstream base and pending baseline remain ancestors of this branch. Each implementation commit contains its scoped tests/evidence; this final documentation consolidation does not change code or claim to complete the remaining work.
+
+## 15. Continued implementation: loading ownership
+
+### N11a — Nonblocking loading-screen cancellation
+
+`LoadingState.cleanup()` previously joined its loader on the render thread, and an exited screen could still execute its queued `onLoadComplete()`. jME 3.9 also skips cleanup when an AppState is detached while still awaiting initialization, leaving that screen's already-started thread alive. An uncaught load failure previously still ran completion against incompletely loaded data.
+
+Added the single-use `LoadingScope`, owning one existing-style loader thread and its guarded render publications. Detach/cleanup closes the scope and requests interruption without joining; queued normal and error callbacks recheck ownership at execution. Duplicate starts are rejected. Its read-only completion stage reports actual worker return, not Future cancellation, so an interruption-ignoring decoder cannot be mistaken for a completed loading boundary. Failure handling executes on the render executor and active loading-screen failures use the application's error path rather than completing broken setup. This adds no worker pool or animation-frame work.
+
+Six regression tests cover early AppState detachment without cleanup, queued/late publication, duplicate loads, load/publication errors, stale errors affecting a replacement, and a decoder that ignores interruption. The latter proves cancellation returns while the decoder remains active, and only reports worker completion after explicit release.
+
+Validation: `build --rerun-tasks smokeCharacterMotion` **passes**: **1,520 tests, zero failures/errors, four existing minimap skips**, compilation and packaging included; actual local Alcatraz session **360 active frames / 48 sampled owners / 48 paused owners**, enhanced settings enabled together, **7,217,144 packed primitive bytes** (`D:/Temp/animation-next-n11-loading-verified.txt`). No pose sampler or gameplay behavior changes, and no FPS improvement is claimed for a shutdown correction.
+
+- [x] Remove render-thread joins and stale completion/error publication from loading screens, including detach-before-initialize.
+- [ ] Integrate cancellation/ownership into GameClientState construction, asset-prewarm and map publication; this screen change alone does not close those distinct races.
+- [ ] Measure cold loads and ten-level complete residency before changing packed/retention defaults.
