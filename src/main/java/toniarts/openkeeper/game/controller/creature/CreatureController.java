@@ -882,8 +882,11 @@ public final class CreatureController extends EntityController implements ICreat
             attackTarget = null;
         }
         IEntityController attackTargetController = null;
+
+        // A Horned Reaper picks his prey over the whole map and hunts it down even when it runs (DKII.EXE 0x45E1B0)
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)
+                || isFleeing(attackTarget.entityId) && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || isCaptive(attackTarget.entityId)
                 || isUnreachable(attackTarget.entityId)) {
 
             // Pick a new target, the nearest enemy already attacking us comes first
