@@ -87,6 +87,18 @@ public enum GameEventType {
      */
     NOT_ENOUGH_GOLD,
 
+    // The Workshop
+    /**
+     * A trap or a door was made, the subject is the trap or door type, at its
+     * crate
+     */
+    WORKSHOP_ITEM_MADE,
+    /**
+     * A trap or a door was made, only the Workshop's keeper gets this. The
+     * subject is the object type of its crate
+     */
+    WORKSHOP_ITEM_MADE_MESSAGE,
+
     // The Torture Chamber
     /**
      * A victim on the Electric Chair gets a shock, the subject is the chair and the target the victim

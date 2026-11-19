@@ -16,8 +16,11 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
+import java.util.List;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ManufactureOrders;
@@ -25,6 +28,10 @@ import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractCapacityCriticalRoomTask;
 import toniarts.openkeeper.game.task.TaskManager;
@@ -41,14 +48,17 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerManufactureControl manufactureControl;
     private final IObjectsController objectsController;
+    private final GameEventService gameEventService;
     private Vector2f workPlace;
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController) {
+            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController,
+            GameEventService gameEventService) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.manufactureControl = manufactureControl;
         this.objectsController = objectsController;
+        this.gameEventService = gameEventService;
     }
 
     @Override
@@ -108,6 +118,25 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         EntityId crate = objectsController.addRoomCrate(order.crateObjectId(), Player.NEUTRAL_PLAYER_ID, getTaskLocation().x, getTaskLocation().y,
                 order.type(), order.typeId());
         getRoomObjectControl().addItem(crate, null);
+
+        // Also like DK II, the crate plays the made sound from its trap's or door's bank and the workshop's keeper is
+        // told what was made. The room's first effect goes off over the workshop once for every 9 tiles, at least
+        // once, a tile and a half above the floor, and its second effect at the crate
+        Vector3f cratePosition = WorldUtils.pointToVector3f(getTaskLocation()).setY(WorldUtils.FLOOR_HEIGHT);
+        gameEventService.emit(GameEventType.WORKSHOP_ITEM_MADE, order.type() == ResearchableType.DOOR ? ThingFlag.DOOR : ThingFlag.TRAP,
+                order.typeId(), cratePosition);
+        gameEventService.emitToPlayer(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, order.crateObjectId(), playerId);
+        List<Integer> effects = getRoom().getRoom().getEffects();
+        List<Point> tiles = getRoom().getRoomInstance().getCoordinates();
+        if (effects.get(0) != 0) {
+            for (int i = 0; i < Math.max(1, tiles.size() / 9); i++) {
+                Point tile = tiles.get(FastMath.nextRandomInt(0, tiles.size() - 1));
+                gameEventService.emitEffect(effects.get(0), WorldUtils.pointToVector3f(tile).setY(WorldUtils.FLOOR_HEIGHT + 1.5f), 0);
+            }
+        }
+        if (effects.get(1) != 0) {
+            gameEventService.emitEffect(effects.get(1), cratePosition, 0);
+        }
     }
 
     @Override

@@ -171,6 +171,29 @@ class GameEventTest {
     }
 
     @Test
+    void madeTrapPlaysItsMadeSoundAtTheCrate() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getTrapById") ? SoundFixtures.trap("TRAP_GAS") : null);
+        GameEvent event = new GameEvent(GameEventType.WORKSHOP_ITEM_MADE, ThingFlag.TRAP, 1, null, 0, null, new Point(3, 4));
+
+        // DK II (0x4F5240) plays sound 0x10F from the trap's bank at the crate
+        assertEquals(List.of(new GameEventSounds.Sound("TRAP_GAS", 0x10F, new Point(3, 4))), GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
+    void mentorTellsWhichTrapOrDoorWasMade() {
+
+        // DK II's message 0x1A picks the speech by the crate's object type: 5 is the Alarm Trap's crate, "An Alarm Trap
+        // has been created in your Workshop", 92 the Guard Post's
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, 1400, null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, null, 5, null, 0, null, null), null));
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, 1487, null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, null, 92, null, 0, null, null), null));
+        assertEquals(List.of(),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.WORKSHOP_ITEM_MADE_MESSAGE, null, 1, null, 0, null, null), null));
+    }
+
+    @Test
     void sacrificeSpeechIsTheMentorsTempleSpeech() {
         assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null)),
                 GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 1, null, 0, null, null), null));

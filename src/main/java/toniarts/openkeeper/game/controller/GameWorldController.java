@@ -1853,6 +1853,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     @Override
+    public GameEventService getGameEventService() {
+        return gameEventService;
+    }
+
+    @Override
     public IObjectsController getObjectsController() {
         return objectsController;
     }
