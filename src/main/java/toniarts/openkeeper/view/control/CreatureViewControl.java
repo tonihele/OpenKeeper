@@ -286,7 +286,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      */
     private void playDigSound() {
         if (currentState != Creature.AnimationType.DIG || spatial == null
-                || spatial.getCullHint() == Spatial.CullHint.Always) {
+                || AnimationLoader.isHidden(spatial)) {
+            if (digSound != SoundEngine.NO_HANDLE) SoundManager.stopSound(digSound);
             digSound = SoundEngine.NO_HANDLE;
             return;
         }
@@ -303,10 +304,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      */
     private void playFootsteps() {
         int[] marks = stepMarks;
-        if (marks == null || spatial == null || spatial.getCullHint() == Spatial.CullHint.Always) {
+        if (marks == null || spatial == null || AnimationLoader.isHidden(spatial)) {
             previousStepTime = -1;
             previousMarkerAge = Double.NaN;
-            if (spatial != null && spatial.getCullHint() == Spatial.CullHint.Always) playResearchSound(null);
+            if (spatial != null && AnimationLoader.isHidden(spatial)) playResearchSound(null);
             return;
         }
 
@@ -389,14 +390,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private void playStateSounds(Creature.AnimationType state) {
-            // State exit always releases a loop, including transitions hidden by fog.
-            stopActivitySounds();
-            if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
-                int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
-                digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
-                nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
-                playResearchSound(state);
-            }
+        // State exit always releases a loop, including transitions hidden by fog.
+        stopActivitySounds();
+        if (spatial != null && !AnimationLoader.isHidden(spatial)) {
+            int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
+            digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
+            nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
+            playResearchSound(state);
+        }
     }
 
     @Override

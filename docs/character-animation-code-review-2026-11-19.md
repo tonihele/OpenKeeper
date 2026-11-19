@@ -449,3 +449,9 @@ Finalization starts from `b6aa1c450` on the existing feature branch. Fresh fetch
 An explicitly bound world atlas clock returning NaN previously advanced its own local time, even though the vertex owner waited for a valid snapshot. Atlas playback now retains its last phase until that clock becomes valid again. A separate local installation overload preserves hand/decorative playback and cloned controls without replicated time; creature controls distinguish that local mode from an explicitly supplied world clock.
 
 The unavailable-clock regression fails before the fix (`build/finalize-lifecycle-before.txt`). Eight focused atlas, recording-audio, request and retained-visual tests pass afterward (`build/finalize-lifecycle-tests.txt`), including local advance/pause, missing/recovered shared time, clone independence and material replacement. Full release checks are recorded after cleanup below.
+
+### Hidden activity voice ownership
+
+`playDigSound()` discarded a live owned handle when its creature became hidden, leaving the voice unreachable by cleanup and allowing overlap on re-entry. It now stops that voice before clearing its handle. Dig, research/footstep suppression and state-entry audio use inherited visibility consistently, so an explicitly hidden ancestor cannot schedule or retain those activity sounds.
+
+The recording-backend test fails on the preceding code and passes for both directly hidden creatures and hidden parents. Eight combined lifecycle tests and the focused audio/footstep suites pass (`build/finalize-lifecycle-tests.txt`, `build/finalize-audio-tests.txt`); the backend/category fixture is shared between the failure and visibility regressions. No audible native-DK2 timing claim is added. Atlas clock fix: `4d34662`.
