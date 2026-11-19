@@ -28,7 +28,6 @@ import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.util.List;
 import javax.annotation.Nullable;
-import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.CheatController;
 import toniarts.openkeeper.game.controller.ICheatController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
@@ -55,8 +54,6 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 public final class GameServerState extends AbstractAppState {
 
     private static final Logger logger = System.getLogger(GameServerState.class.getName());
-
-    private Main app;
 
     private Thread loader;
     private AppStateManager stateManager;
@@ -128,7 +125,6 @@ public final class GameServerState extends AbstractAppState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
-        this.app = (Main) app;
         this.stateManager = stateManager;
     }
 
@@ -398,7 +394,7 @@ public final class GameServerState extends AbstractAppState {
                 return;
             }
 
-            Settings settings = Main.getUserSettings();
+            Settings settings = Settings.getInstance();
             if (SecretLevels.discover(levelObject, settings::getSecredLevelStatus, settings::setSecredLevelStatus).isPresent()) {
                 try {
                     settings.save();
