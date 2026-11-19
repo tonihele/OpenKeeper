@@ -44,6 +44,7 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -113,6 +114,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     private final IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final IShotsController shotsController;
+    private final GameEventService gameEventService;
     private final float triggerSpeed;
     private final EntitySet trapEntities;
     private final EntitySet hiddenTrapEntities;
@@ -129,15 +131,17 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * a trap sees
      * @param playerControllers the players, for their mana and enemies
      * @param shotsController fires the shots
+     * @param gameEventService shows the effects
      */
     public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IEntityPositionLookup entityPositionLookup,
-            Map<Short, IPlayerController> playerControllers, IShotsController shotsController) {
+            Map<Short, IPlayerController> playerControllers, IShotsController shotsController, GameEventService gameEventService) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.playerControllers = playerControllers;
         this.shotsController = shotsController;
+        this.gameEventService = gameEventService;
         triggerSpeed = kwdFile.getVariables().get(
                 Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND).getValue();
 
@@ -226,7 +230,15 @@ public final class TrapSystem implements IGameLogicUpdatable {
         Trap trap = kwdFile.getTrapById(doorEntity.get(TrapComponent.class).trapId);
         short ownerId = doorEntity.get(Owner.class).ownerId;
         EntityId target = findTargetAroundDoor(doorEntity, ownerId);
-        if (target == null || doorEntity.get(DoorViewState.class).open || !payForShot(trap, ownerId)) {
+        if (target == null || doorEntity.get(DoorViewState.class).open) {
+            return;
+        }
+        if (!payForShot(trap, ownerId)) {
+
+            // Without the mana the door shows its trap's powerless effect and tries again on the next tick (0x4A55F0)
+            if (trap.getPowerlessEffectId() != 0) {
+                gameEventService.emitEffect(trap.getPowerlessEffectId(), doorEntity.get(Position.class).position, 0);
+            }
             return;
         }
 

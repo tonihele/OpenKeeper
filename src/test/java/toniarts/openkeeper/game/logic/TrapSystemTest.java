@@ -48,6 +48,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -80,6 +81,7 @@ class TrapSystemTest {
     private static final short TRIGGER_SHOT = 39;
     private static final short GAS_SHOT = 58;
     private static final short DOOR_FIREBALL = 57;
+    private static final int POWERLESS_EFFECT = 315;
     private static final short IMP = 1;
     private static final short REAPER = 2;
     private static final short THIEF = 18;
@@ -91,6 +93,7 @@ class TrapSystemTest {
     private final Set<Point> walls = new HashSet<>();
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
+    private final List<Integer> effects = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
@@ -111,8 +114,9 @@ class TrapSystemTest {
         traps.put((int) GUARD_POST, TrapFiringFixtures.trap(GUARD_POST, Trap.TriggerType.PRESSURE, 6, 1, (short) 0));
         traps.put((int) GAS, TrapFiringFixtures.trap(GAS, Trap.TriggerType.PRESSURE, 1, 4, GAS_SHOT));
         traps.get((int) GAS).getFlags().addAll(EnumSet.of(Trap.TrapFlag.INVISIBLE, Trap.TrapFlag.REVEAL_WHEN_FIRED));
-        traps.put((int) MAGIC_DOOR_TRAP, TrapFiringFixtures.withShotData(TrapFiringFixtures.withManaCost(
-                TrapFiringFixtures.trap(MAGIC_DOOR_TRAP, Trap.TriggerType.PRESSURE, 4, 8, DOOR_FIREBALL), 500), 150, 0));
+        traps.put((int) MAGIC_DOOR_TRAP, TrapFiringFixtures.withPowerlessEffect(TrapFiringFixtures.withShotData(
+                TrapFiringFixtures.withManaCost(TrapFiringFixtures.trap(MAGIC_DOOR_TRAP, Trap.TriggerType.PRESSURE, 4, 8, DOOR_FIREBALL),
+                        500), 150, 0), POWERLESS_EFFECT));
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         creatures.put(THIEF, TrapFiringFixtures.creature(THIEF, Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS));
@@ -587,17 +591,22 @@ class TrapSystemTest {
         tick();
         assertTrue(flyingShots.isEmpty());
 
+        // DK II shows the trap's powerless effect instead (0x4A55F0)
+        assertEquals(List.of(POWERLESS_EFFECT), effects);
+
         // The door keeps trying, it didn't start to recharge
         keeper.setMana(500);
         gameTime = 0.25;
         tick();
         assertEquals(1, flyingShots.size());
+        assertEquals(List.of(POWERLESS_EFFECT), effects);
     }
 
     private void tick() {
         if (trapSystem == null) {
             trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, positionLookup(), playerControllers(),
-                    shotsController());
+                    shotsController(), (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                            new Class<?>[]{GameEventService.class}, (proxy, method, args) -> effects.add((int) args[0])));
         }
         trapSystem.processTick(0.25f);
     }
