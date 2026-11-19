@@ -2,6 +2,8 @@
 
 Date: 2026-11-18. Repository: `D:\Project\OpenKeeper`. Source baseline: `a63005ab362a55540b67daeadaf2eeb00a8ba73a`, branch `fix/dungeon-heart-startup`.
 
+Latest delivery/validation scope and unresolved gates are recorded in the [next-generation finalization report](character-animation-next-generation-finalization-2026-11-19.md); this assessment's historical conclusions and original acceptance criteria are retained.
+
 Subsequent optional root presentation, packed CPU sampling, cache isolation and experiments are tracked in the [next-generation implementation evidence and complete N01–N18 status](character-animation-next-generation-proposal-2026-11-19.md#14-consolidated-implementation-checklist-and-remaining-work). The original analysis and its revision-scoped implementation record remain historical; the later proposal does not close unresolved native-reference or broad acceptance gates automatically.
 
 ## 1. Architectural decision

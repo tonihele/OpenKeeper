@@ -1036,7 +1036,7 @@ Actual entity-transport audit commit: `c402ccb`.
 
 ## 20. Continuation ledger and honest remaining scope
 
-All changes below are local to `feat/animation-next-generation`. Existing feature history is preserved; no push, merge or PR is performed. Each verified slice includes its own documentation and tests/evidence. The original N01–N18 checkboxes remain open wherever their **full** exit criteria remain unmet.
+At the `1594a23` continuation checkpoint, all changes below were local to `feat/animation-next-generation`; no push, merge or PR had been performed. Existing feature history is preserved. Each verified slice includes its own documentation and tests/evidence. The original N01–N18 checkboxes remain open wherever their **full** exit criteria remain unmet. Subsequent maintainer handoff is recorded in the [finalization report](character-animation-next-generation-finalization-2026-11-19.md).
 
 | Commit | Independently verified slice |
 |---|---|
@@ -1072,3 +1072,5 @@ The final validation initially found a socket-fixture failure: the loopback-only
 Both actual transport scenarios pass in two fresh invocations after this correction. The complete rerun (`animation-final-maintainer-build-verified.txt`) executes all 13 tasks, including **1,555 JUnit tests with zero failures/errors and four existing asset skips**, the separate **four installed minimap tests with zero skips/failures**, **24 deterministic delivery schedules**, and **two localhost transport scenarios**. In the last transport run, regular/coalesced delivery accepts 81/32 of 81 publications, with maximum component errors 0.000005992/0.000006148. Message counts and source lag remain diagnostics, not bandwidth or camera-latency measurements.
 
 Section 14 remains the roadmap of unfinished engineering and external prerequisites; publication does not mark those items implemented.
+
+The [finalization report](character-animation-next-generation-finalization-2026-11-19.md) records `c21e5af`, fresh full-suite/GL/game/CPU results, identical shadow captures, a repeated strict residency failure, loading-frame limitations and the draft-review disposition. It supersedes the local-only delivery status above, without narrowing any original acceptance gate.

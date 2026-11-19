@@ -2,6 +2,8 @@
 
 Date: 2026-11-19. **Original review recommendation: Request Changes.**
 
+The later [next-generation finalization report](character-animation-next-generation-finalization-2026-11-19.md) records fresh validation and outstanding acceptance gates. This historical review's R1–R8 resolutions are preserved; they do not independently approve the subsequent work or the full roadmap.
+
 **Remediation status:** R1–R8 and four additional review/preflight defects are resolved in focused commits. The publication build passes 1,471 tests (zero failures/errors, four existing asset-dependent skips); those four minimap tests also pass separately with installed assets and zero skips. The expanded corpus, real OpenGL checks and actual local-game pause/resume pass. The publication record and [maintenance guide](character-animation.md) supersede historical implementation-status statements and line anchors. This is not approval of the entire original initiative: five original checklist items retain explicitly scoped reference or engineering acceptance work.
 
 The subsequent `feat/animation-next-generation` changes have their own [implementation, measurement and N01–N18 acceptance record](character-animation-next-generation-proposal-2026-11-19.md#13-implementation-evidence). This independent review covers its recorded baseline, not those later changes; its remediation status must not be read as approval of the new optional features or numerical GPU prototype.
