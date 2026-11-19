@@ -122,6 +122,18 @@ class SpecialHoverTest {
         assertIdle();
     }
 
+    @Test
+    void specializedControlKeepsObjectLookupAndRestoresPoseOnCleanup() {
+        create(true);
+        assertSame(control, model.getControl(ObjectViewControl.class));
+        control.onHoverStart((short) 3);
+        model.updateLogicalState(0.05f);
+        assertWobbling();
+        control.cleanup();
+        assertIdle();
+        control = null;
+    }
+
     private void create(boolean special) {
         data.setComponent(id, position);
         GameObject object = special ? gameObject("Special", GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)
@@ -131,7 +143,9 @@ class SpecialHoverTest {
         // An empty synthetic model keeps this check independent of converted DKII assets and a graphics context.
         model.setLocalTranslation(position.position);
         model.setLocalRotation(new Quaternion().fromAngles(0, position.rotation, 0));
-        control = new ObjectViewControl(id, data, object, state, null, null, null, false, 20);
+        control = special
+                ? new SpecialObjectViewControl(id, data, object, state, null, null, null, false, 20)
+                : new ObjectViewControl(id, data, object, state, null, null, null, false, 20);
         model.addControl(control);
     }
 
