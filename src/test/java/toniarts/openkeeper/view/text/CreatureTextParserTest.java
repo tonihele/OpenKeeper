@@ -16,7 +16,11 @@
  */
 package toniarts.openkeeper.view.text;
 
+import com.simsilica.es.Entity;
+import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.tools.convert.map.GameLevel.TextTable;
 import toniarts.openkeeper.tools.convert.map.Thing;
@@ -24,7 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * The texts DK II picks for the creature tooltip: the name of the Lord of the
- * Land and the job of a creature on its way somewhere
+ * Land and the job of a creature on its way somewhere, and what the Query Tool
+ * shows of a creature (0x48D340)
  */
 class CreatureTextParserTest {
 
@@ -63,6 +68,23 @@ class CreatureTextParserTest {
     void isEnRouteWithoutAnObjective() {
         assertEquals("2670", CreatureTextParser.getEnRouteTextId(null, false));
         assertEquals("2670", CreatureTextParser.getEnRouteTextId(objective(Thing.HeroParty.Objective.NONE), false));
+    }
+
+    @Test
+    void theQueryToolShowsTheBloodGroupTheWageAndTheGoldHeld() {
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.bloodType = "AB+";
+        creatureComponent.pay = 270;
+        Entity entity = (Entity) Proxy.newProxyInstance(Entity.class.getClassLoader(), new Class<?>[]{Entity.class},
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "get" -> args[0] == CreatureComponent.class ? creatureComponent
+                            : args[0] == Gold.class ? new Gold(125, 500) : null;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
+
+        // The end of text 2409
+        assertEquals("Blood Group: AB+.  Current Wage: 270.  Gold Held: 125.",
+                new CreatureTextParser(null).parseText("Blood Group: %34.  Current Wage: %35.  Gold Held: %36.", entity, null));
     }
 
     private static Objective objective(Thing.HeroParty.Objective objective) {

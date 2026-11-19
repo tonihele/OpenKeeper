@@ -101,6 +101,16 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                     return Integer.toString(creatureEfficiency.efficiencyPercentage);
                 }
                 return "";
+            case CREATURE_BLOOD_TYPE:
+                CreatureComponent bloodTypeComponent = entity.get(CreatureComponent.class);
+                return bloodTypeComponent != null ? bloodTypeComponent.bloodType : "";
+            case CREATURE_PAY:
+
+                // The pay of the creature's level, like the next payday pays it (0x48D340)
+                CreatureComponent payComponent = entity.get(CreatureComponent.class);
+                return payComponent != null ? Integer.toString(payComponent.pay) : "";
+            case CREATURE_GOLD:
+                return super.getReplacement(TextParameter.ENTITY_GOLD, entity, creature);
             default:
                 return super.getReplacement(parameter, entity, creature);
         }
