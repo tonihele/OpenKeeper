@@ -137,6 +137,7 @@ class CreatureTurncoatAllegianceTest {
     private static ICreatureController creatureController(EntityId entity) {
         return proxy(ICreatureController.class, (method, args) -> switch (method) {
             case "getEntityId" -> entity;
+            case "isWorker" -> false;
             default -> null;
         });
     }
