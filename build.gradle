@@ -92,6 +92,18 @@ tasks.register("auditAnimationTopology", JavaExec) {
     maxHeapSize = '1g'
 }
 
+tasks.register("bakeVertexAnimationClips", JavaExec) {
+    group = "verification"
+    description = "Isolated source-bound vertex clip bake, quantization/reference and source LOD index audit"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexClipBake'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath
+    maxHeapSize = '1g'
+}
+
 tasks.register("captureCharacterAnimation", JavaExec) {
     group = "verification"
     description = "Opt-in OpenGL playback/transition/pause capture using installed assets"

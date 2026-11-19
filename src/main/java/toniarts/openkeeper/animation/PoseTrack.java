@@ -216,6 +216,14 @@ public final class PoseTrack extends MorphTrack {
         }
     }
 
+    /** Copies one decoded source key without changing live pose, bounds, collision data or sampler caches. */
+    public void copyFrame(int index, float[] destination) {
+        FloatBuffer bind = (FloatBuffer)getTarget().getMesh().getBuffer(Type.BindPosePosition).getData();
+        if (index < 0 || index >= frames.length || destination == null || destination.length != bind.limit())
+            throw new IllegalArgumentException("Expected valid source key and matching XYZ destination");
+        decodeFrame(index, destination, bind);
+    }
+
     private void decodeFrame(int index, float[] vertices, FloatBuffer bindPose) {
         for (int i = 0; i < vertices.length; i++) {
             vertices[i] = bindPose.get(i);

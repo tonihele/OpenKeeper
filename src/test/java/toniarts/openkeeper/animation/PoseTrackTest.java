@@ -13,6 +13,21 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PoseTrackTest {
+    @Test void packedBakeIsReadOnlyAndMatchesSparseSamplingAtFractionalTimes() {
+        var source = track(1f/30);
+        source.getDataAtTime(.25,null);
+        var buffer = source.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position);
+        float before = x(source); buffer.clearUpdateNeeded();
+        var packed = VertexClip.bake(source,1024*1024);
+        assertEquals(before,x(source)); assertFalse(buffer.isUpdateNeeded());
+        float[] out = new float[packed.vertexCount()*3];
+        for (int i=-5;i<120;i++) {
+            double time=i/100.0; packed.sample(time,out); source.getDataAtTime(time,null);
+            var actual=(FloatBuffer)buffer.getData();
+            for (int j=0;j<out.length;j++) assertEquals(actual.get(j),out[j],0);
+        }
+        assertThrows(IllegalArgumentException.class,()->VertexClip.bake(source,1));
+    }
     @Test void mismatchedPositionAndBindLayoutsAreRejectedBeforeAnySample() {
         var mesh = new Mesh(); mesh.setBuffer(VertexBuffer.Type.Position,3,new float[]{0,0,0,1,1,1});
         mesh.setBuffer(VertexBuffer.Type.BindPosePosition,3,new float[]{0,0,0});
