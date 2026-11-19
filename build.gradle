@@ -81,6 +81,17 @@ tasks.register("auditCreatureAnimationCatalog", JavaExec) {
     if (providers.gradleProperty('animationMetadataRoot').isPresent()) args providers.gradleProperty('animationMetadataRoot').get()
 }
 
+tasks.register("auditAnimationTopology", JavaExec) {
+    group = "verification"
+    description = "Read-only cross-clip topology/transform/material-descriptor screen; no semantic mapping claim"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationTopologyAudit'
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.file('animation-topology.csv').get().asFile.absolutePath
+    maxHeapSize = '1g'
+}
+
 tasks.register("captureCharacterAnimation", JavaExec) {
     group = "verification"
     description = "Opt-in OpenGL playback/transition/pause capture using installed assets"

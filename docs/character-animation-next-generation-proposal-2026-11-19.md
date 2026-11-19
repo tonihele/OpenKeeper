@@ -553,3 +553,13 @@ Validation:
 - Inspected `build/motion-smoke-home/.OpenKeeper/SCRSHOTS/Main2.png`: the initial room/UI and visible Imps render. This fixed view does not establish inspection of every creature or original DK2 visual parity.
 
 **Acceptance still open:** controlled remote jitter/coalescing and possession-camera latency; collision/corner/attachment visual scenarios across an entire session; representative crowd CPU/network/residency measurements and native contact comparisons. Linear root interpolation does not reconstruct unsampled path corners. The feature remains opt-in and N02's full acceptance checkbox remains open. The implementation improves coherent presentation in the verified scope without claiming all movement/gameplay acceptance complete. N01's real-session publication/pause fixture is now supplied by this task; its remaining reference/attribution requirements remain open.
+
+Motion-publication/interpolation commit: `13e79e6`.
+
+### N05 — Maintained cross-clip compatibility audit; blending not yet accepted
+
+Replaced the temporary topology screen with maintained `AnimationTopologyAudit` / `auditAnimationTopology`. It compares ordered vertex counts, primitive/index streams, UV layout/data and separately hashes ancestor transforms and material descriptors (including alpha/atlas policy). Position changes intentionally do not alter structural identity. Two synthetic regression tests verify pose independence, UV/index rejection and separate ancestor-placement reporting.
+
+`test --tests ...AnimationTopologyAuditTest auditAnimationTopology` passed against installed assets after final signature refinements (`D:/Temp/animation-next-n05-final.txt`). Output: **52 clips, 12 absent slots, 145 pair comparisons, two structural matches; WALK comparisons remain 0/44**. The two candidates are Warlock STAND_STILL/IDLE_1 and Firefly STAND_STILL/IDLE_1; both match material descriptors but **differ in transform descriptors**. CSV: ignored `build/animation-topology.csv`. No assets were reconverted or written.
+
+This expands the original evidence rather than asserting all cross-clip blending impossible. Matching signatures are only a necessary screen. No source supplies an anatomical correspondence map or a validated canonical actor-space mapping for these candidates. Raw ordered array blending is rejected for the 143 mismatching pairs; it is not silently enabled for the two candidates. Transform normalization, semantic/trajectory validation, interrupted transition implementation and contact/jump acceptance remain open, so N05 stays unchecked. The audit is an independently verified prerequisite, not a completion claim for blending.
