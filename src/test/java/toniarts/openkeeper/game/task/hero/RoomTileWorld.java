@@ -115,7 +115,7 @@ public final class RoomTileWorld {
         return defaultValue(proxy, method);
     });
     private final IGameTimer gameTimer = stub(IGameTimer.class, (proxy, method, args) -> method.getName().equals("getGameTime") ? gameTime : defaultValue(proxy, method));
-    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(new DefaultEntityData(), playerService, gameTimer);
+    private final RoomAttackMessages roomAttackMessages = new RoomAttackMessages(new DefaultEntityData(), playerService, gameTimer, 4);
     @SuppressWarnings("unchecked")
     public final IGameWorldController gameWorldController = stub(IGameWorldController.class, (proxy, method, args) -> {
         if (method.getName().equals("destroyRoomTiles")) {

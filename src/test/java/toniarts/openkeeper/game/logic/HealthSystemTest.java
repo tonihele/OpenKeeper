@@ -186,7 +186,7 @@ class HealthSystemTest {
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, -1),
                         MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND,
                         DestroyRoomsFixtures.destroyRoomsVariable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 1)),
-                stub(ICreaturesController.class, null), new RoomAttackMessages(entityData, playerService, gameTimer),
+                stub(ICreaturesController.class, null), new RoomAttackMessages(entityData, playerService, gameTimer, 4),
                 levelInfo, List.of(), stub(IMapController.class, null),
                 gameTimer, stub(GameEventService.class, null));
     }

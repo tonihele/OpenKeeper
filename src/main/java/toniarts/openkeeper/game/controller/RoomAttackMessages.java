@@ -36,7 +36,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  * spoken again while the same one, about the same room type where the message
  * has one per room type, is still held. The queue holds at most 256 messages
  * for all the keepers together, a new one takes the place of the oldest
- * (0x4C4090).
+ * (0x4C4090). Every message in the table has flag 0x2000, which shows it as a
+ * message tab, and the per tick update (0x4C41E0) clears that once the message
+ * is 200 ticks old, so the tab goes after 200 ticks even while the message is
+ * still held.
  */
 public final class RoomAttackMessages {
 
@@ -44,6 +47,11 @@ public final class RoomAttackMessages {
      * How many messages the queue holds, for all the keepers together
      */
     private static final int QUEUE_SIZE = 256;
+
+    /**
+     * How many ticks a message shows its tab, whatever the level's speed
+     */
+    private static final int TAB_TICKS = 200;
 
     private enum Message {
 
@@ -153,6 +161,7 @@ public final class RoomAttackMessages {
     private final EntityData entityData;
     private final PlayerService playerService;
     private final IGameTimer gameTimer;
+    private final int ticksPerSecond;
 
     /**
      * Create the room messages
@@ -161,11 +170,13 @@ public final class RoomAttackMessages {
      * @param playerService the players to tell, may be {@code null} when there
      * is nobody to tell
      * @param gameTimer the game time
+     * @param ticksPerSecond the level's ticks per second
      */
-    public RoomAttackMessages(EntityData entityData, PlayerService playerService, IGameTimer gameTimer) {
+    public RoomAttackMessages(EntityData entityData, PlayerService playerService, IGameTimer gameTimer, int ticksPerSecond) {
         this.entityData = entityData;
         this.playerService = playerService;
         this.gameTimer = gameTimer;
+        this.ticksPerSecond = ticksPerSecond;
     }
 
     /**
@@ -295,7 +306,7 @@ public final class RoomAttackMessages {
         }
         entityData.setComponent(entityData.createEntity(), new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
         playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, namedPlayerId, ownerId,
-                (float) message.getDuration(roomId));
+                (float) Math.min(message.getDuration(roomId), TAB_TICKS / (double) ticksPerSecond));
     }
 
 }

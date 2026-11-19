@@ -120,7 +120,7 @@ class LowManaSystemTest {
         entityData.setComponent(playerEntity, new KeeperComponent(PLAYER_ID));
         IGameTimer gameTimer = stub(IGameTimer.class, (method, args) -> method.equals("getGameTime") ? gameTime : null);
         system = new LowManaSystem(entityData, kwdFile, List.of(playerController), settings,
-                new RoomAttackMessages(entityData, playerService, gameTimer), gameEventService);
+                new RoomAttackMessages(entityData, playerService, gameTimer, 4), gameEventService);
     }
 
     @Test
