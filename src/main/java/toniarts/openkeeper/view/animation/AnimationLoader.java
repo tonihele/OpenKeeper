@@ -8,6 +8,7 @@ import com.jme3.scene.Spatial;
 import java.lang.System.Logger.Level;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.HashMap;
 import java.util.function.DoubleSupplier;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
@@ -72,12 +73,16 @@ public final class AnimationLoader {
     public static PlaybackResult playAnimation(Spatial spatial, ArtResource art, ModelSource source, boolean endFrame) {
         if (!(spatial instanceof Node root) || art == null || art.getType() == ArtResource.ArtResourceType.NONE)
             return PlaybackResult.UNAVAILABLE;
+        var cache = root.getControl(PreparedAnimationCache.class);
+        boolean retained = false;
         try {
-            var cache = root.getControl(PreparedAnimationCache.class);
             List<Spatial> prepared = cache == null ? null : cache.get(art);
+            // An active entry cannot be sampled transactionally without changing its live buffers.
+            // Reuse inactive entries; active restarts prepare an isolated replacement.
+            if (prepared != null) for (Spatial child : prepared) if (child.getParent() == root) { prepared = null; break; }
+            retained = prepared != null;
             if (prepared == null) {
                 prepared = prepareResource(art,source);
-                if (cache != null && !prepared.isEmpty()) cache.put(art,prepared);
             } else for (Spatial child : prepared) child.depthFirstTraversal(node -> {
                 node.setUserData(WAS_ENABLED,null);
                 var composer = node.getControl(AnimComposer.class);
@@ -86,19 +91,40 @@ public final class AnimationLoader {
                 }
             });
             if (prepared.isEmpty()) return PlaybackResult.UNAVAILABLE;
-            for (Spatial child : root.getChildren())
-                if (!Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) child.removeFromParent();
-            for (Spatial child : prepared) root.attachChild(child);
-            root.removeControl(AnimationPlayback.class);
-            var playback = new AnimationPlayback(root,art.getName());
-            root.addControlAt(0,playback);
-            root.setUserData(MODEL_REVISION,getModelRevision(root)+1);
-            playback.seek(endFrame ? Double.MAX_VALUE : 0);
+            Node staging = new Node("Animation preparation");
+            for (Spatial child : prepared) staging.attachChild(child);
+            var playback = new AnimationPlayback(prepared,art);
             var control = root.getControl(AnimationControl.class);
-            if (control != null) control.onAnimationAttached();
+            playback.prepare(endFrame ? Double.MAX_VALUE : 0,control == null
+                    ? AnimationControl.PlaybackPolicy.LOOP : control.getPlaybackPolicy());
+
+            var oldChildren = List.copyOf(root.getChildren());
+            var oldPlayback = root.getControl(AnimationPlayback.class);
+            var oldData = new HashMap<String,Object>();
+            for (String key : root.getUserDataKeys()) oldData.put(key,root.getUserData(key));
+            try {
+                for (Spatial child : oldChildren)
+                    if (!Boolean.FALSE.equals(child.getUserData(AssetUtils.USER_DATA_KEY_REMOVABLE))) child.removeFromParent();
+                for (Spatial child : prepared) root.attachChild(child);
+                root.removeControl(AnimationPlayback.class);
+                root.addControlAt(0,playback);
+                if (control != null) control.onAnimationAttached();
+                if (cache != null) cache.put(art,prepared);
+                root.setUserData(MODEL_REVISION,getModelRevision(root)+1);
+            } catch (Exception failure) {
+                root.removeControl(playback);
+                root.detachAllChildren();
+                for (Spatial child : oldChildren) root.attachChild(child);
+                if (oldPlayback != null) root.addControlAt(0,oldPlayback);
+                for (String key : List.copyOf(root.getUserDataKeys())) root.setUserData(key,null);
+                oldData.forEach(root::setUserData);
+                throw failure;
+            }
             root.setUserData(LAST_FAILURE,null);
             return PlaybackResult.STARTED;
         } catch (Exception exception) {
+            // A failed inactive entry must not poison future preparation attempts.
+            if (cache != null && retained) cache.remove(art);
             if (!art.getName().equals(root.getUserData(LAST_FAILURE))) {
                 LOGGER.log(Level.WARNING,"Could not prepare animation "+art.getName(),exception);
                 root.setUserData(LAST_FAILURE,art.getName());

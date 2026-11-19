@@ -137,6 +137,14 @@ public final class PoseTrack extends MorphTrack {
     private transient double pendingSampleTime = Double.NaN;
 
     private void validateFrames() {
+        Mesh mesh = getTarget().getMesh();
+        var position = mesh.getBuffer(Type.Position);
+        var bind = mesh.getBuffer(Type.BindPosePosition);
+        if (position == null || bind == null || position.getNumComponents() != 3 || bind.getNumComponents() != 3
+                || !(position.getData() instanceof FloatBuffer positions) || !(bind.getData() instanceof FloatBuffer binds)
+                || positions.limit() != binds.limit() || positions.limit() % 3 != 0) {
+            throw new IllegalArgumentException("Pose position and bind buffers must have matching XYZ layouts");
+        }
         if (frames == null || frames.length != getTimes().length) {
             throw new IllegalArgumentException("Pose frame count must match key times");
         }

@@ -63,6 +63,10 @@ public final class PreparedAnimationCache extends AbstractControl {
     }
 
     public int size() { return entries.size(); }
+    void remove(ArtResource resource) {
+        Entry removed = entries.remove(Key.of(resource));
+        if (removed != null) residentBytes -= removed.bytes;
+    }
     /** Owned position output plus two decoded arrays; other objects are bounded by clip count. */
     public long getResidentPositionBytes() { return residentBytes; }
     public void clear() { entries.clear(); residentBytes = 0; }

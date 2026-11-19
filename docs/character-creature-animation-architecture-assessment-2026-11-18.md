@@ -352,7 +352,7 @@ Action tracking:
 - [ ] Establish shared timing metadata and resolve original endpoint/segment conventions. **Partial / blocked B1a**; implementation in 11.6, acceptance prerequisite in 11.23.
 - [x] Bake conservative clip bounds and decide animated picking semantics. See 11.4.
 - [ ] Validate and correct CLAMP/cycle behavior. **Partial / blocked B1b**; mechanism fixed in 11.8, original interpretation unverified.
-- [ ] Make replacement transactional and fallbacks explicit. Load failures handled; review R3/R5 reopen lifecycle and first-sample acceptance.
+- [x] Make replacement transactional and fallbacks explicit. Review R3/R5 covers logical exits, staged segment evaluation, cache admission and publication rollback.
 - [x] Define once/loop/hold/exit/interrupt policies; cover interrupted playback and cleanup. Review R1/R2 covers paused segment changes, remainder, silent initial seeks and reentrant replacement; new original behavior rules remain blocked.
 - [x] Freeze playback correctly on pause and align presentation markers with shared phase. Review R1/R2/R3 covers pause, sustained phase and activity exit on failed art; audible full-game contact acceptance remains separate.
 - [x] Remove shared mutable transform publication before adding interpolation or workers. See 11.10; whole-session lifecycle stress remains open before interpolation/workers.
@@ -687,3 +687,5 @@ R2: one `AnimationPlayback` owner now carries elapsed time across all segments/t
 R3: requested activity and successful visual state are separate. Missing art holds the last valid pose, stops owned activity sounds and disables old activity scheduling; no corpse art is invented. Death effects are deduplicated by logical transition even when art is unavailable. Eleven focused world-view, recording-backend audio, request/control and timeline tests pass (`build/fix-r3-tests.txt`). R2 commit: `c89268e`.
 
 R4: fresh and retained attachments reapply owner hover policy, restore any previous charred diffuse source and retain tint through lighting-material conversion. Eighteen focused regressions and the hover/transition/shadow GL sequence pass (`build/fix-r4-tests.txt`, `build/fix-r4-gl.txt`). No per-frame scan or blanket clone-on-hit is introduced. Default retention stays zero; global cache lifetime/residency is still B3. R3 commit: `d31f844`.
+
+R5: segment initial/terminal poses and requested initial phase are preflighted detached; position/bind layouts are validated. Successful cache/revision publication follows initialization; owner-hook failure restores previous children, timeline and metadata. Active same-clip restarts use isolated replacements to preserve live buffers; inactive reuse remains available. Thirty-four focused regressions, the 1340-sample installed audit and GL transition sequence pass (`build/fix-r5-*`). R4 commit: `a6dfb1d`.

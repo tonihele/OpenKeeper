@@ -13,6 +13,14 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PoseTrackTest {
+    @Test void mismatchedPositionAndBindLayoutsAreRejectedBeforeAnySample() {
+        var mesh = new Mesh(); mesh.setBuffer(VertexBuffer.Type.Position,3,new float[]{0,0,0,1,1,1});
+        mesh.setBuffer(VertexBuffer.Type.BindPosePosition,3,new float[]{0,0,0});
+        var target = new Geometry("invalid-layout",mesh);
+        var pose = new Pose("a",new Vector3f[]{new Vector3f()},new int[]{0});
+        assertThrows(IllegalArgumentException.class,()->new PoseTrack(target,new float[]{0},
+                new PoseTrack.PoseFrame[]{new PoseTrack.PoseFrame(new Pose[]{pose,pose},new float[]{0})}));
+    }
     @Test void completedHiddenOneShotCanFlushItsFinalPoseWithoutAnotherComposerUpdate() {
         var track = track(0); Node root = new Node(); root.attachChild(track.getTarget());
         track.getDataAtTime(.25,null); assertEquals(.5,x(track),1e-6);

@@ -9,6 +9,8 @@ import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.util.clone.Cloner;
 import java.util.function.DoubleSupplier;
+import java.util.List;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
 
 /** One elapsed-time owner for start, repeated main and end; composers only sample. */
 final class AnimationPlayback extends AbstractControl {
@@ -30,8 +32,10 @@ final class AnimationPlayback extends AbstractControl {
     /** Runtime playback is not serialized; converted clips remain ordinary AnimComposers. */
     public AnimationPlayback() { setEnabled(false); }
 
-    AnimationPlayback(Node root, String mainName) {
-        models = new Spatial[]{root.getChild("Start"), root.getChild(mainName), root.getChild("End")};
+    AnimationPlayback(List<Spatial> prepared, ArtResource resource) {
+        models = new Spatial[3]; models[1] = prepared.get(0); int next = 1;
+        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) models[0] = prepared.get(next++);
+        if (resource.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) models[2] = prepared.get(next);
         composers = new AnimComposer[3]; actions = new PlaybackAction[3];
         for (int i = 0; i < 3; i++) if (models[i] != null) {
             composers[i] = models[i].getControl(AnimComposer.class);
@@ -63,14 +67,26 @@ final class AnimationPlayback extends AbstractControl {
 
     /** Discontinuous/initial seeking samples state without replaying historical callbacks. */
     void seek(double time) {
+        seek(time,policy());
+    }
+
+    /** Validates even inactive segment endpoints off the live/hidden owner tree. */
+    void prepare(double time, AnimationControl.PlaybackPolicy policy) {
+        for (int i=0;i<3;i++) if (actions[i] != null) {
+            sample(i,0,false); sample(i,length(i),false);
+        }
+        seek(time,policy);
+    }
+
+    private void seek(double time, AnimationControl.PlaybackPolicy policy) {
         if (!Double.isFinite(time)) return;
         age = Math.max(0, time); stopped = hold = false; exitAt = Double.NaN;
         double length = length(1), mainAge = Math.max(0, age - length(0));
         traversals = length > 0 ? (long) Math.floor(mainAge / length) : 0;
         if (length > 0 && mainAge >= length
-                && (policy() != AnimationControl.PlaybackPolicy.LOOP || loopMode == LoopMode.DontLoop)) {
+                && (policy != AnimationControl.PlaybackPolicy.LOOP || loopMode == LoopMode.DontLoop)) {
             exitAt = length;
-            hold = policy() == AnimationControl.PlaybackPolicy.HOLD;
+            hold = policy == AnimationControl.PlaybackPolicy.HOLD;
             stopped = hold || mainAge >= exitAt + length(2);
         }
         renderPose();
