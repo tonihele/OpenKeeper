@@ -69,7 +69,11 @@ class HealthSystemStunTest {
         gameSettings.put(MiscType.STUN_TIME_PERCENTAGE_INCREASE_WHEN_HIT,
                 CreatureSleepFixtures.variable(MiscType.STUN_TIME_PERCENTAGE_INCREASE_WHEN_HIT, 25));
 
-        IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> method.equals("getImp") ? IMP : null);
+        IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> switch (method) {
+            case "getImp" -> IMP;
+            case "getCreature" -> CreatureSleepFixtures.sleeper(0);
+            default -> null;
+        });
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwdFile : null);
         IGameTimer gameTimer = proxy(IGameTimer.class, (method, args) -> method.equals("getGameTime") ? gameTime : null);
         healthSystem = new HealthSystem(entityData, proxy(IEntityPositionLookup.class, (method, args) -> null),
