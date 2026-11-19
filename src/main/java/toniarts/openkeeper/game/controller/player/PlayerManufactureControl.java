@@ -16,7 +16,7 @@
  */
 package toniarts.openkeeper.game.controller.player;
 
-import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.game.controller.ManufactureOrders;
 
 /**
  * The keeper's manufacturing progress. All the creatures working in the
@@ -26,7 +26,7 @@ import toniarts.openkeeper.tools.convert.map.Trap;
 public final class PlayerManufactureControl {
 
     private int progress = 0;
-    private Trap trapToManufacture;
+    private ManufactureOrders.Order order;
 
     /**
      * Adds manufacture points to the item in production
@@ -45,6 +45,16 @@ public final class PlayerManufactureControl {
     }
 
     /**
+     * Takes manufacture points away from the item in production, never below
+     * zero
+     *
+     * @param points the points to take away
+     */
+    public void losePoints(int points) {
+        progress = Math.max(0, progress - points);
+    }
+
+    /**
      * @return the manufacture points gathered for the item in production
      */
     public int getProgress() {
@@ -52,24 +62,23 @@ public final class PlayerManufactureControl {
     }
 
     /**
-     * The trap to manufacture next: the oldest blueprint that doesn't have its
-     * crate yet
+     * The item to manufacture next: the oldest trap or door blueprint that
+     * doesn't have its crate yet
      *
-     * @return the trap, {@code null} if every blueprint has its crate
+     * @return the order, {@code null} if every blueprint has its crate
      */
-    public Trap getTrapToManufacture() {
-        return trapToManufacture;
+    public ManufactureOrders.Order getOrder() {
+        return order;
     }
 
     /**
-     * Sets the trap to manufacture next, the {@code PlayerManufactureSystem}
+     * Sets the item to manufacture next, the {@code PlayerManufactureSystem}
      * keeps it up to date
      *
-     * @param trapToManufacture the trap, {@code null} if every blueprint has
-     * its crate
+     * @param order the order, {@code null} if every blueprint has its crate
      */
-    public void setTrapToManufacture(Trap trapToManufacture) {
-        this.trapToManufacture = trapToManufacture;
+    public void setOrder(ManufactureOrders.Order order) {
+        this.order = order;
     }
 
 }
