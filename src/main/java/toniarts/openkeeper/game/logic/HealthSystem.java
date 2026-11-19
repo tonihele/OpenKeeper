@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
@@ -75,6 +76,12 @@ import java.util.Set;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class HealthSystem extends GameTimeCounter {
+
+    /**
+     * The Frozen Body Explode effect. Not in the creature data: DKII.EXE names
+     * it by number where a frozen creature is removed (0x487C70)
+     */
+    private static final int FROZEN_BODY_EXPLODE_EFFECT_ID = 260;
 
     /**
      * The Hero Lair terrain, DK II tells it by its id (DKII.EXE 0x488930)
@@ -236,6 +243,7 @@ public final class HealthSystem extends GameTimeCounter {
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            shatter(entityId);
             triggerDestroyedEffect(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
@@ -489,6 +497,10 @@ public final class HealthSystem extends GameTimeCounter {
                 && entityData.getComponent(entityId, CreatureComponent.class) != null) {
             gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
         }
+        if (shatter(entityId)) {
+            entityPositionLookup.getEntityController(entityId).remove();
+            return;
+        }
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, ChickenAi.class);
@@ -501,6 +513,24 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
         entityData.setComponent(entityId, new Death(timeElapsed));
+    }
+
+    /**
+     * A creature that dies frozen shatters: DK II plays the Frozen Body Explode
+     * effect and leaves no body (DKII.EXE 0x487C70)
+     *
+     * @param entityId the dying entity
+     * @return whether it was frozen
+     */
+    private boolean shatter(EntityId entityId) {
+        if (entityData.getComponent(entityId, Frozen.class) == null) {
+            return false;
+        }
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (position != null) {
+            gameEventService.emitEffect(FROZEN_BODY_EXPLODE_EFFECT_ID, position.position, 0);
+        }
+        return true;
     }
 
     private void processAddedEntities(Set<Entity> entities) {
