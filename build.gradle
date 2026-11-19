@@ -60,6 +60,11 @@ configure([project(":core"), project(":client")]) {
 
     test {
         useJUnitPlatform()
+
+        // "gradlew test --tests X" runs in both projects, only one of them has the test
+        filter {
+            failOnNoMatchingTests = false
+        }
     }
 
     java {
