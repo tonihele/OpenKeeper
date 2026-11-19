@@ -75,6 +75,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private final EntitySet creatureViewEntities;
     private final toniarts.openkeeper.game.controller.IGameTimer gameTimer;
     private final EntityId clockEntity;
+    private final boolean publishMotion;
+    private long motionSequence;
     private final java.util.Map<EntityId, Position> previousPositions = new java.util.HashMap<>();
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
@@ -85,9 +87,15 @@ public final class CreatureViewSystem extends GameTimeCounter {
     }
 
     public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile, toniarts.openkeeper.game.controller.IGameTimer gameTimer) {
+        this(entityData, kwdFile, gameTimer, false);
+    }
+
+    public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile,
+            toniarts.openkeeper.game.controller.IGameTimer gameTimer, boolean publishMotion) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
+        this.publishMotion = publishMotion;
         clockEntity = entityData.createEntity();
 
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
@@ -99,6 +107,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         super.processTick(tpf);
         if (gameTimer != null) timeElapsed = gameTimer.getGameTime();
         entityData.setComponent(clockEntity, new toniarts.openkeeper.game.component.SimulationTime(timeElapsed, tpf));
+        motionSequence++;
         // Add new & remove old
         if (creatureViewEntities.applyChanges()) {
             processAddedEntities(creatureViewEntities.getAddedEntities());
@@ -110,9 +119,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
             // Determine what animation to show
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
+            if (state == null) continue;
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
             Position position = entityData.getComponent(entityId, Position.class);
+            if (position == null) continue;
             Position previous = previousPositions.put(entityId, position);
             float dx = previous == null || position == null ? 0 : position.position.x - previous.position.x;
             float dz = previous == null || position == null ? 0 : position.position.z - previous.position.z;
@@ -158,8 +169,14 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
             // Change!
             if (currentState != targetState || restart) {
-                entityData.setComponent(entityId, state.next(timeElapsed, targetState));
+                state = state.next(timeElapsed, targetState);
+                entityData.setComponent(entityId, state);
             }
+            if (publishMotion) entityData.setComponent(entityId, new toniarts.openkeeper.game.component.CreatureMotion(
+                    timeElapsed, tpf, motionSequence, position, state,
+                    entityData.getComponent(entityId, Possessed.class) != null
+                    || entityData.getComponent(entityId, toniarts.openkeeper.game.component.HauledBy.class) != null
+                    || state.state == Creature.AnimationType.TORTURED_WHEEL));
         }
     }
 
@@ -201,6 +218,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             int index = Collections.binarySearch(creatureEntities, entity.getId());
             creatureEntities.remove(index);
             previousPositions.remove(entity.getId());
+            if (publishMotion) entityData.removeComponent(entity.getId(), toniarts.openkeeper.game.component.CreatureMotion.class);
         }
     }
 
@@ -212,6 +230,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
     @Override
     public void stop() {
         entityData.removeEntity(clockEntity);
+        if (publishMotion) for (EntityId id : creatureEntities.getArray())
+            entityData.removeComponent(id, toniarts.openkeeper.game.component.CreatureMotion.class);
         creatureViewEntities.release();
         creatureEntities.clear();
         previousPositions.clear();

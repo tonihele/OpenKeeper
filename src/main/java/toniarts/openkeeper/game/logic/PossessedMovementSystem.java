@@ -84,7 +84,7 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
             }
 
             if (!newPosition.equals(position.position) || movement.rotation != position.rotation) {
-                entityData.setComponent(entity.getId(), new Position(movement.rotation, newPosition));
+                entityData.setComponent(entity.getId(), Position.integrated(position, movement.rotation, newPosition.x, newPosition.y, newPosition.z));
             }
         }
     }

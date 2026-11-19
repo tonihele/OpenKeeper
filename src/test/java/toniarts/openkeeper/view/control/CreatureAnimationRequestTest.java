@@ -38,6 +38,14 @@ class CreatureAnimationRequestTest {
             time[0] = 2.55; root.updateLogicalState(.1f);
             assertEquals(2.55,AnimationLoader.getPlaybackAge(root),1e-9);
             assertEquals(.05,root.getChild("late-work-policy").getControl(com.jme3.anim.AnimComposer.class).getTime(),1e-6);
+            AnimationLoader.pauseAnimations(root); time[0] = 2.6;
+            control.synchronizePresentationClock(); root.updateLogicalState(.1f);
+            assertEquals(2.55,AnimationLoader.getPlaybackAge(root),1e-9);
+            AnimationLoader.resumeAnimations(root); control.synchronizePresentationClock();
+            assertEquals(2.6,AnimationLoader.getPlaybackAge(root),1e-9);
+            assertFalse(control.setViewState(creature,new CreatureViewState((short)1,2.6,Creature.AnimationType.DIE,2)));
+            time[0] = 3; control.synchronizePresentationClock(); root.updateLogicalState(.1f);
+            assertEquals(2.6,AnimationLoader.getPlaybackAge(root),1e-9);
         } finally { control.cleanup(); data.close(); }
     }
     @Test void positionOnlyUpdatesDoNotRestartButSameTickSequenceAndCreatureChangesDo() {

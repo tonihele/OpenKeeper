@@ -247,7 +247,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Position oldPosition = entityData.getComponent(entityId, Position.class);
         if (oldPosition != null) {
 
-            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(),
+            entityData.setComponent(entityId, Position.integrated(oldPosition, -steerableEntity.getOrientation(),
                     steerableEntity.getPosition().x, oldPosition.position.y, steerableEntity.getPosition().y));
         }
     }

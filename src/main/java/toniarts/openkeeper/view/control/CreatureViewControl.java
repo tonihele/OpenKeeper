@@ -96,6 +96,14 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         this.gameTime = Objects.requireNonNull(gameTime);
     }
 
+    /** Silently re-seek after a presentation timeline policy change, retaining failed/paused holds. */
+    public void synchronizePresentationClock() {
+        if (spatial != null && visualRequestActive && activeRequest != null && !AnimationLoader.isPaused(spatial)) {
+            AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), activeRequest.startTime());
+            previousMarkerAge = Double.NaN;
+        }
+    }
+
     /** Accepts restart identity even when the animation enum did not change. */
     public boolean setViewState(Creature creature, CreatureViewState state) {
         var request = new CreatureAnimationRequest(state);

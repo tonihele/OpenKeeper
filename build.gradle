@@ -104,6 +104,17 @@ tasks.register("captureAnimationCoverage", JavaExec) {
     args layout.buildDirectory.dir('animation-coverage').get().asFile.absolutePath
 }
 
+tasks.register("smokeCharacterMotion", JavaExec) {
+    group = "verification"
+    description = "Opt-in real local Alcatraz motion publication/interpolation/pause integration"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CharacterMotionGameSmoke'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get()
+    jvmArgs "-Duser.home=${layout.buildDirectory.dir('motion-smoke-home').get().asFile.absolutePath}"
+}
+
 tasks.register("benchmarkCreaturePreloads", JavaExec) {
     group = "verification"
     description = "Paired warmed old/new creature preload clone/setup workload (CPU only)"
