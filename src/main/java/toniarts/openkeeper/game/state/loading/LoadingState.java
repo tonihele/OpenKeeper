@@ -165,6 +165,8 @@ public abstract class LoadingState extends AbstractAppState {
         loading.close();
     }
 
+    public java.util.concurrent.CompletionStage<Void> whenLoadingStopped() { return loading.whenStopped(); }
+
     @Override
     public void cleanup() {
         loading.close();

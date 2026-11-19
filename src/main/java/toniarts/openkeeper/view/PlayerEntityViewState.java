@@ -185,6 +185,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
+    private boolean disposed;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
@@ -259,6 +260,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
+        if (disposed) return;
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
         this.timer = app.getTimer();
@@ -294,6 +296,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void update(float tpf) {
+        if (disposed) return;
         presentationClock.update(tpf);
 
         // Update the models
@@ -374,10 +377,18 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     @Override
+    public void stateDetached(AppStateManager stateManager) {
+        if (!isInitialized()) cleanup();
+    }
+
+    @Override
     public void cleanup() {
+        if (disposed) return;
+        disposed = true;
         presentationClock.close();
         if (motionSnapshots != null) motionSnapshots.release();
         motionTracks.clear();
+        if (!isInitialized()) { super.cleanup(); return; }
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();

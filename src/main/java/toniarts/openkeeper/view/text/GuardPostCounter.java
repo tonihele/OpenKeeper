@@ -38,6 +38,7 @@ public final class GuardPostCounter extends AbstractAppState implements IntSuppl
 
     private final EntitySet traps;
     private final Predicate<Short> guardPostTrapIds;
+    private boolean disposed;
 
     /**
      * Creates a new counter
@@ -74,7 +75,14 @@ public final class GuardPostCounter extends AbstractAppState implements IntSuppl
     }
 
     @Override
+    public void stateDetached(com.jme3.app.state.AppStateManager stateManager) {
+        if (!isInitialized()) cleanup();
+    }
+
+    @Override
     public void cleanup() {
+        if (disposed) return;
+        disposed = true;
         traps.release();
         super.cleanup();
     }

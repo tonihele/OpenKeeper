@@ -134,14 +134,20 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     @Override
+    public void stateDetached(AppStateManager stateManager) {
+        if (!isInitialized()) cleanup();
+    }
+
+    @Override
     public void cleanup() {
+        if (screen == null) return;
         unregisterPauseKey();
-        heartEntities.release();
+        if (heartEntities != null) heartEntities.release();
         heartEntities = null;
 
         // Detach states
         for (AbstractAppState state : appStates) {
-            stateManager.detach(state);
+            app.getStateManager().detach(state);
         }
         appStates.clear();
         interactionState = null;
