@@ -80,7 +80,7 @@ import java.util.Map;
  *
  * @author ArchDemon
  */
-public final class GameLoopManager {
+public final class GameLoopManager implements IGameLoopManager {
 
     private final List<GameLoop> loops = new ArrayList<>();
 
@@ -187,21 +187,21 @@ public final class GameLoopManager {
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }
 
-    public void pause() {
+    @Override public void pause() {
         loops.stream().forEach(GameLoop::pause);
         gameService.setGamePaused(true);
     }
 
-    public void resume() {
+    @Override public void resume() {
         loops.stream().forEach(GameLoop::resume);
         gameService.setGamePaused(false);
     }
 
-    public void start() {
+    @Override public void start() {
         loops.stream().forEach(GameLoop::start);
     }
 
-    public void stop() {
+    @Override public void stop() {
         stopLoops(loops);
     }
 
@@ -219,7 +219,7 @@ public final class GameLoopManager {
         if (failure != null) throw failure;
     }
 
-    public IGameController getGameController() {
+    @Override public IGameController getGameController() {
         return gameController;
     }
 

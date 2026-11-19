@@ -233,6 +233,7 @@ tasks.register("auditAnimationLevelResidency", JavaExec) {
     jvmArgs "-Duser.home=${layout.buildDirectory.dir('residency-smoke-home').get().asFile.absolutePath}"
     systemProperty 'animation.residency.heapDumpOnFailure', providers.gradleProperty('animationResidencyHeapDump').orElse('false').get()
     systemProperty 'animation.residency.heapDumpSamples', providers.gradleProperty('animationResidencyHeapDumpSamples').orElse('false').get()
+    systemProperty 'animation.residency.abortMapLoading', providers.gradleProperty('animationResidencyAbortMapLoading').orElse('false').get()
     maxHeapSize = '2g'
 }
 

@@ -45,6 +45,7 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
     private final Main app;
     private final int cycles;
     private final Path output;
+    private final boolean abortMapLoading = Boolean.getBoolean("animation.residency.abortMapLoading");
     private final CountDownLatch closed = new CountDownLatch(1);
     private volatile Throwable failure;
     private boolean passed;
@@ -53,7 +54,7 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
     private Phase phase = Phase.LOADING;
     private int cycle = 1, frames;
     private long observedStart, previousFrame, maxLoadingFrame, retirementStart;
-    private double loadMs, detachMs, retirementMs;
+    private double loadMs = Double.NaN, detachMs, retirementMs;
     private IKwdFile level;
     private CompletableFuture<Void> retirement;
 
@@ -69,7 +70,9 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
         // Track BufferUtils/LWJGL allocations too: JVM direct-pool counters alone miss these.
         // Diagnostic tracking and forced GC make these load timings unsuitable as production FPS.
         BufferUtils.setTrackDirectMemoryEnabled(true);
-        Path output = Path.of(args[1], "packed-" + packed); Files.createDirectories(output);
+        Path output = Path.of(args[1], "packed-" + packed
+                + (Boolean.getBoolean("animation.residency.abortMapLoading") ? "-abort-map" : ""));
+        Files.createDirectories(output);
         Files.writeString(output.resolve("probe.pid"), Long.toString(ProcessHandle.current().pid()));
         System.out.println("RESIDENCY_PROCESS pid=" + ProcessHandle.current().pid() + " epoch_ms=" + System.currentTimeMillis());
         PathUtils.setDKIIFolder(PathUtils.fixFilePath(args[0]));
@@ -100,9 +103,16 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
             GameClientState client = app.getStateManager().getState(GameClientState.class);
             switch (phase) {
                 case LOADING -> {
-                    if (client != null && observedStart == 0) observedStart = now;
+                    if (client != null) {
+                        level = client.getLevelData();
+                        if (observedStart == 0) observedStart = now;
+                    }
                     if (observedStart != 0 && previousFrame != 0) maxLoadingFrame = Math.max(maxLoadingFrame, now - previousFrame);
-                    if (client != null && client.isInitialized() && client.getEntityViewState() != null
+                    var map = app.getStateManager().getState(PlayerMapViewState.class);
+                    if (abortMapLoading && client != null && map != null && !map.isMapLoaded()) {
+                        System.out.println("RESIDENCY_ABORT_MAP cycle=" + cycle);
+                        retire(client);
+                    } else if (!abortMapLoading && client != null && client.isInitialized() && client.getEntityViewState() != null
                             && client.getEntityViewState().isInitialized()) {
                         level = client.getLevelData();
                         loadMs = (now - observedStart) / 1e6;
@@ -118,15 +128,7 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
                             var capture = app.getStateManager().getState(com.jme3.app.state.ScreenshotAppState.class);
                             if (capture != null) capture.takeScreenshot();
                         }
-                        retired.add(new Retired(new WeakReference<>(client),
-                                new WeakReference<>(app.getStateManager().getState(PlayerMapViewState.class)),
-                                new WeakReference<>(client.getEntityViewState()),
-                                new WeakReference<>(app.getStateManager().getState(GameServerState.class)),
-                                new WeakReference<>(((LocalGameSession) client.getGameClientService()).getServerEntityData())));
-                        retirement = client.whenLoadingStopped().toCompletableFuture();
-                        retirementStart = System.nanoTime();
-                        client.detach(); detachMs = (System.nanoTime() - retirementStart) / 1e6;
-                        phase = Phase.RETIRING;
+                        retire(client);
                     }
                 }
                 case RETIRING -> {
@@ -157,7 +159,7 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
                             passed = true;
                             app.stop();
                         } else {
-                            cycle++; maxLoadingFrame = 0; observedStart = System.nanoTime();
+                            cycle++; loadMs = Double.NaN; maxLoadingFrame = 0; observedStart = System.nanoTime();
                             LocalGameSession.createLocalGame(level, false, app.getStateManager(), app, null);
                             phase = Phase.LOADING;
                         }
@@ -166,6 +168,19 @@ public final class AnimationLevelResidencyProbe extends AbstractAppState {
             }
             previousFrame = now;
         } catch (Throwable error) { failure = error; error.printStackTrace(); app.stop(); }
+    }
+
+    private void retire(GameClientState client) {
+        var server = app.getStateManager().getState(GameServerState.class);
+        if (server == null) throw new AssertionError("Missing actual local server");
+        retired.add(new Retired(new WeakReference<>(client),
+                new WeakReference<>(app.getStateManager().getState(PlayerMapViewState.class)),
+                new WeakReference<>(client.getEntityViewState()), new WeakReference<>(server),
+                new WeakReference<>(((LocalGameSession) client.getGameClientService()).getServerEntityData())));
+        retirement = CompletableFuture.allOf(client.whenLoadingStopped().toCompletableFuture(), server.whenStopped().toCompletableFuture());
+        retirementStart = System.nanoTime();
+        client.detach(); detachMs = (System.nanoTime() - retirementStart) / 1e6;
+        phase = Phase.RETIRING;
     }
 
     private void dumpHeap(String label) throws java.io.IOException {
