@@ -1152,16 +1152,17 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     }
 
     @Override
-    public void changeAI() {
+    public void changeAI(String step) {
         TableControl<PlayerTableRow> playersList = screen.findNiftyControl(PLAYER_LIST_ID, TableControl.class);
         if (playersList != null && !playersList.getSelection().isEmpty()) {
             ClientInfo clientInfo = playersList.getSelection().get(0).getClientInfo();
             if (clientInfo.getKeeper() != null && clientInfo.getKeeper().isAi()) {
 
-                // Get "next"
+                // Like DK II (0x5475A0, 0x547720), a left click picks the next type and a right click the one before
                 List<AI.AIType> types = Arrays.asList(AI.AIType.values());
                 int index = types.indexOf(clientInfo.getKeeper().getAiType());
-                state.getLobbyState().getLobbyService().changeAIType(clientInfo, index + 1 == types.size() ? types.get(0) : types.get(index + 1));
+                state.getLobbyState().getLobbyService().changeAIType(clientInfo,
+                        types.get(Math.floorMod(index + Integer.parseInt(step), types.size())));
             }
         }
     }
