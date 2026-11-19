@@ -38,6 +38,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -48,10 +49,27 @@ class CombatPitKnockOutTest {
     @Test
     void knockedOutPitFighterLeavesTheFight() {
         EntityData entityData = new DefaultEntityData();
+        EntityId fighter = knockOutFighter(entityData, new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID));
+
+        assertNotNull(entityData.getComponent(fighter, Unconscious.class));
+        assertNull(entityData.getComponent(fighter, CombatPitFighter.class));
+    }
+
+    @Test
+    void knockedOutPrisonerIsNotHeldInThePitAnymore() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId prisoner = knockOutFighter(entityData, new Owner(Player.KEEPER2_ID, Player.KEEPER1_ID));
+
+        assertNotNull(entityData.getComponent(prisoner, Unconscious.class));
+        assertEquals(Player.KEEPER2_ID, entityData.getComponent(prisoner, Owner.class).ownerId);
+        assertEquals(Player.KEEPER2_ID, entityData.getComponent(prisoner, Owner.class).controlId);
+    }
+
+    private static EntityId knockOutFighter(EntityData entityData, Owner owner) {
         EntityId fighter = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = FIGHTER;
-        entityData.setComponents(fighter, creatureComponent, new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID),
+        entityData.setComponents(fighter, creatureComponent, owner,
                 new Health(10, 100), new Damage(20), new CombatPitFighter(entityData.createEntity()));
 
         HealthSystem healthSystem = new HealthSystem(entityData, null, Map.of(
@@ -61,9 +79,7 @@ class CombatPitKnockOutTest {
                 stub(ICreaturesController.class), levelInfo(CombatPitFixtures.pitCreature(FIGHTER)), List.of(), null, () -> 1.0,
                 stub(GameEventService.class));
         healthSystem.processTick(1f);
-
-        assertNotNull(entityData.getComponent(fighter, Unconscious.class));
-        assertNull(entityData.getComponent(fighter, CombatPitFighter.class));
+        return fighter;
     }
 
     private static ILevelInfo levelInfo(Creature creature) {
