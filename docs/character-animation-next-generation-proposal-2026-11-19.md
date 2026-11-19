@@ -1,6 +1,6 @@
 # Next-generation creature animation proposal
 
-Date: 2026-11-19. Original status: architectural proposal. Implementation tracking on `feat/animation-next-generation` is recorded in section 13; historical investigation statements below describe the original proposal, not subsequent implementation validation.
+Date: 2026-11-19. Original status: architectural proposal. Implementation evidence on `feat/animation-next-generation` is recorded in section 13; section 14 consolidates every N01–N18 status and the remaining work. Historical investigation statements below describe the original proposal, not subsequent implementation validation.
 
 ## 1. Recommended direction
 
@@ -416,7 +416,7 @@ Visual acceptance needs more than pixel equality. Existing CPU/GPU faithful back
 
 ## 10. Prioritized implementation checklist and roadmap
 
-All entries below are **proposed and unimplemented by this document**. Complexity: S = focused days, M = several focused changes, L = cross-system work, XL = research/asset/engine work. These are relative scope classes, not delivery promises. Performance priorities can change after N01 attribution.
+These are the **original broad acceptance gates**, retained without silently narrowing their scope. Subsequent implementation and experiments are recorded in sections 13–14. An unchecked entry can contain verified, committed subtasks; it does not mean that none of its work exists. A numerical prototype or a rejected shortcut does not satisfy a production integration gate. Complexity: S = focused days, M = several focused changes, L = cross-system work, XL = research/asset/engine work. These are relative scope classes, not delivery promises. Performance priorities can change after N01 attribution.
 
 ### Quick wins and foundations
 
@@ -467,11 +467,11 @@ The largest near-term visual opportunity is likely root/pose coherence and selec
 
 This investigation executed the structural topology diagnostic and inspected source, pending PR state, pinned jME implementation and primary technical references. A separate document check verified the pinned repository file paths and line bounds against local Git objects, all 18 recommendation/checklist pairs, numerical example arithmetic, fenced-code balance and trailing whitespace. This was not an HTTP availability test of every external link.
 
-It did not execute a new full build/test suite, launch a new visual gameplay session, benchmark a new backend, capture the original DK2 executable or establish performance gains. The original recorded validation remains revision-scoped. Production code, existing documentation, converted assets and Git history were left unchanged; this proposal is the only repository file added for the task.
+The **original investigation** did not execute a new full build/test suite, launch a new visual gameplay session, benchmark a new backend, capture the original DK2 executable or establish performance gains. Its recorded validation and unchanged-code statement apply to that investigation revision. Subsequent authorized implementation changes, actual tests, measurements and their limits follow below; they supersede neither the original native-reference gaps nor the full acceptance criteria.
 
 ## 13. Implementation evidence
 
-Implementation branch: `feat/animation-next-generation`, created from freshly fetched upstream `master` (`cd78e5654`) and fast-forwarded to the pending animation baseline `09bdf79b3`. Existing feature history is preserved. The canonical checkout and its untracked assessments are preserved. Nothing is pushed.
+Implementation branch: `feat/animation-next-generation`, created from freshly fetched upstream `master` (`cd78e5654`) and fast-forwarded to the pending animation baseline `09bdf79b3`. Existing feature history is preserved. Production changes live in `D:/Project/OpenKeeper-animation-next-generation`; the canonical checkout remains on `a63005ab3`. At the user's request, the updated proposal is also synchronized to `D:/Project/OpenKeeper/docs/character-animation-next-generation-proposal-2026-11-19.md`. Its original contents are preserved in `D:/Temp/character-animation-proposal-original-96c8bd02f279.md` (SHA256 `96c8bd02f279c10f155a62cb192db9914b54d0624e68549f6f5070136f06e84a`); the other pre-existing untracked assessments are unchanged. Nothing is pushed.
 
 ### N01 — Measurement fixtures implemented; acceptance remains partial
 
@@ -526,7 +526,7 @@ Confirmed defect: identical model/material names and texture-presence queries us
 
 Validation: three new cross-manager/clone/release/weak-cache regression tests plus existing animation texture-policy and catalog tests pass (`D:/Temp/animation-next-n11-test.txt`). Production/test compilation passes. The real GL `captureAnimationCoverage` task passes all four alpha/black-key color/shadow cases (`D:/Temp/animation-next-n11-gl.txt`). No cache retention setting changed. This is a correctness/lifetime-boundary fix; no memory or FPS reduction is claimed.
 
-**Still open:** shared immutable decoded frames, coalesced concurrent preparation and measured ten-level Java/native/GPU residency. Automatic level release is deliberately not inserted into `GameClientState.cleanup()`: its loading thread is asynchronous and currently has no join/cancellation boundary guaranteeing that loads have finished. The new explicit release API has that documented precondition. Adding a render-thread blocking join would violate the proposal. N11 remains partial until loading ownership and residency acceptance are implemented; manager isolation is independently verified and committed.
+**Status at the cache-isolation commit:** shared immutable decoded frames, coalesced concurrent preparation and measured ten-level Java/native/GPU residency remained open. The first two are implemented and verified by the later N11 subsections below. Automatic level release is still deliberately not inserted into `GameClientState.cleanup()`: its loading thread is asynchronous and currently has no cancellation/completed-loading boundary guaranteeing that loads have finished. Adding a render-thread blocking join would violate the proposal. N11 remains partial until session-loader ownership and residency acceptance are implemented; manager isolation is independently verified and committed.
 
 Cache-isolation commit: `dcb9c78`.
 
@@ -541,6 +541,8 @@ Added opt-in `benchmarkSharedVertexClips` to test immutable packed source sharin
 | 2 | 7.2172 / 1.3599 | 17.4488 / 3.3501 |
 
 Measured calling-thread allocation is zero bytes/update after warmup except 11 bytes/update for the first 50-owner sparse case. Owner scratch primitive arrays decrease from 4,461,720 to 2,230,860 bytes at 500, and 8,913,000 to 4,456,500 at 1,000. Including the shared packed payload, this saves 843,756 / 3,069,396 primitive bytes respectively. At 50 owners the same shared payload instead increases that accounting by 1,164,456 bytes. These are primitive-payload calculations, not total Java/native/GPU residency. Sparse source frames, output/bind buffers, topology and materials remain present. The experiment justifies bounded opt-in integration/testing; it is not a whole-frame speedup or completed N11 cache/lifetime acceptance.
+
+Shared-data experiment commit: `350a22a`. Close-camera rendered fixture commit: `94cacfe`.
 
 #### Bounded optional runtime packed sampling
 
@@ -584,6 +586,8 @@ Concurrent cached requests for the same ModelKey now share one private template 
 Model request ownership is counted through cloning and per-instance texture setup. `releaseCaches()` rejects active model requests immediately, enforcing that part of its loading-boundary precondition without blocking the render thread. Standalone material/texture loads and ordinary AssetManager `clearCache()` still require caller-managed loading/root boundaries; this is not general cancellation or automatic GameClientState shutdown.
 
 Five regression tests exercise shared strong/weak preparation, independent clones, load failure/retry, interrupted waits, same-thread recursion, concurrent cycles and release during loading. Together with context/data-cache regressions, **13 targeted tests pass**, and the real 360-frame/48-owner/48-paused-owner enhanced Main smoke repeats successfully with 7,217,144 packed primitive bytes (`D:/Temp/animation-next-n11-coalesce-final.txt`). No hot pose/frame code changed, so earlier pose/render measurements are not rerun or reattributed to this loading fix. Ten-level total residency and GameClientState loader cancellation remain outstanding acceptance work.
+
+Coalescing/release-boundary commit: `b4d7730`.
 
 ### N03 — Validated semantic sidecar schema and audit
 
@@ -634,6 +638,8 @@ Motion-publication/interpolation commit: `13e79e6`.
 
 Follow-up self-review found that direct hauled-creature positions could separate from a delayed carrier. The coherent publication now includes its hauler identity; a second render-owned attachment pass follows the fully presented carrier (independent of track iteration order), keeps world height, and handles different parents without changing ECS coordinates. Ordinary hauling preserves the integration epoch; detachment resets immediate mode through the next snapshot. Missing/self haulers use the authoritative fallback; pause prevents attachment motion. Regression tests cover parent spaces, changing carrier transforms, hauler/job removal, publication identity, epoch ownership and network serialization. Targeted tests and the real 360-frame/48-owner/48-paused-owner smoke pass (`D:/Temp/animation-next-hauling-final.txt`). This synthetic attachment test does not establish visual coverage of every in-game hauling scenario.
 
+Presented-hauling correction commit: `72e531c`.
+
 ### N05 — Maintained cross-clip compatibility audit; blending not yet accepted
 
 Replaced the temporary topology screen with maintained `AnimationTopologyAudit` / `auditAnimationTopology`. It compares ordered vertex counts, primitive/index streams, UV layout/data and separately hashes ancestor transforms and material descriptors (including alpha/atlas policy). Position changes intentionally do not alter structural identity. Two synthetic regression tests verify pose independence, UV/index rejection and separate ancestor-placement reporting.
@@ -666,6 +672,8 @@ Final `test` (codec, bake metric and compatibility sampler), `auditVertexAnimati
 
 Dense files are approximately **6.66× / 3.35×** KMF for Float32/UNORM16 respectively (not equivalent fully delivered asset sizes). This rejects replacing compact source storage indiscriminately; bounded optional shared runtime/GPU representations still need load/residency and transformed projected-error acceptance. LOD indices being valid does not authorize runtime LOD selection: animated silhouette/seam/material tests and source distance policy remain unresolved. No animated geometric LOD, new normal interpretation or key reduction is enabled.
 
+Full-corpus validation commit: `f1d3615`.
+
 ### N06 — Configurable seeded locomotion phase variation
 
 Implemented `LocomotionVariation`, a stateless seed from entity identity, request generation and creature identity. It changes only initial presentation phase, not clip speed, gameplay RNG, action timing or movement. `ANIMATION_PHASE_VARIATION` / persisted `AnimationPhaseVariation` defaults **false**. Eligibility is conservative: WALK/RUN/STEALTH_WALK with current LOOP policy, a finite WRAP period, no Start/End segments and no animated-texture resource. One-shots, combat/work/death, unverified CLAMP/cycle and unsupported art retain their original origin. Animated-texture resources are excluded until their global atlas phase semantics are independently verified.
@@ -686,7 +694,7 @@ Final run passes on RTX 2060 SUPER / OpenGL 3.3 / NVIDIA 617.42: **30 clip parts
 
 The test intentionally reads back the float framebuffer to verify GPU arithmetic. Those synchronization costs make its frame rate unsuitable as a production performance measurement. Test shaders/resources are confined to the test classpath and do not alter shipped lighting materials.
 
-**Production promotion is blocked on unmet acceptance engineering:** all world lighting/coverage/depth/pre/post-shadow/SSAO/glow techniques, conservative culling, precise-picking materialization, instance/material ownership, backend switching and CPU/GPU/full-frame/residency comparisons. Numerical success does not establish those contracts or the N12 speedup gate. In particular, enabling the numeric shader as a world material would discard required rendering behavior, and using it with untouched CPU picking geometry would be incorrect. The compatible CPU backend remains active. N12 stays unchecked until those integration and performance results exist; this commit supplies the verified GPU transport PoC only.
+**Production promotion is not accepted; integration engineering remains:** all world lighting/coverage/depth/pre/post-shadow/SSAO/glow techniques, conservative culling, precise-picking materialization, instance/material ownership, backend switching and CPU/GPU/full-frame/residency comparisons. Numerical success does not establish those contracts or the N12 speedup gate. In particular, enabling the numeric shader as a world material would discard required rendering behavior, and using it with untouched CPU picking geometry would be incorrect. The compatible CPU backend remains active. N12 stays unchecked until those integration and performance results exist; this commit supplies the verified GPU transport PoC only.
 
 GPU numerical-prototype commit: `8624c6a`.
 
@@ -699,3 +707,66 @@ Final targeted tests, bake and audit pass (`D:/Temp/animation-next-n10-final.txt
 At a 16-pixel part diameter, only **788/2,160** cases remain within 0.5 pixel. At 60 Hz display, 15 Hz updates pass 10/240 cases (worst bound 3.399544 px), 30 Hz pass 96/240 (1.779945 px), and full 60 Hz pass 240/240 (zero error). At 144 Hz display, 15 Hz updates pass 9/240 (4.088447 px), 30 Hz pass 52/240 (2.272242 px), and 60 Hz pass 128/240 (1.779945 px). Even 8-pixel parts do not all pass. CSV: ignored `build/animation-update-error.csv`.
 
 **Decision:** reject unqualified fixed distance/rate bands for this corpus; they fail the proposed quality gate before any claimed CPU saving. No production throttling is enabled. A production scheduler still requires per-clip phase/error bounds and the union of main/secondary/shadow-camera requirements, with immediate full-quality camera-cut/selection fallback and independently timed event cursors. These are outstanding engineering, not an external-data blocker or a completed N10. A previous-main-camera cull result and the numeric probe's intentional CullNever policy do not meet that requirement. N10's original checkbox remains open; this experiment rules out a tempting shortcut with reproducible evidence.
+
+Held-pose experiment commit: `85c0c7b`.
+
+## 14. Consolidated implementation checklist and remaining work
+
+This is the current status of **every N01–N18 item**, following the implementation evidence above. The original section-10 checkboxes deliberately retain their complete exit criteria. No broad item is declared complete solely because its supporting tool, optional subset or numerical experiment passed. No GPU production backend, ordinary cross-clip blend, semantic rig or animation scheduler is installed. The CPU reference remains available, and all three new runtime options are disabled by default.
+
+“Data prerequisite” means missing validated input/reference evidence. “Engineering open” means code or integration that has not been delivered; it is **not** an external blocker. “Conditional” means the proposal's specified experiment/promotion prerequisites have not been satisfied, rather than a measured universal rejection of the technique.
+
+| Item | Verified delivery / decision | Exact remaining work and dependency | Status |
+|---|---|---|---|
+| N01 | Deterministic motion/gallery traces and repeatable CPU workloads (`e19fd86`); close-camera rendered attribution with asynchronous GPU queries (`94cacfe`); later classic/packed comparison in `632aaa7`. Actual local-session pause/resume is covered by N02. | Record version-bound original-executable action timelines; exercise controlled remote/possession/hand/action interruption scenarios; measure per-pass world cost and ten-level Java/direct/GPU residency. The supplied installation is source data, not those recordings. | Partial; data/reference and engineering open |
+| N02 | Coherent authoritative root/request publications, epochs, bounded history, shortest-arc yaw, pause/reset/fallback and opt-in settings (`13e79e6`); presented carrier following (`72e531c`). Synthetic motion, serialization and actual local-game checks pass. | Controlled delayed-network/coalescing, possession-camera/corner/collision/all-attachment acceptance, complete gameplay comparison and network/residency cost. Local possession intentionally uses immediate presentation; new local prediction is not implemented. | Partial; integration/acceptance open |
+| N03 | Immutable source/converter-bound sidecar schema, validation and installed catalog reporting (`dec3834`). Missing data keeps classic runtime policy. | Approved positive sidecars and runtime catalog loading/policy-consumer integration, including mismatch/absent/exception-priority tests against actual consumers. Offline validation alone is not runtime integration. | Partial; data prerequisite and engineering open |
+| N04 | N02 supplies a coherent presentation trajectory; classic gait rate and gameplay movement are retained. | Establish per-archetype contact/stride speed and turning references before calibrating visual rate/yaw lag/hysteresis. Implement and compare contact drift and responsiveness with N02/N03. No trustworthy calibration was found in the loose-file inventory. | Data/reference prerequisite; not implemented |
+| N05 | Maintained layout/material/transform screen (`e99cfd1`): 145 pairs, two structural candidates, zero WALK-compatible pairs. Array blending for mismatched layouts rejected. | Normalize/validate actor-space anatomical correspondence for a candidate; then implement phase-aligned transitions, interruptions and measured jump/contact bounds. Different transform descriptors prevent inferring compatibility from the two signature matches. | Partial; correspondence and engineering open |
+| N06 | Optional deterministic locomotion initial-phase diversity, shared pose/marker clock, conservative eligibility and no gameplay RNG changes (`a77d8dc`). Gallery hashes and owner resynchronization regressions pass. | Approved idle weights/cooldowns and native action-selection evidence; near-view and audible-contact/style acceptance. Animated atlas, Start/End and unverified cycle policies remain excluded. | Partial; reference/style acceptance open |
+| N07 | Existing source poses retained; no terrain deformation enabled. | Validated contact anchors/windows and accepted deformation controls; N02/N03 plus N05 or a validated proxy. First measure bounded root adaptation on real dungeon surfaces, then near-view foot placement. A bounding-box bottom is not a validated foot. | Data/control prerequisite; not implemented |
+| N08 | Existing authored head/appendage motion retained. | Head/appendage axes, masks and a verified deformation mechanism from N05/N07/N15; bounded damping, frame-rate/reset/LOD and style tests. Do not rotate an entire mesh to simulate a head layer. | Semantic-control prerequisite; not implemented |
+| N09 | Linear interpolation and existing normals remain the exact reference; N14 supplies interval-wise data/error tooling. | Separate tangent-limited and animated-normal trials with approved smooth segments, hard-edge/normal grouping, conservative envelopes and lit/shadow/contact comparison. Neither visual benefit nor universal rejection has been measured. | Conditional experiment open; not implemented |
+| N10 | Maintained held-pose error experiment (`85c0c7b`) rejects uniform 15/30/60 Hz bands at the proposed quality threshold. N11 reduces CPU work while retaining full-rate output. | Error-aware significance, hysteresis, main/secondary/shadow requirement ownership, re-entry/cut behavior and full event invariants remain unimplemented. N11's gain does not turn this into a completed scheduler. | Partial; fixed-band shortcut rejected, scheduler engineering open |
+| N11 | Manager-owned caches (`dcb9c78`), shared-data experiment (`350a22a`), bounded opt-in production packed sampler (`632aaa7`), concurrent preparation/retry/cycle handling and guarded release (`b4d7730`). Exact corpus/GL output and paired frame benefit verified. | Profile cold preparation/transition latency and ten-level complete residency. Own cancellation/stale publication across GameClientState's loader and render-prewarm queue before automatic level release. Model-request coalescing is not whole-session cancellation. | Partial; lifecycle/residency engineering and acceptance open |
+| N12 | Real GL indexed/nonindexed vertex-texture arithmetic PoC (`8624c6a`), repeated after full-corpus tooling (`f1d3615`). | World color/depth/pre/post-shadow/SSAO/glow and coverage matrix; O1 registration/material integration and O3 numeric-texture policy; CPU precise-picking materialization, culling, resource disposal/backend fallback; then paired CPU/frame/GPU/residency promotion tests. Numerical success supplies none of those world contracts. | Partial; substantial independent integration engineering open |
+| N13 | Draw counts and submission timing now measured by N01; unique mutable CPU output remains per owner. | Depends on N12/O1 ownership and compatible topology/material/coverage groups. Add owner-to-instance generations and per-instance phase/lighting/selection, then measure varied crowds and all passes. Shared transforms alone cannot instance different current CPU meshes. | Conditional integration prerequisite; not implemented |
+| N14 | Source-bound Float32/UNORM16 codec and isolated bake (`c17ce79`); 944-resource error/velocity/byte and LOD-index corpus (`f1d3615`). Reject indiscriminate dense-storage replacement: files exceed compact source bytes. N11 uses bounded optional Float32 runtime data. | Cold/warm load and total delivered residency; transformed projected/silhouette/contact error; animated source-LOD/seam/material/distance validation before enabling LOD. Half-float/key reduction/dedup are comparisons still open, not silently accepted compression policies. | Partial; storage shortcut rejected, further representation/LOD acceptance open |
+| N15 | No inferred skeleton is claimed or installed. | Depends on accepted N05 correspondence and N14 data. Fit several bone/weight budgets, evaluate held-out clips/near silhouette/contact and total delivered cost. Current absence of a rig does not prove skinning decomposition impossible. | Conditional research prerequisite; not implemented |
+| N16 | N11 serial packed sampling provides measured full-rate CPU/frame improvement. | Decide remaining CPU bottleneck using the world/backend comparison, then compare pooled pure-data batches including synchronization/publication cost and stale-generation/lifecycle tests if justified. No worker comparison has run; no parallelism speedup or measured rejection is claimed. | Conditional profiling/experiment open; not implemented |
+| N17 | Pinned jME lacks a maintained high-level compute-dispatch capability/path; CPU/vertex-texture reference experiments use supported APIs. | Requires N12 repeated-pass attribution and a maintained renderer-extension ownership agreement. Only then evaluate compilation/dispatch/binding/barriers/state cache/context disposal and total GPU break-even. Raw LWJGL calls in creature controls are not an acceptable substitute. | Engine/integration prerequisite; not implemented |
+| N18 | Classic cuts retained; no inertialized residual state allocated. | Depends on accepted ordinary N05 blends, plus N15 for a rig variant. Compare discontinuity/contact/cost, repeated interruptions, overshoot, pause and re-entry before promotion. | Transition prerequisite; not implemented |
+
+### Verified subtask checklist
+
+- [x] Establish maintained deterministic trajectory, catalog, topology, CPU and close-view rendered fixtures.
+- [x] Implement and test optional coherent root/pose presentation and presented hauling, retaining authoritative gameplay transforms.
+- [x] Implement and test conservative, deterministic initial locomotion phase variation.
+- [x] Validate semantic sidecars without inventing native semantics or enabling unverified policy.
+- [x] Isolate utility caches per AssetManager; coalesce concurrent model preparation, detect dependency cycles and reject release during active requests.
+- [x] Implement bounded immutable packed CPU source data with owner-local output, exact fallback and compatible serialization.
+- [x] Validate Float32/UNORM16 round trips, interval velocity errors and source LOD indices across all 944 catalog creature resources.
+- [x] Execute actual GL vertex-fetch numerical parity; keep test-only shaders out of production materials.
+- [x] Reject unqualified held-pose rate bands using reproducible measured error.
+- [x] Rerun classic and packed rendered comparisons after unrelated GPU load ends; preserve excluded-run evidence and byte-identical captures.
+- [ ] Complete the broad section-10 exit criteria. The status table is the remediation plan; this checked subtask list does not supersede it.
+
+### Next dependency-aware implementation slices
+
+1. **N11 session lifetime and cold/residency acceptance:** make the GameClientState loader/prewarm publication cancellation-aware without a render-thread blocking join; test exit during prewarm/map-load and stale callbacks. Measure at least ten level cycles and separate live owners, retired contexts, Java objects, direct buffers and GPU disposal. Only then consider defaults or automatic release.
+2. **N02/N01 gameplay/network acceptance:** add delayed/coalesced packet and possession/hand/haul/teleport/removal fixtures, verify unchanged gameplay data, and measure bandwidth/latency before promoting root interpolation.
+3. **N03/N04/N05 reference data:** collect executable-identified native traces; author and review source-bound contact/stride/actor-space annotations for a small representative set. Implement runtime metadata consumption and one validated transition instead of extrapolating anatomy from vertex counts.
+4. **N12 all-pass gallery before world promotion:** integrate the structural O1/O3 ownership contracts and all material techniques, on-demand CPU picking and resource fallback. Measure against the newly improved packed CPU baseline, not the slower pre-N11 reference. N13/N17 depend on this evidence.
+5. **N10 adaptive quality experiment:** use conservative per-clip phase/error bounds and explicitly owned multi-view requirements; keep full-rate fallback wherever a view/shadow requirement is unavailable. Do not ship the failed uniform bands.
+
+These are unfinished engineering slices. They are not marked externally blocked simply because they are larger than the verified commits. Native/semantic and renderer-ownership prerequisites are identified separately above. No integration-readiness claim follows from the partial implementation.
+
+### Final verification at `b4d7730`
+
+`build --rerun-tasks --no-daemon --console=plain` executes all ten tasks successfully: **1,514 tests, zero failures/errors, four existing installed-minimap skips**, with compilation and packaging (`D:/Temp/animation-next-final-build.txt`). Counts are read from the produced JUnit XML, rather than inferred from prior runs. All four skipped `MinimapAssetsTest` cases then execute separately with the canonical asset working directory: **four tests, zero failures/errors/skips** (`D:/Temp/animation-next-final-installed-minimap.txt`, separate `testInstalledMinimapAssets` XML/report). The isolated test-task initialization script is local validation scaffolding in `D:/Temp`, not a new repository build dependency.
+
+The classic-default, shadow-enabled `captureCharacterAnimation` repeats successfully with all new options off: **600 frames / 39 captures**, finite/bounds, pause pixels/poses and hidden/re-entry assertions (`D:/Temp/animation-next-final-classic-shadow.txt`). All **39 pose hashes exactly match** the prior baseline publication's `build/finalize-gl.txt` in `OpenKeeper-character-animation`. The floor geometry is included in shadow-enabled hashes, so comparison uses that same configuration rather than the shadow-free N01/N06 hashes. Frame 150 was inspected: representative creatures and wing cutouts render under the fixture's intentional hover tint. This is rendered regression evidence, not native style/contact approval.
+
+The enhanced real local-game smoke and packed corpus/coverage evidence are revision-scoped in section 13. Later documentation-only edits do not change the measured code. Final self-review checked cache/load publication, immutable versus owner-local data, fallback/serialization and motion epoch/attachment paths; it leaves the explicit session-loader and GPU/metadata integration work above open. The benchmark owns one query pool for its standalone GL context: the pinned Renderer exposes no query-delete method, and the fixture destroys that context on exit rather than allocating pools per workload. No generated/proprietary assets or local validation scripts are staged.
+
+Documentation consistency verification passes: exactly 18 original broad checkboxes and 18 unique status rows, balanced code fences, valid local Markdown file targets and no trailing whitespace in the four updated guides/reports. The check independently re-reads full/installed JUnit XML, compares all 39 classic hashes and re-hashes all four paired rendered PNGs. Both the upstream base and pending baseline remain ancestors of this branch. Each implementation commit contains its scoped tests/evidence; this final documentation consolidation does not change code or claim to complete the remaining work.

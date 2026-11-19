@@ -2,6 +2,8 @@
 
 Date: 2026-11-18. Repository: `D:\Project\OpenKeeper`. Source baseline: `a63005ab362a55540b67daeadaf2eeb00a8ba73a`, branch `fix/dungeon-heart-startup`.
 
+Subsequent optional root presentation, packed CPU sampling, cache isolation and experiments are tracked in the [next-generation implementation evidence and complete N01–N18 status](character-animation-next-generation-proposal-2026-11-19.md#14-consolidated-implementation-checklist-and-remaining-work). The original analysis and its revision-scoped implementation record remain historical; the later proposal does not close unresolved native-reference or broad acceptance gates automatically.
+
 ## 1. Architectural decision
 
 Keep the DK2 vertex-animation representation and improve its timing, validation, playback ownership, and resource lifecycle incrementally. A conversion to skeletal animation would require inventing rigs and weights that the imported assets do not contain, with substantial compatibility and fidelity risk.
