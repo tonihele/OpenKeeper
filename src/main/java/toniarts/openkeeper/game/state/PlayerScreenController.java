@@ -133,7 +133,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private final DoorIconTextParser doorIconTextParser = new DoorIconTextParser();
     private final SpellIconTextParser spellIconTextParser = new SpellIconTextParser(this::getSpellManaCost);
     private final RoomIconTextParser roomIconTextParser = new RoomIconTextParser();
-    private final HudButtonFlasher buttonFlasher = new HudButtonFlasher(this::setButtonFlashing);
+    private final HudButtonFlasher buttonFlasher = new HudButtonFlasher(this::setButtonFlashing, this::playFlashSound);
     private final Set<String> flashingButtons = new HashSet<>();
 
     public PlayerScreenController(PlayerState state, Nifty nifty) {
@@ -207,6 +207,14 @@ public final class PlayerScreenController implements IPlayerScreenController {
      */
     public void flashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
         buttonFlasher.flash(buttonType, targetId, targetButtonType, enabled, time);
+    }
+
+    private void playFlashSound() {
+
+        // DK II's flash sound (0x412FC0), not while the game is paused
+        if (!state.isPaused()) {
+            playSound(GlobalCategory.GUI_BUTTON_ICON, String.valueOf(GlobalType.GUI_BUTTON_FLASH.getId()));
+        }
     }
 
     private void setButtonFlashing(String buttonKey, boolean flashing) {

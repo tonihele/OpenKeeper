@@ -33,7 +33,8 @@ import toniarts.openkeeper.tools.convert.map.TriggerAction.MakeType;
 class HudButtonFlasherTest {
 
     private final Map<String, Boolean> flashing = new HashMap<>();
-    private final HudButtonFlasher flasher = new HudButtonFlasher(flashing::put);
+    private int blinkSounds = 0;
+    private final HudButtonFlasher flasher = new HudButtonFlasher(flashing::put, () -> blinkSounds++);
 
     @Test
     void roomSpellDoorAndTrapButtonsAreFoundByTheirIconIds() {
@@ -98,6 +99,19 @@ class HudButtonFlasherTest {
         flasher.update(0.016f);
 
         assertFalse(flashing.get("sell_0"));
+    }
+
+    @Test
+    void soundPlaysOnceASecondWhenTheButtonLightsUpAgain() {
+        flasher.update(1f);
+        assertEquals(0, blinkSounds);
+
+        // DK II (0x412FC0): half a second bright, half a second dark, and the sound when it is bright again
+        flasher.flash(MakeType.ROOM, (short) 2, null, true, 0);
+        for (int i = 0; i < 16; i++) {
+            flasher.update(HudButtonFlasher.BLINK_TIME / 4);
+        }
+        assertEquals(2, blinkSounds);
     }
 
     @Test

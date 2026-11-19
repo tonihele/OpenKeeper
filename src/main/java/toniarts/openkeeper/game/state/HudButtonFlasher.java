@@ -41,6 +41,11 @@ final class HudButtonFlasher {
      * The key of the creature tab button
      */
     static final String CREATURE_TAB = "tab-creature";
+    /**
+     * A flashing button is bright for half a second and dark for half a
+     * second, as in DK II (0x412FC0)
+     */
+    static final float BLINK_TIME = 0.5f;
 
     /**
      * Switches the flashing of a HUD button on or off. Needs to be safe to call
@@ -53,13 +58,16 @@ final class HudButtonFlasher {
     }
 
     private final Display display;
+    private final Runnable blinkSound;
     private final Map<String, Float> remaining = new HashMap<>();
     private final Set<String> stopped = new HashSet<>();
     private float sinceApplied = 0;
     private boolean changed = false;
+    private float blinkTime = 0;
 
-    HudButtonFlasher(Display display) {
+    HudButtonFlasher(Display display, Runnable blinkSound) {
         this.display = display;
+        this.blinkSound = blinkSound;
     }
 
     /**
@@ -174,6 +182,14 @@ final class HudButtonFlasher {
         if (apply) {
             sinceApplied = 0;
             changed = false;
+        }
+
+        // Like DK II (0x412FC0), a sound plays each time a flashing button lights up again, once a second
+        int blinks = (int) (blinkTime / BLINK_TIME);
+        blinkTime += tpf;
+        int newBlinks = (int) (blinkTime / BLINK_TIME);
+        if (!remaining.isEmpty() && newBlinks != blinks && newBlinks % 2 == 0) {
+            blinkSound.run();
         }
     }
 }
