@@ -35,6 +35,7 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.steering.FurnitureCollision;
 import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -259,7 +260,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
             return true;
         }
         IMapController map = (IMapController) mapInformation;
-        var destination = map.getMapData().getTile(to);
+        IMapTileInformation destination = map.getMapData().getTile(to);
         var controller = creaturesController.createController(id);
         if (destination != null && positionLookup != null
                 && positionLookup.isTileBlocked(to, controller.getOwnerId())) {
