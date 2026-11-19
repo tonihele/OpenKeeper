@@ -27,6 +27,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
@@ -235,8 +236,9 @@ public class EntityController implements IEntityController {
 
     /**
      * Scales the damage a creature takes by what it is doing. DK II counts in
-     * 128ths: a possessed creature takes half, and one that lies stunned or is
-     * getting up takes double. Healing is never scaled
+     * 128ths: a possessed creature takes half, a frozen one a quarter more
+     * (DKII.EXE 0x4B2CE0), and one that lies stunned or is getting up takes
+     * double. Healing is never scaled
      *
      * @param entityData the entity data
      * @param entityId the entity that is hit
@@ -253,10 +255,16 @@ public class EntityController implements IEntityController {
         if (entityData.getComponent(entityId, Possessed.class) != null) {
             multiplier -= 64;
         }
+
+        // A frozen creature stands in the stunned state, but it doesn't lie stunned
+        boolean frozen = entityData.getComponent(entityId, Frozen.class) != null;
+        if (frozen) {
+            multiplier += 32;
+        }
         CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();
-            if (state == CreatureState.STUNNED || state == CreatureState.FALLEN || state == CreatureState.GETTING_UP) {
+            if ((state == CreatureState.STUNNED && !frozen) || state == CreatureState.FALLEN || state == CreatureState.GETTING_UP) {
                 multiplier += 128;
             }
         }

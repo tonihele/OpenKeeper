@@ -292,6 +292,7 @@ class CreatureBackOffTest {
             case "isScared" -> scared.get();
             case "isBackOffOver" -> over.get();
             case "backOff" -> canBackOff.get();
+            case "withdrawToHeroLair" -> false;
             default -> throw new UnsupportedOperationException(method);
         }));
         return self.get();
