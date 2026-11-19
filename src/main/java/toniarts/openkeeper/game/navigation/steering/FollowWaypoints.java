@@ -34,8 +34,8 @@ import java.util.function.ToDoubleFunction;
  * tile and stop within a tenth of a tile.
  * <br>
  * DK II works the steering out once a game tick, as a change of the velocity
- * of a tick, and adds it with the weight 0.35 (0x4D56E0, 0x4D4760). The
- * acceleration here spreads that change over the tick.
+ * of a tick, and adds it with the weight 0.35 (0x4D56E0, 0x4D4760). It is
+ * worked out here once a logic update too, see {@link #setUpdateInterval}.
  * <br>
  * A creature slows down for a crowd round its next waypoint: the share of the
  * way it wants to cover in a tick drops by the sum of the radii of the
@@ -45,9 +45,11 @@ import java.util.function.ToDoubleFunction;
  * creature to face its waypoint before walking, that is not done here.
  * <br>
  * A waypoint inside an obstacle, which holds the creature off it, is passed
- * within 0.8 tiles (0x4D2850). Each tick the creature notes whether it got no
- * nearer the end of its walk. Held up in 5 of the last 15 ticks, it walks
- * through the obstacles until that is down to 2 (0x4D3C40, 0x4D4760).
+ * within 0.8 tiles (0x4D2850).
+ * <br>
+ * Each tick the creature notes whether it got no nearer the end of its walk.
+ * Held up in 5 of the last 15 ticks, it walks through the obstacles until that
+ * is down to 2 (0x4D3C40, 0x4D4760, 0x4D31D0).
  */
 public final class FollowWaypoints extends SteeringBehavior<Vector2> {
 
@@ -91,7 +93,7 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
     private final Predicate<Vector2> inObstacle;
     private final boolean worker;
     private final boolean chase;
-    private final float ticksPerSecond;
+    private float tick;
     private int waypoint;
     private boolean finished;
     private int stalls;
@@ -110,10 +112,9 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
      * @param inObstacle whether a point is inside an obstacle
      * @param worker whether the creature is a worker
      * @param chase whether the creature chases an attack target
-     * @param ticksPerSecond the game ticks a second
      */
     public FollowWaypoints(Steerable<Vector2> owner, List<Vector2> waypoints, ToDoubleFunction<Vector2> crowd,
-            Predicate<Vector2> inObstacle, boolean worker, boolean chase, int ticksPerSecond) {
+            Predicate<Vector2> inObstacle, boolean worker, boolean chase) {
         super(owner);
 
         this.waypoints = waypoints;
@@ -121,7 +122,6 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
         this.inObstacle = inObstacle;
         this.worker = worker;
         this.chase = chase;
-        this.ticksPerSecond = ticksPerSecond;
 
         // Rebuilt half way, the creature is already past the waypoints it is nearer to the next one than they are
         Vector2 position = owner.getPosition();
@@ -161,11 +161,11 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
         } else if (waypoint < last || chase) {
             desired.scl(SEEK_SHARE - (float) Math.min(crowd.applyAsDouble(target), 1));
         } else {
-            desired.scl(Math.min(owner.getMaxLinearSpeed() / ticksPerSecond, distance / ARRIVAL_TICKS) / distance);
+            desired.scl(Math.min(owner.getMaxLinearSpeed() * tick, distance / ARRIVAL_TICKS) / distance);
         }
 
-        // Its change of the velocity of a tick, spread over the tick
-        desired.mulAdd(owner.getLinearVelocity(), -1 / ticksPerSecond).limit(MAX_FORCE).scl(WEIGHT * ticksPerSecond * ticksPerSecond);
+        // Its change of the velocity of a tick, as the acceleration that makes it in the tick
+        desired.mulAdd(owner.getLinearVelocity(), -tick).limit(MAX_FORCE).scl(WEIGHT / (tick * tick));
         return steering;
     }
 
@@ -219,7 +219,7 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
     public boolean isLanding(Vector2 velocity) {
         landing |= endInObstacle && waypoint == waypoints.size() - 1
                 && getOctagonalDistance(getEnd().x - owner.getPosition().x, getEnd().y - owner.getPosition().y)
-                < getOctagonalDistance(velocity.x, velocity.y) / ticksPerSecond;
+                < getOctagonalDistance(velocity.x, velocity.y) * tick;
         return landing && !finished;
     }
 
@@ -242,6 +242,41 @@ public final class FollowWaypoints extends SteeringBehavior<Vector2> {
      */
     private static float getOctagonalDistance(float dx, float dy) {
         return Math.max(Math.abs(dx), Math.abs(dy)) + Math.min(Math.abs(dx), Math.abs(dy)) / 2;
+    }
+
+    /**
+     * Sets the length of the game tick the steering is worked out for. DK II's
+     * values are a tick's, the velocities here are a second's.
+     *
+     * @param tick the length of the tick, in seconds
+     */
+    public void setUpdateInterval(float tick) {
+        this.tick = tick;
+    }
+
+    /**
+     * Whether the creature heads for the last waypoint
+     *
+     * @return true on the last leg of the walk
+     */
+    public boolean isOnLastLeg() {
+        return waypoint == waypoints.size() - 1;
+    }
+
+    /**
+     * Whether the walk is over
+     *
+     * @return true once the creature got to the end or stopped short of it
+     */
+    public boolean isFinished() {
+        return finished;
+    }
+
+    /**
+     * Ends the walk where the creature is, short of its end
+     */
+    public void finish() {
+        finished = true;
     }
 
 }

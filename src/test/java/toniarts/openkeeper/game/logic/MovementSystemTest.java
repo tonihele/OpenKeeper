@@ -30,9 +30,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.IMapController;
-import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
-import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -40,6 +38,64 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MovementSystemTest {
+
+    @Test
+    void movingCreatureTurnsAtItsAuthoredRateInsteadOfSnapping() throws Exception {
+        EntityData entities = new DefaultEntityData();
+        var definition = new toniarts.openkeeper.tools.convert.map.Creature();
+        var field = definition.getClass().getDeclaredField("unk3cc");
+        field.setAccessible(true);
+        field.setFloat(definition, .125f); // Synthetic 90 degrees per second.
+        var level = (toniarts.openkeeper.tools.convert.map.IKwdFile) Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{toniarts.openkeeper.tools.convert.map.IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? definition : null);
+        EntityId id = entities.createEntity();
+        var creature = new toniarts.openkeeper.game.component.CreatureComponent();
+        creature.creatureId = 7;
+        entities.setComponents(id, creature, new Position(0, new Vector3f(10, 0, 10)),
+                new Mobile(false, false, false, 1), new Navigation(new Point(18, 10), null,
+                        List.of(new Vector2(10, 10), new Vector2(18, 10))));
+        MovementSystem movement = new MovementSystem(entities, map(false, false), level);
+        float previous = 0;
+        for (int frame = 0; frame < 30; frame++) {
+            movement.processTick(1f / 60);
+            float rotation = entities.getComponent(id, Position.class).rotation;
+            assertTrue(Math.abs(rotation - previous) <= Math.PI / 120 + 1e-5,
+                    "Facing snapped beyond the authored turn limit");
+            previous = rotation;
+        }
+        assertTrue(previous > .70f && previous < .80f, "Expected about 45 degrees after half a second");
+        for (int frame = 0; frame < 60; frame++) {
+            movement.processTick(1f / 60);
+        }
+        assertEquals((float) Math.PI / 2, entities.getComponent(id, Position.class).rotation, 1e-4f);
+        movement.stop();
+    }
+
+    @Test
+    void residualSpinSettlesAtTheSameRateOnLogicTicks() {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        data.setComponents(id, new Position(0, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), new Point(3, 4), new ArrayList<>()));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            var field = MovementSystem.class.getDeclaredField("steerableEntitiesByEntityId");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            var steerables = (java.util.Map<EntityId, toniarts.openkeeper.game.navigation.steering.ISteerableEntity>) field.get(movement);
+            // Synthetic residual yaw after arriving, already facing the target.
+            steerables.get(id).setAngularVelocity(.1f);
+            for (int tick = 0; tick < 4 && data.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertNull(data.getComponent(id, Navigation.class), "residual spin kept an arrived route alive");
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        } finally {
+            movement.stop();
+        }
+    }
 
     /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
@@ -52,7 +108,7 @@ class MovementSystemTest {
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(rotation, new Vector3f(15, 0, 23)), new Mobile(false, false, false, 1),
                 new Navigation(new Point(15, 23), new Point(16, 25), new ArrayList<>()));
-        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), map(false, false));
+        MovementSystem movementSystem = new MovementSystem(entityData, map(false, false));
 
         for (int frame = 0; frame < 180 && entityData.getComponent(creature, Navigation.class) != null; frame++) {
             movementSystem.processTick(1 / 60f);
@@ -78,36 +134,29 @@ class MovementSystemTest {
 
     /**
      * Distance walked east at 1 tile a second, in the second after getting up
-     * to speed
+     * to speed, on logic ticks of a quarter of a second
      */
-    private static float walkedInASecond(IMapController map, boolean canFly) {
+    private static float walkedInASecond(IMapInformation map, boolean canFly) {
         EntityData entityData = new DefaultEntityData();
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new Position(0, new Vector3f(10, 0, 23)), new Mobile(canFly, true, true, 1),
                 new Navigation(new Point(20, 23), null, List.of(new Vector2(10, 23), new Vector2(20, 23))));
-        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), map);
-        for (int frame = 0; frame < 120; frame++) {
-            movementSystem.processTick(1 / 60f);
+        MovementSystem movementSystem = new MovementSystem(entityData, map);
+        for (int tick = 0; tick < 8; tick++) {
+            movementSystem.processTick(1 / 4f);
         }
         float start = entityData.getComponent(creature, Position.class).position.x;
-        for (int frame = 0; frame < 60; frame++) {
-            movementSystem.processTick(1 / 60f);
+        for (int tick = 0; tick < 4; tick++) {
+            movementSystem.processTick(1 / 4f);
         }
         return entityData.getComponent(creature, Position.class).position.x - start;
     }
 
-    private static IKwdFile kwdFile() {
-        return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
-                (proxy, method, args) -> "getGameLevel".equals(method.getName()) ? CreatureSleepFixtures.level(4) : null);
-    }
-
-    private static IMapController map(boolean water, boolean lava) {
-        return (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
+    private static IMapInformation map(boolean water, boolean lava) {
+        return (IMapInformation) Proxy.newProxyInstance(IMapInformation.class.getClassLoader(), new Class<?>[]{IMapInformation.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "isWater" -> water;
                     case "isLava" -> lava;
-                    case "isSolid" -> false;
-                    case "getRoomControllerByCoordinates" -> null;
                     default -> throw new AssertionError(method.getName());
                 });
     }
