@@ -552,7 +552,18 @@ public final class CreatureController extends EntityController implements ICreat
 
         // See if we have some available work
         if (isWorker()) {
-            taskManager.addToUnemployedWorkerQueue(this, workResult);
+            taskManager.addToUnemployedWorkerQueue(this, (foundWork) -> {
+
+                // DK II's worker that finds no work stays in its idle state for 240 to 479 ticks (0x463DF0). Only an
+                // idle walk that ends sooner takes it back to its job search, so after an idle animation it walks on
+                IdleAnimation idle = entityData.getComponent(entityId, IdleAnimation.class);
+                if (!foundWork && idle != null) {
+                    int ticks = 240 + FastMath.rand.nextInt(240);
+                    entityData.setComponent(entityId, new IdleAnimation(idle.animation, idle.endTime,
+                            gameTimer.getGameTime() + ticks / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+                }
+                workResult.accept(foundWork);
+            });
             return;
         }
 
@@ -1796,14 +1807,20 @@ public final class CreatureController extends EntityController implements ICreat
             Creature.AnimationType animation = roll < 75 ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.IDLE_2;
             double time = getAnimationTime(creature, animation);
             if (time > 0) {
-                entityData.setComponent(entityId, new IdleAnimation(animation, gameTimer.getGameTime() + time));
+                entityData.setComponent(entityId, new IdleAnimation(animation, gameTimer.getGameTime() + time, last.lookForWorkTime));
                 return true;
             }
         }
         if (last == null || last.animation != null) {
-            entityData.setComponent(entityId, new IdleAnimation(null, 0));
+            entityData.setComponent(entityId, new IdleAnimation(null, 0, last != null ? last.lookForWorkTime : 0));
         }
         return false;
+    }
+
+    @Override
+    public boolean isWaitingToLookForWork() {
+        IdleAnimation idle = entityData.getComponent(entityId, IdleAnimation.class);
+        return isWorker() && idle != null && idle.animation != null && gameTimer.getGameTime() < idle.lookForWorkTime;
     }
 
     @Override

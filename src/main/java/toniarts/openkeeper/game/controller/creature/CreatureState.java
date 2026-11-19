@@ -196,6 +196,12 @@ public enum CreatureState implements State<ICreatureController> {
             // (0x4776B0) goes straight to the pick between an idle animation and a walk (0x4776C0)
             if (entity.isStopped() && !entity.isPlayingIdleAnimation()) {
                 entity.resetReEvaluationTimer();
+
+                // Except a worker that found no work: after an idle animation it walks on first (0x464240)
+                if (entity.isWaitingToLookForWork()) {
+                    wander(entity);
+                    return;
+                }
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
                         wander(entity);

@@ -221,6 +221,16 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean isPlayingIdleAnimation();
 
+    /**
+     * Does a worker that has stood through an idle animation walk on before it
+     * looks for work again. In DK II a worker that finds no work stays in its
+     * idle state (0x464240) for 240 to 479 ticks (0x463DF0), and only an idle
+     * walk that ends sooner takes it back to its job search.
+     *
+     * @return true while the worker should take an idle walk first
+     */
+    public boolean isWaitingToLookForWork();
+
     public void resetReEvaluationTimer();
 
     public int getGold();
