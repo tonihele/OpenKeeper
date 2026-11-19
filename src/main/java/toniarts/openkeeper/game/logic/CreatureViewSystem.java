@@ -25,6 +25,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Collections;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
@@ -46,6 +48,7 @@ import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.WorkerAnimationType;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -74,6 +77,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final EntitySet creatureViewEntities;
+    private final EntitySet hauledEntities;
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
@@ -84,6 +88,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
+        hauledEntities = entityData.getEntities(HauledBy.class, Position.class);
     }
 
     @Override
@@ -93,6 +98,12 @@ public final class CreatureViewSystem extends GameTimeCounter {
         if (creatureViewEntities.applyChanges()) {
             processAddedEntities(creatureViewEntities.getAddedEntities());
             processDeletedEntities(creatureViewEntities.getRemovedEntities());
+        }
+
+        hauledEntities.applyChanges();
+        Set<EntityId> haulers = new HashSet<>();
+        for (Entity load : hauledEntities) {
+            haulers.add(load.get(HauledBy.class).entityId);
         }
 
         // Process ticks
@@ -105,6 +116,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
             boolean restart = false;
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
+            } else if (haulers.contains(entityId) && hasDragAnimation(state.creatureId)) {
+                targetState = Creature.AnimationType.DRAG;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
                 targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
@@ -148,6 +161,16 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
     }
 
+    private boolean hasDragAnimation(short creatureId) {
+        if (kwdFile == null) {
+            return false;
+        }
+        Creature creature = kwdFile.getCreature(creatureId);
+        ArtResource resource = creature == null ? null
+                : creature.getAnimation(WorkerAnimationType.DRAG);
+        return resource != null && resource.getType() != ArtResource.ArtResourceType.NONE;
+    }
+
     /**
      * A possessed creature has no AI to tell its animation. It walks or stands
      * as its keeper steers it. A melee swing shows for half of the attack's
@@ -189,6 +212,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
     @Override
     public void stop() {
         creatureViewEntities.release();
+        hauledEntities.release();
         creatureEntities.clear();
     }
 
@@ -334,7 +358,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * Is the creature still playing its animation the given number of times
      */
     private boolean isPlaying(CreatureViewState state, int plays) {
-        ArtResource animation = kwdFile.getCreature(state.creatureId).getAnimation(state.state);
+        ArtResource animation = kwdFile.getCreature(state.creatureId).getAnimationForState(state.state);
         if (animation == null) {
             return false;
         }

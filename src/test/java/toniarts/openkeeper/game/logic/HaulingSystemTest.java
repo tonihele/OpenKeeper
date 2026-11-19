@@ -81,4 +81,27 @@ class HaulingSystemTest {
         assertNull(entityData.getComponent(creature, HauledBy.class));
         assertEquals(2, entityData.getComponent(creature, Position.class).position.x);
     }
+
+    @Test
+    void specialSharesFullPositionAndFacesOppositeTheHauler() {
+        entityData.setComponent(imp, new TaskComponent(1, creature, null, TaskType.CARRY_OBJECT_TO_STORAGE, 0, true));
+        entityData.setComponent(imp, new Position(.6f, new Vector3f(5, 2, 5)));
+        entityData.setComponent(creature, new toniarts.openkeeper.game.component.ObjectComponent((short) 1,
+                toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType.SPECIAL));
+        haulingSystem.processTick(.25f);
+        Position p = entityData.getComponent(creature, Position.class);
+        assertEquals(new Vector3f(5, 2, 5), p.position);
+        assertEquals(.6f + com.jme3.math.FastMath.PI, p.rotation);
+    }
+
+    @Test
+    void otherLoadsKeepTheirHeightAndFacing() {
+        entityData.setComponent(imp, new TaskComponent(1, creature, null, TaskType.CARRY_CREATURE_TO_JAIL, 0, true));
+        entityData.setComponent(imp, new Position(.6f, new Vector3f(5, 2, 5)));
+        entityData.setComponent(creature, new Position(.4f, new Vector3f(2, .25f, 2)));
+        haulingSystem.processTick(.25f);
+        Position p = entityData.getComponent(creature, Position.class);
+        assertEquals(new Vector3f(5, .25f, 5), p.position);
+        assertEquals(.4f, p.rotation);
+    }
 }
