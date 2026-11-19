@@ -380,3 +380,62 @@ Standalone Java 25 / jME 3.9 run, 180 warmup and 600 timed updates (`build/remed
 Paired current-revision transition burst, 500 owners / 3000 replacements: retention disabled **116.772 ms / 72,590,864 allocated bytes**; three clips **46.363 ms / 6,312,360 bytes**, with **18,234,000 counted retained position bytes**. This is approximately 60% less burst time and 91% less calling-thread allocation within this workload. The retained position count is not total working set. R5's detached endpoint preflight and transactional publication are now included; comparing the old faster reuse burst directly would omit that correctness work. Retention stays disabled by default.
 
 Visible-population results do not establish a before/after speedup: the owner driver preserves authored terminal dwell and phase, while the raw composer workload has different repetition behavior, and run-to-run timing varies. The 12-second JFR contains 1107 execution samples, 655 allocation samples and two young collections across **setup plus all workloads**; it is not steady-state native-memory or GPU evidence. Terminal-frame fix: `931c583`.
+
+## Current resolution and original-checklist ledger
+
+All eight confirmed findings have tested fixes; no confirmed Critical/High/Medium/Low defect from R1–R8 remains open. This does not convert the five incomplete original checklist items into completed work.
+
+| Item | Focused commit | Current evidence |
+|---|---|---|
+| R1 | `77866cc` | Paused seek/segment matrix; superseded safely by R2's single paused owner |
+| R2 | `c89268e` | Cadence/multi-wrap/clock/pause/reentrancy/clone/hidden-completion regressions |
+| R3 | `d31f844` | World failed-death deduplication and recording-backend activity exit |
+| R4 | `a6dfb1d` | Retained hover/charred/material restoration and GL detach/reuse sequence |
+| R5 | `a5fdb9d` | Detached segment endpoint validation, first-evaluation faults and publication rollback |
+| R6 | `5600329` | Four GL color/shadow coverage assertions and installed wing silhouettes |
+| R7 | `3ed6b52` | Deliberate bounds violation rejected; maintained 944-resource strict corpus |
+| R8 | `9ad9464` | Complete single-pass policy enumeration and paired preload allocation measurement |
+| Additional AI-snapshot ordering defect | `dd8f8d3` | Late WORK request continues looping with the current watched AI state |
+| Additional terminal-frame defect | `931c583` | Actual terminal vertices, bounded age and silent hold under every policy/segment layout |
+| Production-driver telemetry and scope correction | `15aba94` | Owner modes measured separately; remaining engineering/reference scope explicit |
+
+| Original item | Current disposition |
+|---:|---|
+| 1 | Complete at documented scope; maintained strict cached/fresh audit expanded to all catalog creatures. |
+| 2 | Complete numerical/compatibility repair; independent original endpoint dwell remains B1a. |
+| 3 | Resolved after reopening: complete identity plus continuously shared owner phase (R1/R2). |
+| 4 | Partial B1a: shared metadata implemented; original endpoint/segment convention acceptance blocked on paired reference timelines. |
+| 5 | Complete at numerical/picking-test scope; strict installed bounds gate now enforced (R7). |
+| 6 | Partial B1b: repeated direction/remainder mechanism works; original CLAMP interpretation remains unverified. |
+| 7 | Resolved after reopening: preparation/evaluation/publication rollback and logical fallback lifecycle (R3/R5). |
+| 8 | Resolved after reopening: paused/interrupted once/loop/hold behavior and terminal-frame policy covered (R1/R2/self-review). |
+| 9 | Resolved after reopening: poses/markers share one pause-aware age; failed activity exits release audio (R1/R2/R3). Audible original contact remains unaccepted. |
+| 10 | Complete foundation: owned Position snapshots and serialized fall/planar producer retained. No claim of arbitrary concurrent lifecycle race freedom. |
+| 11 | Partial B2: motion/gait selection retained; protocol/interpolation/lifecycle work explicitly separate below. |
+| 12 | Complete isolated CPU baseline, extended to the owner driver; small full-game profile added. Representative full crowd GPU/native attribution remains outside those measurements. |
+| 13 | Complete at explicit-visibility scope, including generic stopped hidden owners (R2); frustum-only scheduling is not implemented. |
+| 14 | Partial B3: bounded opt-in reuse/material correctness verified (R4/R5/R8). Global cache ownership and total residency remain separate engineering. |
+| 15 | B4 remains unimplemented and blocked on independent per-behavior references. Existing semantics retained. |
+| 16 | Conditional decision complete: retain CPU path; no representative total-frame evidence justifies GPU interpolation, instancing or worker migration. |
+
+Separate follow-up scope, deliberately **not claimed implemented**:
+
+- **B2 engineering:** define authoritative transform sample time and discontinuity semantics for spawn/teleport/pickup/drop/hauling/removal, including matching network builds; create delayed/coalesced-delivery and concurrent lifecycle fixtures before adding interpolation. Then compare contact drift at multiple refresh rates using original gait references. Missing reference footage limits fidelity acceptance, not the ability to design those prerequisites.
+- **B3 engineering:** define asset-manager/root and level ownership for the existing process-global caches; measure repeated level enter/exit with background loading, Java/native/GPU residency and opt-in retention before choosing eviction or changing the default. Current owner position budgets do not bound those caches. The one-level smoke and transition burst do not supply that acceptance.
+- **Session/performance acceptance:** build controlled movement/combat/work/pause/hand/removal/network/audio scenarios and representative hundreds-creature visible/hidden/shadow-visible scenes. Include repeated cursor picking, precise collision rebuild cost, GPU pass timestamps, draw counts and retained-memory plateau. These are unexecuted acceptance engineering, not newly confirmed code defects. Exact original parity additionally needs the versioned DK2 oracle listed in B1/B4. The remaining unchecked checklist entries identify this limit rather than asserting completion.
+
+## Final verification after remediation
+
+`build --rerun-tasks` passed after the AI-snapshot fix (all nine tasks executed). After the terminal-frame fix, `build captureAnimationCoverage captureCharacterAnimation` passed again: **1,468 tests, zero failures/errors, four pre-existing `MinimapAssetsTest` skips**, 275 XML suites; packaging/distributions passed. Logs: `build/remediation-final-build.txt`, `build/remediation-final-validation.txt`. The skips require generated assets in this isolated checkout; installed-data checks use the existing external converted asset root explicitly.
+
+Final expanded strict corpus: **944 resources / 1888 cached+fresh loads / 1,745,788 samples, zero nonfinite/outside** (`build/remediation-final-corpus.txt`). Later self-review fixes change request policy and explicit terminal preparation, not decoding or bounds; terminal sampling has its own actual-vertex regression. No converted assets were regenerated on disk.
+
+Both GL tools pass on the pinned renderer. All **39 gallery pose hashes** exactly match the preceding R6 run; frame 150 was inspected for authored wing silhouettes and frame 360 for restored unhighlighted retained materials. Pause PNGs 450/465 have the same SHA-256, `e0f61743e25c5818cb90459ecfb6580ae798ff8e972d518042bec7ee71644007`. All four synthetic alpha/black-key color/shadow cases retain the R6 expected results. This proves those fixed-camera outputs, not original-executable fidelity or real-time frame pacing.
+
+A bounded real `Main`/local Alcatraz session also passes, with isolated `user.home`, existing converted assets and the conversion setup deliberately bypassed. No live asset directory or user setting was rewritten. The diagnostic uses reflection only in ignored `build/review/AnimationGameSmoke.java` / `game-smoke.init.gradle`; it is not a production launch path. Command: `gradlew reviewAnimationGameSmoke -I build/review/game-smoke.init.gradle --no-configuration-cache --no-daemon --console=plain`. The first smoke completed **1081 active frames / 48 creatures**; the final profiled repeat completed **1139 active frames / 48 creatures**, with IDLE/WALK/STAND_STILL/ANGRY states observed across runs, real OpenAL startup/cleanup and orderly application shutdown. Logs: `build/remediation-game-smoke.txt`, `build/remediation-game-profile-final.txt`; ignored screenshot: `build/review/game-home/.OpenKeeper/SCRSHOTS/Main1.png` (each run replaces it). The inspected initial-camera image shows the dungeon heart/UI; it is not evidence that all creatures were visually inspected. Existing Nifty duplicate-ID/SLF4J binding warnings occurred; no animation/shader execution error occurred.
+
+The final smoke's post-warmup `AppProfiler` BeginFrame-to-EndFrame wall measurements cover CPU update/render submission: **902 frames, median 5.204 ms / P95 6.664 ms / P99 8.241 ms** at a 60 Hz cap, 1280x720. They exclude asynchronous GPU completion and are not a before/after performance comparison. Last-frame jME counters: **166 objects, 16,996 vertices, 9,242 triangles, 210 uniforms**; these count the whole fixed-camera scene, not creatures alone. The 25-second profile (`build/remediation-game.jfr`) includes loading and shutdown: 867 execution samples, 1181 allocation samples, 11 young collections and one old collection. No native-memory plateau, GPU timestamps, network-delay acceptance or audible contact/video claim follows from it.
+
+Final self-review covered the request/clock/segment path, detached preparation and rollback, retained presentation, authored coverage and preload compatibility. It produced and fixed the two additional defects above; all scene/material mutations remain on the rendering update path. Diff/whitespace and documentation-link checks pass. The feature tree is clean after the documentation commit; the original checkout remains at `a63005ab3` on `fix/dungeon-heart-startup` with exactly its three pre-existing untracked assessment documents. No push or PR was created.
+
+**Disposition:** the confirmed review defects are resolved with evidence. The entire original initiative is still **not approved as complete**: B1a/B1b/B4 reference acceptance and the explicitly split B2/B3/session/performance work remain. No blanket animation/DK2 fidelity or production-readiness claim is made.
