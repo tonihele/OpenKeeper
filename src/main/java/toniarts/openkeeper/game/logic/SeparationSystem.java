@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.SeparationPush;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
 import toniarts.openkeeper.game.navigation.steering.FollowWaypoints;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -143,7 +144,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
         if (separation.length() > MAX_FORCE) {
             separation.normalizeLocal().multLocal(MAX_FORCE);
         }
-        slideAlongWalls(separation, position, creature.getAttributes().getWidth() / 2);
+        slideAlongWalls(separation, position, CreatureSizing.getBodyRadius(creature));
 
         // Weighed, it is a change of the velocity of a tick
         return separation.multLocal(SEPARATION_WEIGHT);
@@ -158,7 +159,7 @@ public final class SeparationSystem implements IGameLogicUpdatable {
             return;
         }
 
-        float reach = creature.getAttributes().getWidth() / 2 + other.getAttributes().getWidth() / 2;
+        float reach = CreatureSizing.getBodyRadius(creature) + CreatureSizing.getBodyRadius(other);
         Vector2f away = new Vector2f(position.position.x - otherPosition.position.x, position.position.z - otherPosition.position.z);
         float distance = away.length();
         if (distance > reach) {

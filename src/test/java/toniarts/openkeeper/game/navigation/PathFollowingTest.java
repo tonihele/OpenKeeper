@@ -44,7 +44,6 @@ import toniarts.openkeeper.game.navigation.steering.FollowWaypoints;
 import toniarts.openkeeper.game.navigation.steering.SteerableEntity;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -53,6 +52,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -119,7 +119,8 @@ class PathFollowingTest {
     void headsStraightForTheWaypointFromWhereverItIs() {
         SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 3, 2.6f, 0);
         FollowWaypoints followWaypoints = new FollowWaypoints(knight,
-                List.of(new Vector2(1, 2), new Vector2(6, 2), new Vector2(6, 6)), waypoint -> 0, false, false, 4);
+                List.of(new Vector2(1, 2), new Vector2(6, 2), new Vector2(6, 6)), waypoint -> 0, false, false);
+        followWaypoints.setUpdateInterval(1 / 4f);
 
         Vector2 steering = followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2())).linear;
 
@@ -143,9 +144,36 @@ class PathFollowingTest {
         assertTrue(steering(waypoints, 1, true).len() < steering(waypoints, 0, true).len() / 10, "DK II's path flag 2 (0x471D10)");
     }
 
+    @Test
+    void walksThroughObstaclesWhenHeldUpInFiveOfFifteenTicks() {
+        SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 1, 2, 0);
+        FollowWaypoints followWaypoints = new FollowWaypoints(knight, List.of(new Vector2(1, 2), new Vector2(9, 2)), waypoint -> 0, false, false);
+        followWaypoints.setUpdateInterval(1 / 4f);
+        followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2()));
+
+        // The first tick only notes how far it is to go (0x4D3C40)
+        for (int tick = 0; tick < 5; tick++) {
+            followWaypoints.countHeadway();
+            assertFalse(followWaypoints.isThroughObstacles(), "Held up only " + tick + " ticks");
+        }
+        followWaypoints.countHeadway();
+        assertTrue(followWaypoints.isThroughObstacles());
+
+        // Getting nearer, it is held again once 2 or fewer of the last 15 ticks were without headway
+        for (int tick = 0; tick < 12; tick++) {
+            knight.getPosition().add(0.1f, 0);
+            followWaypoints.countHeadway();
+        }
+        assertTrue(followWaypoints.isThroughObstacles(), "Still 3 of the last 15");
+        knight.getPosition().add(0.1f, 0);
+        followWaypoints.countHeadway();
+        assertFalse(followWaypoints.isThroughObstacles());
+    }
+
     private Vector2 steering(List<Vector2> waypoints, float crowd, boolean chase) {
         SteerableEntity knight = new SteerableEntity(entityData.createEntity(), 0.5f, KNIGHT_RADIUS, 1, 2, 0);
-        FollowWaypoints followWaypoints = new FollowWaypoints(knight, waypoints, waypoint -> crowd, false, chase, 4);
+        FollowWaypoints followWaypoints = new FollowWaypoints(knight, waypoints, waypoint -> crowd, false, chase);
+        followWaypoints.setUpdateInterval(1 / 4f);
         return new Vector2(followWaypoints.calculateSteering(new SteeringAcceleration<>(new Vector2())).linear);
     }
 
@@ -154,12 +182,12 @@ class PathFollowingTest {
     void walksRoundTheWallAndStopsAtTheEnd(short creatureId) {
         Vector2 start = new Vector2(1, 1);
         EntityId walker = walker(creatureId, start, new Point(10, 1));
-        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), mapController);
+        MovementSystem movementSystem = new MovementSystem(entityData, mapController, kwdFile());
 
-        for (int frame = 0; frame < 60 * 60 && entityData.getComponent(walker, Navigation.class) != null; frame++) {
-            movementSystem.processTick(1 / 60f);
+        for (int tick = 0; tick < 4 * 60 && entityData.getComponent(walker, Navigation.class) != null; tick++) {
+            movementSystem.processTick(1 / 4f);
             Point tile = WorldUtils.vectorToPoint(position(walker));
-            assertTrue(MAP[tile.y].charAt(tile.x) != '#', "In the wall at " + position(walker) + " on frame " + frame);
+            assertTrue(MAP[tile.y].charAt(tile.x) != '#', "In the wall at " + position(walker) + " on tick " + tick);
         }
 
         assertNull(entityData.getComponent(walker, Navigation.class), "Still walking");
@@ -234,7 +262,6 @@ class PathFollowingTest {
         return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getCreature" -> creatures.get((Short) args[0]);
-            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }

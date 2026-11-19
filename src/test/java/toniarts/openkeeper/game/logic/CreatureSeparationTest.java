@@ -44,7 +44,6 @@ import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.RoomFixtures;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -88,7 +87,7 @@ class CreatureSeparationTest {
         EntityId first = creature(KNIGHT, new Point(5, 6), new Point(5, 5), new Point(5, 4));
         EntityId second = creature(KNIGHT, new Point(7, 4), new Point(6, 4), new Point(5, 4));
 
-        run(600, frame -> {});
+        run(40, tick -> {});
 
         assertNull(entityData.getComponent(first, Navigation.class));
         assertNull(entityData.getComponent(second, Navigation.class));
@@ -104,7 +103,7 @@ class CreatureSeparationTest {
         EntityId walker = creature(IMP, new Point(2, 2), new Point(3, 2), new Point(4, 2), new Point(5, 2), new Point(6, 2));
 
         // The wall starts at 1.5, the imp is 0.9 wide
-        run(600, frame -> assertTrue(position(walker).y - 0.45f > 1.45f, "Pushed into the wall at frame " + frame));
+        run(40, tick -> assertTrue(position(walker).y - 0.45f > 1.45f, "Pushed into the wall at tick " + tick));
     }
 
     @Test
@@ -137,12 +136,12 @@ class CreatureSeparationTest {
         entityData.setComponent(fighter, new Mobile(false, false, false, KNIGHT_SPEED));
 
         // Between its blows it holds its ground
-        run(15, frame -> {});
+        run(1, tick -> {});
         assertEquals(x, position(fighter).x, 0.0001f);
 
         // While the blow runs its pilot moves it by the push, no faster than it walks
         entityData.setComponent(fighter, new CreatureAi(0, CreatureState.MELEE_ATTACK, KNIGHT));
-        run(15, frame -> {});
+        run(1, tick -> {});
         float moved = position(fighter).x - x;
         assertTrue(moved > 0 && moved <= KNIGHT_SPEED / 4 + 0.0001f, "Moved " + moved);
         assertEquals(5, position(fighter).y, 0.0001f);
@@ -165,7 +164,7 @@ class CreatureSeparationTest {
         EntityId fighter = standing(KNIGHT, 5.3f, 5.4f, CreatureState.FIGHT);
         entityData.setComponent(fighter, new Mobile(false, false, false, KNIGHT_SPEED));
 
-        run(15, frame -> assertTrue(position(fighter).dst(5, 7) > 1.49f, "Inside the heart at frame " + frame));
+        run(1, tick -> assertTrue(position(fighter).dst(5, 7) > 1.49f, "Inside the heart at tick " + tick));
 
         // Against the solid Dungeon Heart Obstacle (0x4D12B0) DK II's pilot adds a full force along its edge (0x4D4760)
         assertTrue(position(fighter).x > 5.3f + 0.05f, "Not sliding: " + position(fighter));
@@ -206,18 +205,16 @@ class CreatureSeparationTest {
     }
 
     /**
-     * Runs the separation on 4 game ticks a second and the movement on 60
-     * frames, like the game loops do
+     * Runs the separation and the movement on 4 game ticks a second, like the
+     * logic loop does
      */
-    private void run(int frames, IntConsumer afterFrame) {
+    private void run(int ticks, IntConsumer afterTick) {
         SeparationSystem separationSystem = new SeparationSystem(entityData, kwdFile(), map(), positionLookup());
-        MovementSystem movementSystem = new MovementSystem(entityData, kwdFile(), map());
-        for (int frame = 0; frame < frames; frame++) {
-            if (frame % 15 == 0) {
-                separationSystem.processTick(1 / 4f);
-            }
-            movementSystem.processTick(1 / 60f);
-            afterFrame.accept(frame);
+        MovementSystem movementSystem = new MovementSystem(entityData, map(), kwdFile());
+        for (int tick = 0; tick < ticks; tick++) {
+            separationSystem.processTick(1 / 4f);
+            movementSystem.processTick(1 / 4f);
+            afterTick.accept(tick);
         }
     }
 
@@ -230,7 +227,6 @@ class CreatureSeparationTest {
         return (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
             case "getCreature" -> creatures.get((Short) args[0]);
-            case "getGameLevel" -> CreatureSleepFixtures.level(4);
             default -> throw new UnsupportedOperationException(method.getName());
         });
     }

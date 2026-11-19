@@ -94,6 +94,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
@@ -692,7 +693,7 @@ public final class CreatureController extends EntityController implements ICreat
             navigationPath.addFirst(new Vector2(position.x, position.z));
         }
         if (navigationPath.size() > 1) {
-            navigationPath = navigationService.smoothPath(navigationPath, creature.getAttributes().getWidth() / 2, this);
+            navigationPath = navigationService.smoothPath(navigationPath, CreatureSizing.getBodyRadius(creature), this);
         }
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget));
         return false;
