@@ -225,6 +225,19 @@ tasks.register("auditAnimationLevelResidency", JavaExec) {
     maxHeapSize = '2g'
 }
 
+tasks.register("auditAnimationMotionDelivery", JavaExec) {
+    group = "verification"
+    description = "Deterministic wire-serializer/ECS motion delivery, coalescing and payload audit; no sockets or proprietary assets"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.game.network.AnimationMotionDeliveryAudit'
+    args layout.buildDirectory.file('animation-motion-delivery.csv').get().asFile.absolutePath
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('auditAnimationMotionDelivery')
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"
