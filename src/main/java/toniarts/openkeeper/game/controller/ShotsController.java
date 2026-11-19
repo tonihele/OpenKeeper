@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
@@ -64,6 +65,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WIND;
 
 /**
@@ -84,6 +86,13 @@ public final class ShotsController implements IShotsController {
      * queues through the message queue (0x4C4600)
      */
     private static final double ALARM_DURATION = 50;
+
+    /**
+     * How many game ticks a creature burns after a fire shot set it alight
+     * (0x4AC420). The shots' burn duration in the data is 0 for every shot and
+     * the original doesn't read it
+     */
+    private static final int ON_FIRE_TICKS = 10;
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -136,6 +145,8 @@ public final class ShotsController implements IShotsController {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
+        result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
+                request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(WIND, new WindShotProcessor(entityData, kwdFile, gameController, mapController, creaturesController));
@@ -321,6 +332,9 @@ public final class ShotsController implements IShotsController {
 
         // The shot's data 1 is its damage (0x4AC420)
         if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+            if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
+                setAlight(thing);
+            }
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
@@ -334,6 +348,27 @@ public final class ShotsController implements IShotsController {
 
         process(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
                 EntityController.getPosition(entityData, shotEntity), null, flight.shooter));
+    }
+
+    /**
+     * A fire shot sets a creature alight when the creature has less than 21 %
+     * of its health left before the hit and doesn't stand on water (0x4AC420).
+     * Another hit lights the fire again for the full time
+     *
+     * @param thing the thing the shot hit
+     */
+    private void setAlight(EntityId thing) {
+        Health health = entityData.getComponent(thing, Health.class);
+        Position position = entityData.getComponent(thing, Position.class);
+        if (health == null || health.maxHealth <= 0 || position == null
+                || entityData.getComponent(thing, CreatureComponent.class) == null
+                || health.health * 100 / health.maxHealth >= 21
+                || mapController.isWater(WorldUtils.vectorToPoint(position.position))) {
+            return;
+        }
+
+        int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+        entityData.setComponent(thing, new OnFire(gameTimer.getGameTime() + (double) ON_FIRE_TICKS / ticksPerSecond));
     }
 
 }
