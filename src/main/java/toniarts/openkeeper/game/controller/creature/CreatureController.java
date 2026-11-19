@@ -650,7 +650,7 @@ public final class CreatureController extends EntityController implements ICreat
                 //workNavigationRequired = false;
 
                 Point destination = WorldUtils.vectorToPoint(loc);
-                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition, false, true);
             }
         }
     }
@@ -688,6 +688,7 @@ public final class CreatureController extends EntityController implements ICreat
             destination = tiles.get(doorIndex - 1);
             faceTarget = tiles.get(doorIndex);
             workPosition = null;
+            endInObstacle = false;
         }
 
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
@@ -700,6 +701,8 @@ public final class CreatureController extends EntityController implements ICreat
         if (navigationPath.size() > 1) {
             navigationPath = navigationService.smoothPath(navigationPath, CreatureSizing.getBodyRadius(creature), this);
         }
+        // Task destinations, including beds, can lie inside furniture. Ordinary walks
+        // keep contact through their final leg; native job flags remain to be mapped.
         entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget, endInObstacle));
         return false;
     }
@@ -842,8 +845,11 @@ public final class CreatureController extends EntityController implements ICreat
             attackTarget = null;
         }
         IEntityController attackTargetController = null;
+
+        // A Horned Reaper picks his prey over the whole map and hunts it down even when it runs (DKII.EXE 0x45E1B0)
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
-                || isFleeing(attackTarget.entityId) || isCaptive(attackTarget.entityId)
+                || isFleeing(attackTarget.entityId) && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
+                || isCaptive(attackTarget.entityId)
                 || isUnreachable(attackTarget.entityId)) {
 
             // Pick a new target, the nearest enemy already attacking us comes first

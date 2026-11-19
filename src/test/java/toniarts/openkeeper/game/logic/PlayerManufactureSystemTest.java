@@ -20,10 +20,12 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Crate;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -31,9 +33,11 @@ import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.TrapFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -45,9 +49,11 @@ class PlayerManufactureSystemTest {
     private static final short SENTRY = 1;
     private static final short BOULDER = 2;
     private static final short WOODEN_DOOR = 1;
+    private static final float TICK = 0.25f;
 
     private final DefaultEntityData entityData = new DefaultEntityData();
     private final PlayerManufactureControl manufactureControl = new PlayerManufactureControl();
+    private double gameTime = 0;
 
     @Test
     void oldestBlueprintWithoutACrateIsNext() {
@@ -157,11 +163,59 @@ class PlayerManufactureSystemTest {
         assertNull(manufactureControl.getOrder());
     }
 
+    @Test
+    void pointsDropOnceASecondWhileNobodyManufactures() {
+        PlayerManufactureSystem system = createSystem();
+        manufactureControl.manufacture(10, 1500);
+
+        runSeconds(system, 3);
+        assertEquals(7, manufactureControl.getProgress());
+
+        runSeconds(system, 10);
+        assertEquals(0, manufactureControl.getProgress());
+    }
+
+    @Test
+    void pointsStayWhileACreatureManufactures() {
+        PlayerManufactureSystem system = createSystem();
+        manufactureControl.manufacture(10, 1500);
+        EntityId worker = addCreature(TaskType.MANUFACTURE, true, PLAYER);
+
+        runSeconds(system, 3);
+        assertEquals(10, manufactureControl.getProgress());
+
+        entityData.removeComponent(worker, TaskComponent.class);
+        runSeconds(system, 3);
+        assertEquals(7, manufactureControl.getProgress());
+    }
+
+    @Test
+    void creaturesOnTheWayOrOfOtherKeepersDontStopTheLoss() {
+        PlayerManufactureSystem system = createSystem();
+        manufactureControl.manufacture(10, 1500);
+        addCreature(TaskType.MANUFACTURE, false, PLAYER);
+        addCreature(TaskType.RESEARCH, true, PLAYER);
+        addCreature(TaskType.MANUFACTURE, true, ENEMY);
+
+        runSeconds(system, 3);
+
+        assertEquals(7, manufactureControl.getProgress());
+    }
+
+    private void runSeconds(PlayerManufactureSystem system, int seconds) {
+        for (int i = 0; i < seconds / TICK; i++) {
+            gameTime += TICK;
+            system.processTick(TICK);
+        }
+    }
+
     private PlayerManufactureSystem createSystem() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(),
                 new Class<?>[]{IKwdFile.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getTrapById" -> TrapFixtures.trap(((Integer) args[0]).shortValue(), 0);
                     case "getDoorById" -> DoorFixtures.doorToManufacture(((Integer) args[0]).shortValue(), 1000, (short) 136);
+                    case "getVariables" -> Map.of(Variable.MiscVariable.MiscType.MANUFACTURE_POINT_LOSS_WHILE_NO_WORKERS_PER_SECOND,
+                            DoorFixtures.miscVariable(Variable.MiscVariable.MiscType.MANUFACTURE_POINT_LOSS_WHILE_NO_WORKERS_PER_SECOND, 1));
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
         Keeper keeper = new Keeper(false, PLAYER);
@@ -171,7 +225,7 @@ class PlayerManufactureSystemTest {
                     case "getManufactureControl" -> manufactureControl;
                     default -> throw new UnsupportedOperationException(method.getName());
                 });
-        return new PlayerManufactureSystem(entityData, kwdFile, List.of(player));
+        return new PlayerManufactureSystem(entityData, kwdFile, List.of(player), () -> gameTime);
     }
 
     /**
@@ -192,6 +246,12 @@ class PlayerManufactureSystemTest {
     private EntityId addDoorBlueprint(short ownerId) {
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity, new DoorComponent(WOODEN_DOOR, false, true), new Owner(ownerId, ownerId));
+        return entity;
+    }
+
+    private EntityId addCreature(TaskType taskType, boolean taskStarted, short ownerId) {
+        EntityId entity = entityData.createEntity();
+        entityData.setComponents(entity, new TaskComponent(1, null, null, taskType, 0, taskStarted), new Owner(ownerId, ownerId));
         return entity;
     }
 

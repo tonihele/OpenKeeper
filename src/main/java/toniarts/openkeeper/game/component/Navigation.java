@@ -40,7 +40,7 @@ public final class Navigation implements EntityComponent {
 
     /**
      * The end of the walk may be inside an obstacle, like the Dungeon Heart's
-     * (DK II's walks with request flag 0x20 or 0x40)
+     * or a bed's (DK II's walks with request flag 0x20 or 0x40)
      */
     public boolean endInObstacle;
 

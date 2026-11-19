@@ -35,6 +35,33 @@ class FurnitureCollisionTest {
             (p, m, args) -> definitions.get(((Number)args[0]).shortValue()));
 
     @Test
+    void outwardCutoffUsesTheActualTickDisplacementAndForce() throws Exception {
+        object((short) 7, 0, 0, GameObject.ObjectFlag.OBSTACLE, GameObject.ObjectFlag.SOLID_OBSTACLE);
+        FurnitureCollision collision = new FurnitureCollision(data, level);
+        try {
+            for (float tick : new float[]{.125f, .25f, .5f}) {
+                var mover = mover(.2f, 0);
+                mover.getLinearVelocity().set(.3f, 0);
+                var force = steering();
+                collision.constrain(mover, force, tick);
+                // .3 * .125 falls below native 0xccc/65536; .3 * .25 does not.
+                assertEquals(tick == .125f ? 0 : .3f, mover.getLinearVelocity().x, 1e-6f);
+                assertEquals(tick == .125f, force.linear.y > 0);
+
+                mover = mover(.2f, 0);
+                force = steering();
+                force.linear.set(1, 0);
+                collision.constrain(mover, force, tick);
+                // Forces enter the native solver in displacement units, scaled by tick squared.
+                assertEquals(tick == .125f ? 0 : 1, force.linear.x, 1e-6f);
+                assertEquals(tick == .125f, force.linear.y > 0);
+            }
+        } finally {
+            collision.release();
+        }
+    }
+
+    @Test
     void differentTilesUseRowOrderInsteadOfCreationOrder() throws Exception {
         EntityId first = object((short) 7, .6f, .4f, GameObject.ObjectFlag.OBSTACLE, GameObject.ObjectFlag.SOLID_OBSTACLE);
         EntityId second = object((short) 8, .4f, .6f, GameObject.ObjectFlag.OBSTACLE, GameObject.ObjectFlag.SOLID_OBSTACLE);
@@ -45,7 +72,7 @@ class FurnitureCollisionTest {
             mover.getLinearVelocity().set(1, 1);
             var steering = steering();
             steering.linear.set(2, 1);
-            collision.constrain(mover, steering);
+            collision.constrain(mover, steering, .25f);
             expected = steering.linear.cpy();
             collision.release();
         } finally {
@@ -59,7 +86,7 @@ class FurnitureCollisionTest {
         mover.getLinearVelocity().set(1, 1);
         var steering = steering();
         steering.linear.set(2, 1);
-        collision.constrain(mover, steering);
+        collision.constrain(mover, steering, .25f);
         assertEquals(expected.x, steering.linear.x, 1e-6f);
         assertEquals(expected.y, steering.linear.y, 1e-6f);
         collision.release();
@@ -74,7 +101,7 @@ class FurnitureCollisionTest {
             FurnitureCollision collision  =  new FurnitureCollision(data, level);
             var mover  =  mover(.2f, 0);
             var steering  =  steering();
-            collision.constrain(mover, steering);
+            collision.constrain(mover, steering, .25f);
             assertTrue(steering.isZero());
             collision.release();
             data.removeEntity(object);
@@ -88,7 +115,7 @@ class FurnitureCollisionTest {
         var mover = mover(.2f, 0);
         mover.getLinearVelocity().set(-1, 0);
         var steering = steering();
-        collision.constrain(mover, steering);
+        collision.constrain(mover, steering, .25f);
         assertTrue(steering.linear.x > 0);
         assertEquals(0, steering.linear.y);
         assertEquals(-1, mover.getLinearVelocity().x);
@@ -102,7 +129,7 @@ class FurnitureCollisionTest {
         FurnitureCollision collision = new FurnitureCollision(data, level);
         var mover = mover(.2f, 0);
         var steering = steering();
-        collision.constrain(mover, steering);
+        collision.constrain(mover, steering, .25f);
         assertEquals(mover.getMaxLinearAcceleration() * .4f, steering.linear.x, 1e-6f);
         collision.release();
     }
@@ -115,7 +142,7 @@ class FurnitureCollisionTest {
         mover.getLinearVelocity().set(-1, 0);
         var steering = steering();
         steering.linear.set(-2, 0);
-        collision.constrain(mover, steering);
+        collision.constrain(mover, steering, .25f);
         assertEquals(0, mover.getLinearVelocity().x, 1e-6f);
         assertEquals(0, steering.linear.x, 1e-6f);
         assertTrue(Math.abs(steering.linear.y) > 0);
@@ -162,7 +189,7 @@ class FurnitureCollisionTest {
         FurnitureCollision collision = new FurnitureCollision(data, level);
         var mover = new SteerableEntity(new EntityId(99), 1, 1f, 1.6f, 0, 0);
         var steering = steering();
-        collision.constrain(mover, steering);
+        collision.constrain(mover, steering, .25f);
         assertEquals(mover.getMaxLinearAcceleration()*.4f, steering.linear.len(), 1e-6f);
         collision.release();
     }
@@ -172,9 +199,9 @@ class FurnitureCollisionTest {
         object((short) 7, 0, 0, GameObject.ObjectFlag.OBSTACLE);
         FurnitureCollision collision = new FurnitureCollision(data, level);
         var steering = steering();
-        collision.constrain(mover(.2f, 0), steering, new Vector2());
+        collision.constrain(mover(.2f, 0), steering, new Vector2(), .25f);
         assertTrue(steering.isZero());
-        collision.constrain(mover(0, 0), steering);
+        collision.constrain(mover(0, 0), steering, .25f);
         assertTrue(steering.isZero());
         collision.release();
     }
@@ -212,7 +239,7 @@ class FurnitureCollisionTest {
         var mover  =  mover(.2f, 0);
         mover.getLinearVelocity().set(-1, 0);
         var steering  =  steering();
-        collision.constrain(mover, steering);
+        collision.constrain(mover, steering, .25f);
         assertTrue(steering.linear.y > 0);
         assertEquals(0, mover.getLinearVelocity().x, 1e-6f);
         collision.release();
@@ -220,7 +247,7 @@ class FurnitureCollisionTest {
 
     private void assertRepels(FurnitureCollision collision, float x, float y, boolean expected) {
         var s = steering();
-        collision.constrain(mover(x, y), s);
+        collision.constrain(mover(x, y), s, .25f);
         assertEquals(expected, !s.linear.isZero());
     }
     private EntityId object(short id, float x, float y, GameObject.ObjectFlag...flags) throws Exception {
