@@ -23,10 +23,13 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -79,8 +82,9 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
             Vector3f newPosition = position.position.clone();
             if (!movement.direction.equals(Vector2f.ZERO)) {
                 INavigable navigable = creaturesController.createController(entity.getId());
-                float x = newPosition.x + movement.direction.x * movement.speed * tpf;
-                float z = newPosition.z + movement.direction.y * movement.speed * tpf;
+                float speed = movement.speed * getSpeedChange(entity.getId());
+                float x = newPosition.x + movement.direction.x * speed * tpf;
+                float z = newPosition.z + movement.direction.y * speed * tpf;
 
                 // Slide along walls by trying the axes separately, this way we
                 // only ever cross into an orthogonally adjacent tile
@@ -93,6 +97,21 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
             }
             holdCarriedWorker(entity.getId(), newPosition, movement.rotation);
         }
+    }
+
+    /**
+     * A haste, slow or slap changes the speed of a possessed creature as it
+     * does any creature's (0x48CAD0). The keeper asks for the creature's own
+     * speeds, so they are scaled by the changed speed while the change runs
+     */
+    private float getSpeedChange(EntityId entityId) {
+        Mobile mobile = entityData.getComponent(entityId, Mobile.class);
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        if (mobile == null || creature == null || creature.speed <= 0
+                || entityData.getComponent(entityId, SpeedChange.class) == null) {
+            return 1;
+        }
+        return mobile.maxSpeed / creature.speed;
     }
 
     /**
