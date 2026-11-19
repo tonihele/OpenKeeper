@@ -231,8 +231,27 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     private void checkLastKeeperStanding() {
         List<Keeper> standing = getKeepersStanding();
-        if (standing.size() == 1 && !isAi(standing.getFirst())) {
-            gameController.endGame(standing.getFirst().getId(), true);
+        if (standing.isEmpty()) {
+            return;
+        }
+
+        // A surviving side can contain more than one allied keeper. Require
+        // their alliance to be mutual so inconsistent alliance data cannot
+        // award a win while a surviving pair still considers itself hostile.
+        for (int i = 0; i < standing.size(); i++) {
+            Keeper keeper = standing.get(i);
+            for (int j = i + 1; j < standing.size(); j++) {
+                Keeper other = standing.get(j);
+                if (keeper.isEnemy(other.getId()) || other.isEnemy(keeper.getId())) {
+                    return;
+                }
+            }
+        }
+
+        // Deliver the result to every survivor. This also lets AI-only
+        // matches terminate and awards every member of a surviving team.
+        for (Keeper keeper : standing) {
+            gameController.endGame(keeper.getId(), true);
         }
     }
 
