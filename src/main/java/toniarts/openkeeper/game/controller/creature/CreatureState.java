@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
@@ -79,6 +80,13 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
+
+            // A summoned Horned Reaper takes no jobs, it goes back to its hunt (DK II 0x4780E0, 0x4782C0, 0x4784C0)
+            if (entity.isSummonedReaper()) {
+                entity.getStateMachine().changeState(CreatureState.REAPER_HUNT);
+                workResult.accept(true);
+                return;
+            }
 
             // See if we should just follow
             if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
@@ -1018,6 +1026,86 @@ public enum CreatureState implements State<ICreatureController> {
                     entity.wanderOnOwnLand();
                 }
             }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, REAPER_HUNT {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // The Horned Reaper's own main state, as in DK II (state 0xEE, 0x4748E0). One time in three it wanders a
+            // little first. Otherwise it goes for the nearest enemy creature it can reach, then the nearest enemy
+            // Dungeon Heart (0x45E1B0), and with neither it leaves
+            if (ThreadLocalRandom.current().nextInt(3) == 0) {
+                entity.getStateMachine().changeState(REAPER_WANDER);
+                entity.navigateToRandomPoint();
+            } else if (entity.huntNearestEnemy()) {
+                entity.getStateMachine().changeState(FIGHT);
+            } else if (entity.goToNearestEnemyHeart()) {
+                entity.getStateMachine().changeState(REAPER_WANDER);
+            } else {
+                entity.getStateMachine().changeState(REAPER_LEAVE);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, REAPER_WANDER {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // Once it gets where it was going it hunts again (DK II state 0xEF, 0x474960)
+            if (entity.isStopped()) {
+                entity.getStateMachine().changeState(REAPER_HUNT);
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, REAPER_LEAVE {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+            // Nothing left to attack, the Reaper is taken away from here (DK II state 0xF2, 0x474CC0)
         }
 
         @Override

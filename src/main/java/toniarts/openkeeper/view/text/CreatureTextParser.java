@@ -102,6 +102,8 @@ public final class CreatureTextParser extends EntityTextParser<Creature> {
                     return getTaskTooltip(taskComponent, mapInformation);
                 }
             }
+            case REAPER_HUNT:
+            case REAPER_WANDER:
             case WANDER: {
                 return Utils.getMainTextResourceBundle().getString("2628");
             }

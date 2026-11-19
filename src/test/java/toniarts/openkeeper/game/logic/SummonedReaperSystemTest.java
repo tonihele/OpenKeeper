@@ -48,8 +48,6 @@ class SummonedReaperSystemTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
     private final List<EntityId> removedCreatures = new ArrayList<>();
-    private final List<EntityId> thinkingReapers = new ArrayList<>();
-    private boolean somethingToDo = true;
     private double now = 0;
 
     @Test
@@ -147,22 +145,25 @@ class SummonedReaperSystemTest {
     }
 
     @Test
-    void reaperThinksWhileHeIsAround() {
+    void reaperStaysWhileItHunts() {
         EntityId reaper = addReaper(0, MANA_DRAIN);
+        entityData.setComponent(reaper, new CreatureAi(now, CreatureState.REAPER_HUNT, (short) 27));
 
         tickAt(system(), 1);
 
-        assertEquals(List.of(reaper), thinkingReapers);
+        assertFalse(isLeaving(reaper));
+        assertNotNull(entityData.getComponent(reaper, CreatureAi.class));
     }
 
     @Test
-    void reaperLeavesWhenThereIsNothingLeftForHim() {
-        somethingToDo = false;
+    void reaperLeavesWhenItsStateSaysThereIsNothingLeft() {
         EntityId reaper = addReaper(0, MANA_DRAIN);
+        entityData.setComponent(reaper, new CreatureAi(now, CreatureState.REAPER_LEAVE, (short) 27));
 
         tickAt(system(), 1);
 
         assertTrue(isLeaving(reaper));
+        assertNull(entityData.getComponent(reaper, CreatureAi.class));
     }
 
     @Test
@@ -179,28 +180,13 @@ class SummonedReaperSystemTest {
     }
 
     @Test
-    void fallingReaperDoesNotThinkYet() {
+    void fallingReaperStays() {
         EntityId reaper = addReaper(0, MANA_DRAIN);
         entityData.removeComponent(reaper, CreatureAi.class);
 
         tickAt(system(), 1);
 
-        assertTrue(thinkingReapers.isEmpty());
         assertFalse(isLeaving(reaper));
-    }
-
-    @Test
-    void leavingReaperDoesNotThink() {
-        keeper.setMana(0);
-        addReaper(0, MANA_DRAIN);
-        SummonedReaperSystem system = system();
-        tickAt(system, 50);
-        tickAt(system, 51);
-        thinkingReapers.clear();
-
-        tickAt(system, 52);
-
-        assertTrue(thinkingReapers.isEmpty());
     }
 
     private boolean isLeaving(EntityId reaper) {
@@ -230,8 +216,7 @@ class SummonedReaperSystemTest {
                     }
                     return keeper;
                 });
-        return new SummonedReaperSystem(entityData, List.of(playerController), creaturesController(), () -> now,
-                (reaper, ownerId) -> thinkingReapers.add(reaper) && somethingToDo);
+        return new SummonedReaperSystem(entityData, List.of(playerController), creaturesController(), () -> now);
     }
 
     private ICreaturesController creaturesController() {

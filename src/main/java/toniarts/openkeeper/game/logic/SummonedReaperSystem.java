@@ -23,8 +23,6 @@ import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Random;
-import java.util.function.Function;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
@@ -34,9 +32,9 @@ import toniarts.openkeeper.game.component.SummonedReaper;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.data.Keeper;
-import toniarts.openkeeper.game.navigation.INavigationService;
 
 /**
  * Keeps the summoned Horned Reapers. The keeper pays nothing for the first 50
@@ -60,49 +58,14 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
 
     private static final double MANA_CHECK_INTERVAL_SECONDS = 1;
 
-    /**
-     * Decides what a Reaper does next
-     */
-    @FunctionalInterface
-    interface ReaperDecisions {
-
-        /**
-         * Lets the Reaper decide what to do next, when he isn't busy
-         *
-         * @param reaper the Reaper
-         * @param ownerId the keeper who summoned him
-         * @return {@code false} if there is nothing left for the Reaper to do
-         */
-        boolean think(EntityId reaper, short ownerId);
-
-        /**
-         * Releases the resources
-         */
-        default void stop() {
-        }
-
-    }
-
     private final EntityData entityData;
     private final EntitySet reapers;
     private final Map<Short, Keeper> keepers;
     private final ICreaturesController creaturesController;
     private final IGameTimer gameTimer;
-    private final ReaperDecisions decisions;
 
     public SummonedReaperSystem(EntityData entityData, Collection<IPlayerController> playerControllers,
-            ICreaturesController creaturesController, IGameTimer gameTimer, INavigationService navigationService) {
-        this(entityData, playerControllers, creaturesController, gameTimer,
-                keepers -> new ReaperAi(entityData, keepers, creaturesController, navigationService, new Random()));
-    }
-
-    SummonedReaperSystem(EntityData entityData, Collection<IPlayerController> playerControllers,
-            ICreaturesController creaturesController, IGameTimer gameTimer, ReaperDecisions decisions) {
-        this(entityData, playerControllers, creaturesController, gameTimer, keepers -> decisions);
-    }
-
-    private SummonedReaperSystem(EntityData entityData, Collection<IPlayerController> playerControllers,
-            ICreaturesController creaturesController, IGameTimer gameTimer, Function<Map<Short, Keeper>, ReaperDecisions> decisionsFactory) {
+            ICreaturesController creaturesController, IGameTimer gameTimer) {
         this.entityData = entityData;
         this.creaturesController = creaturesController;
         this.gameTimer = gameTimer;
@@ -111,7 +74,6 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
             Keeper keeper = playerController.getKeeper();
             keepers.put(keeper.getId(), keeper);
         }
-        decisions = decisionsFactory.apply(keepers);
 
         reapers = entityData.getEntities(SummonedReaper.class, Owner.class);
     }
@@ -130,14 +92,19 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
                 if (gameTime >= summonedReaper.leaveTime + LEAVE_DURATION_SECONDS) {
                     creaturesController.createController(entityId).remove();
                 }
-            } else if (isDismissed(entityId, ownerId, summonedReaper, gameTime)) {
-                leave(entityId, summonedReaper, gameTime);
-            } else if (entityData.getComponent(entityId, CreatureAi.class) != null && !decisions.think(entityId, ownerId)) {
-
-                // He only thinks when he is on his feet, not while still falling from the sky
+            } else if (isDismissed(entityId, ownerId, summonedReaper, gameTime) || hasNothingLeftToAttack(entityId)) {
                 leave(entityId, summonedReaper, gameTime);
             }
         }
+    }
+
+    /**
+     * The Reaper hunts by its own creature states, and ends up in the leaving
+     * state when it finds nothing it can reach
+     */
+    private boolean hasNothingLeftToAttack(EntityId entityId) {
+        CreatureAi creatureAi = entityData.getComponent(entityId, CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.REAPER_LEAVE;
     }
 
     private boolean isDismissed(EntityId entityId, short ownerId, SummonedReaper summonedReaper, double gameTime) {
@@ -218,7 +185,6 @@ public final class SummonedReaperSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         reapers.release();
-        decisions.stop();
     }
 
 }

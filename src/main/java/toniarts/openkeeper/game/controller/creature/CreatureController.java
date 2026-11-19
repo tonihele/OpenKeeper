@@ -69,6 +69,7 @@ import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.component.SummonedReaper;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -190,7 +191,7 @@ public final class CreatureController extends EntityController implements ICreat
     private static final Set<CreatureState> CHICKEN_INTERRUPTIBLE_STATES = EnumSet.of(CreatureState.IDLE,
             CreatureState.WANDER, CreatureState.WORK, CreatureState.FIGHT, CreatureState.FOLLOW, CreatureState.FLEE,
             CreatureState.SLEEPING, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.EATING,
-            CreatureState.CHICKEN);
+            CreatureState.CHICKEN, CreatureState.REAPER_HUNT, CreatureState.REAPER_WANDER);
 
     /**
      * The states a meal interrupts. Like in DK II, a creature busy with
@@ -431,6 +432,68 @@ public final class CreatureController extends EntityController implements ICreat
                 createNavigation(start, destination, null);
             }
         }
+    }
+
+    @Override
+    public boolean isSummonedReaper() {
+        SummonedReaper summonedReaper = entityData.getComponent(entityId, SummonedReaper.class);
+        return summonedReaper != null && !summonedReaper.isLeaving();
+    }
+
+    @Override
+    public boolean huntNearestEnemy() {
+        Vector3f ourPosition = getPosition();
+        Optional<EntityId> enemy = entityData.findEntities(null, CreatureComponent.class, Owner.class, Position.class, Health.class).stream()
+                .filter(this::isReaperPrey)
+                .sorted(Comparator.comparingDouble(entity -> getPosition(entityData, entity).distanceSquared(ourPosition)))
+                .filter(this::hasPathToEntity)
+                .findFirst();
+        enemy.ifPresent(this::setAttackTarget);
+        return enemy.isPresent();
+    }
+
+    /**
+     * Can the Reaper go after the creature. Not one that is out of the fight
+     * or held captive, nor another Reaper on its way out.
+     */
+    private boolean isReaperPrey(EntityId entity) {
+        SummonedReaper otherReaper = entityData.getComponent(entity, SummonedReaper.class);
+        return isEnemy(entity) && entityData.getComponent(entity, Health.class).health > 0
+                && !isIncapacitated(entity) && !isCaptive(entity)
+                && (otherReaper == null || !otherReaper.isLeaving());
+    }
+
+    @Override
+    public boolean goToNearestEnemyHeart() {
+        Point from = getCreatureCoordinates();
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+
+        // DK II measures the way to a heart as dx * dx + 2 * dy in tiles, compared unsigned,
+        // so a heart at a smaller y can count as far away (0x45E1B0)
+        List<Point> hearts = levelInfo.getPlayers().values().stream()
+                .filter(other -> keeper.isEnemy(other.getId()) && !other.isDestroyed() && other.getDungeonHeartLocation() != null)
+                .map(Keeper::getDungeonHeartLocation)
+                .sorted(Comparator.comparing(heart -> (heart.x - from.x) * (heart.x - from.x) + 2 * (heart.y - from.y), Integer::compareUnsigned))
+                .toList();
+        for (Point heart : hearts) {
+            if (from.equals(heart)) {
+                return true;
+            }
+
+            // The heart itself may be in the way, then go next to it
+            Point destination = heart;
+            GraphPath<IMapTileInformation> path = navigationService.findPath(from, destination, this);
+            if (path == null) {
+                destination = navigationService.findRandomAccessibleTile(heart, 2, this);
+                path = destination != null ? navigationService.findPath(from, destination, this) : null;
+            }
+            if (path != null) {
+                entityData.setComponent(entityId, new Navigation(destination, null, SteeringUtils.pathToList(path)));
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
