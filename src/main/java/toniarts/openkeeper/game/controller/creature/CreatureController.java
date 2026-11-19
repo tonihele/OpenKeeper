@@ -416,9 +416,9 @@ public final class CreatureController extends EntityController implements ICreat
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
 
-            // An idle creature of a keeper or an idle hero walks about on its owner's land, like in DK II, others
+            // An idle creature walks about on its owner's land, like in DK II, a neutral one on neutral land. Others
             // anywhere near
-            Point destination = stateMachine.isInState(CreatureState.IDLE) && owner.ownerId != Player.NEUTRAL_PLAYER_ID
+            Point destination = stateMachine.isInState(CreatureState.IDLE)
                     ? navigationService.findIdleWalkTile(start, this)
                     : navigationService.findRandomAccessibleTile(start, 10, this);
             if (start.equals(destination)) {
@@ -1774,11 +1774,6 @@ public final class CreatureController extends EntityController implements ICreat
     public boolean isTimeToReEvaluate() {
 
         // See that we have been motionless for enough time, per state
-        // Neutral creatures idle only for one idle animation before they wander off again
-        if (!isClaimed()) {
-            return motionless >= getAnimationTime(creature, Creature.AnimationType.IDLE_1);
-        }
-
         // TODO: now just 5 seconds, it is the default for imps
         // DK II's pit fighter waits four seconds' worth of ticks on each spot (0x457CF0)
         return motionless >= (stateMachine.getCurrentState() == CreatureState.COMBAT_PIT ? 4f : 5f);
@@ -1792,14 +1787,9 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean playIdleAnimation() {
 
-        // A neutral creature has its own pace
-        if (!isClaimed()) {
-            return false;
-        }
-
         // DK II only lets an idle animation follow an idle walk (the flag at CState +0xA7), so the creature walks the
         // first time and after each animation. A creature without the animation walks too. A worker makes the same
-        // roll inside its own idle state (0x464240)
+        // roll inside its own idle state (0x464240), and a neutral creature in its own (0x4776B0)
         IdleAnimation last = entityData.getComponent(entityId, IdleAnimation.class);
         int roll = FastMath.rand.nextInt(100);
         if (last != null && last.animation == null && roll >= 25) {

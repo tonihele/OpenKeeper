@@ -589,13 +589,17 @@ class CreatureControllerTest {
             }
             assertTrue(worker > 260 && worker < 340, "worker idle animations: " + worker);
 
-            // A neutral creature never does
+            // So does a neutral creature, in its own doing nothing state (0x4776B0)
             f.data.getComponent(f.entity, CreatureComponent.class).worker = false;
-            f.data.setComponent(f.entity, new IdleAnimation(null, 0));
             f.data.setComponent(f.entity, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
-            for (int i = 0; i < 50; i++) {
-                assertFalse(f.controller.playIdleAnimation());
+            int neutral = 0;
+            for (int i = 0; i < 400; i++) {
+                f.data.setComponent(f.entity, new IdleAnimation(null, 0));
+                if (f.controller.playIdleAnimation()) {
+                    neutral++;
+                }
             }
+            assertTrue(neutral > 260 && neutral < 340, "neutral idle animations: " + neutral);
         }
     }
 

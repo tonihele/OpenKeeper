@@ -18,12 +18,10 @@ package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
-import com.jme3.math.FastMath;
 import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -60,9 +58,7 @@ public enum CreatureState implements State<ICreatureController> {
             // Idling is the last resort
             entity.unassingCurrentTask();
             findStuffToDo(entity, (foundWork) -> {
-
-                // Neutral creatures first play an idle animation, then wander off
-                if (!foundWork && entity.isClaimed()) {
+                if (!foundWork) {
                     wander(entity);
                 }
             });
@@ -193,21 +189,16 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            // A creature of a keeper or a hero thinks again as soon as its idle walk or its idle animation ends. In DK II
-            // the walk (state 87, 0x4808E0) goes on in state 1 (0x4773D0), which takes it straight back to its choice:
-            // state 10 (0x463DF0) for a worker, 89 (0x4778E0) for a keeper's other creatures and 90 (0x477850) for a
-            // hero. The doing nothing states (0x477680) stay while an idle animation plays. A neutral creature waits on
-            // its own re-evaluation timer
-            if (entity.getOwnerId() != Player.NEUTRAL_PLAYER_ID ? entity.isStopped() && !entity.isPlayingIdleAnimation()
-                    : entity.isTimeToReEvaluate()) {
+            // An idle creature thinks again as soon as its idle walk or its idle animation ends. In DK II the walk (state
+            // 87, 0x4808E0) goes on in state 1 (0x4773D0), which takes it straight back to its choice: state 10 (0x463DF0)
+            // for a worker, 89 (0x4778E0) for a keeper's other creatures, 90 (0x477850) for a hero and 5 for a neutral
+            // creature. The doing nothing states (0x477680) stay while an idle animation plays, and the neutral one
+            // (0x4776B0) goes straight to the pick between an idle animation and a walk (0x4776C0)
+            if (entity.isStopped() && !entity.isPlayingIdleAnimation()) {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
-                        if (entity.isClaimed()) {
-                            wander(entity);
-                        } else {
-                            entity.getStateMachine().changeState(WANDER);
-                        }
+                        wander(entity);
                     }
                 });
             }
@@ -227,27 +218,14 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
-            entity.navigateToRandomPoint();
+//                    entity.wander();
         }
 
         @Override
         public void update(ICreatureController entity) {
-
-            // Should we flee or attack
-            if (entity.shouldFleeOrAttack()) {
-                return;
-            }
-
-            // A creature the keeper has claimed goes back to look for work, a neutral one keeps strolling
-            if (entity.isClaimed()) {
-                entity.getStateMachine().changeState(IDLE);
-            } else if (entity.isStopped()) {
-                if (FastMath.rand.nextFloat() < 0.07f) { // ~8 % of the time, as logged from DK II
-                    entity.getStateMachine().changeState(IDLE);
-                } else {
-                    entity.navigateToRandomPoint();
-                }
-            }
+//                    if (entity.idleTimeExceeded()) {
+//                        entity.getStateMachine().changeState(IDLE);
+//                    }
         }
 
         @Override
