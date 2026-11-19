@@ -1026,8 +1026,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                 makeSafe(playerId);
             case ObjectsController.OBJECT_SPECIAL_DESTROY_WALLS_ID ->
                 destroyEnemyWalls(playerId);
-            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID ->
-                addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
+            case ObjectsController.OBJECT_SPECIAL_INCREASE_GOLD_ID -> {
+
+                // Like DK II (0x4A4710), what the gold rooms can't hold is left as loose gold where the special was
+                int goldLeft = addGold(playerId, (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_GOLD_AMOUNT).getValue());
+                if (goldLeft > 0) {
+                    dropLooseGold(WorldUtils.vectorToPoint(position.position), WorldUtils.vector3fToVector2f(position.position), goldLeft);
+                }
+            }
             case ObjectsController.OBJECT_SPECIAL_MANA_BOOST_ID ->
                 playerControllers.get(playerId).getManaControl().addMana((int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_INCREASE_MANA_AMOUNT).getValue());
             case ObjectsController.OBJECT_SPECIAL_STUN_IMPS_ID ->
