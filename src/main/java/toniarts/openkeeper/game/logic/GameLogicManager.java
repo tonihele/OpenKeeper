@@ -55,9 +55,21 @@ public final class GameLogicManager implements IGameLogicUpdatable {
 
     @Override
     public void stop() {
+        stopAll(updatables);
+    }
+
+    /** Attempt every owned system's retirement before propagating the first failure. */
+    public static void stopAll(IGameLogicUpdatable... updatables) {
+        Throwable failure = null;
         for (IGameLogicUpdatable updatable : updatables) {
-            updatable.stop();
+            try { updatable.stop(); }
+            catch (RuntimeException | Error error) {
+                if (failure == null) failure = error;
+                else if (failure != error) failure.addSuppressed(error);
+            }
         }
+        if (failure instanceof RuntimeException error) throw error;
+        if (failure instanceof Error error) throw error;
     }
 
 //    private void drawCreatureVisibilities() {

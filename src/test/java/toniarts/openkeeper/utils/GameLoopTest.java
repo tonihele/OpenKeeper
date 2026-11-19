@@ -21,6 +21,8 @@ import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.logging.Handler;
 import java.util.logging.Level;
 import java.util.logging.LogRecord;
@@ -29,6 +31,8 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.logic.IGameLogicUpdatable;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * The overrun log of the game loop
@@ -37,6 +41,89 @@ class GameLoopTest {
 
     private static final long UPDATE_RATE = TimeUnit.MILLISECONDS.toNanos(10);
     private static final long SLOW_TICK_MILLIS = 80;
+
+    @Test void stopBeforeStartReleasesConstructorOwnedSystemsAndRejectsLaterStart() {
+        var starts = new AtomicInteger(); var stops = new AtomicInteger();
+        var loop = new GameLoop(new IGameLogicUpdatable() {
+            @Override public void start() { starts.incrementAndGet(); }
+            @Override public void processTick(float tpf) { throw new AssertionError("Stopped loop ticked"); }
+            @Override public void stop() { stops.incrementAndGet(); }
+        }, UPDATE_RATE);
+        loop.stop(); loop.stop();
+        assertEquals(0, starts.get()); assertEquals(1, stops.get());
+        assertThrows(IllegalThreadStateException.class, loop::start);
+    }
+
+    @Test void callbackCanRequestItsOwnStopWithoutJoiningItself() throws Exception {
+        var stopped = new CountDownLatch(1); var ticks = new AtomicInteger();
+        var owner = new GameLoop[1];
+        owner[0] = new GameLoop(new IGameLogicUpdatable() {
+            @Override public void start() { }
+            @Override public void processTick(float tpf) { ticks.incrementAndGet(); owner[0].stop(); }
+            @Override public void stop() { stopped.countDown(); }
+        }, UPDATE_RATE);
+        owner[0].start();
+        try { assertTrue(stopped.await(2, TimeUnit.SECONDS)); }
+        finally { owner[0].stop(); }
+        assertEquals(1, ticks.get());
+    }
+
+    @Test void concurrentStopCallersWaitForTheSameCleanupAndObserveItsFailure() throws Exception {
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1); var stops = new AtomicInteger();
+        var loop = new GameLoop(new IGameLogicUpdatable() {
+            @Override public void start() { }
+            @Override public void processTick(float tpf) { }
+            @Override public void stop() {
+                stops.incrementAndGet(); entered.countDown();
+                try { release.await(); } catch (InterruptedException error) { throw new AssertionError(error); }
+                throw new IllegalStateException("cleanup failure");
+            }
+        }, UPDATE_RATE);
+        var first = new CompletableFuture<Throwable>(); var second = new CompletableFuture<Throwable>();
+        Thread.ofVirtual().start(() -> { try { loop.stop(); first.complete(null); } catch (Throwable error) { first.complete(error); } });
+        assertTrue(entered.await(2, TimeUnit.SECONDS));
+        Thread.ofVirtual().start(() -> { try { loop.stop(); second.complete(null); } catch (Throwable error) { second.complete(error); } });
+        try { assertFalse(first.isDone()); assertFalse(second.isDone()); }
+        finally { release.countDown(); }
+        assertTrue(first.get(2, TimeUnit.SECONDS) instanceof CompletionException);
+        assertTrue(second.get(2, TimeUnit.SECONDS) instanceof CompletionException);
+        assertEquals(1, stops.get());
+    }
+
+    @Test void startupFailureStillRetiresSystemsExactlyOnce() throws Exception {
+        var stops = new AtomicInteger(); var error = new CompletableFuture<Throwable>();
+        var loop = new GameLoop(new IGameLogicUpdatable() {
+            @Override public void start() { throw new IllegalStateException("startup failed"); }
+            @Override public void processTick(float tpf) { throw new AssertionError("Failed startup ticked"); }
+            @Override public void stop() { stops.incrementAndGet(); }
+        }, UPDATE_RATE);
+        var field = GameLoop.class.getDeclaredField("loop"); field.setAccessible(true);
+        ((Thread) field.get(loop)).setUncaughtExceptionHandler((thread, failure) -> error.complete(failure));
+        loop.start();
+        assertTrue(error.get(2, TimeUnit.SECONDS) instanceof IllegalStateException);
+        loop.stop(); loop.stop(); assertEquals(1, stops.get());
+    }
+
+    @Test void interruptedCallerStillWaitsForActualLoopRetirement() throws Exception {
+        var entered = new CountDownLatch(1); var release = new CountDownLatch(1); var stops = new AtomicInteger();
+        var loop = new GameLoop(new IGameLogicUpdatable() {
+            @Override public void start() { }
+            @Override public void processTick(float tpf) {
+                entered.countDown();
+                try { release.await(); } catch (InterruptedException error) { throw new AssertionError(error); }
+            }
+            @Override public void stop() { stops.incrementAndGet(); }
+        }, UPDATE_RATE);
+        loop.start(); assertTrue(entered.await(2, TimeUnit.SECONDS));
+        var result = new CompletableFuture<Boolean>();
+        Thread.ofVirtual().start(() -> {
+            try { Thread.currentThread().interrupt(); loop.stop(); result.complete(Thread.currentThread().isInterrupted()); }
+            catch (Throwable error) { result.completeExceptionally(error); }
+        });
+        try { assertFalse(result.isDone()); }
+        finally { release.countDown(); }
+        assertTrue(result.get(2, TimeUnit.SECONDS)); assertEquals(1, stops.get());
+    }
 
     @Test
     void overrunLogShowsHowLongTheTickTook() throws InterruptedException {

@@ -957,3 +957,24 @@ Final `build testInstalledMinimapAssets -I D:/Temp/openkeeper-animation-installe
 - [x] Compare binary16 interpolation, continuous-interval velocity and envelope expansion on all source-bound catalog clips.
 - [x] Measure exact-frame deduplication with lookup overhead, including the already benchmarked eight-resource workload.
 - [ ] Trial runtime/texture candidates only against measured decode/frame/residency and projected-error gates; approximate key reduction and animated LOD acceptance remain open.
+
+Representation-comparison commit: `1229a5a`.
+
+## 18. Continued implementation: simulation retirement
+
+### N11e prerequisite — Safe game-loop termination
+
+Following the source lifetime past the client reveals additional server-side work: GameServerState starts a constructor-owned loader, lacks early-detach ownership and waits/joins during lifecycle calls. That path needs its own correction; the earlier view/screen fixes do not cover it.
+
+The first verified prerequisite fixes [GameLoop](../src/main/java/toniarts/openkeeper/utils/GameLoop.java). Previously `stop()` before thread start joined a NEW thread and returned without calling its systems' stop hooks, retaining constructor-created queries. Calling stop inside its own update joined itself indefinitely. A start/tick exception also bypassed normal system cleanup.
+
+Start/close now serialize the NEW-state decision. A cancelled loop cannot subsequently start. One cleanup completion is shared by concurrent close callers; never-started loops release their prepared systems without starting/ticking them. Running loops retire in a finally block. A loop callback can request exit without joining itself; external callers still wait for actual return, preserve interruption and observe cleanup failures. Failures are logged even when no external waiter observes them. This changes termination mechanics, **not simulation tick cadence or deterministic animation selection**.
+
+Five new loop regressions cover pre-start/duplicate stop, self-stop, concurrent stop/failure, startup failure and interrupted waiters; the existing overrun-timing regression remains. Because close now reports cleanup failures, GameLoopManager also attempts every remaining loop before propagating an aggregate failure and clearing its references. GameLogicManager and GameController likewise retire all nested systems/controllers even when an earlier stop hook fails. Three additional batch-retirement regressions verify ordered attempts, exception/suppression identity, errors and clearing loop references. Deliberate failure cases log their errors; those are expected fixture inputs, not ignored test failures.
+
+The actual enhanced local-game smoke passes again: **360 active frames / 48 sampled and paused owners / 7,217,144 packed primitive bytes**, along with all **24 delivery schedules** (`D:/Temp/animation-next-n11-loops-complete-build-smoke.txt`). The final build verifies the aggregated-cleanup implementation and logging; no frame/FPS benefit is inferred.
+
+Final `build` **passes** with compilation/packaging, **1,549 JUnit tests, zero failures/errors, four existing minimap skips**, and all **24 delivery schedules** (`D:/Temp/animation-next-n11-loops-final-build.txt`). Server loading/publication ownership remains the next distinct change; this prerequisite alone does not remove that state's render-thread waits.
+
+- [x] Retire prepared/running loop systems exactly once, avoid self-join and preserve real completion for other callers.
+- [ ] Own the server loader, queued readiness/start and early-detach lifecycle; remove render-thread waits and expose actual server retirement before source disposal.

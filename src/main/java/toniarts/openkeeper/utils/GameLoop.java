@@ -60,13 +60,18 @@ public final class GameLoop {
      * background thread.
      */
     public void start() {
-        loop.start();
+        synchronized (loop) {
+            if (!loop.go.get()) throw new IllegalThreadStateException("Game loop is already stopped");
+            loop.start();
+        }
     }
 
     /**
      * Stops the background game loop thread, stopping and terminating the game systems. This method will wait
-     * until the thread has been fully shut down before returning. The systems will be stopped and terminated
-     * on the game loop background thread.
+     * until the thread has been fully shut down before returning, preserving caller interruption. A callback
+     * on this loop only requests exit; its cleanup follows when that callback returns. Before start, cleanup
+     * runs on the closing caller because constructor-owned systems still need retirement. Concurrent callers
+     * observe the same cleanup completion and failure.
      */
     public void stop() {
         loop.close();
@@ -91,25 +96,44 @@ public final class GameLoop {
     protected final class Runner extends Thread {
 
         private final AtomicBoolean go = new AtomicBoolean(true);
+        private final AtomicBoolean stopStarted = new AtomicBoolean();
+        private final java.util.concurrent.CompletableFuture<Void> stopped = new java.util.concurrent.CompletableFuture<>();
 
         public Runner(String name) {
             super(name);
         }
 
         public void close() {
-            go.set(false);
+            boolean neverStarted;
+            synchronized (this) {
+                go.set(false);
+                neverStarted = getState() == State.NEW;
+            }
             GameLoop.this.resume();
+            if (neverStarted) stopSystems();
+            // A callback may request its own exit; joining itself can never complete.
+            if (Thread.currentThread() == this) return;
+            boolean interrupted = false;
             try {
-                join();
-            } catch (InterruptedException e) {
-                throw new RuntimeException("Interrupted while waiting for game loop thread to complete.", e);
+                while (true) {
+                    try { join(); break; }
+                    catch (InterruptedException ignored) { interrupted = true; }
+                }
+                stopped.join();
+            } finally {
+                if (interrupted) Thread.currentThread().interrupt();
             }
         }
 
         @Override
         public void run() {
-            gameLoopManager.start();
+            try {
+                gameLoopManager.start();
+                runUpdates();
+            } finally { stopSystems(); }
+        }
 
+        private void runUpdates() {
             long frameRate = 0;
             long lastTime = System.nanoTime();
             while (go.get()) {
@@ -173,7 +197,17 @@ public final class GameLoop {
                 }
             }
 
-            gameLoopManager.stop();
+        }
+
+        private void stopSystems() {
+            if (!stopStarted.compareAndSet(false, true)) return;
+            try {
+                gameLoopManager.stop();
+                stopped.complete(null);
+            } catch (Throwable failure) {
+                stopped.completeExceptionally(failure);
+                logger.log(Level.ERROR, "Failed to stop game loop systems for " + getName(), failure);
+            }
         }
     }
 }

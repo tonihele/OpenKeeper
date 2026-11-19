@@ -202,8 +202,21 @@ public final class GameLoopManager {
     }
 
     public void stop() {
-        loops.forEach(GameLoop::stop);
+        stopLoops(loops);
+    }
+
+    /** One failed system cleanup must not leave the other simulation threads running. */
+    static void stopLoops(List<GameLoop> loops) {
+        RuntimeException failure = null;
+        for (GameLoop loop : loops) {
+            try { loop.stop(); }
+            catch (RuntimeException error) {
+                if (failure == null) failure = error;
+                else if (failure != error) failure.addSuppressed(error);
+            }
+        }
         loops.clear();
+        if (failure != null) throw failure;
     }
 
     public IGameController getGameController() {
