@@ -16,6 +16,8 @@
  */
 package toniarts.openkeeper.game.controller.room;
 
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -23,13 +25,18 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomComponent;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.game.map.WallSection;
+import toniarts.openkeeper.game.map.WallSection.WallDirection;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -49,7 +56,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
      */
     public enum ObjectType {
 
-        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE;
+        GOLD, LAIR, SPELL_BOOK, SPECIAL, RESEARCHER, PRISONER, TORTUREE, FOOD, TRAINEE, MANUFACTURER, CRATE, WORSHIPPER, GUARD, GAMBLER, CORPSE;
 
     };
 
@@ -72,6 +79,8 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
          */
         ISOLATED;
     }
+
+    private static final float WALL_OBJECT_DISTANCE = 0x700 / 4096f;
 
     protected final EntityData entityData;
     protected final IKwdFile kwdFile;
@@ -202,17 +211,92 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
 
                         // Add object
                         objectMap[x][y] = true;
-                        EntityId object = objectsController.loadObject(room.getObjects().get(index), (short) 0, start.x + x, start.y + y);
+                        EntityId object = constructFloorObject(room.getObjects().get(index), new Point(start.x + x, start.y + y));
                         floorFurniture.add(object);
                     }
                 }
             }
         }
 
-        // Wall objects 3-5
-        if (room.getObjects().get(3) > 0 || room.getObjects().get(4) > 0 || room.getObjects().get(5) > 0) {
-
+        // Wall objects 3-5, the list ends at the first empty slot
+        List<Short> wallObjects = new ArrayList<>(3);
+        for (short objectId : room.getObjects().subList(3, 6)) {
+            if (objectId == 0) {
+                break;
+            }
+            wallObjects.add(objectId);
         }
+
+        // DK II (0x4EDFC0) picks each tile's object by a random number seeded from the tile
+        for (Map.Entry<Point, WallDirection> tile : WallSection.findWallFurnitureTiles(roomInstance).entrySet()) {
+            Point p = tile.getKey();
+            wallFurniture.addAll(constructWallObject(wallObjects.get(getTileRandom(p, wallObjects.size())), p, tile.getValue()));
+        }
+    }
+
+    /**
+     * Places a floor object at the centre of a room tile.
+     */
+    protected EntityId constructFloorObject(short objectId, Point p) {
+        return objectsController.loadObject(objectId, (short) 0, p.x, p.y);
+    }
+
+    /**
+     * Picks a repeatable furniture choice from absolute map coordinates, using
+     * DK II's tile-seeded random number generator (0x4EDFC0).
+     */
+    protected static int getTileRandom(Point p, int bound) {
+        int seed = random(nextSeed(p.y), 0x2286) ^ random(nextSeed(p.x), 0x16F2);
+        return random(nextSeed(seed), bound);
+    }
+
+    /**
+     * Places a wall object on a room tile, against the wall and facing into
+     * the room
+     *
+     * @param objectId the object
+     * @param p the room tile
+     * @param direction the way the wall faces
+     * @return the objects placed
+     */
+    protected List<EntityId> constructWallObject(short objectId, Point p, WallDirection direction) {
+        return List.of(loadWallObject(objectId, p, direction, WALL_OBJECT_DISTANCE, 0));
+    }
+
+    /**
+     * Loads an object next to a wall, facing into the room
+     *
+     * @param objectId the object
+     * @param p the room tile
+     * @param direction the way the wall faces
+     * @param distance how far from the tile centre towards the wall, in tiles
+     * @param height how high above the floor, in tiles
+     * @return the object
+     */
+    protected final EntityId loadWallObject(short objectId, Point p, WallDirection direction, float distance, float height) {
+        Point wall = WallSection.getWallNeighbour(p, direction);
+        Vector3f position = WorldUtils.pointToVector3f(p).addLocal((wall.x - p.x) * distance, 0, (wall.y - p.y) * distance);
+
+        // DK II turns the object the way the wall faces, into the room (yaw ((k + 2) & 3) << 9).
+        // A model looks down its +Z, south at angle 0, but a wall facing north has angle 0, so
+        // the object is half a turn round from the wall's angle
+        float rotation = direction.getAngle() + FastMath.PI;
+        EntityId object = objectsController.loadObject(objectId, (short) 0, position.clone(), rotation);
+        if (height != 0) {
+            entityData.setComponent(object, new Position(rotation, position.setY(WorldUtils.FLOOR_HEIGHT + height)));
+        }
+        return object;
+    }
+
+    /**
+     * DK II's random numbers (badRandomCall, 0x5558D0)
+     */
+    private static int nextSeed(int seed) {
+        return seed * 0x19660D + 0x3C6EF35F;
+    }
+
+    private static int random(int seed, int bound) {
+        return Integer.remainderUnsigned(Integer.rotateRight(seed, 13), bound);
     }
 
     protected static boolean hasSameTile(boolean[][] map, int x, int y) {
@@ -249,6 +333,19 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
         control.destroy();
         existingControl.updateMaxCapacity();
         return (T) existingControl;
+    }
+
+    /**
+     * The room no longer stores this type of objects. The control is
+     * destroyed, which leaves the stored objects on the floor.
+     *
+     * @param objectType the type of objects
+     */
+    protected final void removeObjectControl(ObjectType objectType) {
+        IRoomObjectControl control = objectControls.remove(objectType);
+        if (control != null) {
+            control.destroy();
+        }
     }
 
     @Override
@@ -375,6 +472,7 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
     public void captured(short playerId) {
 
         // Nothing, hmm, should we move some logic here from the MapController
+        roomInstance.setOwnerId(playerId);
         entityData.setComponent(entityId, new Owner(playerId, playerId));
 
         // Notify the controls
@@ -435,7 +533,8 @@ public abstract class AbstractRoomController extends AbstractRoomInformation imp
             case 1:  // Treasury
                 return 76;
             case 2:  // Lair
-                return 77;
+                // Object 77 exists, but native DK II does not use lair pillars (#607).
+                return null;
             case 4:  // Hatchery
                 return 78;
             case 10:  // Workshop

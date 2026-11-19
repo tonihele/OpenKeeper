@@ -78,7 +78,7 @@ public abstract class SingleBarLoadingState extends LoadingState implements IPla
                 imageHeight - ((Main.getUserSettings().getAppSettings().getHeight() - imageHeight) / 2 + imageHeight * BAR_Y) - imageHeight * BAR_HEIGHT, 0);
         Material mat = new Material(assetManager,
                 "Common/MatDefs/Misc/Unshaded.j3md");
-        mat.setColor("Color", new ColorRGBA(BAR_COLOR.getRed() / 255f, BAR_COLOR.getGreen() / 255f, BAR_COLOR.getBlue() / 255f, BAR_COLOR.getAlpha() / 255f));
+        mat.setColor("Color", new ColorRGBA().setAsSrgb(BAR_COLOR.getRed() / 255f, BAR_COLOR.getGreen() / 255f, BAR_COLOR.getBlue() / 255f, BAR_COLOR.getAlpha() / 255f));
         progressBar.setMaterial(mat);
         this.app.getGuiNode().attachChild(progressBar);
     }

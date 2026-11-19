@@ -139,7 +139,7 @@ public final class GameLoop {
                     long tickTime = System.nanoTime() - time;
                     // Logging
                     logger.log(tickTime < updateRate ? Level.TRACE : Level.ERROR, "Loop \"{0}\" took {1} ms!",
-                            getName(), TimeUnit.NANOSECONDS.toMillis(delta));
+                            getName(), TimeUnit.NANOSECONDS.toMillis(tickTime));
                 }
 
                 // Wait just a little.  This is an important enough thread

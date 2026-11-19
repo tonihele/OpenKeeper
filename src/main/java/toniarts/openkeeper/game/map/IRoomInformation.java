@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.map;
 
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.utils.Point;
 
 /**
  * A kind of a room container with no editing functionalities
@@ -49,6 +50,13 @@ public interface IRoomInformation {
     short getOwnerId();
 
     short getRoomId();
+
+    /**
+     * The room centre tile
+     *
+     * @return the room centre
+     */
+    Point getLocation();
 
     /**
      * Are we the dungeon heart? Data-driven (an entity-component check, not
