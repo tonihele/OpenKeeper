@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.component;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -40,6 +41,13 @@ public final class PossessedAbility implements EntityComponent {
      */
     public EntityId entity;
 
+    /**
+     * The velocity the carried worker is let go with, {@code null} while it is
+     * held. Like DK II's flag 0x200 (0x516EC0), the keeper's throw only marks
+     * it and the game logic tick lets the worker go (0x4831D0)
+     */
+    public Vector3f releaseVelocity;
+
     public PossessedAbility() {
         // For serialization
     }
@@ -52,6 +60,21 @@ public final class PossessedAbility implements EntityComponent {
     public PossessedAbility(Creature.SpecialAbility ability, double checkTime, EntityId entity) {
         this(ability, checkTime);
         this.entity = entity;
+    }
+
+    /**
+     * The creature lets go of the worker it carries on the next game logic
+     * tick
+     *
+     * @param ability the ability
+     * @param checkTime when the ability last did its work
+     * @param entity the worker the creature carries
+     * @param releaseVelocity the velocity the worker is let go with, in tiles
+     * per turn
+     */
+    public PossessedAbility(Creature.SpecialAbility ability, double checkTime, EntityId entity, Vector3f releaseVelocity) {
+        this(ability, checkTime, entity);
+        this.releaseVelocity = releaseVelocity;
     }
 
 }
