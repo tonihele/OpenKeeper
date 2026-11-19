@@ -42,6 +42,7 @@ public final class CreatureComponent implements EntityComponent {
     public int posessionManaCost;
     public float stunDuration;
     public boolean worker;
+    public boolean tool; // A Hero Toolbox creature, "I am a tool"
     public short creatureId;
     public boolean diesInstantly;
     public boolean destroysRooms;
@@ -68,6 +69,7 @@ public final class CreatureComponent implements EntityComponent {
         this.posessionManaCost = creatureComponent.posessionManaCost;
         this.stunDuration = creatureComponent.stunDuration;
         this.worker = creatureComponent.worker;
+        this.tool = creatureComponent.tool;
         this.creatureId = creatureComponent.creatureId;
         this.diesInstantly = creatureComponent.diesInstantly;
         this.destroysRooms = creatureComponent.destroysRooms;
