@@ -1064,3 +1064,11 @@ The strict level-residency task is **still failing**, intentionally and observab
 - **Conditional follow-ups:** N04/N05/N06/N07/N08/N09 fidelity policies and deformation experiments require their stated reference/correspondence/control inputs; N13/N15/N16/N17/N18 require their preceding backend, correspondence, workload or engine-ownership evidence. Numeric PoCs and optional subsets do not complete them.
 
 Final review preserves those distinctions, checks the source/worker/render ownership changes and keeps ordinary rendering/CPU fallback intact. No full-integration approval, unmeasured steady-frame gain or original-DK2 fidelity approval is claimed.
+
+## 21. Maintainer publication preflight
+
+The final validation initially found a socket-fixture failure: the loopback-only probe released a four-port range beginning in the client ephemeral range, then jME failed to bind a wildcard channel (`animation-final-maintainer-build.txt`). The probe now uses the same wildcard binding as `Network.createServer`/`addChannel`, explicitly exclusive TCP/UDP reservations, and randomized server ranges below the usual client ephemeral range. Reservations still require a handoff to jME; another process can claim a port during that interval, and a real bind failure remains a test failure rather than being hidden. No production networking change is needed or included.
+
+Both actual transport scenarios pass in two fresh invocations after this correction. The complete rerun (`animation-final-maintainer-build-verified.txt`) executes all 13 tasks, including **1,555 JUnit tests with zero failures/errors and four existing asset skips**, the separate **four installed minimap tests with zero skips/failures**, **24 deterministic delivery schedules**, and **two localhost transport scenarios**. In the last transport run, regular/coalesced delivery accepts 81/32 of 81 publications, with maximum component errors 0.000005992/0.000006148. Message counts and source lag remain diagnostics, not bandwidth or camera-latency measurements.
+
+Section 14 remains the roadmap of unfinished engineering and external prerequisites; publication does not mark those items implemented.

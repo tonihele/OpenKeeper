@@ -11,7 +11,7 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.client.EntityDataClientService;
 import com.simsilica.es.server.EntityDataHostedService;
-import java.net.InetAddress;
+import java.net.InetSocketAddress;
 import java.net.ServerSocket;
 import java.net.DatagramSocket;
 import java.nio.file.Files;
@@ -20,6 +20,7 @@ import java.util.ArrayList;
 import java.util.Locale;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.LockSupport;
 import toniarts.openkeeper.game.component.CreatureMotion;
@@ -146,19 +147,27 @@ public final class AnimationRemoteMotionAudit {
     }
 
     private static int availablePortBlock() throws Exception {
-        var loopback = InetAddress.getByName("127.0.0.1");
         for (int attempt = 0; attempt < 20; attempt++) {
             var reservations = new ArrayList<ServerSocket>();
             try {
-                var first = new ServerSocket(0, 1, loopback); reservations.add(first);
-                int base = first.getLocalPort();
-                if (base > 65532) continue;
-                for (int offset = 1; offset <= 3; offset++) reservations.add(new ServerSocket(base + offset, 1, loopback));
-                try (var udp = new DatagramSocket(base, loopback)) { return base; }
+                // Network.createServer/addChannel bind wildcard addresses, not just loopback.
+                // Stay below the usual client ephemeral range so outgoing connections are
+                // unlikely to claim a just-probed adjacent channel during the handoff.
+                int base = ThreadLocalRandom.current().nextInt(10000, 40000);
+                for (int offset = 0; offset <= 3; offset++) {
+                    var socket = new ServerSocket(); reservations.add(socket);
+                    socket.setReuseAddress(false);
+                    socket.bind(new InetSocketAddress(base + offset));
+                }
+                try (var udp = new DatagramSocket(null)) {
+                    udp.setReuseAddress(false);
+                    udp.bind(new InetSocketAddress(base));
+                    return base;
+                }
             } catch (java.net.BindException occupied) {
-                // Retry a new ephemeral range; never depend on one fixed test port.
+                // Retry a new range; never depend on one fixed test port.
             } finally { for (var socket : reservations) socket.close(); }
         }
-        throw new AssertionError("No available four-port localhost range");
+        throw new AssertionError("No available four-port wildcard range");
     }
 }
