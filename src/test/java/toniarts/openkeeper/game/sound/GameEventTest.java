@@ -121,6 +121,17 @@ class GameEventTest {
     }
 
     @Test
+    void storedGoldClinksWithTheGoldsDropSound() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getObject") && (int) args[0] == 1 ? SoundFixtures.object("OBJECT_GOLD") : null);
+        GameEvent event = new GameEvent(GameEventType.CREATURE_STORE_GOLD, ThingFlag.CREATURE, 2, null, 0, null, new Point(4, 5));
+
+        // DK II (0x466AC0) plays the gold object's sound 0xC4 at the creature
+        assertEquals(List.of(new GameEventSounds.Sound("OBJECT_GOLD", 0xC4, new Point(4, 5))),
+                GameEventSounds.getSounds(event, kwdFile));
+    }
+
+    @Test
     void slappedObjectSquawksOnItsOwnCategory() {
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> method.getName().equals("getObject") ? SoundFixtures.object("OBJECT_CHICKEN") : null);

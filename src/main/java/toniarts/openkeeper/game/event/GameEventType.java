@@ -41,6 +41,10 @@ public enum GameEventType {
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**
+     * A creature put gold in a Treasury or its Dungeon Heart
+     */
+    CREATURE_STORE_GOLD,
+    /**
      * The subject is the attacker's creature type, the target is the victim
      */
     MELEE_HIT,

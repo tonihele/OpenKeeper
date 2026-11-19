@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.sound;
 
+import toniarts.openkeeper.game.controller.ObjectsController;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -84,6 +85,8 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
                 add(sounds, subject, ThingSounds.CREATURE_REINFORCE, event.position);
+            case CREATURE_STORE_GOLD ->
+                add(sounds, getCategory(kwdFile, ThingFlag.OBJECT, ObjectsController.OBJECT_GOLD_ID), ThingSounds.DROP, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
             case PICKED_UP ->
