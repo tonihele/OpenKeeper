@@ -450,7 +450,6 @@ public final class MovementSystem implements IGameLogicUpdatable {
         if (steering.isZero()
                 && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
                 && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
-            Navigation navigation = movableEntities.getEntity(entityId).get(Navigation.class);
             FollowWaypoints pathFollowing = steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing();
             // The factory creates no path follower for zero/one-point paths:
             // those requests only face a target from the current position.
