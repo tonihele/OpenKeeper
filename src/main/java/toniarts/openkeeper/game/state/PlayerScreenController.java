@@ -124,7 +124,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
-    private final Set<Element> workshoplessIcons = new HashSet<>();
+    private final Map<Element, String> workshopIconTints = new HashMap<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -1177,23 +1177,29 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         for (ResearchableEntity door : state.getAvailableDoors()) {
             if (door.isDiscovered()) {
-                reapplyIconEffects(hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId()), workshoplessIcons);
+                Element icon = hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId());
+                reapplyIconEffects(icon, workshopIconTints.get(icon));
             }
         }
         for (ResearchableEntity trap : state.getAvailableTraps()) {
             if (trap.isDiscovered()) {
-                reapplyIconEffects(hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId()), workshoplessIcons);
+                Element icon = hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId());
+                reapplyIconEffects(icon, workshopIconTints.get(icon));
             }
         }
     }
 
     private void reapplyIconEffects(Element icon, Set<Element> unaffordableIcons) {
+        reapplyIconEffects(icon, unaffordableIcons.contains(icon) ? "unaffordable" : null);
+    }
+
+    private void reapplyIconEffects(Element icon, String tint) {
         if (icon == null) {
             return;
         }
         icon.stopEffect(EffectEventId.onCustom);
-        if (unaffordableIcons.contains(icon)) {
-            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        if (tint != null) {
+            icon.startEffect(EffectEventId.onCustom, null, tint);
         } else if (icon == selectedButton) {
             icon.startEffect(EffectEventId.onCustom, null, "select");
         }
@@ -1216,42 +1222,42 @@ public final class PlayerScreenController implements IPlayerScreenController {
             Element element = contentPanel.addElement(createTrapIcon(trap));
             setResearchEffect(trap, element);
         }
-        workshoplessIcons.clear();
+        workshopIconTints.clear();
         updateWorkshopAvailability();
     }
 
     /**
-     * Darkens the trap and door icons while the player has no Workshop to
-     * manufacture them in, as DKII.EXE does (0x412FC0)
+     * Tints the trap and door icons while the player has no Workshop to
+     * manufacture them in, as DKII.EXE does (0x412FC0, colour 0x808080)
      */
     private void updateWorkshopAvailability() {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
-        boolean hasWorkshop = state.hasWorkshop();
+        String tint = state.hasWorkshop() ? null : "workshopless";
         for (ResearchableEntity door : state.getAvailableDoors()) {
             if (door.isDiscovered()) {
-                updateWorkshopIcon(hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId()), hasWorkshop);
+                updateWorkshopIcon(hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId()), tint);
             }
         }
         for (ResearchableEntity trap : state.getAvailableTraps()) {
             if (trap.isDiscovered()) {
-                updateWorkshopIcon(hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId()), hasWorkshop);
+                updateWorkshopIcon(hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId()), tint);
             }
         }
     }
 
-    private void updateWorkshopIcon(Element icon, boolean hasWorkshop) {
-        if (icon == null || hasWorkshop != workshoplessIcons.contains(icon)) {
+    private void updateWorkshopIcon(Element icon, String tint) {
+        if (icon == null || Objects.equals(tint, workshopIconTints.get(icon))) {
             return;
         }
-        if (!hasWorkshop) {
-            workshoplessIcons.add(icon);
-            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        icon.stopEffect(EffectEventId.onCustom);
+        if (tint != null) {
+            workshopIconTints.put(icon, tint);
+            icon.startEffect(EffectEventId.onCustom, null, tint);
         } else {
-            workshoplessIcons.remove(icon);
-            icon.stopEffect(EffectEventId.onCustom);
-            if (icon == selectedButton) {
-                icon.startEffect(EffectEventId.onCustom, null, "select");
-            }
+            workshopIconTints.remove(icon);
+        }
+        if (icon == selectedButton) {
+            icon.startEffect(EffectEventId.onCustom, null, "select");
         }
     }
 
@@ -1469,9 +1475,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     protected void updateSelectedItem(PlayerInteractionState.InteractionState state) {
         if (selectedButton != null) {
             selectedButton.stopEffect(EffectEventId.onCustom);
-            if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)
-                    || workshoplessIcons.contains(selectedButton)) {
+            if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)) {
                 selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else if (workshopIconTints.containsKey(selectedButton)) {
+                selectedButton.startEffect(EffectEventId.onCustom, null, workshopIconTints.get(selectedButton));
             }
         }
 
