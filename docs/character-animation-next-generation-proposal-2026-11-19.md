@@ -754,7 +754,7 @@ This is the current status of **every N01–N18 item**, following the implementa
 ### Next dependency-aware implementation slices
 
 1. **N11 cold/residency acceptance:** section 15 delivers session/screen/map and render-sort retirement, ten actual cycles per sampler, process and buffer measurements. Resolve the source-proven Zay-ES reporter/database ownership defect through a maintained dependency fix, then rerun the strict audit and trustworthy VRAM tracing under an enabled Windows profiling policy. Separate animation preparation/transition stalls before considering defaults or context release.
-2. **N02/N01 gameplay/network acceptance:** add delayed/coalesced packet and possession/hand/haul/teleport/removal fixtures, verify unchanged gameplay data, and measure bandwidth/latency before promoting root interpolation.
+2. **N02/N01 gameplay/network acceptance:** sections 16/19 deliver deterministic serialized order/delay/coalescing, payload sizes and actual localhost ES transport/removal. Next cover authenticated/cross-process gameplay, possession camera/hand/haul/combat/audio, corners and real traffic/interest policy before promoting root interpolation.
 3. **N03/N04/N05 reference data:** collect executable-identified native traces; author and review source-bound contact/stride/actor-space annotations for a small representative set. Implement runtime metadata consumption and one validated transition instead of extrapolating anatomy from vertex counts.
 4. **N12 all-pass gallery before world promotion:** integrate the structural O1/O3 ownership contracts and all material techniques, on-demand CPU picking and resource fallback. Measure against the newly improved packed CPU baseline, not the slower pre-N11 reference. N13/N17 depend on this evidence.
 5. **N10 adaptive quality experiment:** use conservative per-clip phase/error bounds and explicitly owned multi-view requirements; keep full-rate fallback wherever a view/shadow requirement is unavailable. Do not ship the failed uniform bands.
@@ -1031,3 +1031,36 @@ Final `build auditAnimationRemoteMotion` **passes**, including compilation/packa
 
 - [x] Exercise actual jME/Zay-ES channel transport with regular and coalesced/stalled publications, cuts and remote removal.
 - [ ] Complete authenticated/cross-process gameplay, camera/input and actual traffic/interest-policy acceptance before promoting N02.
+
+Actual entity-transport audit commit: `c402ccb`.
+
+## 20. Continuation ledger and honest remaining scope
+
+All changes below are local to `feat/animation-next-generation`. Existing feature history is preserved; no push, merge or PR is performed. Each verified slice includes its own documentation and tests/evidence. The original N01–N18 checkboxes remain open wherever their **full** exit criteria remain unmet.
+
+| Commit | Independently verified slice |
+|---|---|
+| `3d5d0bf` | Cancel loading screens without render joins or stale completion/error callbacks |
+| `5b5faec` | Cancellable per-manager prewarm/upload ownership and truthful ready state |
+| `6df04d1` | Client/map lifetime, guarded render publication and delayed source retirement |
+| `6da0161` | Disable retired states in the current update snapshot; peer-safe shutdown |
+| `eb81e2b` | Release pinned render-sort scratch retaining retired worlds |
+| `a38c451` | Ten-cycle residency measurements and strict detection of retained databases; N11 not accepted |
+| `8cd49d3` | Preserve coherent motion across independent Position delivery |
+| `a088a1a` | Deterministic serializer/ECS delay/coalescing and payload regression audit |
+| `1229a5a` | Corpus binary16/bounds/velocity and exact-frame deduplication comparisons |
+| `b8b7c0d` | Prepared/running loop retirement, self-stop and aggregate system cleanup |
+| `d8ceabf` | Owned server loading, guarded startup and nonblocking actual simulation retirement |
+| `c402ccb` | Actual localhost jME/Zay-ES transport, coalescing, cuts and removal |
+
+Latest full production build: **1,555 tests, zero failures/errors, four existing minimap skips**, plus all **24 deterministic delivery schedules** (`...n02-remote-final-build.txt`). The separate installed-data task last executes all **four minimap tests without skips/failures** at `d8ceabf` (`...n11-server-final-build.txt`); the following commit changes only test tools/documentation/build-task registration. Both socket cases pass twice. The actual enhanced Main session passes at the production server revision with **360 active frames / 48 sampled and paused owners**. Full-corpus representation comparison and actual two-level play/abort results are revision-scoped in sections 17–19; generated/proprietary data stays out of Git.
+
+The strict level-residency task is **still failing**, intentionally and observably, on the source-proven Zay-ES 1.6 database/reporter leak. GPU residency tracing is blocked by Windows policy error `0xc5585011`. Neither can be replaced with a passing headless build, bounded renderer object counts or a narrower weak-state test. Packed CPU data, root interpolation and phase variation therefore stay disabled by default.
+
+**The requested complete roadmap has not been exhausted.** The section-14 table remains the authoritative per-item plan. Distinct remaining categories are:
+
+- **Concrete blockers/prerequisites:** maintained Zay-ES reporter/database retirement, enabled trustworthy GPU profiling, version-bound native timelines and reviewed contact/stride/anatomical/rig annotations. The supplied DK2 installation is useful source data but not approved semantic annotations.
+- **Unfinished independent engineering:** N03 runtime metadata consumers; N10 error-aware multi-view/shadow scheduling; N12 all-pass/material/picking/resource GPU integration; N14 approximate key reduction, runtime layout and animated-LOD validation; N01/N02 complete gameplay/camera/network cost attribution. These are not relabeled externally blocked because they are substantial.
+- **Conditional follow-ups:** N04/N05/N06/N07/N08/N09 fidelity policies and deformation experiments require their stated reference/correspondence/control inputs; N13/N15/N16/N17/N18 require their preceding backend, correspondence, workload or engine-ownership evidence. Numeric PoCs and optional subsets do not complete them.
+
+Final review preserves those distinctions, checks the source/worker/render ownership changes and keeps ordinary rendering/CPU fallback intact. No full-integration approval, unmeasured steady-frame gain or original-DK2 fidelity approval is claimed.
