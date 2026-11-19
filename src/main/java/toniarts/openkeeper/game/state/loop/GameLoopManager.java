@@ -148,7 +148,7 @@ public final class GameLoopManager {
                 new ChickenSpawnSystem(entityData, gameWorldController.getObjectsController(),
                         playerControllers.values(), gameSettings, gameWorldController.getMapController()),
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
-                new LowManaSystem(entityData, level, playerControllers.values(), gameSettings, gameService,
+                new LowManaSystem(entityData, level, playerControllers.values(), gameSettings, gameWorldController.getRoomAttackMessages(),
                         gameEventService),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),

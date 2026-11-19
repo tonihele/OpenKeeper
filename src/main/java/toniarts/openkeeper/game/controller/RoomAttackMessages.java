@@ -21,8 +21,6 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
-import com.simsilica.es.filter.AndFilter;
-import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.RoomMessageShown;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -30,13 +28,22 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
- * Tells the keeper that his room or his Dungeon Heart is under attack or that he
- * has lost a room or his heart. Each room message has a mentor speech of its own per room
- * type, and the same message about the same room type is not repeated while
- * the last one is still shown (DKII.EXE message table at 0x6A0B00, queue at
- * 0x4C4600)
+ * Tells the keeper that his room or his Dungeon Heart is under attack, that he
+ * has lost a room or his heart, or that his mana is low. Each room message has
+ * a mentor speech of its own per room type.<br>
+ * The messages go through DK II's message queue (0x4C4600, table at 0x6A0B00):
+ * each message is held for its own time, and most messages are not posted or
+ * spoken again while the same one, about the same room type where the message
+ * has one per room type, is still held. The queue holds at most 256 messages
+ * for all the keepers together, a new one takes the place of the oldest
+ * (0x4C4090).
  */
 public final class RoomAttackMessages {
+
+    /**
+     * How many messages the queue holds, for all the keepers together
+     */
+    private static final int QUEUE_SIZE = 256;
 
     private enum Message {
 
@@ -78,7 +85,7 @@ public final class RoomAttackMessages {
          * (0x4DA560). %3 is the defeated keeper. The four variants are speech
          * 1517 to 1520. It has no tile
          */
-        KEEPER_DEFEATED(20, 1517, Map.of()),
+        KEEPER_DEFEATED(20, 1517, Map.of(), true),
 
         /**
          * "Your Lair is under attack", message 0x22
@@ -100,16 +107,45 @@ public final class RoomAttackMessages {
         ONE_DESTROYED(20, 124, Map.ofEntries(Map.entry(1, 110), Map.entry(2, 111), Map.entry(4, 112), Map.entry(6, 121),
                 Map.entry(7, 113), Map.entry(8, 123), Map.entry(9, 122), Map.entry(10, 116), Map.entry(11, 120),
                 Map.entry(12, 119), Map.entry(13, 115), Map.entry(14, 118), Map.entry(15, 117), Map.entry(16, 114),
-                Map.entry(17, 123), Map.entry(22, 123)));
+                Map.entry(17, 123), Map.entry(22, 123))),
+        /**
+         * The low mana warnings, message 0x34 variants 1 to 4: "Your Mana
+         * level is low", "...still too low", "...distressingly low, Keeper"
+         * and "...I will not warn you again" (0x4C10E0)
+         */
+        LOW_MANA(20, 447, Map.of(1, 447, 2, 1329, 3, 1330, 4, 1331)),
+        /**
+         * "You do not have enough Mana to maintain your Imps", message 0x35
+         * variant 3 (0x4C1BC0)
+         */
+        NOT_ENOUGH_MANA_FOR_IMPS(20, 1333, Map.of());
 
         private final double duration;
         private final int defaultSpeechId;
         private final Map<Integer, Integer> speechIdsByRoom;
+        private final boolean alwaysPosted;
 
         private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom) {
+            this(duration, defaultSpeechId, speechIdsByRoom, false);
+        }
+
+        /**
+         * @param alwaysPosted posted even while the same message is held
+         * (table flag 0x4000)
+         */
+        private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom, boolean alwaysPosted) {
             this.duration = duration;
             this.defaultSpeechId = defaultSpeechId;
             this.speechIdsByRoom = speechIdsByRoom;
+            this.alwaysPosted = alwaysPosted;
+        }
+
+        /**
+         * How long the queue holds the message. A room type without an entry
+         * of its own gets the table's last entry, 20 seconds
+         */
+        private double getDuration(short roomId) {
+            return speechIdsByRoom.isEmpty() || speechIdsByRoom.containsKey((int) roomId) ? duration : 20;
         }
 
     }
@@ -195,6 +231,25 @@ public final class RoomAttackMessages {
     }
 
     /**
+     * The keeper is warned that his mana is low
+     *
+     * @param ownerId the keeper
+     * @param warning the warning, 1 to 4
+     */
+    public void lowManaWarning(short ownerId, int warning) {
+        show(Message.LOW_MANA, ownerId, (short) warning, null);
+    }
+
+    /**
+     * An imp of the keeper's is chosen to pop for want of mana
+     *
+     * @param ownerId the keeper
+     */
+    public void notEnoughManaForImps(short ownerId) {
+        show(Message.NOT_ENOUGH_MANA_FOR_IMPS, ownerId, (short) 0, null);
+    }
+
+    /**
      * The room lost a tile. The keeper hears of it if he has fewer rooms of the
      * type than before
      *
@@ -219,18 +274,28 @@ public final class RoomAttackMessages {
             return;
         }
         double now = gameTimer.getGameTime();
-        EntityId shown = entityData.findEntity(AndFilter.create(RoomMessageShown.class,
-                new FieldFilter<>(RoomMessageShown.class, "playerId", ownerId),
-                new FieldFilter<>(RoomMessageShown.class, "message", message.ordinal()),
-                new FieldFilter<>(RoomMessageShown.class, "roomId", roomId)), RoomMessageShown.class);
-        if (shown != null && now - entityData.getComponent(shown, RoomMessageShown.class).shownAt < message.duration) {
-            return;
+        EntityId oldest = null;
+        int held = 0;
+        for (EntityId id : entityData.findEntities(null, RoomMessageShown.class)) {
+            RoomMessageShown entry = entityData.getComponent(id, RoomMessageShown.class);
+            Message entryMessage = Message.values()[entry.message];
+            if (now - entry.shownAt >= entryMessage.getDuration(entry.roomId)) {
+                entityData.removeEntity(id);
+            } else if (entryMessage == message && !message.alwaysPosted && entry.playerId == ownerId && entry.roomId == roomId) {
+                return;
+            } else {
+                held++;
+                if (oldest == null || id.getId() < oldest.getId()) {
+                    oldest = id;
+                }
+            }
         }
-        if (shown == null) {
-            shown = entityData.createEntity();
+        if (held >= QUEUE_SIZE) {
+            entityData.removeEntity(oldest);
         }
-        entityData.setComponent(shown, new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
-        playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, namedPlayerId, ownerId);
+        entityData.setComponent(entityData.createEntity(), new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
+        playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, namedPlayerId, ownerId,
+                (float) message.getDuration(roomId));
     }
 
 }

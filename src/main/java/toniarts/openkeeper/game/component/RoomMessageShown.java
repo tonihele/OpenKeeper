@@ -19,9 +19,9 @@ package toniarts.openkeeper.game.component;
 import com.simsilica.es.EntityComponent;
 
 /**
- * When the keeper was last told a room message (under attack, room lost) about
- * a room type. The same message about the same room type is not repeated while
- * the last one is still shown
+ * A message in DK II's message queue: who was told which message, about which
+ * room type or which variant of it, and when. The same message is not posted
+ * again while it is held
  */
 public final class RoomMessageShown implements EntityComponent {
 

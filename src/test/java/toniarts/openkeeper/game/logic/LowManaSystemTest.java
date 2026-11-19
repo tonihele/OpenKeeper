@@ -39,7 +39,9 @@ import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.LowMana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.data.Keeper;
@@ -74,6 +76,7 @@ class LowManaSystemTest {
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
     private final List<Integer> speech = new ArrayList<>();
     private int noManaAlerts;
+    private double gameTime;
     private final EntityId playerEntity;
     private final LowManaSystem system;
 
@@ -115,13 +118,14 @@ class LowManaSystemTest {
 
         playerEntity = entityData.createEntity();
         entityData.setComponent(playerEntity, new KeeperComponent(PLAYER_ID));
-        system = new LowManaSystem(entityData, kwdFile, List.of(playerController), settings, playerService,
-                gameEventService);
+        IGameTimer gameTimer = stub(IGameTimer.class, (method, args) -> method.equals("getGameTime") ? gameTime : null);
+        system = new LowManaSystem(entityData, kwdFile, List.of(playerController), settings,
+                new RoomAttackMessages(entityData, playerService, gameTimer), gameEventService);
     }
 
     @Test
     void warnsFourTimesAndThenPopsAnImp() {
-        addImps(6);
+        addImps(8);
         keeper.setMana(50);
 
         runSeconds(1);
@@ -141,6 +145,8 @@ class LowManaSystemTest {
         runSeconds(PERIOD);
         assertEquals(List.of(447, 1329, 1330, 1331, 1333), speech, "No more warnings, the next imp is chosen a second after the period");
         runSeconds(1);
+        assertEquals(List.of(447, 1329, 1330, 1331, 1333), speech, "The message is held for 20 seconds, so it isn't told again");
+        runSeconds(PERIOD + 1);
         assertEquals(List.of(447, 1329, 1330, 1331, 1333, 1333), speech);
     }
 
@@ -151,7 +157,8 @@ class LowManaSystemTest {
 
         runSeconds(1 + PERIOD * 6);
 
-        assertEquals(List.of(447, 1329, 1330, 1330, 1330, 1330), speech);
+        // The third warning is held for 20 seconds, so DK II's queue only tells every other repeat (0x4C4600)
+        assertEquals(List.of(447, 1329, 1330, 1330), speech);
         assertEquals(0, countdowns());
     }
 
@@ -309,6 +316,7 @@ class LowManaSystemTest {
 
     private void runSeconds(int seconds) {
         for (int i = 0; i < seconds; i++) {
+            gameTime++;
             system.processTick(1f);
         }
     }

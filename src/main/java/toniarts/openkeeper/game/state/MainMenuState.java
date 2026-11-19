@@ -897,7 +897,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         @Override
-        public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId) {
+        public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

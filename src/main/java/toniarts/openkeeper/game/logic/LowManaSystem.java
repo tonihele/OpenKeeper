@@ -38,13 +38,13 @@ import toniarts.openkeeper.game.component.LowMana;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
-import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -60,16 +60,6 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class LowManaSystem implements IGameLogicUpdatable {
 
     /**
-     * The speech of the four low mana warnings
-     */
-    private static final int[] WARNING_SPEECH_IDS = {447, 1329, 1330, 1331};
-
-    /**
-     * "You do not have enough Mana to maintain your Imps"
-     */
-    private static final int IMP_POP_SPEECH_ID = 1333;
-
-    /**
      * The stage after the fourth warning, the imps are popped
      */
     private static final int POPPING_STAGE = 5;
@@ -82,7 +72,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
 
     private float tick = 0;
     private final EntityData entityData;
-    private final PlayerService playerService;
+    private final RoomAttackMessages messages;
     private final GameEventService gameEventService;
     private final short heartId;
     private final Map<Short, Keeper> keepers;
@@ -103,14 +93,14 @@ public final class LowManaSystem implements IGameLogicUpdatable {
      * Dungeon Heart
      * @param playerControllers the players, the ones with mana are warned
      * @param gameSettings the level variables
-     * @param playerService for the mentor's messages
+     * @param messages for the mentor's messages
      * @param gameEventService for the no mana alert
      */
     public LowManaSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
-            Map<MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService,
+            Map<MiscType, Variable.MiscVariable> gameSettings, RoomAttackMessages messages,
             GameEventService gameEventService) {
         this.entityData = entityData;
-        this.playerService = playerService;
+        this.messages = messages;
         this.gameEventService = gameEventService;
         heartId = kwdFile.getDungeonHeart().getId();
         keepers = HashMap.newHashMap(playerControllers.size());
@@ -210,7 +200,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
                 if (stage == POPPING_STAGE - 1 && getCreatures(keeper.getId(), true).size() <= minimumImps) {
                     stage--;
                 }
-                playerService.showMentorMessage(WARNING_SPEECH_IDS[stage - 1], null, (short) 0, keeper.getId());
+                messages.lowManaWarning(keeper.getId(), stage);
                 stage++;
                 secondsToWarning += evaluationPeriod;
             }
@@ -269,7 +259,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
         if (chosen.get(CreatureComponent.class).creatureId == impId) {
             entityData.setComponent(chosen.getId(), new ImpPopCountdown(IMP_POP_SECONDS));
         }
-        playerService.showMentorMessage(IMP_POP_SPEECH_ID, null, (short) 0, keeper.getId());
+        messages.notEnoughManaForImps(keeper.getId());
     }
 
     private Entity getIdleImp(List<Entity> imps) {

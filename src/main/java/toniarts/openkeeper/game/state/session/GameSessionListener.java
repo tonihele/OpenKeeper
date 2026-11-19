@@ -138,9 +138,10 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      * @param position the place the message is about
      * @param namedPlayerId the player whose name the text shows as %3, 0 for
      * none
+     * @param seconds how long the message stays
      */
     @Asynchronous
-    public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId);
+    public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds);
 
     @Asynchronous
     public void onZoomViewToPoint(Vector3f point);

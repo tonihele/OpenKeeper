@@ -222,10 +222,10 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId) {
+    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds) {
         if (playerId == PLAYER_ID) {
             for (GameSessionListener listener : listeners.getArray()) {
-                listener.onShowMentorMessage(speechId, position, namedPlayerId);
+                listener.onShowMentorMessage(speechId, position, namedPlayerId, seconds);
             }
         }
     }

@@ -39,6 +39,7 @@ public final class SystemMessageControl extends AbstractController {
     private boolean unread = true;
     private String text = "";
     private final Long createdAt = System.currentTimeMillis();
+    private long lifetime = 60000;
     private Screen hud;
     private SystemMessageTarget target;
 
@@ -109,6 +110,22 @@ public final class SystemMessageControl extends AbstractController {
      */
     public long getCreatedAt() {
         return this.createdAt;
+    }
+
+    /**
+     * @return how long the message stays, in milliseconds
+     */
+    public long getLifetime() {
+        return this.lifetime;
+    }
+
+    /**
+     * Set how long the message stays
+     *
+     * @param lifetime the time in milliseconds
+     */
+    public void setLifetime(long lifetime) {
+        this.lifetime = lifetime;
     }
 
     /**

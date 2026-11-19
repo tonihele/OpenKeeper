@@ -38,7 +38,7 @@ import toniarts.openkeeper.utils.AssetUtils;
  */
 public final class SystemMessageState extends AbstractPauseAwareState {
 
-    private static final float MESSAGE_LIFETIME = 60000f;
+    private static final float MESSAGE_LIFETIME = 60f;
 
     private Main app;
     private final Element systemMessagesQueue;
@@ -120,6 +120,20 @@ public final class SystemMessageState extends AbstractPauseAwareState {
      * particular
      */
     public void addMessage(MessageType type, String text, SystemMessageTarget target) {
+        addMessage(type, text, target, MESSAGE_LIFETIME);
+    }
+
+    /**
+     * Adds a message to the message queue that stays for its own time, as
+     * each message in DK II's message queue does (0x4C4600)
+     *
+     * @param type message type
+     * @param text message text
+     * @param target what the message is about, or {@code null} if nothing in
+     * particular
+     * @param seconds how long the message stays
+     */
+    public void addMessage(MessageType type, String text, SystemMessageTarget target, float seconds) {
         if (!this.isEnabled() || !isInitialized()) {
             return;
         }
@@ -127,21 +141,21 @@ public final class SystemMessageState extends AbstractPauseAwareState {
             SoundHandle soundHandler = NiftyUtils.getSoundHandler(app.getNifty(),
                         GlobalCategory.GUI_MESSAGE_BAR, GlobalType.GUI_MESSAGE_BAR_SLIDE.getId());
             this.app.enqueue(() -> {
-                this.addMessageIcon(type, text, target);
+                this.addMessageIcon(type, text, target, seconds);
                 if (soundHandler != null) {
                     soundHandler.play();
                 }
             });
         } else {
-            this.addMessageIcon(type, text, target);
+            this.addMessageIcon(type, text, target, seconds);
         }
     }
 
     public void addMessageIcon(MessageType type, String text) {
-        addMessageIcon(type, text, null);
+        addMessageIcon(type, text, null, MESSAGE_LIFETIME);
     }
 
-    private void addMessageIcon(MessageType type, String text, SystemMessageTarget target) {
+    private void addMessageIcon(MessageType type, String text, SystemMessageTarget target, float seconds) {
         final String icon = String.format("Textures/GUI/Tabs/Messages/mt-%s-$index.png", type.getIcon());
         final String normalIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "00"));
         final String hoverIcon = AssetUtils.getCanonicalAssetKey(icon.replace("$index", "01"));
@@ -158,6 +172,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
         SystemMessageControl control = systemMessage.getControl(SystemMessageControl.class);
         if (control != null) {
             control.setTarget(target);
+            control.setLifetime((long) (seconds * 1000));
         }
         systemMessage.show();
     }
@@ -170,7 +185,7 @@ public final class SystemMessageState extends AbstractPauseAwareState {
 
         for (Element child : systemMessagesQueue.getChildren()) {
             SystemMessageControl control = child.getControl(SystemMessageControl.class);
-            if (control != null && System.currentTimeMillis() - control.getCreatedAt() > MESSAGE_LIFETIME) {
+            if (control != null && System.currentTimeMillis() - control.getCreatedAt() > control.getLifetime()) {
                 child.markForRemoval();
             }
         }

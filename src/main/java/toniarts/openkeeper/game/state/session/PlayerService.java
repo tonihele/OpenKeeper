@@ -108,8 +108,9 @@ public interface PlayerService {
      * @param namedPlayerId the player whose name the text shows as %3, e.g.
      * "%3 has been defeated", 0 for none
      * @param playerId the player ID who should get the message
+     * @param seconds how long the message stays
      */
-    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId);
+    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds);
 
     /**
      * Zoom camera to a point
