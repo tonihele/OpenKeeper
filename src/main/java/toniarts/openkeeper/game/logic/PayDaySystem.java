@@ -23,6 +23,7 @@ import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
@@ -64,7 +65,8 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final Map<Short, IPlayerController> keepers = new HashMap<>();
-    private final Map<Short, Double> nextPayDays = new HashMap<>();
+    // Concurrent, the pay day can be called for from the cheat thread
+    private final Map<Short, Double> nextPayDays = new ConcurrentHashMap<>();
     private final double timeBeforeFirstPayDay;
     private final double payDayFrequency;
     private final double payDayCutOffTime;
@@ -201,6 +203,17 @@ public final class PayDaySystem implements IGameLogicUpdatable {
         if (anger != 0 && !isTorturingItself(entity.getId())) {
             entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_NO_PAY, anger));
         }
+    }
+
+    /**
+     * Makes the keeper's pay day come on the next tick. Does nothing before
+     * the keeper's pay day clock has started, since there is nobody to pay.
+     * The next pay days follow from this one as usual. For testing.
+     *
+     * @param keeperId the keeper
+     */
+    public void payDayNow(short keeperId) {
+        nextPayDays.replace(keeperId, 0.0);
     }
 
     /**

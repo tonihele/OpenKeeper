@@ -45,6 +45,16 @@ public final class PlayerManufactureControl {
     }
 
     /**
+     * Takes manufacture points away from the item in production, never below
+     * zero
+     *
+     * @param points the points to take away
+     */
+    public void losePoints(int points) {
+        progress = Math.max(0, progress - points);
+    }
+
+    /**
      * @return the manufacture points gathered for the item in production
      */
     public int getProgress() {
