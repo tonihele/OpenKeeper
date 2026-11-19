@@ -155,7 +155,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public void resetFollowTarget();
 
-    public void flee();
+    /**
+     * Withdraws, or runs from the threat when there is no heart to withdraw to,
+     * going to the flee state first. Like DK II's withdraw (0x4611D0), a
+     * keeper's creature that finds nowhere to go doesn't withdraw at all and
+     * stays in its state.
+     *
+     * @return true if we withdrew
+     */
+    public boolean flee();
 
     /**
      * Weighs the threat of the enemies we fight against our fear. Call once on

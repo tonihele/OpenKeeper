@@ -71,6 +71,7 @@ class CreatureBackOffTest {
     private final Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
     private final AtomicReference<Boolean> cornered = new AtomicReference<>(false);
     private final AtomicReference<Boolean> withdraws = new AtomicReference<>(false);
+    private final AtomicReference<Boolean> findsSomewhereToWithdrawTo = new AtomicReference<>(true);
     private final Set<Point> walkable = new HashSet<>();
     private double time;
 
@@ -401,6 +402,37 @@ class CreatureBackOffTest {
         assertEquals(CreatureState.FIGHT, state.get());
     }
 
+    @Test
+    void creatureWithNowhereToWithdrawToStaysInItsFightOrBackOff() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
+        AtomicReference<Boolean> scared = new AtomicReference<>(false);
+        AtomicReference<Boolean> over = new AtomicReference<>(false);
+        AtomicReference<Boolean> canBackOff = new AtomicReference<>(true);
+        ICreatureController creature = creature(state, scared, over, canBackOff, new AtomicReference<>(true));
+        withdraws.set(true);
+        findsSomewhereToWithdrawTo.set(false);
+
+        // DK II's fight state goes on to weigh the fear when the withdraw finds nowhere to go (0x45F030, 0x4611D0)
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+        scared.set(true);
+        CreatureState.FIGHT.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+
+        // Backing off, its time up or with no way back, it stays backing off until it finds somewhere (0x4602E0)
+        over.set(true);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+        over.set(false);
+        canBackOff.set(false);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+
+        findsSomewhereToWithdrawTo.set(true);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.FLEE, state.get());
+    }
+
     private EntityId creature(short ownerId, float x, int fear, int threat, float runSpeed) {
         EntityId entity = data.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
@@ -472,6 +504,14 @@ class CreatureBackOffTest {
             case "backOff" -> canBackOff.get();
             case "withdrawToHeroLair" -> false;
             case "shouldWithdrawToHeart" -> withdraws.get();
+            case "flee" -> {
+
+                // Like the controller, one that withdraws goes to FLEE itself
+                if (findsSomewhereToWithdrawTo.get()) {
+                    state.set(CreatureState.FLEE);
+                }
+                yield findsSomewhereToWithdrawTo.get();
+            }
             case "canStepBack" -> stepsBack.get();
             case "isStateTimeExceeded" -> false;
             case "releaseCastShot" -> null;
