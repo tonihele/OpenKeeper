@@ -44,6 +44,19 @@ public final class PossessionWalkCycle {
      */
     private static final float BOB_HEIGHT_PER_OSCILLATE = 0.125f;
     private static final float BACKWARD_BOB_FACTOR = 0.5f;
+    /**
+     * The footsteps run one second of walk time ahead of the sway, and the
+     * right foot steps at a quarter of the cycle, the left at three quarters
+     * (0x40E910)
+     */
+    private static final float STEP_LEAD_SECONDS = 1f;
+    private static final float RIGHT_STEP_PHASE = 0.25f;
+    private static final float LEFT_STEP_PHASE = 0.75f;
+    /**
+     * The steps {@link #takeSteps()} returns
+     */
+    public static final int LEFT_STEP = 1;
+    public static final int RIGHT_STEP = 2;
 
     private static final float TURN_ROLL_MAX_DEG = 11.25f;
     /**
@@ -59,6 +72,8 @@ public final class PossessionWalkCycle {
 
     private float time;
     private float turnRoll;
+    private float leftStep = LEFT_STEP_PHASE;
+    private float rightStep = RIGHT_STEP_PHASE;
 
     public PossessionWalkCycle(float walkCycleScale, float waddleScale, float oscillateScale, boolean flying,
             boolean rollsWhenTurning) {
@@ -78,6 +93,8 @@ public final class PossessionWalkCycle {
             time += tpf;
         } else {
             time = 0;
+            leftStep = LEFT_STEP_PHASE;
+            rightStep = RIGHT_STEP_PHASE;
         }
 
         // Exponential return to level
@@ -130,9 +147,35 @@ public final class PossessionWalkCycle {
         return movingBackward ? bob * BACKWARD_BOB_FACTOR : bob;
     }
 
+    /**
+     * The footsteps the walk has come to since the last call. Each foot steps
+     * once a walk cycle, the two half a cycle apart, and a flyer makes none
+     * (0x40E910).
+     *
+     * @return {@link #LEFT_STEP}, {@link #RIGHT_STEP}, both or 0
+     */
+    public int takeSteps() {
+        if (flying) {
+            return 0;
+        }
+        float cycles = BASE_HZ * walkCycleScale * (time + STEP_LEAD_SECONDS);
+        int steps = 0;
+        if (cycles - leftStep > 1) {
+            steps |= LEFT_STEP;
+            leftStep = FastMath.floor(cycles) + LEFT_STEP_PHASE;
+        }
+        if (cycles - rightStep > 1) {
+            steps |= RIGHT_STEP;
+            rightStep = FastMath.floor(cycles) + RIGHT_STEP_PHASE;
+        }
+        return steps;
+    }
+
     public void reset() {
         time = 0;
         turnRoll = 0;
+        leftStep = LEFT_STEP_PHASE;
+        rightStep = RIGHT_STEP_PHASE;
     }
 
 }
