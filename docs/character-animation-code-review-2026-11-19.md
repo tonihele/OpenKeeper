@@ -2,15 +2,17 @@
 
 Date: 2026-11-19. **Original review recommendation: Request Changes.**
 
-**Remediation status:** R1–R8 and two additional self-review defects are resolved in focused local commits. The final suite passes 1,468 tests (zero failures/errors, four existing asset-dependent skips), the expanded installed corpus passes and real OpenGL coverage/playback checks pass. The current resolution ledger below supersedes historical implementation-status statements and line anchors. This is not approval of the entire original initiative: five original checklist items retain explicitly scoped reference or engineering acceptance work.
+**Remediation status:** R1–R8 and four additional review/preflight defects are resolved in focused commits. The publication build passes 1,471 tests (zero failures/errors, four existing asset-dependent skips); those four minimap tests also pass separately with installed assets and zero skips. The expanded corpus, real OpenGL checks and actual local-game pause/resume pass. The publication record and [maintenance guide](character-animation.md) supersede historical implementation-status statements and line anchors. This is not approval of the entire original initiative: five original checklist items retain explicitly scoped reference or engineering acceptance work.
 
 Reviewed branch: `feat/character-animation`, `D:\Project\OpenKeeper-character-animation`, HEAD `dffb07b7a4d7770f4a7af8da6c5082da55ce820e`. Scope: all 23 commits after upstream baseline `cd78e5654`, 59 changed files, including production Java, shaders, tests, build tasks and implementation documentation.
 
 Baseline requirements: [original architecture assessment and checklist](character-creature-animation-architecture-assessment-2026-11-18.md), especially sections 4, 8, 9 and the complete implementation record in section 11. Its original analysis used `a63005ab3`; the implementation correctly rebased the work onto a different upstream baseline. This review evaluates the final feature tree against `cd78e5654`, rather than attributing unrelated baseline differences to the animation work.
 
-No production/test source, build configuration or Git history was changed during the original independent review. Subsequent authorized remediation is recorded below. Diagnostic outputs remain ignored; no proprietary assets, push or PR are included. The original checkout and other feature worktrees were preserved.
+No production/test source, build configuration or Git history was changed during the original independent review. Subsequent authorized remediation and publication are recorded below. No proprietary assets or generated diagnostics are included in the feature diff. The original checkout and other feature worktrees were preserved.
 
 ## Overall assessment
+
+This section records the original assessment of `dffb07b7a`; current fixes and acceptance boundaries are recorded in the resolution and publication ledgers.
 
 The changes contain useful, maintainable repairs: narrowly scoped legacy endpoint recovery, continuous sparse-frame interpolation, conservative bounds, collision-cache invalidation, complete request identity, shared metadata interpretation, owned transform snapshots and measured hidden/unchanged deformation suppression. Retaining the vertex-animation representation and declining an unmeasured GPU rewrite are sensible decisions. Small injectable model sources make loader testing practical.
 
@@ -455,3 +457,9 @@ The unavailable-clock regression fails before the fix (`build/finalize-lifecycle
 `playDigSound()` discarded a live owned handle when its creature became hidden, leaving the voice unreachable by cleanup and allowing overlap on re-entry. It now stops that voice before clearing its handle. Dig, research/footstep suppression and state-entry audio use inherited visibility consistently, so an explicitly hidden ancestor cannot schedule or retain those activity sounds.
 
 The recording-backend test fails on the preceding code and passes for both directly hidden creatures and hidden parents. Eight combined lifecycle tests and the focused audio/footstep suites pass (`build/finalize-lifecycle-tests.txt`, `build/finalize-audio-tests.txt`); the backend/category fixture is shared between the failure and visibility regressions. No audible native-DK2 timing claim is added. Atlas clock fix: `4d34662`.
+
+### Cleanup and maintainable entry point
+
+Removed two unused imports and an obsolete commented-out pose-clone statement. The [maintenance guide](character-animation.md) describes the current pipeline, ownership, compatibility, opt-in retention, verification tools and acceptance boundaries. Historical assessment/review evidence is preserved and clearly revision-scoped rather than deleted. The maintained opt-in corpus, GL and benchmark tools are intentional regression/measurement infrastructure; one-off review probes, profiles and captures are not part of the repository diff.
+
+`build --rerun-tasks` passes with all nine tasks executed: **1,471 tests, zero failures/errors, four existing minimap asset skips** (`build/finalize-build.txt`). All four skipped tests pass separately against installed data (`build/finalize-installed-assets.txt`, separate `testInstalledMinimapAssets` report, zero skips). The strict installed corpus repeats **1,745,788 samples / zero nonfinite/outside** across 944 resources. Both GL tools pass; all 39 pose hashes match the previous validated run and pause PNGs remain identical. Hidden-voice fix: `98e5e6c`.

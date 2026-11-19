@@ -320,7 +320,6 @@ public final class PoseTrack extends MorphTrack {
     public PoseTrack clone() {
         try {
             PoseTrack result = (PoseTrack) super.clone();
-            //result.getTimes() = this.getTimes().clone();
             if (this.frames != null) {
                 result.frames = new PoseTrack.PoseFrame[this.frames.length];
                 for (int i = 0; i < this.frames.length; ++i) {

@@ -4,7 +4,6 @@ package toniarts.openkeeper.view.animation;
 import com.jme3.anim.AnimComposer;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.ViewPort;
-import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.scene.control.AbstractControl;
 import com.jme3.util.clone.Cloner;
