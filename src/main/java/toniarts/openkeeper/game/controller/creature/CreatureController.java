@@ -879,7 +879,8 @@ public final class CreatureController extends EntityController implements ICreat
 
         // The original picks its target again when it steps onto another tile or every 10 turns, and keeps the one it
         // has when it finds none (0x45E9F0). Chasing a creature, it drops it and picks again every turn, so it only
-        // chases on while it picks the same one (0x470E30). Fighting a creature or a heart's pillar in reach, it keeps
+        // chases on while it picks the same one (0x470E30), except a Horned Reaper, who hunts his prey over the
+        // whole map (0x45E1B0). Fighting a creature or a heart's pillar in reach, it keeps
         // it: 0x45E9F0 does not pick in the fight states, and the fight state picks only when it has no target, between
         // swings it just waits (0x45F030, 0x48C9B0). Hitting a heart with a spell from further away, it picks again on
         // every turn its spell is still recharging (0x45F030 calls 0x45CB00 while 0x48C800 says the spell isn't ready).
@@ -894,7 +895,7 @@ public final class CreatureController extends EntityController implements ICreat
         boolean picked = target == null || chasing || waitingToCast || supporting || !fighting && isTimeToPickTarget(attackTarget);
         if (picked) {
             EntityId enemy = pickAttackTarget();
-            if (enemy != null || chasing) {
+            if (enemy != null || chasing && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
                 target = enemy;
             }
         }
@@ -904,12 +905,14 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         // It counts how long it chases one that runs away, and gives up on it after the chase duration of its side
-        // (0x470E30). Then it leaves those that run away alone for a while
+        // (0x470E30). Then it leaves those that run away alone for a while. A Horned Reaper hunts his prey down even when
+        // it runs (0x45E1B0), so he never gives up
         double chaseStartTime = Double.NaN;
         if (isFleeing(target)) {
             chaseStartTime = attackTarget != null && !Double.isNaN(attackTarget.chaseStartTime) ? attackTarget.chaseStartTime
                     : isWithinAttackDistance(target) ? Double.NaN : gameTimer.getGameTime();
-            if (gameTimer.getGameTime() - chaseStartTime >= getChaseDuration() && !isWithinAttackDistance(target)) {
+            if (gameTimer.getGameTime() - chaseStartTime >= getChaseDuration() && !isWithinAttackDistance(target)
+                    && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
                 entityData.setComponent(entityId, new ChaseBackOff(gameTimer.getGameTime()));
                 setAttackTarget(null);
                 return null;
