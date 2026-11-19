@@ -95,7 +95,7 @@ public final class AnimationLoader {
             for (Spatial child : prepared) staging.attachChild(child);
             var playback = new AnimationPlayback(prepared,art);
             var control = root.getControl(AnimationControl.class);
-            playback.prepare(endFrame ? Double.MAX_VALUE : 0,control == null
+            playback.prepare(endFrame,control == null
                     ? AnimationControl.PlaybackPolicy.LOOP : control.getPlaybackPolicy());
 
             var oldChildren = List.copyOf(root.getChildren());

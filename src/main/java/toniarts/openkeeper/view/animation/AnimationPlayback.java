@@ -71,11 +71,20 @@ final class AnimationPlayback extends AbstractControl {
     }
 
     /** Validates even inactive segment endpoints off the live/hidden owner tree. */
-    void prepare(double time, AnimationControl.PlaybackPolicy policy) {
+    void prepare(boolean endFrame, AnimationControl.PlaybackPolicy policy) {
         for (int i=0;i<3;i++) if (actions[i] != null) {
             sample(i,0,false); sample(i,length(i),false);
         }
-        seek(time,policy);
+        if (endFrame) {
+            // A terminal-pose request is a state, not a huge elapsed-time seek.
+            // In particular LOOP must not wrap it to an arbitrary main phase.
+            hold = policy == AnimationControl.PlaybackPolicy.HOLD;
+            exitAt = length(1);
+            age = length(0) + exitAt + (hold ? 0 : length(2));
+            traversals = 1;
+            stopped = true;
+            renderPose();
+        } else seek(0,policy);
     }
 
     private void seek(double time, AnimationControl.PlaybackPolicy policy) {

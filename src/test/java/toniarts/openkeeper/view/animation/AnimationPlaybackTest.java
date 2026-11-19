@@ -28,6 +28,25 @@ class AnimationPlaybackTest {
         var geometry = (com.jme3.scene.Geometry)((Node)root.getChild("pose")).getChild("vertex");
         return ((java.nio.FloatBuffer)geometry.getMesh().getBuffer(com.jme3.scene.VertexBuffer.Type.Position).getData()).get(0);
     }
+    @Test void explicitTerminalFrameIsFiniteAndHeldRegardlessOfLoopPolicy() {
+        for (var policy : AnimationControl.PlaybackPolicy.values()) {
+            for (boolean segments : new boolean[]{false,true}) {
+                Node root = new Node(); var listener = new Listener(); listener.policy = policy; root.addControl(listener);
+                var resource = AnimationFixtures.resource("pose",3,30);
+                if (segments) resource.getFlags().addAll(java.util.EnumSet.of(
+                        ArtResource.ArtResourceFlag.HAS_START_ANIMATION,ArtResource.ArtResourceFlag.HAS_END_ANIMATION));
+                assertEquals(AnimationLoader.PlaybackResult.STARTED,
+                        AnimationLoader.playAnimation(root,resource,AnimationPlaybackTest::poseModel,true));
+                assertEquals(2,x(root),1e-6,"terminal pose for "+policy);
+                String visible = segments && policy != AnimationControl.PlaybackPolicy.HOLD ? "End" : "pose";
+                assertNotEquals(com.jme3.scene.Spatial.CullHint.Always,root.getChild(visible).getCullHint());
+                assertTrue(AnimationLoader.getPlaybackAge(root) < 1,"bounded terminal age");
+                root.updateLogicalState(1);
+                assertEquals(2,x(root),1e-6);
+                assertEquals(0,listener.cycles); assertEquals(0,listener.stops);
+            }
+        }
+    }
     @Test void renderedPoseAndClonedBuffersRemainIndependentUnderTheSharedClock() {
         var resource = AnimationFixtures.resource("pose",3,30); Node root = new Node(); double[] time = {10};
         AnimationLoader.playAnimation(root,resource,AnimationPlaybackTest::poseModel,false);

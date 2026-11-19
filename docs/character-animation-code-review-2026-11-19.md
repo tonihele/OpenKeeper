@@ -353,3 +353,9 @@ Validation: **three focused tests pass** (`build/fix-r8-tests.txt`), covering al
 The owner timeline runs before the normal view-control update, and a replicated request can seek immediately. A newly delivered WORK state could therefore leave `isWorkAnimation()` reading the watcher's previous IDLE snapshot and select one-shot completion for a looping work action. The control now refreshes its owned entity snapshot before that decision; normal updates use the same refresh helper.
 
 Validation: **nine request/timeline/recording-audio tests pass** (`build/remediation-policy-tests.txt`). The new regression changes IDLE to WORK before a delayed research request, seeks past multiple periods and verifies that the shared clock continues advancing the main loop. R8 commit: `9ad9464`.
+
+### Final self-review — resolved: explicit terminal-frame requests
+
+The public loader's `endFrame` option encoded a terminal pose as `Double.MAX_VALUE` elapsed time. A looping policy reduces that value modulo the main period, producing an arbitrary phase and leaving an unreasonable playback age. Terminal preparation now explicitly samples and holds the sequence endpoint with a bounded age, preserving HOLD's main-frame policy and ONCE's optional end segment. No historical completion callbacks are emitted.
+
+The new regression fails on the preceding implementation (`build/remediation-terminal-before.txt`) and passes after the fix. It covers all three policies with and without Start/End segments, actual vertex output, finite bounded age, visible segment and subsequent frozen playback. Loader, transaction, playback and door tests pass (`build/remediation-terminal-tests.txt`). The earlier activity-snapshot fix is commit `dd8f8d3`.
