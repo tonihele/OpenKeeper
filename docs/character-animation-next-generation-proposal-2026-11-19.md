@@ -530,6 +530,18 @@ Validation: three new cross-manager/clone/release/weak-cache regression tests pl
 
 Cache-isolation commit: `dcb9c78`.
 
+Added opt-in `benchmarkSharedVertexClips` to test immutable packed source sharing before changing runtime policy. It bakes the eight existing templates once (shared primitive payload **1,387,104 bytes**), compares actual cloned sparse PoseTrack sampling with shared VertexClip sampling plus owner array/bulk FloatBuffer writes and collision invalidation, uses deterministic varied phase, 180 warmup/600 measured updates, alternating order and three non-overlapping runs. Each final owner buffer is compared bit-for-bit. This omits owner clocks/scene update/rendering; the packed prototype also writes during terminal dwell rather than claiming savings from reduced updates.
+
+`benchmarkSharedVertexClips -PanimationRuns=3` passes (`D:/Temp/animation-next-n11-packed-benchmark.txt`):
+
+| Run | 500 sparse / packed P95 ms | 1,000 sparse / packed P95 ms |
+|---|---|---|
+| 0 | 7.1221 / 1.7161 | 14.6180 / 3.8302 |
+| 1 | 7.2859 / 1.6060 | 17.7274 / 3.5823 |
+| 2 | 7.2172 / 1.3599 | 17.4488 / 3.3501 |
+
+Measured calling-thread allocation is zero bytes/update after warmup except 11 bytes/update for the first 50-owner sparse case. Owner scratch primitive arrays decrease from 4,461,720 to 2,230,860 bytes at 500, and 8,913,000 to 4,456,500 at 1,000. Including the shared packed payload, this saves 843,756 / 3,069,396 primitive bytes respectively. At 50 owners the same shared payload instead increases that accounting by 1,164,456 bytes. These are primitive-payload calculations, not total Java/native/GPU residency. Sparse source frames, output/bind buffers, topology and materials remain present. The experiment justifies bounded opt-in integration/testing; it is not a whole-frame speedup or completed N11 cache/lifetime acceptance.
+
 ### N03 — Validated semantic sidecar schema and audit
 
 Added immutable `MotionMetadata` with conservative UNKNOWN/CUT defaults, explicit body plan, loop/one-shot classification, authored transition permission, layout identity, reference speed, named normalized contact windows and explicit loop-phase-variation permission. Sidecars are limited to 16 KiB, schema-versioned, source-SHA256/resource/model-converter-bound, and reject duplicate/unknown fields, invalid intervals, nonfinite speeds and one-shot phase variation. The schema contains no FPS override and cannot change authored timing. Lists are defensively copied.

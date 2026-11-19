@@ -94,6 +94,17 @@ tasks.register("benchmarkRenderedCharacterAnimation", JavaExec) {
     maxHeapSize = '2g'
 }
 
+tasks.register("benchmarkSharedVertexClips", JavaExec) {
+    group = "verification"
+    description = "Paired isolated sparse versus shared packed CPU sampling/output experiment"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.SharedVertexClipBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(), providers.gradleProperty('animationRuns').orElse('3').get()
+    maxHeapSize = '2g'
+}
+
 tasks.register("auditAnimationTopology", JavaExec) {
     group = "verification"
     description = "Read-only cross-clip topology/transform/material-descriptor screen; no semantic mapping claim"
