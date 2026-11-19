@@ -1283,10 +1283,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * Fills the Player Information window (the I key) while it is shown, as
      * DK II's 0x423450 does: a row for each keeper with the stats of 0x4C2C30,
      * shown only for the player and its allies (0x4C2BC0) and "-" for the
-     * others, and 1000 or more in thousands ("12K"). The kills, the deaths and
-     * the research done aren't counted yet, so their columns stay empty, and
-     * so does the map area, which in DK II shows the kills again (0x423450
-     * asks 0x4C2C30 for stat 1 in that column).
+     * others, and 1000 or more in thousands ("12K"). The map area stays
+     * empty, DK II shows the kills again there (0x423450 asks 0x4C2C30 for
+     * stat 1 in that column).
      */
     private void updatePlayerInformation() {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
@@ -1333,12 +1332,15 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
             int count = creatures + imps;
             int traps = (int) keeperTraps.stream().filter(trap -> trap.get(Owner.class).ownerId == keeper.getId()).count();
+            row[1] = formatPlayerStat(keeper.getEnemyCreaturesKilled() + keeper.getHeroesDestroyed());
+            row[2] = formatPlayerStat(keeper.getOwnCreaturesKilled());
             row[3] = formatPlayerStat(keeper.getGold() + keeper.getGoldSpentOnBuilding());
             row[4] = formatPlayerStat(keeper.getMaxMana());
             row[5] = formatPlayerStat(creatures);
             row[6] = formatPlayerStat(imps);
             row[7] = formatPlayerStat(traps);
             row[8] = formatPlayerStat(count > 0 ? levels / count : 0);
+            row[9] = formatPlayerStat(keeper.getResearchCompleted());
             row[10] = formatPlayerStat(100 - (count > 0 ? anger / count : 0) * 100 / 0xFFFE);
             rows.add(row);
         }

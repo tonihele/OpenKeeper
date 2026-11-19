@@ -593,6 +593,16 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+                int researchCompleted) {
+            Keeper keeper = getPlayer(keeperId);
+            keeper.setEnemyCreaturesKilled(enemyCreaturesKilled);
+            keeper.setHeroesDestroyed(heroesDestroyed);
+            keeper.setOwnCreaturesKilled(ownCreaturesKilled);
+            keeper.setResearchCompleted(researchCompleted);
+        }
+
+        @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
             Keeper keeper = getPlayer(keeperId);
             keeper.setMana(mana);

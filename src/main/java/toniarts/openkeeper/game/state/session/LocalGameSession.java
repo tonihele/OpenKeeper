@@ -502,6 +502,14 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
+    public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+            int researchCompleted) {
+        for (GameSessionListener listener : listeners.getArray()) {
+            listener.onStatsChange(keeperId, enemyCreaturesKilled, heroesDestroyed, ownCreaturesKilled, researchCompleted);
+        }
+    }
+
+    @Override
     public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
         for (GameSessionListener listener : listeners.getArray()) {
             listener.onManaChange(keeperId, mana, manaLoose, manaGain);

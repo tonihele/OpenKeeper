@@ -338,6 +338,14 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
+        public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+                int researchCompleted) {
+            for (GameSessionListener l : listeners.getArray()) {
+                l.onStatsChange(keeperId, enemyCreaturesKilled, heroesDestroyed, ownCreaturesKilled, researchCompleted);
+            }
+        }
+
+        @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
             for (GameSessionListener l : listeners.getArray()) {
                 l.onManaChange(keeperId, mana, manaLoose, manaGain);

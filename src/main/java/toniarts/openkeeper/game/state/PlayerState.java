@@ -631,6 +631,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     }
 
     @Override
+    public void onStatsChange(short keeperId, int enemyCreaturesKilled, int heroesDestroyed, int ownCreaturesKilled,
+            int researchCompleted) {
+
+        // The Player Information window reads the keepers' stats while it is shown
+    }
+
+    @Override
     public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
         screen.setMana(mana, manaLoose, manaGain);
     }
