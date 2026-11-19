@@ -80,6 +80,11 @@ public final class HealthSystem extends GameTimeCounter {
      * The Hero Lair terrain, DK II tells it by its id (DKII.EXE 0x488930)
      */
     private static final short HERO_LAIR_TERRAIN_ID = 35;
+    /**
+     * The Prison takes this many seconds' worth of health from a prisoner at a
+     * time (DKII.EXE 0x47B7C0)
+     */
+    private static final int PRISON_HEALTH_SECONDS = 4;
 
     private final EntityData entityData;
     private final IGameTimer gameTimer;
@@ -383,13 +388,16 @@ public final class HealthSystem extends GameTimeCounter {
             entityData.removeComponent(entityId, Damage.class);
         }
 
-        // Imprisonment
+        // Imprisonment. DK II takes four seconds' worth of health at a time. It counts down from four times the ticks
+        // per second to 0 and only then takes it, so the Prison takes it every 4 seconds and a tick (DKII.EXE 0x47B7C0)
         entity = imprisonedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
-            if (elapsedTime - imprisoned.healthCheckTime >= 1) {
-                entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
-                delta += healthRegeneratePerSecondImprisoned;
+            int ticksPerSecond = levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+            double interval = (PRISON_HEALTH_SECONDS * ticksPerSecond + 1) / (double) ticksPerSecond;
+            if (elapsedTime - imprisoned.healthCheckTime >= interval) {
+                entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + interval));
+                delta += PRISON_HEALTH_SECONDS * healthRegeneratePerSecondImprisoned;
 
                 return delta; // Assume no other states can be
             }

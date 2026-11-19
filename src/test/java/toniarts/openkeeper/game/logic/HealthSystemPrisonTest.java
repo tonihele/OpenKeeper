@@ -53,7 +53,8 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
  * A prisoner that dies in the Prison rises as a Skeleton, and the mentor tells
- * the keeper of the Prison (DKII.EXE CRoom_sub_4E30F0, message 0x41)
+ * the keeper of the Prison (DKII.EXE CRoom_sub_4E30F0, message 0x41). The
+ * Prison takes four seconds' worth of health every 17 ticks (0x47B7C0)
  */
 class HealthSystemPrisonTest {
 
@@ -75,8 +76,8 @@ class HealthSystemPrisonTest {
                 new CreatureImprisoned(0, 0), new Position(0, new Vector3f()));
         HealthSystem healthSystem = createHealthSystem();
 
-        // The Prison takes its health once a second
-        for (int tick = 0; tick < 4; tick++) {
+        // The Prison takes its health every 4 seconds and a tick
+        for (int tick = 0; tick < 17; tick++) {
             healthSystem.processTick(0.25f);
         }
 
@@ -84,10 +85,39 @@ class HealthSystemPrisonTest {
         assertEquals(List.of(List.of(GameEventType.PRISON_SKELETON_RISEN, KEEPER)), playerEvents);
     }
 
+    @Test
+    void prisonTakesFourSecondsOfHealthEverySeventeenTicks() {
+        EntityId prisoner = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = PRISONER_ID;
+        entityData.setComponents(prisoner, creatureComponent, new Owner(HERO, KEEPER), new Health(500, 1000),
+                new CreatureImprisoned(0, 0), new Position(0, new Vector3f()));
+        HealthSystem healthSystem = createHealthSystem();
+
+        // DK II counts the 16 ticks of 4 seconds down to 0 before it takes the health, a step is 17 ticks
+        // (DKII.EXE 0x47B7C0)
+        for (int tick = 0; tick < 16; tick++) {
+            healthSystem.processTick(0.25f);
+        }
+        assertEquals(500, entityData.getComponent(prisoner, Health.class).health);
+
+        healthSystem.processTick(0.25f);
+        assertEquals(480, entityData.getComponent(prisoner, Health.class).health);
+
+        for (int tick = 0; tick < 17; tick++) {
+            healthSystem.processTick(0.25f);
+        }
+        assertEquals(460, entityData.getComponent(prisoner, Health.class).health);
+    }
+
     private HealthSystem createHealthSystem() {
         Creature prisoner = ShotFixtures.creature(PRISONER_ID, EnumSet.of(Creature.CreatureFlag.GENERATE_DEAD_BODY),
                 EnumSet.noneOf(Creature.CreatureFlag3.class));
-        IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> method.equals("getCreature") ? prisoner : null);
+        IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> switch (method) {
+            case "getCreature" -> prisoner;
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            default -> null;
+        });
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwdFile : null);
         IMapTileInformation tile = proxy(IMapTileInformation.class, (method, args) -> switch (method) {
             case "getLocation" -> new Point(0, 0);
