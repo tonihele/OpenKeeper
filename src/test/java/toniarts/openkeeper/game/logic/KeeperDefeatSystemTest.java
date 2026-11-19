@@ -33,10 +33,12 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperDefeated;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -70,7 +72,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * A keeper whose Dungeon Heart is destroyed is defeated: he loses, his heart
  * room is a ruin, his land goes back to nobody, and in a skirmish the last
- * keeper standing wins
+ * keeper standing wins. From 5 turns after the defeat his imps die and his
+ * other creatures leave. The turns are a quarter of a second
  */
 class KeeperDefeatSystemTest {
 
@@ -105,6 +108,7 @@ class KeeperDefeatSystemTest {
     private List<EntityId> leaving;
     private List<EntityId> walking;
     private List<EntityId> noWayOut;
+    private double gameTime;
 
     @BeforeEach
     void setUp() {
@@ -155,18 +159,30 @@ class KeeperDefeatSystemTest {
     }
 
     @Test
-    void defeatedKeepersImpsDieSoNobodyClaimsHisLandBack() {
+    void defeatedKeepersImpsDieOnEveryTurnFromFiveTurnsAfterTheDefeat() {
         EntityId imp = creature(RIVAL, true);
         EntityId fighter = creature(RIVAL, false);
         EntityId humansImp = creature(HUMAN, true);
+        EntityId prisoner = creature(RIVAL, true);
+        entityData.setComponent(prisoner, new CreatureImprisoned(0, 0));
         KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
 
-        entityData.removeEntity(hearts.get(RIVAL));
-        system.processTick(0.25f);
+        defeat(system, RIVAL);
+        for (int turn = 1; turn < 5; turn++) {
+            turn(system);
+            assertNull(entityData.getComponent(imp, Damage.class), "turn " + turn);
+        }
+        turn(system);
 
         assertEquals(300, entityData.getComponent(imp, Damage.class).damage);
         assertNull(entityData.getComponent(fighter, Damage.class));
         assertNull(entityData.getComponent(humansImp, Damage.class));
+        assertNull(entityData.getComponent(prisoner, Damage.class));
+
+        // An imp the keeper gets later dies on the next turn
+        EntityId newImp = creature(RIVAL, true);
+        turn(system);
+        assertEquals(300, entityData.getComponent(newImp, Damage.class).damage);
     }
 
     @Test
@@ -180,11 +196,15 @@ class KeeperDefeatSystemTest {
         EntityId humans = creature(HUMAN, false);
         KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
 
-        system.processTick(0.25f);
+        turn(system);
         assertTrue(leaving.isEmpty());
 
-        entityData.removeEntity(hearts.get(RIVAL));
-        system.processTick(0.25f);
+        defeat(system, RIVAL);
+        for (int turn = 1; turn < 5; turn++) {
+            turn(system);
+            assertTrue(leaving.isEmpty(), "turn " + turn);
+        }
+        turn(system);
 
         assertEquals(List.of(fighter), leaving);
         assertEquals(CreatureState.WORK, stateMachines.get(fighter).getCurrentState());
@@ -192,11 +212,11 @@ class KeeperDefeatSystemTest {
         // With no portal to get to, it walks about, and tries again when the walk ends
         assertEquals(CreatureState.WANDER, stateMachines.get(walledIn).getCurrentState());
         assertEquals(List.of(walledIn), walking);
-        system.processTick(0.25f);
+        turn(system);
         assertEquals(List.of(walledIn), walking);
         walking.clear();
         noWayOut.clear();
-        system.processTick(0.25f);
+        turn(system);
         assertEquals(List.of(fighter, walledIn), leaving);
 
         // Prisoners, workers and the other keepers' creatures are left alone
@@ -209,19 +229,34 @@ class KeeperDefeatSystemTest {
     void defeatedKeepersCreatureIsSentAwayAgainWhenItTurnsToSomethingElse() {
         EntityId fighter = creature(RIVAL, false);
         KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
-        entityData.removeEntity(hearts.get(RIVAL));
-        system.processTick(0.25f);
+        defeat(system, RIVAL);
+        for (int turn = 1; turn <= 5; turn++) {
+            turn(system);
+        }
 
         // In the middle of a swing it is left alone, back in the fight it is sent away again
         leaving.clear();
         stateMachines.get(fighter).changeState(CreatureState.MELEE_ATTACK);
-        system.processTick(0.25f);
+        turn(system);
         assertTrue(leaving.isEmpty());
 
         stateMachines.get(fighter).changeState(CreatureState.FIGHT);
-        system.processTick(0.25f);
+        turn(system);
         assertEquals(List.of(fighter), leaving);
         assertEquals(CreatureState.WORK, stateMachines.get(fighter).getCurrentState());
+    }
+
+    /**
+     * Destroys the keeper's heart and plays the turn of the defeat
+     */
+    private void defeat(KeeperDefeatSystem system, short keeperId) {
+        entityData.removeEntity(hearts.get(keeperId));
+        turn(system);
+    }
+
+    private void turn(KeeperDefeatSystem system) {
+        gameTime += 0.25;
+        system.processTick(0.25f);
     }
 
     private EntityId creature(short ownerId, boolean worker) {
@@ -237,11 +272,18 @@ class KeeperDefeatSystemTest {
     void keeperWhoseHeartIsGoneIsDestroyed() {
         KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
 
-        entityData.removeEntity(hearts.get(RIVAL));
-        system.processTick(0.25f);
+        gameTime = 60;
+        defeat(system, RIVAL);
 
         assertTrue(keepers.get(RIVAL).isDestroyed());
         assertFalse(keepers.get(HUMAN).isDestroyed());
+
+        // The time of the defeat is kept with the game
+        List<KeeperDefeated> defeats = entityData.getEntities(KeeperDefeated.class).stream()
+                .map(defeat -> defeat.get(KeeperDefeated.class)).toList();
+        assertEquals(1, defeats.size());
+        assertEquals(RIVAL, defeats.getFirst().playerId);
+        assertEquals(60.25, defeats.getFirst().time, 0.0001);
     }
 
     @Test
@@ -454,6 +496,7 @@ class KeeperDefeatSystemTest {
             case "getPlayerControllers" -> playerControllers;
             case "getGameWorldController" -> gameWorldController;
             case "getTaskManager" -> taskManager;
+            case "getGameTimer" -> (IGameTimer) () -> gameTime;
             default -> null;
         });
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> "iterator".equals(name) ? tiles.iterator() : null);

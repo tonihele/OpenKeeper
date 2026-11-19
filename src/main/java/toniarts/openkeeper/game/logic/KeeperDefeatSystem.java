@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.KeeperDefeated;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.GameWorldController;
@@ -59,14 +60,20 @@ import toniarts.openkeeper.utils.Point;
 
 /**
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
- * he is marked destroyed, loses the game, his heart room is left in ruins,
- * his land goes back to nobody, his imps die and his other creatures leave.
+ * he is marked destroyed, loses the game, his heart room is left in ruins and
+ * his land goes back to nobody. From 5 turns later his imps die and his other
+ * creatures leave.
  * In a skirmish or multiplayer game the last keeper standing wins. In the
  * campaign, a level can have the last enemy heart leave a Portal Gem.
  */
 public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     private static final short OBJECT_PORTAL_GEM_ID = 28;
+    /**
+     * DK II (0x4DAA10) deals with the creatures of a defeated keeper from 5
+     * turns after the defeat
+     */
+    private static final int TURNS_BEFORE_CREATURES_GO = 5;
 
     /**
      * A creature in these states is not in control of itself, or is in the
@@ -84,6 +91,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     private final IObjectsController objectsController;
     private final boolean lastKeeperWins;
     private final EntitySet hearts;
+    private final EntitySet defeats;
     private final Map<EntityId, Short> heartOwners = new HashMap<>();
 
     /**
@@ -109,6 +117,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         hearts = entityData.getEntities(new FieldFilter(ObjectComponent.class, "objectId", FiveByFiveRotatedController.OBJECT_HEART_ID),
                 ObjectComponent.class, Owner.class, Health.class);
         processAddedHearts(hearts);
+        defeats = entityData.getEntities(KeeperDefeated.class);
     }
 
     @Override
@@ -123,9 +132,14 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
             }
         }
 
-        for (Keeper keeper : levelInfo.getPlayers().values()) {
-            if (keeper.isDestroyed()) {
-                sendCreaturesAway(keeper.getId());
+        // Half a turn spares the rounding of the game time
+        defeats.applyChanges();
+        double delay = (TURNS_BEFORE_CREATURES_GO - 0.5) / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        double now = gameController.getGameTimer().getGameTime();
+        for (Entity defeat : defeats) {
+            KeeperDefeated keeperDefeated = defeat.get(KeeperDefeated.class);
+            if (now - keeperDefeated.time >= delay) {
+                sendCreaturesAway(keeperDefeated.playerId);
             }
         }
     }
@@ -155,9 +169,9 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         }
 
         keeper.setDestroyed(getKiller(heart, keeper.getId()));
+        entityData.setComponent(entityData.createEntity(), new KeeperDefeated(keeper.getId(), gameController.getGameTimer().getGameTime()));
         ruinHeartRoom(keeper);
         abandonLand(keeper.getId());
-        killImps(keeper.getId());
         if (!isAi(keeper)) {
             gameController.endGame(keeper.getId(), false);
         }
@@ -237,33 +251,29 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * The imps of a defeated keeper die, so that nobody claims his land back.
-     * DK II deals each of them damage equal to its health
-     *
-     * @param keeperId the defeated keeper
-     */
-    private void killImps(short keeperId) {
-        for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class, Health.class)) {
-            if (entityData.getComponent(creature, CreatureComponent.class).worker) {
-                EntityController.setDamage(entityData, creature, entityData.getComponent(creature, Health.class).health);
-            }
-        }
-    }
-
-    /**
      * Like in DK II (0x4DAA10), on every turn the creatures of a defeated
-     * keeper, all but the workers, are sent out of the dungeon through the
-     * nearest portal, whatever they were doing. One already on its way, held
-     * in a Prison or not in control of itself is left alone. One that finds no
-     * portal to get to wanders about and tries again when its walk ends
+     * keeper are dealt with. The workers die, so that nobody claims his land
+     * back: each is dealt damage equal to its health. The others are sent out
+     * of the dungeon through the nearest portal, whatever they were doing. One
+     * already on its way, held in a Prison or not in control of itself is left
+     * alone. One that finds no portal to get to wanders about and tries again
+     * when its walk ends.<br>
+     * DK II credits the kill of the workers to the keeper who destroyed the
+     * heart (+0x132), there are no kill credits here yet
      *
      * @param keeperId the defeated keeper
      */
     private void sendCreaturesAway(short keeperId) {
         ICreaturesController creaturesController = gameController.getGameWorldController().getCreaturesController();
         for (EntityId entity : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class)) {
-            if (entityData.getComponent(entity, CreatureComponent.class).worker
-                    || entityData.getComponent(entity, CreatureImprisoned.class) != null) {
+            if (entityData.getComponent(entity, CreatureImprisoned.class) != null) {
+                continue;
+            }
+            if (entityData.getComponent(entity, CreatureComponent.class).worker) {
+                Health health = entityData.getComponent(entity, Health.class);
+                if (health != null && health.health > 0) {
+                    EntityController.setDamage(entityData, entity, health.health);
+                }
                 continue;
             }
 
@@ -339,6 +349,7 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         hearts.release();
+        defeats.release();
         heartOwners.clear();
     }
 
