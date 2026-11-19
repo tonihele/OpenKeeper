@@ -65,6 +65,7 @@ import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.game.state.session.SaveGameFolder;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.gui.nifty.AbstractCreatureCardControl.CreatureUIState;
 import toniarts.openkeeper.gui.nifty.*;
 import toniarts.openkeeper.gui.nifty.flowlayout.FlowLayoutControl;
@@ -631,7 +632,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * Quick save, like DK II's: saves over the quick save without asking
      */
     public void quickSave() {
-        writeSaveGame(SaveGameFolder.QUICK_SAVE_NAME);
+        writeSaveGame(SaveGameFolder.QUICK_SAVE_NAME, false);
     }
 
     @Override
@@ -669,20 +670,25 @@ public final class PlayerScreenController implements IPlayerScreenController {
             pauseMenuNavigate(PauseMenuState.CONFIRMATION.name(), PauseMenuState.SAVE.name(), "${menu.201}", "overwriteSaveGame()");
             return;
         }
-        writeSaveGame(name);
+        writeSaveGame(name, true);
         pauseMenu();
     }
 
     @Override
     public void overwriteSaveGame() {
-        writeSaveGame(overwriteSaveName);
+        writeSaveGame(overwriteSaveName, true);
         pauseMenu();
     }
 
     /**
      * Saves the game. Says "Game Saved." when the file is written.
+     *
+     * @param name the name of the save
+     * @param fromSaveMenu saved from the save menu, which DK II (0x42A920)
+     * announces by cutting off the line of speech being spoken, the mentor's
+     * "Game saved" and a sound. Its quick save (0x50FBA0) has neither
      */
-    private void writeSaveGame(String name) {
+    private void writeSaveGame(String name, boolean fromSaveMenu) {
         GameServerState gameServerState = getSinglePlayerServer();
         if (gameServerState == null) {
             return;
@@ -695,6 +701,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 showSystemMessage(ex.getMessage());
             } else {
                 showSystemMessage("${menu.562}");
+                SoundState soundState = state.stateManager.getState(SoundState.class);
+                if (fromSaveMenu && soundState != null) {
+                    soundState.stopSpeech();
+                    soundState.attachMentorSpeech(MentorType.NONGA008, null);
+                    playSound(GlobalCategory.OPTIONS, String.valueOf(GlobalType.OPTIONS_NICEWAHBONGDIGI.getId()));
+                }
             }
         }));
     }
