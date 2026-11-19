@@ -19,7 +19,9 @@ package toniarts.openkeeper.tools.convert.map;
 import java.util.HashSet;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.sound.ThingSounds;
-import static toniarts.openkeeper.tools.convert.map.Creature.AnimationSlot.*;
+import toniarts.openkeeper.tools.convert.map.Creature.AnimationSlot;
+import toniarts.openkeeper.tools.convert.map.Creature.WorkerAnimation;
+import toniarts.openkeeper.tools.convert.map.Creature.FighterAnimation;
 import static toniarts.openkeeper.tools.convert.map.Creature.AnimationType.*;
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -45,6 +47,19 @@ class CreatureAnimationSlotsTest {
     }
 
     @Test
+    void readableWorkerAndFighterActionsOverlapWithoutClassifyingTheCreature() {
+        assertSame(AnimationSlot.WALK, WorkerAnimation.WALK.getSlot());
+        assertSame(FighterAnimation.WALK.getSlot(), WorkerAnimation.WALK.getSlot());
+        assertSame(AnimationSlot.MELEE_ATTACK, WorkerAnimation.DIG.getSlot());
+        assertSame(FighterAnimation.MELEE_ATTACK.getSlot(), WorkerAnimation.DIG.getSlot());
+        assertSame(FighterAnimation.SLEEP.getSlot(), WorkerAnimation.REINFORCE_WALL.getSlot());
+        assertSame(FighterAnimation.EAT.getSlot(), WorkerAnimation.CLAIM_FLOOR.getSlot());
+        assertSame(FighterAnimation.DRINK.getSlot(), WorkerAnimation.HAUL.getSlot());
+        assertSame(DIGGING, WorkerAnimation.DIG.getAnimationType());
+        assertSame(MELEE_ATTACK, FighterAnimation.MELEE_ATTACK.getAnimationType());
+    }
+
+    @Test
     void oldReplicatedActionOrdinalsStayStable() {
         // Compatibility assertions, never used to compute a descriptor ID.
         assertEquals(0, WALK.ordinal());
@@ -60,15 +75,15 @@ class CreatureAnimationSlotsTest {
         var wall = resource("SyntheticWall");
         var floor = resource("SyntheticFloor");
         var haul = resource("SyntheticHaul");
-        creature.setAnimation(SLOT_0C, wall);
-        creature.setAnimation(SLOT_0D, floor);
-        creature.setAnimation(SLOT_13, haul);
-        assertSame(wall, creature.getAnimationForAction(REINFORCE_WALL));
-        assertSame(wall, creature.getAnimationForAction(SLEEPING));
-        assertSame(floor, creature.getAnimationForAction(CLAIM_FLOOR));
-        assertSame(floor, creature.getAnimationForAction(EATING));
-        assertSame(haul, creature.getAnimationForAction(HAUL));
-        assertSame(haul, creature.getAnimationForAction(DRINKING));
+        creature.setAnimation(AnimationSlot.SLEEPING, wall);
+        creature.setAnimation(AnimationSlot.EATING, floor);
+        creature.setAnimation(AnimationSlot.DRINKING, haul);
+        assertSame(wall, creature.getAnimationForAction(WorkerAnimation.REINFORCE_WALL));
+        assertSame(wall, creature.getAnimationForAction(FighterAnimation.SLEEP));
+        assertSame(floor, creature.getAnimationForAction(WorkerAnimation.CLAIM_FLOOR));
+        assertSame(floor, creature.getAnimationForAction(FighterAnimation.EAT));
+        assertSame(haul, creature.getAnimationForAction(WorkerAnimation.HAUL));
+        assertSame(haul, creature.getAnimationForAction(FighterAnimation.DRINK));
         assertEquals(3, creature.getAnimationSlots().size());
         assertEquals(3, creature.getAnimations().size());
         assertThrows(UnsupportedOperationException.class, () -> creature.getAnimationSlots().clear());
@@ -81,14 +96,14 @@ class CreatureAnimationSlotsTest {
         var impPrimary = resource("SyntheticImpPrimary");
         var impExtra = resource("SyntheticImpExtra");
         var dwarfPrimary = resource("SyntheticDwarfPrimary");
-        imp.setAnimation(SLOT_05, impPrimary);
-        imp.setAnimation(SLOT_2F, impExtra);
-        dwarf.setAnimation(SLOT_05, dwarfPrimary);
-        assertSame(impPrimary, imp.getAnimationForAction(DIGGING));
-        assertSame(dwarfPrimary, dwarf.getAnimationForAction(DIGGING));
+        imp.setAnimation(AnimationSlot.MELEE_ATTACK, impPrimary);
+        imp.setAnimation(AnimationSlot.DIG, impExtra);
+        dwarf.setAnimation(AnimationSlot.MELEE_ATTACK, dwarfPrimary);
+        assertSame(impPrimary, imp.getAnimationForAction(WorkerAnimation.DIG));
+        assertSame(dwarfPrimary, dwarf.getAnimationForAction(WorkerAnimation.DIG));
         assertSame(impExtra, imp.getAnimation(DIG));
         assertNull(dwarf.getAnimation(DIG));
-        assertSame(dwarfPrimary, dwarf.getAnimationForAction(MELEE_ATTACK));
+        assertSame(dwarfPrimary, dwarf.getAnimationForAction(FighterAnimation.MELEE_ATTACK));
     }
 
     @Test
@@ -97,18 +112,18 @@ class CreatureAnimationSlotsTest {
         var primary = resource("SyntheticPrimary");
         var absent = new ArtResource();
         absent.setType(ArtResource.ArtResourceType.NONE);
-        creature.setAnimation(SLOT_05, primary);
-        creature.setAnimation(SLOT_16, absent);
+        creature.setAnimation(AnimationSlot.MELEE_ATTACK, primary);
+        creature.setAnimation(AnimationSlot.MANUFACTURING, absent);
         assertSame(absent, creature.getAnimation(MANUFACTURING));
         assertSame(primary, creature.getAnimationForAction(MANUFACTURING));
         assertNull(creature.getAnimation(ANGRY));
         assertSame(primary, creature.getAnimationForAction(ANGRY));
         // Native fallback for hauling is 0x09, not recursively 0x09 -> 0x05.
-        assertNull(creature.getAnimationForAction(HAUL));
+        assertNull(creature.getAnimationForAction(WorkerAnimation.HAUL));
         var angry = resource("SyntheticAngry");
-        creature.setAnimation(SLOT_09, angry);
-        assertSame(angry, creature.getAnimationForAction(HAUL));
-        assertNull(creature.getAnimationForAction(REINFORCE_WALL));
+        creature.setAnimation(AnimationSlot.ANGRY, angry);
+        assertSame(angry, creature.getAnimationForAction(WorkerAnimation.HAUL));
+        assertNull(creature.getAnimationForAction(WorkerAnimation.REINFORCE_WALL));
         assertNull(creature.getAnimationForAction(DIG));
         assertEquals(3, creature.getAnimationSlots().size());
     }

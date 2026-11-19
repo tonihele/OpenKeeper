@@ -39,55 +39,57 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      * Native descriptor IDs, not file offsets, executable addresses or enum
      * ordinals. The first block is 0x01..0x24; later fields are interleaved with
      * non-animation data in Creatures.kwd. Slot zero is the native empty record.
+     * Readable field names follow the conventional fighter meanings; they do
+     * not prescribe the action for a worker or a creature-specific special.
      */
     public enum AnimationSlot implements IValueEnum {
-        SLOT_01(0x01),
-        SLOT_02(0x02),
-        SLOT_03(0x03),
-        SLOT_04(0x04),
-        SLOT_05(0x05), // Melee; Imp/Dwarf digging (native action 0x01).
-        SLOT_06(0x06),
-        SLOT_07(0x07),
-        SLOT_08(0x08),
-        SLOT_09(0x09),
-        SLOT_0A(0x0A),
-        SLOT_0B(0x0B),
-        SLOT_0C(0x0C), // Sleep; Imp/Dwarf wall work.
-        SLOT_0D(0x0D), // Eat; Imp/Dwarf floor claiming; Horny alternate melee.
-        SLOT_0E(0x0E), // Research; Horny alternate melee.
-        SLOT_0F(0x0F),
-        SLOT_10(0x10),
-        SLOT_11(0x11),
-        SLOT_12(0x12),
-        SLOT_13(0x13), // Drink; Imp/Dwarf hauling.
-        SLOT_14(0x14),
-        SLOT_15(0x15),
-        SLOT_16(0x16),
-        SLOT_17(0x17), // Pray; Horny gem pickup.
-        SLOT_18(0x18),
-        SLOT_19(0x19), // Electric chair; Horny chicken stamping.
-        SLOT_1A(0x1A),
-        SLOT_1B(0x1B),
-        SLOT_1C(0x1C),
-        SLOT_1D(0x1D),
-        SLOT_1E(0x1E),
-        SLOT_1F(0x1F),
-        SLOT_20(0x20), // Creature-specific special: whip, bat transformation, attention, jump.
-        SLOT_21(0x21),
-        SLOT_22(0x22),
-        SLOT_23(0x23), // Creature-specific roar, loot, corpse eating, happiness or jump.
-        SLOT_24(0x24),
-        SLOT_25(0x25),
-        SLOT_26(0x26),
-        SLOT_27(0x27),
-        SLOT_28(0x28),
-        SLOT_29(0x29),
-        SLOT_2A(0x2A), // Extra resource: second melee for some creatures, idle for Imp.
-        SLOT_2B(0x2B),
-        SLOT_2C(0x2C),
-        SLOT_2D(0x2D),
-        SLOT_2E(0x2E),
-        SLOT_2F(0x2F); // Extra Imp digging resource; not selected by the native action table.
+        WALK(0x01),
+        RUN(0x02),
+        DRAGGED(0x03),
+        RECOIL_FORWARDS(0x04),
+        MELEE_ATTACK(0x05), // Melee; Imp/Dwarf digging (native action 0x01).
+        CAST_SPELL(0x06),
+        DIE(0x07),
+        HAPPY(0x08),
+        ANGRY(0x09),
+        STUNNED(0x0A),
+        IN_HAND(0x0B),
+        SLEEPING(0x0C), // Sleep; Imp/Dwarf wall work.
+        EATING(0x0D), // Eat; Imp/Dwarf floor claiming; Horny alternate melee.
+        RESEARCHING(0x0E), // Research; Horny alternate melee.
+        NULL_2(0x0F),
+        NULL_1(0x10),
+        TORTURED_WHEEL(0x11),
+        NULL_3(0x12),
+        DRINKING(0x13), // Drink; Imp/Dwarf hauling.
+        IDLE_1(0x14),
+        RECOIL_BACKWARDS(0x15),
+        MANUFACTURING(0x16),
+        PRAYING(0x17), // Pray; Horny gem pickup.
+        FALLBACK(0x18),
+        TORTURED_CHAIR(0x19), // Electric chair; Horny chicken stamping.
+        TORTURED_CHAIR_SKELETON(0x1A),
+        GET_UP(0x1B),
+        DANCE(0x1C),
+        DRUNK(0x1D),
+        ENTRANCE(0x1E),
+        IDLE_2(0x1F),
+        SPECIAL_1(0x20), // Creature-specific special: whip, bat transformation, attention, jump.
+        SPECIAL_2(0x21),
+        DRUNKED_WALK(0x22),
+        ROAR(0x23), // Creature-specific roar, loot, corpse eating, happiness or jump.
+        NULL_4(0x24),
+        DRUNKED_IDLE(0x25),
+        BACK_OFF(0x26),
+        STAND_STILL(0x27),
+        STEALTH_WALK(0x28),
+        DEATH_POSE(0x29),
+        SWIPE(0x2A), // Extra resource: second melee for some creatures, idle for Imp.
+        IDLE_3(0x2B),
+        IDLE_4(0x2C),
+        IDLE_3_1(0x2D),
+        IDLE_4_1(0x2E),
+        DIG(0x2F); // Extra Imp digging resource; not selected by the native action table.
 
         private final int id;
 
@@ -116,16 +118,16 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
          */
         public AnimationSlot getFallback() {
             return switch (this) {
-                case SLOT_02, SLOT_04, SLOT_0A, SLOT_14, SLOT_15, SLOT_1B,
-                        SLOT_1D, SLOT_20, SLOT_21, SLOT_22, SLOT_25, SLOT_26,
-                        SLOT_27, SLOT_28, SLOT_29 -> SLOT_01;
-                case SLOT_03 -> SLOT_0A;
-                case SLOT_06, SLOT_09, SLOT_0E, SLOT_0F, SLOT_16 -> SLOT_05;
-                case SLOT_0D, SLOT_17, SLOT_1C, SLOT_23 -> SLOT_08;
-                case SLOT_10, SLOT_11, SLOT_12, SLOT_13, SLOT_19, SLOT_1A,
-                        SLOT_1E -> SLOT_09;
-                case SLOT_18 -> SLOT_04;
-                case SLOT_1F, SLOT_24 -> SLOT_14;
+                case RUN, RECOIL_FORWARDS, STUNNED, IDLE_1, RECOIL_BACKWARDS, GET_UP,
+                        DRUNK, SPECIAL_1, SPECIAL_2, DRUNKED_WALK, DRUNKED_IDLE, BACK_OFF,
+                        STAND_STILL, STEALTH_WALK, DEATH_POSE -> WALK;
+                case DRAGGED -> STUNNED;
+                case CAST_SPELL, ANGRY, RESEARCHING, NULL_2, MANUFACTURING -> MELEE_ATTACK;
+                case EATING, PRAYING, DANCE, ROAR -> HAPPY;
+                case NULL_1, TORTURED_WHEEL, NULL_3, DRINKING, TORTURED_CHAIR, TORTURED_CHAIR_SKELETON,
+                        ENTRANCE -> ANGRY;
+                case FALLBACK -> RECOIL_FORWARDS;
+                case IDLE_2, NULL_4 -> IDLE_1;
                 default -> null;
             };
         }
@@ -136,66 +138,66 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
      * states; historical names describe only some creatures. Use AnimationSlot
      * for file resources, and the explicit worker actions for gameplay.
      */
-    public static enum AnimationType {
-        WALK(AnimationSlot.SLOT_01),
-        RUN(AnimationSlot.SLOT_02),
-        BACK_OFF(AnimationSlot.SLOT_26),
-        STAND_STILL(AnimationSlot.SLOT_27),
-        STEALTH_WALK(AnimationSlot.SLOT_28),
-        DEATH_POSE(AnimationSlot.SLOT_29),
-        RECOIL_FORWARDS(AnimationSlot.SLOT_04),
-        RECOIL_BACKWARDS(AnimationSlot.SLOT_15),
-        FALLBACK(AnimationSlot.SLOT_18), // FALL_OVER_AND_UP
-        MELEE_ATTACK(AnimationSlot.SLOT_05),
-        CAST_SPELL(AnimationSlot.SLOT_06),
-        GET_UP(AnimationSlot.SLOT_1B),
-        IDLE_1(AnimationSlot.SLOT_14),
-        IDLE_2(AnimationSlot.SLOT_1F),
-        DIE(AnimationSlot.SLOT_07),
-        HAPPY(AnimationSlot.SLOT_08),
-        ANGRY(AnimationSlot.SLOT_09),
-        STUNNED(AnimationSlot.SLOT_0A),
-        IN_HAND(AnimationSlot.SLOT_0B),
-        DANCE(AnimationSlot.SLOT_1C),
-        DRUNK(AnimationSlot.SLOT_1D),
-        ENTRANCE(AnimationSlot.SLOT_1E),
-        SLEEPING(AnimationSlot.SLOT_0C),
-        EATING(AnimationSlot.SLOT_0D),
-        RESEARCHING(AnimationSlot.SLOT_0E),
-        MANUFACTURING(AnimationSlot.SLOT_16),
-        TRAINING(AnimationSlot.SLOT_05), // Action only; no separate resource field
+    public static enum AnimationType implements AnimationAction {
+        WALK(AnimationSlot.WALK),
+        RUN(AnimationSlot.RUN),
+        BACK_OFF(AnimationSlot.BACK_OFF),
+        STAND_STILL(AnimationSlot.STAND_STILL),
+        STEALTH_WALK(AnimationSlot.STEALTH_WALK),
+        DEATH_POSE(AnimationSlot.DEATH_POSE),
+        RECOIL_FORWARDS(AnimationSlot.RECOIL_FORWARDS),
+        RECOIL_BACKWARDS(AnimationSlot.RECOIL_BACKWARDS),
+        FALLBACK(AnimationSlot.FALLBACK), // FALL_OVER_AND_UP
+        MELEE_ATTACK(AnimationSlot.MELEE_ATTACK),
+        CAST_SPELL(AnimationSlot.CAST_SPELL),
+        GET_UP(AnimationSlot.GET_UP),
+        IDLE_1(AnimationSlot.IDLE_1),
+        IDLE_2(AnimationSlot.IDLE_2),
+        DIE(AnimationSlot.DIE),
+        HAPPY(AnimationSlot.HAPPY),
+        ANGRY(AnimationSlot.ANGRY),
+        STUNNED(AnimationSlot.STUNNED),
+        IN_HAND(AnimationSlot.IN_HAND),
+        DANCE(AnimationSlot.DANCE),
+        DRUNK(AnimationSlot.DRUNK),
+        ENTRANCE(AnimationSlot.ENTRANCE),
+        SLEEPING(AnimationSlot.SLEEPING),
+        EATING(AnimationSlot.EATING),
+        RESEARCHING(AnimationSlot.RESEARCHING),
+        MANUFACTURING(AnimationSlot.MANUFACTURING),
+        TRAINING(AnimationSlot.MELEE_ATTACK), // Action only; no separate resource field
         //        IN_PRISON,
-        DRINKING(AnimationSlot.SLOT_13),
-        PRAYING(AnimationSlot.SLOT_17),
+        DRINKING(AnimationSlot.DRINKING),
+        PRAYING(AnimationSlot.PRAYING),
         //        GAMBLING,
-        TORTURED_WHEEL(AnimationSlot.SLOT_11),
-        TORTURED_CHAIR(AnimationSlot.SLOT_19),
-        TORTURED_CHAIR_SKELETON(AnimationSlot.SLOT_1A),
-        SPECIAL_1(AnimationSlot.SLOT_20),
-        SPECIAL_2(AnimationSlot.SLOT_21),
-        DRUNKED_WALK(AnimationSlot.SLOT_22),
-        DRUNKED_IDLE(AnimationSlot.SLOT_25),
+        TORTURED_WHEEL(AnimationSlot.TORTURED_WHEEL),
+        TORTURED_CHAIR(AnimationSlot.TORTURED_CHAIR),
+        TORTURED_CHAIR_SKELETON(AnimationSlot.TORTURED_CHAIR_SKELETON),
+        SPECIAL_1(AnimationSlot.SPECIAL_1),
+        SPECIAL_2(AnimationSlot.SPECIAL_2),
+        DRUNKED_WALK(AnimationSlot.DRUNKED_WALK),
+        DRUNKED_IDLE(AnimationSlot.DRUNKED_IDLE),
         //        FIGHT_VICTORY,
         //        FIGHT_IDLE,
-        DRAGGED(AnimationSlot.SLOT_03),
-        DIG(AnimationSlot.SLOT_2F), // Legacy extra Imp resource, not the dig task
-        SWIPE(AnimationSlot.SLOT_2A),
-        IDLE_3(AnimationSlot.SLOT_2B), // Imp
-        IDLE_4(AnimationSlot.SLOT_2C), // Imp
-        IDLE_3_1(AnimationSlot.SLOT_2D), // same as IDLE_3
-        IDLE_4_1(AnimationSlot.SLOT_2E), // same as IDLE_4
-        ROAR(AnimationSlot.SLOT_23), // ROAR in Horny, LOOT in Rogue
-        NULL_1(AnimationSlot.SLOT_10), // always null
-        NULL_2(AnimationSlot.SLOT_0F), // always null
-        NULL_3(AnimationSlot.SLOT_12), // always null
-        NULL_4(AnimationSlot.SLOT_24), // always null
+        DRAGGED(AnimationSlot.DRAGGED),
+        DIG(AnimationSlot.DIG), // Legacy extra Imp resource, not the dig task
+        SWIPE(AnimationSlot.SWIPE),
+        IDLE_3(AnimationSlot.IDLE_3), // Imp
+        IDLE_4(AnimationSlot.IDLE_4), // Imp
+        IDLE_3_1(AnimationSlot.IDLE_3_1), // same as IDLE_3
+        IDLE_4_1(AnimationSlot.IDLE_4_1), // same as IDLE_4
+        ROAR(AnimationSlot.ROAR), // ROAR in Horny, LOOT in Rogue
+        NULL_1(AnimationSlot.NULL_1), // always null
+        NULL_2(AnimationSlot.NULL_2), // always null
+        NULL_3(AnimationSlot.NULL_3), // always null
+        NULL_4(AnimationSlot.NULL_4), // always null
 
         // Append only: do not change the serialized ordinals above.
-        CLAIM_FLOOR(AnimationSlot.SLOT_0D),
-        REINFORCE_WALL(AnimationSlot.SLOT_0C),
-        DIGGING(AnimationSlot.SLOT_05),
-        HAUL(AnimationSlot.SLOT_13),
-        TORTURE_VICTIM(AnimationSlot.SLOT_20);
+        CLAIM_FLOOR(AnimationSlot.EATING),
+        REINFORCE_WALL(AnimationSlot.SLEEPING),
+        DIGGING(AnimationSlot.MELEE_ATTACK),
+        HAUL(AnimationSlot.DRINKING),
+        TORTURE_VICTIM(AnimationSlot.SPECIAL_1);
 
         private final AnimationSlot slot;
 
@@ -203,8 +205,79 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
             this.slot = slot;
         }
 
+        @Override
         public AnimationSlot getSlot() {
             return slot;
+        }
+
+        @Override
+        public AnimationType getAnimationType() {
+            return this;
+        }
+    }
+
+    /** An action maps to a shared resource slot and an existing replicated state. */
+    public interface AnimationAction {
+
+        AnimationType getAnimationType();
+
+        default AnimationSlot getSlot() {
+            return getAnimationType().getSlot();
+        }
+    }
+
+    /**
+     * Worker actions, independent of the conventional names of file fields.
+     * Workers can also use fighter actions (notably the Dwarf's melee attack).
+     */
+    public enum WorkerAnimation implements AnimationAction {
+        WALK(AnimationType.WALK),
+        RUN(AnimationType.RUN),
+        STAND_STILL(AnimationType.STAND_STILL),
+        DIG(AnimationType.DIGGING),
+        CLAIM_FLOOR(AnimationType.CLAIM_FLOOR),
+        REINFORCE_WALL(AnimationType.REINFORCE_WALL),
+        HAUL(AnimationType.HAUL);
+
+        private final AnimationType animationType;
+
+        WorkerAnimation(AnimationType animationType) {
+            this.animationType = animationType;
+        }
+
+        @Override
+        public AnimationType getAnimationType() {
+            return animationType;
+        }
+    }
+
+    /**
+     * Fighter actions over the same file slots. These are action vocabularies,
+     * not mutually exclusive creature classes or checks of job availability.
+     */
+    public enum FighterAnimation implements AnimationAction {
+        WALK(AnimationType.WALK),
+        RUN(AnimationType.RUN),
+        STAND_STILL(AnimationType.STAND_STILL),
+        MELEE_ATTACK(AnimationType.MELEE_ATTACK),
+        CAST_SPELL(AnimationType.CAST_SPELL),
+        SLEEP(AnimationType.SLEEPING),
+        EAT(AnimationType.EATING),
+        DRINK(AnimationType.DRINKING),
+        RESEARCH(AnimationType.RESEARCHING),
+        MANUFACTURE(AnimationType.MANUFACTURING),
+        TRAIN(AnimationType.TRAINING),
+        PRAY(AnimationType.PRAYING);
+
+        private final AnimationType animationType;
+
+        FighterAnimation(AnimationType animationType) {
+            this.animationType = animationType;
+        }
+
+        @Override
+        public AnimationType getAnimationType() {
+            return animationType;
         }
     }
 
@@ -737,7 +810,7 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
     }
 
     /** Resolve a playback action separately from raw resource availability. */
-    public ArtResource getAnimationForAction(AnimationType action) {
+    public ArtResource getAnimationForAction(AnimationAction action) {
         if (action == null) {
             return null;
         }

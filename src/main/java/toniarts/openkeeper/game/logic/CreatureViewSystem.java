@@ -48,6 +48,8 @@ import toniarts.openkeeper.game.task.TaskType;
 import static toniarts.openkeeper.game.task.TaskType.TRAIN;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.WorkerAnimation;
+import toniarts.openkeeper.tools.convert.map.Creature.FighterAnimation;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.GameTimeCounter;
 
@@ -116,7 +118,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
             } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = haulers.contains(entityId) ? Creature.AnimationType.HAUL : Creature.AnimationType.WALK;
+                targetState = haulers.contains(entityId) ? WorkerAnimation.HAUL.getAnimationType() : FighterAnimation.WALK.getAnimationType();
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
@@ -167,7 +169,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (state.state == Creature.AnimationType.MELEE_ATTACK && meleeAttack != null
                 && timeElapsed < state.stateStartTime + meleeAttack.rechargeTime / 2) {
-            return Creature.AnimationType.MELEE_ATTACK;
+            return FighterAnimation.MELEE_ATTACK.getAnimationType();
         }
 
         PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);
@@ -271,17 +273,17 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 return Creature.AnimationType.TORTURED_WHEEL; // hmmm....
             case SLEEPING:
             case RECUPERATING:
-                return Creature.AnimationType.SLEEPING;
+                return FighterAnimation.SLEEP.getAnimationType();
             case MELEE_ATTACK:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return FighterAnimation.MELEE_ATTACK.getAnimationType();
             case CAST_SPELL:
-                return Creature.AnimationType.CAST_SPELL;
+                return FighterAnimation.CAST_SPELL.getAnimationType();
             case DANCING:
                 return Creature.AnimationType.DANCE;
             case CELEBRATING:
                 return Creature.AnimationType.HAPPY;
             case EATING:
-                return Creature.AnimationType.EATING;
+                return FighterAnimation.EAT.getAnimationType();
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
@@ -291,18 +293,18 @@ public final class CreatureViewSystem extends GameTimeCounter {
         switch (taskType) {
             case CLAIM_ROOM:
             case CLAIM_TILE:
-                return Creature.AnimationType.CLAIM_FLOOR;
+                return WorkerAnimation.CLAIM_FLOOR.getAnimationType();
             case REPAIR_WALL:
             case CLAIM_WALL:
-                return Creature.AnimationType.REINFORCE_WALL;
+                return WorkerAnimation.REINFORCE_WALL.getAnimationType();
             case DIG_TILE:
-                return Creature.AnimationType.DIGGING;
+                return WorkerAnimation.DIG.getAnimationType();
             case TRAIN:
-                return Creature.AnimationType.MELEE_ATTACK;
+                return FighterAnimation.MELEE_ATTACK.getAnimationType();
             case RESEARCH:
-                return Creature.AnimationType.RESEARCHING;
+                return FighterAnimation.RESEARCH.getAnimationType();
             case PRAY:
-                return Creature.AnimationType.PRAYING;
+                return FighterAnimation.PRAY.getAnimationType();
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
@@ -320,7 +322,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         boolean happy = hasAnimation(creature, Creature.AnimationType.HAPPY);
         int roll = FastMath.rand.nextInt(100);
         if (happy && roll < 50 && hasAnimation(creature, Creature.AnimationType.RESEARCHING)) {
-            return Creature.AnimationType.RESEARCHING;
+            return FighterAnimation.RESEARCH.getAnimationType();
         }
         if (happy && roll < 75) {
             return Creature.AnimationType.HAPPY;
@@ -374,7 +376,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         if (manufacturing != null && manufacturing.getType() != ArtResource.ArtResourceType.NONE) {
             return Creature.AnimationType.MANUFACTURING;
         }
-        return Creature.AnimationType.MELEE_ATTACK;
+        return FighterAnimation.MELEE_ATTACK.getAnimationType();
     }
 
 }
