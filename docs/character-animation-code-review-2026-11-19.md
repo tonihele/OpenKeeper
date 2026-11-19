@@ -280,7 +280,7 @@ Complete the independent regressions first; keep fixes focused and rerun the rel
 - [x] **R5, Medium, before claiming transactional completion:** preflight first evaluation and rollback publication-stage failure; test children/revision/enabled/cull/cache preservation. See remediation R5.
 - [x] **R6, Medium, visual acceptance:** correct authored atlas shadow coverage; add transparent-colored texel and rendered wing-frame tests. See remediation R6; exact original DK2 shadow appearance is still unclaimed.
 - [x] **R7, Low:** fail installed-asset validation on out-of-bound samples; keep historical report-only operation explicit. See remediation R7.
-- [ ] **R8, Low:** replace duplicate creature preload passes with complete policy-aware enumeration; verify static resources/segments and measure startup allocation.
+- [x] **R8, Low:** replace duplicate creature preload passes with complete policy-aware enumeration; verify static resources/segments and measure preload allocation. See remediation R8; GPU/full-startup timing is not claimed.
 - [ ] Reopen assessment items 3/7/8/9 and update implementation evidence for R1–R5; retain all five incomplete original items with explicit prerequisite versus external-reference status.
 - [ ] Obtain versioned original DK2 reference timelines for B1a/B1b and individual B4 behaviors; resolve conventions only from that evidence.
 - [ ] Finish B2 prerequisites and B3 level-lifecycle/residency validation, or explicitly split them out of a narrower integration scope with no completion claim.
@@ -341,3 +341,9 @@ Validation: **18 focused material/sprite/particle/cache tests pass** (`build/fix
 The installed audit now fails for nonfinite **or out-of-bound** samples. Historical comparison is explicitly opt-in with `--report-only` / `-PanimationAuditReportOnly=true`. Unknown options fail. `--all-creatures` / `-PanimationAuditAllCreatures=true` promotes the review's ignored corpus prototype into the maintained tool, enumerating all animated main/start/end resources and resolving actual WAD/converted filename case.
 
 Validation: **12 pose/audit tests pass** (`build/fix-r7-tests.txt`); a finite track with a deliberately undersized bound fails strict validation and succeeds only in report-only mode. The maintained all-creature audit passes **1,745,788 cached/fresh samples, zero nonfinite/outside**, covering 944 resources / 1888 loads (`build/fix-r7-corpus.txt`). No proprietary data or on-disk reconversion is involved. R6 commit: `5600329`.
+
+### R8 — resolved: one policy-aware creature preload pass
+
+`preloadRequests()` enumerates actual animation slots plus all six non-animation resource accessors covered by the former reflective pass. It supports animated/static/procedural/collection meshes and flagged segments, honors PRELOAD and deduplicates case-normalized model name plus immutable resource type/flags/metadata. Different rates/material policies remain separate. `AssetUtils.prewarmAssets()` uses this single pass; the names-only inventory API remains compatible.
+
+Validation: **three focused tests pass** (`build/fix-r8-tests.txt`), covering aliases, distinct rates, static pose and extra collection resources, segments, missing PRELOAD and empty catalogs. New opt-in `benchmarkCreaturePreloads` compares the former double-pass workload to the new enumeration on installed Alcatraz data: **13 -> 7 requests**, warmed clone/setup median **2.906 -> 0.967 ms**, allocated bytes/pass **260628 -> 126536** (`build/fix-r8-preloads.txt`). Both workloads warm raw templates first; GPU scene preloading and complete startup time are excluded. These small absolute costs do not imply a gameplay FPS gain. R7 commit: `3ed6b52`.

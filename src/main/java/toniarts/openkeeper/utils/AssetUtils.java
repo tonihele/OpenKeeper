@@ -685,13 +685,12 @@ public final class AssetUtils {
                         prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
 
                         // Creatures
-                        prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
                         List<Spatial> animationModels = new ArrayList<>();
-                        for (var entry : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadModels(kwdFile.getCreatureList()).entrySet()) {
+                        for (var request : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadRequests(kwdFile.getCreatureList())) {
                             try {
-                                animationModels.add(loadModel(assetManager, entry.getKey(), entry.getValue()));
+                                animationModels.add(loadModel(assetManager, request.name(), request.resource()));
                             } catch (Exception e) {
-                                logger.log(Level.WARNING, "Could not prewarm creature animation " + entry.getKey(), e);
+                                logger.log(Level.WARNING, "Could not prewarm creature model " + request.name(), e);
                             }
                         }
                         app.enqueue(() -> animationModels.forEach(app.getRenderManager()::preloadScene));

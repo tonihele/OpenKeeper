@@ -98,6 +98,16 @@ tasks.register("captureAnimationCoverage", JavaExec) {
     args layout.buildDirectory.dir('animation-coverage').get().asFile.absolutePath
 }
 
+tasks.register("benchmarkCreaturePreloads", JavaExec) {
+    group = "verification"
+    description = "Paired warmed old/new creature preload clone/setup workload (CPU only)"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CreaturePreloadBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"
