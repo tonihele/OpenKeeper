@@ -97,6 +97,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
@@ -620,12 +621,19 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public void executeAssignedTask() {
         TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
+        if (!isAssignedTaskValid()) {
+            return;
+        }
+        Task task = getAssignedTask();
         if (!taskComponent.taskStarted) {
             entityData.setComponent(entityId, new TaskComponent(taskComponent.taskId, taskComponent.targetEntity, taskComponent.targetLocation, taskComponent.taskType, taskComponent.taskDuration, true));
+            // Native voluntary entry shares the captive event. Assignment, travel,
+            // continued work and restoration of an already started task are silent.
+            if (task instanceof Torture torture && torture.isSelfTorture()) {
+                creaturesController.onTortured(entityId);
+            }
         }
-        if (isAssignedTaskValid()) {
-            getAssignedTask().executeTask(this, taskComponent.taskDuration);
-        }
+        task.executeTask(this, taskComponent.taskDuration);
     }
 
     @Override

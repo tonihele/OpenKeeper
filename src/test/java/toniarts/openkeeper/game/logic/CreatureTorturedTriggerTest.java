@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.CreaturesController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
@@ -53,6 +54,10 @@ import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerEventQueue;
 import toniarts.openkeeper.game.trigger.creature.CreatureTriggerLogicController;
+import toniarts.openkeeper.game.task.creature.Torture;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureAngryFixtures;
 import toniarts.openkeeper.tools.convert.map.CreatureImprisonedFixtures;
@@ -65,6 +70,50 @@ import static toniarts.openkeeper.tools.convert.map.TriggerGeneric.TargetType.*;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CreatureTorturedTriggerTest {
+
+    @Test
+    void voluntaryEntryQueuesOnceAfterArrivalAndANewTaskCanFireAgain() {
+        try (Fixture f = new Fixture(255, true)) {
+            f.prepareTortureTask(false, false);
+            f.tick();
+            assertEquals(0, f.flags[0]); // Assignment alone is silent.
+            f.controller.executeAssignedTask();
+            assertTrue(f.data.getComponent(f.entity, TaskComponent.class).taskStarted);
+            assertEquals(0, f.flags[0]); // Script actions wait for the simulation queue.
+            f.tick();
+            assertEquals(1, f.flags[0]);
+            for (int i = 0; i < 3; i++) { f.controller.executeAssignedTask(); f.tick(); }
+            assertEquals(1, f.flags[0]);
+            f.prepareTortureTask(false, false);
+            f.controller.executeAssignedTask(); f.tick();
+            assertEquals(2, f.flags[0]);
+        }
+    }
+
+    @Test
+    void restoredStartedVoluntaryTaskDoesNotCreateAnAdmission() {
+        try (Fixture f = new Fixture(255, true)) {
+            f.prepareTortureTask(true, false);
+            f.controller.executeAssignedTask(); f.tick();
+            assertEquals(0, f.flags[0]);
+        }
+    }
+
+    @Test
+    void whippingAndInvalidVoluntaryTasksDoNotEmitTorturedForTheWorker() {
+        try (Fixture f = new Fixture(255, true)) {
+            f.prepareTortureTask(false, true);
+            f.controller.executeAssignedTask(); f.tick();
+            assertEquals(0, f.flags[0]);
+        }
+        try (Fixture f = new Fixture(255, true)) {
+            f.prepareTortureTask(false, false);
+            f.roomAvailable = false;
+            f.controller.executeAssignedTask(); f.tick();
+            assertEquals(0, f.flags[0]);
+            assertFalse(f.data.getComponent(f.entity, TaskComponent.class).taskStarted);
+        }
+    }
 
     @Test
     void realLevelLoadingRetainsAdmissionUntilScriptControlsExist() {
@@ -287,6 +336,8 @@ class CreatureTorturedTriggerTest {
         boolean includeThings=true;
         boolean loadBody;
         boolean inTorture=true;
+        boolean roomAvailable=true;
+        Task assignedTask;
 
         Fixture(int repeats,boolean bind) {
             records.put(1,CreatureAngryFixtures.condition(1,CREATURE_TORTURED,-1,0,repeats));
@@ -322,6 +373,10 @@ class CreatureTorturedTriggerTest {
                 default -> throw new UnsupportedOperationException(name);
             });
             creatures=proxy(ICreaturesController.class,(name,args)->switch(name) {
+                case "onTortured" -> {
+                    assertTrue(data.getComponent(entity, TaskComponent.class).taskStarted);
+                    admit((EntityId) args[0]); yield null;
+                }
                 case "createController" -> ((EntityId)args[0]).equals(entity) ? controller() : proxy(ICreatureController.class,
                         (method,a)->{throw new UnsupportedOperationException(method);});
                 default -> throw new UnsupportedOperationException(name);
@@ -331,6 +386,7 @@ class CreatureTorturedTriggerTest {
                 default -> throw new UnsupportedOperationException(name);
             });
             room=proxy(IRoomController.class,(name,args)->switch(name) {
+                case "isRemoved", "isDestroyed" -> !roomAvailable;
                 case "getEntityId" -> roomId;
                 case "getOwnerId" -> instance.getOwnerId();
                 case "getRoomInstance" -> instance;
@@ -349,9 +405,24 @@ class CreatureTorturedTriggerTest {
                 case "getRoomControllerByCoordinates" -> inTorture ? room : null;
                 default -> throw new UnsupportedOperationException(name);
             });
-            controller=new CreatureController(entity,data,creature,null,null,()->20,
+            controller=new CreatureController(entity,data,creature,null,
+                    proxy(ITaskManager.class, (name, args) -> {
+                        if (name.equals("getTaskById")) return assignedTask;
+                        throw new UnsupportedOperationException(name);
+                    }),()->20,
                     Map.of(),creatures,null,map,level,null,null,null,id->{ });
             if(bind) bindScripts();
+        }
+        void prepareTortureTask(boolean started, boolean whip) {
+            if (whip) {
+                EntityId victim = data.createEntity();
+                data.setComponents(victim, new Health(100, 100), new Owner((short) 1, (short) 1));
+                storage.addItem(victim, new Point(1, 1));
+            }
+            assignedTask = new Torture(null, map, new Point(1, 1),
+                    (short) 3, room, null, data);
+            data.setComponent(entity, new TaskComponent(assignedTask.getId(),
+                    assignedTask.getTaskTarget(), new Point(1, 1), TaskType.TORTURE, 0, started));
         }
         private CreatureController controller() {return controller;}
         void admit(EntityId id) {lastAdmission=id;queue.enqueueTortured(id);}
