@@ -18,6 +18,7 @@ package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
 import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
@@ -30,6 +31,8 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.EntityPickupValidator;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -66,6 +69,8 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     private float spinTicks = -1;
     private float spinDirection;
     private float spinAngle;
+    private Vector3f normalScale;
+    private boolean storedSpecial;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
@@ -108,6 +113,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         components.add(ObjectComponent.class);
         components.add(Position.class);
         components.add(LevelIndicator.class);
+        components.add(Stored.class);
         return components;
     }
 
@@ -149,6 +155,9 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
+        if (spatial != null) {
+            normalScale = spatial.getLocalScale().clone();
+        }
 
         // Play the starting animation
         if (spatial != null && !initialized) {
@@ -262,6 +271,13 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+        Stored stored = getEntity().get(Stored.class);
+        boolean special = stored != null && stored.objectType == ObjectType.SPECIAL;
+        if (special != storedSpecial) {
+            // The native stored-special scale is 0x960 / 0x1000. Preserve the model's own scale.
+            spatial.setLocalScale(normalScale.mult(special ? 75f / 128 : 1));
+            storedSpecial = special;
+        }
 
         if (spinTicks >= 0) {
             float speed = SPIN_SPEED / ((int) spinTicks + 3) - SPIN_SLOW_DOWN;
