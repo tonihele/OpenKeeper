@@ -29,6 +29,8 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
@@ -42,6 +44,7 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -71,6 +74,12 @@ import toniarts.openkeeper.utils.WorldUtils;
  * A hidden trap shows itself to the other players when it fires, if it is
  * revealed when fired. Creatures that reveal traps reveal the hidden traps of
  * their enemies on their tile and the eight tiles around it.
+ * <br>
+ * A door with a trap, the Magic Door, fires the trap's shot at the first
+ * creature of another keeper, an ally's too, it has a clear line to in the
+ * {@value #DOOR_TRAP_RANGE} tiles around it, but only while it is closed. Its owner pays the trap's mana for the shot
+ * and the door recharges like a trap (0x4A55F0). The door doesn't charge,
+ * threaten or show itself like a trap does.
  *
  * @see IShotsController for what the shots do
  */
@@ -95,16 +104,24 @@ public final class TrapSystem implements IGameLogicUpdatable {
      */
     private static final int TRAP_REVEAL_RANGE = 1;
 
+    /**
+     * How far, in tiles, a door with a trap looks for a victim. The 5 x 5
+     * tiles around it
+     */
+    private static final int DOOR_TRAP_RANGE = 2;
+
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final IEntityPositionLookup entityPositionLookup;
     private final Map<Short, IPlayerController> playerControllers;
     private final IShotsController shotsController;
+    private final GameEventService gameEventService;
     private final float triggerSpeed;
     private final EntitySet trapEntities;
     private final EntitySet hiddenTrapEntities;
     private final EntitySet triggerWaves;
+    private final EntitySet doorTrapEntities;
 
     /**
      * The trap system
@@ -116,15 +133,17 @@ public final class TrapSystem implements IGameLogicUpdatable {
      * a trap sees
      * @param playerControllers the players, for their mana and enemies
      * @param shotsController fires the shots
+     * @param gameEventService shows the effects
      */
     public TrapSystem(EntityData entityData, IKwdFile kwdFile, IGameTimer gameTimer, IEntityPositionLookup entityPositionLookup,
-            Map<Short, IPlayerController> playerControllers, IShotsController shotsController) {
+            Map<Short, IPlayerController> playerControllers, IShotsController shotsController, GameEventService gameEventService) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.playerControllers = playerControllers;
         this.shotsController = shotsController;
+        this.gameEventService = gameEventService;
         triggerSpeed = kwdFile.getVariables().get(
                 Variable.MiscVariable.MiscType.TRIGGER_TRAP_TRIGGER_SPEED_TILES_PER_SECOND).getValue();
 
@@ -132,6 +151,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
         hiddenTrapEntities = entityData.getEntities(new FieldFilter<>(TrapViewState.class, "hidden", true),
                 TrapViewState.class, Owner.class, Position.class, Health.class);
         triggerWaves = entityData.getEntities(TriggerWave.class);
+        doorTrapEntities = entityData.getEntities(TrapComponent.class, DoorComponent.class, DoorViewState.class, Owner.class,
+                Position.class, Health.class);
     }
 
     @Override
@@ -144,6 +165,13 @@ public final class TrapSystem implements IGameLogicUpdatable {
         for (Entity trapEntity : trapEntities) {
             if (!trapEntity.get(TrapViewState.class).blueprint) {
                 processTrap(trapEntity, gameTime);
+            }
+        }
+
+        doorTrapEntities.applyChanges();
+        for (Entity doorEntity : doorTrapEntities) {
+            if (!doorEntity.get(DoorComponent.class).blueprint) {
+                processDoorTrap(doorEntity, gameTime);
             }
         }
 
@@ -194,6 +222,33 @@ public final class TrapSystem implements IGameLogicUpdatable {
                         firing.threatEndTime));
             }
         }
+    }
+
+    private void processDoorTrap(Entity doorEntity, double gameTime) {
+        if (gameTime < getFiring(doorEntity.getId()).rechargedTime) {
+            return;
+        }
+
+        Trap trap = kwdFile.getTrapById(doorEntity.get(TrapComponent.class).trapId);
+        short ownerId = doorEntity.get(Owner.class).ownerId;
+        EntityId target = findTargetAroundDoor(doorEntity, ownerId);
+        if (target == null || doorEntity.get(DoorViewState.class).open) {
+            return;
+        }
+        if (!payForShot(trap, ownerId)) {
+
+            // Without the mana the door shows its trap's powerless effect and tries again on the next tick (0x4A55F0)
+            if (trap.getPowerlessEffectId() != 0) {
+                gameEventService.emitEffect(trap.getPowerlessEffectId(), doorEntity.get(Position.class).position, 0);
+            }
+            return;
+        }
+
+        // The shot starts half a tile above the door
+        Vector3f shotStart = doorEntity.get(Position.class).position.add(0, WorldUtils.TILE_HEIGHT / 2, 0);
+        shotsController.fireShot(trap.getShotTypeId(), trap.getShotData1(), trap.getShotData2(), ownerId, shotStart, target,
+                doorEntity.getId(), 0);
+        entityData.setComponent(doorEntity.getId(), new TrapFiring(gameTime + trap.getRechargeTime(), TrapFiring.NOT_CHARGING, 0));
     }
 
     private TrapFiring getFiring(EntityId trapId) {
@@ -429,7 +484,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
 
     private boolean payForShot(Trap trap, short ownerId) {
 
-        // The good player has no mana, its traps fire for free
+        // DK II gives the good player unlimited mana (0x4B9EC0), so it never pays
         if (!trap.getFlags().contains(Trap.TrapFlag.REQUIRE_MANA) || ownerId == Player.GOOD_PLAYER_ID) {
             return true;
         }
@@ -452,13 +507,15 @@ public final class TrapSystem implements IGameLogicUpdatable {
             return null;
         }
 
+        short ownerId = trapEntity.get(Owner.class).ownerId;
+        Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
         return switch (trap.getTriggerType()) {
             case LINE_OF_SIGHT ->
                 findTargetInSight(trapEntity, trap.getTriggerData());
             case PRESSURE ->
-                findTargetOnTrap(trapEntity, true);
+                findTargetOnTile(ownerId, trapTile, true);
             case TRIGGER ->
-                findTargetOnTrap(trapEntity, false);
+                findTargetOnTile(ownerId, trapTile, false);
             default ->
                 null;
         };
@@ -501,18 +558,42 @@ public final class TrapSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * A creature standing on the trap. Any creature but the owner's and the
+     * The first creature the door finds on a tile it has a clear line to. The
+     * door goes through the tiles row by row, not nearest first
+     *
+     * @param doorEntity the door
+     * @param ownerId the door's owner
+     * @return the victim, {@code null} if there is none
+     */
+    private EntityId findTargetAroundDoor(Entity doorEntity, short ownerId) {
+        Vector3f doorPosition = doorEntity.get(Position.class).position;
+        Point doorTile = WorldUtils.vectorToPoint(doorPosition);
+        for (int y = doorTile.y - DOOR_TRAP_RANGE; y <= doorTile.y + DOOR_TRAP_RANGE; y++) {
+            for (int x = doorTile.x - DOOR_TRAP_RANGE; x <= doorTile.x + DOOR_TRAP_RANGE; x++) {
+                if (entityPositionLookup.hasLineOfSight(doorPosition, WorldUtils.pointToVector3f(x, y))) {
+                    EntityId target = findTargetOnTile(ownerId, new Point(x, y), false);
+                    if (target != null) {
+                        return target;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * A creature standing on a tile. Any creature but the owner's and the
      * neutral player's will do
      *
-     * @param trapEntity the trap
+     * @param ownerId the owner of the trap or door
+     * @param tile the tile
      * @param checkCreatureType whether creature types that don't set off traps
-     * are left out, trigger traps don't care
-     * @return the victim, {@code null} if nobody stands on the trap
+     * are left out, trigger traps and doors don't care
+     * @return the victim, {@code null} if nobody stands on the tile
      */
-    private EntityId findTargetOnTrap(Entity trapEntity, boolean checkCreatureType) {
-        Point trapTile = WorldUtils.vectorToPoint(trapEntity.get(Position.class).position);
-        short ownerId = trapEntity.get(Owner.class).ownerId;
-        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(trapTile)) {
+    private EntityId findTargetOnTile(short ownerId, Point tile, boolean checkCreatureType) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
             Entity creatureEntity = getCreature(entityId);
             if (creatureEntity == null) {
                 continue;
@@ -581,6 +662,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
         trapEntities.release();
         hiddenTrapEntities.release();
         triggerWaves.release();
+        doorTrapEntities.release();
     }
 
 }

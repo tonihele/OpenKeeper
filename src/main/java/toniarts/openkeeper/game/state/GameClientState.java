@@ -73,7 +73,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * The game client state
@@ -395,6 +397,13 @@ public final class GameClientState extends AbstractPauseAwareState {
         return kwdFile.getVariables().get(variable).getValue();
     }
 
+    private Set<Short> getGuardPostTrapIds() {
+        return kwdFile.getTraps().stream()
+                .filter(trap -> trap.getFlags().contains(Trap.TrapFlag.GUARD_POST))
+                .map(Trap::getTrapId)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Gets a text parser that can fill up the parameters in translations
      *
@@ -468,7 +477,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
-                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
+                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES),
+                        getGuardPostTrapIds(),
+                        getLevelVariable(Variable.MiscVariable.MiscType.GUARD_POST_REPORTING_DISTANCE_TILES));
                 effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
 
                 // Attach the states
