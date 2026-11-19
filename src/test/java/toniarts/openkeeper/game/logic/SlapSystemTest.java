@@ -28,6 +28,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureEfficiency;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureSleep;
 import toniarts.openkeeper.game.component.Gold;
@@ -238,6 +239,27 @@ class SlapSystemTest {
 
         slapSystem.processTick(89.75f);
         assertEquals(2f, entityData.getComponent(creature, Mobile.class).maxSpeed, 0.0001f);
+    }
+
+    @Test
+    void slapMakesTheCreatureWorkFasterForAHundredTicks() {
+        EntityId creature = slappedCreature(2f);
+        entityData.setComponent(creature, new CreatureEfficiency(80));
+        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController());
+        assertEquals(90, entityData.getComponent(creature, CreatureEfficiency.class).efficiencyPercentage);
+
+        // DK II's work faster timer is 100 ticks, 25 seconds at 4 ticks a second (0x48B8A0, 0x48E160)
+        slapSystem.processTick(24.75f);
+        assertEquals(90, entityData.getComponent(creature, CreatureEfficiency.class).efficiencyPercentage);
+        slapSystem.processTick(0.25f);
+        assertEquals(80, entityData.getComponent(creature, CreatureEfficiency.class).efficiencyPercentage);
+
+        // A new slap starts it again
+        entityData.setComponent(creature, new Slapped(25));
+        slapSystem.processTick(0.25f);
+        assertEquals(90, entityData.getComponent(creature, CreatureEfficiency.class).efficiencyPercentage);
+        slapSystem.processTick(25f);
+        assertEquals(80, entityData.getComponent(creature, CreatureEfficiency.class).efficiencyPercentage);
     }
 
     private EntityId slappedCreature(float speed) {
