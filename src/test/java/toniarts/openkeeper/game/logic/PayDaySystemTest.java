@@ -97,6 +97,29 @@ class PayDaySystemTest {
     }
 
     @Test
+    void payDayNowPaysOnTheNextTick() {
+        EntityId goblin = addCreature(KEEPER, GOBLIN, WAGE, false);
+        tick(0);
+
+        payDaySystem.payDayNow(KEEPER);
+        tick(1);
+
+        assertEquals(WAGE, owed(goblin));
+        assertEquals(1, keeperStats.getPayDays());
+    }
+
+    @Test
+    void payDayNowDoesNothingBeforeThePayDayClockStarts() {
+        addCreature(KEEPER, IMP, 0, true);
+        tick(0);
+
+        payDaySystem.payDayNow(KEEPER);
+        tick(1);
+
+        assertEquals(0, keeperStats.getPayDays());
+    }
+
+    @Test
     void workersDoNotStartThePayDayClock() {
         addCreature(KEEPER, IMP, 0, true);
         tick(0);

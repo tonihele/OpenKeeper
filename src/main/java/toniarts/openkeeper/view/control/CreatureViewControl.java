@@ -31,11 +31,14 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.sound.FootstepSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -45,6 +48,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
@@ -92,7 +96,15 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         components.add(CreatureAi.class);
         components.add(CreatureImprisoned.class);
         components.add(Health.class);
+        components.add(CreatureComponent.class);
         return components;
+    }
+
+    @Override
+    public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
+        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
+        boolean tool = creatureComponent != null && creatureComponent.tool;
+        return DropValidator.canDrop(getEntity().get(Interaction.class), tool, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override

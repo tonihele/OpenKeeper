@@ -16,6 +16,11 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.filter.AndFilter;
+import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -50,6 +55,37 @@ public final class KeeperSpellCastValidator {
 
     private KeeperSpellCastValidator() {
         // Nope
+    }
+
+    /**
+     * Finds the entity that holds when the keeper last cast the spell
+     *
+     * @param entityData the entity data
+     * @param keeperId the keeper
+     * @param keeperSpellId the spell
+     * @return the entity, or {@code null} if the keeper has never cast the
+     * spell
+     */
+    public static EntityId findLastCast(EntityData entityData, short keeperId, short keeperSpellId) {
+        return entityData.findEntity(AndFilter.create(KeeperSpellCast.class,
+                new FieldFilter<>(KeeperSpellCast.class, "keeperId", keeperId),
+                new FieldFilter<>(KeeperSpellCast.class, "keeperSpellId", keeperSpellId)), KeeperSpellCast.class);
+    }
+
+    /**
+     * The spell can be cast again once its recharge time has passed since the
+     * last cast (DKII.EXE 0x4BBA40)
+     *
+     * @param keeperSpell the spell
+     * @param entityData the entity data
+     * @param keeperId the keeper casting
+     * @param gameTime the current game time
+     * @return true if the spell has recharged
+     */
+    public static boolean isRecharged(KeeperSpell keeperSpell, EntityData entityData, short keeperId, double gameTime) {
+        EntityId lastCast = findLastCast(entityData, keeperId, keeperSpell.getId());
+        return lastCast == null
+                || gameTime - entityData.getComponent(lastCast, KeeperSpellCast.class).castTime >= keeperSpell.getRechargeTime();
     }
 
     /**
