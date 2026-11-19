@@ -47,9 +47,11 @@ import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Party;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
@@ -63,7 +65,10 @@ import toniarts.openkeeper.game.controller.creature.PartyType;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.controller.room.ICreatureEntrance;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.PrisonController;
+import toniarts.openkeeper.game.controller.room.storage.RoomTortureeControl;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -78,6 +83,7 @@ import java.lang.System.Logger.Level;
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +134,11 @@ public final class CreaturesController implements ICreaturesController {
     private final static Set<Short> CREATURES_THAT_DIE_INSTANTLY = Set.of((short) 21, (short) 28, (short) 29);
 
     /**
+     * The Hero Lair terrain, the Hero Toolbox creatures stand on it
+     */
+    final static short HERO_LAIR_TERRAIN_ID = 35;
+
+    /**
      * Load creatures from a KWD file straight (new game)
      *
      * @param kwdFile the KWD file
@@ -155,7 +166,12 @@ public final class CreaturesController implements ICreaturesController {
     private void loadCreatures() {
         for (Thing.GoodCreature creature : kwdFile.getThings(Thing.GoodCreature.class)) {
             try {
-                spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+                EntityId entityId = spawnCreature(creature, new Vector2f(creature.getPosX(), creature.getPosY()));
+                if (creature.getFlags2() != null && creature.getFlags2().contains(Thing.Creature.CreatureFlag2.I_AM_A_TOOL)) {
+                    CreatureComponent creatureComponent = new CreatureComponent(entityData.getComponent(entityId, CreatureComponent.class));
+                    creatureComponent.tool = true;
+                    entityData.setComponent(entityId, creatureComponent);
+                }
             } catch (Exception ex) {
                 logger.log(Level.WARNING, "Could not load Thing " + creature + "!", ex);
             }
@@ -207,10 +223,12 @@ public final class CreaturesController implements ICreaturesController {
         short objectiveTargetPlayerId = 0;
         int objectiveTargetActionPointId = 0;
         boolean diesInstantly = false;
+        EnumSet<Thing.Creature.CreatureFlag> flags = null;
         if (creature instanceof Thing.GoodCreature goodCreature) {
             triggerId = goodCreature.getTriggerId();
             healthPercentage = goodCreature.getInitialHealth();
             level = goodCreature.getLevel();
+            flags = goodCreature.getFlags();
             ownerId = Player.GOOD_PLAYER_ID;
             objective = goodCreature.getObjective();
             objectiveTargetPlayerId = goodCreature.getObjectiveTargetPlayerId();
@@ -221,17 +239,33 @@ public final class CreaturesController implements ICreaturesController {
             triggerId = neutralCreature.getTriggerId();
             healthPercentage = neutralCreature.getInitialHealth();
             level = neutralCreature.getLevel();
+            flags = neutralCreature.getFlags();
             ownerId = Player.NEUTRAL_PLAYER_ID;
         } else if (creature instanceof Thing.KeeperCreature keeperCreature) {
             triggerId = keeperCreature.getTriggerId();
             healthPercentage = keeperCreature.getInitialHealth();
             level = keeperCreature.getLevel();
+            flags = keeperCreature.getFlags();
             ownerId = keeperCreature.getPlayerId();
         } else if (creature instanceof Thing.DeadBody deadBody) {
             ownerId = deadBody.getPlayerId();
         }
-        return loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
-                triggerId != null && triggerId != 0 ? triggerId : null, SpawnType.PLACE, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        // Only a creature set to act as dropped is taken in by a prison or a torture chamber it stands in
+        SpawnType spawnType = flags != null && flags.contains(Thing.Creature.CreatureFlag.ACT_AS_DROPPED) ? SpawnType.DROP : SpawnType.PLACE;
+        EntityId entityId = loadCreature(creature.getCreatureId(), ownerId, level, position.getX(), position.getY(), 0f, healthPercentage, creature.getGoldHeld(),
+                triggerId != null && triggerId != 0 ? triggerId : null, spawnType, objective, objectiveTargetPlayerId, objectiveTargetActionPointId, diesInstantly);
+
+        // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
+        if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
+            entityData.setComponent(entityId, new Peaceful());
+        }
+
+        // A hero may be set to withdraw to the hero lair when it is badly hurt
+        if (ownerId == Player.GOOD_PLAYER_ID && flags != null && flags.contains(Thing.Creature.CreatureFlag.RETURN_TO_HERO_LAIR)) {
+            entityData.setComponent(entityId, new ReturnToHeroLair());
+        }
+        return entityId;
     }
 
     @Override
@@ -381,6 +415,9 @@ public final class CreaturesController implements ICreaturesController {
                 creatureState = CreatureState.ENTERING_DUNGEON;
             }
             case PLACE -> {
+                creatureState = CreatureState.IDLE;
+            }
+            case DROP -> {
                 creatureState = getCreatureStateByMapLocation(WorldUtils.vectorToPoint(x, y), ownerId, entity);
             }
             case CONJURE -> {
@@ -455,15 +492,21 @@ public final class CreaturesController implements ICreaturesController {
 
             // See if tortured or imprisoned
             // TODO: Capacities? Or maybe at this point we are just populating stuff and everything is ok like this?
-            if (room.hasObjectControl(AbstractRoomController.ObjectType.PRISONER)) {
+            if (room instanceof PrisonController prison && prison.isCageTile(location)) {
                 room.getObjectControl(AbstractRoomController.ObjectType.PRISONER).addItem(entityId, location);
                 entityData.setComponent(entityId, new CreatureImprisoned(gameTimer.getGameTime(), gameTimer.getGameTime()));
                 return CreatureState.IMPRISONED;
             }
             if (room.hasObjectControl(AbstractRoomController.ObjectType.TORTUREE)) {
-                room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE).addItem(entityId, location);
-                entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime()));
-                return CreatureState.TORTURED;
+                RoomTortureeControl torturees = room.getObjectControl(AbstractRoomController.ObjectType.TORTUREE);
+                EntityId device = torturees.addItem(entityId, location);
+                if (device != null) {
+                    Position devicePosition = entityData.getComponent(device, Position.class);
+                    entityData.setComponent(entityId, new Position(devicePosition.rotation,
+                            new Vector3f(devicePosition.position.x, WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)));
+                    entityData.setComponent(entityId, new CreatureTortured(0, gameTimer.getGameTime(), gameTimer.getGameTime(), device));
+                    return CreatureState.TORTURED;
+                }
             }
         }
         return CreatureState.IDLE;
@@ -477,6 +520,21 @@ public final class CreaturesController implements ICreaturesController {
         for (Entity entity : entities) {
             levelUpCreature(entity.getId(), level, 0);
         }
+    }
+
+    @Override
+    public void levelUpTools(int level) {
+
+        // The tools still in the Hero Toolbox, i.e. standing on the Hero Lair
+        EntitySet entities = entityData.getEntities(new FieldFilter<>(CreatureComponent.class, "tool", true), CreatureComponent.class, CreatureExperience.class, Health.class, Position.class);
+        for (Entity entity : entities) {
+            Point tile = WorldUtils.vectorToPoint(entity.get(Position.class).position);
+            IMapTileController mapTile = mapController.getMapData().getTile(tile);
+            if (mapTile != null && mapTile.getTerrainId() == HERO_LAIR_TERRAIN_ID && entity.get(CreatureExperience.class).level != level) {
+                levelUpCreature(entity.getId(), level, 0);
+            }
+        }
+        entities.release();
     }
 
     @Override
@@ -559,7 +617,7 @@ public final class CreaturesController implements ICreaturesController {
         creatureExperience.experiencePerSecond = scaleByLevel(attributes.getExpPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_PER_SECOND));
         creatureExperience.experiencePerTickTraining = getPointsPerTick(attributes.getExpPerSecondTraining(), getStatPercent(stats, Variable.CreatureStats.StatType.EXPERIENCE_POINTS_FROM_TRAINING_PER_SECOND));
         creatureComponent.researchPerTick = getPointsPerTick(attributes.getResearchPerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.RESEARCH_POINTS_PER_SECOND));
-        creatureComponent.manufacturePerSecond = scaleByLevel(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
+        creatureComponent.manufacturePerTick = getPointsPerTick(attributes.getManufacturePerSecond(), getStatPercent(stats, Variable.CreatureStats.StatType.MANUFACTURE_POINTS_PER_SECOND));
         creatureComponent.decomposeValue = scaleByLevel(attributes.getDecomposeValue(), getStatPercent(stats, Variable.CreatureStats.StatType.DECOMPOSE_VALUE));
         creatureComponent.speed = scaleByLevel(attributes.getSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.SPEED_TILES_PER_SECOND));
         creatureComponent.runSpeed = scaleByLevel(attributes.getRunSpeed(), getStatPercent(stats, Variable.CreatureStats.StatType.RUN_SPEED_TILES_PER_SECOND));

@@ -23,6 +23,7 @@ import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
+import com.jme3.system.Timer;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityContainer;
 import com.simsilica.es.EntityData;
@@ -58,10 +59,12 @@ import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Trap;
+import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -73,6 +76,8 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.ShotFlightControl;
+import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
 import toniarts.openkeeper.view.control.TrapViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
@@ -139,6 +144,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     };
 
     private AppStateManager stateManager;
+    private Timer timer; // The clock the torture wheels and their victims share
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
@@ -159,6 +165,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final DoorModelContainer doorModelContainer;
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
+    private final PortalEffectState portalEffects;
     private final ShotModelContainer shotModelContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
     private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
@@ -172,11 +179,14 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     private final Map<EntityId, IUnitFlowerControl> flowerControls = new HashMap<>();
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
+    private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
     private final Map<EntityId, TrackedLight> trackedLights = new HashMap<>(); // Things with a light, driven every frame
+    /** DK II lifts the victim on a torture wheel by 0x200 (1/8 tile) */
+    private static final float TORTURE_WHEEL_VICTIM_LIFT = 0.125f;
 
     /**
      * A thing whose light is created and positioned every frame (see
@@ -235,6 +245,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer = new DoorModelContainer(entityData);
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
+        portalEffects = new PortalEffectState(kwdFile, entityData, rootNode, fogOfWarInformation);
         shotModelContainer = new ShotModelContainer(entityData);
     }
 
@@ -242,6 +253,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
+        this.timer = app.getTimer();
 
         // Attach the entities
         rootNode.attachChild(root);
@@ -253,9 +265,16 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.start();
         trapModelContainer.start();
         roomEffectContainer.start();
+        stateManager.attach(portalEffects);
         shotModelContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        portalEffects.setEnabled(enabled);
     }
 
     @Override
@@ -305,6 +324,20 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
     }
 
+    /**
+     * The torture wheels spin all the time, and their victims with them. Both
+     * get the same clock, so they stay at the same angle.
+     */
+    private void setTortureWheelSpin(Spatial object, boolean spinning) {
+        TortureWheelSpinControl control = object.getControl(TortureWheelSpinControl.class);
+        if (spinning && control == null) {
+            float ticksPerSecond = kwdFile.getVariables().get(Variable.MiscVariable.MiscType.GAME_TICKS).getValue();
+            object.addControl(new TortureWheelSpinControl(timer::getTimeInSeconds, ticksPerSecond));
+        } else if (!spinning && control != null) {
+            object.removeControl(control);
+        }
+    }
+
     protected LightRules getLightRules() {
         PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
         // Guard against racing the map loader thread's LightRules writes
@@ -319,6 +352,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.stop();
         trapModelContainer.stop();
         roomEffectContainer.stop();
+        stateManager.detach(portalEffects);
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
@@ -422,7 +456,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
                         kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
                         textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed);
+                        uniqueCreatureBed, kwdFile.getGameLevel().getTicksPerSec());
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
@@ -548,6 +582,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (result == null) {
             result = new Node("Wat"); // FIXME: Yeah...
         }
+        if (shotViewState.velocity != null) {
+            Node flyingShot = new Node(result.getName());
+            flyingShot.attachChild(result);
+            flyingShot.addControl(new ShotFlightControl(shotViewState.velocity));
+            addShotTrail(e.getId(), kwdFile.getShotById(shotViewState.shotId), flyingShot);
+            result = flyingShot;
+        }
         nodeShots.attachChild(result);
 
         Shot shot = kwdFile.getShotById(shotViewState.shotId);
@@ -557,6 +598,23 @@ public class PlayerEntityViewState extends AbstractAppState {
         }
 
         return result;
+    }
+
+    /**
+     * A flying shot drags its general effect along, like the fire trail of the
+     * cannon ball. DKII.EXE moves the effect with the shot every turn
+     * (0x4AB180). The effect lasts as long as the shot flies.
+     */
+    private void addShotTrail(EntityId entityId, Shot shot, Node flyingShot) {
+        EffectManagerState effectManagerState = stateManager.getState(EffectManagerState.class);
+        if (effectManagerState == null) {
+            return;
+        }
+
+        VisualEffect trail = effectManagerState.load(flyingShot, null, shot.getGeneralEffectId(), true);
+        if (trail != null) {
+            shotTrails.put(entityId, trail);
+        }
     }
 
     /**
@@ -597,6 +655,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
         boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
         control.setTargetState(viewState.state);
+        setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
@@ -634,6 +693,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
             control.setTargetState(viewState);
         }
+        setTortureWheelSpin(object, viewState.state == GameObject.State.TORTURE_WHEEL_SPIN);
         applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), viewState.visible);
 
         GameObject gameObject = kwdFile.getObject(viewState.objectId);
@@ -752,10 +812,6 @@ public class PlayerEntityViewState extends AbstractAppState {
             LightSource source = lightRules.addThingLight(id, object.getLocalTranslation(), light, ownerId,
                     intensity, honourPulse, !possessed);
             source.setObjectLight(objectLight);
-            if (objectLight) {
-                source.setRadius(Math.min(source.getRadius() * LightConstants.OBJECT_LIGHT_RADIUS_SCALE,
-                        LightConstants.MAX_LIGHT_RADIUS_TILES));
-            }
         } else {
             lightRules.updateThingLightPosition(id, object.getLocalTranslation(), offset);
         }
@@ -803,9 +859,21 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (!dirty.contains(tile)) {
                 continue;
             }
-            boolean baseVisible = !(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible;
+            boolean baseVisible = (!(control instanceof ObjectViewControl objectViewControl) || objectViewControl.getCurrentState().visible)
+                    && isTrapShown(control);
             applyFogCullHint(spatial, tile, baseVisible);
         }
+    }
+
+    /**
+     * Hidden traps and blueprints are shown only to their owner
+     *
+     * @param control the view control of the entity
+     * @return false if the entity is a trap the player doesn't get to see
+     */
+    private boolean isTrapShown(IEntityViewControl<?, ?> control) {
+        return !(control instanceof TrapViewControl trapControl)
+                || trapControl.getCurrentState().isShownTo(trapControl.getOwnerId(), playerId);
     }
 
     private void updateModelPosition(Spatial object, Entity e) {
@@ -900,6 +968,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
             updateModelPosition(object, e);
+            if (e.get(CreatureViewState.class).state == Creature.AnimationType.TORTURED_WHEEL) {
+                object.move(0, TORTURE_WHEEL_VICTIM_LIFT, 0);
+            }
             updateCreatureModelAnimation(object, e);
         }
 
@@ -919,8 +990,16 @@ public class PlayerEntityViewState extends AbstractAppState {
      */
     private final class DoorModelContainer extends EntityContainer<Spatial> {
 
+        private boolean stopped = false;
+
         public DoorModelContainer(EntityData ed) {
             super(ed, Position.class, DoorViewState.class); // Stuff with position is on the map
+        }
+
+        @Override
+        public void stop() {
+            stopped = true;
+            super.stop();
         }
 
         @Override
@@ -941,6 +1020,14 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+
+            // A door that goes, destroyed or sold, leaves its death effect, a blueprint just vanishes
+            DoorViewState viewState = e.get(DoorViewState.class);
+            if (!stopped && viewState != null && !viewState.blueprint) {
+                Door door = kwdFile.getDoorById(viewState.doorId);
+                stateManager.getState(EffectManagerState.class).load(nodeDoors, object.getWorldTranslation().clone(),
+                        door.getDeathEffectId(), false);
+            }
             removeModel(object, e);
             notifyTerrainOfDoor(e, false);
         }
@@ -983,9 +1070,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "TrapModelContainer.updateObject({0})", e);
+            TrapViewControl control = object.getControl(TrapViewControl.class);
+            if (control != null) {
+                control.setTargetState(e.get(TrapViewState.class));
+            }
             updateModelPosition(object, e);
             //updateModelAnimation(object, e);
-            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), isTrapShown(control));
         }
 
         @Override
@@ -1018,7 +1109,8 @@ public class PlayerEntityViewState extends AbstractAppState {
             // tile centre
             Vector3f location = WorldUtils.pointToVector3f(roomEffect.location)
                     .addLocal(0, WorldUtils.FLOOR_HEIGHT, 0.5f + roomEffect.offsetZ);
-            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, true);
+            VisualEffect visualEffect = stateManager.getState(EffectManagerState.class).load(root, location, roomEffect.effectId, !roomEffect.once,
+                    Player.NEUTRAL_PLAYER_ID, roomEffect.emitOverLifetime);
             if (visualEffect != null && roomEffect.yaw != 0) {
                 visualEffect.getEffectNode().rotate(0, roomEffect.yaw, 0);
             }
@@ -1063,6 +1155,10 @@ public class PlayerEntityViewState extends AbstractAppState {
 
         @Override
         protected void removeObject(Spatial object, Entity e) {
+            VisualEffect trail = shotTrails.remove(e.getId());
+            if (trail != null) {
+                trail.removeEffect();
+            }
             removeModel(object, e);
         }
     }
