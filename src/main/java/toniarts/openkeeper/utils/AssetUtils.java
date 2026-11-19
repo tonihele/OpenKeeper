@@ -19,6 +19,7 @@ package toniarts.openkeeper.utils;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
@@ -52,6 +53,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
@@ -78,6 +81,8 @@ public final class AssetUtils {
     // Store the context inside its manager: a global weak-key map would still
     // retain managers through MaterialDef -> AssetManager value references.
     private static final AssetKey<CacheContext> CONTEXT_KEY = new AssetKey<>("__OpenKeeper/AssetUtilsContext");
+    // Only active waits, never asset data. Removed in finally, including interrupted/failed waits.
+    private static final ConcurrentMap<Thread, Thread> MODEL_WAITS = new ConcurrentHashMap<>();
     private static final class CacheContext {
         final AssetCache strong = new SimpleAssetCache();
         final AssetCache weak = new WeakRefAssetCache();
@@ -85,7 +90,10 @@ public final class AssetUtils {
         volatile boolean preWarmed;
         volatile toniarts.openkeeper.animation.AnimationDataCache animationData = new toniarts.openkeeper.animation.AnimationDataCache(0);
         boolean modelLoadingStarted;
+        int activeModelRequests;
+        final ConcurrentMap<ModelKey, LoadingModel> loadingModels = new ConcurrentHashMap<>();
     }
+    private record LoadingModel(Thread owner, CompletableFuture<Spatial> result) { }
 
     private static CacheContext context(AssetManager manager) {
         synchronized (manager) {
@@ -105,7 +113,13 @@ public final class AssetUtils {
      * requires clearing that manager's ordinary asset cache (or a new manager).
      */
     public static void releaseCaches(AssetManager manager) {
-        synchronized (manager) { manager.deleteFromCache(CONTEXT_KEY); }
+        synchronized (manager) {
+            CacheContext context = manager.getFromCache(CONTEXT_KEY);
+            if (context != null) synchronized (context) {
+                if (context.activeModelRequests != 0) throw new IllegalStateException("Finish model requests before releasing the asset context");
+            }
+            manager.deleteFromCache(CONTEXT_KEY);
+        }
     }
 
     /** Configure before utility model loading. Zero (default) retains sparse sampling. */
@@ -152,29 +166,74 @@ public final class AssetUtils {
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
-        Spatial result;
-        CacheContext context = context(assetManager);
-        synchronized (context) { context.modelLoadingStarted = true; }
-        if (useCache) {
-
-            // Set the correct asset cache
-            final AssetCache cache = useWeakCache ? context.weak : context.strong;
-
-            // Get the model from cache
-            Spatial model = cache.getFromCache(assetKey);
-            if (model == null) {
-                model = loadModelTemplate(assetManager, assetKey);
-                context.animationData.prepare(model);
-
-                cache.addToCache(assetKey, model);
-            }
-            result = model.clone();
-        } else {
-            result = loadModelTemplate(assetManager, assetKey);
-            context.animationData.prepare(result);
+        CacheContext context;
+        synchronized (assetManager) {
+            context = context(assetManager);
+            synchronized (context) { context.modelLoadingStarted = true; context.activeModelRequests++; }
         }
-        applyTextureAnimation(result, assetManager, artResource);
-        return result;
+        try {
+            Spatial result;
+            if (useCache) {
+                AssetCache cache = useWeakCache ? context.weak : context.strong;
+                result = loadCachedTemplate(assetManager, assetKey, context, cache).clone();
+            } else {
+                result = loadModelTemplate(assetManager, assetKey);
+                context.animationData.prepare(result);
+            }
+            applyTextureAnimation(result, assetManager, artResource);
+            return result;
+        } finally {
+            synchronized (context) { context.activeModelRequests--; }
+        }
+    }
+
+    private static Spatial loadCachedTemplate(AssetManager manager, ModelKey key, CacheContext context, AssetCache cache) {
+        Spatial ready = cache.getFromCache(key);
+        if (ready != null) return ready;
+        var reservation = new LoadingModel(Thread.currentThread(), new CompletableFuture<>());
+        LoadingModel active = context.loadingModels.putIfAbsent(key, reservation);
+        if (active != null) {
+            if (active.owner == Thread.currentThread()) throw new AssetLoadException("Recursive utility model load: " + key.getName());
+            Thread caller = Thread.currentThread();
+            MODEL_WAITS.put(caller, active.owner);
+            try {
+                var visited = new java.util.HashSet<Thread>();
+                for (Thread dependency = active.owner; dependency != null; dependency = MODEL_WAITS.get(dependency)) {
+                    if (dependency == caller || !visited.add(dependency)) {
+                        if (!active.result.isDone()) throw new AssetLoadException("Cyclic concurrent model dependency: " + key.getName());
+                        break;
+                    }
+                }
+                ready = active.result.get();
+                // Strong and weak requesters may share preparation but retain their requested cache policy.
+                cache.addToCache(key, ready);
+                return ready;
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssetLoadException("Interrupted while waiting for model: " + key.getName(), interrupted);
+            } catch (ExecutionException failed) {
+                if (failed.getCause() instanceof RuntimeException runtime) throw runtime;
+                if (failed.getCause() instanceof Error error) throw error;
+                throw new AssetLoadException("Model load failed: " + key.getName(), failed.getCause());
+            } finally {
+                MODEL_WAITS.remove(caller, active.owner);
+            }
+        }
+        try {
+            ready = cache.getFromCache(key);
+            if (ready == null) {
+                ready = loadModelTemplate(manager, key);
+                context.animationData.prepare(ready);
+                cache.addToCache(key, ready);
+            }
+            reservation.result.complete(ready);
+            return ready;
+        } catch (RuntimeException | Error failed) {
+            reservation.result.completeExceptionally(failed);
+            throw failed;
+        } finally {
+            context.loadingModels.remove(key, reservation);
+        }
     }
 
     private static Spatial loadModelTemplate(final AssetManager assetManager, ModelKey assetKey) {
