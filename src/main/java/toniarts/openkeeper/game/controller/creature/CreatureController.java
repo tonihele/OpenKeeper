@@ -3410,13 +3410,22 @@ public final class CreatureController extends EntityController implements ICreat
         firstPersonAttack.attactStartTime = attack.attactStartTime;
         toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(attack.creatureSpellId);
         Set<CreatureSpellFlag> flags = creatureSpell.getFlags();
-        if (!isAttackRecharged(firstPersonAttack) || flags.contains(CreatureSpellFlag.IMP_HASTE)) {
+        if (!isAttackRecharged(firstPersonAttack)) {
             return;
         }
 
         // The Imp's teleport is no cast, and it recharges even with no heart to go to
         if (flags.contains(CreatureSpellFlag.IMP_TELEPORT)) {
             teleportToDungeonHeart(position);
+            entityData.setComponent(spellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
+            return;
+        }
+
+        // Nor is the Imp's haste. It changes the speed with the spell's values and the same speed timer as a slap,
+        // so a speed change that is still running is left as it is, but the spell recharges all the same (0x48CAD0)
+        if (flags.contains(CreatureSpellFlag.IMP_HASTE)) {
+            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(),
+                    getPosition(), entityId, entityId);
             entityData.setComponent(spellEntity, new CreatureSpell(attack, gameTimer.getGameTime()));
             return;
         }

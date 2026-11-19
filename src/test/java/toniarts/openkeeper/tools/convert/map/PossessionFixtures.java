@@ -79,4 +79,17 @@ public final class PossessionFixtures {
         return creatureSpell;
     }
 
+    /**
+     * The Imp's own haste, Imp Haste (spell 37) as it ships in the original
+     * data: 150 % speed for 15 seconds
+     */
+    public static CreatureSpell impHaste(short creatureSpellId, short shotTypeId, float rechargeTime) {
+        CreatureSpell creatureSpell = creatureSpell(creatureSpellId, shotTypeId, rechargeTime, 0,
+                EnumSet.of(CreatureSpell.CreatureSpellFlag.IS_DEFENSIVE, CreatureSpell.CreatureSpellFlag.IMP_HASTE,
+                        CreatureSpell.CreatureSpellFlag.CAST_ON_OTHERS));
+        creatureSpell.setShotData1(150);
+        creatureSpell.setShotData2(15);
+        return creatureSpell;
+    }
+
 }

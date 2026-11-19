@@ -41,16 +41,19 @@ import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Disguised;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.controller.ShotsController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
@@ -60,6 +63,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.PossessionFixtures;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
@@ -84,6 +88,8 @@ class PossessedSpellTest {
     private static final short LIGHTNING = 3;
     private static final short TELEPORT = 4;
     private static final short SHOT = 5;
+    private static final short IMP_HASTE = 37;
+    private static final short INCREASE_SPEED = 6;
     private static final float RECHARGE = 2f;
     private static final float RANGE = 8f;
 
@@ -98,6 +104,7 @@ class PossessedSpellTest {
     private List<Integer> shotDamages;
     private double gameTime;
     private Keeper keeper;
+    private IShotsController shotsController;
     private EntityId us;
 
     @BeforeEach
@@ -354,6 +361,34 @@ class PossessedSpellTest {
         assertEquals(gameTime - RECHARGE / 2, getSpell(TELEPORT).attactStartTime);
     }
 
+    @Test
+    void impHasteSpeedsTheImpUpTo150PercentFor15Seconds() {
+        possessImpWithHaste();
+
+        cast(createController(), 1);
+
+        // At once and without a cast, on the speed timer a slap uses
+        assertEquals(1.5f, entityData.getComponent(us, Mobile.class).maxSpeed, 0.0001f);
+        assertEquals(gameTime + 15, entityData.getComponent(us, SpeedChange.class).endTime);
+        assertEquals(gameTime, getSpell(IMP_HASTE).attactStartTime);
+        assertNull(entityData.getComponent(us, CreatureViewState.class));
+    }
+
+    @Test
+    void impHasteDoesNotStackOnASlap() {
+        possessImpWithHaste();
+
+        // The slap's 150 % is still running
+        entityData.setComponents(us, new Mobile(false, false, false, 1.5f), new SpeedChange(gameTime + 100));
+
+        cast(createController(), 1);
+
+        // The first speed change stays, but the spell recharges all the same
+        assertEquals(1.5f, entityData.getComponent(us, Mobile.class).maxSpeed, 0.0001f);
+        assertEquals(gameTime + 100, entityData.getComponent(us, SpeedChange.class).endTime);
+        assertEquals(gameTime, getSpell(IMP_HASTE).attactStartTime);
+    }
+
     private Set<Vector3f> effectPositions(int effectId) {
         Set<Vector3f> positions = new HashSet<>();
         for (Object[] effect : effects) {
@@ -370,6 +405,27 @@ class PossessedSpellTest {
     private void possessImp() {
         PossessionFixtures.setSpells(creature, List.of(PossessionFixtures.spell(TELEPORT, 1, 0)));
         entityData.setComponent(us, new CreatureSpells(List.of(createSpell(TELEPORT))));
+    }
+
+    /**
+     * We are an Imp with its haste, at a speed of a tile a second, and its shot
+     * does what it does
+     */
+    private void possessImpWithHaste() {
+        PossessionFixtures.setSpells(creature, List.of(PossessionFixtures.spell(IMP_HASTE, 1, 0)));
+        levelSpells.put(IMP_HASTE, PossessionFixtures.impHaste(IMP_HASTE, INCREASE_SPEED, RECHARGE));
+        entityData.setComponent(us, new CreatureSpells(List.of(createSpell(IMP_HASTE))));
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.speed = 1;
+        entityData.setComponents(us, creatureComponent, new Mobile(false, false, false, 1));
+
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
+            case "getShotById" -> ShotFixtures.flyingSupportShot(INCREASE_SPEED, Shot.ProcessType.MODIFY_SPEED);
+            case "getGameLevel" -> ShotFixtures.gameLevel(4);
+            default -> null;
+        });
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, null, null, null, null, null,
+                stub(GameEventService.class, (name, args) -> null));
     }
 
     private void cast(CreatureController controller, int spell) {
@@ -438,7 +494,7 @@ class PossessedSpellTest {
             case "isSolid" -> walls.contains((Point) args[0]);
             default -> null;
         });
-        IShotsController shotsController = stub(IShotsController.class, (name, args) -> {
+        IShotsController shots = shotsController != null ? shotsController : stub(IShotsController.class, (name, args) -> {
             if ("fireShot".equals(name)) {
                 shotTargets.add(args[5]);
                 shotDamages.add((Integer) args[1]);
@@ -459,7 +515,7 @@ class PossessedSpellTest {
         });
 
         return new CreatureController(us, entityData, creature, null, null, gameTimer, gameSettings, creaturesController,
-                positionLookup, mapController, levelInfo, null, shotsController,
+                positionLookup, mapController, levelInfo, null, shots,
                 stub(GameEventService.class, (name, args) -> {
                     if (name.equals("emitEffect")) {
                         effects.add(args);
