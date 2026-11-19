@@ -27,12 +27,12 @@ import com.jme3.texture.Texture;
 import com.jme3.texture.Texture2D;
 import com.jme3.texture.image.ImageRaster;
 import com.jme3.util.BufferUtils;
-import java.util.Map;
-import java.util.WeakHashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.utils.WeakIdentityMap;
+import toniarts.openkeeper.view.texture.WorldAssetManager;
 
 /**
  * Lays the charred texture over a model's diffuse textures, used for dead
@@ -50,7 +50,7 @@ public final class CharredOverlay {
     private static final String DIFFUSE_MAP = "DiffuseMap";
 
     // Baked textures by their source, only as long as the source lives
-    private static final Map<Texture, Texture> BAKED_TEXTURES = new WeakHashMap<>();
+    private static final WeakIdentityMap<Texture, Texture> BAKED_TEXTURES = new WeakIdentityMap<>();
 
     private CharredOverlay() {
         // Nope
@@ -76,7 +76,7 @@ public final class CharredOverlay {
 
         spatial.depthFirstTraversal(sp -> {
             if (sp instanceof Geometry geometry) {
-                charr(geometry, charred);
+                charr(geometry, charred, assetManager);
             }
         });
     }
@@ -90,7 +90,7 @@ public final class CharredOverlay {
         spatial.setUserData(USER_DATA_KEY_CHARRED, null);
     }
 
-    private static void charr(Geometry geometry, Texture charred) {
+    private static void charr(Geometry geometry, Texture charred, AssetManager assetManager) {
         Material material = geometry.getMaterial();
         if (material == null || material.getTextureParam(DIFFUSE_MAP) == null) {
             return;
@@ -100,6 +100,9 @@ public final class CharredOverlay {
         if (baked == null) {
             return;
         }
+        if (assetManager instanceof WorldAssetManager worldAssets) {
+            worldAssets.prepareDerived(baked, diffuse);
+        }
         Material charredMaterial = material.clone();
         charredMaterial.setTexture(DIFFUSE_MAP, baked);
         geometry.setMaterial(charredMaterial);
@@ -107,7 +110,7 @@ public final class CharredOverlay {
 
     private static synchronized Texture bake(Texture diffuse, Texture charred) {
         Texture baked = BAKED_TEXTURES.get(diffuse);
-        if (baked == null) {
+        if (!BAKED_TEXTURES.containsKey(diffuse)) {
             try {
                 baked = createBakedTexture(diffuse, charred);
             } catch (RuntimeException e) {
@@ -154,6 +157,7 @@ public final class CharredOverlay {
         texture.setWrap(Texture.WrapMode.Repeat);
         texture.setMinFilter(diffuse.getMinFilter());
         texture.setMagFilter(diffuse.getMagFilter());
+        texture.setAnisotropicFilter(diffuse.getAnisotropicFilter());
         return texture;
     }
 }

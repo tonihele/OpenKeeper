@@ -45,7 +45,7 @@ public final class CursorFactory {
         NO_SPELL_POSSESS,
         SPELL_CAST;
     }
-    private static Map<CursorType, JmeCursor> cursors;
+    private static volatile Map<CursorType, JmeCursor> cursors;
 
     private CursorFactory() {
         // Nope
@@ -53,7 +53,11 @@ public final class CursorFactory {
 
     public static JmeCursor getCursor(CursorType cursor, AssetManager assetManager) {
         if (cursors == null) {
-            populateCursors(assetManager);
+            synchronized (CursorFactory.class) {
+                if (cursors == null) {
+                    populateCursors(assetManager);
+                }
+            }
         }
 
         return cursors.get(cursor);

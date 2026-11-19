@@ -260,7 +260,7 @@ public final class MainMenuState extends AbstractAppState {
         super.initialize(stateManager, app);
         this.app = (Main) app;
         rootNode = this.app.getRootNode();
-        assetManager = this.app.getAssetManager();
+        assetManager = this.app.getWorldAssetManager();
         this.stateManager = this.app.getStateManager();
         inputManager = this.app.getInputManager();
     }

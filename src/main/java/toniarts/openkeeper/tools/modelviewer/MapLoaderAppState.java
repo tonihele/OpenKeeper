@@ -57,7 +57,7 @@ import java.util.Collections;
  */
 public final class MapLoaderAppState extends AbstractAppState {
 
-    protected AssetManager assetManager;
+    protected final AssetManager assetManager;
     protected AppStateManager stateManager;
     protected InputManager inputManager;
 
@@ -68,13 +68,16 @@ public final class MapLoaderAppState extends AbstractAppState {
     private Application app;
     private final Set<LightSource.Group> disabledLightGroups = EnumSet.noneOf(LightSource.Group.class);
 
+    public MapLoaderAppState(AssetManager assetManager) {
+        this.assetManager = java.util.Objects.requireNonNull(assetManager);
+    }
+
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
         super.initialize(stateManager, app);
 
         this.app = app;
         this.stateManager = stateManager;
-        assetManager = app.getAssetManager();
         inputManager = app.getInputManager();
     }
 

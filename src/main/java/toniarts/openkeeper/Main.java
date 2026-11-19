@@ -22,10 +22,7 @@ import com.jme3.app.SimpleApplication;
 import com.jme3.app.StatsAppState;
 import com.jme3.app.state.ScreenshotAppState;
 import com.jme3.app.state.VideoRecorderAppState;
-import com.jme3.asset.AssetEventListener;
-import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
-import com.jme3.asset.TextureKey;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.light.AmbientLight;
 import com.jme3.math.ColorRGBA;
@@ -34,6 +31,7 @@ import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
 import com.jme3.post.filters.TranslucentBucketFilter;
 import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.Limits;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
 import com.jme3.system.lwjgl.LwjglWindow;
@@ -89,6 +87,8 @@ import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.video.MovieState;
+import toniarts.openkeeper.view.texture.WorldAssetManager;
+import toniarts.openkeeper.view.texture.WorldTextureFiltering;
 
 /**
  * Main entry point of OpenKeeper
@@ -111,6 +111,8 @@ public final class Main extends SimpleApplication {
 
     private NiftyJmeDisplay niftyDisplay;
     private byte[] gameUiXml;
+    private WorldTextureFiltering textureFiltering;
+    private AssetManager worldAssetManager;
 
     private Main() {
         super(new StatsAppState(), new DebugKeysAppState());
@@ -300,6 +302,9 @@ public final class Main extends SimpleApplication {
             return;
         }
         super.reshape(w, h);
+        if (textureFiltering != null) {
+            textureFiltering.refresh(getUserSettings().getTextureFiltering());
+        }
     }
 
     /**
@@ -428,6 +433,10 @@ public final class Main extends SimpleApplication {
         // Distribution locator
         getAssetManager().registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
 
+        textureFiltering = new WorldTextureFiltering(getUserSettings().getTextureFiltering(),
+                () -> renderer.getLimits().getOrDefault(Limits.TextureAnisotropy, 1));
+        worldAssetManager = new WorldAssetManager(assetManager, textureFiltering);
+
         // Init nifty while in render thread so it will get initialized before it is updated, otherwise we might hit a rare race-condition
         Nifty nifty = getNifty();
 
@@ -444,9 +453,6 @@ public final class Main extends SimpleApplication {
                     applySoundSettings();
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
-
-                    // Set the anisotropy asset listener
-                    setAnisotropy();
 
                     // Allow people to take screenshots
                     ScreenshotAppState screenShotState = new ScreenshotAppState(SCREENSHOTS_FOLDER);
@@ -495,7 +501,7 @@ public final class Main extends SimpleApplication {
                     }
 
                     // Initialize persistent app states
-                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), assetManager, Main.this);
+                    MainMenuState mainMenuState = new MainMenuState(!params.containsKey("level"), worldAssetManager, Main.this);
                     DetailedProfilerState detailedProfilerState = new DetailedProfilerState();
                     detailedProfilerState.setEnabled(false); // F6
                     getStateManager().getState(StatsAppState.class).toggleStats(); // F5
@@ -574,29 +580,26 @@ public final class Main extends SimpleApplication {
         return gameUiXml;
     }
 
-    /**
-     * Adds an asset listener to the asset manager that automatically sets
-     * anisotropy level to any textures loaded
-     */
-    private void setAnisotropy() {
-        AssetEventListener asl = new AssetEventListener() {
-            @Override
-            public void assetLoaded(AssetKey key) {
-            }
+    /** The world view shares jME's caches; UI and conversion use getAssetManager(). */
+    public AssetManager getWorldAssetManager() {
+        return worldAssetManager;
+    }
 
-            @Override
-            public void assetRequested(AssetKey key) {
-                if (key.getExtension().equals("png") || key.getExtension().equals("jpg") || key.getExtension().equals("dds")) {
-                    TextureKey tkey = (TextureKey) key;
-                    tkey.setAnisotropy(Settings.getInstance().getInteger(Settings.Setting.ANISOTROPY));
-                }
-            }
+    /** Settings callbacks may originate outside the render thread. */
+    public void applyTextureFiltering() {
+        var selected = getUserSettings().getTextureFiltering();
+        enqueue(() -> textureFiltering.refresh(selected));
+    }
 
-            @Override
-            public void assetDependencyNotFound(AssetKey parentKey, AssetKey dependentAssetKey) {
+    @Override
+    public void destroy() {
+        try {
+            super.destroy();
+        } finally {
+            if (textureFiltering != null) {
+                textureFiltering.close();
             }
-        };
-        assetManager.addAssetEventListener(asl);
+        }
     }
 
     /**

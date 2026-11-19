@@ -21,6 +21,7 @@ import com.jme3.anim.tween.Tweens;
 import com.jme3.anim.tween.action.BaseAction;
 import com.jme3.app.SimpleApplication;
 import com.jme3.asset.AssetKey;
+import com.jme3.asset.AssetManager;
 import com.jme3.asset.plugins.FileLocator;
 import com.jme3.input.KeyInput;
 import com.jme3.input.controls.ActionListener;
@@ -35,6 +36,7 @@ import com.jme3.math.Quaternion;
 import com.jme3.math.Vector3f;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.renderer.RenderManager;
+import com.jme3.renderer.Limits;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.renderer.queue.RenderQueue;
 import com.jme3.scene.Geometry;
@@ -78,6 +80,8 @@ import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.texture.WorldAssetManager;
+import toniarts.openkeeper.view.texture.WorldTextureFiltering;
 import toniarts.openkeeper.view.animation.LoopMode;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.lighting.LightConstants;
@@ -110,6 +114,24 @@ import java.util.Locale;
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class ModelViewer extends SimpleApplication {
+
+    private WorldTextureFiltering textureFiltering;
+    private AssetManager worldAssetManager;
+
+    public AssetManager getWorldAssetManager() {
+        return worldAssetManager;
+    }
+
+    @Override
+    public void destroy() {
+        try {
+            super.destroy();
+        } finally {
+            if (textureFiltering != null) {
+                textureFiltering.close();
+            }
+        }
+    }
 
     public enum Types {
 
@@ -277,15 +299,19 @@ public final class ModelViewer extends SimpleApplication {
         assetManager.registerLocator(AssetsConverter.getAssetsFolder(), FileLocator.class);
         assetManager.registerLoader(MP2Loader.class, "mp2");
 
+        textureFiltering = new WorldTextureFiltering(Main.getUserSettings().getTextureFiltering(),
+                () -> renderer.getLimits().getOrDefault(Limits.TextureAnisotropy, 1));
+        worldAssetManager = new WorldAssetManager(assetManager, textureFiltering);
+
         // Effects manager
-        this.effectManagerState = new EffectManagerState(getKwdFile(), assetManager);
+        this.effectManagerState = new EffectManagerState(getKwdFile(), worldAssetManager);
         stateManager.attach(effectManagerState);
 
         // Sound system, used for previewing the sound files
         SoundManager.init(this);
 
         // Map loader
-        mapLoaderAppState = new MapLoaderAppState();
+        mapLoaderAppState = new MapLoaderAppState(worldAssetManager);
         stateManager.attach(mapLoaderAppState);
 
         Nifty nifty = getNifty();
@@ -341,7 +367,7 @@ public final class ModelViewer extends SimpleApplication {
             try {
                 KmfFile kmf = new KmfFile(kmfModel);
                 KmfModelLoader loader = new KmfModelLoader();
-                KmfAssetInfo asset = new KmfAssetInfo(assetManager, new AssetKey(kmfModel.toString()), kmf, false);
+                KmfAssetInfo asset = new KmfAssetInfo(worldAssetManager, new AssetKey(kmfModel.toString()), kmf, false);
                 Node node = (Node) loader.load(asset);
                 setupModel(node, false);
             } catch (Exception e) {
@@ -413,12 +439,12 @@ public final class ModelViewer extends SimpleApplication {
     private void setupFloor() {
 
         Material floorMaterial = new Material(assetManager, "Common/MatDefs/Light/PBRLighting.j3md");
-        floorMaterial.setTexture("BaseColorMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-texture.jpg"));
-        floorMaterial.setTexture("NormalMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-normal.jpg"));
-        floorMaterial.setTexture("SpecularMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-specular.jpg"));
-        floorMaterial.setTexture("LightMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-ao.jpg"));
+        floorMaterial.setTexture("BaseColorMap", worldAssetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-texture.jpg"));
+        floorMaterial.setTexture("NormalMap", worldAssetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-normal.jpg"));
+        floorMaterial.setTexture("SpecularMap", worldAssetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-specular.jpg"));
+        floorMaterial.setTexture("LightMap", worldAssetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-ao.jpg"));
         floorMaterial.setBoolean("LightMapAsAOMap", true);
-        floorMaterial.setTexture("ParallaxMap", assetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-displacement.jpg"));
+        floorMaterial.setTexture("ParallaxMap", worldAssetManager.loadTexture("Textures/ModelViewer/1K-marble_tiles_2-displacement.jpg"));
         floorMaterial.setBoolean("SteepParallax", true);
         floorMaterial.setFloat("Roughness", 0.1f);
         floorMaterial.setFloat("Metallic", 0.04f);
@@ -624,7 +650,7 @@ public final class ModelViewer extends SimpleApplication {
         switch (screen.getTypeControl().getSelection()) {
             case MODELS: {
                 // Load the selected model
-                Node spat = (Node) AssetUtils.loadAsset(assetManager, (String) selection, null);
+                Node spat = (Node) AssetUtils.loadAsset(worldAssetManager, (String) selection, null);
 
                 screen.setupItem(null, null);
                 setupModel(spat, false);
@@ -634,7 +660,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected terrain
                 Terrain terrain = (Terrain) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new TerrainsLoader().load(this.getAssetManager(),
+                Node spat = (Node) new TerrainsLoader().load(getWorldAssetManager(),
                         effectManagerState, terrain);
                 setupModel(spat, false);
 
@@ -655,7 +681,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected object
                 GameObject object = (GameObject) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new ObjectsLoader().load(this.getAssetManager(),
+                Node spat = (Node) new ObjectsLoader().load(getWorldAssetManager(),
                         effectManagerState, object);
                 setupModel(spat, false);
 
@@ -666,7 +692,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected creature
                 Creature creature = (Creature) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new CreaturesLoader().load(this.getAssetManager(),
+                Node spat = (Node) new CreaturesLoader().load(getWorldAssetManager(),
                         effectManagerState, creature);
                 setupModel(spat, false);
 
@@ -677,7 +703,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected trap
                 Trap trap = (Trap) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new TrapsLoader().load(this.getAssetManager(),
+                Node spat = (Node) new TrapsLoader().load(getWorldAssetManager(),
                         effectManagerState, trap);
                 setupModel(spat, false);
 
@@ -688,7 +714,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected door
                 Door door = (Door) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new DoorsLoader().load(this.getAssetManager(),
+                Node spat = (Node) new DoorsLoader().load(getWorldAssetManager(),
                         effectManagerState, door);
                 setupModel(spat, false);
 
@@ -699,7 +725,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected room
                 Room room = (Room) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new RoomsLoader().load(this.getAssetManager(),
+                Node spat = (Node) new RoomsLoader().load(getWorldAssetManager(),
                         effectManagerState, room);
                 setupModel(spat, false);
 
@@ -710,7 +736,7 @@ public final class ModelViewer extends SimpleApplication {
                 // Load the selected shot
                 Shot shot = (Shot) selection;
                 effectManagerState.setEnabled(true);
-                Node spat = (Node) new ShotsLoader().load(this.getAssetManager(),
+                Node spat = (Node) new ShotsLoader().load(getWorldAssetManager(),
                         effectManagerState, shot);
                 setupModel(spat, false);
 
@@ -732,8 +758,8 @@ public final class ModelViewer extends SimpleApplication {
         effectManagerState.setEnabled(true);
         if (overlayEnabled) {
             Spatial overlay = PORTAL_OVERLAY.equals(overlayModel)
-                    ? new RoomsLoader().loadPortalContext(assetManager, getKwdFile())
-                    : AssetUtils.loadAsset(assetManager, overlayModel, null);
+                    ? new RoomsLoader().loadPortalContext(worldAssetManager, getKwdFile())
+                    : AssetUtils.loadAsset(worldAssetManager, overlayModel, null);
             overlay.setName("Overlay model");
             spat.attachChild(overlay);
         }

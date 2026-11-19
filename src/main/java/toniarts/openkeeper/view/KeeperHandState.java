@@ -136,7 +136,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         super.initialize(stateManager, app);
 
         this.app = (Main) app;
-        this.assetManager = this.app.getAssetManager();
+        this.assetManager = this.app.getWorldAssetManager();
         this.stateManager = this.app.getStateManager();
         this.inputManager = this.app.getInputManager();
 
