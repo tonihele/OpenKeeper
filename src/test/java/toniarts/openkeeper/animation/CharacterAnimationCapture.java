@@ -43,6 +43,9 @@ public final class CharacterAnimationCapture extends SimpleApplication {
     private long pauseHash, hiddenHash;
     private int pausedPixels;
     private boolean shadows;
+    private boolean motionTrace;
+    private final List<Vector3f> origins = new ArrayList<>();
+    private final List<String> traceRows = new ArrayList<>();
 
     private CharacterAnimationCapture(String dk2, String converted, Path output) {
         catalog = KwdFile.load(dk2,Path.of(dk2,"Data","Editor","Maps","Alcatraz.kwd"));
@@ -54,6 +57,8 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         boolean shadows = args.length > 3 && Boolean.parseBoolean(args[3]);
         var app = new CharacterAnimationCapture(args[0],args[1],shadows ? Path.of(args[2],"shadows") : Path.of(args[2]));
         app.shadows = shadows;
+        app.motionTrace = args.length > 4 && Boolean.parseBoolean(args[4]);
+        app.traceRows.add("render_frame,creature,source_time,epoch,root_x,root_z,pose_age");
         Files.createDirectories(app.output);
         var settings = new AppSettings(true); settings.setResolution(1280,720);
         settings.setRenderer(AppSettings.LWJGL_OPENGL33); settings.setAudioRenderer(null);
@@ -102,6 +107,7 @@ public final class CharacterAnimationCapture extends SimpleApplication {
             owner.setCullHint(Spatial.CullHint.Inherit); rootNode.attachChild(owner); owner.updateGeometricState();
             if(owner.getWorldBound() instanceof BoundingBox bound && bound.getYExtent() > 0) owner.setLocalScale(1.05f/bound.getYExtent());
             owner.setLocalTranslation((i%4-1.5f)*4,0,(i/4-.5f)*5.5f);
+            origins.add(owner.getLocalTranslation().clone());
             AssetUtils.applyFullLight(owner);
             BitmapText label = new BitmapText(assetManager.loadFont("Interface/Fonts/Default.fnt"));
             label.setText(creature.getName()); label.setSize(18);
@@ -126,6 +132,14 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         if(frame == 480) AnimationLoader.resumeAnimations(rootNode);
         if(frame == 510) rootNode.setCullHint(Spatial.CullHint.Always);
         if(frame == 540) rootNode.setCullHint(Spatial.CullHint.Dynamic);
+        if (motionTrace) for (int i=0;i<controls.size();i++) {
+            var sample = MotionTrace.sample(MotionTrace.Scenario.values()[i % MotionTrace.Scenario.values().length],
+                    (int)Math.round(gameTime * 60), 1.0 / 60);
+            var origin = origins.get(i);
+            controls.get(i).getSpatial().setLocalTranslation(origin.x + (float)sample.x() * .15f,
+                    origin.y, origin.z + (float)sample.z() * .15f);
+            controls.get(i).getSpatial().setLocalRotation(new Quaternion().fromAngleAxis((float)sample.yaw(), Vector3f.UNIT_Y));
+        }
         if(frame >= 600) stop();
     }
 
@@ -140,6 +154,13 @@ public final class CharacterAnimationCapture extends SimpleApplication {
     }
 
     @Override public void simpleRender(RenderManager manager) {
+        if (motionTrace) for (int i=0;i<controls.size();i++) {
+            var owner = controls.get(i).getSpatial(); var root = owner.getLocalTranslation();
+            var sample = MotionTrace.sample(MotionTrace.Scenario.values()[i % MotionTrace.Scenario.values().length],
+                    (int)Math.round(gameTime * 60), 1.0 / 60);
+            traceRows.add(String.format(Locale.ROOT, "%d,%d,%.9f,%d,%.9f,%.9f,%.9f",
+                    frame, i, gameTime, sample.epoch(), root.x, root.z, AnimationLoader.getPlaybackAge(owner)));
+        }
         if(frame > 0 && frame % 15 == 0 && frame < 600) {
             try {
                 pixels.clear(); renderer.readFrameBufferWithFormat(viewPort.getOutputFrameBuffer(),pixels,com.jme3.texture.Image.Format.BGRA8);
@@ -190,7 +211,11 @@ public final class CharacterAnimationCapture extends SimpleApplication {
 
     @Override public void handleError(String message, Throwable error) { failure = error; error.printStackTrace(); stop(); }
     @Override public void destroy() {
-        try { for(var control : controls) control.cleanup(); entities.close(); super.destroy(); }
+        try {
+            if (motionTrace) try { Files.write(output.resolve("motion-trace.csv"), traceRows); }
+            catch (java.io.IOException error) { failure = error; }
+            for(var control : controls) control.cleanup(); entities.close(); super.destroy();
+        }
         finally { closed.countDown(); }
     }
 }

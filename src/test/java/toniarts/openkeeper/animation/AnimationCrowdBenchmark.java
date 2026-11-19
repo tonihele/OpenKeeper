@@ -17,31 +17,40 @@ import toniarts.openkeeper.view.animation.AnimationLoader;
 
 /** Repeatable CPU-only workload; deliberately makes no FPS/GPU or whole-game claims. */
 public final class AnimationCrowdBenchmark {
-    private static final String[] NAMES = {"Arc-Walk","BIL-Walkback","Electrocute1"};
+    private static final String[] DEFAULT_NAMES = {"Arc-Walk","BIL-Walkback","Electrocute1"};
     private static final int WARMUP = 180, SAMPLES = 600;
     private static final com.sun.management.ThreadMXBean ALLOCATIONS =
             (com.sun.management.ThreadMXBean)ManagementFactory.getThreadMXBean();
 
     public static void main(String[] args) {
-        if (args.length != 1) throw new IllegalArgumentException("Expected converted asset root");
+        if (args.length < 1 || args.length > 3) throw new IllegalArgumentException("Expected converted asset root, optional runs and comma-separated model names");
+        int runs = args.length > 1 ? Integer.parseInt(args[1]) : 1;
+        if (runs < 1 || runs > 20) throw new IllegalArgumentException("Runs must be 1..20");
+        String[] names = DEFAULT_NAMES;
+        if (args.length > 2) {
+            names = args[2].split(",", -1);
+            if (names.length == 0 || Arrays.stream(names).anyMatch(String::isBlank)) throw new IllegalArgumentException("Empty model name");
+        }
         var assets = new DesktopAssetManager(true);
         assets.registerLocator(args[0],FileLocator.class);
-        Spatial[] templates = Arrays.stream(NAMES).map(n->assets.loadModel("Models/"+n+".j3o")).toArray(Spatial[]::new);
+        Spatial[] templates = Arrays.stream(names).map(n->assets.loadModel("Models/"+n+".j3o")).toArray(Spatial[]::new);
         System.out.println("CPU_ONLY java="+System.getProperty("java.version")+" warmup="+WARMUP+" samples="+SAMPLES);
         System.out.println("mode,creatures,tracks,vertices,median_ms,p95_ms,p99_ms,allocated_bytes_per_frame,dirty_bytes_per_frame");
-        for (int count : new int[]{1,50,200,500,1000}) {
-            for (String mode : new String[]{"visible","hidden","unchanged","owner-visible","owner-hidden","owner-unchanged"}) run(templates,count,mode);
+        for (int repeat=0;repeat<runs;repeat++) {
+        System.out.println("CPU_RUN index="+repeat+" models="+String.join(";",names));
+        for (int count : new int[]{1,50,200,250,500,1000}) {
+            for (String mode : new String[]{"visible","hidden","unchanged","owner-visible","owner-hidden","owner-unchanged"}) run(templates,names,count,mode);
         }
         for(int count : new int[]{50,200,500}) for(int capacity : new int[]{0,3}) {
             Node[] owners = new Node[count]; Arrays.setAll(owners,i->new Node());
             if(capacity > 0) for(Node owner : owners) owner.addControl(new toniarts.openkeeper.view.animation.PreparedAnimationCache(capacity,256*1024));
             // Warm path caches, then measure two complete transition bursts.
-            for(String name : NAMES) AnimationLoader.playAnimation(new Node(),new ArtResource(name,ArtResource.ArtResourceType.ANIMATING_MESH),assets);
-            for(String name : NAMES) for(Node owner : owners)
+            for(String name : names) AnimationLoader.playAnimation(new Node(),new ArtResource(name,ArtResource.ArtResourceType.ANIMATING_MESH),assets);
+            for(String name : names) for(Node owner : owners)
                 AnimationLoader.playAnimation(owner,new ArtResource(name,ArtResource.ArtResourceType.ANIMATING_MESH),assets);
             long allocation = allocated(), start = System.nanoTime(); int replacements = 0;
             for(int burst=0;burst<6;burst++) for(Node owner : owners) {
-                var result = AnimationLoader.playAnimation(owner,new ArtResource(NAMES[burst%3],ArtResource.ArtResourceType.ANIMATING_MESH),assets);
+                var result = AnimationLoader.playAnimation(owner,new ArtResource(names[burst%names.length],ArtResource.ArtResourceType.ANIMATING_MESH),assets);
                 if(result != AnimationLoader.PlaybackResult.STARTED) throw new AssertionError(result);
                 replacements++;
             }
@@ -49,9 +58,10 @@ public final class AnimationCrowdBenchmark {
             System.out.printf(java.util.Locale.ROOT,"TRANSITIONS creatures=%d cache_clips=%d replacements=%d ms=%.3f allocated_bytes=%d retained_position_bytes=%d%n",
                     count,capacity,replacements,(System.nanoTime()-start)/1e6,allocated()-allocation,resident);
         }
+        }
     }
 
-    private static void run(Spatial[] templates, int count, String mode) {
+    private static void run(Spatial[] templates, String[] names, int count, String mode) {
         Node crowd = new Node(); List<PoseTrack> tracks = new ArrayList<>();
         for(int i=0;i<count;i++) {
             Spatial instance = templates[i%templates.length].clone(); crowd.attachChild(instance);
@@ -59,7 +69,7 @@ public final class AnimationCrowdBenchmark {
                 // Include the production owner timeline, separate from the historical raw-composer baseline.
                 instance.removeFromParent(); var owner = new Node(); crowd.attachChild(owner);
                 Spatial sample = instance;
-                var result = AnimationLoader.playAnimation(owner,new ArtResource(NAMES[i%NAMES.length],ArtResource.ArtResourceType.ANIMATING_MESH),(name,art)->sample,false);
+                var result = AnimationLoader.playAnimation(owner,new ArtResource(names[i%names.length],ArtResource.ArtResourceType.ANIMATING_MESH),(name,art)->sample,false);
                 if (result != AnimationLoader.PlaybackResult.STARTED) throw new AssertionError(result);
                 instance = owner;
             }

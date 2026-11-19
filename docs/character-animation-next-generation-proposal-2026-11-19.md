@@ -1,0 +1,498 @@
+# Next-generation creature animation proposal
+
+Date: 2026-11-19. Original status: architectural proposal. Implementation tracking on `feat/animation-next-generation` is recorded in section 13; historical investigation statements below describe the original proposal, not subsequent implementation validation.
+
+## 1. Recommended direction
+
+Make motion coherent before making deformation more elaborate. OpenKeeper should first render creature transforms, clip phase and presentation events on one explicitly timestamped timeline. Then introduce significance-based animation budgets and a measured GPU vertex-animation backend. Preserve the existing CPU sampler as the compatibility reference and fallback.
+
+Cross-clip blending, foot placement and layered motion can improve selected creatures, but require more asset preparation than their skeletal-engine equivalents. A new structural screen of eight creature types found **zero identical ordered mesh signatures in 44 WALK-to-other-clip comparisons**. The current importer produces vertex animation, not a rigged character. A universal blend tree or IK controller would therefore conceal prerequisites rather than solve them.
+
+The ambitious path is still worthwhile: build verified mesh correspondence, introduce short transitions and contact annotations, and experiment with a derived proxy rig or skinning decomposition. Those are separate quality experiments, not prerequisites for moving existing vertex playback to the GPU. Distinguish three independent choices:
+
+- **Motion policy:** faithful authored timing by default; optional enhanced transitions and procedural motion.
+- **Evaluation backend:** CPU, vertex texture fetch, and possibly a future compute or derived-skinning path.
+- **Budget policy:** importance-based quality selection with explicit exemptions for interaction and close views.
+
+A faithful GPU backend must reproduce the same motion as the CPU reference. Enabling GPU playback must not silently enable gait warping, alternate timing or procedural realism.
+
+## 2. Baseline, evidence and uncertainty
+
+### Repository and pending integration
+
+This proposal was written in the canonical checkout at `a63005ab362a55540b67daeadaf2eeb00a8ba73a` (`fix/dungeon-heart-startup`). That checkout is not the animation implementation baseline. Animation source and implementation evidence were inspected in the clean `feat/character-animation` worktree at **`09bdf79b3bb684d4fff15df331d2303e8d5e87a5`**, using **jMonkeyEngine 3.9.0-stable**. Source links below are pinned to that revision to avoid attributing pending behavior to the canonical tree.
+
+Live GitHub inspection found these changes **open and unmerged** during this investigation:
+
+| Change | Relevant boundary |
+|---|---|
+| [Animation PR #1325](https://github.com/tonihele/OpenKeeper/pull/1325), head `09bdf79b3` | Timing, vertex interpolation, ownership, pause, cache and validation baseline |
+| [Material lifecycle PR #1310](https://github.com/tonihele/OpenKeeper/pull/1310), head `d2f96a799` | Retained material registration, shared lighting and owner-local parameters |
+| [Texture filtering PR #1311](https://github.com/tonihele/OpenKeeper/pull/1311), head `a385e4032` | World surface texture policy; future pose textures must remain data textures |
+| [Dungeon Heart PR #1312](https://github.com/tonihele/OpenKeeper/pull/1312), head `a63005ab3` | Independent scene work; not an animation integration baseline |
+
+The animation PR's reported base was `cd78e565462bd3ab50ef99c86cac7b54c3bee04e`. Integration testing must use the actual combined revisions when these branches land; this document does not claim they have been tested together.
+
+Read baseline documentation:
+
+- [Original assessment and implementation checklist](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/docs/character-creature-animation-architecture-assessment-2026-11-18.md).
+- [Independent review, remediation and publication evidence](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/docs/character-animation-code-review-2026-11-19.md).
+- [Current maintenance guide and verification entry points](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/docs/character-animation.md).
+
+### Evidence labels
+
+**Confirmed** means source inspection or a diagnostic executed for this investigation. **Recorded baseline** means evidence in the existing implementation documentation, not a test rerun here. **Proposal** means a design or experiment. **Target** means a suggested acceptance threshold, not an achieved improvement. Native DK2 semantics remain **unverified** unless supported by a versioned original-executable trace. Naming a resource or enum does not establish its native behavior.
+
+### What the pending baseline already solves
+
+Do not restart these improvements as if missing: finite endpoint handling; interpolation between sparse vertex frames; conservative animated bounds; invalidation of stale precise-picking data; authored frame-rate mapping; complete request identity; a single unwrapped Start/Main/End playback clock; pause-aware pose/atlas/event age; transactional detached clip preparation; missing-art lifecycle handling; retained material-state restoration; alpha/black-key color and shadow consistency; owned Position values; serialized fall/planar movement; policy-aware prewarming; explicitly hidden and unchanged pose-write suppression; and opt-in bounded owner-local prepared-clip reuse.
+
+The prepared cache still defaults to **zero retained clips**. Its position-byte budget is not a bound on original sparse assets, materials, scene nodes, global asset caches, native buffers or GPU memory. “Hidden” optimization currently covers explicit ancestor visibility, not a complete multi-camera animation scheduler. The guide and review above distinguish these scopes.
+
+### Recorded performance and validation baseline
+
+These figures were checked against existing records. They were **not rerun** for this architecture-only task.
+
+| Recorded workload | Result | What it establishes |
+|---|---|---|
+| Final `build --rerun-tasks` | 1,471 tests; zero failures/errors; four minimap asset skips | Build/test baseline; four skipped cases separately passed against installed assets |
+| Strict installed corpus | 944 resources, 1,888 fresh/cached loads, 1,745,788 samples; zero nonfinite/outside | Broad decoder and bound coverage; not native timing parity |
+| GL coverage/gallery | Four synthetic coverage cases, 39 gallery pose hashes; pause images identical | Those fixed views and alpha/shadow cases; not all camera/lighting combinations |
+| Real local Alcatraz session | 48 creatures, 1,092 active frames; actual pause freezes all owner ages and presentation clock; resume advances | Small integration and lifecycle acceptance; not crowd scalability |
+| 500 visible owners, two standalone runs | Median 1.5232–1.7497 ms; P95 3.6849–4.3004 ms; P99 4.2016–4.6008 ms | CPU owner benchmark variation; no established total-frame speedup |
+| 1,000 visible owners, recorded repeat | Median/P95/P99 3.8424/7.3896/8.7362 ms | Isolated CPU scaling at that workload |
+| 500 explicitly hidden / unchanged owners, repeat | Median 0.0720 / 0.0290 ms; zero measured dirty bytes/allocations | Existing suppression is effective within its scope |
+| 3,000 transitions, cache off / three clips | 137.643 / 55.075 ms; allocation 72,824,352 / 6,192,432 bytes | Strong transition-burst opportunity; retained position accounting 18,234,000 bytes, not total residency |
+| Same transition test, repeat | 173.756 / 50.869 ms | Timing variability; do not turn the first pair into a whole-game claim |
+
+The final local smoke's 5.600/7.927/11.192 ms median/P95/P99 CPU submission times include a cap, observer work and a pause scenario. They exclude asynchronous GPU completion and have no paired reference. Existing records do not rank animation against lighting, shadows, navigation, UI, picking or driver cost in a representative visible crowd. This is a missing measurement, not evidence that GPU animation is unnecessary.
+
+## 3. Current pipeline and fundamental limits
+
+### Asset to pixel
+
+1. DK2 map/catalog `ArtResource` entries identify whole animation resources and their frame-rate/segment metadata. `Anim` represents KMF frame/sprite/geometry/index tables and offsets; the imported path has no bone hierarchy or skin weights. `AnimControl` is explicitly documented as having an unknown purpose; its name is not proof of a hidden skeletal rig. [Anim.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/tools/convert/kmf/Anim.java#L27), [AnimControl.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/tools/convert/kmf/AnimControl.java#L21).
+2. `KmfModelLoader` expands DK2 table references into geometry parts and sparse vertex poses. Its source time grid begins at `(i+1)/30`; `TimedClip` maps authored playback timing onto that representation. Conversion produces J3O scenes, not a common creature rig. The animated path uses LOD0, dynamic positions and static authored normals. [KmfModelLoader.java:252](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/tools/convert/KmfModelLoader.java#L252), [LOD/normals:440](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/tools/convert/KmfModelLoader.java#L440), [TimedClip.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/view/animation/TimedClip.java#L1).
+3. Gameplay selects a logical request. `CreatureViewSystem` prioritizes exceptional states and uses actual displacement for WALK/STAND; possession selects supported run/stealth art. This is not a continuous speed/turn locomotion blend space. The request carries creature/state/start/sequence identity. [CreatureViewSystem.java:111](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/game/logic/CreatureViewSystem.java#L111), [CreatureViewState.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/game/component/CreatureViewState.java#L1).
+4. `CreatureViewControl` resolves presentation and lifecycle. `AnimationLoader` prepares detached segment models and publishes a replacement transactionally. `AnimationPlayback` owns segment/loop time and manually samples disabled composers. It replaces clip models; it does not blend corresponding outgoing/incoming vertices or evaluate procedural layers. [CreatureViewControl.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/view/control/CreatureViewControl.java#L1), [AnimationLoader.java:73](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/view/animation/AnimationLoader.java#L73), [AnimationPlayback.java:117](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/view/animation/AnimationPlayback.java#L117).
+5. `PoseTrack` decodes adjacent CPU frames into owner-local arrays, linearly interpolates positions, dirties the position buffer and clears collision data. Explicitly hidden/unchanged samples avoid the write. Static normals do not follow deformation. The GPU receives the deformed positions for rendering, rather than evaluating this custom pose track. [PoseTrack.java:243](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/animation/PoseTrack.java#L243).
+6. DK lighting shaders transform positions and evaluate lighting; the vertex shader already imports jME instancing support. Custom shadow techniques enforce coverage. Animation acceleration must preserve all these passes, fog, material variants, hover/charred state, bounds and picking. It will not remove the lighting loop or automatically reduce draw submissions. [Vertex.vert:53](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/assets/Shaders/DkLighting/Vertex.vert#L53), [AnimationShadow.vert](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/assets/Shaders/AnimationShadow.vert#L1).
+
+### Root movement can still step between snapshots
+
+`Position` owns its vector but does not carry a source timestamp, velocity, discontinuity marker or lifetime epoch. The view applies its translation and yaw directly on updates. A continuously interpolated body pose can therefore sit on a discretely updated root. This is a confirmed architectural limitation; the magnitude of visible jitter and contact slip needs measurement. `PresentationClock`'s bounded prediction synchronizes playback age, but is not transform-history interpolation. [Position.java:26](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/game/component/Position.java#L26), [PlayerEntityViewState.java:891](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/view/PlayerEntityViewState.java#L891), [PresentationClock.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/view/animation/PresentationClock.java#L1).
+
+SimEthereal services and a remote `TimeSource` already exist. Source searches found no transform-history interpolator feeding this creature view path; this is not a claim that the dependency cannot provide one. Before adding a new network protocol, trace server publication and reuse its clock/snapshot facilities where suitable. Registration of a serializer or availability of remote time alone does not timestamp every ECS Position transaction. [ConnectionState.java:92](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/game/state/ConnectionState.java#L92), [NetworkServer.java:321](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/game/network/NetworkServer.java#L321).
+
+### New structural experiment: blending prerequisites
+
+A read-only Java diagnostic loaded the installed `Alcatraz.kwd` catalog and existing converted models using the pending animation implementation. It selected eight archetypes and inspected WALK, RUN, STEALTH_WALK, STAND_STILL, IDLE_1, MELEE_ATTACK, DIE and DEATH_POSE when present. The signature covered ordered geometry parts, vertex counts, primitive modes, index streams and exact UV bits. It excluded positions so an ordinary animated pose change would not itself cause a mismatch.
+
+| Archetype | WALK resource | Parts | Vertices | Track key count | Other present slots matching WALK signature |
+|---|---|---:|---:|---:|---:|
+| Imp | Imp_Run | 3 | 324 | 13 | 0/4 |
+| Goblin | Goblin-Walk | 5 | 404 | 43 | 0/6 |
+| Mistress | Mis_Walk | 5 | 492 | 49 | 0/6 |
+| Knight | Knight-Walk | 5 | 483 | 28 | 0/6 |
+| Warlock | Warlock-Walk | 3 | 401 | 61 | 0/6 |
+| Bile Demon | Bile_Demon-Walk | 3 | 329 | 41 | 0/5 |
+| Firefly | Fir-Walk | 3 | 266 | 30 | 0/6 |
+| Skeleton | Skeleton-Walk | 3 | 272 | 37 | 0/5 |
+
+Totals: **52 present resources, 44 non-WALK comparisons, 44 mismatches, 12 absent slots**. For example, Goblin WALK has 404 vertices, RUN 388 and STAND_STILL 401; Imp WALK has 324 and STAND_STILL 342. Different counts rule out direct whole-array interpolation for those pairs.
+
+**Interpretation:** reject unconditional current-order vertex blending. A mismatch may reflect only part order, seams or UV packing; it does not prove offline correspondence is impossible. Even an equal signature would not prove anatomical vertex identity, rest-space alignment, transform compatibility or material compatibility. This screen does not cover all 944 resources, all clip pairs, Start/Main/End transitions or other DK2 releases.
+
+Local diagnostic provenance: `D:/Temp/openkeeper-animation-architecture-20261119/{TopologyProbe.java,probe.init.gradle,probe.log,topology.csv}`. The external init-script task `proposalTopology` compiled and ran successfully in 12 seconds, with two tasks executed and three up-to-date; production sources and converted assets were not rewritten. These temporary diagnostic files are not maintained repository tooling. A reproducible maintained topology audit is an explicit action below; the recorded method and aggregate results are retained here even if temporary files expire. Map-loader override/unknown-camera-enum warnings occurred and were not treated as animation failures.
+
+## 4. Target architecture and integration boundaries
+
+```mermaid
+flowchart LR
+    S[Authoritative gameplay and movement] --> M[Timestamped motion snapshots]
+    S --> I[Logical animation requests]
+    M --> T[Presentation timeline and history]
+    I --> C[Playback owner and transition policy]
+    T --> C
+    A[Versioned clip data and optional semantic sidecars] --> C
+    C --> P[Sample request and independent event cursor]
+    B[Significance and resource budgets] --> P
+    P --> E[CPU or GPU evaluation backend]
+    E --> R[Render-thread publication]
+    R --> V[Color depth shadow and picking contract]
+```
+
+Use small seams around current owners, not a second character framework:
+
+| Boundary | Responsibility and invariant |
+|---|---|
+| Motion snapshot adapter | Publishes source time, source sequence and lifetime/discontinuity identity; owns no animation decisions |
+| Presentation timeline | Selects one presentation instant; handles pause, interpolation delay and bounded correction explicitly |
+| Existing playback owner | Resolves request generation, segments, phase and transition policy; completion/marker semantics stay independent of deformation backend |
+| Immutable clip data | Source fingerprint, converter/schema version, topology/layout identity, timing, bounds and optional contact/mask data |
+| Pose evaluator | Reads immutable data into exclusive CPU outputs or produces GPU frame/blend parameters; does not mutate ECS, materials or audio |
+| Budget service | Chooses pose quality/cadence using view significance; cannot alter gameplay outcomes or silently change clip duration |
+| Render publication | Updates scene, buffers, material registrations and GPU resources on the render thread; validates generation before publication |
+
+Names are conceptual; add an interface only where there are two implementations or a meaningful test boundary. Reuse `AnimationPlayback`, current model-source injection and presentation/material ownership rather than wrapping every field in a service. Keep timing arithmetic pure enough for unit tests.
+
+Configuration should be versioned and validated: backend `AUTO/CPU/VERTEX_TEXTURE`, motion style `CLASSIC/ENHANCED`, per-archetype permitted transition/contact policies, per-platform CPU/residency budgets and screen-size LOD thresholds. Defaults preserve the existing faithful policy. Unknown schema, invalid values, unsupported hardware or unverified topology select the compatible path and report one diagnostic per asset/generation rather than logging every frame.
+
+## 5. Recommendations: fidelity and behavior
+
+### N01 — Establish the motion and cost oracle first
+
+**Why:** existing fixed captures and CPU benchmarks cannot decide whether the next bottleneck is root jitter, pose evaluation, picking, draw submission or lighting. They also cannot establish native endpoint dwell, CLAMP, retreat, drag, recoil or alternate-form semantics.
+
+**How:** extend the maintained gallery/crowd tools with recorded authoritative trajectories and a deterministic camera. Capture constant-speed travel, acceleration/deceleration, 90/180-degree turns, blocked navigation, possession, work/combat interruption, death, hover, hand pickup/drop, hauling, teleport and removal. Record pose/root phase separately. Obtain versioned DK2 executable traces for the same actions, identifying release, speed setting, frame rate, creature and capture timing. Measure phase/marker/contact relationships, not only similar screenshots. Do not redistribute proprietary models or footage without permission.
+
+**Benefit/verification:** a repeatable attribution and acceptance suite. Record CPU sampling, decoding, buffer writes, collision rebuilds, allocation, draw counts, GPU timestamps per pass, Java/native/GPU residency and frame-time distributions. At least three non-overlapping measured runs after warmup; report median/P95/P99 and variation. Use 50/250/500/1,000 creatures, eight archetypes, common and varied phase, near/far views, offscreen shadow casters, several camera rates and a real playable level. This is the gate for all claimed performance improvements.
+
+### N02 — Interpolate root motion on the playback presentation timeline
+
+**Why:** smoother vertices cannot repair a root transform that moves in discrete steps. A common time basis also gives contact and gait calibration meaningful inputs.
+
+**How:** first map every transform producer, including fall, steering, possession, teleport, hauling and spawn/removal. Reuse SimEthereal timing/publication where applicable. Introduce a coherent motion sample with source timestamp, sequence and epoch/discontinuity identity; velocity is optional and must have defined validity. Do not label a newly received Position with receive time or assume a separately delivered clock component atomically timestamps it.
+
+Keep a short bounded client history. Present remote/local non-controlled creatures at a deliberately delayed source time, initially one actual publisher interval rather than an assumed 60 Hz. Interpolate translation linearly and yaw along the shortest arc. Only consider velocity-aware Hermite interpolation after measuring corner overshoot; never smooth through walls or interpolate across a discontinuity. Evaluate clip phase and visible markers at the same selected time, including the historical request active at that time. Keep simulation task completion/damage on authoritative time. No available bracket means bounded hold/prediction with explicit correction policy, not unbounded extrapolation.
+
+Local possession needs a separately tested low-latency prediction/correction policy; do not add the remote delay to its camera/input response. Pickup, hand attachment, drop, teleport, level switch and reused entity identities clear history and snap to the new epoch. Attachments must consume the same presented transform. Paused state freezes both history presentation and phase; a stale packet cannot regress time. Define delivery/reordering behavior before changing the network schema and require matching client/server versions.
+
+**Benefit/verification:** target at least a 50% reduction in constant-path frame-to-frame velocity error versus direct snapshots at 60/120/144 Hz, without increased contact slip. Measure added presentation latency separately; target no more than one publisher interval in a controlled zero-jitter session. Test delayed, burst, coalesced, reordered and dropped samples; lifecycle changes during delay; long render stalls; pause/resume; server time correction. Compare ECS/gameplay hashes to prove the presentation change does not alter simulation.
+
+### N03 — Add a small semantic motion catalog, not a universal graph
+
+**Why:** enum/resource presence does not specify stance, cycle contacts, safe interruption, blend compatibility or a creature's body plan. Hard-coded guesses become fragile as enhancements accumulate.
+
+**How:** add optional converter-versioned sidecars keyed by source fingerprint and resource identity. Start with loop/one-shot classification, transition permission, expected reference speed, contact/phase annotations and verified layout group. Keep original ArtResource timing authoritative in classic mode. Model priority and interruption rules in a compact transition table around the current playback owner: e.g. death/hand/discontinuity overrides locomotion; work/combat may require an authored end segment. Record unsupported fields explicitly. Validate sidecars at load and fall back to current playback if absent.
+
+Use a lightweight graph only when real combinations justify it: base clip, one approved transition, and optional cosmetic correction. An arbitrary node editor, large runtime reflection system or a duplicate gameplay state machine adds maintenance without present asset support.
+
+**Benefit/verification:** fewer per-creature code branches, explicit compatibility decisions and independently testable selection. Catalog tests must cover every registered enhanced clip, invalid/mismatched sidecars, unavailable slots and exceptional-state priority. N03 provides metadata, not a claim to know native semantics; unresolved behaviors remain classic until N01 references establish them.
+
+### N04 — Calibrate gait, turning and phase using actual presented motion
+
+**Why:** WALK/RUN selection alone cannot prevent foot sliding when travel speed and authored stride differ. Turning snaps can be more noticeable than low-poly deformation.
+
+**How:** measure each permitted locomotion cycle's stride/contact relation against presented root displacement. For approved loops, use speed/reference-speed rate scaling with smoothing and initially narrow trial clamps, such as 0.9–1.1. Accumulate phase continuously; do not multiply absolute elapsed time by a changing rate. Keep attack, work, hit, death and other gameplay-timed clips at their authored timing. A decorative gait offset must also offset associated presentation markers. Flying/crawling bodies require separate policies; foot-contact assumptions do not transfer universally.
+
+Prefer authored turn/anticipation segments when catalog evidence supports them. Otherwise test a bounded cosmetic yaw lag on a child presentation node, with immediate authoritative root/collision rotation and snap thresholds for sharp reversals. Cap angular error and reset on discontinuity. Do not synthesize an anticipation delay that changes action responsiveness or treats future navigation intent as certain motion. Deceleration and blocked movement should converge cleanly to stance rather than chatter between two states; use presentation-only thresholds/hysteresis, never a change to task movement completion.
+
+**Benefit/verification:** target lower stance-foot world drift at constant speed, without increased attack/work timing error. Compare slip per stance and maximum root/body angular lag across turns and stops. Assess DK2's deliberately exaggerated cadence with side-by-side video; classic mode remains unchanged until native acceptance. A selected/possessed creature must not feel less responsive.
+
+### N05 — Verify correspondence, then introduce selective transitions
+
+**Why:** a hard whole-model replacement can create a silhouette or velocity discontinuity. The topology screen shows that simply blending two existing vertex buffers is broadly unsafe.
+
+**How:** implement an offline topology/semantic correspondence audit first. Distinguish reordered identical meshes, duplicated UV seams, changed tessellation, added/removed geometry, differing transforms and material partitions. Preserve a mapping back to each source's UVs/materials. A common surface mapping may require a canonical mesh and resampled deformations; reject pairs with uncertain anatomy, excessive reconstruction error or incompatible appearance. Nearest-position matching in one pose is not sufficient, particularly for crossed limbs, folded wings and collapsed death poses.
+
+For proven pairs, align transition entry using annotated contact phase or a small offline pose/velocity candidate search. Trial short 40–100 ms smooth crossfades, with creature/action-specific caps and authored Start/End preference. A new request interrupts from the current presented composite pose, not a stale outgoing clip. Preserve current request generation, terminal behavior, detached preflight and rollback. Clips without safe correspondence use the authored transition or existing cut; avoid alpha crossfades as a default because they create double silhouettes and ambiguous shadows.
+
+**Benefit/verification:** target at least 30% reduction in projected transition pose jump on approved pairs, with no worse stance drift, no volume collapse and exact logical completion timing. Test interrupted blends, death during locomotion, missing segment, hidden transition, cache reuse, pause and large time jumps. Derive blend bounds from both poses; procedural overshoot requires additional bounds. A failed corpus correspondence experiment is a valid reason to retain cuts for that pair.
+
+### N06 — Introduce controlled variation without synchronizing the crowd
+
+**Why:** hundreds of identical loop phases and repeated idle selections expose the animation system more than the individual asset's polygon count.
+
+**How:** use a stable seed from entity lifetime and request generation for approved idle/locomotion phase and available idle-variant selection. Constrain weights, repeat avoidance and cooldowns in the catalog. Respect existing authored choices and investigate native selection before changing classic policy. Do not randomly seek attacks, work strikes, death or audio-linked actions. Never independently randomize a pose and its footstep marker clock. Preserve local variation across visibility and LOD changes so re-entry does not pop or restart.
+
+**Benefit/verification:** a measurable reduction in same-phase pairs and consecutive repeated idle selections in a synthetic crowd, with identical seeds producing identical presentation. Human comparison decides whether variation improves DK2 style. Assert no change to gameplay RNG streams, damage, work completion or simulation replay. Random variation must not masquerade as animation quality when it merely hides synchronization.
+
+### N07 — Add terrain/contact adaptation in graduated stages
+
+**Why:** floating/sliding feet on height changes and abrupt body orientation can break contact. Full anatomical IK is not available from the existing imported data.
+
+**How:** first annotate semantic contact anchors and valid stance windows for selected bipeds. Footstep marker timing is a useful candidate signal, not proof of stance duration. Query the actual walkable surface, not arbitrary decorative triangles; cap query count by significance and cache stable surface results. Start with bounded child-node height/pitch/roll adjustment and a smooth return to the authored pose. This can reduce whole-body hover; it cannot independently pin two feet.
+
+True foot placement needs derived or authored deformation controls: a small proxy rig/cage with semantic limb chains and weights, or a compatible canonical mesh with constrained local deformation. Preserve hard seams, wing joints and contact geometry; expand bounds and update normals/picking consistently. Disable corrections on flying, falling, death, hand-held and unsupported bodies. Reach limits, step height, slope and ground confidence must clamp or disable the effect rather than stretch a limb. Keep physics/navigation roots unchanged.
+
+**Benefit/verification:** first prove lower contact-height error on actual accessible slopes/steps with no increased sliding or body penetration. Then trial true pinning on one biped with annotated two-foot contacts, measuring stance drift and deformation error. Test stairs, edges, moving attachment ownership and invalid ground. Only promote beyond opt-in near LOD if blinded DK2-style comparisons prefer it. Flat dungeon floors may yield little benefit; reject a costly general solver if that is the representative case.
+
+### N08 — Treat head tracking and secondary motion as authored semantic layers
+
+**Why:** restrained attention and follow-through may improve close-view expression, while indiscriminate procedural sway can erase the original caricature.
+
+**How:** require a head/appendage anchor, local axis, influence mask and deformation mechanism from N05/N07/N15. Apply small bounded aim offsets with angular limits and critically damped response, resetting on teleport, pause and replacement. Restrict targets to relevant visible interactions; do not turn heads through torsos or rotate a whole mesh when only the head should move. Use analytic stable damping or bounded substeps for secondary motion, driven by presented acceleration, with a hard energy/displacement cap. Avoid a general cloth/rigid-body solver for every low-poly creature.
+
+Vertex-space additive layers require a common reference pose and meaningful masks; arbitrary subtraction of unrelated clip vertices is invalid. Support at most one or two validated layers initially, with explicit precedence over/under contact correction. No new combat capability or game collision comes from a cosmetic layer.
+
+**Benefit/verification:** near-view style preference and bounded target-angle/settling measurements, with zero added simulation nondeterminism. Test frame-rate independence, huge delta time, interruption, hidden re-entry and pause. Measure per-creature/query cost. Disable layers at lower LOD while blending their weight to zero to avoid a pop.
+
+### N09 — Preserve linear interpolation as reference; investigate normals and higher-order motion separately
+
+**Why:** linear interpolation is already continuous and robust, but velocities can jump at sparse keys. Static authored normals may look inconsistent under large deformation. Neither fact proves a native fidelity defect: hard holds and static shading may be part of the original look.
+
+**How:** compare contact and silhouette velocity discontinuities before changing interpolation. Trial shape-preserving, tangent-limited cubic interpolation only on approved smooth loop segments. Preserve authored holds, impacts and boundaries. Cubic paths can overshoot the existing convex pose envelope, requiring new analytic/conservatively sampled bounds and collision validation; do not reuse linear bounds unquestioned. Prefer denser preprocessing only if it reduces runtime cost without adding a new interpretation of motion.
+
+For normals, separately compare static authored normals with per-frame normals reconstructed using known hard-edge/smoothing groups. Avoid welding UV seams into false smooth surfaces. Interpolate and renormalize approved normal data; measure lighting changes under multiple directions. Retain static normals as the classic default. GPU normal data increases storage and fetch cost, and CPU recomputation every owner/frame is unlikely to be the right default.
+
+**Benefit/verification:** lower measured velocity discontinuity on smooth motion with no increased overshoot/contact error; blinded preference under original-style lighting. Require color/depth/shadow silhouette and bound tests. Reject the feature if it merely smooths intentional staccato motion or changes DK2's characteristic lighting.
+
+## 6. Recommendations: scale, data and GPU evaluation
+
+### N10 — Budget pose work by significance, preserving logical time
+
+**Why:** near selected creatures and tiny distant creatures do not need identical deformation work. Explicit-hidden suppression already demonstrates that avoiding writes matters; a complete policy must account for shadow-only visibility and multiple cameras.
+
+**How:** calculate significance from projected height, selection/possession, interaction/combat relevance, recent visibility and shadow contribution. Use hysteresis and staggered fixed buckets, not a full sort and allocation every frame. Near/possessed/selected/contact-critical creatures retain full quality. Mid/far bands can reduce pose evaluation or use quantized shared phase; completely irrelevant hidden owners can retain only clock/lifecycle work. Make decisions from the union of active view requirements; a previous main-camera cull result is insufficient for shadow or secondary-camera passes.
+
+Throttling CPU samples and linearly writing interpolated output every render frame still costs O(vertices) writes. Measure that variant against simply reduced sampling, shared immutable output poses and GPU evaluation. Keep event/request cursors on unthrottled logical time. On re-entry, seek directly to the current pose without replaying a backlog of cosmetic sounds; deliver indispensable logical completion exactly once according to the existing policy. Do not defer terminal cleanup indefinitely. An LOD switch retains phase and request generation.
+
+**Benefit/verification:** target at least 30% lower animation CPU P95 in a 500-creature mixed-distance scene, with less than 0.5 pixel extra far-LOD silhouette error at the test camera and no missed logical completions. Check near quality, frame pacing, shadow-only motion, camera cuts and LOD boundary churn. Epic's allocator demonstrates significance and update-budget principles for skeletal components; applying them to OpenKeeper's vertex output is an engineering inference, not a directly reusable plugin. [Epic Animation Budget Allocator](https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-budget-allocator-in-unreal-engine).
+
+### N11 — Separate immutable sharing from owner-local mutable output and total residency
+
+**Why:** retaining prepared scenes accelerates transitions but increases resident memory. Sharing decoded source frames can reduce decoding and scratch duplication without sharing unsafe mutable Mesh state.
+
+**How:** inventory process-global `AssetUtils` caches and define asset-manager/root/schema ownership before raising retention defaults. Its static strong/weak caches and texture map are concrete starting points, not a hypothetical future cache. Scope a bounded immutable clip/frame cache to a world/asset context and key it by source fingerprint, layout, clip, frame and conversion version. Coalesce concurrent loads, cancel/reject stale generations, publish completed data atomically and clear context-owned entries on level/root changes. Do not change an AssetManager's global cache policy blindly. [AssetUtils.java:78](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/src/main/java/toniarts/openkeeper/utils/AssetUtils.java#L78).
+
+Two distinct experiments are useful:
+
+1. Shared adjacent decoded frames: owners still interpolate and write their own output. Saves decode work/duplicate decoded arrays; does not remove per-owner O(V) blend/upload.
+2. Exact shared pose buckets: owners with identical layout, phase, quality and deformation policy reference one immutable output mesh/buffer. Saves evaluation/upload per bucket; quantized phase is a distant-LOD quality trade-off. Different world transforms/material state remain owner/instance data. No owner may mutate a shared output buffer.
+
+Keep prepared scene reuse separate from shared clip data. Account for sparse source poses, Java objects, direct buffers, GPU copies, materials, texture residency and in-flight jobs. Eviction requires reference/in-flight ownership and render-thread GPU disposal; a memory budget is not met merely because entries were removed from a Java map. Record actual application residency and engine disposal behavior.
+
+**Benefit/verification:** measure cache hit rate, decode time, transition allocation, peak/steady Java/native/GPU bytes and load latency over at least ten level enter/exit cycles with background loading. Require a stable post-cleanup plateau and no cross-manager contamination. Test cancellation, reload, failed load, context shutdown and delayed render disposal. Epic's sharing system supplies a useful state-bucket analogy, but relies on skeletal leader poses; the two vertex-cache designs here are proposed adaptations. [Epic Animation Sharing](https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-sharing-plugin-in-unreal-engine).
+
+### N12 — Prototype vertex-texture playback before compute
+
+**Why:** existing clips already describe vertex trajectories. Fetching adjacent frames in a vertex shader can remove CPU per-vertex interpolation and frequent position uploads while preserving authored motion. Unlike cross-clip blending, it does not require topology correspondence between different resources.
+
+**How:** bake each clip/geometry part into versioned dense or validated reduced pose data. Start with full-precision reference data, static topology/UV/normal buffers and two frame indices plus interpolation weight. Use an explicit vertex lookup index or a verified `gl_VertexID` mapping, including indexed draws and submesh offsets; never infer texture addressing from an unstable conversion order. Decode/fetch exact frames and interpolate manually to reproduce `TimedClip`, first-frame origin, terminal dwell, cycle direction and segment behavior. A 2D texture is a simple first transport; validate texture dimensions, vertex texture units, formats and sampler limits. Use arrays/buffer textures only when they improve measured packing or limits.
+
+Pose textures are **linear numeric data**: no sRGB conversion, world mipmaps, anisotropy or unintended bilinear mixing across vertices/frames. Use explicit integer texel fetch where supported and a separately named pose-data material parameter. The pending O3 surface-map allowlist must not be broadened to include it. [WorldTextureFiltering.java:31](https://github.com/adrian-andrzjewski/OpenKeeper/blob/a385e4032091c9d16dd1d33e61766f3ca6b78b9d/src/main/java/toniarts/openkeeper/view/texture/WorldTextureFiltering.java#L31).
+
+Put deformation in one shader include used consistently by every technique that consumes animated positions: color, depth, pre/post-shadow and, where enabled, SSAO normals and glow. In particular, `LightingSprite.j3md` references common SSAO/glow vertex shaders that currently work because the CPU has already updated positions; a VAT-only color/shadow change would leave those techniques on the undeformed mesh. Audit the actual material/technique matrix rather than assuming one lighting shader covers every pass. Existing DK materials use GLSL150 techniques; choose matching supported shader variants and check vertex-fetch/format/unit limits rather than imposing a compute-level hardware requirement. [LightingSprite.j3md:334](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/assets/MatDefs/LightingSprite.j3md#L334), [Vertex.j3md:104](https://github.com/adrian-andrzjewski/OpenKeeper/blob/09bdf79b3bb684d4fff15df331d2303e8d5e87a5/assets/MatDefs/DkLighting/Vertex.j3md#L104).
+
+Do not add a second scene traversal each frame to discover materials. Integrate with O1 structural registration and retain owner MeshCenter, ambient/fog, hover/charred, texture variants and authored coverage. Preserve bounds conservatively on CPU. For picking, retain a broad proxy and evaluate the current CPU pose on demand for precise selected/cursor tests; cache by presented phase/generation. Never read back GPU vertices every frame. Validate that selection uses the same presented root and pose as rendering. [EntityMaterialSetup.java](https://github.com/adrian-andrzjewski/OpenKeeper/blob/d2f96a799f44cd5db6659502c6acf6e0738a085f/src/main/java/toniarts/openkeeper/view/material/EntityMaterialSetup.java#L1).
+
+Keep immutable clip resources shared and lifetime-owned. Switching backend occurs at a safe publication boundary, preserving current clock/request state; fallback must not restart the clip or mutate a live shared buffer. Start with an opt-in gallery and crowd backend, then integrate gameplay after pass/picking/resource parity.
+
+**Benefit/verification:** expect less CPU deformation/upload, not fewer draw calls or cheaper lighting. Require CPU/GPU position equivalence within a declared precision budget, initially a maximum 0.25 projected pixel error in near-view captures, plus no new nonfinite/outside-bound samples. Use tight world-space error tests too so a distant camera cannot hide corruption. Require exact clip/marker phase and unchanged pause/terminal semantics. Suggested promotion gate: at least 20% lower animation CPU P95 **and** either 10% lower total-frame P95 or at least 1 ms saved in a demonstrated CPU-limited 1,000-creature scene, with no more than 5% GPU-time regression and bounded residency. These are proposed gates; representative results may justify rejecting or narrowing the backend.
+
+### N13 — Instance only compatible crowd groups after attribution
+
+**Why:** GPU deformation does not reduce scene traversal, per-object uniforms or draw submission. Repeated creatures can still cost multiple draws per part/pass.
+
+**How:** group by mesh/layout, clip-data binding, material/coverage technique, texture variant and LOD. Supply per-instance transform, clip frame pair/weight, presentation state, owner lighting center and approved variation values. Use the pinned jME `InstancedGeometry`/instance-data facilities rather than assuming its built-in transform stream carries animation phase. Current DK shaders already import instancing helpers, but the extra parameters and all-pass behavior need implementation. Maintain stable owner-to-instance handles with generation validation for picking/removal. Avoid creating a unique material for each phase, which defeats grouping.
+
+Do not use static `BatchNode` merging as a substitute for animated instancing. Transparent sorting, different topology/parts and exceptional near-view layers may require separate groups or CPU fallback. Target large repeated visible groups first. jME's existing instanced geometry handles transforms/camera instance updates, not this entire animation/material contract. [Pinned InstancedGeometry](https://github.com/jMonkeyEngine/jmonkeyengine/blob/v3.9.0-stable/jme3-core/src/main/java/com/jme3/scene/instancing/InstancedGeometry.java).
+
+**Benefit/verification:** lower measured draw submission and draw calls at fixed scene content, without worsening GPU time, selection, visibility or lighting. Report groups × parts × passes, not “one draw for all creatures.” Compare varied-phase/variant crowds as well as a best-case identical crowd. NVIDIA's crowd example supports the texture/instance/LOD principle, but uses skeletal palette skinning in DirectX 10; its reported character counts do not predict OpenKeeper performance. [GPU Gems 3, Animated Crowd Rendering](https://developer.nvidia.com/gpugems/gpugems3/part-i-geometry/chapter-2-animated-crowd-rendering).
+
+### N14 — Improve representation, compression and geometric LOD offline
+
+**Why:** dense GPU data can inflate a compact legacy source. Offline processing is also the right place to validate topology, not a runtime improvisation.
+
+**How:** retain the existing KMF decoder as the reference. First measure object-heavy sparse representation versus flat primitive arrays, immutable frame deduplication and shared decoded frames. Version the derived format with source/converter fingerprints, capabilities, counts, bounds, byte limits and corruption checks; permit old J3O/CPU loading when a new cache is absent. Never silently overwrite the user's entire converted asset tree to try a new format. Build derived data in an isolated root and publish atomically.
+
+For GPU storage compare RGBA32F, RGBA16F, and per-clip bounded 16-bit position encoding. Measure maximum position, velocity, silhouette and contact errors across every interpolated interval, not just keyframes. A bounded UNORM16 component's rounding error is at most component range divided by `2*65535`, before other arithmetic; half-float error instead depends on magnitude. Quantization can amplify under transforms. Key reduction must preserve abrupt holds/impacts and loop seams. General-purpose texture block compression is not automatically suitable for numerical vertex positions.
+
+Audit the KMF-supplied LOD index sets before enabling the currently commented path: include LOD0, verify indices across every pose/part, silhouettes, seam behavior and materials. If unusable, generate one animation-aware collapse/remapping scheme evaluated over all poses; independent per-frame decimation would change correspondence and crack. These models are already small, so distant geometric LOD may save less than fewer updates, fewer draws or lighting work. Choose by profiling and screen-space error.
+
+**Benefit/verification:** publish actual corpus bytes/clip, load time, decode cost and visible error versus the reference. Require all counts/offsets valid and bounds conservative for every supported representation/LOD. Use corrupt/truncated/oversized input tests and cold/warm loads. Compression or decimation is accepted only at a measured quality/memory benefit, not a format-modernization goal by itself.
+
+### N15 — Explore derived skinning/proxy rigs as a high-value research branch
+
+**Why:** a skeleton is absent today, but concluding that existing animations can never support one is too strong. Offline skinning decomposition can approximate mesh motion with rigid transforms and sparse weights. That might compress clips, enable cheap skeletal GPU evaluation and supply a foundation for selected procedural controls.
+
+**How:** after N05 correspondence, fit one creature's compatible animation set to a low-bone-count model. Compare several bone/weight counts, reconstruction on held-out poses/clips, contact error and silhouette error. A residual deformation layer may preserve stylized squash/wing details, but its memory and bandwidth can erase the saving. An inferred compression palette is not automatically a semantic anatomical skeleton: usable IK/head tracking still needs validated hierarchy, joints, axes, masks and constraints. Fit each geometry variant deliberately; do not retarget arbitrary creatures by naming similar parts.
+
+SSDR is a primary example of deriving rigid transforms and sparse convex weights from example mesh poses. Applying it to DK2 is an untested proposal, not evidence of lossless recovery or a recovered original rig. [Le and Deng, Smooth Skinning Decomposition with Rigid Bones](https://graphics.cs.uh.edu/ble/papers/2012sa-ssdr/index.html).
+
+**Benefit/verification:** compare full delivered size, runtime bandwidth/CPU/GPU cost and reconstruction against direct vertex textures, including inference/authoring/tooling maintenance. Require held-out near-view error within the same declared fidelity budget and no contact regression. If a compact fit cannot preserve exaggerated deformation, retain direct poses for that creature. Only promote a semantic rig when its procedural benefit exceeds authoring and validation cost. Full artist-authored retargeting remains a separate new-data project, not a compatibility refactor.
+
+### N16 — Gate CPU parallelism on large enough pure workloads
+
+**Why:** parallel decoding/evaluation can reduce a proven CPU bottleneck, but hundreds of tiny Java jobs can cost more than a serial low-poly loop and complicate lifecycle correctness.
+
+**How:** share immutable data and batch requests first. If profiling still justifies workers, snapshot request/epoch/phase into pooled batches and write exclusive output ranges. Validate request generation on render-thread publication; discard stale results after replacement/removal/level shutdown. Use bounded queues, a deadline and a defined previous-pose fallback. Never block the render thread waiting indefinitely. No worker touches scene graph, materials, AssetManager mutation, GPU buffers or audio callbacks. Audit any background asset decoding separately for dependency thread safety.
+
+**Benefit/verification:** measure total-frame P95, work/queue time and allocation at 50/500/1,000 owners; require a net improvement after publication/copy overhead. Account for double-buffer output memory and latency. Stress request storms, shutdown, cancellation, asset reload and starvation; enable thread assertions and deterministic single-thread comparison. Do not add a job framework unless this workload establishes its value.
+
+### N17 — Keep compute deformation conditional on a maintained renderer seam
+
+**Why:** compute could deform once for reuse across multiple passes or perform more complex near-view deformation. Simple vertex interpolation may be cheaper directly in each vertex shader, especially on these small meshes.
+
+**How:** first measure N12 and the number/cost of repeated passes. The pinned jME renderer explicitly comments that compute shaders and a ComputeShader capability are not yet supported; an SSBO capability alone does not provide a high-level dispatch path. A production compute backend needs a maintained engine/backend extension for shader compilation, dispatch, buffer binding, limits, state-cache integration and lifecycle. Do not insert raw LWJGL dispatch inside a creature control and assume jME state remains coherent. [Pinned GLRenderer](https://github.com/jMonkeyEngine/jmonkeyengine/blob/v3.9.0-stable/jme3-core/src/main/java/com/jme3/renderer/opengl/GLRenderer.java#L590).
+
+Use a validated higher OpenGL capability tier, typically a 4.3-class path or the required supported extensions, while retaining the vertex/CPU fallback. Match memory barriers to the actual consumer (vertex attributes, shader storage, indirect commands, etc.); a fence or command order alone does not replace visibility requirements. Avoid a global CPU wait/readback. OpenGL's compute and memory-barrier specifications define the capability and synchronization requirements. [ARB_compute_shader](https://registry.khronos.org/OpenGL/extensions/ARB/ARB_compute_shader.txt), [ARB_shader_image_load_store](https://registry.khronos.org/OpenGL/extensions/ARB/ARB_shader_image_load_store.txt).
+
+**Benefit/verification:** promote only when GPU timestamps show a repeatable total GPU/frame benefit over vertex fetch, including dispatch/barrier cost, extra output storage and all passes. Exercise context recreation, unsupported hardware, resize, missing shader and buffer disposal. If no break-even exists at representative counts, document rejection and keep N12; a rejected experiment completes this investigation item without creating a dormant production backend.
+
+### N18 — Experiment with inertialized transitions only after ordinary blending works
+
+**Why:** conventional transitions evaluate both clips and can look soft. Inertialization preserves a decaying displacement/velocity residual from the previous pose while evaluating the target, potentially retaining momentum at lower sustained transition cost.
+
+**How:** only use verified corresponding vertices or a derived rig. Capture the current pose and velocity residual at interruption, decay it over a short bounded interval, clamp deformation and reset at discontinuities. A second interruption must use the currently presented residual, not a stale source pose. Separate logical clip/event ownership from the outgoing visual residual. Vertex residual arrays are additional per-transition memory; derived-bone residuals may be cheaper. Neither approach can make unrelated mesh topology blend safely.
+
+Epic documents inertialization as a post-process alternative to continued source-pose evaluation. Extending that idea to bounded vertex-space residuals here is a proposed adaptation; it needs independent stability, bounds and fidelity work. [Epic blend nodes and inertialization](https://dev.epicgames.com/documentation/en-us/unreal-engine/animation-blueprint-blend-nodes-in-unreal-engine).
+
+**Benefit/verification:** compare pose/velocity discontinuity, contact drift, transition CPU/GPU cost and memory against N05 at identical duration. Include repeated interruptions, extreme velocities, pause, hidden re-entry and death. Retain ordinary blending if the residual produces overshoot or distorts the silhouette. This is advanced optional scope, not a prerequisite for root smoothing or GPU playback.
+
+## 7. Alternatives and resource implications
+
+### Backend and technique comparison
+
+Costs are relative expectations for this project, not measurements. Quality changes require visual acceptance independently of performance.
+
+| Approach | Existing DK2 motion usable? | Quality / scale opportunity | Main cost and limitation | Complexity / regression risk | Recommendation |
+|---|---|---|---|---|---|
+| Current CPU vertex path + coherent root time | Yes | Large coherence benefit; preserves reference poses | Per-owner O(V) blend/write remains | Medium / medium at protocol boundary | First implementation priority |
+| Shared decoded frames | Yes | Less decoding/scratch duplication | Still per-owner blend/upload; bounded cache required | Medium / medium | Measure before GPU migration |
+| Far shared pose buckets | Yes | Fewer evaluations/uploads | Phase quantization; immutable output and per-owner state separation | Medium / medium | Optional LOD experiment |
+| jME standard GPU morph targets | Converted targets required | Leverages engine morph machinery | Attribute slots/active targets; custom DK pass integration; no topology cure | Medium–high / medium | Compare in a small benchmark, not a drop-in replacement |
+| Vertex animation textures | Yes, independently per clip | Removes CPU vertex writes; compatible with independent phases | Dense storage, repeated pass fetches, CPU picking policy | High / medium | Preferred first GPU PoC |
+| VAT + instancing | Yes within compatible groups | Lower CPU submission and per-owner state work | Material/part/variant grouping, lighting/selection data | High / high | After draw-call attribution |
+| Compute to output buffers | Yes with new backend | Amortizes complex deformation over passes | jME renderer work, barriers, output memory and dispatch overhead | Very high / high | Conditional research only |
+| Canonical mesh + short blends | Offline correspondence required | Better cuts/contact phase transitions | Reconstruction and material/topology compatibility | High / high | Selected creature pairs first |
+| Derived skinning / proxy rig | Offline fitting + semantic data | Compression, IK/layers, skeletal GPU path | Approximation error and tooling/annotation | Very high / high | Research branch with rejection gate |
+| Fully authored rigs/new motions | New assets required | Best control over locomotion/IK/retargeting | Significant art work and style drift | Very high / very high | Separate future asset initiative |
+
+The pinned `MorphControl` is not the custom PoseTrack's backend: it consumes MorphTargets and weights, caps morph buffers at 14, derives available target slots from vertex attributes and merges overflow targets on CPU. Its small-weight threshold and normal/tangent handling must also be checked before claiming identical playback. Two adjacent targets can be attractive in a PoC, but repeatedly rebinding a frame-sized target set and integration with custom DK shaders still need measurement. [jME 3.9 MorphControl](https://github.com/jMonkeyEngine/jmonkeyengine/blob/v3.9.0-stable/jme3-core/src/main/java/com/jme3/anim/MorphControl.java).
+
+### Memory/bandwidth model
+
+Let `N` be active owners, `V` vertices per owner/clip, `F` frames per clip, and `P` rendered passes. Examples below use **assumed** `N=500`, `V=500`, `F=60`, `P=3`; they are not corpus averages. MB denotes decimal million bytes.
+
+| Item | First-order model | Example / implication |
+|---|---|---|
+| Current owner position + two decoded arrays | `36*N*V` bytes | 9 MB; excludes sparse source poses, scene/materials and GPU copies |
+| CPU position writes | `12*N*V` bytes/update | 3 MB/update, 180 MB/s at 60 updates/s; not measured PCIe traffic |
+| Dense packed Float32 clip positions | `12*V*F` bytes | 360,000 bytes/clip; format/driver alignment may differ |
+| RGBA32F pose texture | `16*V*F` bytes | 480,000 bytes/clip before padding/mips/metadata; no mips intended |
+| RGBA16F pose texture | `8*V*F` bytes | 240,000 bytes/clip, only if precision passes |
+| 20 clips × 10 archetypes, RGBA32F / RGBA16F | Above × 200 | 96 / 48 MB; excludes normals, CPU copies and alternate geometry |
+| Two RGBA32F frame reads per vertex/pass | `32*N*V*P` logical bytes/frame | 24 MB/frame, 1.44 GB/s at 60 Hz; cache reuse means this is not actual VRAM bandwidth |
+| Hypothetical instance record | 96–128 bytes/owner | 96–128 kB/update at 1,000 owners; actual format to be measured |
+| Extra CPU output buffer for worker publication | `12*N*V` bytes | Additional 3 MB, plus queue/request data; cannot ignore double buffering |
+
+The recorded 500-owner benchmark has **168,918 vertices**, not the assumed 250,000. Its 1,975,483 dirty position bytes/update imply about 118.5 MB/s at 60 updates/s as arithmetic, not measured bus throughput; terminal dwell avoids some writes. Three retained position sets account for 18,234,000 bytes in that workload. Texture formats, source sharing and retained CPU fallback data can dominate any new backend's actual memory result.
+
+VAT duplicates fetching across passes, but often reuses cached source data. Compute adds an output write, output reads per pass and barriers while potentially avoiding repeated evaluation. Shared phase buckets reduce the number of unique deformations but may reduce motion diversity. These trade-offs need GPU timestamps and residency measurements; theoretical byte counts alone do not choose a winner.
+
+## 8. Existing motion versus new data
+
+| Data requirement | Techniques enabled | Qualification |
+|---|---|---|
+| Existing clips and current metadata | Timestamped root interpolation, budgets, immutable caches, VAT, compatible instancing | Requires engineering and validation, not new authored motion |
+| Derived scalar/semantic sidecars | Gait calibration, contact windows, constrained variation, phase-aligned entry | Needs per-archetype annotation/native evidence; can be made without inventing new clips |
+| Verified canonical correspondence | Cross-clip vertex blend, vertex additive masks, inertialized residuals | Offline reconstruction may be impossible or too lossy for some pairs |
+| Derived proxy rig/cage/weights | Selective foot/head/secondary deformation | New control data, though original motion may remain the source; semantic authoring required |
+| Inferred skinning palette | Compressed approximate playback, possible residual hybrid | Not automatically an anatomical rig or retargeting solution |
+| Artist-authored rig and motions | Broad IK, proper turn/anticipation clips, upper/lower body layering, retargeting | New asset production and DK2-style approval |
+| Large coherent motion database | Full motion matching or learned controller | Absent from this source pipeline; poor near-term fit |
+
+Do not introduce motion matching or neural animation simply because they are modern. They require coverage and semantic features that sparse, separately meshed legacy clips do not provide. Ubisoft's description emphasizes a motion database and trajectory/pose features; its matching cannot create an action combination absent from the data. A tiny offline entry-phase search in N05 is useful without importing that entire architecture. [Ubisoft La Forge: learned motion matching](https://www.ubisoft.com/en-us/studio/laforge/news/6xXL85Q3bF2vEj76xmnmIu/introducing-learned-motion-matching).
+
+Likewise, full physical ragdolls, locomotion physics and cloth are not default enhancements: they need collision/rig data and may replace the authored comic death or wing behavior. Cosmetic physically inspired damping can be optional without changing authoritative outcomes. Any new death presentation must preserve corpse location, interaction and authored segment policy.
+
+## 9. Proof-of-concept and acceptance plan
+
+Every experiment uses a feature/configuration gate, the unchanged reference path, fixed seeds and comparable camera/lighting. Capture full provenance: commit, asset fingerprint, converter version, jME/JDK/driver/GPU, resolution, frame cap, settings, workload and sampling window. No aggregate “all tests pass” claim should substitute for a specific gate.
+
+| PoC | Minimum implementation | Pass/reject decision |
+|---|---|---|
+| Root coherence | Timestamped trajectory/history fixture plus actual possession/teleport integration | N02 jitter target, bounded latency, no lifecycle smear, simulation hashes unchanged |
+| Adaptive pose budget | Three importance bands, hysteresis, shadow/secondary-camera exemption | N10 CPU target and projected error/event invariants; reject visible stepping near camera |
+| Shared immutable data | One context-owned cache with reference/in-flight accounting | Lower decode/allocation with stable multi-level residency; no unsafe shared writes |
+| GPU vertex playback | Two archetypes including a winged creature; all lit/shadow techniques; CPU precise picking | N12 error/performance gates, hover/charred/coverage parity and valid fallback |
+| Instanced crowd | Repeated archetype plus phase/texture/lighting variants | Submission improvement persists outside identical-material best case |
+| Transition correspondence | Walk/stand or walk/run pair chosen after audit, plus an intentionally rejected pair | N05 jump/contact target; graceful classic cut for invalid pair |
+| Contact/attention | One biped proxy and one unsupported body test | Lower contact error, accepted style, bounded cost and correct disable/reset |
+| Derived skinning | One canonical creature, held-out poses/clips, several bone budgets | Measured size/performance advantage over VAT at accepted error; reject if residual erases gains |
+| Compute/inertialization | Implement only after their prerequisite experiments | Net GPU benefit / better transitions respectively; rejection is preferable to dormant complexity |
+
+Automated coverage should include:
+
+- Pure timing/property tests for arbitrary delta sequences, pause, loop remainder, cycle direction, first/last frame, large seeks, reentrant requests and exactly-once terminal logic; backend-agnostic expected phase results.
+- Motion-history tests for clock correction, delayed/reordered/coalesced samples, yaw wrap, epoch resets, stale generations, level/hand/haul ownership and local possession responsiveness.
+- Corpus validation for sparse/dense/compressed data, topology maps, finite positions, declared error limits, bound containment and malformed derived files. Sampling must include fractional times and endpoints, not only baked frames.
+- GL integration across Flat/Vertex/Sprite where applicable, custom color/depth/shadow paths, alpha/black-key wing silhouettes, selected/charred variants, fog, picking, LOD switches, camera cuts and CPU/GPU fallback without phase restart.
+- Concurrency/lifetime fixtures for duplicate loads, cancelled jobs, removal during evaluation, context close, repeated enter/exit and disposal. Render-thread assertions around mutation; immutable-data checks around caches.
+
+Visual acceptance needs more than pixel equality. Existing CPU/GPU faithful backends should match geometry within numerical error; enhanced transitions and contact corrections intentionally change pixels. For those, use synchronized side-by-side video, silhouette/trajectory/contact plots and blinded maintainer preference. Preserve a classic capture baseline. Original DK2 comparison must label executable version, speed setting and uncertainty; there is no native parity evidence from this investigation.
+
+## 10. Prioritized implementation checklist and roadmap
+
+All entries below are **proposed and unimplemented by this document**. Complexity: S = focused days, M = several focused changes, L = cross-system work, XL = research/asset/engine work. These are relative scope classes, not delivery promises. Performance priorities can change after N01 attribution.
+
+### Quick wins and foundations
+
+- [ ] **N01 — P0, M, low risk:** extend baseline attribution/capture fixtures and acquire versioned native references. Exit: repeatable CPU/GPU/memory and visual reports with clearly stated unverified behaviors. Dependencies: current pending baseline integrated or explicitly selected.
+- [ ] **N03 — P1, M, medium risk:** define minimal semantic sidecar schema and validation; catalog existing slots, body plans and approved loop policies. Exit: invalid/missing metadata falls back safely; no changed classic timing. Depends on N01 fixtures, not completion of all native research.
+- [ ] **N02 — P1, L, high risk:** specify and test transform publication timestamps/epochs, reuse network facilities, then add shared-time root presentation and controlled local prediction. Exit: N02 jitter/latency/lifecycle gates. Depends on N01 and a reviewed producer/protocol map.
+- [ ] **N06 — P2, S–M, low–medium risk:** opt-in seeded loop/idle variation. Exit: reproducible crowd diversity, zero gameplay RNG/event changes. Depends on N03 and approved behavior references for default policy changes.
+- [ ] **N11 — P1, L, medium risk:** inventory global cache ownership and residency; prototype bounded shared immutable frame data. Exit: multi-level plateau and transition/decode evidence. Depends on N01; keep prepared retention off by default until accepted.
+
+### Medium-term visible and crowd improvements
+
+- [ ] **N10 — P1, M–L, medium risk:** introduce importance budgets, multi-view requirements and hysteresis. Exit: mixed-crowd CPU/error/event targets. Depends on N01; integrate N02 timeline without creating a second event clock.
+- [ ] **N04 — P2, M, medium risk:** measure stride/contact and trial per-archetype gait/turn policies. Exit: reduced contact drift and approved style, authored gameplay-timed actions unaffected. Depends on N02/N03/native references for classic changes.
+- [ ] **N14 — P1/P2, L, medium risk:** audit derived representation, compression and supplied LOD; add isolated versioned bake/read tooling. Exit: corpus error/memory/load evidence and safe old-format fallback. Depends on N01; GPU format choice coordinates with N12.
+- [ ] **N12 — P1, L, medium–high risk:** implement opt-in vertex-texture PoC, all-pass deformation/picking contract and safe fallback. Exit: fidelity and CPU/total-frame/GPU/residency gates. Depends on N01/N14 and explicit O1/O3 integration.
+- [ ] **N05 — P2, L–XL, high risk:** add maintained topology/correspondence audit, select compatible pair, then phase-aligned short transitions. Exit: reconstruction/jump/contact bounds, invalid-pair rejection and interruption coverage. Depends on N03/N01; correspondence is a hard prerequisite, not a checkbox inferred from equal counts.
+- [ ] **N13 — P2, L, high risk:** add animation/material instance data and compatible crowd groups only if draw attribution warrants it. Exit: measured submission improvement and per-owner lighting/selection parity. Depends on N12 plus O1 integration.
+- [ ] **N09 — P3, M–L, medium–high risk:** separately trial tangent-limited interpolation and animated normals. Exit: measured quality benefit, conservative bounds and classic fallback; reject if style/contact worsens. Depends on N01/N03/N14.
+
+### Advanced features with explicit go/no-go gates
+
+- [ ] **N07 — P3, L–XL, high risk:** contact sidecars and bounded root terrain adaptation first; proxy/cage foot placement only after a successful near-view trial. Exit: contact/style/cost acceptance on actual dungeon surfaces. Depends on N02/N03 and N05 or a validated proxy deformation method.
+- [ ] **N08 — P3, L, high risk:** selected head/secondary/additive layers with semantic masks and bounded reset behavior. Exit: style preference, frame-rate independence and LOD fallback. Depends on N03 plus N05/N07/N15 control data as applicable.
+- [ ] **N15 — P3, XL, high risk:** fit and compare inferred skinning/proxy rigs against direct vertex playback. Exit: held-out error, delivered memory/performance and tooling assessment; explicitly record rejection if thresholds fail. Depends on N05/N14.
+- [ ] **N18 — P3, L, high risk:** trial bounded vertex/rig inertialization against accepted short blends. Exit: better discontinuity/contact/cost result without overshoot. Depends on N05, and N15 if using a rig.
+- [ ] **N16 — P3, L, high risk:** batch pure CPU evaluation on workers only if N01/N11/N12 leave a material CPU workload. Exit: net frame-time gain, bounded queue/memory and lifecycle stress acceptance. Otherwise record measured non-adoption.
+- [ ] **N17 — P4, XL, high risk:** investigate maintained jME compute extension only if repeated-pass evaluation is dominant. Exit: total GPU benefit and renderer lifecycle correctness, or documented rejection. Depends on N12 profiling and upstream engine ownership agreement.
+
+Experimental items can be closed with a documented, reproducible rejection; they must not be marked “implemented” when only investigated. No broad renderer/rig rewrite should block the first N02 coherence improvement or N10 budget experiment. Conversely, no GPU optimization should bypass pass, picking and asset-lifetime acceptance.
+
+## 11. Relationship to unresolved original work
+
+| Original incomplete scope | This proposal's follow-up | Acceptance still required |
+|---|---|---|
+| B1a: endpoint dwell, Start/End range interpretation | N01 timing oracle; backend contract in N12/N14 | Versioned native traces; preserve current mapping until justified |
+| B1b: native CLAMP/cycle semantics | N01; timing property tests for all backends | Native direction/endpoint observations, not enum-name inference |
+| B2: transforms, cadence and lifecycle | N02/N03/N04 | Protocol/producer engineering can proceed now; native references gate fidelity claims |
+| B3: global caches and true residency | N01/N11/N14 | Asset-context ownership, repeated level lifetime and actual Java/native/GPU accounting |
+| B4: retreat, drag, recoil, idle and alternate forms | N01/N03/N06, later approved transition/layer work | Per-behavior native evidence and gameplay integration tests |
+
+Missing native references do not block designing timestamp ownership, cache lifetime, cost instrumentation or a faithful backend comparison. They do block claims that altered cadence, contact selection or new behavior reproduces DK2 exactly. Existing review remediations should not be reopened merely to replace them with a larger framework.
+
+## 12. Decision and remaining limitations
+
+Proceed with a **coherent timeline + bounded significance policy + faithful vertex-texture PoC** as the principal direction. Maintain the CPU implementation as the executable reference. Invest in mesh correspondence and small semantic sidecars so selected transitions and contact improvements become possible without pretending the imported models are already skeletal.
+
+The largest near-term visual opportunity is likely root/pose coherence and selective transition/phase handling; this is a source-based hypothesis requiring N01 comparisons. The largest crowd opportunity may be CPU writes, draw submission or lighting, depending on scene composition; no current whole-game GPU attribution selects a winner. Derived skinning and procedural controls offer a credible advanced path, with higher data, style and maintenance risks than faithful GPU vertex playback.
+
+This investigation executed the structural topology diagnostic and inspected source, pending PR state, pinned jME implementation and primary technical references. A separate document check verified the pinned repository file paths and line bounds against local Git objects, all 18 recommendation/checklist pairs, numerical example arithmetic, fenced-code balance and trailing whitespace. This was not an HTTP availability test of every external link.
+
+It did not execute a new full build/test suite, launch a new visual gameplay session, benchmark a new backend, capture the original DK2 executable or establish performance gains. The original recorded validation remains revision-scoped. Production code, existing documentation, converted assets and Git history were left unchanged; this proposal is the only repository file added for the task.
+
+## 13. Implementation evidence
+
+Implementation branch: `feat/animation-next-generation`, created from freshly fetched upstream `master` (`cd78e5654`) and fast-forwarded to the pending animation baseline `09bdf79b3`. Existing feature history is preserved. The canonical checkout and its untracked assessments are preserved. Nothing is pushed.
+
+### N01 — Measurement fixtures implemented; acceptance remains partial
+
+Added `MotionTrace` synthetic authoritative inputs for constant movement, acceleration/stop, corner/reversal, blocked movement, teleport epochs and pause. Three unit tests verify deterministic serialization, finite values, lifecycle boundaries and invalid-input rejection. The existing GL gallery accepts `-PanimationMotionTrace=true`, applies scaled deterministic root trajectories and writes `build/animation-capture/motion-trace.csv` containing source time, epoch, actual root coordinates and playback age. This is a synthetic presentation fixture, not a server/network or native-DK2 trace. The original fixed gallery remains the default.
+
+`benchmarkCharacterAnimation` accepts `animationRuns` (1–20) and comma-separated `animationModels`; the previous defaults remain supported. Added 250-owner measurements. Example reproducible invocation (quote the comma-containing property in PowerShell):
+
+```powershell
+./gradlew.bat benchmarkCharacterAnimation -PanimationWorkingDir=D:/Project/OpenKeeper -PconvertedAssets=D:/Project/OpenKeeper/assets/Converted -PanimationRuns=3 '-PanimationModels=Imp_Run,Goblin-Walk,Mis_Walk,Knight-Walk,Warlock-Walk,Bile_Demon-Walk,Fir-Walk,Skeleton-Walk' --no-daemon --console=plain
+```
+
+Validation: `test --tests toniarts.openkeeper.animation.MotionTraceTest captureCharacterAnimation` with installed DK2/converted roots, explicit canonical working directory and motion tracing enabled **passed**. Three tests pass; the GL sequence completed 600 frames, generated 39 captures and passed existing pause/hidden/re-entry assertions. Inspected frame 150 shows the eight gallery creatures and authored wing cutouts under the intentional hover tint. Renderer: RTX 2060 SUPER, OpenGL 3.3, NVIDIA 617.42, Java 25. No native style preference or full-game behavior claim follows. Log: `D:/Temp/animation-next-n01-validation.txt` (local, not committed).
+
+Three non-overlapping eight-archetype CPU benchmark iterations passed (180 warmup/600 measured updates per workload):
+
+| Run | 500 owner-visible median/P95/P99 ms | 1,000 owner-visible median/P95/P99 ms |
+|---|---|---|
+| 0 | 3.4505 / 6.0164 / 6.5249 | 8.3599 / 12.9737 / 14.2018 |
+| 1 | 2.7765 / 5.3998 / 5.8908 | 7.2385 / 11.3698 / 13.5615 |
+| 2 | 2.8654 / 5.4203 / 6.2808 | 6.9167 / 10.0603 / 11.2104 |
+
+At 500 owners: 185,905 vertices and 2,194,705 dirty bytes/update; measured calling-thread allocation is 32 bytes/update. This workload differs from the older three-resource benchmark, so these figures establish a new baseline, not a regression or improvement. An initial invocation omitted `animationWorkingDir` and emitted missing local converted-root warnings; it was terminated and discarded before the valid three-run measurement. Log: `D:/Temp/animation-next-n01-benchmark.txt`.
+
+**Still open:** versioned original-executable action traces; controlled server/network/possession/hand/haul session fixtures; per-pass GPU timestamps and Java/native/GPU level-cycle residency attribution. No reference recordings or semantic contact annotations exist in the inspected documentation/assets. The fixtures above make independent work possible but do not satisfy all of N01. Its original checklist box intentionally remains unchecked. Commit purpose: reproducible motion/crowd fixtures, not completed fidelity/performance acceptance.

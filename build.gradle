@@ -61,6 +61,10 @@ tasks.register("benchmarkCharacterAnimation", JavaExec) {
     mainClass = 'toniarts.openkeeper.animation.AnimationCrowdBenchmark'
     workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
     args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+    if (providers.gradleProperty('animationRuns').isPresent() || providers.gradleProperty('animationModels').isPresent()) {
+        args providers.gradleProperty('animationRuns').orElse('1').get()
+        if (providers.gradleProperty('animationModels').isPresent()) args providers.gradleProperty('animationModels').get()
+    }
     maxHeapSize = '1g'
     if (providers.gradleProperty('animationJfr').isPresent()) {
         jvmArgs "-XX:StartFlightRecording=filename=${providers.gradleProperty('animationJfr').get()},settings=profile,dumponexit=true"
@@ -86,7 +90,8 @@ tasks.register("captureCharacterAnimation", JavaExec) {
     args providers.gradleProperty('dk2Root').orElse('').get(),
             providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
             layout.buildDirectory.dir('animation-capture').get().asFile.absolutePath,
-            providers.gradleProperty('animationShadows').orElse('false').get()
+            providers.gradleProperty('animationShadows').orElse('false').get(),
+            providers.gradleProperty('animationMotionTrace').orElse('false').get()
 }
 
 tasks.register("captureAnimationCoverage", JavaExec) {
