@@ -25,7 +25,7 @@ public final class CharacterMotionGameSmoke extends com.jme3.app.state.AbstractA
     private CharacterMotionGameSmoke(Main app) { this.app = app; }
 
     public static void main(String[] args) throws Exception {
-        if (args.length != 1) throw new IllegalArgumentException("Expected installed DK2 root");
+        if (args.length < 1 || args.length > 3) throw new IllegalArgumentException("Expected installed DK2 root, optional packed KiB and phase variation");
         PathUtils.setDKIIFolder(PathUtils.fixFilePath(args[0]));
         Field params = Main.class.getDeclaredField("params"); params.setAccessible(true);
         params.set(null, new HashMap<>(Map.of("level", "Alcatraz", "nomovies", "")));
@@ -34,6 +34,8 @@ public final class CharacterMotionGameSmoke extends com.jme3.app.state.AbstractA
         var observer = new CharacterMotionGameSmoke(app);
         var init = Main.class.getDeclaredMethod("initSettings", Main.class); init.setAccessible(true); init.invoke(null, app);
         Main.getUserSettings().setSetting(Settings.Setting.ANIMATION_INTERPOLATION, true);
+        Main.getUserSettings().setSetting(Settings.Setting.ANIMATION_PACKED_KIB,args.length>1 ? Integer.parseInt(args[1]) : 0);
+        Main.getUserSettings().setSetting(Settings.Setting.ANIMATION_PHASE_VARIATION,args.length>2 && Boolean.parseBoolean(args[2]));
         var settings = new AppSettings(true); settings.setResolution(1280,720);
         settings.setRenderer(AppSettings.LWJGL_OPENGL33); settings.setFrameRate(60); settings.setVSync(false);
         settings.setTitle("OpenKeeper motion integration smoke");
@@ -84,7 +86,10 @@ public final class CharacterMotionGameSmoke extends com.jme3.app.state.AbstractA
             if (active == 360) {
                 if (pausedAges.entrySet().stream().noneMatch(e -> AnimationLoader.getPlaybackAge(e.getKey()) > e.getValue()))
                     throw new AssertionError("Playback did not resume");
-                System.out.println("MOTION_GAME_PASS active_frames="+active+" sampled_owners="+sampled+" paused_owners="+pausedAges.size());
+                long primitiveBytes=toniarts.openkeeper.utils.AssetUtils.getAnimationDataPrimitiveBytes(app.getAssetManager());
+                int limit=Main.getUserSettings().getInteger(Settings.Setting.ANIMATION_PACKED_KIB)*1024;
+                if (primitiveBytes>limit || limit>0 && primitiveBytes==0) throw new AssertionError("Packed context was not exercised or exceeded its primitive budget");
+                System.out.println("MOTION_GAME_PASS active_frames="+active+" sampled_owners="+sampled+" paused_owners="+pausedAges.size()+" packed_primitive_bytes="+primitiveBytes);
                 app.stop();
             }
         } catch (Throwable error) { failure = error; error.printStackTrace(); app.stop(); }

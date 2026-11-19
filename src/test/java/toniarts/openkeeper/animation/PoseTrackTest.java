@@ -46,8 +46,10 @@ class PoseTrackTest {
         var buffer = track.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position); buffer.clearUpdateNeeded();
         track.refreshPendingPose(); assertFalse(buffer.isUpdateNeeded());
     }
-    @Test void unchangedAndHiddenSamplesDoNotDirtyBuffersButReentryUsesCurrentPhase() {
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void unchangedAndHiddenSamplesDoNotDirtyBuffersButReentryUsesCurrentPhase(boolean packed) {
         var track = track(0); Node owner = new Node(); owner.attachChild(track.getTarget());
+        if (packed) track.preparePackedData(1024*1024);
         var composer = new com.jme3.anim.AnimComposer();
         var clip = new com.jme3.anim.AnimClip("test"); clip.setTracks(new PoseTrack[]{track});
         composer.addAnimClip(clip); owner.addControl(composer); composer.setCurrentAction("test");
@@ -61,7 +63,8 @@ class PoseTrackTest {
         positions.clearUpdateNeeded(); track.getDataAtTime(100,null); positions.clearUpdateNeeded();
         track.getDataAtTime(200,null); assertFalse(positions.isUpdateNeeded());
     }
-    @Test void pickingRebuildsCollisionTreeAfterDeformation() {
+    @org.junit.jupiter.params.ParameterizedTest @org.junit.jupiter.params.provider.ValueSource(booleans={false,true})
+    void pickingRebuildsCollisionTreeAfterDeformation(boolean packed) {
         Mesh mesh = new Mesh();
         mesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{0,0,0, 1,0,0, 0,1,0});
         mesh.setBuffer(VertexBuffer.Type.BindPosePosition, 3, new float[]{0,0,0, 1,0,0, 0,1,0});
@@ -71,6 +74,7 @@ class PoseTrackTest {
         Pose b = new Pose("b", new Vector3f[]{new Vector3f(0,0,1), new Vector3f(1,0,1), new Vector3f(0,1,1)}, new int[]{0,1,2});
         var track = new PoseTrack(target, new float[]{0,1}, new PoseTrack.PoseFrame[]{
             new PoseTrack.PoseFrame(new Pose[]{a,b}, new float[]{0}), new PoseTrack.PoseFrame(new Pose[]{a,b}, new float[]{1})});
+        if (packed) track.preparePackedData(1024*1024);
         var ray = new com.jme3.math.Ray(new Vector3f(.25f,.25f,3), new Vector3f(0,0,-1));
         target.updateGeometricState(); track.getDataAtTime(0, null);
         var initial = new com.jme3.collision.CollisionResults(); target.collideWith(ray, initial);
@@ -117,7 +121,7 @@ class PoseTrackTest {
             new PoseTrack.PoseFrame[]{new PoseTrack.PoseFrame(new Pose[]{a, b}, new float[]{0})}));
         assertThrows(IllegalArgumentException.class, () -> track(0).getDataAtTime(Double.NaN, null));
     }
-    private static PoseTrack track(float origin) {
+    static PoseTrack track(float origin) {
         Mesh mesh = new Mesh();
         mesh.setBuffer(VertexBuffer.Type.Position, 3, new float[]{0, 0, 0, 9, 9, 9});
         mesh.setBuffer(VertexBuffer.Type.BindPosePosition, 3, new float[]{0, 0, 0, 9, 9, 9});

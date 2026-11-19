@@ -52,6 +52,22 @@ import java.nio.FloatBuffer;
 public final class PoseTrack extends MorphTrack {
 
     private PoseTrack.PoseFrame[] frames;
+    // Immutable source data may be shared by scene clones. Scratch/output remains owner-local.
+    private transient VertexClip packedData;
+
+    VertexClip packedData() { return packedData; }
+    void preparePackedData(int availableBytes) {
+        if (packedData == null) { packedData = VertexClip.bake(this, availableBytes); clearSampleCache(); }
+    }
+    public boolean isPackedSampling() { return packedData != null; }
+    void discardPackedData() { packedData = null; clearSampleCache(); }
+
+    @Override public void setTarget(Geometry target) {
+        super.setTarget(target); packedData = null; clearSampleCache();
+    }
+    @Override public void setTimes(float[] times) {
+        super.setTimes(times); packedData = null; clearSampleCache();
+    }
 
     public static final class PoseFrame implements Savable, Cloneable {
 
@@ -267,30 +283,35 @@ public final class PoseTrack extends MorphTrack {
         VertexBuffer position = mesh.getBuffer(Type.Position);
         FloatBuffer vertices = (FloatBuffer) position.getData();
         if (mesh != sampledMesh || vertices != sampledBuffer) clearSampleCache();
-        if (lowerVertices == null || lowerVertices.length != bindPose.limit()) {
-            lowerVertices = new float[bindPose.limit()];
-            upperVertices = new float[bindPose.limit()];
-            lowerIndex = upperIndex = -1;
-        }
         float[] times = getTimes();
         // MorphTrack.getLength() is lastTime - firstTime. Old converted KMF
         // caches start at 1/30; new/zero-origin tracks work without reconversion.
         float sampleTime = (float) Math.clamp(time + times[0], times[0], times[times.length - 1]);
         if (sampleTime == lastSampleTime) return;
-        int result = java.util.Arrays.binarySearch(times, sampleTime);
-        int lower = result >= 0 ? result : Math.max(0, -result - 2);
-        int upper = result >= 0 ? result : Math.min(times.length - 1, lower + 1);
-        if (lowerIndex != lower) {
-            decodeFrame(lower, lowerVertices, bindPose);
-            lowerIndex = lower;
+        if (lowerVertices == null || lowerVertices.length != bindPose.limit()) {
+            lowerVertices = new float[bindPose.limit()];
+            upperVertices = packedData == null ? new float[bindPose.limit()] : null;
+            lowerIndex = upperIndex = -1;
         }
-        if (upperIndex != upper) {
-            decodeFrame(upper, upperVertices, bindPose);
-            upperIndex = upper;
-        }
-        float weight = upper == lower ? 0 : (sampleTime - times[lower]) / (times[upper] - times[lower]);
-        for (int i = 0; i < vertices.limit(); i++) {
-            vertices.put(i, lowerVertices[i] + (upperVertices[i] - lowerVertices[i]) * weight);
+        if (packedData != null) {
+            packedData.sample(time,lowerVertices);
+            vertices.put(0,lowerVertices,0,lowerVertices.length);
+        } else {
+            int result = java.util.Arrays.binarySearch(times, sampleTime);
+            int lower = result >= 0 ? result : Math.max(0, -result - 2);
+            int upper = result >= 0 ? result : Math.min(times.length - 1, lower + 1);
+            if (lowerIndex != lower) {
+                decodeFrame(lower, lowerVertices, bindPose);
+                lowerIndex = lower;
+            }
+            if (upperIndex != upper) {
+                decodeFrame(upper, upperVertices, bindPose);
+                upperIndex = upper;
+            }
+            float weight = upper == lower ? 0 : (sampleTime - times[lower]) / (times[upper] - times[lower]);
+            for (int i = 0; i < vertices.limit(); i++) {
+                vertices.put(i, lowerVertices[i] + (upperVertices[i] - lowerVertices[i]) * weight);
+            }
         }
         position.updateData(vertices);
         mesh.clearCollisionData(); // Rebuild lazily if an animated surface is picked.
@@ -362,6 +383,7 @@ public final class PoseTrack extends MorphTrack {
     @Override
     public void read(JmeImporter i) throws IOException {
         super.read(i);
+        packedData = null;
 
         InputCapsule in = i.getCapsule(this);
         Savable[] readSavableArray = in.readSavableArray("frames", null);

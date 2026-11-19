@@ -34,9 +34,10 @@ public final class AnimationAssetAudit {
         var wad = new WadFile(Path.of(args[0], "Data", "Meshes.WAD"));
         var options = List.of(args).subList(2,args.length);
         for (String option : options) if (option.startsWith("--")
-                && !option.equals("--report-only") && !option.equals("--all-creatures"))
+                && !option.equals("--report-only") && !option.equals("--all-creatures") && !option.equals("--packed"))
             throw new IllegalArgumentException("Unknown audit option: "+option);
         boolean reportOnly = options.contains("--report-only");
+        boolean packed = options.contains("--packed");
         List<String> names = options.stream().filter(value->!value.startsWith("--")).toList();
         if (options.contains("--all-creatures")) {
             if (!names.isEmpty()) throw new IllegalArgumentException("Choose all creatures or explicit resources");
@@ -64,13 +65,14 @@ public final class AnimationAssetAudit {
             for (boolean fresh : new boolean[]{false, true}) {
                 Spatial model = fresh ? (Spatial) new KmfModelLoader().load(new KmfAssetInfo(assets,
                         new AssetKey<>(name), new KmfFile(bytes), false)) : assets.loadModel("Models/" + convertedNames.getOrDefault(name+".j3o",name+".j3o"));
-                long[] result = inspect(model);
+                if (packed) new AnimationDataCache(64*1024*1024).prepare(model);
+                long[] result = inspect(model,packed);
                 System.out.printf("%s,%s,%s,%d,%d,%d,%d%n", name, hash, fresh ? "fresh" : "cached",
                         result[0], result[1], result[2], result[3]);
                 samples += result[1]; invalid += result[2]; outside += result[3];
             }
         }
-        System.out.printf("TOTAL samples=%d nonfinite=%d outside=%d%n", samples, invalid, outside);
+        System.out.printf("TOTAL samples=%d nonfinite=%d outside=%d packed=%s%n", samples, invalid, outside,packed);
         validate(invalid,outside,reportOnly);
     }
 
@@ -80,6 +82,10 @@ public final class AnimationAssetAudit {
     }
 
     static long[] inspect(Spatial model) {
+        return inspect(model,false);
+    }
+
+    private static long[] inspect(Spatial model, boolean requirePacked) {
         List<PoseTrack> tracks = new ArrayList<>();
         model.depthFirstTraversal(spatial -> {
             var composer = spatial.getControl(AnimComposer.class);
@@ -88,6 +94,7 @@ public final class AnimationAssetAudit {
         });
         long samples = 0, invalid = 0, outside = 0;
         for (PoseTrack track : tracks) {
+            if (requirePacked && !track.isPackedSampling()) throw new AssertionError("Packed corpus audit unexpectedly fell back: "+track.getTarget().getName());
             var geometry = track.getTarget();
             var bound = (BoundingBox) geometry.getModelBound();
             // Both traversal directions, exact keys, midpoints, and clamped endpoints.

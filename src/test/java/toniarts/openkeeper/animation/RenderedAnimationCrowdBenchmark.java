@@ -29,6 +29,7 @@ public final class RenderedAnimationCrowdBenchmark extends SimpleApplication imp
     private final ArrayDeque<Workload> workloads=new ArrayDeque<>();
     private final List<String> report=new ArrayList<>();
     private Spatial[] templates;
+    private final AnimationDataCache animationData;
     private Workload workload;
     private int frame, query=-1;
     private double gameTime;
@@ -38,8 +39,9 @@ public final class RenderedAnimationCrowdBenchmark extends SimpleApplication imp
     private final long[] wall=new long[SAMPLES], spatialCpu=new long[SAMPLES], renderCpu=new long[SAMPLES], gpu=new long[SAMPLES];
     private final int[] draws=new int[SAMPLES];
 
-    private RenderedAnimationCrowdBenchmark(String converted, Path output, int runs) {
+    private RenderedAnimationCrowdBenchmark(String converted, Path output, int runs, int packedBytes) {
         this.converted=converted; this.output=output;
+        animationData=new AnimationDataCache(packedBytes);
         for (int run=0;run<runs;run++) for (int count : new int[]{50,250,500,1000}) {
             // Alternate order between runs to expose warm/order bias.
             workloads.add(new Workload(run,count,run%2==0)); workloads.add(new Workload(run,count,run%2!=0));
@@ -47,10 +49,11 @@ public final class RenderedAnimationCrowdBenchmark extends SimpleApplication imp
         report.add("run,owners,moving,frame_median_ms,frame_p95_ms,frame_p99_ms,spatial_p95_ms,render_submit_p95_ms,gpu_render_p95_ms,draws_median,gpu_samples");
     }
     public static void main(String[] args) throws Exception {
-        if (args.length!=3) throw new IllegalArgumentException("Expected converted root, report directory and run count");
+        if (args.length!=4) throw new IllegalArgumentException("Expected converted root, report directory, run count and packed KiB");
         int runs=Integer.parseInt(args[2]);
         if (runs<1 || runs>20) throw new IllegalArgumentException("Expected 1..20 runs");
-        var app=new RenderedAnimationCrowdBenchmark(args[0],Path.of(args[1]),runs);
+        int packedKiB=Integer.parseInt(args[3]);
+        var app=new RenderedAnimationCrowdBenchmark(args[0],Path.of(args[1],"packed-"+packedKiB),runs,Math.multiplyExact(packedKiB,1024));
         Files.createDirectories(app.output);
         var settings=new AppSettings(true); settings.setResolution(1280,720); settings.setSamples(0);
         settings.setRenderer(AppSettings.LWJGL_OPENGL33); settings.setAudioRenderer(null);
@@ -67,10 +70,12 @@ public final class RenderedAnimationCrowdBenchmark extends SimpleApplication imp
         cam.setLocation(new Vector3f(0,6,10)); cam.lookAt(new Vector3f(0,.8f,0),Vector3f.UNIT_Y);
         viewPort.setBackgroundColor(new ColorRGBA(.12f,.14f,.18f,1));
         templates=Arrays.stream(NAMES).map(n->assetManager.loadModel("Models/"+n+".j3o")).toArray(Spatial[]::new);
+        for (Spatial template : templates) animationData.prepare(template);
         queryIds=renderer.generateProfilingTasks(32); querySamples=new int[queryIds.length]; Arrays.fill(querySamples,-1);
         statistics=new int[renderer.getStatistics().getLabels().length]; renderer.getStatistics().setEnabled(true);
         setAppProfiler(this);
         System.out.println("RENDERED_CROWD CPU backend, 1280x720, no shadows/AI/world lights, close perspective camera (0,6,10), target (0,.8,0), FOV=50, varied phase, uncapped, vsync=false; owners include offscreen actors, draw count is actual submitted parts");
+        System.out.println("RENDERED_PACKED primitive_limit="+animationData.getLimit()+" shared_primitive_bytes="+animationData.getResidentPrimitiveBytes());
     }
     @Override public void simpleUpdate(float tpf) {
         if (workload==null || frame>=WARMUP+SAMPLES+DRAIN) {

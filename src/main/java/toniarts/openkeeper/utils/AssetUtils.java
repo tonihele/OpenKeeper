@@ -83,6 +83,8 @@ public final class AssetUtils {
         final AssetCache weak = new WeakRefAssetCache();
         final ConcurrentMap<String, Boolean> textureMaps = new ConcurrentHashMap<>();
         volatile boolean preWarmed;
+        volatile toniarts.openkeeper.animation.AnimationDataCache animationData = new toniarts.openkeeper.animation.AnimationDataCache(0);
+        boolean modelLoadingStarted;
     }
 
     private static CacheContext context(AssetManager manager) {
@@ -104,6 +106,21 @@ public final class AssetUtils {
      */
     public static void releaseCaches(AssetManager manager) {
         synchronized (manager) { manager.deleteFromCache(CONTEXT_KEY); }
+    }
+
+    /** Configure before utility model loading. Zero (default) retains sparse sampling. */
+    public static void configureAnimationDataCache(AssetManager manager, int maxPrimitiveBytes) {
+        var policy = new toniarts.openkeeper.animation.AnimationDataCache(maxPrimitiveBytes);
+        CacheContext context = context(manager);
+        synchronized (context) {
+            if (context.modelLoadingStarted && context.animationData.getLimit() != maxPrimitiveBytes)
+                throw new IllegalStateException("Configure animation data before loading models, or release the completed asset context first");
+            if (context.animationData.getLimit() != maxPrimitiveBytes) context.animationData = policy;
+        }
+    }
+
+    public static long getAnimationDataPrimitiveBytes(AssetManager manager) {
+        return context(manager).animationData.getResidentPrimitiveBytes();
     }
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
     private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
@@ -136,22 +153,25 @@ public final class AssetUtils {
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
         Spatial result;
+        CacheContext context = context(assetManager);
+        synchronized (context) { context.modelLoadingStarted = true; }
         if (useCache) {
 
             // Set the correct asset cache
-            CacheContext context = context(assetManager);
             final AssetCache cache = useWeakCache ? context.weak : context.strong;
 
             // Get the model from cache
             Spatial model = cache.getFromCache(assetKey);
             if (model == null) {
                 model = loadModelTemplate(assetManager, assetKey);
+                context.animationData.prepare(model);
 
                 cache.addToCache(assetKey, model);
             }
             result = model.clone();
         } else {
             result = loadModelTemplate(assetManager, assetKey);
+            context.animationData.prepare(result);
         }
         applyTextureAnimation(result, assetManager, artResource);
         return result;

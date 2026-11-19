@@ -542,6 +542,39 @@ Added opt-in `benchmarkSharedVertexClips` to test immutable packed source sharin
 
 Measured calling-thread allocation is zero bytes/update after warmup except 11 bytes/update for the first 50-owner sparse case. Owner scratch primitive arrays decrease from 4,461,720 to 2,230,860 bytes at 500, and 8,913,000 to 4,456,500 at 1,000. Including the shared packed payload, this saves 843,756 / 3,069,396 primitive bytes respectively. At 50 owners the same shared payload instead increases that accounting by 1,164,456 bytes. These are primitive-payload calculations, not total Java/native/GPU residency. Sparse source frames, output/bind buffers, topology and materials remain present. The experiment justifies bounded opt-in integration/testing; it is not a whole-frame speedup or completed N11 cache/lifetime acceptance.
 
+#### Bounded optional runtime packed sampling
+
+Integrated `AnimationDataCache`: immutable Float32 source data is prepared on private templates, shared by scene clones and weakly accounted while templates/live owners retain it. Each packed PoseTrack keeps one owner-local array and bulk-copies the interpolated output to its existing private FloatBuffer, retaining dirty-buffer, collision invalidation, hidden/re-entry, timing and bound behavior. Sparse source data remains the fallback. Retargeting/retiming discards the derived source data; J3O serialization still writes only the original compatible data. No GPU shader, skinning convention or model conversion version changes.
+
+Configuration: `ANIMATION_PACKED_KIB` / persisted `AnimationPackedKib`, default **0**, clamped to 0–262,144 KiB. Main configures its asset context before model loading. Injected `AssetUtils.configureAnimationDataCache(manager, bytes)` has the same startup boundary; changing policy after model loading fails explicitly rather than partially converting live owners. Manager clear/release drops the utility context; reconfigure a new context before loading if enhancement is desired. Existing live clones retain their data and phase. Budgets count packed primitive payload, **not** sparse source, object overhead, temporary bake arrays, direct buffers, materials or total application/GPU residency. Over-budget clips retain sparse sampling. Preparation is synchronous on the existing private-template load path; cold preparation/transition latency remains to be profiled before default adoption.
+
+Five new cache tests cover clone output/data ownership, strict budget/repeated preparation/foreign-context fallback, retarget/retime invalidation, manager isolation/release/live owners, configuration boundaries and serialized fallback. Hidden/re-entry and precise-picking tests now exercise both samplers. Targeted compilation/tests and the GL gallery/real Main smoke pass (`D:/Temp/animation-next-n11-packed-runtime.txt`). The 600-frame gallery repeats N06's WALK/MELEE/pause hashes exactly; the Main session passes 360 active frames / 48 sampled and paused owners with root interpolation, phase variation and a 64 MiB packed budget together. Its packed primitive payload is **7,217,144 bytes**.
+
+Expanded paired CPU experiment includes the actual production packed PoseTrack, not just the array prototype. Three runs pass with exact final output comparisons (`D:/Temp/animation-next-n11-runtime-cpu.txt`):
+
+| Run | 500 sparse / packed-track P95 ms | 1,000 sparse / packed-track P95 ms |
+|---|---|---|
+| 0 | 8.0574 / 2.0802 | 14.7090 / 4.6141 |
+| 1 | 7.8641 / 2.1257 | 13.3776 / 4.4519 |
+| 2 | 9.1063 / 2.1184 | 9.5833 / 4.4874 |
+
+The first attempted rendered packed comparison was contaminated by large presentation stalls even in its frozen workload. GPU utilization remained 90% after the benchmark exited; that run (`...n11-render-packed.txt`) was stopped and **excluded**. After the user freed the GPU, utilization was 7% before restarting. Both configurations were rerun in full, three classic runs followed by three packed runs, without overlapping benchmarks. Logs: `D:/Temp/animation-next-n11-render-classic-clean.txt`, `D:/Temp/animation-next-n11-render-packed-clean.txt`. Same close camera, scene and 600 samples per case; the following are observed batch-ordered results, not randomized whole-game speedup estimates:
+
+| Run | Owners | Classic / packed frame P95 ms | Classic / packed spatial-update P95 ms | Classic / packed GPU render-scope P95 ms |
+|---|---|---|---|---|
+| 0 | 500 | 13.3074 / 7.0175 | 9.5128 / 2.3142 | 3.0765 / 2.5764 |
+| 1 | 500 | 11.2396 / 7.0257 | 8.1096 / 2.4273 | 3.1898 / 2.9945 |
+| 2 | 500 | 11.4389 / 7.0337 | 8.3197 / 2.6501 | 3.5420 / 1.7838 |
+| 0 | 1,000 | 24.1736 / 9.6789 | 18.4529 / 4.5008 | 4.7882 / 4.9972 |
+| 1 | 1,000 | 20.4757 / 10.0602 | 15.4136 / 4.5765 | 4.9192 / 4.9480 |
+| 2 | 1,000 | 20.0937 / 10.2909 | 15.3362 / 4.6969 | 4.6942 / 4.5752 |
+
+All 48 clean cases collect complete 600-frame/GPU samples. In this fixture, observed frame P95 falls **37–47% at 500** and **49–60% at 1,000**; spatial-update P95 falls **68–76%** across those cases. GPU render-scope P95 at 1,000 changes by approximately +4.4%, +0.6%, −2.5%; scope/starvation and pacing caveats from N01 still apply. All four run-0 close captures (50/250/500/1,000) are **byte-identical PNGs** between samplers. Separate results/captures reside under `build/animation-rendered-benchmark/packed-0` and `packed-65536`.
+
+This validates a useful optional CPU optimization while preserving the actual rendered output. It does not establish ten-level total residency, cold-load latency, complete gameplay/remote-session acceptance or a VAT/instancing gain. Default remains disabled; N11's broader lifetime/loading acceptance is still open.
+
+Final runtime-integration `build --rerun-tasks` passes: **1,509 tests, zero failures/errors, four existing minimap asset skips**, packaging included (`D:/Temp/animation-next-n11-full-build.txt`). The packed audit option `auditAnimationAssets -PanimationAuditAllCreatures=true -PanimationAuditPacked=true` explicitly requires every inspected PoseTrack to use packed sampling, rather than silently passing sparse fallback. It validates cached J3O and fresh KMF across all 944 resources with **1,745,788 samples, zero nonfinite or outside-bound results**. Its 64 MiB preparation budget is per model to exercise the entire corpus, not a claim that the full corpus fits that budget simultaneously. The four real alpha/black-key color/shadow coverage cases pass in the same validation invocation (`D:/Temp/animation-next-n11-packed-corpus.txt`).
+
 ### N03 — Validated semantic sidecar schema and audit
 
 Added immutable `MotionMetadata` with conservative UNKNOWN/CUT defaults, explicit body plan, loop/one-shot classification, authored transition permission, layout identity, reference speed, named normalized contact windows and explicit loop-phase-variation permission. Sidecars are limited to 16 KiB, schema-versioned, source-SHA256/resource/model-converter-bound, and reject duplicate/unknown fields, invalid intervals, nonfinite speeds and one-shot phase variation. The schema contains no FPS override and cannot change authored timing. Lists are defensively copied.

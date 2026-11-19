@@ -44,6 +44,7 @@ public final class CharacterAnimationCapture extends SimpleApplication {
     private int pausedPixels;
     private boolean shadows;
     private boolean motionTrace;
+    private int packedKiB;
     private final List<Vector3f> origins = new ArrayList<>();
     private final List<String> traceRows = new ArrayList<>();
 
@@ -58,6 +59,7 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         var app = new CharacterAnimationCapture(args[0],args[1],shadows ? Path.of(args[2],"shadows") : Path.of(args[2]));
         app.shadows = shadows;
         app.motionTrace = args.length > 4 && Boolean.parseBoolean(args[4]);
+        app.packedKiB = args.length > 6 ? Integer.parseInt(args[6]) : 0;
         toniarts.openkeeper.Main.getUserSettings().setSetting(toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_PHASE_VARIATION,
                 args.length > 5 && Boolean.parseBoolean(args[5]));
         app.traceRows.add("render_frame,creature,source_time,epoch,root_x,root_z,pose_age");
@@ -72,6 +74,7 @@ public final class CharacterAnimationCapture extends SimpleApplication {
     }
 
     @Override public void simpleInitApp() {
+        AssetUtils.configureAnimationDataCache(assetManager,Math.multiplyExact(packedKiB,1024));
         assetManager.registerLocator(converted,FileLocator.class);
         viewPort.setBackgroundColor(new ColorRGBA(.12f,.14f,.18f,1));
         flyCam.setEnabled(false); inputManager.setCursorVisible(true);

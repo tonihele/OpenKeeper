@@ -77,6 +77,7 @@ public final class Settings {
         ANISOTROPY(Integer.class, 0, SettingCategory.GRAPHICS),
         ANIMATION_CACHE_CLIPS(Integer.class, 0, SettingCategory.GRAPHICS),
         ANIMATION_CACHE_KIB(Integer.class, 256, SettingCategory.GRAPHICS),
+        ANIMATION_PACKED_KIB(Integer.class, 0, SettingCategory.GRAPHICS),
         ANIMATION_INTERPOLATION(Boolean.class, false, SettingCategory.GRAPHICS),
         ANIMATION_PHASE_VARIATION(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),

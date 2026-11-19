@@ -51,6 +51,7 @@ tasks.register("auditAnimationAssets", JavaExec) {
             providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
     if (providers.gradleProperty('animationAuditAllCreatures').orElse('false').get().toBoolean()) args '--all-creatures'
     if (providers.gradleProperty('animationAuditReportOnly').orElse('false').get().toBoolean()) args '--report-only'
+    if (providers.gradleProperty('animationAuditPacked').orElse('false').get().toBoolean()) args '--packed'
 }
 
 tasks.register("benchmarkCharacterAnimation", JavaExec) {
@@ -90,7 +91,8 @@ tasks.register("benchmarkRenderedCharacterAnimation", JavaExec) {
     workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
     args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
             layout.buildDirectory.dir('animation-rendered-benchmark').get().asFile.absolutePath,
-            providers.gradleProperty('animationRuns').orElse('3').get()
+            providers.gradleProperty('animationRuns').orElse('3').get(),
+            providers.gradleProperty('animationPackedKiB').orElse('0').get()
     maxHeapSize = '2g'
 }
 
@@ -171,7 +173,8 @@ tasks.register("captureCharacterAnimation", JavaExec) {
             layout.buildDirectory.dir('animation-capture').get().asFile.absolutePath,
             providers.gradleProperty('animationShadows').orElse('false').get(),
             providers.gradleProperty('animationMotionTrace').orElse('false').get(),
-            providers.gradleProperty('animationPhaseVariation').orElse('false').get()
+            providers.gradleProperty('animationPhaseVariation').orElse('false').get(),
+            providers.gradleProperty('animationPackedKiB').orElse('0').get()
 }
 
 tasks.register("captureAnimationCoverage", JavaExec) {
@@ -190,7 +193,8 @@ tasks.register("smokeCharacterMotion", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'toniarts.openkeeper.animation.CharacterMotionGameSmoke'
     workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
-    args providers.gradleProperty('dk2Root').orElse('').get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('animationPackedKiB').orElse('0').get(),
+            providers.gradleProperty('animationPhaseVariation').orElse('false').get()
     jvmArgs "-Duser.home=${layout.buildDirectory.dir('motion-smoke-home').get().asFile.absolutePath}"
 }
 
