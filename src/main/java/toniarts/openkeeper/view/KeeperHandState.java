@@ -155,6 +155,9 @@ public abstract class KeeperHandState extends AbstractAppState {
         }
 
         updateHandCamera();
+
+        // Held things are outside the world's lighting: always fully lit
+        AssetUtils.applyFullLight(handRootNode);
         handRootNode.updateLogicalState(tpf);
         handRootNode.updateGeometricState();
     }
@@ -222,7 +225,10 @@ public abstract class KeeperHandState extends AbstractAppState {
         KeeperHandItem handItem = new KeeperHandItem();
         handItem.index = index;
         handItem.item = item;
-        handItem.picture = getIcon(item.getInHandIcon());
+
+        // Some things that can be picked up have no icon, like the Pet Dungeon's level indicator
+        ArtResource icon = item.getInHandIcon();
+        handItem.picture = icon != null ? getIcon(icon) : new Node("No icon");
         queue.add(handItem);
 
         return handItem;
@@ -374,7 +380,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         @Override
         protected KeeperHandItem addObject(Entity e) {
             IEntityViewControl viewControl;
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             switch (inHand.type) {
                 case CREATURE: {
                     viewControl = new CreatureViewControl(e.getId(), entityData, kwdFile.getCreature(inHand.id), Creature.AnimationType.IN_HAND, assetManager, null);
@@ -395,7 +401,7 @@ public abstract class KeeperHandState extends AbstractAppState {
         protected void updateObject(KeeperHandItem object, Entity e) {
 
             // Only support index changes (these should not happen)
-            InHand inHand = entityData.getComponent(e.getId(), InHand.class);
+            InHand inHand = e.get(InHand.class);
             object.index = inHand.index;
         }
 
@@ -410,7 +416,7 @@ public abstract class KeeperHandState extends AbstractAppState {
 
         private int index;
         private IEntityViewControl item;
-        private Picture picture;
+        private Spatial picture;
 
         @Override
         public int compareTo(KeeperHandItem o) {

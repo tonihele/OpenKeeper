@@ -2,6 +2,7 @@ package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.DesktopAssetManager;
 import com.jme3.material.Material;
+import com.jme3.math.ColorRGBA;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
@@ -27,7 +28,13 @@ class CreatureFlowerVisibilityTest {
             return new Texture2D();
         }
     };
-    private final CreatureFlowerControl flower = new CreatureFlowerControl(creature, data, new Creature(), assets);
+    private final CreatureFlowerControl flower = new CreatureFlowerControl(
+            creature, data, new Creature(), assets, CreatureFlowerVisibilityTest::dummyPlayerColor);
+
+    // Deliberately arbitrary colours, generated without reading the DKII palette.
+    private static ColorRGBA dummyPlayerColor(int ownerId) {
+        return new ColorRGBA(ownerId / 8f, (8 - ownerId) / 8f, .25f, 1);
+    }
 
     @BeforeEach
     void setUp() {
@@ -222,7 +229,7 @@ class CreatureFlowerVisibilityTest {
             assertEquals(owner != 2, material.getParam("PulseBrightness").getValue());
             assertEquals(owner == 2, material.getParam("FlashColors").getValue());
             for (int color = 1; color <= 7; color++) {
-                assertNotNull(material.getParam("Color" + color));
+                assertEquals(dummyPlayerColor(color), material.getParam("Color" + color).getValue());
             }
         }
     }

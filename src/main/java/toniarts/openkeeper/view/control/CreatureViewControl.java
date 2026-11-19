@@ -28,12 +28,16 @@ import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.sound.FootstepSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -42,6 +46,8 @@ import toniarts.openkeeper.gui.CursorFactory;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
@@ -55,6 +61,18 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     private static final long IN_HAND_SOUND_INTERVAL_MS = 8000;
     private static final long DIG_SOUND_RETRY_MS = 250;
+    /**
+     * The skeletons DK II shows on the Electric Chair for the creatures that
+     * don't have their own, picked at random for each shock
+     */
+    private static final ArtResource[] ELECTROCUTE_SKELETONS = {
+        new ArtResource("Electrocute1", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute2", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute3", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute4", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute5", ArtResource.ArtResourceType.ANIMATING_MESH),
+        new ArtResource("Electrocute6", ArtResource.ArtResourceType.ANIMATING_MESH)
+    };
 
     private long nextInHandSound;
     private int researchSound = SoundEngine.NO_HANDLE;
@@ -76,7 +94,15 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
         components.add(CreatureImprisoned.class);
+        components.add(CreatureComponent.class);
         return components;
+    }
+
+    @Override
+    public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
+        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
+        boolean tool = creatureComponent != null && creatureComponent.tool;
+        return DropValidator.canDrop(getEntity().get(Interaction.class), tool, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override
@@ -109,11 +135,17 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public String getTooltip(short playerId) {
+
+        // Like DK II, only own creatures, heroes and neutral creatures have a tooltip, other keepers' creatures have none
         String tooltip;
         if (getOwnerId() == playerId) {
             tooltip = Utils.getMainTextResourceBundle().getString("2841");
+        } else if (getOwnerId() == Player.GOOD_PLAYER_ID) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2412");
+        } else if (getOwnerId() == Player.NEUTRAL_PLAYER_ID) {
+            tooltip = Utils.getMainTextResourceBundle().getString("2415");
         } else {
-            tooltip = Utils.getMainTextResourceBundle().getString(Integer.toString(getDataObject().getTooltipStringId()));
+            return "";
         }
 
         return textParser.parseText(tooltip, getEntity(), getDataObject());
@@ -281,7 +313,21 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
-        return getDataObject().getAnimation(getAvailableAnimation(state));
+        ArtResource animation = getDataObject().getAnimation(getAvailableAnimation(state));
+        if (animation == null && state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
+            return ELECTROCUTE_SKELETONS[ThreadLocalRandom.current().nextInt(ELECTROCUTE_SKELETONS.length)];
+        }
+        return animation;
+    }
+
+    /**
+     * Whether the creature is a chicken, as by the Chicken spell
+     *
+     * @return true if the creature is a chicken
+     */
+    public boolean isChicken() {
+        CreatureAi creatureAi = getEntity().get(CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
     }
 
     private Creature.AnimationType getAvailableAnimation(Creature.AnimationType state) {
@@ -294,7 +340,10 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private boolean isWorkAnimation() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
-            return creatureAi.getCreatureState() == CreatureState.WORK;
+            CreatureState state = creatureAi.getCreatureState();
+
+            // Dancing in the Casino and the jackpot celebration go on until the state changes
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
         }
         return false;
     }

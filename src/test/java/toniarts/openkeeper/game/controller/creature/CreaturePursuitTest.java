@@ -8,11 +8,14 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.event.ServerGameEventService;
@@ -39,7 +42,7 @@ class CreaturePursuitTest {
     CreaturePursuitTest() {
         CreatureComponent component = new CreatureComponent();
         component.creatureId = 5;
-        data.setComponent(attacker, component);
+        data.setComponents(attacker, component, new Owner((short) 3, (short) 3));
         PlayerService players = (PlayerService) Proxy.newProxyInstance(getClass().getClassLoader(),
                 new Class<?>[]{PlayerService.class}, (proxy, method, args) -> {
                     if (method.getName().equals("sendEvent")) {
@@ -167,8 +170,15 @@ class CreaturePursuitTest {
     }
 
     private CreatureController controller() {
+        IEntityPositionLookup positions = (IEntityPositionLookup) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> {
+                    if (method.getName().equals("getBlockingDoor")) {
+                        return null; // These synthetic routes have no doors.
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
         return new CreatureController(attacker, data, SoundFixtures.creature((short) 5, "CREATURE_GOBLIN"),
-                navigation, null, null, null, null, null, null, null, null, null, eventService);
+                navigation, null, null, Map.of(), null, positions, null, null, null, null, eventService);
     }
 
     private EntityId entity(float x, float z) {

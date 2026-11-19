@@ -21,9 +21,13 @@ import com.jme3.app.state.AppStateManager;
 import com.jme3.cinematic.events.CinematicEvent;
 import com.jme3.cinematic.events.CinematicEventListener;
 import com.jme3.math.Vector3f;
+import com.simsilica.es.Entity;
 import com.simsilica.es.EntityId;
+import com.simsilica.es.EntitySet;
 import com.simsilica.event.EventBus;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.PortalCreatureLimit;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.PlayerController;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -31,9 +35,11 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.event.ClientEvents;
+import toniarts.openkeeper.game.event.GeneratedEffect;
 import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
@@ -42,6 +48,7 @@ import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -54,6 +61,7 @@ import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
 import toniarts.openkeeper.view.minimap.FullscreenMapState;
 import toniarts.openkeeper.view.minimap.MinimapPanelState;
+import toniarts.openkeeper.view.text.GuardPostCounter;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
 
@@ -65,7 +73,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * The game client state
@@ -103,11 +113,15 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
     private RoomSoundState roomSoundState;
+    private volatile EntityId possessedCreature;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
+    private MusicLevelState musicLevelState;
     private EffectManagerState effectManagerState;
     private TextParser textParser;
+    private GuardPostCounter guardPostCounter;
+    private volatile EntitySet portalLimits;
 
     /**
      * Single use game states
@@ -191,9 +205,13 @@ public final class GameClientState extends AbstractPauseAwareState {
         stateManager.detach(minimapPanelState);
         stateManager.detach(fullscreenMapState);
         stateManager.detach(effectManagerState);
+        stateManager.detach(guardPostCounter);
         stateManager.detach(playerModelViewState);
         stateManager.detach(playerMapViewState);
         stateManager.detach(playerState);
+        if (musicLevelState != null) {
+            stateManager.detach(musicLevelState);
+        }
     }
 
     /**
@@ -216,11 +234,36 @@ public final class GameClientState extends AbstractPauseAwareState {
         playerModelViewState = null;
         minimapPanelState = null;
         fullscreenMapState = null;
+        musicLevelState = null;
         effectManagerState = null;
     }
 
     @Override
+    public void update(float tpf) {
+        if (portalLimits != null && portalLimits.applyChanges()) {
+            copyPortalLimits(portalLimits.getAddedEntities());
+            copyPortalLimits(portalLimits.getChangedEntities());
+        }
+    }
+
+    /**
+     * Gather the keeper stats the server keeps in the entities to our keepers
+     */
+    private void copyPortalLimits(Collection<Entity> entities) {
+        for (Entity entity : entities) {
+            Keeper keeper = getPlayer(entity.get(Owner.class).ownerId);
+            if (keeper != null) {
+                PortalCreatureLimit limit = entity.get(PortalCreatureLimit.class);
+                keeper.setPortalCreatures(limit.attracted, limit.capacity);
+            }
+        }
+    }
+
+    @Override
     public void cleanup() {
+        if (portalLimits != null) {
+            portalLimits.release();
+        }
 
         // Signal our exit & close all the connections
         gameClientService.exitGame();
@@ -348,6 +391,13 @@ public final class GameClientState extends AbstractPauseAwareState {
         return kwdFile.getVariables().get(variable).getValue();
     }
 
+    private Set<Short> getGuardPostTrapIds() {
+        return kwdFile.getTraps().stream()
+                .filter(trap -> trap.getFlags().contains(Trap.TrapFlag.GUARD_POST))
+                .map(Trap::getTrapId)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Gets a text parser that can fill up the parameters in translations
      *
@@ -373,12 +423,15 @@ public final class GameClientState extends AbstractPauseAwareState {
                     GameClientState.this.players.put(keeper.getId(), keeper);
                     GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
                 }
+                EntitySet limits = gameClientService.getEntityData().getEntities(Owner.class, PortalCreatureLimit.class);
+                copyPortalLimits(limits);
+                portalLimits = limits;
 
                 // Create player state
                 playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
 
                 playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
-                        false,
+                        true, // Built, but hidden until the viewer possesses a creature
                         () -> {
                             synchronized (mapDataLoadingObject) {
                                 mapDataLoaded = true;
@@ -411,10 +464,15 @@ public final class GameClientState extends AbstractPauseAwareState {
                 fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
                 textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
                 playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+                guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
+                        trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
+                textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
-                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
+                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES),
+                        getGuardPostTrapIds(),
+                        getLevelVariable(Variable.MiscVariable.MiscType.GUARD_POST_REPORTING_DISTANCE_TILES));
                 effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
 
                 // Attach the states
@@ -426,6 +484,7 @@ public final class GameClientState extends AbstractPauseAwareState {
                         gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
                 stateManager.attach(fullscreenMapState);
                 stateManager.attach(effectManagerState);
+                stateManager.attach(guardPostCounter);
 
                 // Wait until loaded
                 if (!mapDataLoaded) {
@@ -470,15 +529,20 @@ public final class GameClientState extends AbstractPauseAwareState {
             // Release loading state from memory
             loadingState = null;
 
-            stateManager.getState(SoundState.class).setKwdFile(kwdFile);
-            stateManager.getState(SoundState.class).setEnabled(true);
+            SoundState soundState = stateManager.getState(SoundState.class);
+            soundState.setKwdFile(kwdFile);
+            soundState.setEnabled(true);
+            soundState.startLevelBackground();
 
             app.enqueue(() -> {
+                musicLevelState = new MusicLevelState(gameClientService.getEntityData(), players.get(playerId), kwdFile);
+                stateManager.attach(musicLevelState);
                 playerState.setEnabled(true);
 
                 // The background sounds of the level
                 if (playerMapViewState != null) {
-                    ambienceState = new AmbienceState(kwdFile, playerMapViewState);
+                    ambienceState = new AmbienceState(kwdFile, playerMapViewState,
+                            stateManager.getState(SoundState.class).getMusicLevel()::getIntensity);
                     stateManager.attach(ambienceState);
                 }
 
@@ -495,22 +559,34 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTilesChange(List<Point> updatedTiles) {
-            playerMapViewState.onTilesChange(updatedTiles);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onTilesChange(updatedTiles);
+            }
         }
 
         @Override
         public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
-            playerMapViewState.onTilesReveal(points, explore, keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onTilesReveal(points, explore, keeperId);
+            }
         }
 
         @Override
         public void onFogOfWarDisabled(short keeperId) {
-            playerMapViewState.onFogOfWarDisabled(keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onFogOfWarDisabled(keeperId);
+            }
         }
 
         @Override
         public void onFogOfWarReset(short keeperId) {
-            playerMapViewState.onFogOfWarReset(keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onFogOfWarReset(keeperId);
+            }
         }
 
         @Override
@@ -542,12 +618,18 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onBuild(short keeperId, List<Point> tiles) {
-            playerMapViewState.onBuild(keeperId, tiles);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onBuild(keeperId, tiles);
+            }
         }
 
         @Override
         public void onSold(short keeperId, List<Point> tiles) {
-            playerMapViewState.onSold(keeperId, tiles);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onSold(keeperId, tiles);
+            }
         }
 
         @Override
@@ -575,6 +657,11 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            EventBus.publish(ClientEvents.GENERATED_EFFECT, new GeneratedEffect(effectId, position, yaw));
+        }
+
+        @Override
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
@@ -586,11 +673,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
             stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                // The speech is played from the queue, the HUD might not be there (yet / anymore)
-                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
-                if (systemMessageState != null) {
-                    systemMessageState.addMessage(SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
-                }
+                SystemMessageState.addMessageIfAttached(stateManager, SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
                 if (showText) {
                     playerState.setText(speechId, introduction, pathId);
                 }
@@ -600,8 +683,24 @@ public final class GameClientState extends AbstractPauseAwareState {
         @Override
         public void onDoTransition(short pathId, Vector3f start) {
 
+            // Called from the game logic thread, the camera and the scene belong to the render thread
+            Vector3f startPoint = start.clone();
+            app.enqueue(() -> startTransition(pathId, startPoint));
+        }
+
+        /**
+         * Starts the camera transition on the render thread. If the camera
+         * state is not initialized yet, tries again on the next frame.
+         */
+        private void startTransition(short pathId, Vector3f start) {
+            PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
+            if (cameraState == null || !cameraState.isInitialized()) {
+                app.enqueue(() -> startTransition(pathId, start));
+                return;
+            }
+
             // TODO: Refactor
-            stateManager.getState(PlayerCameraState.class).doTransition(pathId, start, new CinematicEventListener() {
+            cameraState.doTransition(pathId, start, new CinematicEventListener() {
                 @Override
                 public void onPlay(CinematicEvent cinematic) {
 
@@ -641,7 +740,10 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
-            playerMapViewState.onTileFlash(points, enabled, keeperId);
+            PlayerMapViewState mapViewState = playerMapViewState;
+            if (mapViewState != null) {
+                mapViewState.onTileFlash(points, enabled, keeperId);
+            }
         }
 
         @Override
@@ -770,6 +872,15 @@ public final class GameClientState extends AbstractPauseAwareState {
         return fogOfWarInformation;
     }
 
+    /**
+     * Get the rooms information, e.g. the number of rooms a player has
+     *
+     * @return the rooms information
+     */
+    public IRoomsInformation<?> getRoomsInformation() {
+        return playerMapViewState.getRoomsInformation();
+    }
+
     public MinimapPanelState getMinimapPanelState() {
         return minimapPanelState;
     }
@@ -793,8 +904,29 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */
     public void setPossessedCreature(EntityId entityId) {
+        possessedCreature = entityId;
         if (playerMapViewState != null) {
             playerMapViewState.setPossessedCreature(entityId);
+        }
+    }
+
+    /**
+     * @return the creature the viewer is currently possessing, or
+     * {@code null} if not possessing
+     */
+    public EntityId getPossessedCreature() {
+        return possessedCreature;
+    }
+
+    /**
+     * Shows or hides the map ceiling, which is only wanted while possessing a
+     * creature
+     *
+     * @param visible show the ceiling
+     */
+    public void setCeilingVisible(boolean visible) {
+        if (playerMapViewState != null) {
+            playerMapViewState.setCeilingVisible(visible);
         }
     }
 

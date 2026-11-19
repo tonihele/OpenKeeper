@@ -26,10 +26,18 @@ public enum GameEventType {
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
     /**
+     * A Vampire rose in a Graveyard, only the keeper of the Graveyard gets this
+     */
+    GRAVEYARD_VAMPIRE_RISEN,
+    /**
      * The creature took damage. Not restarted while the previous one of the same creature still goes on.
      */
     CREATURE_HURT,
     CREATURE_DIE,
+    /**
+     * A prisoner died and rose as a Skeleton, only the keeper of the Prison gets this
+     */
+    PRISON_SKELETON_RISEN,
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**
@@ -60,12 +68,82 @@ public enum GameEventType {
      */
     SHOT_HIT,
     IMPS_CREATED,
+    /**
+     * A Call to Arms banner calls its creatures, the entity is the banner
+     */
+    CALL_TO_ARMS,
+    /**
+     * Some creatures can't get to the Call to Arms banner, only its keeper
+     * gets this
+     */
+    CALL_TO_ARMS_UNREACHABLE,
+
+    // The Torture Chamber
+    /**
+     * A victim on the Electric Chair gets a shock, the subject is the chair and the target the victim
+     */
+    TORTURE_ELECTROCUTED,
+    /**
+     * A victim on the Torture Wheel, sent on every tick. Not restarted while the previous one of the same victim
+     * still goes on.
+     */
+    TORTURE_WHEEL,
+    /**
+     * A victim joined the keeper that tortured it, only that keeper gets this
+     */
+    TORTURE_CONVERTED,
+    /**
+     * A creature joined the enemy that tortured it, only the keeper it left gets this
+     */
+    TORTURE_CONVERTED_BY_ENEMY,
 
     // Rooms and terrain, the subject is the room or the terrain
     ROOM_TILES_LAID,
     ROOM_TILE_BUILT,
     ROOM_SOLD,
+    /** A completed room capture, delivered only to its new owner. */
+    ROOM_CAPTURED,
     TERRAIN_DESTROYED,
+
+    // Temple
+    /**
+     * A creature was dropped into the pool, the subject is the creature type
+     */
+    CREATURE_SACRIFICED,
+    /**
+     * The sacrifices completed a recipe, the subject is the room, at the reward's tile
+     */
+    SACRIFICE_REWARD,
+    /**
+     * The mentor's verdict on a sacrifice, only the temple's owner gets this. The subject id is the speech id of the
+     * recipe, or 1 when no recipe matched.
+     */
+    SACRIFICE_SPEECH,
+
+    /** An eligible Portal has started its creature attraction build-up. */
+    PORTAL_PREPARING,
+
+    // The Casino
+    /**
+     * A gambler became the big winner, the place is the winner's
+     */
+    CASINO_JACKPOT,
+    /**
+     * A gambler became the big winner, only its keeper gets this
+     */
+    CASINO_JACKPOT_ANNOUNCED,
+    /**
+     * A Casino went into disco mode, the subject is the room and the place its centre
+     */
+    CASINO_DISCO_START,
+    /**
+     * The disco of a Casino is over, the subject is the room and the place its centre
+     */
+    CASINO_DISCO_END,
+    /**
+     * Fireworks go off over a tile of a Casino that is in disco mode
+     */
+    CASINO_FIREWORKS,
 
     /** A creature successfully started pursuing an attack target. */
     CREATURE_CHARGE

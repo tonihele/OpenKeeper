@@ -220,6 +220,9 @@ public final class FullscreenMapState extends AbstractAppState {
     public void update(float tpf) {
         changedThisFrame = false;
         if (!open) {
+            if (overlay != null) {
+                overlay.applyChanges();
+            }
             return;
         }
 

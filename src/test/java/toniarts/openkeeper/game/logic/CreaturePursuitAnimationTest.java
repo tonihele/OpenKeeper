@@ -27,7 +27,7 @@ class CreaturePursuitAnimationTest {
         data.setComponents(creature, new Position(0, new Vector3f()),
                 new CreatureViewState((short) 7, 0, AnimationType.WALK),
                 new CreatureAi(0, CreatureState.FIGHT, (short) 7), navigation(3, true));
-        var system = new CreatureViewSystem(data);
+        var system = new CreatureViewSystem(data, null);
         try {
             system.processTick(.1f);
             var running = data.getComponent(creature, CreatureViewState.class);
@@ -63,7 +63,7 @@ class CreaturePursuitAnimationTest {
         data.setComponents(creature, new Position(0, new Vector3f()),
                 new CreatureViewState((short) 7, 0, AnimationType.IDLE_1),
                 navigation(3, true), new CreatureFall());
-        var system = new CreatureViewSystem(data);
+        var system = new CreatureViewSystem(data, null);
         try {
             system.processTick(.1f);
             assertEquals(AnimationType.FALLBACK, data.getComponent(creature, CreatureViewState.class).state);
