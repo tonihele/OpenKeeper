@@ -29,6 +29,7 @@ import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.data.FurnitureAnimationPolicy;
 import toniarts.openkeeper.game.controller.EntityPickupValidator;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -294,6 +295,11 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         AnimationLoader.playAnimation(getSpatial(), getAnimationData(viewState), assetManager);
         if (uniqueCreatureBed) {
             CreatureVariantTextures.apply(getSpatial(), assetManager);
+        }
+        // Workbenches and wall books stay at frame zero until a creature uses them.
+        if (FurnitureAnimationPolicy.pausesWhenIdle(getDataObject().getObjectId())
+                && viewState.state != GameObject.State.ACTIVATE_ANIM) {
+            AnimationLoader.resetAndPauseAnimations(getSpatial());
         }
         isAnimationPlaying = true;
     }
