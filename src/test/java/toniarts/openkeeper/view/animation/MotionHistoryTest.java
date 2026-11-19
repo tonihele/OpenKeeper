@@ -75,4 +75,59 @@ class MotionHistoryTest {
         assertEquals(a.motionEpoch, b.motionEpoch); assertNotEquals(a.motionEpoch, placement.motionEpoch);
         assertNotSame(a.position, b.position);
     }
+
+    @Test void motionBeforePositionIsOwnedAndPromotedWithoutAnotherPacket() {
+        var history = new MotionHistory(4); var store = new Transform();
+        assertTrue(history.add(point(1, 1, 5, 1, 0, AnimationType.WALK), 5));
+        var next = point(2, 2, 6, 20, 0, AnimationType.STAND_STILL);
+        assertTrue(history.add(next, 5));
+        next.x = -99; next.request.state = AnimationType.DIE;
+        history.sample(2, store);
+        assertEquals(1, store.getTranslation().x, "Keep the last coherent publication until Position catches up");
+        history.synchronizeEpoch(6);
+        assertTrue(history.sample(1.5, store));
+        assertEquals(20, store.getTranslation().x, "A cut cannot interpolate through the old root");
+        assertEquals(AnimationType.STAND_STILL, history.getSampledRequest().state);
+        assertEquals(2, history.getSampledTime());
+    }
+
+    @Test void positionBeforeMotionCutsImmediatelyWithoutReacceptingStaleSequences() {
+        var history = new MotionHistory(4); var store = new Transform();
+        history.add(point(1, 1, 5, 1, 0, AnimationType.WALK), 5);
+        history.synchronizeEpoch(6);
+        assertFalse(history.sample(1.5, store)); // View uses its authoritative Position fallback.
+        assertFalse(history.add(point(1, 1, 5, 1, 0, AnimationType.WALK), 6));
+        assertTrue(history.add(point(2, 2, 6, 20, 0, AnimationType.WALK), 6));
+        assertTrue(history.sample(1.5, store)); assertEquals(20, store.getTranslation().x);
+        history.synchronizeEpoch(5); // An older Position cannot promote an older motion.
+        assertFalse(history.sample(2, store));
+        assertFalse(history.add(point(1.9, 3, 5, -99, 0, AnimationType.WALK), 5));
+    }
+
+    @Test void deferredPublicationsCoalesceAndLifecycleRemovalReleasesThem() {
+        var history = new MotionHistory(2); var store = new Transform();
+        history.add(point(1, 1, 5, 1, 0, AnimationType.WALK), 5);
+        history.add(point(2, 2, 6, 20, 0, AnimationType.WALK), 5);
+        history.add(point(3, 3, 7, 30, 0, AnimationType.STAND_STILL), 5);
+        history.synchronizeEpoch(6);
+        assertFalse(history.isReady(), "Only the newest unmatched publication is retained");
+        history.synchronizeEpoch(7); history.sample(9, store);
+        assertEquals(30, store.getTranslation().x);
+        history.add(point(4, 4, 8, 40, 0, AnimationType.WALK), 7);
+        history.clear(); history.synchronizeEpoch(8);
+        assertFalse(history.isReady());
+        assertTrue(history.add(point(0, 0, 8, 0, 0, AnimationType.WALK), 8));
+    }
+
+    @Test void matchingDeferredSampleIsPreservedWhenTheNextPacketArrivesWithPosition() {
+        var history = new MotionHistory(4); var store = new Transform();
+        history.add(point(1, 1, 5, 1, 0, AnimationType.WALK), 5);
+        history.add(point(2, 2, 6, 20, 0, AnimationType.WALK), 5);
+        history.add(point(3, 3, 6, 30, 0, AnimationType.WALK), 6);
+        history.sample(2.5, store);
+        assertEquals(25, store.getTranslation().x);
+        var invalid = point(4, Long.MAX_VALUE, 7, Float.NaN, 0, AnimationType.DIE);
+        assertFalse(history.add(invalid, 6));
+        assertTrue(history.add(point(4, 4, 6, 40, 0, AnimationType.WALK), 6));
+    }
 }

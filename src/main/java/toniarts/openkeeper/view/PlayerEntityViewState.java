@@ -547,6 +547,8 @@ public class PlayerEntityViewState extends AbstractAppState {
 
                 if (motionSnapshots != null) {
                     MotionTrack track = new MotionTrack(e.getId(), result);
+                    track.latestPosition = e.get(Position.class);
+                    track.latestState = creatureViewState;
                     motionTracks.put(e.getId(), track);
                     control.setGameTime(track::time);
                     Entity snapshot = motionSnapshots.getEntity(e.getId());
@@ -933,7 +935,10 @@ public class PlayerEntityViewState extends AbstractAppState {
     private void acceptMotion(Entity entity) {
         MotionTrack track = motionTracks.get(entity.getId());
         var next = entity.get(toniarts.openkeeper.game.component.CreatureMotion.class);
-        if (track != null && (track.latestPosition == null || track.latestPosition.motionEpoch == next.epoch)) track.history.add(next);
+        if (track != null) {
+            if (track.latestPosition == null) track.history.add(next);
+            else track.history.add(next, track.latestPosition.motionEpoch);
+        }
     }
 
     /** Preserve the victim's authoritative height while following the carrier's presented world X/Z. */
@@ -962,7 +967,7 @@ public class PlayerEntityViewState extends AbstractAppState {
             if (latestPosition == null || latestState == null) return;
             if (gamePaused && appliedState != null) return;
             boolean wasSampling = sampling;
-            if (history.isReady() && latestPosition.motionEpoch != history.getEpoch()) history.clear();
+            history.synchronizeEpoch(latestPosition.motionEpoch);
             sampling = history.isReady() && !history.isImmediate()
                     && history.sample(presentationClock.getTime() - history.getInterval(), pose);
             CreatureViewState request = sampling ? history.getSampledRequest() : latestState;

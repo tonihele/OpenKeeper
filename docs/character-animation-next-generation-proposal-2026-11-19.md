@@ -888,3 +888,20 @@ Final diagnostic-tool compilation and ordinary `build --rerun-tasks` **pass**: *
 - [ ] **Blocked by pinned dependency API/release:** eliminate Zay-ES static reporter database retention through a maintained ownership fix; rerun strict ten-cycle acceptance.
 - [ ] **Blocked by Windows profiling policy:** obtain trustworthy process/device GPU allocation/residency evidence; do not infer VRAM bytes from resource counts.
 - [ ] Attribute and reduce animation-specific cold preparation/transition stalls before changing defaults; whole-load timing above is insufficient attribution.
+
+Residency diagnostic/evidence commit: `a38c451`.
+
+## 16. Continued implementation: presentation delivery coherence
+
+### N02a — Preserve motion delivered before its separate Position
+
+Source tracing found a concrete opt-in interpolation defect: `PlayerEntityViewState.acceptMotion()` discarded a coherent `CreatureMotion` when its epoch differed from the separately replicated `Position`. If motion arrived first at a teleport/replacement, the later matching Position could not recover it without another motion publication. Clearing history on a Position cut also reset the sequence watermark, weakening stale-publication rejection.
+
+`MotionHistory` now owns at most **one additional unmatched publication**, copied once at acceptance with its request. The existing render update promotes it when Position reaches that epoch, even if no more motion arrives. If Position arrives first, old samples are cut immediately and the authoritative Position fallback stays active until matching motion arrives. Epoch synchronization preserves sequence/time watermarks; actual component removal/owner recreation still clears the entire history and pending publication. Newer unmatched publications coalesce rather than growing a queue. Initial creature construction supplies its observed Position before the first motion is accepted. No protocol fields, gameplay/physics values, playback rate, worker or per-frame allocation is added.
+
+Four new regressions cover both delivery orders, owned deferred values under caller mutation, stale/invalid packets after a cut, multiple unmatched epochs/coalescing, owner removal/recreation and arrival of another sample with Position (preserving both endpoints for interpolation). These join the existing shortest-arc, historical-request, bounded-ring, pause-clock and wire-serialization cases. Targeted production/test compilation and **11 tests pass** (`D:/Temp/animation-next-n02-component-order-tests.txt`).
+
+`build smokeCharacterMotion` **passes** with **1,538 tests, zero failures/errors, four existing minimap skips**, compilation/packaging and the actual local Alcatraz session: **360 active frames / 48 sampled and paused owners / 7,217,144 packed primitive bytes** (`D:/Temp/animation-next-n02-order-build-smoke.txt`). This verifies deterministic delivery-order behavior and local pause/resume integration. It does not substitute for delayed real remote traffic, possession-camera latency, collision/corner acceptance or native motion style. N02 remains partial and interpolation stays opt-in.
+
+- [x] Preserve one unmatched coherent publication across independently delivered Position epochs, with bounded ownership and monotonic rejection.
+- [ ] Execute controlled serialized/network delay/coalescing and attachment/possession acceptance; measure actual protocol overhead and remaining latency.

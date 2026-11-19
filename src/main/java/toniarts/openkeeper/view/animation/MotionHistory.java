@@ -10,6 +10,8 @@ public final class MotionHistory {
     private final CreatureMotion[] samples;
     private int count, first;
     private long lastSequence = Long.MIN_VALUE;
+    private double lastTime = Double.NEGATIVE_INFINITY;
+    private CreatureMotion pending;
     private double sampledTime = Double.NaN;
     private CreatureViewState sampledRequest;
 
@@ -19,25 +21,52 @@ public final class MotionHistory {
     }
 
     public boolean add(CreatureMotion next) {
+        return add(next, false, 0);
+    }
+
+    /** Keep at most one newer publication until its independently replicated Position arrives. */
+    public boolean add(CreatureMotion next, long authoritativeEpoch) {
+        return add(next, true, authoritativeEpoch);
+    }
+
+    private boolean add(CreatureMotion next, boolean fenced, long authoritativeEpoch) {
         if (next == null || next.sequence <= lastSequence || !Double.isFinite(next.time) || next.time < 0
                 || !Double.isFinite(next.interval) || next.interval <= 0 || next.interval > 1
                 || !Float.isFinite(next.x) || !Float.isFinite(next.y) || !Float.isFinite(next.z) || !Float.isFinite(next.yaw)
                 || next.request == null || next.request.state == null || !Double.isFinite(next.request.stateStartTime)) return false;
-        CreatureMotion last = latest();
-        if (last != null && next.time <= last.time) return false;
-        boolean cut = last != null && (next.epoch != last.epoch || next.immediate != last.immediate
-                || next.request.creatureId != last.request.creatureId);
-        if (cut) { clearSamples(); sampledTime = Double.NaN; }
+        if (next.time <= lastTime) return false;
         // Copy the wire component once; caller/deserializer mutation cannot corrupt history.
         CreatureMotion owned = new CreatureMotion();
         owned.time = next.time; owned.interval = next.interval; owned.epoch = next.epoch; owned.sequence = next.sequence;
         owned.x = next.x; owned.y = next.y; owned.z = next.z; owned.yaw = next.yaw; owned.immediate = next.immediate;
         owned.hauler = next.hauler;
         owned.request = new CreatureViewState(next.request.creatureId, next.request.stateStartTime, next.request.state, next.request.sequence);
+        lastSequence = next.sequence;
+        lastTime = next.time;
+        if (fenced) synchronizeEpoch(authoritativeEpoch);
+        pending = null;
+        if (fenced && next.epoch != authoritativeEpoch) pending = owned;
+        else append(owned);
+        return true;
+    }
+
+    /** Called even without another motion change: component delivery order must not lose a cut. */
+    public void synchronizeEpoch(long authoritativeEpoch) {
+        if (isReady() && getEpoch() != authoritativeEpoch) {
+            clearSamples(); sampledTime = Double.NaN;
+        }
+        if (pending != null && pending.epoch == authoritativeEpoch) {
+            append(pending); pending = null;
+        }
+    }
+
+    private void append(CreatureMotion owned) {
+        CreatureMotion last = latest();
+        boolean cut = last != null && (owned.epoch != last.epoch || owned.immediate != last.immediate
+                || owned.request.creatureId != last.request.creatureId);
+        if (cut) { clearSamples(); sampledTime = Double.NaN; }
         if (count == samples.length) { samples[first] = null; first = (first + 1) % samples.length; count--; }
         samples[(first + count++) % samples.length] = owned;
-        lastSequence = next.sequence;
-        return true;
     }
 
     private CreatureMotion latest() { return count == 0 ? null : samples[(first + count - 1) % samples.length]; }
@@ -70,5 +99,8 @@ public final class MotionHistory {
     public double getSampledTime() { return sampledTime; }
     public CreatureViewState getSampledRequest() { return sampledRequest; }
     private void clearSamples() { java.util.Arrays.fill(samples, null); count = first = 0; sampledRequest = null; }
-    public void clear() { clearSamples(); sampledTime = Double.NaN; lastSequence = Long.MIN_VALUE; }
+    public void clear() {
+        clearSamples(); pending = null; sampledTime = Double.NaN;
+        lastSequence = Long.MIN_VALUE; lastTime = Double.NEGATIVE_INFINITY;
+    }
 }
