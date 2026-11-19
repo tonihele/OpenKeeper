@@ -18,6 +18,9 @@ package toniarts.openkeeper.gui.nifty;
 
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.controls.Label;
+import de.lessvoid.nifty.elements.Element;
+import de.lessvoid.nifty.elements.render.ImageRenderer;
+import de.lessvoid.nifty.tools.Color;
 import de.lessvoid.nifty.elements.render.TextRenderer;
 import de.lessvoid.nifty.spi.sound.SoundHandle;
 import de.lessvoid.nifty.tools.SizeValue;
@@ -48,6 +51,17 @@ public final class NiftyUtils {
         label.setHeight(new SizeValue(renderer.getTextHeight() + "px"));
         label.setWidth(new SizeValue(renderer.getTextWidth() + "px"));
         label.getElement().getParent().layoutElements();
+    }
+
+    /** Tints the element's own image without changing its selection overlay. */
+    public static void setImageDimmed(@Nullable Element element, boolean dimmed) {
+        if (element == null) {
+            return;
+        }
+        ImageRenderer renderer = element.getRenderer(ImageRenderer.class);
+        if (renderer != null && renderer.getImage() != null) {
+            renderer.getImage().setColor(dimmed ? new Color("#808080ff") : new Color("#ffffffff"));
+        }
     }
 
     @Nullable

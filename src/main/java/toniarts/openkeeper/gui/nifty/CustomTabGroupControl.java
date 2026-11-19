@@ -35,6 +35,8 @@ import de.lessvoid.nifty.screen.Screen;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.List;
+import java.util.HashSet;
+import java.util.Set;
 import org.bushe.swing.event.EventTopicSubscriber;
 
 /**
@@ -188,6 +190,7 @@ public final class CustomTabGroupControl extends AbstractController implements T
      * This is the content panel that stores all tabs.
      */
     private Element contentPanel;
+    private final Set<Tab> dimmedTabs = new HashSet<>();
 
     /**
      * The instance of the Nifty-GUI that is parent to this tab group control.
@@ -432,8 +435,22 @@ public final class CustomTabGroupControl extends AbstractController implements T
     }
 
     /**
-     * Check the visibility settings of all tabs and correct it as needed.
+     * Apply a prerequisite tint to a tab without disabling selection.
      */
+    public void setTabDimmed(Tab tab, boolean dimmed) {
+        int index = indexOf(tab);
+        if (index < 0) {
+            return;
+        }
+        if (dimmed) {
+            dimmedTabs.add(tab);
+        } else {
+            dimmedTabs.remove(tab);
+        }
+        NiftyUtils.setImageDimmed(getButton(index), dimmed);
+    }
+
+    /** Check the visibility settings of all tabs and correct them as needed. */
     private void checkVisibility() {
         if (contentPanel == null) {
             return;
@@ -472,6 +489,10 @@ public final class CustomTabGroupControl extends AbstractController implements T
                     //addMargin(i, button);
                 }
                 button.setRenderOrder(0);
+            }
+            // Changing a Nifty style recreates its image renderer.
+            if (dimmedTabs.contains(tab.getNiftyControl(Tab.class))) {
+                NiftyUtils.setImageDimmed(button, true);
             }
         }
 
