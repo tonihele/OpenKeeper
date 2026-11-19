@@ -25,13 +25,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
@@ -43,23 +46,42 @@ class OwnLandRegenerationTest {
 
     /**
      * An Imp fighting in its own Dungeon Heart keeps regaining its own land
-     * health every second while it is hit
+     * health on every tick while it is hit
      */
     @Test
     void ownLandRegenerationGoesOnWhileBeingHit() {
         EntityData entityData = new DefaultEntityData();
         EntityId imp = entityData.createEntity();
-        entityData.setComponents(imp, new Health(300, 1000), new Regeneration(67, null), new Owner(OWNER, OWNER));
+        entityData.setComponents(imp, new Health(300, 1000), new Regeneration(67, null), new Owner(OWNER, OWNER),
+                new CreatureComponent());
+
+        // 67 a second is 16 a tick at four ticks a second, as DK II rounds it down (0x492320)
+        assertEquals(300 - 40 * 5 + 40 * 16, healthAfterTenSecondsOfHits(entityData, imp));
+    }
+
+    /**
+     * Something that isn't a creature, such as the Dungeon Heart, regains
+     * its health once a second, also while it is hit
+     */
+    @Test
+    void otherRegenerationGoesOnWhileBeingHit() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId heart = entityData.createEntity();
+        entityData.setComponents(heart, new Health(300, 1000), new Regeneration(67, null), new Owner(OWNER, OWNER));
+
+        // The first second only starts the count, then 67 every second
+        assertEquals(300 - 40 * 5 + 9 * 67, healthAfterTenSecondsOfHits(entityData, heart));
+    }
+
+    private static int healthAfterTenSecondsOfHits(EntityData entityData, EntityId entity) {
         HealthSystem healthSystem = healthSystem(entityData);
 
         // Ten seconds at four ticks a second, hit for 5 on every tick
         for (int tick = 0; tick < 40; tick++) {
-            entityData.setComponent(imp, new Damage(5));
+            entityData.setComponent(entity, new Damage(5));
             healthSystem.processTick(0.25f);
         }
-
-        // The first second only starts the count, then 67 every second
-        assertEquals(300 - 40 * 5 + 9 * 67, entityData.getComponent(imp, Health.class).health);
+        return entityData.getComponent(entity, Health.class).health;
     }
 
     private static HealthSystem healthSystem(EntityData entityData) {
@@ -79,7 +101,16 @@ class OwnLandRegenerationTest {
             settings.put(type, CreatureSleepFixtures.variable(type, 0));
         }
 
-        return new HealthSystem(entityData, lookup, settings, null, null, List.of(), null, () -> 0.0, events);
+        IKwdFile kwd = proxy(IKwdFile.class, method -> switch (method) {
+            case "getGameLevel" -> CreatureSleepFixtures.level(4);
+            default -> throw new UnsupportedOperationException(method);
+        });
+        ILevelInfo levelInfo = proxy(ILevelInfo.class, method -> switch (method) {
+            case "getLevelData" -> kwd;
+            default -> throw new UnsupportedOperationException(method);
+        });
+
+        return new HealthSystem(entityData, lookup, settings, null, levelInfo, List.of(), null, () -> 0.0, events);
     }
 
     @SuppressWarnings("unchecked")
