@@ -64,6 +64,8 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
     private static final short CREATE_OBJECT_ID = 2;
+    private static final short CREATE_SINGLE_CREATURE_ID = 60;
+    private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short SPIKE_ID = 27;
@@ -80,6 +82,7 @@ class ShotsControllerTest {
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
+    private final List<Object[]> spawnedCreatures = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
@@ -89,6 +92,7 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
+        addShot(CREATE_SINGLE_CREATURE_ID, Shot.ProcessType.CREATE_SINGLE_CREATURE);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
@@ -129,7 +133,14 @@ class ShotsControllerTest {
                         .toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("spawnCreature")) {
+                        spawnedCreatures.add(args);
+                    }
+                    return null;
+                });
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
     @Test
@@ -173,6 +184,19 @@ class ShotsControllerTest {
         assertEquals((short) 7, loadedObjects.get(0)[0]);
         assertEquals(PLAYER_ID, loadedObjects.get(0)[1]);
         assertEquals(position, loadedObjects.get(0)[2]);
+    }
+
+    @Test
+    void upgradedCreateImpCreatesALevelFourImp() {
+
+        // The upgraded Create Imp fires shot 60 (Create Single Creature) with data 1 (Imp) and 4
+        shotsController.createShot(CREATE_SINGLE_CREATURE_ID, IMP_ID, 4, PLAYER_ID, new Vector3f(4.5f, 0f, 7.5f), null, null);
+
+        assertEquals(1, spawnedCreatures.size());
+        Object[] args = spawnedCreatures.get(0);
+        assertEquals(IMP_ID, args[0]);
+        assertEquals(PLAYER_ID, args[1]);
+        assertEquals(4, args[2]);
     }
 
     @Test
