@@ -32,6 +32,8 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureTortured;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Owner;
@@ -46,6 +48,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -70,11 +73,15 @@ class TrapSystemTest {
     private static final short TRIGGER = 9;
     private static final short GUARD_POST = 11;
     private static final short GAS = 1;
+    private static final short MAGIC_DOOR_TRAP = 12;
+    private static final short MAGIC_DOOR = 4;
     private static final short CANNON_BALL = 44;
     private static final short SPIKE_SHOT = 27;
     private static final short FEAR_SHOT = 25;
     private static final short TRIGGER_SHOT = 39;
     private static final short GAS_SHOT = 58;
+    private static final short DOOR_FIREBALL = 57;
+    private static final int POWERLESS_EFFECT = 315;
     private static final short IMP = 1;
     private static final short REAPER = 2;
     private static final short THIEF = 18;
@@ -86,6 +93,7 @@ class TrapSystemTest {
     private final Set<Point> walls = new HashSet<>();
     private final List<Fired> shots = new ArrayList<>();
     private final List<Object[]> flyingShots = new ArrayList<>();
+    private final List<Integer> effects = new ArrayList<>();
     private final List<EntityId> entities = new ArrayList<>();
     private boolean shotsFly = false;
     private final Keeper keeper = new Keeper(false, KEEPER);
@@ -106,6 +114,9 @@ class TrapSystemTest {
         traps.put((int) GUARD_POST, TrapFiringFixtures.trap(GUARD_POST, Trap.TriggerType.PRESSURE, 6, 1, (short) 0));
         traps.put((int) GAS, TrapFiringFixtures.trap(GAS, Trap.TriggerType.PRESSURE, 1, 4, GAS_SHOT));
         traps.get((int) GAS).getFlags().addAll(EnumSet.of(Trap.TrapFlag.INVISIBLE, Trap.TrapFlag.REVEAL_WHEN_FIRED));
+        traps.put((int) MAGIC_DOOR_TRAP, TrapFiringFixtures.withPowerlessEffect(TrapFiringFixtures.withShotData(
+                TrapFiringFixtures.withManaCost(TrapFiringFixtures.trap(MAGIC_DOOR_TRAP, Trap.TriggerType.PRESSURE, 4, 8, DOOR_FIREBALL),
+                        500), 150, 0), POWERLESS_EFFECT));
         creatures.put(IMP, TrapFiringFixtures.creature(IMP, Creature.CreatureFlag.IS_WORKER));
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         creatures.put(THIEF, TrapFiringFixtures.creature(THIEF, Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS));
@@ -517,10 +528,93 @@ class TrapSystemTest {
         assertTrue(entityData.getComponent(trap, TrapViewState.class).hidden);
     }
 
+    @Test
+    void magicDoorFiresAtEnemyAroundIt() {
+        shotsFly = true;
+        EntityId door = addMagicDoor(false);
+        EntityId enemy = addCreature(IMP, ENEMY, 12, 11);
+
+        tick();
+
+        assertEquals(1, flyingShots.size());
+        Object[] shot = flyingShots.get(0);
+        assertEquals(DOOR_FIREBALL, shot[0]);
+        assertEquals(150, shot[1]);
+        assertEquals(KEEPER, shot[3]);
+        assertEquals(new Vector3f(10, WorldUtils.FLOOR_HEIGHT + 0.5f, 10), shot[4]);
+        assertEquals(enemy, shot[5]);
+        assertEquals(door, shot[6]);
+        assertEquals(500, keeper.getMana());
+    }
+
+    @Test
+    void openMagicDoorDoesNotFire() {
+        shotsFly = true;
+        addMagicDoor(true);
+        addCreature(IMP, ENEMY, 12, 10);
+
+        tick();
+
+        assertTrue(flyingShots.isEmpty());
+        assertEquals(1000, keeper.getMana());
+    }
+
+    @Test
+    void magicDoorFiresOnlyAtTheTilesAroundItInLine() {
+        shotsFly = true;
+        addMagicDoor(false);
+        addCreature(IMP, ENEMY, 13, 10);
+        addCreature(IMP, ENEMY, 10, 12);
+        walls.add(new Point(10, 11));
+
+        tick();
+
+        assertTrue(flyingShots.isEmpty());
+    }
+
+    @Test
+    void magicDoorWaitsForItsRecharge() {
+        shotsFly = true;
+        addMagicDoor(false);
+        addCreature(IMP, ENEMY, 11, 10);
+
+        tick();
+        gameTime = 7.75;
+        tick();
+        assertEquals(1, flyingShots.size());
+
+        gameTime = 8;
+        tick();
+        assertEquals(2, flyingShots.size());
+        assertEquals(0, keeper.getMana());
+    }
+
+    @Test
+    void magicDoorDoesNotFireWithoutMana() {
+        shotsFly = true;
+        keeper.setMana(499);
+        addMagicDoor(false);
+        addCreature(IMP, ENEMY, 11, 10);
+
+        tick();
+        assertTrue(flyingShots.isEmpty());
+
+        // DK II shows the trap's powerless effect instead (0x4A55F0)
+        assertEquals(List.of(POWERLESS_EFFECT), effects);
+
+        // The door keeps trying, it didn't start to recharge
+        keeper.setMana(500);
+        gameTime = 0.25;
+        tick();
+        assertEquals(1, flyingShots.size());
+        assertEquals(List.of(POWERLESS_EFFECT), effects);
+    }
+
     private void tick() {
         if (trapSystem == null) {
             trapSystem = new TrapSystem(entityData, kwdFile(), () -> gameTime, positionLookup(), playerControllers(),
-                    shotsController());
+                    shotsController(), (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(),
+                            new Class<?>[]{GameEventService.class}, (proxy, method, args) -> effects.add((int) args[0])));
         }
         trapSystem.processTick(0.25f);
     }
@@ -535,6 +629,17 @@ class TrapSystemTest {
         Vector3f position = WorldUtils.pointToVector3f(tile);
         position.y = WorldUtils.FLOOR_HEIGHT;
         entityData.setComponent(entityId, new Position(0, position));
+        return entityId;
+    }
+
+    private EntityId addMagicDoor(boolean open) {
+        EntityId entityId = entityData.createEntity();
+        entities.add(entityId);
+        Vector3f position = WorldUtils.pointToVector3f(TRAP_TILE);
+        position.y = WorldUtils.FLOOR_HEIGHT;
+        entityData.setComponents(entityId, new DoorComponent(MAGIC_DOOR, false, false),
+                new DoorViewState(MAGIC_DOOR, false, false, open), new TrapComponent(MAGIC_DOOR_TRAP),
+                new Owner(KEEPER, KEEPER), new Health(12000, 12000), new Position(0, position));
         return entityId;
     }
 
