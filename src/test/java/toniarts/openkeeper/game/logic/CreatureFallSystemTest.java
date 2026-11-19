@@ -49,8 +49,7 @@ class CreatureFallSystemTest {
      * A tile per turn per turn
      */
     private static final float GRAVITY_CONSTANT = 256;
-    private static final int TICKS_PER_SECOND = 4;
-    private static final float TURN = 1f / TICKS_PER_SECOND;
+    private static final float TURN = 1f / 4;
 
     private DefaultEntityData entityData;
     private final Set<Point> solidTiles = new HashSet<>();
@@ -81,8 +80,8 @@ class CreatureFallSystemTest {
             }
             return null;
         });
-        fallSystem = new CreatureFallSystem(entityData, mapInformation, TICKS_PER_SECOND, GRAVITY_CONSTANT);
-        landingSystem = new CreatureLandingSystem(entityData, gameTimer, gameEventService);
+        fallSystem = new CreatureFallSystem(entityData);
+        landingSystem = new CreatureLandingSystem(entityData, mapInformation, GRAVITY_CONSTANT, gameTimer, gameEventService);
     }
 
     @AfterEach
@@ -93,25 +92,24 @@ class CreatureFallSystemTest {
     }
 
     @Test
-    void thrownCreatureLandsWhereItsVelocityTakesIt() {
+    void thrownCreatureFliesAWholeTurnOnEachLogicTickAndLandsWhereItsVelocityTakesIt() {
         EntityId creature = createThrownCreature(new Vector3f(0, 1, 1));
 
+        // The animation loop leaves a thrown creature to the game logic
         fallSystem.processTick(TURN);
-
-        assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT + 1, 3), entityData.getComponent(creature, Position.class).position);
-        assertEquals(new Vector3f(0, 0, 1), entityData.getComponent(creature, CreatureFall.class).velocity);
-        assertNull(entityData.getComponent(creature, Damage.class));
-
-        fallSystem.processTick(TURN);
-
-        assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT, 4), entityData.getComponent(creature, Position.class).position);
-
-        // The landing is the game logic's
-        assertNotNull(entityData.getComponent(creature, CreatureFall.class));
-        assertNull(entityData.getComponent(creature, CreatureAi.class));
+        assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT + 1, 2), entityData.getComponent(creature, Position.class).position);
 
         landingSystem.processTick(TURN);
 
+        assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT + 1, 3), entityData.getComponent(creature, Position.class).position);
+        assertEquals(new Vector3f(0, 0, 1), entityData.getComponent(creature, CreatureFall.class).velocity);
+        assertNull(entityData.getComponent(creature, CreatureAi.class));
+        assertNull(entityData.getComponent(creature, Damage.class));
+
+        // It lands on the tick it comes down
+        landingSystem.processTick(TURN);
+
+        assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT, 4), entityData.getComponent(creature, Position.class).position);
         assertNull(entityData.getComponent(creature, CreatureFall.class));
         assertNotNull(entityData.getComponent(creature, CreatureAi.class));
     }
@@ -121,8 +119,8 @@ class CreatureFallSystemTest {
         solidTiles.add(new Point(2, 4));
         EntityId creature = createThrownCreature(new Vector3f(0, 1, 2));
 
-        fallSystem.processTick(TURN);
-        fallSystem.processTick(TURN);
+        landingSystem.processTick(TURN);
+        landingSystem.processTick(TURN);
 
         assertEquals(new Vector3f(2, WorldUtils.FLOOR_HEIGHT, 1), entityData.getComponent(creature, Position.class).position);
     }
@@ -131,14 +129,9 @@ class CreatureFallSystemTest {
     void thrownCreatureTakesTheDamageAndRaisesDustAsItLands() {
         EntityId creature = createThrownCreature(new Vector3f(0, 0, 0));
 
-        fallSystem.processTick(TURN);
-
-        // The damage is given on the game logic thread, the health system works on it there
-        assertNull(entityData.getComponent(creature, Damage.class));
-        assertEquals(List.of(), effects);
-
         landingSystem.processTick(TURN);
 
+        assertEquals(WorldUtils.FLOOR_HEIGHT, entityData.getComponent(creature, Position.class).position.y);
         assertEquals(50, entityData.getComponent(creature, Damage.class).damage);
         assertEquals(List.of(117), effects);
     }
