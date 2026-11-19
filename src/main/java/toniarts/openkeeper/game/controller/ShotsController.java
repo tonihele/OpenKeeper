@@ -59,6 +59,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.ALARM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
@@ -152,6 +153,11 @@ public final class ShotsController implements IShotsController {
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
+
+        // The Fear Trap's shot does nothing itself: DK II's handler for it is empty (the FEAR entry of the shot table
+        // filled at 0x4AD1B0). The trap scares with the threat it makes after it fires, see TrapSystem
+        result.put(FEAR, request -> {
+        });
 
         return result;
     }
