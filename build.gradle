@@ -208,6 +208,23 @@ tasks.register("benchmarkCreaturePreloads", JavaExec) {
     args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
 }
 
+tasks.register("auditAnimationLevelResidency", JavaExec) {
+    group = "verification"
+    description = "Opt-in actual level retirement, heap/JVM/jME buffer accounting, renderer counts and weak owner references"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationLevelResidencyProbe'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(),
+            layout.buildDirectory.dir('animation-level-residency').get().asFile.absolutePath,
+            providers.gradleProperty('animationLevelCycles').orElse('10').get(),
+            providers.gradleProperty('animationPackedKiB').orElse('0').get()
+    jvmArgs "-Duser.home=${layout.buildDirectory.dir('residency-smoke-home').get().asFile.absolutePath}"
+    systemProperty 'animation.residency.heapDumpOnFailure', providers.gradleProperty('animationResidencyHeapDump').orElse('false').get()
+    systemProperty 'animation.residency.heapDumpSamples', providers.gradleProperty('animationResidencyHeapDumpSamples').orElse('false').get()
+    maxHeapSize = '2g'
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"
