@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -243,6 +245,9 @@ public final class ObjectsController implements IObjectsController {
         if (obj.getFlags().contains(GameObject.ObjectFlag.PLACEABLE)) {
             entityData.setComponent(entity, new Placeable());
         }
+        if (obj.getStartState() == GameObject.State.MY_PET_DUNGEON_LEVEL_INDICATOR) {
+            entityData.setComponent(entity, new LevelIndicator(1));
+        }
 
         // Mana flow
         if (objectId == OBJECT_HEART_ID) {
@@ -268,7 +273,11 @@ public final class ObjectsController implements IObjectsController {
 
     @Override
     public EntityId addRoomGold(short ownerId, int x, int y, int money, int maxMoney) {
-        return loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, 0, money, null, null, null, maxMoney);
+        // DKII chooses a full-turn yaw once, when the container is created.
+        float rotation = Utils.getRandom().nextInt(2048) * (FastMath.TWO_PI / 2048);
+        EntityId entity = loadObject(OBJECT_GOLD_PILE_ID, ownerId, x, y, rotation, money, null, null, null, maxMoney);
+        StoredGoldVisuals.update(entityData, entity, new Gold(money, maxMoney), kwdFile.getObject(OBJECT_GOLD_PILE_ID));
+        return entity;
     }
 
     @Override
@@ -297,7 +306,8 @@ public final class ObjectsController implements IObjectsController {
         if (objectComponent == null) {
             throw new RuntimeException("Entity " + entityId + " doesn't represent a object!");
         }
-        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController());
+        return new ObjectController(entityId, entityData, kwdFile.getObject(objectComponent.objectId), this, gameController.getGameWorldController().getMapController(),
+                gameTimer, kwdFile.getGameLevel().getTicksPerSec());
     }
 
     @Override

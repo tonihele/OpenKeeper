@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
@@ -109,7 +110,7 @@ class CreatureTrainFallbackTest {
                     default -> method.getReturnType() == boolean.class ? Boolean.FALSE : null;
                 });
         AtomicReference<Boolean> foundWork = new AtomicReference<>();
-        new CreatureController(id, entityData, creature, null, taskManager, null, null, null, null, null, null, null, null, null)
+        new CreatureController(id, entityData, creature, null, taskManager, null, Map.of(), null, null, null, null, null, null, null)
                 .findWork(foundWork::set);
 
         return foundWork.get();
