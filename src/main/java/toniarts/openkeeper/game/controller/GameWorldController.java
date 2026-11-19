@@ -36,11 +36,13 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -1293,8 +1295,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
                 // See if it is gold given to a creature or added to a room
                 ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+                CreatureComponent dropOnCreature = dropOnEntity != null ? entityData.getComponent(dropOnEntity, CreatureComponent.class) : null;
                 if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
                     dropGold(entity, dropOnEntity, roomController, playerId, tile, coordinates);
+                } else if (dropOnCreature != null && dropOnCreature.hungerFill > 0 && entityData.getComponent(entity, Food.class) != null) {
+
+                    // Like in DK II, a chicken dropped on a creature that eats chickens is eaten by it, whoever owns it
+                    creaturesController.createController(dropOnEntity).eat(objectsController.createController(entity));
                 } else {
                     Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
                     entityData.setComponent(entity, new Position(0, pos));
@@ -1654,12 +1661,25 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
             targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
         }
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)) {
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)
+                || !ReaperSummoner.checkReaperRule(keeperSpell, kwdFile, player, entityData)) {
+            return;
+        }
+
+        double gameTime = gameTimer.getGameTime();
+        if (!KeeperSpellCastValidator.isRecharged(keeperSpell, entityData, playerId, gameTime)) {
             return;
         }
 
         // Deduct the mana
         playerControllers.get(playerId).getManaControl().addMana(-manaCost);
+
+        // Start the recharge
+        EntityId lastCast = KeeperSpellCastValidator.findLastCast(entityData, playerId, keeperSpellId);
+        if (lastCast == null) {
+            lastCast = entityData.createEntity();
+        }
+        entityData.setComponent(lastCast, new KeeperSpellCast(playerId, keeperSpellId, gameTime));
 
         // Cast the spell
         boolean spellUpgraded = researchableEntity.isUpgraded();
