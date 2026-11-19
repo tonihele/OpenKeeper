@@ -53,6 +53,7 @@ import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
@@ -164,10 +165,6 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
-    /**
-     * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
-     */
-    private static final int HERO_IDLE_TICKS = 12;
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -419,10 +416,9 @@ public final class CreatureController extends EntityController implements ICreat
         if (position != null && mobile != null && owner != null) {
             Point start = WorldUtils.vectorToPoint(position.position);
 
-            // An idle keeper's creature walks about on its keeper's land, like in DK II, others anywhere near
-            short ownerId = owner.ownerId;
-            Point destination = stateMachine.isInState(CreatureState.IDLE) && ownerId != Player.NEUTRAL_PLAYER_ID
-                    && ownerId != Player.GOOD_PLAYER_ID
+            // An idle creature of a keeper or an idle hero walks about on its owner's land, like in DK II, others
+            // anywhere near
+            Point destination = stateMachine.isInState(CreatureState.IDLE) && owner.ownerId != Player.NEUTRAL_PLAYER_ID
                     ? navigationService.findIdleWalkTile(start, this)
                     : navigationService.findRandomAccessibleTile(start, 10, this);
             if (start.equals(destination)) {
@@ -1780,15 +1776,44 @@ public final class CreatureController extends EntityController implements ICreat
         // See that we have been motionless for enough time, per state
         // TODO: now just 5 seconds, it is the default for imps
         // DK II's pit fighter waits four seconds' worth of ticks on each spot (0x457CF0)
-        if (getOwnerId() == Player.GOOD_PLAYER_ID && stateMachine.getCurrentState() == CreatureState.IDLE) {
-            return motionless >= HERO_IDLE_TICKS / (float) levelInfo.getLevelData().getGameLevel().getTicksPerSec();
-        }
         return motionless >= (stateMachine.getCurrentState() == CreatureState.COMBAT_PIT ? 4f : 5f);
     }
 
     @Override
     public void resetReEvaluationTimer() {
         motionless = 0;
+    }
+
+    @Override
+    public boolean playIdleAnimation() {
+
+        // A worker has its own idle state in DK II (0x464240), and a neutral creature its own pace
+        if (isWorker() || !isClaimed()) {
+            return false;
+        }
+
+        // DK II only lets an idle animation follow an idle walk (the flag at CState +0xA7), so the creature walks the
+        // first time and after each animation. A creature without the animation walks too
+        IdleAnimation last = entityData.getComponent(entityId, IdleAnimation.class);
+        int roll = FastMath.rand.nextInt(100);
+        if (last != null && last.animation == null && roll >= 25) {
+            Creature.AnimationType animation = roll < 75 ? Creature.AnimationType.IDLE_1 : Creature.AnimationType.IDLE_2;
+            double time = getAnimationTime(creature, animation);
+            if (time > 0) {
+                entityData.setComponent(entityId, new IdleAnimation(animation, gameTimer.getGameTime() + time));
+                return true;
+            }
+        }
+        if (last == null || last.animation != null) {
+            entityData.setComponent(entityId, new IdleAnimation(null, 0));
+        }
+        return false;
+    }
+
+    @Override
+    public boolean isPlayingIdleAnimation() {
+        IdleAnimation idle = entityData.getComponent(entityId, IdleAnimation.class);
+        return idle != null && idle.animation != null && gameTimer.getGameTime() < idle.endTime;
     }
 
     @Override

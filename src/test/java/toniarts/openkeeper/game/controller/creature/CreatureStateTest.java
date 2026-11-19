@@ -238,26 +238,30 @@ class CreatureStateTest {
 
                 CreatureState.IDLE.update(creature);
 
-                // In DK II a keeper's creature that has walked about decides again at once. A hero tries again every
-                // 12 ticks and a neutral one keeps its own pace, a standing hero is always stopped
-                boolean keeper = ownerId >= Player.KEEPER1_ID;
-                assertEquals(keeper, lookedForWork.get());
-                assertEquals(keeper, walked.get());
+                // In DK II a keeper's creature or a hero that has walked about decides again at once. A neutral one
+                // keeps its own pace
+                boolean owned = ownerId != Player.NEUTRAL_PLAYER_ID;
+                assertEquals(owned, lookedForWork.get());
+                assertEquals(owned, walked.get());
             }
         }
     }
 
     @Test
-    void heroWhoseObjectiveCannotStartStaysWhereItIs() {
+    void heroWhoseObjectiveCannotStartStandsThroughAnIdleAnimationOrTakesAnIdleWalk() {
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.IDLE);
         StateMachine<ICreatureController, CreatureState> stateMachine = stateMachine(state);
         AtomicBoolean triedObjective = new AtomicBoolean();
         AtomicBoolean walked = new AtomicBoolean();
+        AtomicBoolean animationStarts = new AtomicBoolean(true);
+        AtomicBoolean animationPlays = new AtomicBoolean();
         ICreatureController hero = (ICreatureController) Proxy.newProxyInstance(
                 ICreatureController.class.getClassLoader(), new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
                     case "getStateMachine" -> stateMachine;
                     case "getOwnerId" -> Player.GOOD_PLAYER_ID;
-                    case "hasObjective", "isStopped", "isTimeToReEvaluate" -> true;
+                    case "hasObjective", "isStopped" -> true;
+                    case "playIdleAnimation" -> animationStarts.get();
+                    case "isPlayingIdleAnimation" -> animationPlays.get();
                     case "followObjective" -> {
                         triedObjective.set(true);
                         yield false;
@@ -273,12 +277,23 @@ class CreatureStateTest {
                     default -> defaultValue(method.getReturnType());
                 });
 
+        // In DK II it goes to the doing nothing state (0x477850, 0x477680): with an idle animation it stays put
         CreatureState.IDLE.enter(hero);
-        CreatureState.IDLE.update(hero);
-
-        // In DK II it does nothing and tries again later (0x477850)
         assertTrue(triedObjective.get());
         assertFalse(walked.get());
+
+        // While the animation plays it doesn't try its objective
+        triedObjective.set(false);
+        animationPlays.set(true);
+        CreatureState.IDLE.update(hero);
+        assertFalse(triedObjective.get());
+
+        // After it the hero tries again, and takes an idle walk when it isn't time for an animation
+        animationPlays.set(false);
+        animationStarts.set(false);
+        CreatureState.IDLE.update(hero);
+        assertTrue(triedObjective.get());
+        assertTrue(walked.get());
         assertEquals(CreatureState.IDLE, state.get());
     }
 
