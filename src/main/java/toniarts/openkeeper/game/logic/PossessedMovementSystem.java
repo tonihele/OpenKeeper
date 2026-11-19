@@ -66,6 +66,9 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
         possessedEntities.applyChanges();
 
         for (Entity entity : possessedEntities) {
+            if (entityData.getComponent(entity.getId(), toniarts.openkeeper.game.component.CreatureFall.class) != null
+                    || entityData.getComponent(entity.getId(), toniarts.openkeeper.game.component.Death.class) != null
+                    || entityData.getComponent(entity.getId(), toniarts.openkeeper.game.component.Unconscious.class) != null) continue;
             PossessedMovement movement = entity.get(PossessedMovement.class);
             Position position = entity.get(Position.class);
             Vector3f newPosition = position.position.clone();

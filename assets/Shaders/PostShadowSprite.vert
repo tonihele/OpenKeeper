@@ -2,6 +2,7 @@
 #import "Common/ShaderLib/Instancing.glsllib"
 #import "Common/ShaderLib/Skinning.glsllib"
 #import "Common/ShaderLib/MorphAnim.glsllib"
+#import "Shaders/AnimationFrame.glsllib"
 
 uniform mat4 m_LightViewProjectionMatrix0;
 uniform mat4 m_LightViewProjectionMatrix1;
@@ -83,13 +84,15 @@ void main(){
        texCoord = inTexCoord;
 
         // Animation
+        #ifdef ANIMATED_TILES
         int iNumberOfTiles = int(m_NumberOfTiles);
 
         int selectedTile = 0;
 
-        selectedTile += int(g_Time*float(m_Speed));
+        selectedTile += animationFrame(g_Time,m_Speed);
 
         texCoord.x = (float((texCoord.x + mod(float(selectedTile),  float(iNumberOfTiles))) / float(iNumberOfTiles))); ///selectedTile;
+        #endif
         // Animation end
     #endif
     // populate the light view matrices array and convert vertex to light viewProj space

@@ -1369,7 +1369,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Show the fall animation right away, before the position brings the model back to the map
         if (!tortureOrImprisonment) {
             CreatureViewState viewState = entityData.getComponent(entity, CreatureViewState.class);
-            entityData.setComponent(entity, new CreatureViewState(viewState.creatureId, gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
+            entityData.setComponent(entity, viewState.next(gameTimer.getGameTime(), Creature.AnimationType.FALLBACK));
         }
 
         // Add position

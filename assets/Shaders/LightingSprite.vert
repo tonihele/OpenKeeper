@@ -1,3 +1,4 @@
+#import "Shaders/AnimationFrame.glsllib"
 uniform mat4 g_WorldViewProjectionMatrix;
 
 uniform float g_Time;
@@ -15,6 +16,6 @@ void main() {
    texCoord = inTexCoord;
 
    int iNumberOfTiles = int(m_NumberOfTiles);
-   int selectedTile = int(g_Time * float(m_Speed));
+   int selectedTile = animationFrame(g_Time, m_Speed);
    texCoord.x = float((texCoord.x + mod(float(selectedTile),  float(iNumberOfTiles))) / float(iNumberOfTiles));
 }

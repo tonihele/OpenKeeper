@@ -31,7 +31,6 @@ import com.jme3.material.RenderState.BlendMode;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
-import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
@@ -119,25 +118,30 @@ public final class AssetUtils {
             // Get the model from cache
             Spatial model = cache.getFromCache(assetKey);
             if (model == null) {
-                model = loadModel(assetManager, assetKey, artResource);
+                model = loadModelTemplate(assetManager, assetKey);
 
                 cache.addToCache(assetKey, model);
             }
             result = model.clone();
         } else {
-            result = loadModel(assetManager, assetKey, artResource);
+            result = loadModelTemplate(assetManager, assetKey);
         }
-
+        applyTextureAnimation(result, assetManager, artResource);
         return result;
     }
 
-    private static Spatial loadModel(final AssetManager assetManager, ModelKey assetKey, ArtResource artResource) {
+    private static Spatial loadModelTemplate(final AssetManager assetManager, ModelKey assetKey) {
         Spatial model = assetManager.loadModel(assetKey);
         resetSpatial(model);
         
         // Assign maps
         assignMapsToMaterial(model, assetManager);
         
+        return model;
+    }
+
+    private static void applyTextureAnimation(Spatial model, AssetManager assetManager, ArtResource artResource) {
+        // Apply resource policy to the returned instance, never to the raw template.
         // Create possible animating textures
         // This information is not found directly in KMF... at least to my knowledge
         if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) && 
@@ -145,7 +149,6 @@ public final class AssetUtils {
             assignAnimatingTextures(model, assetManager, artResource.getData("fps"));
         }
         
-        return model;
     }
     
     private static void assignAnimatingTextures(Spatial model, AssetManager assetManager, Integer fps) {
@@ -154,10 +157,14 @@ public final class AssetUtils {
             public void visit(Spatial spatial) {
                 List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
                 if (spatial instanceof Geometry && textures != null && textures.size() > 1) {
-                    Material material = ((Geometry) spatial).getMaterial();
+                    Material original = ((Geometry) spatial).getMaterial();
+                    Material material = original;
                     material = createLightningSpriteMaterial(material.getName(), material.isTransparent(), fps, () -> {
                         return textures;
                     }, assetManager);
+                    material.getAdditionalRenderState().setFaceCullMode(original.getAdditionalRenderState().getFaceCullMode());
+                    material.getAdditionalRenderState().setDepthWrite(original.getAdditionalRenderState().isDepthWrite());
+                    material.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
                     spatial.setMaterial(material);
                 }
             }
@@ -177,7 +184,8 @@ public final class AssetUtils {
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
-        Spatial result = loadModel(assetManager, assetKey, artResource);
+        Spatial result = loadModelTemplate(assetManager, assetKey);
+        applyTextureAnimation(result, assetManager, artResource);
 
         return result;
     }
@@ -242,6 +250,13 @@ public final class AssetUtils {
             vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
         }
         vertex.setTransparent(original.isTransparent());
+        vertex.getAdditionalRenderState().setDepthWrite(original.getAdditionalRenderState().isDepthWrite());
+        vertex.getAdditionalRenderState().setFaceCullMode(original.getAdditionalRenderState().getFaceCullMode());
+        vertex.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
+        for (String parameter : new String[]{"NumberOfTiles","Speed","AnimationFrame","UseAnimationFrame","UseAlphaCoverage","Tint","TintOverlay"}) {
+            var value = original.getParam(parameter);
+            if (value != null) vertex.setParam(parameter,value.getVarType(),value.getValue());
+        }
         vertex.setColor("Ambient", ambient);
         return vertex;
     }
@@ -474,11 +489,12 @@ public final class AssetUtils {
     private static Material createLightningSpriteMaterial(String name, boolean hasAlpha, Integer fps, Supplier<List<String>> texturesSupplier, AssetManager assetManager) {
         
         // Cache
-        MaterialKey assetKey = new MaterialKey(name);
+        List<String> textures = texturesSupplier.get();
+        MaterialKey assetKey = new MaterialKey("animated:" + name + ":" + hasAlpha + ":"
+                + (fps != null ? fps : 30) + ":" + textures);
         Material mat = ASSET_CACHE.getFromCache(assetKey);
         
         if (mat == null) {
-            List<String> textures = texturesSupplier.get();
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
             mat.setInt("NumberOfTiles", textures.size());
             mat.setInt("Speed", fps != null ? fps : 30);
@@ -492,12 +508,13 @@ public final class AssetUtils {
                     mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
                 }
                 
-                Texture tex = createAnimatingTexture(name, hasAlpha, textures, assetManager);
+                var atlas = createAnimatingTexture(name, hasAlpha, textures, assetManager);
                 
                 // Load the texture up
-                mat.setTexture("DiffuseMap", tex);
+                mat.setTexture("DiffuseMap", atlas.texture());
+                mat.setBoolean("UseAlphaCoverage",hasAlpha && atlas.sourceAlpha());
             } catch (Exception e) {
-                logger.log(Level.ERROR, "Can't create a texture out of " + name + "!", e);
+                throw new com.jme3.asset.AssetLoadException("Could not prepare animated texture " + name, e);
             }
 
             // Add to cache
@@ -549,7 +566,7 @@ public final class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
                     resource.getType() == ArtResource.ArtResourceType.ALPHA,
-                    getTextureFrames(resource, assetManager), assetManager);
+                    getTextureFrames(resource, assetManager), assetManager).texture();
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -596,13 +613,16 @@ public final class AssetUtils {
         return result;
     }
 
-    private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
+    private record AnimatedTexture(Texture texture, boolean sourceAlpha) { }
+
+    private static AnimatedTexture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
         if (textures.isEmpty()) {
             throw new IOException("No animation frames found for " + name);
         }
         // Get the first frame, the frames need to be same size
         BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey<>(textures.get(0))));
+        boolean sourceAlpha = img.getColorModel().hasAlpha();
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -631,7 +651,7 @@ public final class AssetUtils {
         // Convert the new image to a texture
         AWTLoader loader = new AWTLoader();
         Texture tex = new Texture2D(loader.load(text, false));
-        return tex;
+        return new AnimatedTexture(tex,sourceAlpha);
     }
 
     public static BufferedImage readImageFromAsset(AssetInfo asset) throws IOException {
@@ -664,7 +684,15 @@ public final class AssetUtils {
                         prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
 
                         // Creatures
-                        prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
+                        List<Spatial> animationModels = new ArrayList<>();
+                        for (var request : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadRequests(kwdFile.getCreatureList())) {
+                            try {
+                                animationModels.add(loadModel(assetManager, request.name(), request.resource()));
+                            } catch (Exception e) {
+                                logger.log(Level.WARNING, "Could not prewarm creature model " + request.name(), e);
+                            }
+                        }
+                        app.enqueue(() -> animationModels.forEach(app.getRenderManager()::preloadScene));
 
                         // Doors
                         prewarmArtResources(kwdFile.getDoors(), assetManager, app);
@@ -685,6 +713,8 @@ public final class AssetUtils {
     }
 
     private static void prewarmArtResources(List<?> objects, AssetManager assetManager, Main app) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, Exception {
+
+        if (objects.isEmpty()) return;
 
         // Get the fields that house a possible ArtResource
         Class clazz = objects.get(0).getClass();

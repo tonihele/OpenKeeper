@@ -1,4 +1,5 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
+#import "Shaders/AnimationCoverage.glsllib"
 
 in vec2 texCoord;
 
@@ -11,9 +12,13 @@ void main()
   newTexCoord = texCoord;
   vec4 diffuseColor = texture2D(m_DiffuseMap, newTexCoord);
   #ifdef DISCARD_ALPHA
-      if (all(lessThan(diffuseColor.rgb, vec3(m_AlphaDiscardThreshold))))
+      if (!animationTexelCovered(diffuseColor, m_AlphaDiscardThreshold))
           discard;
   #endif
 
+#ifdef ALPHA_COVERAGE
+  gl_FragColor = diffuseColor;
+#else
   gl_FragColor = vec4(diffuseColor.rgb, 1.0);
+#endif
 }

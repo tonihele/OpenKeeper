@@ -30,15 +30,25 @@ public final class CreatureViewState implements EntityComponent {
     public short creatureId;
     public double stateStartTime;
     public AnimationType state; // TODO: Proper enum, not this
+    public long sequence;
 
     public CreatureViewState() {
         // For serialization
     }
 
     public CreatureViewState(short creatureId, double stateStartTime, AnimationType state) {
+        this(creatureId, stateStartTime, state, 0);
+    }
+
+    public CreatureViewState(short creatureId, double stateStartTime, AnimationType state, long sequence) {
         this.creatureId = creatureId;
         this.stateStartTime = stateStartTime;
         this.state = state;
+        this.sequence = sequence;
+    }
+
+    public CreatureViewState next(double startTime, AnimationType animation) {
+        return new CreatureViewState(creatureId, startTime, animation, sequence + 1);
     }
 
 }

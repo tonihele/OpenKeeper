@@ -625,6 +625,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onGamePaused() {
             app.enqueue(() -> {
                 playerState.onPaused(true);
+                if (playerModelViewState != null) playerModelViewState.setGamePaused(true);
             });
         }
 
@@ -632,6 +633,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onGameResumed() {
             app.enqueue(() -> {
                 playerState.onPaused(false);
+                if (playerModelViewState != null) playerModelViewState.setGamePaused(false);
             });
         }
 

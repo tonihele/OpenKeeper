@@ -148,6 +148,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
+    private final toniarts.openkeeper.view.animation.PresentationClock presentationClock;
     private final short playerId;
     private final Node rootNode;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
@@ -211,6 +212,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.entityData = entityData;
+        presentationClock = new toniarts.openkeeper.view.animation.PresentationClock(entityData);
         this.playerId = playerId;
         this.textParser = textParser;
         this.rootNode = rootNode;
@@ -277,8 +279,15 @@ public class PlayerEntityViewState extends AbstractAppState {
         portalEffects.setEnabled(enabled);
     }
 
+    public void setGamePaused(boolean paused) {
+        presentationClock.setPaused(paused);
+        if (paused) toniarts.openkeeper.view.animation.AnimationLoader.pauseAnimations(root);
+        else toniarts.openkeeper.view.animation.AnimationLoader.resumeAnimations(root);
+    }
+
     @Override
     public void update(float tpf) {
+        presentationClock.update(tpf);
 
         // Update the models
         objectModelContainer.update();
@@ -347,6 +356,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        presentationClock.close();
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
@@ -498,8 +508,9 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, null, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
                 control.setWaterCheck(this::isWater);
+                control.setGameTime(presentationClock::getTime);
                 result.addControl(control);
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
@@ -653,13 +664,13 @@ public class PlayerEntityViewState extends AbstractAppState {
         Creature creature = kwdFile.getCreature(viewState.creatureId);
         applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
-        boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
-        control.setTargetState(viewState.state);
+        boolean wasAlreadyDead = ((CreatureViewControl) control).getRequestedState() == Creature.AnimationType.DEATH_POSE;
+        ((CreatureViewControl) control).setViewState(creature, viewState);
         setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
-            int deathEffectId = control.getDeathEffectId();
+            int deathEffectId = creature.getDeathEffectId();
             if (deathEffectId == 0) {
                 // use the default puddle of blood
                 deathEffectId = 129;

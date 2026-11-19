@@ -1,0 +1,8 @@
+// Alpha-authored textures and legacy black-key sprites have distinct coverage.
+bool animationTexelCovered(vec4 texel, float threshold) {
+#ifdef ALPHA_COVERAGE
+    return texel.a >= threshold;
+#else
+    return !all(lessThan(texel.rgb, vec3(threshold)));
+#endif
+}

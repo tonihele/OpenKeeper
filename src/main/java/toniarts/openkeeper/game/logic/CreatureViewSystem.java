@@ -17,7 +17,6 @@
 package toniarts.openkeeper.game.logic;
 
 import com.jme3.math.FastMath;
-import com.jme3.math.Vector2f;
 import com.jme3.util.SafeArrayList;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
@@ -74,13 +73,22 @@ public final class CreatureViewSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final IKwdFile kwdFile;
     private final EntitySet creatureViewEntities;
+    private final toniarts.openkeeper.game.controller.IGameTimer gameTimer;
+    private final EntityId clockEntity;
+    private final java.util.Map<EntityId, Position> previousPositions = new java.util.HashMap<>();
 
     // TODO: The creature shouldn't be able to access the world like this, needs breaking up to pieces
     private final SafeArrayList<EntityId> creatureEntities = new SafeArrayList<>(EntityId.class);
 
     public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile) {
+        this(entityData, kwdFile, null);
+    }
+
+    public CreatureViewSystem(EntityData entityData, IKwdFile kwdFile, toniarts.openkeeper.game.controller.IGameTimer gameTimer) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
+        this.gameTimer = gameTimer;
+        clockEntity = entityData.createEntity();
 
         creatureViewEntities = entityData.getEntities(CreatureViewState.class, Position.class);
         processAddedEntities(creatureViewEntities);
@@ -89,6 +97,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
     @Override
     public void processTick(float tpf) {
         super.processTick(tpf);
+        if (gameTimer != null) timeElapsed = gameTimer.getGameTime();
+        entityData.setComponent(clockEntity, new toniarts.openkeeper.game.component.SimulationTime(timeElapsed, tpf));
         // Add new & remove old
         if (creatureViewEntities.applyChanges()) {
             processAddedEntities(creatureViewEntities.getAddedEntities());
@@ -102,17 +112,22 @@ public final class CreatureViewSystem extends GameTimeCounter {
             CreatureViewState state = entityData.getComponent(entityId, CreatureViewState.class);
             Creature.AnimationType currentState = state.state;
             Creature.AnimationType targetState = currentState;
+            Position position = entityData.getComponent(entityId, Position.class);
+            Position previous = previousPositions.put(entityId, position);
+            float dx = previous == null || position == null ? 0 : position.position.x - previous.position.x;
+            float dz = previous == null || position == null ? 0 : position.position.z - previous.position.z;
+            boolean moving = dx * dx + dz * dz > 1e-8f;
             boolean restart = false;
             if (entityData.getComponent(entityId, CreatureFall.class) != null) {
                 targetState = Creature.AnimationType.FALLBACK;
-            } else if (entityData.getComponent(entityId, Navigation.class) != null) {
-                targetState = Creature.AnimationType.WALK;
             } else if (entityData.getComponent(entityId, Death.class) != null) {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
                 targetState = Creature.AnimationType.DIE;
             } else if (entityData.getComponent(entityId, Possessed.class) != null) {
-                targetState = getPossessedAnimation(entityId, state);
+                targetState = getPossessedAnimation(entityId, state, moving);
+            } else if (entityData.getComponent(entityId, Navigation.class) != null) {
+                targetState = moving ? Creature.AnimationType.WALK : Creature.AnimationType.STAND_STILL;
             } else {
                 TaskComponent taskComponent = entityData.getComponent(entityId, TaskComponent.class);
                 if (taskComponent != null && taskComponent.taskType == TaskType.GAMBLE) {
@@ -143,7 +158,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
             // Change!
             if (currentState != targetState || restart) {
-                entityData.setComponent(entityId, new CreatureViewState(state.creatureId, timeElapsed, targetState));
+                entityData.setComponent(entityId, state.next(timeElapsed, targetState));
             }
         }
     }
@@ -153,7 +168,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
      * as its keeper steers it. A melee swing shows for half of the attack's
      * recharge time, so that the next swing starts the animation again.
      */
-    private Creature.AnimationType getPossessedAnimation(EntityId entityId, CreatureViewState state) {
+    private Creature.AnimationType getPossessedAnimation(EntityId entityId, CreatureViewState state, boolean moving) {
         CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (state.state == Creature.AnimationType.MELEE_ATTACK && meleeAttack != null
                 && timeElapsed < state.stateStartTime + meleeAttack.rechargeTime / 2) {
@@ -161,8 +176,14 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
 
         PossessedMovement movement = entityData.getComponent(entityId, PossessedMovement.class);
-        if (movement != null && !Vector2f.ZERO.equals(movement.direction)) {
-            return Creature.AnimationType.WALK;
+        if (movement != null && moving) {
+            Creature.AnimationType gait = switch (movement.speedMode) {
+                case PossessedMovement.SPEED_RUN -> Creature.AnimationType.RUN;
+                case PossessedMovement.SPEED_CREEP -> Creature.AnimationType.STEALTH_WALK;
+                default -> Creature.AnimationType.WALK;
+            };
+            return gait == Creature.AnimationType.WALK || kwdFile == null
+                    || !hasAnimation(kwdFile.getCreature(state.creatureId), gait) ? Creature.AnimationType.WALK : gait;
         }
         return Creature.AnimationType.STAND_STILL;
     }
@@ -171,6 +192,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(creatureEntities, entity.getId());
             creatureEntities.add(~index, entity.getId());
+            previousPositions.put(entity.getId(), entity.get(Position.class));
         }
     }
 
@@ -178,6 +200,7 @@ public final class CreatureViewSystem extends GameTimeCounter {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(creatureEntities, entity.getId());
             creatureEntities.remove(index);
+            previousPositions.remove(entity.getId());
         }
     }
 
@@ -188,8 +211,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
 
     @Override
     public void stop() {
+        entityData.removeEntity(clockEntity);
         creatureViewEntities.release();
         creatureEntities.clear();
+        previousPositions.clear();
     }
 
     /**
@@ -340,13 +365,12 @@ public final class CreatureViewSystem extends GameTimeCounter {
         }
 
         // A second for an animation without timing
-        Number frames = animation.getData(ArtResource.KEY_FRAMES);
-        Number fps = animation.getData(ArtResource.KEY_FPS);
-        double length = (frames == null || fps == null || fps.intValue() <= 0) ? 1 : frames.doubleValue() / fps.doubleValue();
+        double length = toniarts.openkeeper.animation.AnimationTiming.duration(animation, 1);
         return timeElapsed < state.stateStartTime + plays * length;
     }
 
     private static boolean hasAnimation(Creature creature, Creature.AnimationType animation) {
+        if (creature == null) return false;
         ArtResource resource = creature.getAnimation(animation);
         return resource != null && resource.getType() != ArtResource.ArtResourceType.NONE;
     }

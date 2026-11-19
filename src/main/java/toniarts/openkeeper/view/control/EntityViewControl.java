@@ -69,6 +69,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     private static final Collection<Class<? extends EntityComponent>> WATCHED_COMPONENTS = Arrays.asList(Interaction.class, Owner.class);
 
     private boolean active = false;
+    private boolean animationHidden;
 
     public EntityViewControl(EntityId entityId, EntityData entityData, T data, S state, AssetManager assetManager, EntityTextParser<T> textParser) {
         this.entityId = entityId;
@@ -91,6 +92,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
      */
     protected final Entity getEntity() {
         return entity;
+    }
+
+    /** Refreshes the owned watcher before decisions made outside the normal control update. */
+    protected final void refreshEntity() {
+        entity.applyChanges();
     }
 
     private Class<EntityComponent>[] compileWatchedComponents() {
@@ -117,7 +123,10 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     protected void controlUpdate(float tpf) {
-        entity.applyChanges();
+        refreshEntity();
+        boolean hidden = toniarts.openkeeper.view.animation.AnimationLoader.isHidden(spatial);
+        if (animationHidden && !hidden) toniarts.openkeeper.view.animation.AnimationLoader.refreshPendingPoses(spatial);
+        animationHidden = hidden;
     }
 
     @Override
@@ -249,6 +258,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     @Override
     public void onAnimationStop() {
         isAnimationPlaying = false;
+    }
+
+    @Override
+    public void onAnimationAttached() {
+        AssetUtils.setModelHighlight(spatial, COLOR_FLASH, active);
     }
 
     @Override
