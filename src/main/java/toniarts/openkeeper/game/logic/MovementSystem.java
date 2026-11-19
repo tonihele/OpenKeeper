@@ -132,7 +132,8 @@ public final class MovementSystem implements IGameLogicUpdatable {
             if (furnitureCollision != null && entityData.getComponent(entityId, CreatureComponent.class) != null
                     && navigation.navigationPath.size() > 1) {
                 furnitureCollision.constrain(steerableEntity, steeringOutput,
-                        steeringBehavior.isOnFinalPathSegment() ? navigation.navigationPath.getLast() : null);
+                        navigation.endInObstacle && steeringBehavior.isOnFinalPathSegment()
+                                ? navigation.navigationPath.getLast() : null, tpf);
             }
 
             /*
@@ -280,7 +281,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
                 && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
                 && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
             Navigation navigation = movableEntities.getEntity(entityId).get(Navigation.class);
-            if (navigation.navigationPath.isEmpty()
+            // The factory creates no path follower for zero/one-point paths:
+            // those requests only face a target from the current position.
+            if (navigation.navigationPath.size() <= 1
                     || steerableEntity.getPosition().dst2(navigation.navigationPath.getLast()) <= 0.1f * 0.1f) {
                 entityData.removeComponent(entityId, Navigation.class);
             }

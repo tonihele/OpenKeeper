@@ -73,6 +73,44 @@ class MovementSystemTest {
     }
 
     @Test
+    void anUnfinishedStationaryWalkKeepsItsNavigation() {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        data.setComponents(id, new Position(0, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 0),
+                new Navigation(new Point(8, 3), null, List.of(new Vector2(3, 3), new Vector2(8, 3))));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            for (int tick = 0; tick < 10; tick++) {
+                movement.processTick(.25f);
+            }
+            assertTrue(data.getComponent(id, Navigation.class) != null, "a stalled walk is not arrival");
+        } finally {
+            movement.stop();
+        }
+    }
+
+    @ParameterizedTest
+    @ValueSource(floats = {.25f, .125f})
+    void onePointFacingRequestCompletesAwayFromThePathPoint(float tick) {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        Vector3f start = new Vector3f(3.3f, 0, 3);
+        data.setComponents(id, new Position(1, start.clone()), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), new Point(3, 4), List.of(new Vector2(3, 3))));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            for (int i = 0; i < 100 && data.getComponent(id, Navigation.class) != null; i++) {
+                movement.processTick(tick);
+            }
+            assertNull(data.getComponent(id, Navigation.class), "orientation-only request never completed");
+            assertEquals(start, data.getComponent(id, Position.class).position, "facing must not move the creature");
+            assertTrue(Math.cos(data.getComponent(id, Position.class).rotation) > .98);
+        } finally {
+            movement.stop();
+        }
+    }
+
+    @Test
     void residualSpinSettlesAtTheSameRateOnLogicTicks() {
         EntityData data = new DefaultEntityData();
         EntityId id = data.createEntity();
