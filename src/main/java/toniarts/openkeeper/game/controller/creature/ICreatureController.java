@@ -439,6 +439,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void turnIntoChicken(double duration);
 
     /**
+     * Plays an animation once from its start, such as an outburst
+     *
+     * @param animation the animation
+     */
+    public void playAnimation(Creature.AnimationType animation);
+
+    /**
      * Sets creature possession on/off
      *
      * @param possessed should the creature be posessed or AI driven

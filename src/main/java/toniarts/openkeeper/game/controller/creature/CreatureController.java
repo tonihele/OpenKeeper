@@ -2586,6 +2586,11 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void playAnimation(Creature.AnimationType animation) {
+        entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), animation));
+    }
+
+    @Override
     public void turnIntoChicken(double duration) {
         if (creature.getFlags().contains(Creature.CreatureFlag.IS_IMMUNE_TO_CHICKEN)) {
             return;

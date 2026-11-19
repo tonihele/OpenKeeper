@@ -16,19 +16,25 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumMap;
+import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.TempleFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -49,6 +55,7 @@ class SulkTest {
     private ICreatureController creature;
     private boolean hasLair;
     private int sulkSounds;
+    private int angryAnimations;
     private int steps;
     private Sulk sulk;
 
@@ -58,6 +65,7 @@ class SulkTest {
         entity = entityData.createEntity();
         entityData.setComponent(entity, new CreatureMood(1000, 2000, 0, 0, 3000, 1500));
         entityData.setComponent(entity, new Health(80, 300));
+        entityData.setComponent(entity, new Position(0, new Vector3f(2.5f, 0, 3.5f)));
         hasLair = true;
         creature = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
@@ -68,6 +76,11 @@ class SulkTest {
                     case "fireEvent" -> {
                         assertEquals(GameEventType.CREATURE_SULK, args[0]);
                         sulkSounds++;
+                        yield null;
+                    }
+                    case "playAnimation" -> {
+                        assertEquals(Creature.AnimationType.ANGRY, args[0]);
+                        angryAnimations++;
                         yield null;
                     }
                     case "navigateToAssignedTask" -> {
@@ -177,6 +190,42 @@ class SulkTest {
         standUntilStep(0);
 
         assertEquals(3, sulkSounds);
+    }
+
+    @Test
+    void theCreatureIsAngryEachTimeItSulksOutLoudButAsItSteps() {
+        standUntilStep(0);
+
+        assertEquals(2, angryAnimations);
+    }
+
+    @Test
+    void theCreatureTurnsOnTheSpotEveryTwoSecondsBeforeTheStepByUpToNinetyDegrees() {
+        for (int i = 0; i < 50; i++) {
+            float start = i * 100.0f;
+            List<Float> turns = new ArrayList<>();
+            float rotation = entityData.getComponent(entity, Position.class).rotation;
+            int stepsBefore = steps;
+            float time = start;
+            while (steps == stepsBefore) {
+                sulk.executeTask(creature, time);
+                float now = entityData.getComponent(entity, Position.class).rotation;
+                if (now != rotation) {
+                    float turned = ((now - rotation) % FastMath.TWO_PI + FastMath.TWO_PI) % FastMath.TWO_PI;
+                    assertTrue(turned < FastMath.HALF_PI + 0.0001f, "turned " + turned);
+                    turns.add(time);
+                    rotation = now;
+                }
+                time += 0.25f;
+            }
+            float step = time - 0.25f;
+
+            // 5 to 8 seconds of standing have 2 to 4 turns, the last one 2 seconds before the step
+            assertEquals((int) (step - start) / 2, turns.size(), "stood " + (step - start));
+            for (int turn = 0; turn < turns.size(); turn++) {
+                assertEquals(step - 2 * (turns.size() - turn), turns.get(turn), 0.0001f);
+            }
+        }
     }
 
     @Test

@@ -128,6 +128,11 @@ public final class CreatureViewSystem extends GameTimeCounter {
                     }
                 } else if (taskComponent != null && taskComponent.taskType == TaskType.TORTURE) {
                     targetState = getTorturerAnimation(taskComponent.targetEntity, state);
+                } else if (taskComponent != null && taskComponent.taskType == TaskType.SULK) {
+
+                    // Like in DK II (0x482F80), the sulker stands and plays its angry animation once each time it sulks out loud
+                    targetState = currentState == Creature.AnimationType.ANGRY && isPlaying(state, 1)
+                            ? Creature.AnimationType.ANGRY : Creature.AnimationType.STAND_STILL;
                 } else if (taskComponent != null) {
                     targetState = taskComponent.taskType == TaskType.MANUFACTURE
                             ? getManufactureAnimation(kwdFile.getCreature(state.creatureId))
@@ -296,8 +301,6 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 return Creature.AnimationType.RESEARCHING;
             case PRAY:
                 return Creature.AnimationType.PRAYING;
-            case SULK:
-                return Creature.AnimationType.ANGRY;
             default:
                 return Creature.AnimationType.STAND_STILL;
         }
