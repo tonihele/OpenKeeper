@@ -499,6 +499,27 @@ At 500 owners: 185,905 vertices and 2,194,705 dirty bytes/update; measured calli
 
 Fixture commit: `e19fd86`.
 
+The subsequently supplied installation path `C:/GOG Games/Dungeon Keeper 2` is the same source used for installed-data audits. Its GOG metadata identifies build `58102778973821641`, game `1207658959`, English; JSON field `version=1` is not proof of the original game patch level. Both DK2 executable FileVersion resources are empty. SHA256 identities are `DKII.EXE=b5e4e2f6b76335e2a2e7f43bb6903bfc6f4170eabf04598955b00f512a47b449` and primary-launch `DKII-DX.exe=a5957e8c52b6dee80ddf6cc1d3ea5079aaaad4d11b40e0f067d34ff4157ce9bb`. The directory contains 24 TGQ videos and no loose MP4/AVI/MOV/MKV action recordings, FBX/Blend/BVH rigs, JSON annotations or `.anim.properties` sidecars in the searched file inventory. WAD/KWD content is handled by the existing parsers; this extension inventory does not purport to decode every archive or prove absence of arbitrary authoring data. The installation enables source validation and future version-bound native captures; it is not itself an approved contact/stride/rig annotation set or a native action timeline.
+
+Added `benchmarkRenderedCharacterAnimation`: an actual GL CPU-backend crowd fixture with eight archetypes, deterministic varied phases, moving/frozen comparisons, 50/250/500/1,000 active owners, 180 warmup and 600 measured frames per case, alternating order and three non-overlapping runs. Per-frame raw CSV, summary CSV and post-measurement screenshots stay in ignored `build/animation-rendered-benchmark`. A 32-slot renderer query pool polls availability; no blocking GPU result reads occur. Incomplete timing/draw data fails the fixture. Screenshots/readback/file writes occur outside measured frames. The maintained fixture uses jME's Renderer profiling API, not raw GL dispatch.
+
+At the user's request the camera is **close perspective**: position `(0,6,10)`, target `(0,.8,0)`, 50-degree FOV, 1280×720. Large crowds extend beyond the frame; counts denote active updating owners, not all-visible creatures. Actual submitted parts are reported separately (median 181/535/861/1,397 at 50/250/500/1,000 owners). Inspected 50- and 1,000-owner screenshots show large readable foreground creatures. Scene: original materials with full-light presentation, no world/AI, shadows, SSAO, glow or picking; authored pose advances by a deterministic 1/60 second per render frame. This is a controlled rendered attribution fixture, not full gameplay or an original-DK2 comparison.
+
+Final three-run results (`D:/Temp/animation-next-rendered-final.txt`), RTX 2060 SUPER/OpenGL 3.3/NVIDIA 617.42:
+
+| Run | Owners | Moving frame median / P95 / P99 ms | Moving spatial-update P95 ms | Frozen frame P95 / spatial-update P95 ms | Moving render-submit CPU P95 / GPU render-scope P95 ms |
+|---|---|---|---|---|---|
+| 0 | 500 | 8.0284 / 8.8991 / 9.5578 | 6.0576 | 7.0252 / .2573 | 2.9845 / 2.9000 |
+| 1 | 500 | 8.0231 / 9.0698 / 9.9970 | 6.2267 | 7.0003 / .2098 | 2.9487 / 2.9737 |
+| 2 | 500 | 7.9436 / 10.8007 / 12.1426 | 7.6125 | 7.0293 / .2074 | 3.2967 / 2.9700 |
+| 0 | 1,000 | 14.7065 / 16.0253 / 16.8179 | 11.5663 | 7.0349 / .5078 | 4.6400 / 3.9097 |
+| 1 | 1,000 | 14.5146 / 16.2567 / 18.5317 | 11.8661 | 7.0144 / .4138 | 4.6977 / 3.8642 |
+| 2 | 1,000 | 10.8640 / 12.5458 / 14.2516 | 8.0132 | 7.0120 / .4675 | 4.7347 / 4.0431 |
+
+All 24 cases collected 600 complete asynchronous GPU results and frame/draw samples (**14,400 measured frames**). The adjacent motion-trace tests pass (`D:/Temp/animation-next-rendered-tests.txt`). Earlier probe attempts exposed a wrong method name and disabled/reset statistics counters; corrected before these measurements. Draw counters are now read before `ResetStatsState.postRender()` and enabled after hidden StatsAppState initialization.
+
+The roughly 6.94 ms low-load frame floor persists despite application frame-limit/VSync disable; its compositor/driver origin is not proven. Frame metrics include presentation pacing; CPU spatial-update includes logical/geometric scene work, not only vertex decoding. GPU elapsed queries bracket render submission and can include command starvation/upload dependencies: they are not isolated shader execution time. Percentiles cannot be added or subtracted to claim an exact component saving. The large inter-run variation at 1,000 owners must be preserved in comparisons. This establishes a useful close-view baseline and substantial CPU spatial cost; it does not pass any new-backend promotion gate or justify a job/instancing framework without paired implementation evidence.
+
 ### N11 — Asset-manager cache isolation fixed; sharing/residency acceptance remains open
 
 Confirmed defect: identical model/material names and texture-presence queries used process-global utility caches, allowing one asset manager's templates and lookup results to contaminate another. `AssetUtils` now stores its strong/weak model/material caches, texture lookup map and prewarm state in a context owned by the actual AssetManager. The context is stored through the manager's cache API, so ordinary `clearCache()` also drops it; there is no global value-to-manager reference cycle. `releaseCaches(manager)` explicitly releases utility entries without altering live cloned owners or unrelated manager entries. Root/locator replacement still needs ordinary manager cache invalidation or a new manager, and must occur after outstanding loads finish.

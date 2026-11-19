@@ -81,6 +81,19 @@ tasks.register("auditCreatureAnimationCatalog", JavaExec) {
     if (providers.gradleProperty('animationMetadataRoot').isPresent()) args providers.gradleProperty('animationMetadataRoot').get()
 }
 
+tasks.register("benchmarkRenderedCharacterAnimation", JavaExec) {
+    group = "verification"
+    description = "Rendered varied-phase CPU crowd attribution, asynchronous GPU queries and draw counts"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.RenderedAnimationCrowdBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('animation-rendered-benchmark').get().asFile.absolutePath,
+            providers.gradleProperty('animationRuns').orElse('3').get()
+    maxHeapSize = '2g'
+}
+
 tasks.register("auditAnimationTopology", JavaExec) {
     group = "verification"
     description = "Read-only cross-clip topology/transform/material-descriptor screen; no semantic mapping claim"
