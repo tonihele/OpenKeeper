@@ -181,6 +181,18 @@ class GameEventTest {
     }
 
     @Test
+    void workerMakesTheSoundOfArmingATrapOrBuildingADoor() {
+        IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? SoundFixtures.creature("CREATURE_IMP") : null);
+
+        // DK II plays 0x328 (0x4671B0) and 0x327 (0x467460) from the worker's bank, not 0x10F from the trap's or door's
+        assertEquals(List.of(new GameEventSounds.Sound("CREATURE_IMP", 0x328, new Point(3, 4))), GameEventSounds.getSounds(
+                new GameEvent(GameEventType.CREATURE_ARM_TRAP, ThingFlag.CREATURE, 1, null, 0, null, new Point(3, 4)), kwdFile));
+        assertEquals(List.of(new GameEventSounds.Sound("CREATURE_IMP", 0x327, new Point(3, 4))), GameEventSounds.getSounds(
+                new GameEvent(GameEventType.CREATURE_BUILD_DOOR, ThingFlag.CREATURE, 1, null, 0, null, new Point(3, 4)), kwdFile));
+    }
+
+    @Test
     void mentorTellsWhichTrapOrDoorWasMade() {
 
         // DK II's message 0x1A picks the speech by the crate's object type: 5 is the Alarm Trap's crate, "An Alarm Trap

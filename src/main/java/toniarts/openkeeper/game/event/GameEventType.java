@@ -45,6 +45,14 @@ public enum GameEventType {
      */
     CREATURE_STORE_GOLD,
     /**
+     * A worker armed a trap with the crate it brought
+     */
+    CREATURE_ARM_TRAP,
+    /**
+     * A worker built a door with the crate it brought
+     */
+    CREATURE_BUILD_DOOR,
+    /**
      * The subject is the attacker's creature type, the target is the victim
      */
     MELEE_HIT,

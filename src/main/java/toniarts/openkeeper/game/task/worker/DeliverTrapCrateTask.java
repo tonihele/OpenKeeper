@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ITrapsController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTask;
 import toniarts.openkeeper.game.task.TaskType;
@@ -96,6 +97,9 @@ public final class DeliverTrapCrateTask extends AbstractTask {
         crateController.setHaulable(null);
         trapsController.armTrap(blueprint);
         crateController.remove();
+
+        // DK II (0x4671B0) plays the arming sound from the worker's bank, the trap itself makes none
+        creature.fireEvent(GameEventType.CREATURE_ARM_TRAP, getTaskLocation());
     }
 
     @Override

@@ -129,9 +129,8 @@ public final class DoorViewControl extends EntityViewControl<Door, DoorViewState
                 AssetUtils.setBlueprint(assetManager, spatial);
             } else if (current != null) {
 
-                // The door got built
+                // The door got built, the worker that built it makes the sound
                 AssetUtils.removeBlueprint(spatial);
-                playSound(ThingSounds.MANUFACTURED);
             }
         }
         currentState = target;

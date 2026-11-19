@@ -98,6 +98,10 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_REINFORCE, event.position);
             case CREATURE_STORE_GOLD ->
                 add(sounds, getCategory(kwdFile, ThingFlag.OBJECT, ObjectsController.OBJECT_GOLD_ID), ThingSounds.DROP, event.position);
+            case CREATURE_ARM_TRAP -> // From the worker's own bank, not the trap's (0x4671B0)
+                add(sounds, subject, ThingSounds.CREATURE_ARM_TRAP, event.position);
+            case CREATURE_BUILD_DOOR -> // From the worker's own bank, not the door's (0x467460)
+                add(sounds, subject, ThingSounds.CREATURE_BUILD_DOOR, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
             case PICKED_UP ->
