@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -66,6 +67,7 @@ import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
@@ -522,21 +524,31 @@ class CreatureControllerTest {
     }
 
     @Test
-    void workerWithdrawsNextToTheRoomPositionWhenItCantGetOutsideTheHeart() {
+    void workerThatCantGetRoundItsHeartWithdrawsToTheRoomPositionOfOneOfItsRooms() {
         try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
             EntityId hero = heroNextToWorker(f, 3.5f, 3);
             f.data.setComponent(hero, new AttackTarget(f.entity));
-            // The heart's centre 3x3 can't be walked on
-            f.walkable = tile -> Math.abs(tile.x - 3) <= 2 && Math.abs(tile.y - 4) <= 2
-                    && !(Math.abs(tile.x - 3) <= 1 && Math.abs(tile.y - 4) <= 1);
+            f.rooms = List.of(room((short) 3, new Point(3, 4), true), room((short) 3, new Point(10, 4), false),
+                    room((short) 1, new Point(12, 4), false));
+            // Only the keeper's Treasury and an enemy's room can be reached
+            f.walkable = tile -> tile.equals(new Point(10, 4)) || tile.equals(new Point(12, 4));
+            boolean withdrew = false;
             for (int i = 0; i < 20; i++) {
                 f.data.removeComponent(f.entity, Navigation.class);
                 f.controller.flee();
-                assertTrue(Set.of(new Point(5, 5), new Point(4, 6))
-                        .contains(f.data.getComponent(f.entity, Navigation.class).target));
-            }
+                Navigation navigation = f.data.getComponent(f.entity, Navigation.class);
 
-            // Its corners can
+                // Picking the heart 3 times running, it finds nowhere to go
+                if (navigation != null) {
+                    assertEquals(new Point(10, 4), navigation.target);
+                    withdrew = true;
+                }
+            }
+            assertTrue(withdrew);
+
+            // Only the heart's corners can be walked on, so the room position is the heart's, a tile down and right of
+            // its centre, unless the random point 2 tiles off it is the reachable corner
+            f.rooms = List.of(room((short) 3, new Point(3, 4), true));
             f.walkable = tile -> Math.abs(tile.x - 3) <= 2 && Math.abs(tile.y - 4) <= 2
                     && Math.abs(tile.x - 3) + Math.abs(tile.y - 4) > 1;
             for (int i = 0; i < 20; i++) {
@@ -558,6 +570,43 @@ class CreatureControllerTest {
 
             assertEquals(new Point(8, 4), f.data.getComponent(f.entity, Navigation.class).target);
         }
+    }
+
+    @Test
+    void workerThatCantGetToAnyRoomWithdrawsAwayFromTheEnemyItFights() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = heroNextToWorker(f, 5.5f, 10);
+            f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.data.setComponent(f.entity, new AttackTarget(hero));
+            f.rooms = List.of(room((short) 3, new Point(10, 4), true));
+            // Only the tiles west of the worker, away from the hero, can be reached
+            f.walkable = tile -> tile.x < 3;
+            boolean withdrew = false;
+            for (int i = 0; i < 20; i++) {
+                f.data.removeComponent(f.entity, Navigation.class);
+                f.controller.flee();
+                Navigation navigation = f.data.getComponent(f.entity, Navigation.class);
+                if (navigation != null) {
+
+                    // Less than 4 times the 2 tiles to the hero, and up to 3 tiles either way as it stands level with it
+                    assertTrue(navigation.target.x >= 0 && navigation.target.x < 3, navigation.target.toString());
+                    assertTrue(Math.abs(navigation.target.y - 4) <= 3, navigation.target.toString());
+                    withdrew = true;
+                }
+            }
+            assertTrue(withdrew);
+        }
+    }
+
+    private static IRoomController room(short owner, Point centre, boolean heart) {
+        RoomInstance instance = new RoomInstance(new Room());
+        instance.addCoordinate(centre);
+        return proxy(IRoomController.class, (method, args) -> switch (method) {
+            case "getOwnerId" -> owner;
+            case "getRoomInstance" -> instance;
+            case "isDungeonHeart" -> heart;
+            default -> throw new UnsupportedOperationException(method);
+        });
     }
 
     private static CreatureState workerStateWithHeroAt(float x, int heartX, Boolean heroAfterUs) {
@@ -742,6 +791,7 @@ class CreatureControllerTest {
         final Map<Long, Task> tasks = new HashMap<>();
         final AtomicBoolean reachable = new AtomicBoolean(true);
         java.util.function.Predicate<Point> walkable = tile -> true;
+        List<IRoomController> rooms = List.of();
         final Keeper keeper = new Keeper(false, (short) 3);
         IRoomController roomHere;
         Set<EntityId> sensed = Set.of();
@@ -785,8 +835,14 @@ class CreatureControllerTest {
                 case "hasObjectControl" -> args[0] == ObjectType.LAIR;
                 default -> throw new UnsupportedOperationException(method);
             });
+            IMapDataInformation<?> mapData = proxy(IMapDataInformation.class, (method, args) -> switch (method) {
+                case "getWidth", "getHeight" -> 32;
+                default -> throw new UnsupportedOperationException(method);
+            });
             IMapController map = proxy(IMapController.class, (method, args) -> switch (method) {
                 case "getRoomControllerByCoordinates" -> roomHere;
+                case "getRoomControllers" -> rooms;
+                case "getMapData" -> mapData;
                 default -> throw new UnsupportedOperationException(method);
             });
             ITaskManager taskManager = proxy(ITaskManager.class, (method, args) -> switch (method) {
@@ -863,6 +919,7 @@ class CreatureControllerTest {
             });
             INavigationService navigation = proxy(INavigationService.class, (method, args) -> switch (method) {
                 case "findPath" -> walkable.test((Point) args[1]) ? new DefaultGraphPath<>() : null;
+                case "findRandomAccessibleTile" -> null;
                 default -> throw new UnsupportedOperationException(method);
             });
             controllers = () -> new CreatureController(entity, data, definition, navigation, taskManager, () -> time,
