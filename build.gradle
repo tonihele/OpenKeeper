@@ -104,6 +104,15 @@ tasks.register("bakeVertexAnimationClips", JavaExec) {
     maxHeapSize = '1g'
 }
 
+tasks.register("validateVertexTexturePlayback", JavaExec) {
+    group = "verification"
+    description = "Real GL indexed/nonindexed vertex-texture interpolation numerical PoC (not world FPS)"
+    dependsOn tasks.named('bakeVertexAnimationClips')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexTextureProbe'
+    args layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath
+}
+
 tasks.register("captureCharacterAnimation", JavaExec) {
     group = "verification"
     description = "Opt-in OpenGL playback/transition/pause capture using installed assets"
