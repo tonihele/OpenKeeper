@@ -1,12 +1,14 @@
 # Independent character animation code review
 
-Date: 2026-11-19. **Recommendation: Request Changes.**
+Date: 2026-11-19. **Original review recommendation: Request Changes.**
+
+**Remediation status:** R1–R8 and two additional self-review defects are resolved in focused local commits. The final suite passes 1,468 tests (zero failures/errors, four existing asset-dependent skips), the expanded installed corpus passes and real OpenGL coverage/playback checks pass. The current resolution ledger below supersedes historical implementation-status statements and line anchors. This is not approval of the entire original initiative: five original checklist items retain explicitly scoped reference or engineering acceptance work.
 
 Reviewed branch: `feat/character-animation`, `D:\Project\OpenKeeper-character-animation`, HEAD `dffb07b7a4d7770f4a7af8da6c5082da55ce820e`. Scope: all 23 commits after upstream baseline `cd78e5654`, 59 changed files, including production Java, shaders, tests, build tasks and implementation documentation.
 
 Baseline requirements: [original architecture assessment and checklist](character-creature-animation-architecture-assessment-2026-11-18.md), especially sections 4, 8, 9 and the complete implementation record in section 11. Its original analysis used `a63005ab3`; the implementation correctly rebased the work onto a different upstream baseline. This review evaluates the final feature tree against `cd78e5654`, rather than attributing unrelated baseline differences to the animation work.
 
-No production/test source, build configuration or Git history was changed during this review. New executable diagnostics and logs are ignored files under `build/review*`; this report is the only review deliverable outside build output. No commit, push or PR was created. The original checkout and other feature worktrees were preserved.
+No production/test source, build configuration or Git history was changed during the original independent review. Subsequent authorized remediation is recorded below. Diagnostic outputs remain ignored; no proprietary assets, push or PR are included. The original checkout and other feature worktrees were preserved.
 
 ## Overall assessment
 
@@ -158,7 +160,7 @@ The reflective pass still finds legacy creature getters such as WALK, then the n
 
 ## Verification of every original action item
 
-The assessment checks 11 items and leaves five unchecked. This table is an independent disposition, not a second completion assertion.
+The assessment checked 11 items and left five unchecked at the reviewed revision. This table records the original independent disposition; the current per-item ledger at the end of this report supersedes its reopened statuses.
 
 | # | Original checklist item | Independent status and evidence |
 |---:|---|---|
@@ -271,7 +273,7 @@ These are scoped risks/acceptance gaps, not additional confirmed regressions:
 
 ## Actionable remediation and acceptance checklist
 
-Complete the independent regressions first; keep fixes focused and rerun the relevant build/tests after each. This review does not authorize changes or commits.
+The original review did not authorize changes or commits. The subsequent remediation request authorizes the focused fixes recorded here.
 
 - [x] **R1, High, before integration:** make seek/segment activation pause-aware, repair saved resume state, and cover delayed clock plus paused Start/Main/End/hold/replacement. See remediation record R1 below.
 - [x] **R2, High, before integration:** preserve unwrapped elapsed time/overshoot and use one phase contract for poses and markers; add refresh-rate, irregular-delta and long-run invariance tests. See remediation R2.
@@ -281,12 +283,12 @@ Complete the independent regressions first; keep fixes focused and rerun the rel
 - [x] **R6, Medium, visual acceptance:** correct authored atlas shadow coverage; add transparent-colored texel and rendered wing-frame tests. See remediation R6; exact original DK2 shadow appearance is still unclaimed.
 - [x] **R7, Low:** fail installed-asset validation on out-of-bound samples; keep historical report-only operation explicit. See remediation R7.
 - [x] **R8, Low:** replace duplicate creature preload passes with complete policy-aware enumeration; verify static resources/segments and measure preload allocation. See remediation R8; GPU/full-startup timing is not claimed.
-- [ ] Reopen assessment items 3/7/8/9 and update implementation evidence for R1–R5; retain all five incomplete original items with explicit prerequisite versus external-reference status.
-- [ ] Obtain versioned original DK2 reference timelines for B1a/B1b and individual B4 behaviors; resolve conventions only from that evidence.
-- [ ] Finish B2 prerequisites and B3 level-lifecycle/residency validation, or explicitly split them out of a narrower integration scope with no completion claim.
-- [ ] Run full-game movement/combat/work/pause/pickup/drop/removal/network/audio scenarios at multiple refresh rates, including hundreds of mixed visible/hidden/shadow-visible creatures.
-- [ ] Collect representative full-frame CPU/JFR, allocation/GC/native memory, draw counts and GPU pass timings before choosing further acceleration. Maintain separate startup/steady-state/transition results.
-- [ ] Repeat full applicable build/test suite, expanded numerical corpus, fixed-camera GL sequences and final diff/working-tree checks; record actual limits and results.
+- [x] Reopen assessment items 3/7/8/9, repair R1–R5 and update evidence; the five incomplete original items remain distinguished in the current ledger.
+- [ ] **Reference acceptance blocked — B1a/B1b/B4:** obtain versioned original DK2 timelines and individual behavior traces. Installed binaries/data exist, but no controlled paired original scenario/frame timeline is available in this work. Numerical decoder agreement and resource names cannot establish these semantics. No speculative behavior changes are included.
+- [x] **Explicit scope split — B2/B3:** timestamp/discontinuity/interpolation protocol and global cache/level-residency work are separate engineering follow-ups below. They are not described as externally blocked or completed. Retention remains opt-in and zero by default.
+- [ ] **Broader session acceptance remains incomplete:** a real local-game smoke and focused world/audio regressions pass, as do cadence-invariant owner tests. Controlled combat/work/pickup/drop/removal, delayed/disconnected network, audible contact and hundreds of mixed shadow-visible creatures still need a deterministic full-session scenario. The bounded smoke is not that fixture; neither the gallery nor the CPU benchmark supplies it.
+- [ ] **Further acceleration decision deferred:** isolated CPU/JFR, transition/allocation and preload evidence plus a small full-game smoke profile are recorded below. Representative crowd draw/pass attribution, GPU timestamps and multi-level Java/native/GPU residency are still absent. No GPU backend, worker migration, stride scaling or default retention is justified by these measurements.
+- [x] Repeat full applicable build/test suite, expanded numerical corpus, fixed-camera GL sequences and final diff/working-tree checks; see final verification below for actual limits and results.
 
 Approval should be reconsidered after the High findings and transactional contract are fixed, with the cache path corrected or unavailable for use and the remaining fidelity work explicitly scoped. The current numerical and CPU improvements are valuable, but do not establish full animation, gameplay or DK2 fidelity readiness.
 
@@ -359,3 +361,22 @@ Validation: **nine request/timeline/recording-audio tests pass** (`build/remedia
 The public loader's `endFrame` option encoded a terminal pose as `Double.MAX_VALUE` elapsed time. A looping policy reduces that value modulo the main period, producing an arbitrary phase and leaving an unreasonable playback age. Terminal preparation now explicitly samples and holds the sequence endpoint with a bounded age, preserving HOLD's main-frame policy and ONCE's optional end segment. No historical completion callbacks are emitted.
 
 The new regression fails on the preceding implementation (`build/remediation-terminal-before.txt`) and passes after the fix. It covers all three policies with and without Start/End segments, actual vertex output, finite bounded age, visible segment and subsequent frozen playback. Loader, transaction, playback and door tests pass (`build/remediation-terminal-tests.txt`). The earlier activity-snapshot fix is commit `dd8f8d3`.
+
+### Production-driver benchmark coverage
+
+The maintained crowd tool now reports `owner-visible`, `owner-hidden` and `owner-unchanged` modes separately from its historical raw dummy-clip modes. These use `AnimationLoader` and the production owner timeline; failed preparation fails the diagnostic. The workload still excludes world controls, navigation, audio, lighting, picking, networking and GPU rendering. It is not a complete creature-frame cost.
+
+Standalone Java 25 / jME 3.9 run, 180 warmup and 600 timed updates (`build/remediation-final-benchmark.txt`, `build/remediation-final.jfr`):
+
+| Production owner mode | Population | Median / P95 / P99 ms | Dirty position bytes/update | Calling-thread allocated bytes/update |
+|---|---:|---|---:|---:|
+| Visible | 200 | 0.5929 / 1.0162 / 1.3889 | 790841 | 0 |
+| Visible | 500 | 1.5035 / 3.3541 / 4.2309 | 1975483 | 0 |
+| Explicitly hidden | 500 | 0.0715 / 0.0986 / 0.1860 | 0 | 0 |
+| Unchanged, zero delta | 500 | 0.0293 / 0.0380 / 0.0829 | 0 | 0 |
+| Visible | 1000 | 3.8620 / 6.4251 / 6.8354 | 3949712 | 0 |
+| Explicitly hidden | 1000 | 0.1540 / 0.2223 / 0.2525 | 0 | 0 |
+
+Paired current-revision transition burst, 500 owners / 3000 replacements: retention disabled **116.772 ms / 72,590,864 allocated bytes**; three clips **46.363 ms / 6,312,360 bytes**, with **18,234,000 counted retained position bytes**. This is approximately 60% less burst time and 91% less calling-thread allocation within this workload. The retained position count is not total working set. R5's detached endpoint preflight and transactional publication are now included; comparing the old faster reuse burst directly would omit that correctness work. Retention stays disabled by default.
+
+Visible-population results do not establish a before/after speedup: the owner driver preserves authored terminal dwell and phase, while the raw composer workload has different repetition behavior, and run-to-run timing varies. The 12-second JFR contains 1107 execution samples, 655 allocation samples and two young collections across **setup plus all workloads**; it is not steady-state native-memory or GPU evidence. Terminal-frame fix: `931c583`.

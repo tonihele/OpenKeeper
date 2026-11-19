@@ -30,7 +30,7 @@ public final class AnimationCrowdBenchmark {
         System.out.println("CPU_ONLY java="+System.getProperty("java.version")+" warmup="+WARMUP+" samples="+SAMPLES);
         System.out.println("mode,creatures,tracks,vertices,median_ms,p95_ms,p99_ms,allocated_bytes_per_frame,dirty_bytes_per_frame");
         for (int count : new int[]{1,50,200,500,1000}) {
-            for (String mode : new String[]{"visible","hidden","unchanged"}) run(templates,count,mode);
+            for (String mode : new String[]{"visible","hidden","unchanged","owner-visible","owner-hidden","owner-unchanged"}) run(templates,count,mode);
         }
         for(int count : new int[]{50,200,500}) for(int capacity : new int[]{0,3}) {
             Node[] owners = new Node[count]; Arrays.setAll(owners,i->new Node());
@@ -55,16 +55,24 @@ public final class AnimationCrowdBenchmark {
         Node crowd = new Node(); List<PoseTrack> tracks = new ArrayList<>();
         for(int i=0;i<count;i++) {
             Spatial instance = templates[i%templates.length].clone(); crowd.attachChild(instance);
+            if (mode.startsWith("owner-")) {
+                // Include the production owner timeline, separate from the historical raw-composer baseline.
+                instance.removeFromParent(); var owner = new Node(); crowd.attachChild(owner);
+                Spatial sample = instance;
+                var result = AnimationLoader.playAnimation(owner,new ArtResource(NAMES[i%NAMES.length],ArtResource.ArtResourceType.ANIMATING_MESH),(name,art)->sample,false);
+                if (result != AnimationLoader.PlaybackResult.STARTED) throw new AssertionError(result);
+                instance = owner;
+            }
             instance.depthFirstTraversal(node->{
                 var composer = node.getControl(AnimComposer.class);
                 if(composer != null) {
-                    composer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                    if(!mode.startsWith("owner-")) composer.setCurrentAction(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
                     for(var clip : composer.getAnimClips()) for(var track : clip.getTracks()) if(track instanceof PoseTrack pose) tracks.add(pose);
                 }
             });
         }
-        if(mode.equals("hidden")) crowd.setCullHint(Spatial.CullHint.Always);
-        float tpf = mode.equals("unchanged") ? 0 : 1f/60;
+        if(mode.endsWith("hidden")) crowd.setCullHint(Spatial.CullHint.Always);
+        float tpf = mode.endsWith("unchanged") ? 0 : 1f/60;
         for(int frame=0;frame<WARMUP;frame++) crowd.updateLogicalState(tpf);
         for(PoseTrack track : tracks) track.getTarget().getMesh().getBuffer(VertexBuffer.Type.Position).clearUpdateNeeded();
         long[] times = new long[SAMPLES]; long dirty = 0, allocation = allocated();
