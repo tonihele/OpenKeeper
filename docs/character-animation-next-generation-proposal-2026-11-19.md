@@ -820,3 +820,13 @@ Final `build --rerun-tasks smokeCharacterMotion` **passes**: **1,530 tests, zero
 - [x] Construct presentation states on the render thread after map decoding; require actual initialization before scene prewarm/readiness.
 - [x] Retire constructor-owned subscriptions on early detach and keep decoder source data until real completion.
 - [ ] Measure cold preparation/load stalls and repeated actual level residency; packed/retention settings remain opt-in.
+
+Client/map ownership commit: `6df04d1`.
+
+### N11c follow-up — Disable retired states in the current update snapshot
+
+The new repeated-level fixture exposed a real crash: detaching inside an AppState update removes a state from future arrays, but jME continues iterating its already-captured current-frame array. A still-enabled minimap then accessed the removed GameClientState. Owned states are now disabled before detachment, so that snapshot skips them. Player camera/interaction peers are disabled in one pass while all peers are still discoverable, then detached in a second pass; already-disabled possession states do not receive a redundant exit transition. A single-pass disable/detach attempt exposed that peer dependency and was corrected before acceptance.
+
+Two new regressions exercise actual same-frame AppStateManager iteration and peer-dependent disable ordering, including inactive states. Together with the earlier client/view lifetime cases, **seven targeted tests pass**, with affected production/test compilation (`D:/Temp/animation-next-n11-snapshot-unit-reviewed.txt`). The two-level rendered diagnostic now reaches both playable rooms without the minimap/possession shutdown crash.
+
+The **overall residency diagnostic still fails**, correctly, on a distinct retained-world finding: its live heap dump identifies `ViewPort.queue -> GeometryList.listSort -> ListSort.tmpArray -> Geometry -> old world/client`. This is not a completed N11 residency claim. The fixture was also corrected to require an explicit successful final phase: a graphics/application crash is no longer mistaken for success merely because the cycle index reached its requested value. Renderer-sort lifetime investigation continues independently of this verified update-snapshot fix.

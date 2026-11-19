@@ -234,7 +234,11 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     private void detachOwned(com.jme3.app.state.AppState state) {
-        if (state != null && !stateManager.detach(state)) state.stateDetached(stateManager);
+        if (state != null) {
+            // AppStateManager may still be iterating this frame's snapshot after detach().
+            if (state.isEnabled()) state.setEnabled(false);
+            if (!stateManager.detach(state)) state.stateDetached(stateManager);
+        }
     }
 
     /**

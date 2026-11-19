@@ -3,6 +3,8 @@ package toniarts.openkeeper.game.state;
 
 import com.jme3.app.AppTask;
 import com.jme3.app.LegacyApplication;
+import com.jme3.app.state.AbstractAppState;
+import com.jme3.app.state.AppStateManager;
 import com.jme3.math.Vector3f;
 import java.lang.reflect.Proxy;
 import java.util.List;
@@ -17,6 +19,10 @@ import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.session.GameSessionClientService;
 import toniarts.openkeeper.game.state.session.GameSessionListener;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.view.text.GuardPostCounter;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntitySet;
+import com.simsilica.es.base.DefaultEntityData;
 import static org.junit.jupiter.api.Assertions.*;
 
 class GameClientLoadingLifetimeTest {
@@ -102,5 +108,63 @@ class GameClientLoadingLifetimeTest {
             client.whenLoadingStopped().toCompletableFuture().get(2, TimeUnit.SECONDS);
             drain(app);
         } finally { client.detach(); client.cleanup(); }
+    }
+
+    @Test void detachingDuringUpdateDisablesOwnedStatesInTheAlreadyCapturedSnapshot() throws Exception {
+        var app = app(); var states = new AppStateManager(app);
+        var service = (GameSessionClientService) Proxy.newProxyInstance(getClass().getClassLoader(),
+                new Class<?>[]{GameSessionClientService.class}, (p, m, a) -> null);
+        var level = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (p, m, a) -> null);
+        var info = new ClientInfo(0, null, 0); info.setKeeper(new Keeper(false, (short) 3));
+        var client = new GameClientState(level, (short) 3, List.of(info), service, app, null);
+        var data = new DefaultEntityData();
+        try {
+            var updates = new AtomicInteger();
+            var queries = (EntityData) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{EntityData.class},
+                    (p, m, a) -> {
+                        Object value = m.invoke(data, a);
+                        if (!(value instanceof EntitySet set)) return value;
+                        return Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{EntitySet.class}, (q, method, args) -> {
+                            if (method.getName().equals("applyChanges")) updates.incrementAndGet();
+                            return method.invoke(set, args);
+                        });
+                    });
+            var counter = new GuardPostCounter(queries, (short) 3, id -> false);
+            var field = GameClientState.class.getDeclaredField("guardPostCounter"); field.setAccessible(true); field.set(client, counter);
+            states.attach(new AbstractAppState() {
+                @Override public void update(float tpf) { client.detach(); }
+            });
+            states.attach(client); states.attach(counter);
+            try {
+                states.update(0); // Snapshot order: driver, client, counter. Detach occurs inside driver.update().
+                assertFalse(counter.isEnabled());
+                assertEquals(0, updates.get(), "Detached owner was still updated without its client");
+                states.update(0); // Drain deferred cleanup without initializing a graphical loading screen.
+                client.whenLoadingStopped().toCompletableFuture().get(2, TimeUnit.SECONDS);
+                drain(app);
+            } finally { client.detach(); client.cleanup(); counter.cleanup(); }
+        } finally { data.close(); }
+    }
+
+    @Test void peerDependentPlayerStatesAreDisabledBeforeAnyPeerIsDetached() throws Exception {
+        var states = new AppStateManager(app());
+        var camera = new AbstractAppState() { };
+        var calls = new AtomicInteger();
+        var possession = new AbstractAppState() {
+            @Override public void setEnabled(boolean enabled) {
+                assertTrue(states.hasState(camera), "Camera detached before possession can disable it");
+                calls.incrementAndGet(); super.setEnabled(enabled);
+            }
+        };
+        var inactive = new AbstractAppState() {
+            @Override public void setEnabled(boolean enabled) { fail("Redundant transition on inactive state"); }
+            @Override public boolean isEnabled() { return false; }
+        };
+        var owned = new java.util.ArrayList<AbstractAppState>(List.of(camera, possession, inactive));
+        owned.forEach(states::attach);
+        PlayerState.detachPlayerStates(states, owned);
+        assertEquals(1, calls.get()); assertTrue(owned.isEmpty());
+        assertFalse(states.hasState(camera)); assertFalse(states.hasState(possession));
     }
 }
