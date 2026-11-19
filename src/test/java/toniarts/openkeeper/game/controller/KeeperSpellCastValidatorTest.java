@@ -16,9 +16,12 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.base.DefaultEntityData;
 import java.util.EnumSet;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.FakeMapInformation;
@@ -37,6 +40,7 @@ class KeeperSpellCastValidatorTest {
     private static final short PLAYER_ID = 3;
     private static final short ENEMY_ID = 4;
 
+    private final EntityData entityData = new DefaultEntityData();
     private final FakeMapInformation mapInformation = new FakeMapInformation(new FakeMapData(4, 4), Map.of());
     private final Creature creature = CreatureFlagFixtures.creature((short) 1, EnumSet.noneOf(Creature.CreatureFlag.class));
     private final KeeperSpell thunderbolt = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.ENEMY_CREATURES, 6000);
@@ -71,6 +75,27 @@ class KeeperSpellCastValidatorTest {
         player.setMana(5999);
 
         assertFalse(isValidCast(thunderbolt, creature, ENEMY_ID, false));
+    }
+
+    @Test
+    void spellWithRechargeCannotBeCastAgainUntilItHasPassed() {
+        KeeperSpell inferno = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.LAND, 0, 60f, (short) 2);
+        KeeperSpell otherSpell = ShotFixtures.keeperSpell(KeeperSpell.CastRule.OWN_LAND, KeeperSpell.TargetRule.LAND, 0, 60f, (short) 3);
+        assertTrue(KeeperSpellCastValidator.isRecharged(inferno, entityData, PLAYER_ID, 10));
+
+        entityData.setComponent(entityData.createEntity(), new KeeperSpellCast(PLAYER_ID, inferno.getId(), 10));
+
+        assertFalse(KeeperSpellCastValidator.isRecharged(inferno, entityData, PLAYER_ID, 69.5));
+        assertTrue(KeeperSpellCastValidator.isRecharged(inferno, entityData, PLAYER_ID, 70));
+        assertTrue(KeeperSpellCastValidator.isRecharged(inferno, entityData, ENEMY_ID, 11));
+        assertTrue(KeeperSpellCastValidator.isRecharged(otherSpell, entityData, PLAYER_ID, 11));
+    }
+
+    @Test
+    void spellWithoutRechargeCanBeCastAtOnce() {
+        entityData.setComponent(entityData.createEntity(), new KeeperSpellCast(PLAYER_ID, thunderbolt.getId(), 10));
+
+        assertTrue(KeeperSpellCastValidator.isRecharged(thunderbolt, entityData, PLAYER_ID, 10));
     }
 
     @Test

@@ -16,21 +16,26 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
@@ -38,6 +43,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -52,6 +58,7 @@ class HealthSystemDyingTest {
     private static final float TICK = 0.25f;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final List<String> calls = new ArrayList<>();
     private final HealthSystem healthSystem = createHealthSystem();
     private final EntityId creature = createKnockedOutCreature();
 
@@ -78,6 +85,15 @@ class HealthSystemDyingTest {
         assertNotNull(entityData.getComponent(creature, Death.class));
     }
 
+    @Test
+    void creatureThatDiesFrozenShattersAndLeavesNoBody() {
+        entityData.setComponents(creature, new Frozen(0, DYING_SECONDS + 1), new Position(0, new Vector3f(3, 0, 4)));
+
+        runSeconds(DYING_SECONDS);
+        assertNull(entityData.getComponent(creature, Death.class));
+        assertEquals(List.of("emitEffect", "remove"), calls);
+    }
+
     private void runSeconds(int seconds) {
         for (int tick = 0; tick < seconds / TICK; tick++) {
             healthSystem.processTick(TICK);
@@ -99,11 +115,15 @@ class HealthSystemDyingTest {
         IKwdFile kwdFile = proxy(IKwdFile.class, method -> method.equals("getCreature") ? dwarf : null);
         ILevelInfo levelInfo = proxy(ILevelInfo.class, method -> method.equals("getLevelData") ? kwdFile : null);
 
-        return new HealthSystem(entityData, proxy(IEntityPositionLookup.class, method -> null),
+        IEntityController controller = proxy(IEntityController.class, calls::add);
+        GameEventService gameEventService = proxy(GameEventService.class,
+                method -> method.equals("emitEffect") ? calls.add(method) : null);
+
+        return new HealthSystem(entityData, proxy(IEntityPositionLookup.class, method -> method.equals("getEntityController") ? controller : null),
                 Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, CreatureSleepFixtures.variable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, DYING_SECONDS),
                         MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, CreatureSleepFixtures.variable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, -3),
                         MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, CreatureSleepFixtures.variable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 10)),
-                null, null, levelInfo, List.of(), null, () -> 0.0, proxy(GameEventService.class, method -> null));
+                null, null, levelInfo, List.of(), null, () -> 0.0, gameEventService);
     }
 
     @SuppressWarnings("unchecked")
