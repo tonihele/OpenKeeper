@@ -21,6 +21,7 @@ import java.lang.reflect.Proxy;
 import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -31,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A worker only fetches an object while a room has room for that kind of
- * object
+ * object, except gold, which it fetches while it can carry more
  */
 class FetchObjectTaskTest {
 
@@ -39,42 +40,48 @@ class FetchObjectTaskTest {
 
     @Test
     void specialIsFetchedWhileTheLibraryHasRoomForIt() {
-        assertTrue(fetchSpecial(false).isValid(null));
+        assertTrue(fetch(ObjectType.SPECIAL, List.of(room(false))).isValid(null));
     }
 
     @Test
     void specialIsLeftWhenTheLibraryHasNoRoomForIt() {
 
         // The library's researchers don't fill it up, its own storage for the specials counts
-        assertFalse(fetchSpecial(true).isValid(null));
+        assertFalse(fetch(ObjectType.SPECIAL, List.of(room(true))).isValid(null));
     }
 
-    private static FetchObjectTask fetchSpecial(boolean specialStorageFull) {
-        IRoomObjectControl<?> specials = proxy(IRoomObjectControl.class, method -> switch (method) {
-            case "isFullCapacity" ->
-                specialStorageFull;
+    @Test
+    void goldIsFetchedWhenTheTreasuriesAreFull() {
+
+        // DK II's gold pile job (0x46B6D0) refuses only a full worker, it doesn't look at the treasuries
+        assertTrue(fetch(ObjectType.GOLD, List.of(room(true))).isValid(null));
+        assertTrue(fetch(ObjectType.GOLD, List.of()).isValid(null));
+    }
+
+    @Test
+    void goldIsLeftByAWorkerThatCarriesAllItCan() {
+        ICreatureController fullWorker = proxy(ICreatureController.class, method -> switch (method) {
+            case "isTooMuchGold" ->
+                true;
             default ->
                 throw new UnsupportedOperationException(method);
         });
-        IRoomController library = proxy(IRoomController.class, method -> switch (method) {
-            case "isFullCapacity" ->
-                false;
-            case "getObjectControl" ->
-                specials;
-            default ->
-                throw new UnsupportedOperationException(method);
-        });
+
+        assertFalse(fetch(ObjectType.GOLD, List.of(room(false))).isValid(fullWorker));
+    }
+
+    private static FetchObjectTask fetch(ObjectType type, List<IRoomController> rooms) {
         IMapController mapController = proxy(IMapController.class, method -> switch (method) {
             case "getRoomsByFunction" ->
-                List.of(library);
+                rooms;
             default ->
                 throw new UnsupportedOperationException(method);
         });
-        IObjectController special = proxy(IObjectController.class, method -> switch (method) {
+        IObjectController object = proxy(IObjectController.class, method -> switch (method) {
             case "getPosition" ->
                 new Vector3f(2, 1, 2);
             case "getType" ->
-                ObjectType.SPECIAL;
+                type;
             case "isRemoved", "isStoredInRoom", "isDragged" ->
                 false;
             case "isPickableByPlayerCreature" ->
@@ -83,7 +90,24 @@ class FetchObjectTaskTest {
                 throw new UnsupportedOperationException(method);
         });
 
-        return new FetchObjectTask(null, null, mapController, special, PLAYER_ID);
+        return new FetchObjectTask(null, null, mapController, object, PLAYER_ID);
+    }
+
+    private static IRoomController room(boolean storageFull) {
+        IRoomObjectControl<?> storage = proxy(IRoomObjectControl.class, method -> switch (method) {
+            case "isFullCapacity" ->
+                storageFull;
+            default ->
+                throw new UnsupportedOperationException(method);
+        });
+        return proxy(IRoomController.class, method -> switch (method) {
+            case "isFullCapacity" ->
+                false;
+            case "getObjectControl" ->
+                storage;
+            default ->
+                throw new UnsupportedOperationException(method);
+        });
     }
 
     @SuppressWarnings("unchecked")

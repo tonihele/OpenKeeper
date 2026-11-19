@@ -45,6 +45,7 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
@@ -55,6 +56,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.DoorPlacementValidator;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
 import toniarts.openkeeper.game.controller.TrapPlacementValidator;
@@ -79,6 +81,7 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
+import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
@@ -100,6 +103,21 @@ import toniarts.openkeeper.view.text.TextParser;
 public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
+
+    /**
+     * The status texts DK II shows for these room types (by room ID) instead
+     * of the tooltip texts the room data has
+     */
+    private static final Map<Short, String> ROOM_STATUS_TEXT_IDS = Map.of(
+            (short) 1, "2581", // Treasury
+            (short) 4, "2580", // Hatchery
+            (short) 6, "2582", // Library
+            (short) 7, "2583", // Training Room
+            (short) 9, "2585", // Guard Room
+            (short) 10, "2584", // Workshop
+            (short) 11, "2586", // Prison
+            (short) 14, "2587", // Graveyard
+            (short) 15, "2781"); // Casino
 
     private Main app;
     private GameClientState gameClientState;
@@ -150,7 +168,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
-        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
+        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class, Owner.class);
         constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class, Owner.class);
         constructionBlockingTiles.addAll(constructionBlockingObjects, this::isConstructionBlockingObject);
         constructionBlockingTiles.addAll(constructionBlockingDoors, entity -> true);
@@ -422,11 +440,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         }
 
         // Text 0 is "Jelly", the terrains that have it have no tooltip
-        if (terrain.getTooltipStringId() == 0) {
+        int textId = textParser.getMapTileTextParser().getTooltipTextId(tile, terrain, player.getPlayerId());
+        if (textId == 0) {
             return "";
         }
 
-        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
+        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(textId)), tile);
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
@@ -436,7 +455,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Override dungeon heart JELLY text and the portal text, DK II ignores the stored ids
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        String bundleKey = Integer.toString(room.getTooltipStringId());
+        String bundleKey = ROOM_STATUS_TEXT_IDS.getOrDefault(room.getRoomId(), Integer.toString(room.getTooltipStringId()));
         if (kwdFile.getDungeonHeart() == room) {
             bundleKey = "2579";
         } else if (kwdFile.getPortal() == room) {
@@ -769,9 +788,9 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
 
-                // Started on a trap: sell just that one, a trap is never sold together with rooms
+                // Started on a trap or a door: sell just that one, they are never sold together with rooms
                 Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
-                if (hasSellableTrap(realStart)) {
+                if (hasSellableTrap(realStart) || hasSellableDoor(realStart)) {
                     Vector2f tile = WorldUtils.pointToVector2f(realStart);
                     gameClientState.getGameClientService().sell(tile, tile);
                 } else {
@@ -791,7 +810,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                    if (!isDropBlocked(entityViewControl, p)
+                            && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
                         // Show the hand letting go of it, the updateCursor() call below picks it up
@@ -930,7 +950,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, manaCost);
+        boolean chicken = object instanceof CreatureViewControl creatureControl && creatureControl.isChicken();
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, manaCost);
     }
 
     private boolean isTrapPlacementValid(Point tile) {
@@ -954,6 +975,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return false;
     }
 
+    private boolean isDropBlocked(IEntityViewControl item, Point tile) {
+        Set<Point> doorTiles = new HashSet<>();
+        addConstructionBlockingTiles(doorTiles, constructionBlockingDoors, door -> !door.get(DoorComponent.class).blueprint);
+        return DropValidator.isBlocked(kwdFile, mapInformation.getMapData(), doorTiles, tile,
+                item.getDataObject() instanceof Creature creature && !creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER));
+    }
+
     private boolean isDoorPlacementValid(Point tile) {
         Set<Point> occupiedTiles = new HashSet<>();
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
@@ -961,6 +989,19 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         return DoorPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
                 kwdFile.getDoorById(interactionState.getItemId()),
                 gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
+    }
+
+    /**
+     * A keeper sells its own doors, built or blueprints
+     */
+    private boolean hasSellableDoor(Point tile) {
+        for (Entity door : constructionBlockingDoors) {
+            if (door.get(Owner.class).ownerId == player.getPlayerId()
+                    && WorldUtils.vectorToPoint(door.get(Position.class).position).equals(tile)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isConstructionBlockingObject(Entity entity) {
@@ -1086,7 +1127,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 return getDropColor(point);
             }
             if (interactionState.getType() == Type.SELL) {
-                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId()) || hasSellableTrap(point)
+                return gameClientState.getMapClientService().isSellable(point, player.getPlayerId())
+                        || hasSellableTrap(point) || hasSellableDoor(point)
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (interactionState.getType() == Type.TRAP) {
@@ -1103,7 +1145,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private ColorIndicator getDropColor(Point point) {
             IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
-            if (tile == null) {
+            if (tile == null || isDropBlocked(keeperHandState.getItem(), point)) {
                 return ColorIndicator.RED;
             }
             IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(

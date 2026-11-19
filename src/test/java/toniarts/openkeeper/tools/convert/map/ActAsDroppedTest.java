@@ -28,12 +28,14 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.Peaceful;
 import toniarts.openkeeper.game.controller.CreaturesController;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
-import toniarts.openkeeper.game.controller.room.IRoomController;
-import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
+import toniarts.openkeeper.game.controller.room.PrisonController;
+import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -41,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * A creature placed in the level editor on a prison of another player is a
  * prisoner only when it is set to act as dropped. On level8 the heroes standing
  * in Keeper Dante's ruined prison are not, the neutral creatures there are.
+ * And a creature placed without "will fight" won't fight.
  */
 class ActAsDroppedTest {
 
@@ -57,9 +60,25 @@ class ActAsDroppedTest {
         hero.setFlags(actAsDropped ? EnumSet.of(Thing.Creature.CreatureFlag.ACT_AS_DROPPED)
                 : EnumSet.of(Thing.Creature.CreatureFlag.WILL_FIGHT));
 
-        EntityId entityId = creaturesController(entityData).spawnCreature(hero, new Vector2f(1, 1));
+        EntityId entityId = creaturesController(entityData).spawnCreature(hero, new Vector2f(3, 3));
 
         assertEquals(state, entityData.getComponent(entityId, CreatureAi.class).getCreatureState());
+    }
+
+    @ParameterizedTest
+    @CsvSource({"true, false", "false, true"})
+    void aCreaturePlacedWithoutWillFightIsPeaceful(boolean willFight, boolean peaceful) {
+        EntityData entityData = new DefaultEntityData();
+        Thing.GoodCreature hero = new Thing.GoodCreature();
+        hero.setCreatureId(DWARF);
+        hero.setLevel((short) 1);
+        hero.setInitialHealth(100);
+        hero.setFlags(willFight ? EnumSet.of(Thing.Creature.CreatureFlag.WILL_FIGHT)
+                : EnumSet.of(Thing.Creature.CreatureFlag.WILL_BE_ATTACKED));
+
+        EntityId entityId = creaturesController(entityData).spawnCreature(hero, new Vector2f(3, 3));
+
+        assertEquals(peaceful, entityData.getComponent(entityId, Peaceful.class) != null);
     }
 
     private static CreaturesController creaturesController(EntityData entityData) {
@@ -73,16 +92,19 @@ class ActAsDroppedTest {
             default -> null;
         });
 
-        // The neutral prison of a ruined dungeon
-        RoomInstance prison = new RoomInstance(new Room());
+        // The neutral prison of a ruined dungeon, the creature stands inside its cage
+        RoomInstance prison = new RoomInstance(RoomFixtures.room((short) 11,
+                List.of((short) 49, (short) 50, (short) 51, (short) 0, (short) 0, (short) 0)));
         prison.setOwnerId(Player.NEUTRAL_PLAYER_ID);
-        IRoomObjectControl prisoners = stub(IRoomObjectControl.class, (method, args) -> null);
-        IRoomController room = stub(IRoomController.class, (method, args) -> switch (method) {
-            case "getRoomInstance" -> prison;
-            case "hasObjectControl" -> true;
-            case "getObjectControl" -> prisoners;
-            default -> null;
-        });
+        for (int x = 1; x <= 5; x++) {
+            for (int y = 1; y <= 5; y++) {
+                prison.addCoordinate(new Point(x, y));
+            }
+        }
+        IObjectsController objectsController = stub(IObjectsController.class,
+                (method, args) -> method.equals("loadObject") ? entityData.createEntity() : null);
+        PrisonController room = new PrisonController(entityData.createEntity(), entityData, null, prison, objectsController, null);
+        room.construct();
         IMapController mapController = stub(IMapController.class, (method, args) -> room);
         IGameTimer gameTimer = stub(IGameTimer.class, (method, args) -> 0.0);
 

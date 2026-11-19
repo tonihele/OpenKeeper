@@ -31,10 +31,13 @@ import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.sound.FootstepSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -44,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
@@ -90,7 +94,15 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
         components.add(CreatureImprisoned.class);
+        components.add(CreatureComponent.class);
         return components;
+    }
+
+    @Override
+    public DroppableStatus getDroppableStatus(IMapTileInformation tile, Terrain terrain, short playerId) {
+        CreatureComponent creatureComponent = getEntity().get(CreatureComponent.class);
+        boolean tool = creatureComponent != null && creatureComponent.tool;
+        return DropValidator.canDrop(getEntity().get(Interaction.class), tool, tile, terrain, playerId) ? DroppableStatus.DROPPABLE : DroppableStatus.NOT_DROPPABLE;
     }
 
     @Override
@@ -308,10 +320,23 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         return animation;
     }
 
+    /**
+     * Whether the creature is a chicken, as by the Chicken spell
+     *
+     * @return true if the creature is a chicken
+     */
+    public boolean isChicken() {
+        CreatureAi creatureAi = getEntity().get(CreatureAi.class);
+        return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+    }
+
     private boolean isWorkAnimation() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
-            return creatureAi.getCreatureState() == CreatureState.WORK;
+            CreatureState state = creatureAi.getCreatureState();
+
+            // Dancing in the Casino and the jackpot celebration go on until the state changes
+            return state == CreatureState.WORK || state == CreatureState.DANCING || state == CreatureState.CELEBRATING;
         }
         return false;
     }
