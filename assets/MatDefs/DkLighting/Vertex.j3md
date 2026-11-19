@@ -8,6 +8,32 @@ MaterialDef DK Terrain Lighting {
         // must be declared here or that call throws.
         Float AlphaDiscardThreshold
 
+        // Custom shadow passes preserve the same cutout coverage as color.
+        Boolean UseAlphaCoverage : true
+        Int FilterMode
+        Boolean HardwareShadows
+        Texture2D ShadowMap0
+        Texture2D ShadowMap1
+        Texture2D ShadowMap2
+        Texture2D ShadowMap3
+        Texture2D ShadowMap4
+        Texture2D ShadowMap5
+        Float ShadowIntensity
+        Vector4 Splits
+        Vector2 FadeInfo
+        Matrix4 LightViewProjectionMatrix0
+        Matrix4 LightViewProjectionMatrix1
+        Matrix4 LightViewProjectionMatrix2
+        Matrix4 LightViewProjectionMatrix3
+        Matrix4 LightViewProjectionMatrix4
+        Matrix4 LightViewProjectionMatrix5
+        Vector3 LightPos
+        Vector3 LightDir
+        Float PCFEdge
+        Float ShadowMapSize
+        Boolean BackfaceShadows
+
+
         // Vertex ambient: a per-terrain-type constant, 0..1,
         // already converted from the file's 0..511 channel + over-bright
         // bits by the Java side. Only used until the AmbientMap below is
@@ -88,11 +114,65 @@ MaterialDef DK Terrain Lighting {
         Defines {
             CONTROLLED_ANIMATION : UseAnimationFrame
             ANIMATED_TILES : NumberOfTiles
+            ALPHA_COVERAGE : UseAlphaCoverage
             DISCARD_ALPHA : AlphaDiscardThreshold
             AMBIENT_MAP : AmbientMap
             LIGHT_DATA : LightData
             IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
             MESH_CENTER : MeshCenter
+        }
+    }
+
+    Technique PreShadow {
+        VertexShader GLSL150: Shaders/AnimationShadow.vert
+        FragmentShader GLSL150: Shaders/LightingSprite.frag
+        WorldParameters {
+            WorldViewProjectionMatrix
+            Time
+        }
+        Defines {
+            ALPHA_COVERAGE : UseAlphaCoverage
+            DISCARD_ALPHA : AlphaDiscardThreshold
+            CONTROLLED_ANIMATION : UseAnimationFrame
+            ANIMATED_TILES : NumberOfTiles
+        }
+        ForcedRenderState {
+            FaceCull Off
+            DepthTest On
+            DepthWrite On
+            PolyOffset 5 3
+            ColorWrite Off
+        }
+    }
+    Technique PostShadow {
+        VertexShader GLSL150: Shaders/PostShadowSprite.vert
+        FragmentShader GLSL150: Shaders/PostShadowSprite.frag
+        WorldParameters {
+            WorldViewProjectionMatrix
+            WorldMatrix
+            ViewProjectionMatrix
+            ViewMatrix
+            NormalMatrix
+            Time
+        }
+        Defines {
+            ALPHA_COVERAGE : UseAlphaCoverage
+            DISCARD_ALPHA : AlphaDiscardThreshold
+            CONTROLLED_ANIMATION : UseAnimationFrame
+            ANIMATED_TILES : NumberOfTiles
+            HARDWARE_SHADOWS : HardwareShadows
+            FILTER_MODE : FilterMode
+            PCFEDGE : PCFEdge
+            SHADOWMAP_SIZE : ShadowMapSize
+            FADE : FadeInfo
+            PSSM : Splits
+            POINTLIGHT : LightViewProjectionMatrix5
+            BACKFACE_SHADOWS : BackfaceShadows
+        }
+        ForcedRenderState {
+            Blend Modulate
+            DepthWrite Off
+            PolyOffset -0.1 0
         }
     }
 }

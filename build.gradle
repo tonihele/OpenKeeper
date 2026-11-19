@@ -87,6 +87,15 @@ tasks.register("captureCharacterAnimation", JavaExec) {
             providers.gradleProperty('animationShadows').orElse('false').get()
 }
 
+tasks.register("captureAnimationCoverage", JavaExec) {
+    group = "verification"
+    description = "Real OpenGL synthetic alpha/black-key color and shadow coverage regression"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationCoverageCapture'
+    args layout.buildDirectory.dir('animation-coverage').get().asFile.absolutePath
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"

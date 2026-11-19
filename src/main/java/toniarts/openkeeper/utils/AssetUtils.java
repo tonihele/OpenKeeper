@@ -158,10 +158,14 @@ public final class AssetUtils {
             public void visit(Spatial spatial) {
                 List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
                 if (spatial instanceof Geometry && textures != null && textures.size() > 1) {
-                    Material material = ((Geometry) spatial).getMaterial();
+                    Material original = ((Geometry) spatial).getMaterial();
+                    Material material = original;
                     material = createLightningSpriteMaterial(material.getName(), material.isTransparent(), fps, () -> {
                         return textures;
                     }, assetManager);
+                    material.getAdditionalRenderState().setFaceCullMode(original.getAdditionalRenderState().getFaceCullMode());
+                    material.getAdditionalRenderState().setDepthWrite(original.getAdditionalRenderState().isDepthWrite());
+                    material.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
                     spatial.setMaterial(material);
                 }
             }
@@ -247,7 +251,10 @@ public final class AssetUtils {
             vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
         }
         vertex.setTransparent(original.isTransparent());
-        for (String parameter : new String[]{"NumberOfTiles","Speed","AnimationFrame","UseAnimationFrame","Tint","TintOverlay"}) {
+        vertex.getAdditionalRenderState().setDepthWrite(original.getAdditionalRenderState().isDepthWrite());
+        vertex.getAdditionalRenderState().setFaceCullMode(original.getAdditionalRenderState().getFaceCullMode());
+        vertex.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
+        for (String parameter : new String[]{"NumberOfTiles","Speed","AnimationFrame","UseAnimationFrame","UseAlphaCoverage","Tint","TintOverlay"}) {
             var value = original.getParam(parameter);
             if (value != null) vertex.setParam(parameter,value.getVarType(),value.getValue());
         }
@@ -502,10 +509,11 @@ public final class AssetUtils {
                     mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
                 }
                 
-                Texture tex = createAnimatingTexture(name, hasAlpha, textures, assetManager);
+                var atlas = createAnimatingTexture(name, hasAlpha, textures, assetManager);
                 
                 // Load the texture up
-                mat.setTexture("DiffuseMap", tex);
+                mat.setTexture("DiffuseMap", atlas.texture());
+                mat.setBoolean("UseAlphaCoverage",hasAlpha && atlas.sourceAlpha());
             } catch (Exception e) {
                 throw new com.jme3.asset.AssetLoadException("Could not prepare animated texture " + name, e);
             }
@@ -559,7 +567,7 @@ public final class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
                     resource.getType() == ArtResource.ArtResourceType.ALPHA,
-                    getTextureFrames(resource, assetManager), assetManager);
+                    getTextureFrames(resource, assetManager), assetManager).texture();
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -606,13 +614,16 @@ public final class AssetUtils {
         return result;
     }
 
-    private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
+    private record AnimatedTexture(Texture texture, boolean sourceAlpha) { }
+
+    private static AnimatedTexture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
         if (textures.isEmpty()) {
             throw new IOException("No animation frames found for " + name);
         }
         // Get the first frame, the frames need to be same size
         BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey<>(textures.get(0))));
+        boolean sourceAlpha = img.getColorModel().hasAlpha();
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -641,7 +652,7 @@ public final class AssetUtils {
         // Convert the new image to a texture
         AWTLoader loader = new AWTLoader();
         Texture tex = new Texture2D(loader.load(text, false));
-        return tex;
+        return new AnimatedTexture(tex,sourceAlpha);
     }
 
     public static BufferedImage readImageFromAsset(AssetInfo asset) throws IOException {

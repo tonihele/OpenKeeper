@@ -1,4 +1,5 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
+#import "Shaders/AnimationCoverage.glsllib"
 #import "Common/ShaderLib/Shadows.glsllib"
 #if defined(PSSM) || defined(FADE)
 in float shadowPosition;
@@ -41,11 +42,11 @@ void main(){
  
     #ifdef DISCARD_ALPHA
         #ifdef COLOR_MAP
-            float alpha = texture2D(m_ColorMap,texCoord).a;
+            vec4 texel = texture2D(m_ColorMap,texCoord);
         #else    
-            float alpha = texture2D(m_DiffuseMap,texCoord).a;
+            vec4 texel = texture2D(m_DiffuseMap,texCoord);
         #endif
-        if(alpha<=m_AlphaDiscardThreshold){
+        if(!animationTexelCovered(texel,m_AlphaDiscardThreshold)){
             discard;
         }
     #endif
