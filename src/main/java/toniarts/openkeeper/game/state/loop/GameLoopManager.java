@@ -89,6 +89,8 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final PayDaySystem payDaySystem;
+
     /**
      * Single use game states
      *
@@ -109,6 +111,9 @@ public final class GameLoopManager {
         final ITaskManager taskManager = gameController.getTaskManager();
         final GameEventService gameEventService = gameController.getGameEventService();
 
+        payDaySystem = new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
+                playerControllers.values(), gameSettings);
+
         // Game logic
         final GameLogicManager gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
@@ -122,8 +127,7 @@ public final class GameLoopManager {
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer(), gameSettings),
-                new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
-                        playerControllers.values(), gameSettings),
+                payDaySystem,
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
@@ -210,6 +214,10 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    public PayDaySystem getPayDaySystem() {
+        return payDaySystem;
     }
 
 }

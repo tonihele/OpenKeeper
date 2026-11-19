@@ -54,6 +54,7 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         UNLOCK_DOORS_TRAPS("fit the best"),
         REMOVE_FOW("now the rain has gone"),
         RESET_FOW("now the rain has come back"),
+        PAY_DAY("show me the wages"),
         LOOSE_LEVEL("fear the reaper"),
         WIN_LEVEL("do not fear the reaper"),
         JACKPOT("disco inferno");
