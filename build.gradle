@@ -61,6 +61,9 @@ configure([project(":core"), project(":client")]) {
     test {
         useJUnitPlatform()
 
+        // The tests find the assets and the settings from the repository root, like the game does
+        workingDir = rootProject.projectDir
+
         // "gradlew test --tests X" runs in both projects, only one of them has the test
         filter {
             failOnNoMatchingTests = false
