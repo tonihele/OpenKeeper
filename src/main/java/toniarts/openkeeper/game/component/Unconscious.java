@@ -27,12 +27,22 @@ public final class Unconscious implements EntityComponent {
 
     public double startTime;
 
+    /**
+     * The keeper the kill goes to if the entity dies, 0 for nobody
+     */
+    public short killerId;
+
     public Unconscious() {
         // For serialization
     }
 
     public Unconscious(double startTime) {
         this.startTime = startTime;
+    }
+
+    public Unconscious(double startTime, short killerId) {
+        this.startTime = startTime;
+        this.killerId = killerId;
     }
 
 }

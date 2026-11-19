@@ -24,13 +24,18 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
@@ -38,6 +43,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
@@ -52,6 +58,9 @@ class HealthSystemDyingTest {
     private static final float TICK = 0.25f;
 
     private final EntityData entityData = new DefaultEntityData();
+    private final Keeper owner = new Keeper(false, (short) 3);
+    private final Keeper enemy = new Keeper(false, (short) 4);
+    private final PlayerStatsControl enemyStats = new PlayerStatsControl(enemy);
     private final HealthSystem healthSystem = createHealthSystem();
     private final EntityId creature = createKnockedOutCreature();
 
@@ -78,6 +87,46 @@ class HealthSystemDyingTest {
         assertNotNull(entityData.getComponent(creature, Death.class));
     }
 
+    @Test
+    void deathCountsALossToItsOwnerAndAKillToTheKeeperThatKnockedItOut() {
+        entityData.setComponent(creature, new Unconscious(0, enemy.getId()));
+        runSeconds(DYING_SECONDS);
+
+        // DK II's 0x487C70: CPlayer +0x146 for the killer, +0x173 for the owner
+        assertEquals(1, enemy.getEnemyCreaturesKilled());
+        assertEquals(0, enemy.getOwnCreaturesKilled());
+        assertEquals(0, owner.getEnemyCreaturesKilled());
+        assertEquals(1, owner.getOwnCreaturesKilled());
+    }
+
+    @Test
+    void killGoesToTheKeeperOfACreatureFightingIt() {
+        EntityId goblin = entityData.createEntity();
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.creatureId = CREATURE_ID;
+        creatureComponent.diesInstantly = true;
+        entityData.setComponents(goblin, creatureComponent, new Owner(owner.getId(), owner.getId()), new Health(10, 100),
+                new Damage(20));
+        EntityId knight = entityData.createEntity();
+        entityData.setComponents(knight, new AttackTarget(goblin), new Owner(enemy.getId(), enemy.getId()));
+
+        healthSystem.processTick(TICK);
+
+        // DK II falls back on the owner of a creature fighting it (creature +0x504, 0x487C70)
+        assertNotNull(entityData.getComponent(goblin, Death.class));
+        assertEquals(1, enemy.getEnemyCreaturesKilled());
+        assertEquals(1, owner.getOwnCreaturesKilled());
+    }
+
+    @Test
+    void ownKeepersKillCountsOnlyAsALoss() {
+        entityData.setComponent(creature, new Unconscious(0, owner.getId()));
+        runSeconds(DYING_SECONDS);
+
+        assertEquals(0, owner.getEnemyCreaturesKilled());
+        assertEquals(1, owner.getOwnCreaturesKilled());
+    }
+
     private void runSeconds(int seconds) {
         for (int tick = 0; tick < seconds / TICK; tick++) {
             healthSystem.processTick(TICK);
@@ -88,7 +137,7 @@ class HealthSystemDyingTest {
         EntityId entityId = entityData.createEntity();
         CreatureComponent creatureComponent = new CreatureComponent();
         creatureComponent.creatureId = CREATURE_ID;
-        entityData.setComponents(entityId, creatureComponent, new Owner((short) 1, (short) 1), new Health(0, 100),
+        entityData.setComponents(entityId, creatureComponent, new Owner(owner.getId(), owner.getId()), new Health(0, 100),
                 new Unconscious(0));
         return entityId;
     }
@@ -103,7 +152,15 @@ class HealthSystemDyingTest {
                 Map.of(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, CreatureSleepFixtures.variable(MiscType.CREATURE_DYING_STATE_DURATION_SECONDS, DYING_SECONDS),
                         MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, CreatureSleepFixtures.variable(MiscType.PRISON_MODIFY_CREATURE_HEALTH_PER_SECOND, -3),
                         MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, CreatureSleepFixtures.variable(MiscType.MODIFY_HEALTH_OF_CREATURE_IN_LAIR_PER_SECOND, 10)),
-                null, levelInfo, List.of(), null, () -> 0.0, proxy(GameEventService.class, method -> null));
+                null, levelInfo, List.of(player(owner, new PlayerStatsControl(owner)), player(enemy, enemyStats)), null, () -> 0.0, proxy(GameEventService.class, method -> null));
+    }
+
+    private static IPlayerController player(Keeper keeper, PlayerStatsControl statsControl) {
+        return proxy(IPlayerController.class, method -> switch (method) {
+            case "getKeeper" -> keeper;
+            case "getStatsControl" -> statsControl;
+            default -> null;
+        });
     }
 
     @SuppressWarnings("unchecked")

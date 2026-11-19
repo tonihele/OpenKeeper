@@ -38,6 +38,28 @@ public final class PlayerStatsControl {
         this.keeper = keeper;
     }
 
+    /**
+     * The player has killed a creature, DK II counts the heroes apart from the
+     * other creatures (DKII.EXE 0x487C70, CPlayer +0x14A and +0x146)
+     *
+     * @param creature the creature that was killed
+     */
+    public void creatureKilled(Creature creature) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)) {
+            keeper.setHeroesDestroyed(keeper.getHeroesDestroyed() + 1);
+        } else {
+            keeper.setEnemyCreaturesKilled(keeper.getEnemyCreaturesKilled() + 1);
+        }
+    }
+
+    /**
+     * One of the player's own creatures has died (DKII.EXE 0x487C70, CPlayer
+     * +0x173)
+     */
+    public void ownCreatureKilled() {
+        keeper.setOwnCreaturesKilled(keeper.getOwnCreaturesKilled() + 1);
+    }
+
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();
     }
@@ -97,26 +119,6 @@ public final class PlayerStatsControl {
 
     public void creatureDropped(Creature creature) {
         increaseMapCount(creature, dropsMap);
-    }
-
-    /**
-     * An enemy creature has been killed or knocked out. Heroes are counted separately.
-     *
-     * @param creature the creature that was killed
-     */
-    public void creatureKilled(Creature creature) {
-        if (creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)) {
-            keeper.setHeroesDestroyed(keeper.getHeroesDestroyed() + 1);
-        } else {
-            keeper.setEnemyCreaturesKilled(keeper.getEnemyCreaturesKilled() + 1);
-        }
-    }
-
-    /**
-     * One of the player's own creatures has died
-     */
-    public void ownCreatureKilled() {
-        keeper.setOwnCreaturesKilled(keeper.getOwnCreaturesKilled() + 1);
     }
 
     /**
