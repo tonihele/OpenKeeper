@@ -49,6 +49,8 @@ tasks.register("auditAnimationAssets", JavaExec) {
     workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
     args providers.gradleProperty('dk2Root').orElse('').get(),
             providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+    if (providers.gradleProperty('animationAuditAllCreatures').orElse('false').get().toBoolean()) args '--all-creatures'
+    if (providers.gradleProperty('animationAuditReportOnly').orElse('false').get().toBoolean()) args '--report-only'
 }
 
 tasks.register("benchmarkCharacterAnimation", JavaExec) {

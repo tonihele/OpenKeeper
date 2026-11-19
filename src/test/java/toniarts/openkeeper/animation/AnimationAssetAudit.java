@@ -14,6 +14,11 @@ import java.security.MessageDigest;
 import java.util.ArrayList;
 import java.util.HexFormat;
 import java.util.List;
+import java.util.TreeSet;
+import java.util.TreeMap;
+import java.nio.file.Files;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.KwdFile;
 import toniarts.openkeeper.tools.convert.KmfAssetInfo;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
@@ -27,16 +32,38 @@ public final class AnimationAssetAudit {
         assets.registerLocator(args[1], FileLocator.class);
         assets.registerLocator("assets", FileLocator.class);
         var wad = new WadFile(Path.of(args[0], "Data", "Meshes.WAD"));
-        List<String> names = args.length > 2 ? List.of(args).subList(2, args.length)
-                : List.of("Arc-Walk", "BIL-Walkback", "Electrocute1");
+        var options = List.of(args).subList(2,args.length);
+        for (String option : options) if (option.startsWith("--")
+                && !option.equals("--report-only") && !option.equals("--all-creatures"))
+            throw new IllegalArgumentException("Unknown audit option: "+option);
+        boolean reportOnly = options.contains("--report-only");
+        List<String> names = options.stream().filter(value->!value.startsWith("--")).toList();
+        if (options.contains("--all-creatures")) {
+            if (!names.isEmpty()) throw new IllegalArgumentException("Choose all creatures or explicit resources");
+            var catalog = KwdFile.load(args[0],Path.of(args[0],"Data","Editor","Maps","Alcatraz.kwd"));
+            var resources = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+            for (var creature : catalog.getCreatureList()) for (var art : creature.getAnimations().values()) {
+                if (art == null || art.getType() != ArtResource.ArtResourceType.ANIMATING_MESH) continue;
+                resources.add(art.getName());
+                if (art.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) resources.add(art.getName()+"Start");
+                if (art.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) resources.add(art.getName()+"End");
+            }
+            names = List.copyOf(resources);
+        } else if (names.isEmpty()) names = List.of("Arc-Walk", "BIL-Walkback", "Electrocute1");
+        var sourceNames = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
+        for (String entry : wad.getWadFileEntries()) sourceNames.put(Path.of(entry).getFileName().toString(),entry);
+        var convertedNames = new TreeMap<String,String>(String.CASE_INSENSITIVE_ORDER);
+        try (var files = Files.list(Path.of(args[1],"Models"))) {
+            files.forEach(file->convertedNames.put(file.getFileName().toString(),file.getFileName().toString()));
+        }
         long samples = 0, invalid = 0, outside = 0;
         System.out.println("resource,sha256,mode,tracks,samples,nonfinite_samples,outside_bound_samples");
         for (String name : names) {
-            byte[] bytes = wad.getFileData(name + ".kmf");
+            byte[] bytes = wad.getFileData(sourceNames.getOrDefault(name+".kmf",name+".kmf"));
             String hash = HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
             for (boolean fresh : new boolean[]{false, true}) {
                 Spatial model = fresh ? (Spatial) new KmfModelLoader().load(new KmfAssetInfo(assets,
-                        new AssetKey<>(name), new KmfFile(bytes), false)) : assets.loadModel("Models/" + name + ".j3o");
+                        new AssetKey<>(name), new KmfFile(bytes), false)) : assets.loadModel("Models/" + convertedNames.getOrDefault(name+".j3o",name+".j3o"));
                 long[] result = inspect(model);
                 System.out.printf("%s,%s,%s,%d,%d,%d,%d%n", name, hash, fresh ? "fresh" : "cached",
                         result[0], result[1], result[2], result[3]);
@@ -44,7 +71,12 @@ public final class AnimationAssetAudit {
             }
         }
         System.out.printf("TOTAL samples=%d nonfinite=%d outside=%d%n", samples, invalid, outside);
-        if (invalid != 0) throw new AssertionError("Non-finite animation samples: " + invalid);
+        validate(invalid,outside,reportOnly);
+    }
+
+    static void validate(long invalid, long outside, boolean reportOnly) {
+        if (!reportOnly && (invalid != 0 || outside != 0))
+            throw new AssertionError("Invalid animation samples: nonfinite="+invalid+" outside="+outside);
     }
 
     static long[] inspect(Spatial model) {
