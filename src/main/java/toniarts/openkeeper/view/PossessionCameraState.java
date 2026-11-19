@@ -460,10 +460,12 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     }
 
     private byte getSpeedMode() {
-        if (run) {
-            return PossessedMovement.SPEED_RUN;
+
+        // DK II takes the run speed while the run key is held, then the creep speed while creeping (0x40E910)
+        if (creep) {
+            return PossessedMovement.SPEED_CREEP;
         }
-        return creep ? PossessedMovement.SPEED_CREEP : PossessedMovement.SPEED_WALK;
+        return run ? PossessedMovement.SPEED_RUN : PossessedMovement.SPEED_WALK;
     }
 
     /**
