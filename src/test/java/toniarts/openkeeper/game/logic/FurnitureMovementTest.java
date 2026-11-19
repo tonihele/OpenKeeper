@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class FurnitureMovementTest {
     private float creatureWidth = 0.18f;
     private float movementTpf = 1 / 4f;
+    private boolean endInObstacle;
     private boolean softFurniture;
     private boolean wallBelow;
     private float furnitureWidth = .6f;
@@ -52,6 +53,48 @@ class FurnitureMovementTest {
     private java.util.function.IntConsumer onFrame = frame -> {};
     private final EntityData data = new DefaultEntityData();
     private final List<Vector2> furniture = new ArrayList<>();
+
+    @ParameterizedTest
+    @ValueSource(booleans = {false, true})
+    void onlyExplicitObstacleDestinationsYieldOnTheFinalLeg(boolean solid) throws Exception {
+        GameObject object = GameObjectFixtures.gameObject("Synthetic destination", GameObject.ObjectFlag.OBSTACLE);
+        if (solid) {
+            object.getFlags().add(GameObject.ObjectFlag.SOLID_OBSTACLE);
+        }
+        set(object, "width", .6f);
+        Creature definition = new Creature();
+        set(definition.getAttributes(), "width", .2f);
+        set(definition, "unk3cc", .5f);
+        IKwdFile level = (IKwdFile) Proxy.newProxyInstance(getClass().getClassLoader(), new Class<?>[]{IKwdFile.class},
+                (p, m, args) -> m.getName().equals("getObject") ? object : definition);
+        obstacle(5, 5);
+        float[] positions = new float[3];
+        for (int allow = 0; allow < 3; allow++) {
+            EntityId id = data.createEntity();
+            CreatureComponent creature = new CreatureComponent();
+            Navigation navigation = new Navigation(new Point(5, 5), null,
+                    List.of(new Vector2(4.8f, 5), new Vector2(5, 5)));
+            navigation.endInObstacle = allow != 0;
+            if (allow == 2) {
+                navigation.navigationPath = List.of(new Vector2(4.8f, 5), new Vector2(4.8f, 10),
+                        new Vector2(5, 10), new Vector2(5, 5));
+            }
+            data.setComponents(id, creature, new Mobile(false, false, false, 1),
+                    new Position(0, new Vector3f(4.8f, 0, 5)), navigation);
+            IMapInformation map = (IMapInformation) Proxy.newProxyInstance(getClass().getClassLoader(),
+                    new Class<?>[]{IMapInformation.class}, (p, m, args) -> false);
+            MovementSystem movement = new MovementSystem(data, map, level);
+            try {
+                movement.processTick(.25f);
+                positions[allow] = data.getComponent(id, Position.class).position.x;
+            } finally {
+                movement.stop();
+                data.removeEntity(id);
+            }
+        }
+        assertTrue(positions[0] < positions[1], "ordinary final legs must retain furniture contact");
+        assertTrue(positions[2] < positions[1], "the destination flag must not exempt earlier legs");
+    }
 
     @Test
     void crossesASingleObstacleHeadOn() throws Exception {
@@ -100,12 +143,14 @@ class FurnitureMovementTest {
     @Test
     void reachesAWorkingPositionInsideSoftFurniture() throws Exception {
         softFurniture = true;
+        endInObstacle = true;
         obstacle(5, 5);
         trial("soft-work-position", List.of(new Vector2(1, 5), new Vector2(5, 5)), null);
     }
 
     @Test
     void reachesAResearchPositionAndFacesTheFurniture() throws Exception {
+        endInObstacle = true;
         obstacle(5, 5);
         trial("research", List.of(new Vector2(5, 1), new Vector2(5, 4.5f)), new Point(5, 5));
     }
@@ -206,6 +251,7 @@ class FurnitureMovementTest {
         data.setComponents(id, creature, new Mobile(false, false, false, 1),
                 new Position(0, new Vector3f(start.x, 1, start.y)),
                 new Navigation(new Point(Math.round(goal.x), Math.round(goal.y)), faceTarget, path));
+        data.getComponent(id, Navigation.class).endInObstacle = endInObstacle;
         MovementSystem movement;
         if (wallBelow) {
             var accessMap = accessMap();

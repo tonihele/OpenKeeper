@@ -52,6 +52,8 @@ public final class EntitySteeringBehavior extends PrioritySteering<Vector2> impl
                 path.setUpdateInterval(tpf);
             } else if (behavior instanceof ReachOrientation<?> orientation) {
                 orientation.setTimeToTarget(Math.max(.001f, tpf));
+                // Start braking before a full-speed turn can cross the target in one tick.
+                orientation.setDecelerationRadius(Math.max(.2f, steerableEntity.getMaxAngularSpeed() * tpf));
             }
         }
     }

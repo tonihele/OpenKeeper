@@ -40,9 +40,6 @@ public final class FurnitureCollision {
 
     // Repel_Obstacle's native steering weight (setup at 0x4D580D).
     private static final float REPULSION_WEIGHT = 0.4f;
-    // DKII pilots update four times a second. OpenKeeper integrates each tick;
-    // convert its rates to the reference solver's per-update units here.
-    private static final float CONTACT_UPDATE = 0.25f;
     // Native enumeration handles this special Heart footprint separately.
     private static final short HEART_OBSTACLE = 100;
     private final EntitySet objects;
@@ -166,9 +163,9 @@ public final class FurnitureCollision {
         return ((long) x << 32) | (y & 0xffffffffL);
     }
 
-    public void constrain(ISteerableEntity mover, SteeringAcceleration<Vector2> steering, Vector2 destination) {
-        // Repel_Obstacle yields near the final waypoint so a creature can reach
-        // furniture work/bed positions. Use native max + min/2 proximity.
+    public void constrain(ISteerableEntity mover, SteeringAcceleration<Vector2> steering, Vector2 destination, float tpf) {
+        // A destination is supplied only for walks allowed to end inside an
+        // obstacle (native pilot flag 4), and only on their final segment.
         if (destination != null) {
             float dx = Math.abs(destination.x - mover.getPosition().x);
             float dy = Math.abs(destination.y - mover.getPosition().y);
@@ -176,14 +173,17 @@ public final class FurnitureCollision {
                 return;
             }
         }
-        steer(mover, steering);
+        steer(mover, steering, tpf);
     }
 
-    public void constrain(ISteerableEntity mover, SteeringAcceleration<Vector2> steering) {
-        steer(mover, steering);
+    public void constrain(ISteerableEntity mover, SteeringAcceleration<Vector2> steering, float tpf) {
+        steer(mover, steering, tpf);
     }
 
-    private void steer(ISteerableEntity mover, SteeringAcceleration<Vector2> steering) {
+    private void steer(ISteerableEntity mover, SteeringAcceleration<Vector2> steering, float tpf) {
+        if (!Float.isFinite(tpf) || tpf <= 0) {
+            throw new IllegalArgumentException("Contact update must be positive and finite");
+        }
         findNearby(mover);
         repulsion.setZero();
         int contactCount = 0;
@@ -208,12 +208,12 @@ public final class FurnitureCollision {
         // only the final sum makes several soft objects excessively repulsive.
         repulsion.limit(mover.getMaxLinearAcceleration()).scl(REPULSION_WEIGHT);
         steering.linear.add(repulsion);
-        nextVelocity.set(mover.getLinearVelocity()).scl(CONTACT_UPDATE);
-        contactForce.set(steering.linear).scl(CONTACT_UPDATE * CONTACT_UPDATE);
+        nextVelocity.set(mover.getLinearVelocity()).scl(tpf);
+        contactForce.set(steering.linear).scl(tpf * tpf);
         FurnitureContactSolver.solve(contacts, contactCount, nextVelocity, contactForce,
-                mover.getMaxLinearAcceleration() * CONTACT_UPDATE * CONTACT_UPDATE, sideways);
-        mover.getLinearVelocity().set(nextVelocity).scl(1 / CONTACT_UPDATE);
-        steering.linear.set(contactForce).scl(1 / (CONTACT_UPDATE * CONTACT_UPDATE))
+                mover.getMaxLinearAcceleration() * tpf * tpf, sideways);
+        mover.getLinearVelocity().set(nextVelocity).scl(1 / tpf);
+        steering.linear.set(contactForce).scl(1 / (tpf * tpf))
                 .limit(mover.getMaxLinearAcceleration());
     }
 

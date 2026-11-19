@@ -650,7 +650,7 @@ public final class CreatureController extends EntityController implements ICreat
                 //workNavigationRequired = false;
 
                 Point destination = WorldUtils.vectorToPoint(loc);
-                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition, false, true);
             }
         }
     }
@@ -665,6 +665,11 @@ public final class CreatureController extends EntityController implements ICreat
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition,
             boolean pursuingAttackTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, workPosition, pursuingAttackTarget, false);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition,
+            boolean pursuingAttackTarget, boolean endInObstacle) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
@@ -683,6 +688,7 @@ public final class CreatureController extends EntityController implements ICreat
             destination = tiles.get(doorIndex - 1);
             faceTarget = tiles.get(doorIndex);
             workPosition = null;
+            endInObstacle = false;
         }
 
         List<Vector2> navigationPath = SteeringUtils.pathToList(path);
@@ -695,7 +701,11 @@ public final class CreatureController extends EntityController implements ICreat
         if (navigationPath.size() > 1) {
             navigationPath = navigationService.smoothPath(navigationPath, CreatureSizing.getBodyRadius(creature), this);
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget));
+        Navigation navigation = new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget);
+        // Task destinations, including beds, can lie inside furniture. Ordinary walks
+        // keep contact through their final leg; native job flags remain to be mapped.
+        navigation.endInObstacle = endInObstacle;
+        entityData.setComponent(entityId, navigation);
         return false;
     }
 

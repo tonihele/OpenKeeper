@@ -38,6 +38,9 @@ public final class Navigation implements EntityComponent {
      */
     public boolean pursuingAttackTarget;
 
+    /** Allow contact to yield near the final waypoint (native request flags 0x20/0x40). */
+    public boolean endInObstacle;
+
     public Navigation() {
         // For serialization
     }

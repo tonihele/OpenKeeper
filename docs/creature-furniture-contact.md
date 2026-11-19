@@ -38,20 +38,36 @@ Movement recovery tries the full displacement, each axis, then perpendicular
 alternatives. It retains OpenKeeper's access policy and also checks actual
 landings, preventing three unsafe landings accepted by the native branch under
 synthetic access policies. Five safe saved native cases match within 0.0001.
-Native blocked-history handling is not ported.
+Native blocked-history recovery belongs to the replacement pilot in #917;
+it is not duplicated in this contact adapter.
 
 Moving body yaw approaches its velocity direction using the authored turn limit
 and the shortest circular arc. Eight saved native turn cases match within
 floating-point tolerance. The adapter does not reproduce every native integer
 rounding step or render interpolation.
 
-Soft repulsion yields near the final waypoint using the native proximity
-metric; contact is exempted only on the final path segment, permitting furniture
-work positions. Stationary navigation completes at its destination or after
-orientation-only movement, rather than mistaking an unfinished stall for arrival.
+Contact yields near the final waypoint only when `Navigation.endInObstacle`
+is explicitly set, using the native proximity metric and only on the final
+path segment. Ordinary walks keep contact on their final leg. OpenKeeper sets
+this flag for assigned-task destinations, including beds and explicit work
+positions, retaining furniture access; this
+is an OpenKeeper task policy, not a verified mapping of every native job's
+0x20/0x40 request flags. #845 uses the same flag for withdraw walks.
+Stationary navigation completes at its destination or after orientation-only
+movement, rather than mistaking an unfinished walking stall for arrival.
+One-point facing requests do not require proximity to an unused path point.
+Orientation deceleration begins at least one full-speed tick before its target,
+avoiding the coarse-tick oscillation exposed by the new facing regression.
 
-OpenKeeper retains its existing path follower and acceleration limits. Contact uses a quarter-second reference interval to adapt those rates;
-complete native behavior blending and integration timing are not claimed.
+This base PR retains OpenKeeper's gdx path follower and acceleration limits.
+Contact converts velocity and acceleration using the actual logic update length,
+including the native outward cutoff's per-tick displacement units. #917 builds
+on this PR and replaces gdx following with DKII's pilot. It sets the shared
+force cap to 1.5 / (tick length squared), so the summed force and contact edge
+force use the same native limit, and adds recovery after no headway in five of
+fifteen ticks, ending recovery when the count falls to two. These behaviors
+are owned by #917 rather than independently reimplemented here. Full native
+pilot parity is not claimed for #1341 in isolation.
 The regular native enumeration and callback operate in the horizontal plane;
 this work does not introduce an inferred height-based exemption for flyers.
 
@@ -128,3 +144,38 @@ for replanning/attack, even when path planning permits breaking it. No slab
 query is applied to ordinary walking. The native walking resolver's access
 calls through 0x006A11D0 resolve to edge rule 0x004C8BD0; the independently
 researched slab query belongs to the separate physics resolver 0x004B2030.
+
+## Review follow-up (2026-11-19)
+
+Based on Scotty's [review](https://github.com/tonihele/OpenKeeper/pull/1341#issuecomment-7017609651)
+and the implementations in [#917](https://github.com/tonihele/OpenKeeper/pull/917)
+and [#845](https://github.com/tonihele/OpenKeeper/pull/845):
+
+- Contact scaling now consumes the actual movement step rather than 0.25 seconds.
+  Synthetic cutoff tests distinguish velocity times tick from force times tick squared
+  at two, four and eight updates per second.
+- Final-leg yielding requires an explicit obstacle-destination flag. Synthetic
+  movement checks cover both solid and soft objects, ordinary walks and opted-in
+  task destinations; native job-flag mapping remains incomplete.
+- Completion checks distinguish facing-only requests from a linear journey.
+  One-point facing requests can complete away from their unused point; unfinished
+  multi-point walking paths still require final arrival.
+- Furniture trajectory tests now run at the authoritative logic cadence, including
+  a one-tick incursion allowance because contact is sampled once per tick. They
+  do not claim rigid disc separation or native trajectory equality.
+
+No new original-executable trace was performed for this review follow-up.
+
+Review validation: JDK 25 `./gradlew test installDist --offline --no-daemon`
+passes 1,466 tests with zero failures and four asset-dependent skips in a clean
+checkout without converted game assets. These are synthetic regressions and a
+packaging check, not a new live native or rendered gameplay comparison. The new
+`Navigation` field requires matching client/server builds.
+
+Integration notes for the stacked pilot PR: pass the logic `tpf` to
+`FurnitureCollision.constrain` and only supply a final destination when
+`Navigation.endInObstacle` is set. Keep #917's `FollowWaypoints.isFinished()`
+completion and blocked-history handling; #1341's gdx arrival check is temporary
+until that follower lands. #845's existing `endInObstacle` flag is the same
+policy field and should be merged as one field, preserving task and withdraw
+producers.
