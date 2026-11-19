@@ -32,31 +32,49 @@ import java.nio.FloatBuffer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
-import toniarts.openkeeper.tools.convert.KmfModelLoader;
 
 /**
- * DK II's speed blur (0x5A3AA0, 0x5A14E0). While the creature has its speed
- * blur, the last 6 drawn positions of the speed blur points of its animation
- * are kept, and each run of points is drawn as a strip through them. The strip
- * is added to the scene in (0, 0.35, 0.35) times half of (frames - age) /
- * frames, so the newest edge is the brightest. Without the blur, or when the
- * creature wasn't drawn, the positions are dropped
+ * DK II's trails behind the limbs of a creature (0x5A3AA0, 0x5A14E0). While
+ * the trail is shown, the last 6 drawn positions of the trail's points in the
+ * animation are kept, and each run of points is drawn as a strip through them.
+ * The strip is added to the scene in its colour times half of (frames - age) /
+ * frames, so the newest edge is the brightest. When the trail isn't shown, or
+ * the creature wasn't drawn, the positions are dropped
  */
-final class SpeedBlurTrail {
+final class CreatureTrail {
 
     /**
      * How many drawn frames the trail goes back
      */
     static final int FRAMES = 6;
-    private static final ColorRGBA COLOR = new ColorRGBA(0, 0.35f, 0.35f, 0);
+    /**
+     * The speed blur of a creature that was sped up, colour mode 2 of 0x5A14E0
+     */
+    static final ColorRGBA SPEED_BLUR = new ColorRGBA(0, 0.35f, 0.35f, 0);
+    /**
+     * The trail of a melee swing or a cast, colour mode 1 of 0x5A14E0
+     */
+    static final ColorRGBA ATTACK = new ColorRGBA(0.5f, 0, 0.35f, 0);
 
+    private final String pointsKey;
+    private final ColorRGBA color;
     private final Geometry geometry;
     private final List<Vector3f[]> history = new ArrayList<>(FRAMES);
     private Node animation;
     private int[][] points;
     private int[] runLengths;
 
-    SpeedBlurTrail(AssetManager assetManager) {
+    /**
+     * A trail of a creature
+     *
+     * @param assetManager the asset manager
+     * @param pointsKey the user data key of the animation nodes that holds the
+     * points of the trail
+     * @param color the colour of the trail
+     */
+    CreatureTrail(AssetManager assetManager, String pointsKey, ColorRGBA color) {
+        this.pointsKey = pointsKey;
+        this.color = color;
         Material material = new Material(assetManager, "Common/MatDefs/Misc/Unshaded.j3md");
         material.setBoolean("VertexColor", true);
         RenderState renderState = material.getAdditionalRenderState();
@@ -64,7 +82,7 @@ final class SpeedBlurTrail {
         renderState.setDepthWrite(false);
         renderState.setFaceCullMode(RenderState.FaceCullMode.Off);
 
-        geometry = new Geometry("SpeedBlur", new Mesh());
+        geometry = new Geometry("CreatureTrail", new Mesh());
         geometry.setMaterial(material);
         geometry.setQueueBucket(RenderQueue.Bucket.Transparent);
         geometry.setShadowMode(RenderQueue.ShadowMode.Off);
@@ -74,16 +92,16 @@ final class SpeedBlurTrail {
      * Takes the positions of this frame and redraws the trail
      *
      * @param creature the creature model
-     * @param blur whether the creature has its speed blur
+     * @param shown whether the trail is shown
      */
-    void update(Spatial creature, boolean blur) {
-        Node shown = blur && creature.getParent() != null && creature.getCullHint() != Spatial.CullHint.Always
+    void update(Spatial creature, boolean shown) {
+        Node shownAnimation = shown && creature.getParent() != null && creature.getCullHint() != Spatial.CullHint.Always
                 ? findAnimation(creature) : null;
-        if (shown != animation) {
+        if (shownAnimation != animation) {
             history.clear();
-            animation = shown;
+            animation = shownAnimation;
             if (animation != null) {
-                parsePoints(animation.getUserData(KmfModelLoader.SPEED_BLUR_POINTS));
+                parsePoints(animation.getUserData(pointsKey));
             }
         }
         if (animation == null) {
@@ -108,7 +126,7 @@ final class SpeedBlurTrail {
         if (geometry.getParent() != parent) {
             parent.attachChild(geometry);
         }
-        geometry.setMesh(createMesh(history, runLengths));
+        geometry.setMesh(createMesh(history, runLengths, color));
     }
 
     /**
@@ -126,18 +144,19 @@ final class SpeedBlurTrail {
      * @param history the positions of the points, the newest frame first
      * @param runLengths how many points each run has, in the order of the
      * points
+     * @param color the colour of the trail
      * @return the mesh
      */
-    static Mesh createMesh(List<Vector3f[]> history, int[] runLengths) {
+    static Mesh createMesh(List<Vector3f[]> history, int[] runLengths, ColorRGBA color) {
         int frames = history.size();
         int count = frames > 0 ? history.getFirst().length : 0;
         Vector3f[] positions = new Vector3f[frames * count];
         ColorRGBA[] colors = new ColorRGBA[frames * count];
         for (int frame = 0; frame < frames; frame++) {
-            ColorRGBA color = COLOR.mult((frames - frame) / (float) frames * 0.5f);
+            ColorRGBA frameColor = color.mult((frames - frame) / (float) frames * 0.5f);
             for (int point = 0; point < count; point++) {
                 positions[frame * count + point] = history.get(frame)[point];
-                colors[frame * count + point] = color;
+                colors[frame * count + point] = frameColor;
             }
         }
 
@@ -161,10 +180,10 @@ final class SpeedBlurTrail {
         return mesh;
     }
 
-    private static Node findAnimation(Spatial creature) {
+    private Node findAnimation(Spatial creature) {
         Node[] found = new Node[1];
         creature.depthFirstTraversal(spatial -> {
-            if (found[0] == null && spatial instanceof Node node && node.getUserData(KmfModelLoader.SPEED_BLUR_POINTS) != null
+            if (found[0] == null && spatial instanceof Node node && node.getUserData(pointsKey) != null
                     && node.getCullHint() != Spatial.CullHint.Always) {
                 found[0] = node;
             }
