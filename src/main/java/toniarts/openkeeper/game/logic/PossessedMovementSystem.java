@@ -28,6 +28,8 @@ import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
+import toniarts.openkeeper.game.navigation.pathfinding.MapIndexedGraph;
+import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
@@ -37,14 +39,6 @@ import toniarts.openkeeper.utils.WorldUtils;
  * handle possessed creatures since they have no navigation.
  */
 public final class PossessedMovementSystem implements IGameLogicUpdatable {
-
-    /**
-     * How close a possessed creature is allowed to approach a wall or door
-     * it cannot pass through. Creatures stop at the centre of their own
-     * tile, i.e. half a tile short of the obstacle, instead of walking
-     * right up against it.
-     */
-    private static final float WALL_APPROACH_GAP = WorldUtils.TILE_WIDTH / 6f;
 
     private final EntityData entityData;
     private final IMapController mapController;
@@ -70,14 +64,15 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
             Position position = entity.get(Position.class);
             Vector3f newPosition = position.position.clone();
             if (!movement.direction.equals(Vector2f.ZERO)) {
-                INavigable navigable = creaturesController.createController(entity.getId());
+                var navigable = creaturesController.createController(entity.getId());
+                float width = CreatureSizing.getBodyWidth(navigable.getCreature());
                 float x = newPosition.x + movement.direction.x * movement.speed * tpf;
                 float z = newPosition.z + movement.direction.y * movement.speed * tpf;
 
                 // Slide along walls by trying the axes separately, this way we
                 // only ever cross into an orthogonally adjacent tile
-                newPosition.x = limitApproach(navigable, newPosition.x, newPosition.z, x, true);
-                newPosition.z = limitApproach(navigable, newPosition.x, newPosition.z, z, false);
+                newPosition.x = limitApproach(navigable, newPosition.x, newPosition.z, x, true, width);
+                newPosition.z = limitApproach(navigable, newPosition.x, newPosition.z, z, false, width);
             }
 
             if (!newPosition.equals(position.position) || movement.rotation != position.rotation) {
@@ -86,35 +81,34 @@ public final class PossessedMovementSystem implements IGameLogicUpdatable {
         }
     }
 
-    /**
-     * Uses the same rules as path finding (solid terrain, doors, room
-     * obstacles, water & lava abilities) to limit movement along one axis.
-     * If the tile ahead, in the direction of travel, is not passable the
-     * returned value is clamped so that the entity stops
-     * {@link #WALL_APPROACH_GAP} short of it, i.e. at the centre of its own
-     * tile, rather than walking right up against the wall or door.
-     */
-    private float limitApproach(INavigable navigable, float fromX, float fromZ, float toValue, boolean isX) {
+    /** Sweep the full-width leading point against tile access, preserving manual sliding. */
+    private float limitApproach(INavigable navigable, float fromX, float fromZ, float toValue, boolean isX, float width) {
         float fromValue = isX ? fromX : fromZ;
         if (toValue == fromValue) {
             return toValue;
         }
-
-        Point fromPoint = WorldUtils.vectorToPoint(fromX, fromZ);
+        Point tile = WorldUtils.vectorToPoint(fromX, fromZ);
         int direction = toValue > fromValue ? 1 : -1;
-        Point aheadPoint = isX ? new Point(fromPoint.x + direction, fromPoint.y)
-                : new Point(fromPoint.x, fromPoint.y + direction);
-
-        IMapTileInformation from = mapController.getMapData().getTile(fromPoint);
-        IMapTileInformation ahead = mapController.getMapData().getTile(aheadPoint);
-        boolean blocked = ahead == null || navigable.getCost(from, ahead, mapController, entityPositionLookup) == null;
-        if (!blocked) {
-            return toValue;
+        while (true) {
+            Point aheadPoint = isX ? new Point(tile.x + direction, tile.y)
+                    : new Point(tile.x, tile.y + direction);
+            IMapTileInformation from = mapController.getMapData().getTile(tile);
+            IMapTileInformation ahead = mapController.getMapData().getTile(aheadPoint);
+            float face = (isX ? tile.x : tile.y) * WorldUtils.TILE_WIDTH
+                    + direction * WorldUtils.TILE_WIDTH / 2f;
+            if (ahead == null || MapIndexedGraph.getMovementCost(navigable, from, ahead, mapController, entityPositionLookup) == null) {
+                float limit = face - direction * width;
+                // Only the approached face is clamped. Moving away retains
+                // direct player control, including escape from a closing tile.
+                toValue = direction > 0 ? Math.min(toValue, limit) : Math.max(toValue, limit);
+                break;
+            }
+            if (direction > 0 ? toValue + width < face : toValue - width >= face) {
+                break;
+            }
+            tile = aheadPoint;
         }
-
-        float wallFace = (isX ? fromPoint.x : fromPoint.y) * WorldUtils.TILE_WIDTH + direction * (WorldUtils.TILE_WIDTH / 2f);
-        float limit = wallFace - direction * WALL_APPROACH_GAP;
-        return direction > 0 ? Math.min(toValue, limit) : Math.max(toValue, limit);
+        return toValue;
     }
 
     @Override

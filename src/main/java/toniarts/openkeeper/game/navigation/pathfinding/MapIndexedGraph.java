@@ -121,6 +121,17 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
         return false;
     }
 
+    /** Direct walking access using existing tile rules, without door-breaking edges. */
+    public static Float getMovementCost(final INavigable navigable, final IMapTileInformation from,
+            final IMapTileInformation to, final IMapController mapController,
+            IEntityPositionLookup entityPositionLookup) {
+        // Breaking a door can be a planning edge, never direct clearance.
+        if (entityPositionLookup.getBlockingDoor(to.getX(), to.getY(), navigable.getOwnerId()) != null) {
+            return null;
+        }
+        return getCost(navigable, from, to, mapController, entityPositionLookup);
+    }
+
     /**
      * Can the entity travel from A to B?
      *
