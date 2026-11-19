@@ -36,6 +36,11 @@ public final class ShotFixtures {
      */
     public static final short FIREBALL_ID = 1;
 
+    /**
+     * The fireball's effect when it hits a thing, "Spot Hit 4"
+     */
+    public static final int FIREBALL_HIT_EFFECT_ID = 234;
+
     private ShotFixtures() {
     }
 
@@ -59,6 +64,8 @@ public final class ShotFixtures {
         shot.setRadius(0.2f);
         shot.setCollideType(Shot.CollideType.ENEMY_CREATURES);
         shot.setDamageType(Shot.DamageType.HIT_THING);
+        shot.setAttackCategory(Shot.AttackCategory.FIRE);
+        shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
         return shot;
@@ -99,7 +106,13 @@ public final class ShotFixtures {
     }
 
     public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost) {
+        return keeperSpell(castRule, targetRule, manaCost, 0, (short) 1);
+    }
+
+    public static KeeperSpell keeperSpell(KeeperSpell.CastRule castRule, KeeperSpell.TargetRule targetRule, int manaCost, float rechargeTime, short keeperSpellId) {
         KeeperSpell keeperSpell = new KeeperSpell();
+        keeperSpell.setKeeperSpellId(keeperSpellId);
+        keeperSpell.setRechargeTime(rechargeTime);
         keeperSpell.setName("Spell");
         keeperSpell.setCastRule(castRule);
         keeperSpell.setTargetRule(targetRule);
