@@ -567,7 +567,8 @@ public final class Main extends SimpleApplication {
         Settings s = getUserSettings();
 
         SoundManager.applyVolumes(s.getFloat(Settings.Setting.MASTER_VOLUME), s.getFloat(Settings.Setting.MUSIC_VOLUME),
-                s.getFloat(Settings.Setting.VOICE_VOLUME), s.getFloat(Settings.Setting.SFX_VOLUME));
+                s.getFloat(Settings.Setting.VOICE_VOLUME), s.getFloat(Settings.Setting.SFX_VOLUME),
+                s.getBoolean(Settings.Setting.SFX_ENABLED));
     }
 
     public byte[] getGameUiXml() {

@@ -1214,6 +1214,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             settings.setSetting(Settings.Setting.SFX_ENABLED, sfxEnabled.isChecked());
 
             Main.setupNiftySound(nifty);
+            Main.applySoundSettings();
             Settings.getInstance().save();
         } catch (IOException ex) {
             logger.log(Logger.Level.ERROR, ex);

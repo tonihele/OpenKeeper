@@ -126,6 +126,19 @@ class SoundEngineTest {
     }
 
     @Test
+    void stoppingAChannelStopsOnlyTheVoicesOnIt() {
+        int handle = engine.play(category, EVENT);
+        engine.tick();
+
+        // The test category plays on channels 0 and 1
+        engine.stopChannel(2);
+        assertTrue(engine.isPlaying(handle));
+
+        engine.stopChannel(1);
+        assertFalse(engine.isPlaying(handle));
+    }
+
+    @Test
     void channelVolumesAndMuteAffectTheGain() {
         int handle = engine.play(category, EVENT);
         engine.tick();
