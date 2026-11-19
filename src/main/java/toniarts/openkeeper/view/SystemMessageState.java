@@ -253,16 +253,6 @@ public final class SystemMessageState extends AbstractPauseAwareState {
         }
     }
 
-    /**
-     * @return the texts of the messages that show their tabs, oldest first
-     */
-    List<String> getTabTexts() {
-        return heldMessages.stream()
-                .filter(message -> message.tabShown && message.age < message.tabSeconds)
-                .map(message -> message.text)
-                .toList();
-    }
-
     @Override
     public boolean isPauseable() {
         return true;
