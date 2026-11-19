@@ -138,10 +138,13 @@ public interface GameSessionListener extends MapListener, PlayerListener {
      * @param position the place the message is about
      * @param namedPlayerId the player whose name the text shows as %3, 0 for
      * none
-     * @param seconds how long the message stays
+     * @param seconds how long the message is held
+     * @param tabSeconds how long the message shows its tab at most
+     * @param graphic the tab's icon, DK II's graphic id of the message (1 to
+     * 6)
      */
     @Asynchronous
-    public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds);
+    public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds, float tabSeconds, int graphic);
 
     @Asynchronous
     public void onZoomViewToPoint(Vector3f point);

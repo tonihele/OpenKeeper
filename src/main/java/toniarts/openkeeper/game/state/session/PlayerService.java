@@ -108,9 +108,12 @@ public interface PlayerService {
      * @param namedPlayerId the player whose name the text shows as %3, e.g.
      * "%3 has been defeated", 0 for none
      * @param playerId the player ID who should get the message
-     * @param seconds how long the message stays
+     * @param seconds how long the message is held
+     * @param tabSeconds how long the message shows its tab at most
+     * @param graphic the tab's icon, DK II's graphic id of the message (1 to
+     * 6)
      */
-    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds);
+    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds, float tabSeconds, int graphic);
 
     /**
      * Zoom camera to a point

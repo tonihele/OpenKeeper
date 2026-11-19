@@ -37,9 +37,9 @@ public final class SystemMessageControl extends AbstractController {
     private Nifty nifty;
     private Element element;
     private boolean unread = true;
+    private boolean dismissed;
     private String text = "";
     private final Long createdAt = System.currentTimeMillis();
-    private long lifetime = 60000;
     private Screen hud;
     private SystemMessageTarget target;
 
@@ -89,7 +89,15 @@ public final class SystemMessageControl extends AbstractController {
      */
     public void dismissMessage() {
         NiftyUtils.playSound(nifty, GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK.getId());
+        this.dismissed = true;
         this.element.markForRemoval();
+    }
+
+    /**
+     * @return true if the player dismissed the message's tab
+     */
+    public boolean isDismissed() {
+        return this.dismissed;
     }
 
     /**
@@ -110,22 +118,6 @@ public final class SystemMessageControl extends AbstractController {
      */
     public long getCreatedAt() {
         return this.createdAt;
-    }
-
-    /**
-     * @return how long the message stays, in milliseconds
-     */
-    public long getLifetime() {
-        return this.lifetime;
-    }
-
-    /**
-     * Set how long the message stays
-     *
-     * @param lifetime the time in milliseconds
-     */
-    public void setLifetime(long lifetime) {
-        this.lifetime = lifetime;
     }
 
     /**

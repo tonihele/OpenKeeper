@@ -243,7 +243,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         }
 
         @Override
-        public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds) {
+        public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds, float tabSeconds, int graphic) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

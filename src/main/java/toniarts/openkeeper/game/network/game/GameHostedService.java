@@ -272,10 +272,10 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds) {
+    public void showMentorMessage(int speechId, Vector3f position, short namedPlayerId, short playerId, float seconds, float tabSeconds, int graphic) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
-                gameSession.getValue().onShowMentorMessage(speechId, position, namedPlayerId, seconds);
+                gameSession.getValue().onShowMentorMessage(speechId, position, namedPlayerId, seconds, tabSeconds, graphic);
                 break;
             }
         }
@@ -784,8 +784,8 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds) {
-            getCallback().onShowMentorMessage(speechId, position, namedPlayerId, seconds);
+        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds, float tabSeconds, int graphic) {
+            getCallback().onShowMentorMessage(speechId, position, namedPlayerId, seconds, tabSeconds, graphic);
         }
 
         @Override

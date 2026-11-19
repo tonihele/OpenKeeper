@@ -45,7 +45,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * In a skirmish or multiplayer game every other player hears that the keeper is
  * defeated (message 0x57), which is told even while the last one is held. The
  * queue holds at most 256 messages for all the keepers together (0x4C4090). A
- * message shows its tab for at most 200 ticks (table flag 0x2000, 0x4C41E0)
+ * message shows its tab for at most 200 ticks (table flag 0x2000, 0x4C41E0),
+ * with the icon of the table's graphic id: 3, the fight icon, for the heart
+ * attack and the defeated keeper, 1, the info icon, for the others here
  */
 class RoomAttackMessagesTest {
 
@@ -54,12 +56,16 @@ class RoomAttackMessagesTest {
 
     private final List<String> messages = new ArrayList<>();
     private final List<Float> seconds = new ArrayList<>();
+    private final List<Float> tabSeconds = new ArrayList<>();
+    private final List<Integer> graphics = new ArrayList<>();
     private double gameTime = 100;
     private final PlayerService playerService = (PlayerService) Proxy.newProxyInstance(PlayerService.class.getClassLoader(),
             new Class<?>[]{PlayerService.class}, (proxy, method, args) -> {
                 if (method.getName().equals("showMentorMessage")) {
                     messages.add(args[0] + "@" + args[1] + ">p" + args[3] + ((Short) args[2] != 0 ? " named p" + args[2] : ""));
                     seconds.add((Float) args[4]);
+                    tabSeconds.add((Float) args[5]);
+                    graphics.add((Integer) args[6]);
                 }
                 return null;
             });
@@ -253,9 +259,11 @@ class RoomAttackMessagesTest {
         roomAttackMessages.roomTileAttacked(KEEPER, room("Casino", 99), TILE);
         roomAttackMessages.lowManaWarning(KEEPER, 1);
 
-        // A room type without an entry of its own in the attack message's table gets its last entry, 20 seconds.
+        // A room type without an entry of its own in the attack message's table gets its last entry, 20 seconds
+        assertEquals(List.of(120f, 30f, 20f, 20f), seconds);
+
         // The heart attack is held for 120 seconds, but its tab goes after 200 ticks, 50 seconds at 4 ticks a second
-        assertEquals(List.of(50f, 30f, 20f, 20f), seconds);
+        assertEquals(List.of(50f, 30f, 20f, 20f), tabSeconds);
     }
 
     @Test
@@ -266,12 +274,25 @@ class RoomAttackMessagesTest {
         fasterLevel.roomTileAttacked(KEEPER, lair, TILE);
 
         // 200 ticks are 20 seconds at 10 ticks a second
-        assertEquals(List.of(20f, 20f), seconds);
+        assertEquals(List.of(20f, 20f), tabSeconds);
 
         // The heart attack is still held for its 120 seconds
         gameTime += 119;
         fasterLevel.heartAttacked(KEEPER, TILE);
         assertEquals(2, messages.size());
+    }
+
+    @Test
+    void eachMessageHasTheTabIconOfItsTableEntry() {
+        roomAttackMessages.heartAttacked(KEEPER, TILE);
+        roomAttackMessages.roomTileAttacked(KEEPER, lair, TILE);
+        roomAttackMessages.roomLost(KEEPER, lair, 1, 0, TILE);
+        roomAttackMessages.heartHealthChanged(KEEPER, 50, 100);
+        roomAttackMessages.lowManaWarning(KEEPER, 1);
+        roomAttackMessages.heartDestroyed(KEEPER, Player.KEEPER2_ID, List.of(Player.KEEPER3_ID));
+
+        // The heart under attack and the defeated keeper have the fight icon (3), the rest the info icon (1)
+        assertEquals(List.of(3, 1, 1, 1, 1, 1, 3, 1), graphics);
     }
 
     @Test

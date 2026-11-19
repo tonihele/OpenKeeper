@@ -39,7 +39,10 @@ import toniarts.openkeeper.utils.WorldUtils;
  * (0x4C4090). Every message in the table has flag 0x2000, which shows it as a
  * message tab, and the per tick update (0x4C41E0) clears that once the message
  * is 200 ticks old, so the tab goes after 200 ticks even while the message is
- * still held.
+ * still held. The table also gives each message its tab's icon (entry +6,
+ * copied to the queue entry's +0x13), which the message row (0x423BD0) draws:
+ * 3 is the fight icon, the heart attack and the defeated keeper here, and 1 the
+ * info icon, all the other messages here.
  */
 public final class RoomAttackMessages {
 
@@ -53,13 +56,19 @@ public final class RoomAttackMessages {
      */
     private static final int TAB_TICKS = 200;
 
+    /**
+     * DK II's graphic ids of the tab icons the messages here use
+     */
+    private static final int INFO_TAB = 1;
+    private static final int FIGHT_TAB = 3;
+
     private enum Message {
 
         /**
          * "Your Dungeon Heart is under attack!", message 1. DKII.EXE raises it
          * when the heart object takes damage (0x4DA200)
          */
-        HEART_UNDER_ATTACK(120, 346, Map.of()),
+        HEART_UNDER_ATTACK(120, 346, Map.of(), false, FIGHT_TAB),
 
         /**
          * "Your Dungeon Heart is at half its health", message 0x27. DKII.EXE
@@ -93,7 +102,7 @@ public final class RoomAttackMessages {
          * (0x4DA560). %3 is the defeated keeper. The four variants are speech
          * 1517 to 1520. It has no tile
          */
-        KEEPER_DEFEATED(20, 1517, Map.of(), true),
+        KEEPER_DEFEATED(20, 1517, Map.of(), true, FIGHT_TAB),
 
         /**
          * "Your Lair is under attack", message 0x22
@@ -132,20 +141,23 @@ public final class RoomAttackMessages {
         private final int defaultSpeechId;
         private final Map<Integer, Integer> speechIdsByRoom;
         private final boolean alwaysPosted;
+        private final int graphic;
 
         private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom) {
-            this(duration, defaultSpeechId, speechIdsByRoom, false);
+            this(duration, defaultSpeechId, speechIdsByRoom, false, INFO_TAB);
         }
 
         /**
          * @param alwaysPosted posted even while the same message is held
          * (table flag 0x4000)
+         * @param graphic the tab's icon, the table's graphic id
          */
-        private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom, boolean alwaysPosted) {
+        private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom, boolean alwaysPosted, int graphic) {
             this.duration = duration;
             this.defaultSpeechId = defaultSpeechId;
             this.speechIdsByRoom = speechIdsByRoom;
             this.alwaysPosted = alwaysPosted;
+            this.graphic = graphic;
         }
 
         /**
@@ -305,8 +317,9 @@ public final class RoomAttackMessages {
             entityData.removeEntity(oldest);
         }
         entityData.setComponent(entityData.createEntity(), new RoomMessageShown(ownerId, message.ordinal(), roomId, now));
+        double duration = message.getDuration(roomId);
         playerService.showMentorMessage(speechId, tile != null ? WorldUtils.pointToVector3f(tile) : null, namedPlayerId, ownerId,
-                (float) Math.min(message.getDuration(roomId), TAB_TICKS / (double) ticksPerSecond));
+                (float) duration, (float) Math.min(duration, TAB_TICKS / (double) ticksPerSecond), message.graphic);
     }
 
 }

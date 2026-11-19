@@ -725,7 +725,7 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds) {
+        public void onShowMentorMessage(int speechId, Vector3f position, short namedPlayerId, float seconds, float tabSeconds, int graphic) {
             app.enqueue(() -> {
                 SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
                 if (systemMessageState == null || !systemMessageState.isEnabled()) {
@@ -737,7 +737,8 @@ public final class GameClientState extends AbstractPauseAwareState {
                 String text = namedPlayer == null ? String.format("${speech.%d}", speechId - 1)
                         : Main.getResourceBundle("Interface/Texts/Speech").getString(Integer.toString(speechId - 1))
                                 .replace("%3", getPlayerName(namedPlayer));
-                systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, text, SystemMessageTarget.ofPosition(position), seconds);
+                systemMessageState.addMessage(SystemMessageState.MessageType.ofGraphic(graphic), text, SystemMessageTarget.ofPosition(position),
+                        seconds, tabSeconds);
                 for (MentorType speech : MentorType.values()) {
                     if (speech.getId() == speechId) {
                         stateManager.getState(SoundState.class).attachMentorSpeech(speech, null);
