@@ -882,12 +882,16 @@ public final class CreatureController extends EntityController implements ICreat
         // chases on while it picks the same one (0x470E30). Fighting a creature or a heart's pillar in reach, it keeps
         // it: 0x45E9F0 does not pick in the fight states, and the fight state picks only when it has no target, between
         // swings it just waits (0x45F030, 0x48C9B0). Hitting a heart with a spell from further away, it picks again on
-        // every turn its spell is still recharging (0x45F030 calls 0x45CB00 while 0x48C800 says the spell isn't ready)
+        // every turn its spell is still recharging (0x45F030 calls 0x45CB00 while 0x48C800 says the spell isn't ready).
+        // A support creature picks again on every turn of the fight state that isn't in the middle of a swing or a cast
+        // (0x45F030 with fight style 4)
         boolean inReach = target != null && isWithinAttackDistance(target);
         boolean chasing = target != null && !inReach && !DungeonHeartTarget.isDungeonHeart(entityData, target);
         boolean fighting = inReach && (stateMachine.isInState(CreatureState.FIGHT) || stateMachine.isInState(CreatureState.MELEE_ATTACK));
         boolean waitingToCast = target != null && !inReach && stateMachine.isInState(CreatureState.FIGHT) && isWaitingToCast(target);
-        boolean picked = target == null || chasing || waitingToCast || !fighting && isTimeToPickTarget(attackTarget);
+        boolean supporting = target != null && stateMachine.isInState(CreatureState.FIGHT)
+                && creature.getFightStyle() == Creature.FightStyle.SUPPORT;
+        boolean picked = target == null || chasing || waitingToCast || supporting || !fighting && isTimeToPickTarget(attackTarget);
         if (picked) {
             EntityId enemy = pickAttackTarget();
             if (enemy != null || chasing) {
