@@ -312,7 +312,10 @@ public final class KmfModelLoader implements AssetLoader {
                     var animGeometries = anim.getGeometries();
                     short frameBase = animGeometries.get(geomIndex).getFrameBase();
                     short nextFrameBase = animGeometries.get(geomIndex + 1).getFrameBase();
-                    float geomFactor = (float) ((frame & 0x7f) - frameBase) / (float) (nextFrameBase - frameBase);
+                    // Terminal keys may refer to themselves (including the reader's
+                    // final sentinel). Their position is defined even with no interval.
+                    float geomFactor = nextFrameBase == frameBase ? 0f
+                            : (float) ((frame & 0x7f) - frameBase) / (nextFrameBase - frameBase);
                     var coord = animGeometries.get(geomIndex).getGeometry();
 
                     // Store the frame zero coord

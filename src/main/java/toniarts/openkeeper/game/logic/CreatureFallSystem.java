@@ -60,8 +60,8 @@ public final class CreatureFallSystem implements IGameLogicUpdatable {
         // Process ticks
         for (Entity entity : fallEntities) {
             Position position = entity.get(Position.class);
-            Position newPosition = new Position(position.rotation, position.position);
-            newPosition.position.y = Math.max(newPosition.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT);
+            Position newPosition = Position.integrated(position, position.rotation, position.position.x,
+                    Math.max(position.position.y - tpf * GRAVITY, WorldUtils.FLOOR_HEIGHT), position.position.z);
             entity.set(newPosition);
             if (newPosition.position.y == WorldUtils.FLOOR_HEIGHT) {
 

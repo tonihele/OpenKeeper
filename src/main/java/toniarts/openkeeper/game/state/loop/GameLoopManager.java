@@ -80,7 +80,7 @@ import java.util.Map;
  *
  * @author ArchDemon
  */
-public final class GameLoopManager {
+public final class GameLoopManager implements IGameLoopManager {
 
     private final List<GameLoop> loops = new ArrayList<>();
 
@@ -154,7 +154,8 @@ public final class GameLoopManager {
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
-                new CreatureViewSystem(entityData, levelInfo.getLevelData()),
+                new CreatureViewSystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
+                        toniarts.openkeeper.Main.getUserSettings().getBoolean(toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_INTERPOLATION)),
                 new DoorViewSystem(entityData, positionSystem),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
@@ -175,36 +176,50 @@ public final class GameLoopManager {
                         entityData,
                         gameController.getLevelVariable(Variable.MiscVariable.MiscType.TIME_BEFORE_DUNGEON_HEART_CONSTRUCTION_BEGINS),
                         levelInfo.getLevelData().getObject(FiveByFiveRotatedController.OBJECT_PLUG_ID).getMiscEffectId(),
-                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService),
-                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
+                        levelInfo.getLevelData().getGameLevel().getTicksPerSec(), gameEventService));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
         // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData, gameWorldController.getMapController()),
+        loops.add(new GameLoop(new GameLogicManager(
+                new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService),
+                new MovementSystem(entityData, gameWorldController.getMapController()),
                 new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
                         positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
     }
 
-    public void pause() {
+    @Override public void pause() {
         loops.stream().forEach(GameLoop::pause);
         gameService.setGamePaused(true);
     }
 
-    public void resume() {
+    @Override public void resume() {
         loops.stream().forEach(GameLoop::resume);
         gameService.setGamePaused(false);
     }
 
-    public void start() {
+    @Override public void start() {
         loops.stream().forEach(GameLoop::start);
     }
 
-    public void stop() {
-        loops.forEach(GameLoop::stop);
-        loops.clear();
+    @Override public void stop() {
+        stopLoops(loops);
     }
 
-    public IGameController getGameController() {
+    /** One failed system cleanup must not leave the other simulation threads running. */
+    static void stopLoops(List<GameLoop> loops) {
+        RuntimeException failure = null;
+        for (GameLoop loop : loops) {
+            try { loop.stop(); }
+            catch (RuntimeException error) {
+                if (failure == null) failure = error;
+                else if (failure != error) failure.addSuppressed(error);
+            }
+        }
+        loops.clear();
+        if (failure != null) throw failure;
+    }
+
+    @Override public IGameController getGameController() {
         return gameController;
     }
 

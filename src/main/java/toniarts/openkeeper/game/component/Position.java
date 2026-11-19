@@ -20,22 +20,39 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 
 /**
- * Simple entity position class
+ * Published position snapshot. Treat fields as read-only outside deserialization.
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class Position implements EntityComponent {
+    private static final java.util.concurrent.atomic.AtomicLong EPOCHS = new java.util.concurrent.atomic.AtomicLong();
 
     public float rotation; // We are essentially 2D game, so around y-axis
     public Vector3f position;
+    /** Presentation discontinuity token; never used for gameplay or RNG. */
+    public long motionEpoch;
 
     public Position() {
         // For serialization
     }
 
     public Position(float rotation, Vector3f position) {
+        this(rotation, position.x, position.y, position.z);
+    }
+
+    public Position(float rotation, float x, float y, float z) {
         this.rotation = rotation;
-        this.position = position;
+        this.position = new Vector3f(x, y, z);
+        motionEpoch = EPOCHS.incrementAndGet();
+    }
+
+    /** Ordinary integration preserves continuity; placements use the public constructors. */
+    public static Position integrated(Position previous, float rotation, float x, float y, float z) {
+        Position result = new Position();
+        result.rotation = rotation;
+        result.position = new Vector3f(x, y, z);
+        result.motionEpoch = previous.motionEpoch;
+        return result;
     }
 
 }

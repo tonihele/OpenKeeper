@@ -54,15 +54,24 @@ public abstract class LoadingState extends AbstractAppState {
     protected InputManager inputManager;
     protected ViewPort viewPort;
     private Node titleScreen;
-    private final Thread loadingThread;
+    private final LoadingScope loading;
     protected int imageWidth;
     protected int imageHeight;
     protected int progress = 0;
 
     public LoadingState(final Main app, String name) {
         this.app = app;
-        loadingThread = new LoadingThread(name);
-        loadingThread.start();
+        loading = new LoadingScope(task -> app.enqueue(task), failure -> {
+            logger.log(Level.ERROR, "Failed to load!", failure);
+            app.handleError("Failed to load " + name, failure);
+        });
+        loading.start(name, () -> {
+            onLoad();
+            loading.publish(() -> {
+                onLoadComplete();
+                app.getStateManager().detach(LoadingState.this);
+            });
+        });
     }
 
     @Override
@@ -151,15 +160,16 @@ public abstract class LoadingState extends AbstractAppState {
     }
 
     @Override
+    public void stateDetached(AppStateManager stateManager) {
+        // jME does not call cleanup() if detached before initialize().
+        loading.close();
+    }
+
+    public java.util.concurrent.CompletionStage<Void> whenLoadingStopped() { return loading.whenStopped(); }
+
+    @Override
     public void cleanup() {
-        if (loadingThread.isAlive()) {
-            loadingThread.interrupt();
-            try {
-                loadingThread.join();
-            } catch (InterruptedException ex) {
-                logger.log(Level.ERROR, "Failed to wait for the thread to complete!", ex);
-            }
-        }
+        loading.close();
 
         // Remove the title screen
         if (titleScreen != null) {
@@ -180,32 +190,4 @@ public abstract class LoadingState extends AbstractAppState {
      */
     abstract public void onLoadComplete();
 
-    private final class LoadingThread extends Thread {
-
-        public LoadingThread(String name) {
-            super(name);
-        }
-
-        @Override
-        public void run() {
-            try {
-                onLoad();
-            } catch (Exception ex) {
-                logger.log(Level.ERROR, "Failed to load!", ex);
-            }
-
-            // Enqueue to the render thread
-            // 1. It is safe
-            // 2. Things will start on render, not when app is minimized etc (depends on settings of course but in principle)
-            app.enqueue(() -> {
-
-                // Finally call the completion
-                onLoadComplete();
-
-                // Detach us
-                app.getStateManager().detach(LoadingState.this);
-            });
-        }
-
-    }
 }

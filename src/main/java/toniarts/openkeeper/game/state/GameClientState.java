@@ -41,6 +41,8 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IRoomsInformation;
 import toniarts.openkeeper.game.state.loading.IPlayerLoadingProgress;
+import toniarts.openkeeper.game.state.loading.LoadingScope;
+import toniarts.openkeeper.game.state.loading.LoadingState;
 import toniarts.openkeeper.game.state.loading.MultiplayerLoadingState;
 import toniarts.openkeeper.game.state.loading.SingleBarLoadingState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
@@ -69,11 +71,14 @@ import javax.annotation.Nullable;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.Collection;
+import java.util.ArrayDeque;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 
 /**
  * The game client state
@@ -120,6 +125,16 @@ public final class GameClientState extends AbstractPauseAwareState {
     private TextParser textParser;
     private GuardPostCounter guardPostCounter;
     private volatile EntitySet portalLimits;
+    private final LoadingScope loading;
+    private final CompletionStage<Void> screenLoadingStopped;
+    private volatile CompletionStage<Boolean> prewarming = CompletableFuture.completedFuture(false);
+    private final CompletableFuture<Void> loadingStopped = new CompletableFuture<>();
+    private boolean initializationStarted;
+    private boolean closing;
+    private boolean cleaned;
+    private boolean readyPending;
+    private final ArrayDeque<CameraTransition> pendingCameraTransitions = new ArrayDeque<>();
+    private record CameraTransition(short pathId, Vector3f start) { }
 
     /**
      * Single use game states
@@ -136,6 +151,9 @@ public final class GameClientState extends AbstractPauseAwareState {
         this.gameClientService = gameClientService;
         this.playerId = playerId;
         this.app = (Main) app;
+        this.stateManager = app.getStateManager();
+        loading = new LoadingScope(task -> app.enqueue(task),
+                failure -> app.handleError("Failed to load the client", failure));
         this.campaignLevel = campaignLevel;
         this.clientInfos = List.copyOf(players);
 
@@ -164,6 +182,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         // Create the loading state
         loadingState = createLoadingState(app);
+        screenLoadingStopped = ((LoadingState) loadingState).whenLoadingStopped();
 
         // Add the listener
         gameClientService.addGameSessionListener(gameSessionListener);
@@ -174,6 +193,8 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
+        initializationStarted = true;
+        if (loading.isClosed()) return;
         this.stateManager = stateManager;
 
         // Attach the loading state finally
@@ -193,22 +214,30 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private void detachRelatedAppStates() {
         if (ambienceState != null) {
-            stateManager.detach(ambienceState);
+            detachOwned(ambienceState);
             ambienceState = null;
         }
         if (roomSoundState != null) {
-            stateManager.detach(roomSoundState);
+            detachOwned(roomSoundState);
             roomSoundState = null;
         }
-        stateManager.detach(minimapPanelState);
-        stateManager.detach(fullscreenMapState);
-        stateManager.detach(effectManagerState);
-        stateManager.detach(guardPostCounter);
-        stateManager.detach(playerModelViewState);
-        stateManager.detach(playerMapViewState);
-        stateManager.detach(playerState);
+        detachOwned(minimapPanelState);
+        detachOwned(fullscreenMapState);
+        detachOwned(effectManagerState);
+        detachOwned(guardPostCounter);
+        detachOwned(playerModelViewState);
+        detachOwned(playerMapViewState);
+        detachOwned(playerState);
         if (musicLevelState != null) {
-            stateManager.detach(musicLevelState);
+            detachOwned(musicLevelState);
+        }
+    }
+
+    private void detachOwned(com.jme3.app.state.AppState state) {
+        if (state != null) {
+            // AppStateManager may still be iterating this frame's snapshot after detach().
+            if (state.isEnabled()) state.setEnabled(false);
+            if (!stateManager.detach(state)) state.stateDetached(stateManager);
         }
     }
 
@@ -218,14 +247,42 @@ public final class GameClientState extends AbstractPauseAwareState {
      * might crash.
      */
     public void detach() {
+        closeClient();
+        stateManager.detach(this);
+    }
+
+    @Override public void stateDetached(AppStateManager stateManager) {
+        closeClient();
+        // jME skips cleanup for states detached from its initialization queue.
+        if (!initializationStarted) cleanup();
+    }
+
+    private void closeClient() {
+        if (closing) return;
+        closing = true;
+        readyPending = false;
+        pendingCameraTransitions.clear();
+        loading.close();
+        gameClientService.removeGameSessionListener(gameSessionListener);
 
         // If we are stuck loading
         synchronized (loadingObject) {
             loadingObject.notifyAll();
         }
 
-        stateManager.detach(this);
+        CompletionStage<Void> mapStopped = playerMapViewState == null
+                ? CompletableFuture.completedFuture(null) : playerMapViewState.whenLoadingStopped();
+        detachOwned(loadingState);
+        loadingState = null;
         detachRelatedAppStates();
+
+        if (portalLimits != null) { portalLimits.release(); portalLimits = null; }
+        loading.whenStopped().thenCompose(unused -> prewarming.handle((ready, failure) -> null))
+                .thenCombine(mapStopped, (a, b) -> null).thenCombine(screenLoadingStopped, (a, b) -> null)
+                .whenComplete((unused, failure) -> {
+                    if (failure == null) loadingStopped.complete(null);
+                    else loadingStopped.completeExceptionally(failure);
+                });
 
         playerState = null;
         playerMapViewState = null;
@@ -236,8 +293,29 @@ public final class GameClientState extends AbstractPauseAwareState {
         effectManagerState = null;
     }
 
+    /** Actual decoding/prewarm retirement, without waiting on the render thread or forcing GPU completion. */
+    public CompletionStage<Void> whenLoadingStopped() { return loadingStopped.minimalCompletionStage(); }
+
     @Override
     public void update(float tpf) {
+        if (loading.isClosed()) return;
+        // enqueue() drains recursively in the same frame. Initialization must be observed here,
+        // after AppStateManager.initializePending(), before preloading the live scene or starting play.
+        if (readyPending && playerState.isInitialized() && playerModelViewState.isInitialized()
+                && playerMapViewState.isInitialized() && minimapPanelState.isInitialized()
+                && fullscreenMapState.isInitialized() && effectManagerState.isInitialized()
+                && guardPostCounter.isInitialized()) {
+            readyPending = false;
+            app.getRenderManager().preloadScene(app.getRootNode());
+            gameClientService.loadComplete();
+        }
+        if (!pendingCameraTransitions.isEmpty()) {
+            PlayerCameraState camera = stateManager.getState(PlayerCameraState.class);
+            if (camera != null && camera.isInitialized()) {
+                CameraTransition transition = pendingCameraTransitions.removeFirst();
+                gameSessionListener.startTransition(transition.pathId(), transition.start());
+            }
+        }
         if (portalLimits != null && portalLimits.applyChanges()) {
             copyPortalLimits(portalLimits.getAddedEntities());
             copyPortalLimits(portalLimits.getChangedEntities());
@@ -259,9 +337,9 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     @Override
     public void cleanup() {
-        if (portalLimits != null) {
-            portalLimits.release();
-        }
+        if (cleaned) return;
+        cleaned = true;
+        closeClient();
 
         // Signal our exit & close all the connections
         gameClientService.exitGame();
@@ -270,8 +348,9 @@ public final class GameClientState extends AbstractPauseAwareState {
             cs.disconnect();
         }
 
-        // Detach
-        detach();
+        // Related roots have retired before this parent's deferred cleanup. Empty render-sort
+        // scratch must not retain their controls, source subscriptions and session through a Geometry.
+        toniarts.openkeeper.view.RenderQueueLifecycle.releaseEmptySortStorage(app.getRenderManager());
 
         super.cleanup();
     }
@@ -328,6 +407,8 @@ public final class GameClientState extends AbstractPauseAwareState {
     }
 
     private void onGameLoadComplete() {
+        if (loading.isClosed()) return;
+        loadingState = null;
 
         // Set initialized
         GameClientState.this.initialized = true;
@@ -340,16 +421,12 @@ public final class GameClientState extends AbstractPauseAwareState {
         try {
 
             // The game is actually loaded elsewhere but for the visuals we need this
-            if (!gameStarted) {
-                synchronized (loadingObject) {
-                    if (!gameStarted) {
-                        loadingObject.wait();
-                    }
-                }
+            synchronized (loadingObject) {
+                while (!gameStarted && !loading.isClosed()) loadingObject.wait();
             }
 
-        } catch (Exception e) {
-            logger.log(Level.ERROR, "Failed to load the game!", e);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
         }
     }
 
@@ -400,130 +477,97 @@ public final class GameClientState extends AbstractPauseAwareState {
 
     private final class GameSessionListenerImpl implements GameSessionListener {
 
-        private final Object mapDataLoadingObject = new Object();
-        private volatile boolean mapDataLoaded = false;
-
         @Override
         public void onGameDataLoaded(Collection<Keeper> players) {
+            List<Keeper> keepers = List.copyOf(players);
+            loading.start("GameDataClientLoader", () -> {
+                prewarming = AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app, () -> !loading.isClosed());
+                loading.publish(() -> initializeGameData(keepers));
+            });
+        }
 
-            // This might take awhile, don't block
-            Thread loadingThread = new Thread(() -> {
-                AssetUtils.prewarmAssets(kwdFile, app.getAssetManager(), app);
-                for (Keeper keeper : players) {
-                    keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
-                    GameClientState.this.players.put(keeper.getId(), keeper);
-                    GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
-                }
-                EntitySet limits = gameClientService.getEntityData().getEntities(Owner.class, PortalCreatureLimit.class);
-                copyPortalLimits(limits);
-                portalLimits = limits;
+        private void initializeGameData(Collection<Keeper> players) {
+            for (Keeper keeper : players) {
+                keeper.setPlayer(kwdFile.getPlayer(keeper.getId()));
+                GameClientState.this.players.put(keeper.getId(), keeper);
+                GameClientState.this.playerControllers.put(keeper.getId(), new PlayerController(kwdFile, keeper, kwdFile.getImp(), gameClientService.getEntityData(), kwdFile.getVariables()));
+            }
+            EntitySet limits = gameClientService.getEntityData().getEntities(Owner.class, PortalCreatureLimit.class);
+            copyPortalLimits(limits);
+            portalLimits = limits;
 
-                // Create player state
-                playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
-
-                playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
-                        true, // Built, but hidden until the viewer possesses a creature
-                        () -> {
-                            synchronized (mapDataLoadingObject) {
-                                mapDataLoaded = true;
-                                mapDataLoadingObject.notifyAll();
+            playerMapViewState = new PlayerMapViewState(app, kwdFile, app.getAssetManager(), players, gameClientService.getEntityData(), playerId,
+                    true, // Built, but hidden until the viewer possesses a creature
+                    () -> loading.publish(this::initializePlayerViews), (entityId) -> {
+                        loading.publish(() -> {
+                            SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
+                            if (systemMessageState != null) {
+                                systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
                             }
-                        }, (entityId) -> {
-                            app.enqueue(() -> {
-                                SystemMessageState systemMessageState = stateManager.getState(SystemMessageState.class);
-                                if (systemMessageState != null) {
-                                    systemMessageState.addMessage(SystemMessageState.MessageType.FIGHT, "Enemy creature sighted!");
-                                }
-                            });
-                        }) {
+                        });
+                    }) {
 
-                    private float lastProgress = 0;
+                private float lastProgress = 0;
 
-                    @Override
-                    protected void updateProgress(float progress) {
-
-                        // Update ourselves
+                @Override
+                protected void updateProgress(float progress) {
+                    if (loading.isClosed()) return;
+                    if (progress - lastProgress >= 0.01f || progress >= 1) {
                         onLoadStatusUpdate(progress, playerId);
-
-                        if (progress - lastProgress >= 0.01f) {
-                            gameClientService.loadStatus(progress);
-                            lastProgress = progress;
-                        }
-                    }
-                };
-                mapInformation = playerMapViewState.getMapInformation();
-                fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
-                textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
-                playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
-                guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
-                        trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
-                textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
-                playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
-                minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
-                        gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
-                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
-                effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
-
-                // Attach the states
-                stateManager.attach(playerState);
-                stateManager.attach(playerMapViewState);
-                stateManager.attach(playerModelViewState);
-                stateManager.attach(minimapPanelState);
-                fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
-                        gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
-                stateManager.attach(fullscreenMapState);
-                stateManager.attach(effectManagerState);
-                stateManager.attach(guardPostCounter);
-
-                // Wait until loaded
-                if (!mapDataLoaded) {
-                    synchronized (mapDataLoadingObject) {
-                        if (!mapDataLoaded) {
-                            try {
-                                mapDataLoadingObject.wait();
-                            } catch (InterruptedException ex) {
-                                System.getLogger(GameClientState.class.getName()).log(Level.ERROR, "Map data loading interrupted!", ex);
-                            }
-                        }
+                        gameClientService.loadStatus(progress);
+                        lastProgress = progress;
                     }
                 }
+            };
+            mapInformation = playerMapViewState.getMapInformation();
+            fogOfWarInformation = playerMapViewState.getFogOfWarInformation();
+            stateManager.attach(playerMapViewState);
+        }
 
-                // Loaded up, send our ready signal on the next frame to ensure all the states are attached
-                app.enqueue(() -> {
+        private void initializePlayerViews() {
+            if (playerState != null) return;
+            // The detached map decoder has returned. Scene/UI construction and thing lights are render-owned.
+            playerState = new PlayerState(playerId, kwdFile, gameClientService.getEntityData(), false, app, campaignLevel);
+            stateManager.attach(playerState);
+            textParser = new TextParserService(mapInformation, playerMapViewState.getRoomsInformation());
+            playerModelViewState = new PlayerEntityViewState(kwdFile, app.getAssetManager(), gameClientService.getEntityData(), playerId, textParser, app.getRootNode(), mapInformation.getMapData(), fogOfWarInformation);
+            stateManager.attach(playerModelViewState);
+            guardPostCounter = new GuardPostCounter(gameClientService.getEntityData(), playerId,
+                    trapId -> kwdFile.getTrapById(trapId).getFlags().contains(Trap.TrapFlag.GUARD_POST));
+            stateManager.attach(guardPostCounter);
+            textParser.getRoomTextParser().setPatrolRouteCounter(owner -> guardPostCounter.getAsInt());
+            playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
+            minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
+                    gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
+                    getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
+            stateManager.attach(minimapPanelState);
+            effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
+            stateManager.attach(effectManagerState);
+            fullscreenMapState = new FullscreenMapState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
+                    gameClientService.getEntityData(), kwdFile, GameClientState.this.players.values(), GameClientState.this::getPlayerName);
+            stateManager.attach(fullscreenMapState);
 
-                    // Prewarm the whole scene
-                    app.getRenderManager().preloadScene(app.getRootNode());
+            readyPending = true;
 
-                    // Signal our readiness
-                    gameClientService.loadComplete();
-                });
-
-            }, "GameDataClientLoader");
-            loadingThread.start();
         }
 
         @Override
         public void onLoadComplete(short keeperId) {
-            loadingState.setProgress(1f, keeperId);
+            loading.publish(() -> { if (loadingState != null) loadingState.setProgress(1f, keeperId); });
         }
 
         @Override
         public void onLoadStatusUpdate(float progress, short keeperId) {
-            loadingState.setProgress(progress, keeperId);
+            loading.publish(() -> { if (loadingState != null) loadingState.setProgress(progress, keeperId); });
         }
 
         @Override
         public void onGameStarted() {
-
-            // Release loading state from memory
-            loadingState = null;
-
-            SoundState soundState = stateManager.getState(SoundState.class);
-            soundState.setKwdFile(kwdFile);
-            soundState.setEnabled(true);
-            soundState.startLevelBackground();
-
-            app.enqueue(() -> {
+            loading.publish(() -> {
+                SoundState soundState = stateManager.getState(SoundState.class);
+                soundState.setKwdFile(kwdFile);
+                soundState.setEnabled(true);
+                soundState.startLevelBackground();
                 musicLevelState = new MusicLevelState(gameClientService.getEntityData(), players.get(playerId), kwdFile);
                 stateManager.attach(musicLevelState);
                 playerState.setEnabled(true);
@@ -548,124 +592,142 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onTilesChange(List<Point> updatedTiles) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onTilesChange(updatedTiles);
-            }
+            List<Point> owned = List.copyOf(updatedTiles);
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onTilesChange(owned);
+                }
+            });
         }
 
         @Override
         public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onTilesReveal(points, explore, keeperId);
-            }
+            List<Point> owned = List.copyOf(points);
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onTilesReveal(owned, explore, keeperId);
+                }
+            });
         }
 
         @Override
         public void onFogOfWarDisabled(short keeperId) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onFogOfWarDisabled(keeperId);
-            }
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onFogOfWarDisabled(keeperId);
+                }
+            });
         }
 
         @Override
         public void onFogOfWarReset(short keeperId) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onFogOfWarReset(keeperId);
-            }
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onFogOfWarReset(keeperId);
+                }
+            });
         }
 
         @Override
         public void onGoldChange(short keeperId, int gold) {
-            getPlayer(keeperId).setGold(gold);
-
-            // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(() -> {
-                    playerState.onGoldChange(keeperId, gold);
-                });
-            }
+            loading.publish(() -> {
+                Keeper keeper = getPlayer(keeperId);
+                if (keeper != null) keeper.setGold(gold);
+                if (playerState != null && playerState.getPlayerId() == keeperId) playerState.onGoldChange(keeperId, gold);
+            });
         }
 
         @Override
         public void onManaChange(short keeperId, int mana, int manaLoose, int manaGain) {
-            Keeper keeper = getPlayer(keeperId);
-            keeper.setMana(mana);
-            keeper.setManaGain(manaGain);
-            keeper.setManaLoose(manaLoose);
-
-            // FIXME: See in what thread we are
-            if (playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(() -> {
+            loading.publish(() -> {
+                Keeper keeper = getPlayer(keeperId);
+                if (keeper != null) {
+                    keeper.setMana(mana); keeper.setManaGain(manaGain); keeper.setManaLoose(manaLoose);
+                }
+                if (playerState != null && playerState.getPlayerId() == keeperId)
                     playerState.onManaChange(keeperId, mana, manaLoose, manaGain);
-                });
-            }
+            });
         }
 
         @Override
         public void onBuild(short keeperId, List<Point> tiles) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onBuild(keeperId, tiles);
-            }
+            List<Point> owned = List.copyOf(tiles);
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onBuild(keeperId, owned);
+                }
+            });
         }
 
         @Override
         public void onSold(short keeperId, List<Point> tiles) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onSold(keeperId, tiles);
-            }
+            List<Point> owned = List.copyOf(tiles);
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onSold(keeperId, owned);
+                }
+            });
         }
 
         @Override
         public void onGamePaused() {
-            app.enqueue(() -> {
+            loading.publish(() -> {
                 playerState.onPaused(true);
+                if (playerModelViewState != null) playerModelViewState.setGamePaused(true);
             });
         }
 
         @Override
         public void onGameResumed() {
-            app.enqueue(() -> {
+            loading.publish(() -> {
                 playerState.onPaused(false);
+                if (playerModelViewState != null) playerModelViewState.setGamePaused(false);
             });
         }
 
         @Override
         public void onSetWidescreen(boolean enable) {
-            playerState.setWideScreen(enable);
+            loading.publish(() -> {
+                playerState.setWideScreen(enable);
+            });
         }
 
         @Override
         public void onGameEnded(boolean win) {
-            app.enqueue(() -> playerState.endGame(win));
+            loading.publish(() -> playerState.endGame(win));
         }
 
         @Override
         public void onEffect(int effectId, Vector3f position, float yaw) {
-            EventBus.publish(ClientEvents.GENERATED_EFFECT, new GeneratedEffect(effectId, position, yaw));
+            var effect = new GeneratedEffect(effectId, position, yaw);
+            loading.publish(() -> EventBus.publish(ClientEvents.GENERATED_EFFECT, effect));
         }
 
         @Override
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
-            GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
-            logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
-            EventBus.publish(ClientEvents.GAME_EVENT, event);
+            loading.publish(() -> {
+                GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
+                logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
+                EventBus.publish(ClientEvents.GAME_EVENT, event);
+            });
         }
 
         @Override
         public void onPlaySpeech(int speechId, boolean showText, boolean introduction, int pathId) {
-
-            // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
-            stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> {
-                SystemMessageState.addMessageIfAttached(stateManager, SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
-                if (showText) {
-                    playerState.setText(speechId, introduction, pathId);
-                }
+            loading.publish(() -> {
+                // TODO: Refactor these, we don't maybe want this logic here, borderline visuals
+                stateManager.getState(SoundState.class).attachLevelSpeech(speechId, () -> loading.publish(() -> {
+                    SystemMessageState.addMessageIfAttached(stateManager, SystemMessageState.MessageType.INFO, String.format("${level.%d}", speechId - 1));
+                    if (showText) {
+                        playerState.setText(speechId, introduction, pathId);
+                    }
+                }));
             });
         }
 
@@ -674,17 +736,17 @@ public final class GameClientState extends AbstractPauseAwareState {
 
             // Called from the game logic thread, the camera and the scene belong to the render thread
             Vector3f startPoint = start.clone();
-            app.enqueue(() -> startTransition(pathId, startPoint));
+            loading.publish(() -> startTransition(pathId, startPoint));
         }
 
         /**
          * Starts the camera transition on the render thread. If the camera
-         * state is not initialized yet, tries again on the next frame.
+         * state is not initialized yet, update() retries after a real state-manager boundary.
          */
         private void startTransition(short pathId, Vector3f start) {
             PlayerCameraState cameraState = stateManager.getState(PlayerCameraState.class);
             if (cameraState == null || !cameraState.isInitialized()) {
-                app.enqueue(() -> startTransition(pathId, start));
+                pendingCameraTransitions.addLast(new CameraTransition(pathId, start));
                 return;
             }
 
@@ -702,78 +764,96 @@ public final class GameClientState extends AbstractPauseAwareState {
 
                 @Override
                 public void onStop(CinematicEvent cinematic) {
-                    gameClientService.transitionEnd();
+                    if (!loading.isClosed()) gameClientService.transitionEnd();
                 }
             });
         }
 
         @Override
         public void onFlashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
-            playerState.flashButton(buttonType, targetId, targetButtonType, enabled, time);
+            loading.publish(() -> {
+                playerState.flashButton(buttonType, targetId, targetButtonType, enabled, time);
+            });
         }
 
         @Override
         public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
-            playerState.rotateViewAroundPoint(point, relative, angle, time);
+            Vector3f owned = point.clone();
+            loading.publish(() -> playerState.rotateViewAroundPoint(owned, relative, angle, time));
         }
 
         @Override
         public void onShowMessage(int textId) {
-            playerState.showMessage(textId);
+            loading.publish(() -> {
+                playerState.showMessage(textId);
+            });
         }
 
         @Override
         public void onZoomViewToPoint(Vector3f point) {
-            playerState.zoomToPoint(point);
+            Vector3f owned = point.clone();
+            loading.publish(() -> playerState.zoomToPoint(owned));
         }
 
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onTileFlash(points, enabled, keeperId);
-            }
+            List<Point> owned = List.copyOf(points);
+            loading.publish(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onTileFlash(owned, enabled, keeperId);
+                }
+            });
         }
 
         @Override
         public void onZoomViewToEntity(EntityId entityId) {
-            playerState.zoomToEntity(entityId, true);
+            loading.publish(() -> {
+                playerState.zoomToEntity(entityId, true);
+            });
         }
 
         @Override
         public void onShowUnitFlower(EntityId entityId, int interval) {
-            playerModelViewState.showUnitFlower(entityId, interval);
+            loading.publish(() -> {
+                playerModelViewState.showUnitFlower(entityId, interval);
+            });
         }
 
         @Override
         public void onEntityAdded(short keeperId, ResearchableEntity researchableEntity) {
-            setResearchableEntity(keeperId, researchableEntity, () -> {
-                playerState.onEntityAdded(keeperId, researchableEntity);
-                });
+            loading.publish(() -> {
+                setResearchableEntity(keeperId, researchableEntity, () -> {
+                    playerState.onEntityAdded(keeperId, researchableEntity);
+                    });
+            });
         }
 
         private void setResearchableEntity(short keeperId, ResearchableEntity researchableEntity, Runnable notifier) {
             Keeper keeper = getPlayer(keeperId);
             setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
 
-            // FIXME: See in what thread we are
             if (notifier != null && playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(notifier);
+                notifier.run();
             }
         }
 
         @Override
         public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
-            setResearchableEntity(keeperId, researchableEntity, () -> {
-                playerState.onEntityRemoved(keeperId, researchableEntity);
-                });
+            loading.publish(() -> {
+                setResearchableEntity(keeperId, researchableEntity, () -> {
+                    playerState.onEntityRemoved(keeperId, researchableEntity);
+                    });
+            });
         }
 
         @Override
         public void onResearchStatusChanged(short keeperId, ResearchableEntity researchableEntity) {
-            setResearchableEntity(keeperId, researchableEntity, () -> {
-                playerState.onResearchStatusChanged(keeperId, researchableEntity);
-                });
+            loading.publish(() -> {
+                setResearchableEntity(keeperId, researchableEntity, () -> {
+                    playerState.onResearchStatusChanged(keeperId, researchableEntity);
+                    });
+            });
         }
 
         private List<ResearchableEntity> getResearchableEntitiesList(Keeper keeper, ResearchableEntity researchableEntity) {
@@ -832,13 +912,14 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void setPossession(EntityId target) {
-            // Runs on the network thread; PlayerState applies the possession
-            // (including the fog-of-war bypass) on the render thread
-            playerState.setPossession(target);
-            setPossessedCreature(target);
-            if (ambienceState != null) {
-                ambienceState.setPossessing(target != null);
-            }
+            loading.publish(() -> {
+                // Session callbacks are applied on the owning render thread, including fog/audio state.
+                playerState.setPossession(target);
+                setPossessedCreature(target);
+                if (ambienceState != null) {
+                    ambienceState.setPossessing(target != null);
+                }
+            });
         }
     }
 

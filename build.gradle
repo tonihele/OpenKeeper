@@ -40,6 +40,225 @@ tasks.register("modelViewer", JavaExec) {
     mainClass = 'toniarts.openkeeper.tools.modelviewer.ModelViewer'
 }
 
+tasks.register("auditAnimationAssets", JavaExec) {
+    group = "verification"
+    description = "Read-only pose validation against installed DK2 data and existing converted assets"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationAssetAudit'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(),
+            providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+    if (providers.gradleProperty('animationAuditAllCreatures').orElse('false').get().toBoolean()) args '--all-creatures'
+    if (providers.gradleProperty('animationAuditReportOnly').orElse('false').get().toBoolean()) args '--report-only'
+    if (providers.gradleProperty('animationAuditPacked').orElse('false').get().toBoolean()) args '--packed'
+}
+
+tasks.register("benchmarkCharacterAnimation", JavaExec) {
+    group = "verification"
+    description = "Opt-in installed-asset CPU pose/crowd/transition benchmark (not GPU frame time)"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationCrowdBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+    if (providers.gradleProperty('animationRuns').isPresent() || providers.gradleProperty('animationModels').isPresent()) {
+        args providers.gradleProperty('animationRuns').orElse('1').get()
+        if (providers.gradleProperty('animationModels').isPresent()) args providers.gradleProperty('animationModels').get()
+    }
+    maxHeapSize = '1g'
+    if (providers.gradleProperty('animationJfr').isPresent()) {
+        jvmArgs "-XX:StartFlightRecording=filename=${providers.gradleProperty('animationJfr').get()},settings=profile,dumponexit=true"
+    }
+}
+
+tasks.register("auditCreatureAnimationCatalog", JavaExec) {
+    group = "verification"
+    description = "Write an installed creature/action availability matrix without changing assets"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CreatureCatalogAudit'
+    args providers.gradleProperty('dk2Root').orElse('').get(), layout.buildDirectory.file('animation-catalog.csv').get().asFile.absolutePath
+    if (providers.gradleProperty('animationMetadataRoot').isPresent()) args providers.gradleProperty('animationMetadataRoot').get()
+}
+
+tasks.register("benchmarkRenderedCharacterAnimation", JavaExec) {
+    group = "verification"
+    description = "Rendered varied-phase CPU crowd attribution, asynchronous GPU queries and draw counts"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.RenderedAnimationCrowdBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('animation-rendered-benchmark').get().asFile.absolutePath,
+            providers.gradleProperty('animationRuns').orElse('3').get(),
+            providers.gradleProperty('animationPackedKiB').orElse('0').get()
+    maxHeapSize = '2g'
+}
+
+tasks.register("benchmarkSharedVertexClips", JavaExec) {
+    group = "verification"
+    description = "Paired isolated sparse versus shared packed CPU sampling/output experiment"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.SharedVertexClipBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(), providers.gradleProperty('animationRuns').orElse('3').get()
+    maxHeapSize = '2g'
+}
+
+tasks.register("auditAnimationTopology", JavaExec) {
+    group = "verification"
+    description = "Read-only cross-clip topology/transform/material-descriptor screen; no semantic mapping claim"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationTopologyAudit'
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.file('animation-topology.csv').get().asFile.absolutePath
+    maxHeapSize = '1g'
+}
+
+tasks.register("bakeVertexAnimationClips", JavaExec) {
+    group = "verification"
+    description = "Isolated source-bound vertex clip bake, quantization/reference and source LOD index audit"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexClipBake'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath
+    maxHeapSize = '1g'
+}
+
+tasks.register("validateVertexTexturePlayback", JavaExec) {
+    group = "verification"
+    description = "Real GL indexed/nonindexed vertex-texture interpolation numerical PoC (not world FPS)"
+    dependsOn tasks.named('bakeVertexAnimationClips')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexTextureProbe'
+    args layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath
+}
+
+tasks.register("auditVertexAnimationCorpus", JavaExec) {
+    group = "verification"
+    description = "Source-bound Float32/UNORM16 and LOD index audit for every catalog creature resource/segment"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexClipBake'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('vertex-clips-all').get().asFile.absolutePath, '--all-creatures'
+    maxHeapSize = '2g'
+}
+
+tasks.register("auditVertexRepresentations", JavaExec) {
+    group = "verification"
+    description = "Offline full-corpus binary16 error/bounds and exact-frame deduplication storage comparison"
+    dependsOn tasks.named('auditVertexAnimationCorpus')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexRepresentationAudit'
+    args layout.buildDirectory.dir('vertex-clips-all').get().asFile.absolutePath,
+            layout.buildDirectory.file('vertex-representation-audit.csv').get().asFile.absolutePath
+    maxHeapSize = '2g'
+}
+
+tasks.register("auditAnimationUpdateError", JavaExec) {
+    group = "verification"
+    description = "Offline held-pose update error over wrap seams, display rates and stagger buckets"
+    dependsOn tasks.named('bakeVertexAnimationClips')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationUpdateErrorAudit'
+    args layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath,
+            layout.buildDirectory.file('animation-update-error.csv').get().asFile.absolutePath
+}
+
+tasks.register("captureCharacterAnimation", JavaExec) {
+    group = "verification"
+    description = "Opt-in OpenGL playback/transition/pause capture using installed assets"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CharacterAnimationCapture'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(),
+            providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('animation-capture').get().asFile.absolutePath,
+            providers.gradleProperty('animationShadows').orElse('false').get(),
+            providers.gradleProperty('animationMotionTrace').orElse('false').get(),
+            providers.gradleProperty('animationPhaseVariation').orElse('false').get(),
+            providers.gradleProperty('animationPackedKiB').orElse('0').get()
+}
+
+tasks.register("captureAnimationCoverage", JavaExec) {
+    group = "verification"
+    description = "Real OpenGL synthetic alpha/black-key color and shadow coverage regression"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationCoverageCapture'
+    args layout.buildDirectory.dir('animation-coverage').get().asFile.absolutePath
+}
+
+tasks.register("smokeCharacterMotion", JavaExec) {
+    group = "verification"
+    description = "Opt-in real local Alcatraz motion publication/interpolation/pause integration"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CharacterMotionGameSmoke'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('animationPackedKiB').orElse('0').get(),
+            providers.gradleProperty('animationPhaseVariation').orElse('false').get()
+    jvmArgs "-Duser.home=${layout.buildDirectory.dir('motion-smoke-home').get().asFile.absolutePath}"
+}
+
+tasks.register("benchmarkCreaturePreloads", JavaExec) {
+    group = "verification"
+    description = "Paired warmed old/new creature preload clone/setup workload (CPU only)"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.CreaturePreloadBenchmark'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get()
+}
+
+tasks.register("auditAnimationLevelResidency", JavaExec) {
+    group = "verification"
+    description = "Opt-in actual level retirement, heap/JVM/jME buffer accounting, renderer counts and weak owner references"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationLevelResidencyProbe'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(),
+            layout.buildDirectory.dir('animation-level-residency').get().asFile.absolutePath,
+            providers.gradleProperty('animationLevelCycles').orElse('10').get(),
+            providers.gradleProperty('animationPackedKiB').orElse('0').get()
+    jvmArgs "-Duser.home=${layout.buildDirectory.dir('residency-smoke-home').get().asFile.absolutePath}"
+    systemProperty 'animation.residency.heapDumpOnFailure', providers.gradleProperty('animationResidencyHeapDump').orElse('false').get()
+    systemProperty 'animation.residency.heapDumpSamples', providers.gradleProperty('animationResidencyHeapDumpSamples').orElse('false').get()
+    systemProperty 'animation.residency.abortMapLoading', providers.gradleProperty('animationResidencyAbortMapLoading').orElse('false').get()
+    maxHeapSize = '2g'
+}
+
+tasks.register("auditAnimationMotionDelivery", JavaExec) {
+    group = "verification"
+    description = "Deterministic wire-serializer/ECS motion delivery, coalescing and payload audit; no sockets or proprietary assets"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.game.network.AnimationMotionDeliveryAudit'
+    args layout.buildDirectory.file('animation-motion-delivery.csv').get().asFile.absolutePath
+}
+
+tasks.named('check') {
+    dependsOn tasks.named('auditAnimationMotionDelivery')
+}
+
+tasks.register("auditAnimationRemoteMotion", JavaExec) {
+    group = "verification"
+    description = "Opt-in localhost TCP/Zay-ES motion/coalescing/removal integration; no assets or desktop required"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.game.network.AnimationRemoteMotionAudit'
+    args layout.buildDirectory.file('animation-remote-motion.csv').get().asFile.absolutePath
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"

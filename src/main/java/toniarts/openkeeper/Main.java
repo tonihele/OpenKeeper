@@ -407,6 +407,9 @@ public final class Main extends SimpleApplication {
     @Override
     public void simpleInitApp() {
 
+        toniarts.openkeeper.utils.AssetUtils.configureAnimationDataCache(getAssetManager(),
+                Math.clamp(getUserSettings().getInteger(Settings.Setting.ANIMATION_PACKED_KIB),0,256*1024)*1024);
+
         // Borderless fullscreen, a monitor sized window without decorations
         if (Settings.getInstance().getBoolean(Settings.Setting.BORDERLESS)) {
             setBorderless();

@@ -1,0 +1,12 @@
+// Explicit per-owner frames freeze with simulation; other users retain engine time.
+#ifdef CONTROLLED_ANIMATION
+uniform int m_AnimationFrame;
+#endif
+
+int animationFrame(float time, int speed) {
+#ifdef CONTROLLED_ANIMATION
+    return m_AnimationFrame;
+#else
+    return int(time * float(speed));
+#endif
+}

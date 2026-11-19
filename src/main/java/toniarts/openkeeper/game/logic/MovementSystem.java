@@ -86,6 +86,15 @@ public final class MovementSystem implements IGameLogicUpdatable {
         // Process ticks
         for (EntitySteeringBehavior steeringBehavior : steeringBehaviors.getArray()) {
             EntityId entityId = entityIdsBySteeringBehavior.get(steeringBehavior);
+            if (entityData.getComponent(entityId, toniarts.openkeeper.game.component.CreatureFall.class) != null
+                    || entityData.getComponent(entityId, toniarts.openkeeper.game.component.Possessed.class) != null
+                    || entityData.getComponent(entityId, toniarts.openkeeper.game.component.HauledBy.class) != null
+                    || entityData.getComponent(entityId, toniarts.openkeeper.game.component.Death.class) != null
+                    || entityData.getComponent(entityId, toniarts.openkeeper.game.component.Unconscious.class) != null) {
+                // These owners invalidate navigation; don't retain stale steering for resumption.
+                entityData.removeComponent(entityId, Navigation.class);
+                continue;
+            }
             ISteerableEntity steerableEntity = steerableEntitiesBySteeringBehavior.get(steeringBehavior);
             steerableEntity.setMaxLinearSpeed(getMaxSpeed(movableEntities.getEntity(entityId).get(Mobile.class), steerableEntity.getPosition()));
 
@@ -238,10 +247,8 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Position oldPosition = entityData.getComponent(entityId, Position.class);
         if (oldPosition != null) {
 
-            // Re-use the vector, the position might be already removed from another thread
-            oldPosition.position.x = steerableEntity.getPosition().x;
-            oldPosition.position.z = steerableEntity.getPosition().y;
-            entityData.setComponent(entityId, new Position(-steerableEntity.getOrientation(), oldPosition.position));
+            entityData.setComponent(entityId, Position.integrated(oldPosition, -steerableEntity.getOrientation(),
+                    steerableEntity.getPosition().x, oldPosition.position.y, steerableEntity.getPosition().y));
         }
     }
 

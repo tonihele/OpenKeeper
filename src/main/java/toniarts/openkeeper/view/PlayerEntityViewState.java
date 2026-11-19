@@ -148,6 +148,10 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final IKwdFile kwdFile;
     private final AssetManager assetManager;
     private final EntityData entityData;
+    private final toniarts.openkeeper.view.animation.PresentationClock presentationClock;
+    private final com.simsilica.es.EntitySet motionSnapshots;
+    private final Map<EntityId, MotionTrack> motionTracks = new HashMap<>();
+    private boolean gamePaused;
     private final short playerId;
     private final Node rootNode;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
@@ -181,6 +185,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final Map<EntityId, IEntityViewControl> entityViewControls = new HashMap<>();
     private final Map<EntityId, VisualEffect> shotTrails = new HashMap<>();
     private Spatial hiddenSpatial;
+    private boolean disposed;
     private final Map<EntityId, Short> lightOwners = new HashMap<>(); // Owner a PLAYER_COLOURED light was built for
     /** Arches, big steps, plug and obstacle */
     private static final Set<Integer> DUNGEON_HEART_PART_IDS = Set.of(86, 88, 96, 100);
@@ -211,6 +216,10 @@ public class PlayerEntityViewState extends AbstractAppState {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
         this.entityData = entityData;
+        presentationClock = new toniarts.openkeeper.view.animation.PresentationClock(entityData);
+        motionSnapshots = toniarts.openkeeper.Main.getUserSettings().getBoolean(
+                toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_INTERPOLATION)
+                ? entityData.getEntities(toniarts.openkeeper.game.component.CreatureMotion.class) : null;
         this.playerId = playerId;
         this.textParser = textParser;
         this.rootNode = rootNode;
@@ -251,6 +260,7 @@ public class PlayerEntityViewState extends AbstractAppState {
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
+        if (disposed) return;
         super.initialize(stateManager, app);
         this.stateManager = stateManager;
         this.timer = app.getTimer();
@@ -277,12 +287,33 @@ public class PlayerEntityViewState extends AbstractAppState {
         portalEffects.setEnabled(enabled);
     }
 
+    public void setGamePaused(boolean paused) {
+        gamePaused = paused;
+        presentationClock.setPaused(paused);
+        if (paused) toniarts.openkeeper.view.animation.AnimationLoader.pauseAnimations(root);
+        else toniarts.openkeeper.view.animation.AnimationLoader.resumeAnimations(root);
+    }
+
     @Override
     public void update(float tpf) {
+        if (disposed) return;
+        presentationClock.update(tpf);
 
         // Update the models
         objectModelContainer.update();
         creatureModelContainer.update();
+        if (motionSnapshots != null) {
+            if (motionSnapshots.applyChanges()) {
+                for (Entity entity : motionSnapshots.getAddedEntities()) acceptMotion(entity);
+                for (Entity entity : motionSnapshots.getChangedEntities()) acceptMotion(entity);
+                for (Entity entity : motionSnapshots.getRemovedEntities()) {
+                    MotionTrack track = motionTracks.get(entity.getId());
+                    if (track != null) track.history.clear();
+                }
+            }
+            for (MotionTrack track : motionTracks.values()) track.apply();
+            for (MotionTrack track : motionTracks.values()) track.followHauler();
+        }
         doorModelContainer.update();
         trapModelContainer.update();
         roomEffectContainer.update();
@@ -346,7 +377,18 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     @Override
+    public void stateDetached(AppStateManager stateManager) {
+        if (!isInitialized()) cleanup();
+    }
+
+    @Override
     public void cleanup() {
+        if (disposed) return;
+        disposed = true;
+        presentationClock.close();
+        if (motionSnapshots != null) motionSnapshots.release();
+        motionTracks.clear();
+        if (!isInitialized()) { super.cleanup(); return; }
         objectModelContainer.stop();
         creatureModelContainer.stop();
         doorModelContainer.stop();
@@ -498,9 +540,20 @@ public class PlayerEntityViewState extends AbstractAppState {
             Creature creature = kwdFile.getCreature(creatureViewState.creatureId);
             result = creatureLoader.load(assetManager, creatureViewState);
             if (result != null) {
-                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, creatureViewState.state, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
+                CreatureViewControl control = new CreatureViewControl(e.getId(), entityData, creature, null, assetManager, textParser != null ? textParser.getCreatureTextParser() : null);
                 control.setWaterCheck(this::isWater);
+                control.setGameTime(presentationClock::getTime);
                 result.addControl(control);
+
+                if (motionSnapshots != null) {
+                    MotionTrack track = new MotionTrack(e.getId(), result);
+                    track.latestPosition = e.get(Position.class);
+                    track.latestState = creatureViewState;
+                    motionTracks.put(e.getId(), track);
+                    control.setGameTime(track::time);
+                    Entity snapshot = motionSnapshots.getEntity(e.getId());
+                    if (snapshot != null) acceptMotion(snapshot);
+                }
 
                 CreatureFlowerControl flowerControl = new CreatureFlowerControl(e.getId(), entityData, creature, assetManager);
                 result.addControl(flowerControl);
@@ -648,18 +701,22 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     private void updateCreatureModelAnimation(Spatial object, Entity e) {
-        CreatureViewState viewState = e.get(CreatureViewState.class);
+        updateCreatureModelAnimation(object, e.getId(), e.get(CreatureViewState.class));
+        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
+    }
+
+    private void updateCreatureModelAnimation(Spatial object, EntityId entityId, CreatureViewState viewState) {
 
         Creature creature = kwdFile.getCreature(viewState.creatureId);
-        applyThingLight(e.getId(), object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
+        applyThingLight(entityId, object, creature.getLight(), LightConstants.CREATURE_LIGHT_INTENSITY);
         IEntityViewControl control = object.getControl(IEntityViewControl.class);
-        boolean wasAlreadyDead = control.getCurrentState() == Creature.AnimationType.DEATH_POSE;
-        control.setTargetState(viewState.state);
+        boolean wasAlreadyDead = ((CreatureViewControl) control).getRequestedState() == Creature.AnimationType.DEATH_POSE;
+        ((CreatureViewControl) control).setViewState(creature, viewState);
         setTortureWheelSpin(object, viewState.state == Creature.AnimationType.TORTURED_WHEEL);
 
         // Trigger the death effect once, when the creature actually dies
         if (!wasAlreadyDead && viewState.state == Creature.AnimationType.DEATH_POSE) {
-            int deathEffectId = control.getDeathEffectId();
+            int deathEffectId = creature.getDeathEffectId();
             if (deathEffectId == 0) {
                 // use the default puddle of blood
                 deathEffectId = 129;
@@ -671,7 +728,6 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (viewState.state == Creature.AnimationType.DEATH_POSE) {
             CharredOverlay.apply(object, assetManager);
         }
-        applyFogCullHint(object, WorldUtils.vectorToPoint(e.get(Position.class).position), true);
     }
 
     private void updateDoorModelState(Spatial object, Entity e) {
@@ -876,6 +932,73 @@ public class PlayerEntityViewState extends AbstractAppState {
                 || trapControl.getCurrentState().isShownTo(trapControl.getOwnerId(), playerId);
     }
 
+    private void acceptMotion(Entity entity) {
+        MotionTrack track = motionTracks.get(entity.getId());
+        var next = entity.get(toniarts.openkeeper.game.component.CreatureMotion.class);
+        if (track != null) {
+            if (track.latestPosition == null) track.history.add(next);
+            else track.history.add(next, track.latestPosition.motionEpoch);
+        }
+    }
+
+    /** Preserve the victim's authoritative height while following the carrier's presented world X/Z. */
+    static void followPresentedHauler(Spatial victim, Spatial hauler, Vector3f scratch) {
+        float height = victim.getWorldTranslation().y;
+        scratch.set(hauler.getWorldTranslation()); scratch.y = height;
+        if (victim.getParent() != null) victim.getParent().worldToLocal(scratch, scratch);
+        victim.setLocalTranslation(scratch);
+    }
+
+    /** World render ownership only; no ECS/physics position is modified. */
+    private final class MotionTrack {
+        final EntityId id;
+        final Spatial object;
+        final toniarts.openkeeper.view.animation.MotionHistory history = new toniarts.openkeeper.view.animation.MotionHistory(8);
+        final com.jme3.math.Transform pose = new com.jme3.math.Transform();
+        final Vector3f attachmentPosition = new Vector3f();
+        Position latestPosition;
+        CreatureViewState latestState, appliedState;
+        boolean sampling;
+
+        MotionTrack(EntityId id, Spatial object) { this.id = id; this.object = object; }
+        double time() { return sampling ? history.getSampledTime() : presentationClock.getTime(); }
+
+        void apply() {
+            if (latestPosition == null || latestState == null) return;
+            if (gamePaused && appliedState != null) return;
+            boolean wasSampling = sampling;
+            history.synchronizeEpoch(latestPosition.motionEpoch);
+            sampling = history.isReady() && !history.isImmediate()
+                    && history.sample(presentationClock.getTime() - history.getInterval(), pose);
+            CreatureViewState request = sampling ? history.getSampledRequest() : latestState;
+            if (sampling) {
+                object.setLocalTranslation(pose.getTranslation()); object.setLocalRotation(pose.getRotation());
+            } else {
+                object.setLocalTranslation(latestPosition.position);
+                object.setLocalRotation(object.getLocalRotation().fromAngles(0, latestPosition.rotation, 0));
+            }
+            if (request.state == Creature.AnimationType.TORTURED_WHEEL) object.move(0, TORTURE_WHEEL_VICTIM_LIFT, 0);
+            if (appliedState == null || appliedState.creatureId != request.creatureId || appliedState.state != request.state
+                    || appliedState.sequence != request.sequence || appliedState.stateStartTime != request.stateStartTime) {
+                updateCreatureModelAnimation(object, id, request);
+                appliedState = request;
+            }
+            if (sampling != wasSampling) {
+                CreatureViewControl control = object.getControl(CreatureViewControl.class);
+                if (control != null) control.synchronizePresentationClock();
+            }
+            applyFogCullHint(object, WorldUtils.vectorToPoint(object.getLocalTranslation()), true);
+        }
+
+        void followHauler() {
+            if (gamePaused || history.getHauler() == null) return;
+            Spatial hauler = getEntitySpatial(history.getHauler());
+            if (hauler == null || hauler == object) return;
+            followPresentedHauler(object, hauler, attachmentPosition);
+            applyFogCullHint(object, WorldUtils.vectorToPoint(object.getLocalTranslation()), true);
+        }
+    }
+
     private void updateModelPosition(Spatial object, Entity e) {
         Position position = e.get(Position.class);
         object.setLocalTranslation(position.position);
@@ -883,6 +1006,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     }
 
     private void removeModel(Spatial spatial, Entity e) {
+        motionTracks.remove(e.getId());
         spatial.removeFromParent();
 
         // Stop driving the light first, or update() would re-create it
@@ -967,6 +1091,12 @@ public class PlayerEntityViewState extends AbstractAppState {
         @Override
         protected void updateObject(Spatial object, Entity e) {
             logger.log(Level.TRACE, "CreatureModelContainer.updateObject({0})", e);
+            MotionTrack motion = motionTracks.get(e.getId());
+            if (motion != null) {
+                motion.latestPosition = e.get(Position.class);
+                motion.latestState = e.get(CreatureViewState.class);
+                return;
+            }
             updateModelPosition(object, e);
             if (e.get(CreatureViewState.class).state == Creature.AnimationType.TORTURED_WHEEL) {
                 object.move(0, TORTURE_WHEEL_VICTIM_LIFT, 0);

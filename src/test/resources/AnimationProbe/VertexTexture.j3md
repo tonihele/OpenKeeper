@@ -1,0 +1,16 @@
+MaterialDef Vertex Texture Numerical Probe {
+    MaterialParameters {
+        Texture2D PoseData
+        Vector3 Frames
+        Float Width
+    }
+    Technique {
+        VertexShader GLSL150: AnimationProbe/VertexTexture.vert
+        FragmentShader GLSL150: AnimationProbe/VertexTexture.frag
+        RenderState {
+            DepthTest Off
+            DepthWrite Off
+            FaceCull Off
+        }
+    }
+}

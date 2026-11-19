@@ -2395,10 +2395,7 @@ public final class CreatureController extends EntityController implements ICreat
             return 0;
         }
 
-        int frames = animationResource.getData("frames");
-        int fps = animationResource.getData("fps");
-
-        return frames / (double) fps;
+        return toniarts.openkeeper.animation.AnimationTiming.duration(animationResource, 0);
     }
 
     @Override
@@ -2659,7 +2656,7 @@ public final class CreatureController extends EntityController implements ICreat
             speed *= new Vector2f(forward * (forward < 0 ? POSSESSED_BACKWARD_SPEED_FACTOR : 1f),
                     sideways * POSSESSED_STRAFE_SPEED_FACTOR).length();
         }
-        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER));
+        entityData.setComponent(entityId, new PossessedMovement(normalizedDirection, rotation, speed * SPEED_MULTIPLIER, speedMode));
     }
 
     @Override
@@ -2709,7 +2706,10 @@ public final class CreatureController extends EntityController implements ICreat
         } else {
             return;
         }
-        entityData.setComponent(entityId, new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK));
+        CreatureViewState previousView = entityData.getComponent(entityId, CreatureViewState.class);
+        entityData.setComponent(entityId, previousView == null
+                ? new CreatureViewState(creature.getCreatureId(), gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK)
+                : previousView.next(gameTimer.getGameTime(), Creature.AnimationType.MELEE_ATTACK));
     }
 
     /**

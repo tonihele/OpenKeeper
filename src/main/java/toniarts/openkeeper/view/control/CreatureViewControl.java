@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -46,6 +47,7 @@ import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.view.animation.AnimationLoader;
+import toniarts.openkeeper.view.animation.CreatureAnimationRequest;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -79,10 +81,95 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
+    private CreatureAnimationRequest lastAttempt;
+    private CreatureAnimationRequest activeRequest;
+    private double presentationOrigin;
+    private Creature.AnimationType requestedState;
+    private boolean visualRequestActive;
+    private static final java.util.function.DoubleSupplier LOCAL_TIME = () -> Double.NaN;
+    private java.util.function.DoubleSupplier gameTime = LOCAL_TIME;
+    private ArtResource activeAnimation;
+    private int[] stepMarks;
+    private toniarts.openkeeper.view.animation.FootstepMarkers normalizedStepMarks;
+    private double previousMarkerAge = Double.NaN;
+
+    public void setGameTime(java.util.function.DoubleSupplier gameTime) {
+        this.gameTime = Objects.requireNonNull(gameTime);
+    }
+
+    /** Silently re-seek after a presentation timeline policy change, retaining failed/paused holds. */
+    public void synchronizePresentationClock() {
+        if (spatial != null && visualRequestActive && activeRequest != null && !AnimationLoader.isPaused(spatial)) {
+            AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), presentationOrigin);
+            previousMarkerAge = Double.NaN;
+        }
+    }
+
+    /** Accepts restart identity even when the animation enum did not change. */
+    public boolean setViewState(Creature creature, CreatureViewState state) {
+        var request = new CreatureAnimationRequest(state);
+        if (request.equals(lastAttempt) || request.equals(activeRequest)) return false;
+        lastAttempt = request;
+        acceptLogicalState(state.state);
+        Creature previous = getDataObject();
+        if (previous != creature && spatial != null) {
+            var cache = spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class);
+            if (cache != null) cache.clear();
+        }
+        setDataObject(creature);
+        Creature.AnimationType previousTarget = targetState;
+        super.setTargetState(state.state);
+        if (!playAnimation(state.state)) {
+            setDataObject(previous);
+            super.setTargetState(previousTarget);
+            holdFailedVisual();
+            return false;
+        }
+        playStateSounds(state.state);
+        activeRequest = request;
+        double offset = toniarts.openkeeper.view.animation.LocomotionVariation.offset(
+                toniarts.openkeeper.Main.getUserSettings().getBoolean(toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_PHASE_VARIATION),
+                getEntityId().getId(), request.sequence(), state.creatureId, state.state, activeAnimation,
+                getPlaybackPolicy(), AnimationLoader.getWrapPeriod(spatial));
+        presentationOrigin = request.startTime() - offset;
+        AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), presentationOrigin);
+        previousStepTime = -1;
+        return true;
+    }
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
         super(entityId, entityData, data, animation, assetManager, textParser);
+        requestedState = animation;
+    }
+
+    /** Logical activity is independent of whether its art could replace the last valid visual. */
+    public Creature.AnimationType getRequestedState() { return requestedState; }
+
+    @Override public void onAnimationAttached() {
+        // Retained clips may have been used as a corpse during an earlier logical state.
+        toniarts.openkeeper.view.CharredOverlay.clear(spatial);
+        super.onAnimationAttached();
+    }
+
+    private void acceptLogicalState(Creature.AnimationType state) {
+        requestedState = state;
+        stopActivitySounds();
+        previousStepTime = -1;
+        previousMarkerAge = Double.NaN;
+        nextInHandSound = 0;
+    }
+
+    private void holdFailedVisual() {
+        visualRequestActive = false;
+        isAnimationPlaying = false;
+        if (spatial != null) AnimationLoader.holdAnimation(spatial);
+    }
+
+    private void stopActivitySounds() {
+        playResearchSound(null);
+        if (digSound != SoundEngine.NO_HANDLE) SoundManager.stopSound(digSound);
+        digSound = SoundEngine.NO_HANDLE;
     }
 
     @Override
@@ -107,6 +194,13 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
+        if (spatial != null && spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class) == null) {
+            int clips = Math.clamp(toniarts.openkeeper.Main.getUserSettings().getInteger(
+                    toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_CACHE_CLIPS),0,32);
+            long bytes = Math.clamp(toniarts.openkeeper.Main.getUserSettings().getInteger(
+                    toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_CACHE_KIB),0,4096) * 1024L;
+            if (clips > 0) spatial.addControl(new toniarts.openkeeper.view.animation.PreparedAnimationCache(clips,bytes));
+        }
 
         // Play the starting animation
         if (spatial != null && currentState != null) {
@@ -116,8 +210,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public void cleanup() {
-        playResearchSound(null);
-        digSound = SoundEngine.NO_HANDLE;
+        if (spatial != null) {
+            var cache = spatial.getControl(toniarts.openkeeper.view.animation.PreparedAnimationCache.class);
+            if (cache != null) cache.clear();
+        }
+        stopActivitySounds();
         super.cleanup();
     }
 
@@ -142,22 +239,43 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK
+                && currentState != Creature.AnimationType.RUN && currentState != Creature.AnimationType.STEALTH_WALK
+                && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
-    private void playAnimation(Creature.AnimationType animation) {
-        AnimationLoader.playAnimation(getSpatial(), getAnimationData(animation), assetManager);
-        if (getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE)) {
-            CreatureVariantTextures.apply(getSpatial(), assetManager);
-        }
+    private boolean playAnimation(Creature.AnimationType animation) {
+        ArtResource resource = getAnimationData(animation);
+        if (AnimationLoader.playAnimation(getSpatial(), resource, (name, art) -> {
+                Spatial model = toniarts.openkeeper.utils.AssetUtils.loadModel(assetManager,name,art);
+                if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE))
+                    CreatureVariantTextures.apply(model,assetManager);
+                double fps = toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(art);
+                if (gameTime == LOCAL_TIME) toniarts.openkeeper.view.animation.TextureAnimationControl.install(model,fps);
+                else toniarts.openkeeper.view.animation.TextureAnimationControl.install(model,()->gameTime.getAsDouble(),fps);
+                return model;
+            }, false)
+                != AnimationLoader.PlaybackResult.STARTED) return false;
+        activeAnimation = resource;
+        visualRequestActive = true;
         isAnimationPlaying = true;
         currentState = animation;
+        stepMarks = FootstepSounds.getMarks(getDataObject(), animation);
+        normalizedStepMarks = stepMarks == null ? null : new toniarts.openkeeper.view.animation.FootstepMarkers(
+                stepMarks, toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(resource));
+        previousMarkerAge = Double.NaN;
         previousStepTime = -1;
+        return true;
     }
 
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+        if (AnimationLoader.isPaused(spatial) || !visualRequestActive || requestedState != currentState) {
+            previousStepTime = -1;
+            previousMarkerAge = Double.NaN;
+            return;
+        }
 
         // A creature in the hand talks, one line every few seconds as long as it is held. It is heard at the hand
         if (currentState == Creature.AnimationType.IN_HAND) {
@@ -182,7 +300,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      */
     private void playDigSound() {
         if (currentState != Creature.AnimationType.DIG || spatial == null
-                || spatial.getCullHint() == Spatial.CullHint.Always) {
+                || AnimationLoader.isHidden(spatial)) {
+            if (digSound != SoundEngine.NO_HANDLE) SoundManager.stopSound(digSound);
             digSound = SoundEngine.NO_HANDLE;
             return;
         }
@@ -198,9 +317,11 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      * A walking or running creature steps when the animation passes a footstep mark
      */
     private void playFootsteps() {
-        int[] marks = FootstepSounds.getMarks(getDataObject(), currentState);
-        if (marks == null || spatial == null || spatial.getCullHint() == Spatial.CullHint.Always) {
+        int[] marks = stepMarks;
+        if (marks == null || spatial == null || AnimationLoader.isHidden(spatial)) {
             previousStepTime = -1;
+            previousMarkerAge = Double.NaN;
+            if (spatial != null && AnimationLoader.isHidden(spatial)) playResearchSound(null);
             return;
         }
 
@@ -216,8 +337,17 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
 
         float time = (float) animComposer.getTime(AnimComposer.DEFAULT_LAYER);
+        double age = AnimationLoader.getPlaybackAge(spatial) - AnimationLoader.getMainStartDelay(spatial);
         if (previousStepTime >= 0) {
-            int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength());
+            int event = FootstepSounds.getStep(marks, previousStepTime, time, (float) action.getLength(),
+                    toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(activeAnimation));
+            if (Double.isFinite(age) && Double.isFinite(previousMarkerAge)) {
+                var mode = getPlaybackPolicy() == PlaybackPolicy.LOOP ? AnimationLoader.getLoopModeOnChannel(animComposer.getSpatial())
+                        : toniarts.openkeeper.view.animation.LoopMode.DontLoop;
+                long crossings = normalizedStepMarks.crossings(previousMarkerAge,age,action.getLength(),mode);
+                // One audible catch-up per render update; the shared crowd budget applies afterward.
+                event = crossings == 0 ? FootstepSounds.NO_STEP : event == FootstepSounds.NO_STEP ? FootstepSounds.STEP_A : event;
+            }
             if (event != FootstepSounds.NO_STEP && FootstepSounds.tryAcquire(System.currentTimeMillis())) {
                 LOGGER.log(Logger.Level.DEBUG, "Footstep {0} of {1} at {2}", Integer.toHexString(event), getDataObject().getName(), time);
                 Vector3f position = spatial.getWorldTranslation();
@@ -226,6 +356,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
             }
         }
         previousStepTime = time;
+        previousMarkerAge = age;
     }
 
     /**
@@ -236,7 +367,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private AnimComposer getAnimComposer() {
-        ArtResource animation = getDataObject().getAnimation(currentState);
+        ArtResource animation = activeAnimation;
         if (animation == null || !(spatial instanceof Node node)) {
             return null;
         }
@@ -260,17 +391,26 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public void setTargetState(Creature.AnimationType state) {
+        if (requestedState != state) acceptLogicalState(state);
+        Creature.AnimationType previousTarget = targetState;
         super.setTargetState(state);
 
         // Play immediately
-        if (!Objects.equals(currentState, targetState)) {
-            playAnimation(state);
-            if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
-                int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
-                digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
-                nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
-                playResearchSound(state);
-            }
+        if (!Objects.equals(currentState, targetState) || !visualRequestActive) {
+            if (!playAnimation(state)) { super.setTargetState(previousTarget); holdFailedVisual(); return; }
+            activeRequest = null;
+            playStateSounds(state);
+        }
+    }
+
+    private void playStateSounds(Creature.AnimationType state) {
+        // State exit always releases a loop, including transitions hidden by fog.
+        stopActivitySounds();
+        if (spatial != null && !AnimationLoader.isHidden(spatial)) {
+            int handle = ThingSounds.playCreature(getDataObject(), state, spatial.getWorldTranslation());
+            digSound = state == Creature.AnimationType.DIG ? handle : SoundEngine.NO_HANDLE;
+            nextDigSound = System.currentTimeMillis() + DIG_SOUND_RETRY_MS;
+            playResearchSound(state);
         }
     }
 
@@ -319,6 +459,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private boolean isWorkAnimation() {
+        // Requests/owner timeline run before the normal view-control update.
+        // Resolve completion policy from the latest replicated AI snapshot.
+        refreshEntity();
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();

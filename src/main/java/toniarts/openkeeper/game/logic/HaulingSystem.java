@@ -61,7 +61,7 @@ public final class HaulingSystem implements IGameLogicUpdatable {
 
             Vector3f newPos = haulerPosition.position.clone();
             newPos.y = position.position.y;
-            entityData.setComponent(entity.getId(), new Position(position.rotation, newPos));
+            entityData.setComponent(entity.getId(), Position.integrated(position, position.rotation, newPos.x, newPos.y, newPos.z));
         }
     }
 

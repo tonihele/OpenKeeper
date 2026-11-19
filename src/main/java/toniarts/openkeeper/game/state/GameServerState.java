@@ -27,6 +27,12 @@ import java.lang.System.Logger;
 import java.io.IOException;
 import java.lang.System.Logger.Level;
 import java.util.List;
+import java.util.ArrayList;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
+import java.util.function.Supplier;
 import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.CheatController;
@@ -43,6 +49,8 @@ import toniarts.openkeeper.game.listener.MapListener;
 import toniarts.openkeeper.game.listener.PlayerActionListener;
 import toniarts.openkeeper.game.listener.SpecialListener;
 import toniarts.openkeeper.game.state.loop.GameLoopManager;
+import toniarts.openkeeper.game.state.loop.IGameLoopManager;
+import toniarts.openkeeper.game.state.loading.LoadingScope;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -58,10 +66,16 @@ public final class GameServerState extends AbstractAppState {
 
     private Main app;
 
-    private Thread loader;
-    private AppStateManager stateManager;
-
-    private final Object loadingObject = new Object();
+    private volatile AppStateManager stateManager;
+    private final LoadingScope loading;
+    private final Supplier<? extends IGameLoopManager> gameFactory;
+    private final AtomicBoolean closing = new AtomicBoolean();
+    private final AtomicBoolean startRequested = new AtomicBoolean();
+    private final CompletableFuture<Void> stopped = new CompletableFuture<>();
+    private final ReentrantReadWriteLock commands = new ReentrantReadWriteLock();
+    private final List<IPlayerController> listeningPlayers = new ArrayList<>();
+    private boolean cleaned, gameStarted;
+    private volatile Throwable closeFailure;
     private volatile boolean gameLoaded = false;
 
     private final IKwdFile kwdFile;
@@ -75,7 +89,7 @@ public final class GameServerState extends AbstractAppState {
     private final GameSessionServiceListener gameSessionListener = new GameSessionServiceListenerImpl();
     private final PlayerActionListener playerActionListener = new PlayerActionListenerImpl();
     private final SpecialListener specialListener = new SpecialListenerImpl();
-    private GameLoopManager game;
+    private volatile IGameLoopManager game;
     private IGameWorldController gameWorldController;
     private ICheatController cheatController;
 
@@ -89,10 +103,19 @@ public final class GameServerState extends AbstractAppState {
      * @param campaignLevel the campaign level, or {@code null} for non-campaign
      */
     public GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService, @Nullable toniarts.openkeeper.game.data.CampaignLevel campaignLevel) {
+        this(level, players, campaign, gameService, campaignLevel, null);
+    }
+
+    GameServerState(IKwdFile level, List<Keeper> players, boolean campaign, GameSessionServerService gameService,
+            @Nullable CampaignLevel campaignLevel, Supplier<? extends IGameLoopManager> factory) {
         this.kwdFile = level;
         this.levelObject = campaignLevel;
         this.campaign = campaign;
         this.gameService = gameService;
+        List<Keeper> loadPlayers = players == null ? null : List.copyOf(players);
+        gameFactory = factory == null ? () -> new GameLoopManager(level, gameService, loadPlayers) : factory;
+        loading = new LoadingScope(task -> stateManager.getApplication().enqueue(task),
+                failure -> ((Main) stateManager.getApplication()).handleError("Failed to load the game server", failure));
 
         // Set multiplayer
         int humanPlayers = 0;
@@ -113,23 +136,32 @@ public final class GameServerState extends AbstractAppState {
         // Add the listener
         gameService.addGameSessionServiceListener(gameSessionListener);
 
-        // Start loading game
-        loadGame(players);
     }
 
     public boolean isMultiplayer() {
         return multiplayer;
     }
 
-    private void loadGame(List<Keeper> players) {
-        loader = new GameLoader(players);
-        loader.start();
+    @Override public void stateAttached(AppStateManager manager) {
+        super.stateAttached(manager);
+        stateManager = manager;
+        if (closing.get()) {
+            manager.getApplication().enqueue(() -> manager.detach(this));
+            return;
+        }
+        loading.start("GameDataServerLoader", () -> {
+            game = gameFactory.get();
+            loading.publish(this::publishGame);
+        });
     }
 
     @Override
     public void initialize(final AppStateManager stateManager, final Application app) {
+        if (closing.get()) return;
+        super.initialize(stateManager, app);
         this.app = (Main) app;
         this.stateManager = stateManager;
+        startIfReady();
     }
 
     /**
@@ -137,74 +169,98 @@ public final class GameServerState extends AbstractAppState {
      * same render loop. Otherwise the app might crash.
      */
     public void detach() {
-        if (loader != null && loader.isAlive()) {
-            loader.interrupt();
-        }
-        stateManager.detach(this);
+        closeServer();
+        if (stateManager != null) stateManager.detach(this);
+    }
 
-        if (game != null) {
-            try {
-                game.stop();
-            } catch (Exception ex) {
-                logger.log(Level.ERROR, "Failed to close the game!", ex);
-            }
-        }
+    @Override public void stateDetached(AppStateManager manager) {
+        closeServer();
+        if (!isInitialized()) cleanup();
     }
 
     @Override
     public void cleanup() {
-
-        // Detach
-        detach();
-
+        if (cleaned) return;
+        cleaned = true;
+        closeServer();
         super.cleanup();
     }
 
-    /**
-     * Load the game
-     */
-    private final class GameLoader extends Thread {
-
-        private final List<Keeper> players;
-
-        public GameLoader(List<Keeper> players) {
-            super("GameDataServerLoader");
-
-            this.players = players;
+    private void publishGame() {
+        gameWorldController = game.getGameController().getGameWorldController();
+        mapController = gameWorldController.getMapController();
+        gameWorldController.addListener(playerActionListener);
+        gameWorldController.addSpecialListener(specialListener);
+        cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController(), gameService.getServerEntityData());
+        mapController.addListener(mapListener);
+        for (IPlayerController playerController : game.getGameController().getPlayerControllers().values()) {
+            listeningPlayers.add(playerController);
+            playerController.addListener(gameService);
         }
+        gameLoaded = true;
+        gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
+        startIfReady();
+    }
 
-        @Override
-        public void run() {
-            // Create the central game controller
-            game = new GameLoopManager(kwdFile, gameService, players);
-
-            gameWorldController = game.getGameController().getGameWorldController();
-            mapController = gameWorldController.getMapController();
-            gameWorldController.addListener(playerActionListener);
-            gameWorldController.addSpecialListener(specialListener);
-            cheatController = multiplayer ? new NoopCheatController() : new CheatController(kwdFile, game.getGameController(), gameService.getServerEntityData());
-
-            // Send the the initial game data
-            gameService.sendGameData(game.getGameController().getLevelInfo().getPlayers().values());
-
-            // Set up a listener for the map
-            mapController.addListener(mapListener);
-
-            // Set up a listener for the player changes, they are per player
-            for (IPlayerController playerController : game.getGameController().getPlayerControllers().values()) {
-                playerController.addListener(gameService);
-            }
-
-            // Nullify the thread object
-            loader = null;
-
-            // Mark the server end ready
-            synchronized (loadingObject) {
-                gameLoaded = true;
-                loadingObject.notifyAll();
-            }
+    private void startIfReady() {
+        if (isInitialized() && gameLoaded && startRequested.get() && !gameStarted && !closing.get()) {
+            gameStarted = true;
+            game.start();
         }
     }
+
+    private void withGame(Runnable command) {
+        if (closing.get() || !gameLoaded) return;
+        var lock = commands.readLock(); lock.lock();
+        try { if (!closing.get() && gameLoaded) command.run(); }
+        finally { lock.unlock(); }
+    }
+
+    private void closeServer() {
+        if (!closing.compareAndSet(false, true)) return;
+        setEnabled(false);
+        try { gameService.removeGameSessionServiceListener(gameSessionListener); }
+        catch (RuntimeException | Error failure) { closeFailure = failure; }
+        finally {
+            loading.close();
+            loading.whenStopped().thenRun(() -> Thread.ofVirtual().name("GameServerRetirement").start(this::retireGame));
+        }
+    }
+
+    private void retireGame() {
+        // Wait for admitted commands and loop joins here, never on the render thread.
+        var lock = commands.writeLock(); lock.lock();
+        Throwable failure = closeFailure;
+        try {
+            var actions = new ArrayList<Runnable>();
+            if (game != null) actions.add(game::stop);
+            if (mapController != null) actions.add(() -> mapController.removeListener(mapListener));
+            if (gameWorldController != null) {
+                actions.add(() -> gameWorldController.removeListener(playerActionListener));
+                actions.add(() -> gameWorldController.removeSpecialListener(specialListener));
+            }
+            for (var player : listeningPlayers) actions.add(() -> player.removeListener(gameService));
+            for (Runnable action : actions) {
+                try { action.run(); }
+                catch (Throwable error) {
+                    if (failure == null) failure = error;
+                    else if (failure != error) failure.addSuppressed(error);
+                }
+            }
+            listeningPlayers.clear();
+        } catch (Throwable error) {
+            if (failure == null) failure = error;
+            else if (failure != error) failure.addSuppressed(error);
+        } finally { lock.unlock(); }
+        if (failure == null) stopped.complete(null);
+        else {
+            stopped.completeExceptionally(failure);
+            logger.log(Level.ERROR, "Failed to retire the game server", failure);
+        }
+    }
+
+    /** Actual loader, admitted-command, simulation-thread and listener retirement. No GPU completion claim. */
+    public CompletionStage<Void> whenStopped() { return stopped.minimalCompletionStage(); }
 
     /**
      * Listen for basically clients' requests
@@ -213,67 +269,53 @@ public final class GameServerState extends AbstractAppState {
 
         @Override
         public void onStartGame() {
-
-            // Just make sure that the server has fully set up itself before we start the game
-            if (!gameLoaded) {
-                synchronized (loadingObject) {
-                    if (!gameLoaded) {
-                        try {
-                            loadingObject.wait();
-                        } catch (InterruptedException ex) {
-                            logger.log(Level.ERROR, "Failed to load the game.", ex);
-                        }
-                    }
-                }
-            }
-
-            // Start the actual game
-            game.start();
+            startRequested.set(true);
+            if (stateManager != null) loading.publish(GameServerState.this::startIfReady);
         }
 
         @Override
         public void onSelectTiles(Vector2f start, Vector2f end, boolean select, short playerId) {
-            mapController.selectTiles(start, end, select, playerId);
+            withGame(() -> mapController.selectTiles(start, end, select, playerId));
         }
 
         @Override
         public void onBuild(Vector2f start, Vector2f end, short roomId, short playerId) {
-            gameWorldController.build(start, end, playerId, roomId);
+            withGame(() -> gameWorldController.build(start, end, playerId, roomId));
         }
 
         @Override
         public void onSell(Vector2f start, Vector2f end, short playerId) {
-            gameWorldController.sell(start, end, playerId);
+            withGame(() -> gameWorldController.sell(start, end, playerId));
         }
 
         @Override
         public void onInteract(EntityId entity, short playerId) {
-            gameWorldController.interact(entity, playerId);
+            withGame(() -> gameWorldController.interact(entity, playerId));
         }
 
         @Override
         public void onPickUp(EntityId entity, short playerId) {
-            gameWorldController.pickUp(entity, playerId);
+            withGame(() -> gameWorldController.pickUp(entity, playerId));
         }
 
         @Override
         public void onDrop(EntityId entity, Point tile, Vector2f coordinates, EntityId dropOnEntity, short playerId) {
-            gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId);
+            withGame(() -> gameWorldController.drop(entity, tile, coordinates, dropOnEntity, playerId));
         }
 
         @Override
         public void onCastKeeperSpell(short keeperSpellId, EntityId target, Point tile, Vector2f position, short playerId) {
-            gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId);
+            withGame(() -> gameWorldController.castKeeperSpell(keeperSpellId, target, tile, position, playerId));
         }
 
         @Override
         public void onPlaceDoor(short doorId, Point tile, short playerId) {
-            gameWorldController.placeDoor(doorId, tile, playerId);
+            withGame(() -> gameWorldController.placeDoor(doorId, tile, playerId));
         }
 
         @Override
         public void onPlaceTrap(short trapId, Point tile, short playerId) {
-            gameWorldController.placeTrap(trapId, tile, playerId);
+            withGame(() -> gameWorldController.placeTrap(trapId, tile, playerId));
         }
 
         @Override
@@ -284,74 +326,82 @@ public final class GameServerState extends AbstractAppState {
         @Override
         public void onPauseRequest(short playerId) {
             // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
-            game.pause();
+            withGame(() -> game.pause());
 
         }
 
         @Override
         public void onResumeRequest(short playerId) {
             // TODO: We should only allow the server owner etc. to pause, otherwise, send a system message that player x wants to pause?
-            game.resume();
+            withGame(() -> game.resume());
         }
 
         @Override
         public void onExitGame(short playerId) {
             // TODO: Close the server and game only when everybody has left
-            stateManager.detach(GameServerState.this);
+            if (closing.get()) return;
+            if (stateManager == null) closeServer();
+            else stateManager.getApplication().enqueue(GameServerState.this::detach);
         }
 
         @Override
         public void onGetGold(int amount, short playerId) {
-            gameWorldController.getGold(amount, playerId);
+            withGame(() -> gameWorldController.getGold(amount, playerId));
         }
 
         @Override
         public void onCancelCallToArms(short playerId) {
-            gameWorldController.getObjectsController().cancelCallToArms(playerId);
+            withGame(() -> gameWorldController.getObjectsController().cancelCallToArms(playerId));
         }
 
         @Override
         public void onCheatTriggered(CheatState.CheatType cheat, short playerId) {
-            cheatController.onCheat(cheat, playerId);
+            withGame(() -> cheatController.onCheat(cheat, playerId));
         }
 
         @Override
         public void onSpawnCreatureCheatTriggered(short creatureId, int level, int amount, short playerId) {
-            cheatController.spawnCreature(creatureId, level, amount, playerId);
+            withGame(() -> cheatController.spawnCreature(creatureId, level, amount, playerId));
         }
 
         @Override
         public void onAddGoldCheatTriggered(int amount, short playerId) {
-            cheatController.addGold(amount, playerId);
+            withGame(() -> cheatController.addGold(amount, playerId));
         }
 
         @Override
         public void onAddManaCheatTriggered(int amount, short playerId) {
-            cheatController.addMana(amount, playerId);
+            withGame(() -> cheatController.addMana(amount, playerId));
         }
 
         @Override
         public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
-            }
+            withGame(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
+                }
+            });
         }
 
         @Override
         public void onSetPossessedAttack(boolean attacking, short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
-            }
+            withGame(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
+                }
+            });
         }
 
         @Override
         public void onEndPossession(short playerId) {
-            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
-            if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
-            }
+            withGame(() -> {
+                EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+                if (possessed != null) {
+                    gameWorldController.getCreaturesController().createController(possessed).setPossession(false);
+                }
+            });
         }
     }
 

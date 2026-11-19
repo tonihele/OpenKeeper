@@ -19,6 +19,7 @@ package toniarts.openkeeper.utils;
 import com.jme3.asset.AssetInfo;
 import com.jme3.asset.AssetKey;
 import com.jme3.asset.AssetManager;
+import com.jme3.asset.AssetLoadException;
 import com.jme3.asset.MaterialKey;
 import com.jme3.asset.ModelKey;
 import com.jme3.asset.TextureKey;
@@ -31,7 +32,6 @@ import com.jme3.material.RenderState.BlendMode;
 import com.jme3.bounding.BoundingVolume;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
-import toniarts.openkeeper.view.map.MapViewController;
 import com.jme3.scene.Geometry;
 import com.jme3.scene.SceneGraphVisitor;
 import com.jme3.scene.Spatial;
@@ -47,12 +47,19 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
@@ -75,10 +82,65 @@ public final class AssetUtils {
 
     private static final Logger logger = System.getLogger(AssetUtils.class.getName());
     
-    private final static Object ASSET_LOCK = new Object();
-    private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
-    private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
-    private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
+    // Store the context inside its manager: a global weak-key map would still
+    // retain managers through MaterialDef -> AssetManager value references.
+    private static final AssetKey<CacheContext> CONTEXT_KEY = new AssetKey<>("__OpenKeeper/AssetUtilsContext");
+    // Only active waits, never asset data. Removed in finally, including interrupted/failed waits.
+    private static final ConcurrentMap<Thread, Thread> MODEL_WAITS = new ConcurrentHashMap<>();
+    private static final class CacheContext {
+        final AssetCache strong = new SimpleAssetCache();
+        final AssetCache weak = new WeakRefAssetCache();
+        final ConcurrentMap<String, Boolean> textureMaps = new ConcurrentHashMap<>();
+        volatile boolean preWarmed;
+        volatile toniarts.openkeeper.animation.AnimationDataCache animationData = new toniarts.openkeeper.animation.AnimationDataCache(0);
+        boolean modelLoadingStarted;
+        int activeLoads;
+        final ReentrantLock prewarmLock = new ReentrantLock();
+        final ConcurrentMap<ModelKey, LoadingModel> loadingModels = new ConcurrentHashMap<>();
+    }
+    private record LoadingModel(Thread owner, CompletableFuture<Spatial> result) { }
+
+    private static CacheContext context(AssetManager manager) {
+        synchronized (manager) {
+            CacheContext result = manager.getFromCache(CONTEXT_KEY);
+            if (result == null) {
+                result = new CacheContext();
+                manager.addToCache(CONTEXT_KEY, result);
+            }
+            return result;
+        }
+    }
+
+    /**
+     * Releases utility-owned templates and lookup state without invalidating
+     * live clones or clearing unrelated AssetManager entries. Call at a loading
+     * boundary after outstanding loads complete. Locator/root replacement also
+     * requires clearing that manager's ordinary asset cache (or a new manager).
+     */
+    public static void releaseCaches(AssetManager manager) {
+        synchronized (manager) {
+            CacheContext context = manager.getFromCache(CONTEXT_KEY);
+            if (context != null) synchronized (context) {
+                if (context.activeLoads != 0) throw new IllegalStateException("Finish asset loads and queued prewarming before releasing the asset context");
+            }
+            manager.deleteFromCache(CONTEXT_KEY);
+        }
+    }
+
+    /** Configure before utility model loading. Zero (default) retains sparse sampling. */
+    public static void configureAnimationDataCache(AssetManager manager, int maxPrimitiveBytes) {
+        var policy = new toniarts.openkeeper.animation.AnimationDataCache(maxPrimitiveBytes);
+        CacheContext context = context(manager);
+        synchronized (context) {
+            if (context.modelLoadingStarted && context.animationData.getLimit() != maxPrimitiveBytes)
+                throw new IllegalStateException("Configure animation data before loading models, or release the completed asset context first");
+            if (context.animationData.getLimit() != maxPrimitiveBytes) context.animationData = policy;
+        }
+    }
+
+    public static long getAnimationDataPrimitiveBytes(AssetManager manager) {
+        return context(manager).animationData.getResidentPrimitiveBytes();
+    }
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
     private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
 
@@ -86,7 +148,6 @@ public final class AssetUtils {
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
     private final static String USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT = "MaterialBeforeBlueprint";
     
-    private static volatile boolean preWarmedAssets = false;
 
     private AssetUtils() {
         // Nope
@@ -110,34 +171,88 @@ public final class AssetUtils {
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
-        Spatial result;
-        if (useCache) {
-
-            // Set the correct asset cache
-            final AssetCache cache = (useWeakCache) ? WEAK_ASSET_CACHE : ASSET_CACHE;
-
-            // Get the model from cache
-            Spatial model = cache.getFromCache(assetKey);
-            if (model == null) {
-                model = loadModel(assetManager, assetKey, artResource);
-
-                cache.addToCache(assetKey, model);
-            }
-            result = model.clone();
-        } else {
-            result = loadModel(assetManager, assetKey, artResource);
+        CacheContext context;
+        synchronized (assetManager) {
+            context = context(assetManager);
+            synchronized (context) { context.modelLoadingStarted = true; context.activeLoads++; }
         }
-
-        return result;
+        try {
+            Spatial result;
+            if (useCache) {
+                AssetCache cache = useWeakCache ? context.weak : context.strong;
+                result = loadCachedTemplate(assetManager, assetKey, context, cache).clone();
+            } else {
+                result = loadModelTemplate(assetManager, assetKey);
+                context.animationData.prepare(result);
+            }
+            applyTextureAnimation(result, assetManager, artResource);
+            return result;
+        } finally {
+            synchronized (context) { context.activeLoads--; }
+        }
     }
 
-    private static Spatial loadModel(final AssetManager assetManager, ModelKey assetKey, ArtResource artResource) {
+    private static Spatial loadCachedTemplate(AssetManager manager, ModelKey key, CacheContext context, AssetCache cache) {
+        Spatial ready = cache.getFromCache(key);
+        if (ready != null) return ready;
+        var reservation = new LoadingModel(Thread.currentThread(), new CompletableFuture<>());
+        LoadingModel active = context.loadingModels.putIfAbsent(key, reservation);
+        if (active != null) {
+            if (active.owner == Thread.currentThread()) throw new AssetLoadException("Recursive utility model load: " + key.getName());
+            Thread caller = Thread.currentThread();
+            MODEL_WAITS.put(caller, active.owner);
+            try {
+                var visited = new java.util.HashSet<Thread>();
+                for (Thread dependency = active.owner; dependency != null; dependency = MODEL_WAITS.get(dependency)) {
+                    if (dependency == caller || !visited.add(dependency)) {
+                        if (!active.result.isDone()) throw new AssetLoadException("Cyclic concurrent model dependency: " + key.getName());
+                        break;
+                    }
+                }
+                ready = active.result.get();
+                // Strong and weak requesters may share preparation but retain their requested cache policy.
+                cache.addToCache(key, ready);
+                return ready;
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new AssetLoadException("Interrupted while waiting for model: " + key.getName(), interrupted);
+            } catch (ExecutionException failed) {
+                if (failed.getCause() instanceof RuntimeException runtime) throw runtime;
+                if (failed.getCause() instanceof Error error) throw error;
+                throw new AssetLoadException("Model load failed: " + key.getName(), failed.getCause());
+            } finally {
+                MODEL_WAITS.remove(caller, active.owner);
+            }
+        }
+        try {
+            ready = cache.getFromCache(key);
+            if (ready == null) {
+                ready = loadModelTemplate(manager, key);
+                context.animationData.prepare(ready);
+                cache.addToCache(key, ready);
+            }
+            reservation.result.complete(ready);
+            return ready;
+        } catch (RuntimeException | Error failed) {
+            reservation.result.completeExceptionally(failed);
+            throw failed;
+        } finally {
+            context.loadingModels.remove(key, reservation);
+        }
+    }
+
+    private static Spatial loadModelTemplate(final AssetManager assetManager, ModelKey assetKey) {
         Spatial model = assetManager.loadModel(assetKey);
         resetSpatial(model);
         
         // Assign maps
         assignMapsToMaterial(model, assetManager);
         
+        return model;
+    }
+
+    private static void applyTextureAnimation(Spatial model, AssetManager assetManager, ArtResource artResource) {
+        // Apply resource policy to the returned instance, never to the raw template.
         // Create possible animating textures
         // This information is not found directly in KMF... at least to my knowledge
         if(artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE) && 
@@ -145,7 +260,6 @@ public final class AssetUtils {
             assignAnimatingTextures(model, assetManager, artResource.getData("fps"));
         }
         
-        return model;
     }
     
     private static void assignAnimatingTextures(Spatial model, AssetManager assetManager, Integer fps) {
@@ -154,10 +268,14 @@ public final class AssetUtils {
             public void visit(Spatial spatial) {
                 List<String> textures = spatial.getUserData(KmfModelLoader.MATERIAL_ALTERNATIVE_TEXTURES);
                 if (spatial instanceof Geometry && textures != null && textures.size() > 1) {
-                    Material material = ((Geometry) spatial).getMaterial();
+                    Material original = ((Geometry) spatial).getMaterial();
+                    Material material = original;
                     material = createLightningSpriteMaterial(material.getName(), material.isTransparent(), fps, () -> {
                         return textures;
                     }, assetManager);
+                    material.getAdditionalRenderState().setFaceCullMode(original.getAdditionalRenderState().getFaceCullMode());
+                    material.getAdditionalRenderState().setDepthWrite(original.getAdditionalRenderState().isDepthWrite());
+                    material.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
                     spatial.setMaterial(material);
                 }
             }
@@ -177,7 +295,8 @@ public final class AssetUtils {
         String filename = AssetsConverter.MODELS_FOLDER + File.separator + modelName + ".j3o";
         ModelKey assetKey = new ModelKey(getCanonicalAssetKey(filename));
 
-        Spatial result = loadModel(assetManager, assetKey, artResource);
+        Spatial result = loadModelTemplate(assetManager, assetKey);
+        applyTextureAnimation(result, assetManager, artResource);
 
         return result;
     }
@@ -242,6 +361,13 @@ public final class AssetUtils {
             vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
         }
         vertex.setTransparent(original.isTransparent());
+        vertex.getAdditionalRenderState().setDepthWrite(original.getAdditionalRenderState().isDepthWrite());
+        vertex.getAdditionalRenderState().setFaceCullMode(original.getAdditionalRenderState().getFaceCullMode());
+        vertex.getAdditionalRenderState().setBlendMode(original.getAdditionalRenderState().getBlendMode());
+        for (String parameter : new String[]{"NumberOfTiles","Speed","AnimationFrame","UseAnimationFrame","UseAlphaCoverage","Tint","TintOverlay"}) {
+            var value = original.getParam(parameter);
+            if (value != null) vertex.setParam(parameter,value.getVarType(),value.getValue());
+        }
         vertex.setColor("Ambient", ambient);
         return vertex;
     }
@@ -416,11 +542,12 @@ public final class AssetUtils {
         }
 
         boolean found;
-        Boolean cachedFound = TEXTURE_MAP_CACHE.get(textureName);
+        var textureMaps = context(assetManager).textureMaps;
+        Boolean cachedFound = textureMaps.get(textureName);
         if (cachedFound == null) {
             AssetInfo assetInfo = assetManager.locateAsset(new TextureKey(textureName, false));
             found = (assetInfo != null);
-            Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
+            Boolean cached = textureMaps.putIfAbsent(textureName, found);
             if (cached != null) {
                 found = cached;
             }
@@ -474,11 +601,13 @@ public final class AssetUtils {
     private static Material createLightningSpriteMaterial(String name, boolean hasAlpha, Integer fps, Supplier<List<String>> texturesSupplier, AssetManager assetManager) {
         
         // Cache
-        MaterialKey assetKey = new MaterialKey(name);
-        Material mat = ASSET_CACHE.getFromCache(assetKey);
+        List<String> textures = texturesSupplier.get();
+        MaterialKey assetKey = new MaterialKey("animated:" + name + ":" + hasAlpha + ":"
+                + (fps != null ? fps : 30) + ":" + textures);
+        AssetCache cache = context(assetManager).strong;
+        Material mat = cache.getFromCache(assetKey);
         
         if (mat == null) {
-            List<String> textures = texturesSupplier.get();
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
             mat.setInt("NumberOfTiles", textures.size());
             mat.setInt("Speed", fps != null ? fps : 30);
@@ -492,16 +621,17 @@ public final class AssetUtils {
                     mat.getAdditionalRenderState().setBlendMode(RenderState.BlendMode.Alpha);
                 }
                 
-                Texture tex = createAnimatingTexture(name, hasAlpha, textures, assetManager);
+                var atlas = createAnimatingTexture(name, hasAlpha, textures, assetManager);
                 
                 // Load the texture up
-                mat.setTexture("DiffuseMap", tex);
+                mat.setTexture("DiffuseMap", atlas.texture());
+                mat.setBoolean("UseAlphaCoverage",hasAlpha && atlas.sourceAlpha());
             } catch (Exception e) {
-                logger.log(Level.ERROR, "Can't create a texture out of " + name + "!", e);
+                throw new com.jme3.asset.AssetLoadException("Could not prepare animated texture " + name, e);
             }
 
             // Add to cache
-            ASSET_CACHE.addToCache(assetKey, mat);
+            cache.addToCache(assetKey, mat);
         }
         return mat.clone();
     }
@@ -519,7 +649,8 @@ public final class AssetUtils {
         MaterialKey assetKey = new MaterialKey("particle:" + resource.getName() + ":" + resource.getType()
                 + ":" + resource.getFlags() + ":" + resource.getData(ArtResource.KEY_FRAMES)
                 + ":" + resource.getData(ArtResource.KEY_WIDTH));
-        Material mat = ASSET_CACHE.getFromCache(assetKey);
+        AssetCache cache = context(assetManager).strong;
+        Material mat = cache.getFromCache(assetKey);
 
         if (mat == null) {
             mat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
@@ -538,7 +669,7 @@ public final class AssetUtils {
             mat.getAdditionalRenderState().setDepthWrite(false);
 
             // Add to cache
-            ASSET_CACHE.addToCache(assetKey, mat);
+            cache.addToCache(assetKey, mat);
         }
         return mat.clone();
     }
@@ -549,7 +680,7 @@ public final class AssetUtils {
         if (resource.getFlags().contains(ArtResource.ArtResourceFlag.ANIMATING_TEXTURE)) {
             return createAnimatingTexture(resource.getName(),  
                     resource.getType() == ArtResource.ArtResourceType.ALPHA,
-                    getTextureFrames(resource, assetManager), assetManager);
+                    getTextureFrames(resource, assetManager), assetManager).texture();
         } else {
             if (resource.getType().equals(ArtResource.ArtResourceType.SPRITE)
                     && resource.getData(ArtResource.KEY_WIDTH).intValue() > 1) {
@@ -596,13 +727,16 @@ public final class AssetUtils {
         return result;
     }
 
-    private static Texture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
+    private record AnimatedTexture(Texture texture, boolean sourceAlpha) { }
+
+    private static AnimatedTexture createAnimatingTexture(String name, boolean hasAlpha, List<String> textures, AssetManager assetManager) throws IOException {
         
         if (textures.isEmpty()) {
             throw new IOException("No animation frames found for " + name);
         }
         // Get the first frame, the frames need to be same size
         BufferedImage img = readImageFromAsset(assetManager.locateAsset(new AssetKey<>(textures.get(0))));
+        boolean sourceAlpha = img.getColorModel().hasAlpha();
         
         // Create image big enough to fit all the frames
         BufferedImage text = new BufferedImage(img.getWidth() * textures.size(), img.getHeight(),
@@ -631,7 +765,7 @@ public final class AssetUtils {
         // Convert the new image to a texture
         AWTLoader loader = new AWTLoader();
         Texture tex = new Texture2D(loader.load(text, false));
-        return tex;
+        return new AnimatedTexture(tex,sourceAlpha);
     }
 
     public static BufferedImage readImageFromAsset(AssetInfo asset) throws IOException {
@@ -652,39 +786,115 @@ public final class AssetUtils {
      * @param app the app
      */
     public static void prewarmAssets(IKwdFile kwdFile, AssetManager assetManager, Main app) {
-        if (!preWarmedAssets) {
-            synchronized (ASSET_LOCK) {
-                if (!preWarmedAssets) {
+        prewarmAssets(kwdFile, assetManager, app, () -> true);
+    }
+
+    /** Cancellable CPU preparation followed by render-thread upload; completion includes the queued upload. */
+    public static CompletionStage<Boolean> prewarmAssets(IKwdFile kwdFile, AssetManager assetManager,
+            Main app, BooleanSupplier active) {
+        return prewarmAssets(kwdFile, assetManager, active, task -> app.enqueue(task),
+                spatial -> app.getRenderManager().preloadScene(spatial));
+    }
+
+    /** Injected renderer boundary for loading tools/tests. No scene or GL mutation occurs on the decoding thread. */
+    public static CompletionStage<Boolean> prewarmAssets(IKwdFile kwdFile, AssetManager assetManager,
+            BooleanSupplier active, Executor renderExecutor, Consumer<Spatial> upload) {
+        java.util.Objects.requireNonNull(kwdFile);
+        java.util.Objects.requireNonNull(active);
+        java.util.Objects.requireNonNull(renderExecutor);
+        java.util.Objects.requireNonNull(upload);
+        var completion = new CompletableFuture<Boolean>();
+        CacheContext context;
+        synchronized (assetManager) {
+            context = context(assetManager);
+            synchronized (context) { context.activeLoads++; }
+        }
+        boolean locked = false;
+        boolean queued = false;
+        boolean prepared = false;
+        Throwable failure = null;
+        try {
+            checkPrewarmActive(active);
+            context.prewarmLock.lockInterruptibly();
+            locked = true;
+            checkPrewarmActive(active);
+            if (context.preWarmed) {
+                prepared = true;
+            } else {
+                List<Spatial> models = new ArrayList<>();
+                prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, models, active);
+                prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, models, active);
+                for (var request : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadRequests(kwdFile.getCreatureList())) {
+                    checkPrewarmActive(active);
                     try {
-
-                        // Terrain
-                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
-
-                        // Objects
-                        prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
-
-                        // Creatures
-                        prewarmArtResources(new ArrayList<>(kwdFile.getCreatureList()), assetManager, app);
-
-                        // Doors
-                        prewarmArtResources(kwdFile.getDoors(), assetManager, app);
-
-                        // Traps
-                        prewarmArtResources(kwdFile.getTraps(), assetManager, app);
-
-                        // Rooms
-                        prewarmArtResources(kwdFile.getRooms(), assetManager, app);
+                        models.add(loadModel(assetManager, request.name(), request.resource()));
+                    } catch (CancellationException cancelled) {
+                        throw cancelled;
                     } catch (Exception e) {
-                        logger.log(Level.ERROR, "Failed to prewarm assets!", e);
-                    } finally {
-                        preWarmedAssets = true;
+                        logger.log(Level.WARNING, "Could not prewarm creature model " + request.name(), e);
                     }
                 }
+                prewarmArtResources(kwdFile.getDoors(), assetManager, models, active);
+                prewarmArtResources(kwdFile.getTraps(), assetManager, models, active);
+                prewarmArtResources(kwdFile.getRooms(), assetManager, models, active);
+                checkPrewarmActive(active);
+                renderExecutor.execute(() -> {
+                    boolean uploaded = false;
+                    Throwable uploadFailure = null;
+                    try {
+                        checkPrewarmActive(active);
+                        for (Spatial model : models) {
+                            checkPrewarmActive(active);
+                            upload.accept(model);
+                        }
+                        checkPrewarmActive(active);
+                        context.preWarmed = true;
+                        uploaded = true;
+                    } catch (CancellationException cancelled) {
+                        // An exited session must not warm or mark an incomplete generation as ready.
+                    } catch (Throwable error) {
+                        uploadFailure = error;
+                    } finally {
+                        finishPrewarm(context, completion, uploaded, uploadFailure);
+                    }
+                });
+                queued = true;
             }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        } catch (CancellationException cancelled) {
+            // Cancellation is an ordinary loading outcome, not a broken asset.
+        } catch (Throwable error) {
+            failure = error;
+        } finally {
+            if (locked) context.prewarmLock.unlock();
+            if (!queued) finishPrewarm(context, completion, prepared, failure);
+        }
+        return completion.minimalCompletionStage();
+    }
+
+    private static void checkPrewarmActive(BooleanSupplier active) {
+        if (!active.getAsBoolean() || Thread.currentThread().isInterrupted())
+            throw new CancellationException("Asset prewarming cancelled");
+    }
+
+    private static void finishPrewarm(CacheContext context, CompletableFuture<Boolean> completion,
+            boolean prepared, Throwable failure) {
+        // Release before completion: continuations may establish a new loading/root boundary.
+        synchronized (context) { context.activeLoads--; }
+        if (failure == null) completion.complete(prepared);
+        else {
+            logger.log(Level.ERROR, "Failed to prewarm assets!", failure);
+            completion.completeExceptionally(failure);
         }
     }
 
-    private static void prewarmArtResources(List<?> objects, AssetManager assetManager, Main app) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, Exception {
+    private static void prewarmArtResources(List<?> objects, AssetManager assetManager,
+            List<Spatial> models, BooleanSupplier active) throws Exception {
+
+        checkPrewarmActive(active);
+
+        if (objects.isEmpty()) return;
 
         // Get the fields that house a possible ArtResource
         Class clazz = objects.get(0).getClass();
@@ -697,10 +907,10 @@ public final class AssetUtils {
         }
 
         // Scan every object
-        List<Spatial> models = new ArrayList<>(methodsToScan.size() * objects.size());
         if (!methodsToScan.isEmpty()) {
             for (Object obj : objects) {
                 for (Method method : methodsToScan) {
+                    checkPrewarmActive(active);
                     ArtResource artResource = (ArtResource) method.invoke(obj);
                     if (artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
 
@@ -719,8 +929,10 @@ public final class AssetUtils {
                                     models.add(loadModel(assetManager, artResource.getName(), artResource));
                                 } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                                     for (int i = 0; i < 5; i++) {
+                                        checkPrewarmActive(active);
                                         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                                             for (int y = 0; y < 7; y++) {
+                                                checkPrewarmActive(active);
                                                 models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, artResource, true, false));
                                             }
                                         } else {
@@ -774,10 +986,13 @@ public final class AssetUtils {
                                     }
                                 }
                                 for (int i = start; i < count; i++) {
+                                    checkPrewarmActive(active);
                                     models.add(loadModel(assetManager, artResource.getName() + i, false));
                                 }
                             }
 
+                        } catch (CancellationException cancelled) {
+                            throw cancelled;
                         } catch (Exception e) {
                             throw new Exception("Failed to load " + artResource + " on object " + obj + "!", e);
                         }
@@ -786,18 +1001,6 @@ public final class AssetUtils {
             }
         }
 
-        // Enque the warming up, we need GL context
-        if (!models.isEmpty()) {
-            logger.log(Level.INFO, "Prewarming {0} objects!", models.size());
-            app.enqueue(() -> {
-
-                for (Spatial spatial : models) {
-                    app.getRenderManager().preloadScene(spatial);
-                }
-
-                return null;
-            });
-        }
     }
 
     /**

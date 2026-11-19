@@ -1,4 +1,5 @@
 #import "Common/ShaderLib/GLSLCompat.glsllib"
+#import "Shaders/AnimationFrame.glsllib"
 #import "Common/ShaderLib/Instancing.glsllib"
 #import "Shaders/DkLighting/DkFalloff.glsllib"
 
@@ -56,7 +57,7 @@ void main() {
     texCoord = inTexCoord;
 #ifdef ANIMATED_TILES
     float tiles = float(m_NumberOfTiles);
-    float selectedTile = floor(g_Time * float(m_Speed));
+    float selectedTile = float(animationFrame(g_Time,m_Speed));
     texCoord.x = (texCoord.x + mod(selectedTile, tiles)) / tiles;
 #endif
 
