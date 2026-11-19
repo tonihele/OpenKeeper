@@ -1706,9 +1706,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return;
         }
 
-        // Validate
-        if (DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, door, player.getGold())
-                != DoorPlacementValidator.Failure.NONE) {
+        // Validate. Like DK II (0x4C33B0), a keeper without the gold for it is told so
+        DoorPlacementValidator.Failure failure = DoorPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile,
+                playerId, door, player.getGold());
+        if (failure == DoorPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
+            gameEventService.emitToPlayer(GameEventType.NOT_ENOUGH_GOLD, playerId);
+        }
+        if (failure != DoorPlacementValidator.Failure.NONE) {
             return;
         }
 
@@ -1762,8 +1766,14 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         // Validate
         boolean hasWorkshop = playerControllers.get(playerId).getRoomControl()
                 .getTypeCount(kwdFile.getRoomById(TrapPlacementValidator.WORKSHOP_ROOM_ID)) > 0;
-        if (TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile, playerId, trap, hasWorkshop,
-                player.getGold()) != TrapPlacementValidator.Failure.NONE) {
+        TrapPlacementValidator.Failure failure = TrapPlacementValidator.validate(mapController, getTrapBlockingTiles(tile), tile,
+                playerId, trap, hasWorkshop, player.getGold());
+
+        // Like DK II (0x4C3860), a keeper without the gold for it is told so
+        if (failure == TrapPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
+            gameEventService.emitToPlayer(GameEventType.NOT_ENOUGH_GOLD, playerId);
+        }
+        if (failure != TrapPlacementValidator.Failure.NONE) {
             return;
         }
 

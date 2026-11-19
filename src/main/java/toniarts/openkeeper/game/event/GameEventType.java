@@ -77,6 +77,11 @@ public enum GameEventType {
      * gets this
      */
     CALL_TO_ARMS_UNREACHABLE,
+    /**
+     * The keeper tried to place a trap or a door without the gold for it, only
+     * that keeper gets this
+     */
+    NOT_ENOUGH_GOLD,
 
     // The Torture Chamber
     /**

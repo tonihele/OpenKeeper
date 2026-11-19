@@ -151,6 +151,15 @@ class GameEventTest {
     }
 
     @Test
+    void mentorSaysThereIsNotEnoughGold() {
+
+        // DK II's message 0x37 variant 6 (0x4C3860, 0x4C33B0) has no speech of its own in the message table and takes
+        // the default one, "You do not have enough gold"
+        assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.GOLD002.getId(), null)),
+                GameEventSounds.getSounds(new GameEvent(GameEventType.NOT_ENOUGH_GOLD, null, 0, null, 0, null, null), null));
+    }
+
+    @Test
     void sacrificeSpeechIsTheMentorsTempleSpeech() {
         assertEquals(List.of(new GameEventSounds.Sound(SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null)),
                 GameEventSounds.getSounds(new GameEvent(GameEventType.SACRIFICE_SPEECH, null, 1, null, 0, null, null), null));
