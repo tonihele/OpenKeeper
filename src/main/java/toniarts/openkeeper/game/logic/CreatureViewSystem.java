@@ -172,11 +172,15 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 state = state.next(timeElapsed, targetState);
                 entityData.setComponent(entityId, state);
             }
-            if (publishMotion) entityData.setComponent(entityId, new toniarts.openkeeper.game.component.CreatureMotion(
+            if (publishMotion) {
+                var hauled = entityData.getComponent(entityId, toniarts.openkeeper.game.component.HauledBy.class);
+                var snapshot = new toniarts.openkeeper.game.component.CreatureMotion(
                     timeElapsed, tpf, motionSequence, position, state,
                     entityData.getComponent(entityId, Possessed.class) != null
-                    || entityData.getComponent(entityId, toniarts.openkeeper.game.component.HauledBy.class) != null
-                    || state.state == Creature.AnimationType.TORTURED_WHEEL));
+                    || hauled != null || state.state == Creature.AnimationType.TORTURED_WHEEL);
+                snapshot.hauler = hauled == null ? null : hauled.entityId;
+                entityData.setComponent(entityId, snapshot);
+            }
         }
     }
 

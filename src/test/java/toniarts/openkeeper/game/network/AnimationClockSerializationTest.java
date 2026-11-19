@@ -18,8 +18,10 @@ class AnimationClockSerializationTest {
         Serializer.writeClassAndObject(bytes, new CreatureViewState((short)7,12,Creature.AnimationType.WALK,42));
         var position = new toniarts.openkeeper.game.component.Position(.5f, 1, 2, 3);
         Serializer.writeClassAndObject(bytes, position);
-        Serializer.writeClassAndObject(bytes, new toniarts.openkeeper.game.component.CreatureMotion(12.5, .05, 44, position,
-                new CreatureViewState((short)7,12,Creature.AnimationType.WALK,42), true));
+        var outgoingMotion = new toniarts.openkeeper.game.component.CreatureMotion(12.5, .05, 44, position,
+                new CreatureViewState((short)7,12,Creature.AnimationType.WALK,42), true);
+        outgoingMotion.hauler = new com.simsilica.es.EntityId(99);
+        Serializer.writeClassAndObject(bytes, outgoingMotion);
         bytes.flip();
         SimulationTime clock = (SimulationTime) Serializer.readClassAndObject(bytes);
         CreatureViewState request = (CreatureViewState) Serializer.readClassAndObject(bytes);
@@ -32,5 +34,6 @@ class AnimationClockSerializationTest {
         assertEquals(position.motionEpoch, motion.epoch); assertEquals(44, motion.sequence);
         assertEquals(12.5, motion.time); assertEquals(3, motion.z); assertTrue(motion.immediate);
         assertEquals(42, motion.request.sequence); assertEquals(Creature.AnimationType.WALK, motion.request.state);
+        assertEquals(outgoingMotion.hauler, motion.hauler);
     }
 }

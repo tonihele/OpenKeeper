@@ -9,6 +9,7 @@ public final class CreatureMotion implements EntityComponent {
     public long epoch, sequence;
     public float x, y, z, yaw;
     public CreatureViewState request;
+    public com.simsilica.es.EntityId hauler;
     public boolean immediate;
 
     public CreatureMotion() { }

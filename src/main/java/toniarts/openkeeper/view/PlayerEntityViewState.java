@@ -309,6 +309,7 @@ public class PlayerEntityViewState extends AbstractAppState {
                 }
             }
             for (MotionTrack track : motionTracks.values()) track.apply();
+            for (MotionTrack track : motionTracks.values()) track.followHauler();
         }
         doorModelContainer.update();
         trapModelContainer.update();
@@ -924,12 +925,21 @@ public class PlayerEntityViewState extends AbstractAppState {
         if (track != null && (track.latestPosition == null || track.latestPosition.motionEpoch == next.epoch)) track.history.add(next);
     }
 
+    /** Preserve the victim's authoritative height while following the carrier's presented world X/Z. */
+    static void followPresentedHauler(Spatial victim, Spatial hauler, Vector3f scratch) {
+        float height = victim.getWorldTranslation().y;
+        scratch.set(hauler.getWorldTranslation()); scratch.y = height;
+        if (victim.getParent() != null) victim.getParent().worldToLocal(scratch, scratch);
+        victim.setLocalTranslation(scratch);
+    }
+
     /** World render ownership only; no ECS/physics position is modified. */
     private final class MotionTrack {
         final EntityId id;
         final Spatial object;
         final toniarts.openkeeper.view.animation.MotionHistory history = new toniarts.openkeeper.view.animation.MotionHistory(8);
         final com.jme3.math.Transform pose = new com.jme3.math.Transform();
+        final Vector3f attachmentPosition = new Vector3f();
         Position latestPosition;
         CreatureViewState latestState, appliedState;
         boolean sampling;
@@ -961,6 +971,14 @@ public class PlayerEntityViewState extends AbstractAppState {
                 CreatureViewControl control = object.getControl(CreatureViewControl.class);
                 if (control != null) control.synchronizePresentationClock();
             }
+            applyFogCullHint(object, WorldUtils.vectorToPoint(object.getLocalTranslation()), true);
+        }
+
+        void followHauler() {
+            if (gamePaused || history.getHauler() == null) return;
+            Spatial hauler = getEntitySpatial(history.getHauler());
+            if (hauler == null || hauler == object) return;
+            followPresentedHauler(object, hauler, attachmentPosition);
             applyFogCullHint(object, WorldUtils.vectorToPoint(object.getLocalTranslation()), true);
         }
     }

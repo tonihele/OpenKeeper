@@ -8,6 +8,35 @@ import toniarts.openkeeper.tools.convert.map.Creature.AnimationType;
 import static org.junit.jupiter.api.Assertions.*;
 
 class CreatureMotionPublicationTest {
+    @Test void haulingPreservesIntegrationEpochAndPublishesAttachmentUntilJobEnds() {
+        var data = new DefaultEntityData();
+        try {
+            var carrier = data.createEntity(); var victim = data.createEntity();
+            var initial = new Position(.3f, 1, .25f, 2);
+            data.setComponents(carrier, new Position(0, 5, 3, 6), new TaskComponent());
+            data.setComponents(victim, initial, new HauledBy(carrier),
+                    new CreatureViewState((short) 1, 0, AnimationType.WALK));
+            var hauling = new HaulingSystem(data);
+            var view = new CreatureViewSystem(data, null, null, true);
+            try {
+                hauling.processTick(.05f); view.processTick(.05f);
+                var followed = data.getComponent(victim, Position.class);
+                assertEquals(initial.motionEpoch, followed.motionEpoch);
+                assertEquals(5, followed.position.x); assertEquals(6, followed.position.z);
+                assertEquals(.25f, followed.position.y); assertEquals(.3f, followed.rotation);
+                var attached = data.getComponent(victim, CreatureMotion.class);
+                assertTrue(attached.immediate); assertEquals(carrier, attached.hauler);
+                data.removeComponent(carrier, TaskComponent.class);
+                hauling.processTick(.05f); view.processTick(.05f);
+                assertNull(data.getComponent(victim, HauledBy.class));
+                var detached = data.getComponent(victim, CreatureMotion.class);
+                assertFalse(detached.immediate); assertNull(detached.hauler);
+                assertEquals(carrier, attached.hauler);
+                assertSame(followed, data.getComponent(victim, Position.class));
+            } finally { view.stop(); hauling.stop(); }
+        } finally { data.close(); }
+    }
+
     @Test void publicationIsOptInAndBindsObservedRootAndRequestToAuthoritativeTime() {
         var data = new DefaultEntityData();
         try {

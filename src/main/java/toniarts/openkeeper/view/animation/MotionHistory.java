@@ -32,6 +32,7 @@ public final class MotionHistory {
         CreatureMotion owned = new CreatureMotion();
         owned.time = next.time; owned.interval = next.interval; owned.epoch = next.epoch; owned.sequence = next.sequence;
         owned.x = next.x; owned.y = next.y; owned.z = next.z; owned.yaw = next.yaw; owned.immediate = next.immediate;
+        owned.hauler = next.hauler;
         owned.request = new CreatureViewState(next.request.creatureId, next.request.stateStartTime, next.request.state, next.request.sequence);
         if (count == samples.length) { samples[first] = null; first = (first + 1) % samples.length; count--; }
         samples[(first + count++) % samples.length] = owned;
@@ -44,6 +45,7 @@ public final class MotionHistory {
     public boolean isImmediate() { return count != 0 && latest().immediate; }
     public double getInterval() { return count == 0 ? 0 : latest().interval; }
     public long getEpoch() { return count == 0 ? Long.MIN_VALUE : latest().epoch; }
+    public com.simsilica.es.EntityId getHauler() { return count == 0 ? null : latest().hauler; }
 
     public boolean sample(double desiredTime, Transform store) {
         if (count == 0 || !Double.isFinite(desiredTime)) return false;
