@@ -50,8 +50,7 @@ metric; contact is exempted only on the final path segment, permitting furniture
 work positions. Stationary navigation completes at its destination or after
 orientation-only movement, rather than mistaking an unfinished stall for arrival.
 
-OpenKeeper retains its existing path follower, acceleration limits and update
-cadence. Contact uses a quarter-second reference interval to adapt those rates;
+OpenKeeper retains its existing path follower and acceleration limits. Contact uses a quarter-second reference interval to adapt those rates;
 complete native behavior blending and integration timing are not claimed.
 The regular native enumeration and callback operate in the horizontal plane;
 this work does not introduce an inferred height-based exemption for flyers.
@@ -59,7 +58,7 @@ this work does not introduce an inferred height-based exemption for flyers.
 ## Validation
 
 `./gradlew test installDist --offline --no-daemon` with JDK 25 passes all
-1,459 tests on upstream cd78e565 using the locally converted assets. No asset
+1,464 tests on upstream cd78e565 using the locally converted assets. No asset
 files are committed.
 
 Synthetic regressions cover small and large authored widths, different furniture
@@ -67,16 +66,19 @@ widths, dense layouts, narrow gaps, wall-adjacent mixed solid/soft furniture,
 work-position arrival and facing, and object lifecycle updates during movement.
 Shared radius tests use synthetic widths; gameplay definitions are read at runtime.
 
-A fresh two-minute offscreen Workshop run completed and shut down cleanly.
-Eight creatures were sampled, including four Trolls and four Imps. The Trolls
-travelled roughly 43–49 tiles; none of the sampled creatures entered solid
-terrain or had a sustained stationary-navigation interval. They also entered
-idle states, so this is not evidence of two minutes of continuous manufacturing.
-The native Workshop trace completed after 1,421 finished movement updates
+A final one-minute offscreen Workshop run on the authoritative logic loop
+completed and shut down cleanly. It sampled four Trolls and four Imps across
+6,928 records. Trolls travelled approximately 25–28 tiles, with no sampled
+creature entering solid terrain. The longest stationary-navigation interval
+away from the goal was under half a second. Creatures also entered idle states;
+this is not evidence of uninterrupted manufacturing or a deterministic native
+trajectory comparison.
+
+Earlier native Workshop research completed after 1,421 finished movement updates
 across eight creatures and recorded 57 solid contacts. Enumerated ordinary
 furniture included workbenches and both solid and soft obstacle definitions.
-The reference process was then terminated. These differing AI routes are not
-deterministic trajectory comparisons.
+The reference process was then terminated. Those captures establish contact
+examples, not parity with the final logic-loop timing.
 
 Remaining validation includes sustained room-task scenes, native same-tile
 ordering, vertical gameplay and more complex multiple-contact corners. Full native
@@ -114,7 +116,9 @@ lower-frequency movement updates can remain visible.
 
 Arrival controllers use a response interval no shorter than the logic step.
 When the final path leg reports linear arrival within tolerance, residual
-linear velocity is stopped; facing still completes separately. This avoids
+linear velocity is stopped; facing still completes separately. Linear and
+angular damping use elapsed time to preserve their former per-second decay
+when the update frequency changes. This avoids
 coarse-step destination oscillation without treating an unfinished route as
 arrived. Regressions exercise dense furniture and work-position facing at
 four and eight logic updates per second as well as the existing finer steps.
