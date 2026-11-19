@@ -9,6 +9,23 @@ It reads `assets/Converted/Textures` and writes PNGs with the same names to
 `assets/Textures`. The game finds files under `assets/` on the classpath before
 the converted ones, so it uses the HD textures with no other change.
 
+## In the asset conversion
+
+The asset conversion can make them too, as an optional step after the
+textures. It is off by default. Switch it on with "Make HD textures" in the
+first run's folder window, or in Options, Graphics (it then runs at the next
+start). It needs a GPU with Vulkan and takes about 6 minutes.
+
+- It downloads Real-ESRGAN the same way as `setup`, then upscales the 3D
+  textures (`upscale --3d`). The interface is left out, because a game that
+  doesn't draw HD interface images at their original's size draws them 4x too
+  big.
+- It runs again when the converted textures change.
+- Switching it off deletes the HD textures it made, like `clean`.
+- If it can't make them (no Vulkan GPU, no network, a failed download) it
+  logs why, deletes what it made and switches itself off. The conversion
+  carries on and the game uses the converted textures.
+
 ## Use
 
 Needs Java and a GPU with Vulkan (or `--gpu -1` for the CPU, which is slow).
@@ -28,7 +45,8 @@ Works on Windows, Linux and macOS.
 2. `upscale --test-batch` does only the terrain (`T_*`) and the wall and floor
    textures, so you can compare in game before the full run.
    `--gui-test-batch` does the same for the interface: the HUD's windows and
-   bars, the minimap frame, the tabs and the room icons.
+   bars, the minimap frame, the tabs and the room icons. `--3d` does all but
+   the interface.
 3. `upscale` does all of them. It skips textures that are already up to date,
    so it can be run again after a new conversion (`--force` redoes them).
    `--small` writes smaller PNGs (about 40% less disk, slower to write).

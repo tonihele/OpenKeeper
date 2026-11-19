@@ -58,6 +58,7 @@ class HdTexturesTest {
         assertEquals(List.of("Lair_Wall.png", "T_Lava.png"), HdTextures.select(TEXTURES, HdTextures.TEST_BATCH));
         assertEquals(List.of("GUI/Rooms/Lair.png", "GUI/Windows/Panel.png"),
                 HdTextures.select(TEXTURES, HdTextures.GUI_TEST_BATCH));
+        assertEquals(List.of("Lair_Wall.png", "T_Lava.png"), HdTextures.select(TEXTURES, HdTextures.TEXTURES_3D));
     }
 
     @Test
@@ -188,6 +189,35 @@ class HdTexturesTest {
         assertFalse(Files.exists(python));
         assertTrue(Files.exists(theirs));
         assertTrue(HdTextures.loadManifest(folder).isEmpty());
+    }
+
+    @Test
+    void convertSwitchedOffDeletesTheHdTextures() throws IOException {
+        Path hd = folder.resolve("T_Lava.png");
+        Files.writeString(hd, "x");
+        Properties manifest = new Properties();
+        manifest.setProperty("T_Lava.png", "settings");
+        HdTextures.saveManifest(folder, manifest);
+
+        assertFalse(HdTextures.convert(false, folder.resolve("Converted"), folder, folder.resolve("tools")));
+        assertFalse(Files.exists(hd));
+        assertFalse(Files.exists(folder.resolve("tools")));
+    }
+
+    @Test
+    void convertFailsSoftlyWithoutRealEsrgan() throws IOException {
+        Path hd = folder.resolve("dest/T_Lava.png");
+        Files.createDirectories(hd.getParent());
+        Files.writeString(hd, "x");
+        Properties manifest = new Properties();
+        manifest.setProperty("T_Lava.png", "settings");
+        HdTextures.saveManifest(hd.getParent(), manifest);
+
+        // A file where the tools folder should be: setup fails before any download
+        Path tools = folder.resolve("tools");
+        Files.writeString(tools, "x");
+        assertFalse(HdTextures.convert(true, folder.resolve("Converted"), hd.getParent(), tools));
+        assertFalse(Files.exists(hd));
     }
 
     @Test

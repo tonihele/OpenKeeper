@@ -25,6 +25,8 @@ import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
@@ -73,7 +75,9 @@ import javax.imageio.ImageIO;
  * {@code setup} downloads Real-ESRGAN to {@code ~/.OpenKeeper/hd-textures}.
  * {@code upscale} does every texture, {@code --test-batch} only the terrain,
  * walls and floors and {@code --gui-test-batch} the HUD's windows, tabs and room
- * icons; up to date ones are skipped ({@code --force} redoes them).
+ * icons, {@code --3d} all but the interface (what the asset conversion's
+ * optional step does, see {@link #convert}); up to date ones are skipped
+ * ({@code --force} redoes them).
  * {@code --small} writes smaller PNGs (about 40% less disk, about 4 times
  * longer to write). Other options: {@code --model}, {@code --tile}, {@code --gpu} ({@code -1} for the
  * CPU), {@code --source}, {@code --dest} and {@code --tools-dir}.
@@ -89,6 +93,11 @@ import javax.imageio.ImageIO;
  * @author OpenKeeper
  */
 public class HdTextures {
+
+    private static final Logger logger = System.getLogger(HdTextures.class.getName());
+
+    /** Where Real-ESRGAN is downloaded to, unless {@code --tools-dir} says otherwise */
+    public static final Path TOOLS_DIR = Paths.get(System.getProperty("user.home"), ".OpenKeeper", "hd-textures");
 
     private static final int SCALE = 4;
     private static final int PAD = 16;
@@ -114,6 +123,13 @@ public class HdTextures {
     static final Pattern GUI_TEST_BATCH = Pattern.compile("(?i)^GUI/(Windows|Map|Tabs|Rooms)/[^/]*\\.png$");
 
     /**
+     * The textures of the 3D world and the 3D front end, not the interface: it
+     * is laid out by the size of its images, so a game that doesn't draw HD
+     * copies at their original's size draws them 4x too big
+     */
+    static final Pattern TEXTURES_3D = Pattern.compile("(?i)^(3DFE/)?[^/]*\\.png$");
+
+    /**
      * Fine detail is the mean absolute Laplacian over the mean absolute
      * gradient: below SOFT_BELOW a texture is resized smoothly, above
      * DETAILED_ABOVE upscaled with Real-ESRGAN, in between blended
@@ -125,7 +141,7 @@ public class HdTextures {
     private static final int PRECISION_BITS = 32 - 8 - 2;
 
     private static final Set<String> VALUE_OPTIONS = Set.of("--tools-dir", "--source", "--dest", "--model", "--gpu", "--tile");
-    private static final Set<String> FLAGS = Set.of("--test-batch", "--gui-test-batch", "--force", "--small");
+    private static final Set<String> FLAGS = Set.of("--test-batch", "--gui-test-batch", "--3d", "--force", "--small");
 
     /** An image as one array per channel (red, green, blue, maybe alpha), 0-255 */
     record Planes(int width, int height, float[][] bands) {
@@ -150,11 +166,11 @@ public class HdTextures {
     public static void main(String[] args) throws IOException, InterruptedException {
         try {
             Map<String, String> options = parseOptions(args);
-            Path toolsDir = Paths.get(options.getOrDefault("--tools-dir",
-                    Paths.get(System.getProperty("user.home"), ".OpenKeeper", "hd-textures").toString()));
+            Path toolsDir = Paths.get(options.getOrDefault("--tools-dir", TOOLS_DIR.toString()));
             Path dest = Paths.get(options.getOrDefault("--dest", "assets/Textures")).toAbsolutePath().normalize();
             switch (options.getOrDefault("command", "")) {
-                case "setup" -> setup(toolsDir);
+                case "setup" -> System.out.println("Real-ESRGAN: " + setup(toolsDir)
+                        + "\nNext: ./gradlew hdTextures --args=\"upscale --test-batch\"");
                 case "upscale" -> upscale(options, toolsDir, dest);
                 case "clean" -> System.out.println("Removed " + clean(dest) + " HD textures from " + dest);
                 default -> throw new IllegalArgumentException("Usage: hdTextures setup|upscale|clean [options], see "
@@ -164,6 +180,41 @@ public class HdTextures {
             System.err.println(e.getMessage());
             System.exit(1);
         }
+    }
+
+    /**
+     * The optional HD textures step of the asset conversion. Switched on, it
+     * downloads Real-ESRGAN if needed and upscales the 3D textures; switched
+     * off, it deletes the HD textures it made. It never fails the conversion:
+     * without a Vulkan GPU or the network it logs why, deletes what it made and
+     * the game uses the converted textures.
+     *
+     * @param on whether the player wants the HD textures
+     * @param source the converted textures
+     * @param dest where the HD textures go
+     * @param toolsDir where Real-ESRGAN is downloaded to
+     * @return whether the HD textures are there now
+     */
+    public static boolean convert(boolean on, Path source, Path dest, Path toolsDir) {
+        try {
+            if (on) {
+                setup(toolsDir);
+                upscale(Map.of("--source", source.toString(), "--3d", ""), toolsDir, dest);
+                return true;
+            }
+        } catch (IOException | RuntimeException e) {
+            logger.log(Level.WARNING, "Could not make the HD textures, the game uses the normal ones", e);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+        try {
+            if (Files.isDirectory(dest)) {
+                clean(dest);
+            }
+        } catch (IOException e) {
+            logger.log(Level.WARNING, "Could not delete the HD textures from " + dest, e);
+        }
+        return false;
     }
 
     static Map<String, String> parseOptions(String[] args) {
@@ -181,7 +232,7 @@ public class HdTextures {
     }
 
     // --- Setup ----------------------------------------------------------------------------------
-    private static void setup(Path toolsDir) throws IOException, InterruptedException {
+    private static Path setup(Path toolsDir) throws IOException, InterruptedException {
         String os = System.getProperty("os.name").toLowerCase(Locale.ROOT);
         String[] download = DOWNLOADS.get(os.contains("win") ? "windows" : os.contains("mac") ? "macos" : "ubuntu");
         if (findExecutable(toolsDir) == null) {
@@ -204,7 +255,7 @@ public class HdTextures {
             }
             findExecutable(toolsDir).toFile().setExecutable(true);
         }
-        System.out.println("Real-ESRGAN: " + findExecutable(toolsDir) + "\nNext: ./gradlew hdTextures --args=\"upscale --test-batch\"");
+        return findExecutable(toolsDir);
     }
 
     static String sha256(Path file) throws IOException {
@@ -256,7 +307,8 @@ public class HdTextures {
         String settings = model + " pad=" + PAD;
         List<String> all = listTextures(source);
         List<String> textures = select(all, options.containsKey("--test-batch") ? TEST_BATCH
-                : options.containsKey("--gui-test-batch") ? GUI_TEST_BATCH : null);
+                : options.containsKey("--gui-test-batch") ? GUI_TEST_BATCH
+                : options.containsKey("--3d") ? TEXTURES_3D : null);
         System.out.println("Measuring detail");
         Map<String, Double> weights = detailWeights(source, all, textures);
 
@@ -277,7 +329,8 @@ public class HdTextures {
             return;
         }
         excludeFromGit(dest);
-        Runtime.getRuntime().addShutdownHook(new Thread(() -> saveManifest(dest, manifest)));
+        Thread saveOnExit = new Thread(() -> saveManifest(dest, manifest));
+        Runtime.getRuntime().addShutdownHook(saveOnExit);
 
         long started = System.nanoTime();
         Path work = Files.createTempDirectory("hd-textures-");
@@ -332,6 +385,10 @@ public class HdTextures {
                 manifest.setProperty(rel, record(source.resolve(rel), weight, settings));
             }
         } finally {
+
+            // Saved now too, for when the game cleans up after a failure before it exits
+            Runtime.getRuntime().removeShutdownHook(saveOnExit);
+            saveManifest(dest, manifest);
             try (Stream<Path> paths = Files.walk(work)) {
                 for (Path path : paths.sorted(Comparator.reverseOrder()).toList()) {
                     Files.delete(path);
