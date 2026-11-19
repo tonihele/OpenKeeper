@@ -57,6 +57,7 @@ import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -108,7 +109,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
-    
+    private static final java.awt.Color RECHARGE_COLOR = new java.awt.Color(1f, 1f, 1f, 0.7f);
+
     public float lastUpdate = 0;
 
     private PlayerState state;
@@ -123,7 +125,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private String cinematicText;
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
+    private EntitySet callToArmsBanners;
     private int lastImpCount = -1;
+    private EntitySet spellCasts;
+    private final Map<Short, Float> spellRechargeLeft = new HashMap<>();
     private PossessionInteractionState.Action possessionAction = PossessionInteractionState.Action.MELEE;
 
     private final TrapIconTextParser trapIconTextParser = new TrapIconTextParser();
@@ -138,6 +143,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     @Override
     public void update(float tpf) {
+        updateSpellRecharge(tpf);
         lastUpdate += tpf;
 
         if (lastUpdate >= SCREEN_UPDATE_INTERVAL) {
@@ -153,15 +159,25 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
+            updateCallToArms();
             lastUpdate = 0;
         }
     }
 
     @Override
     public void cleanup() {
+        if (spellCasts != null) {
+            spellCasts.release();
+            spellCasts = null;
+        }
+        spellRechargeLeft.clear();
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
             creatureCardManager = null;
+        }
+        if (callToArmsBanners != null) {
+            callToArmsBanners.release();
+            callToArmsBanners = null;
         }
 
         // Remove the resource bundle so that we can actually put a new one here
@@ -189,6 +205,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Type type = Type.valueOf(iState.toUpperCase());
         if (type == Type.SELL) {
             this.playButtonSound(GlobalCategory.GUI_SELL);
+        } else if (type == Type.ROOM) {
+            this.playButtonSound(GlobalCategory.GUI_BUTTON_TAB_ROOMS);
+        } else if (type == Type.SPELL) {
+            this.playButtonSound(GlobalCategory.GUI_BUTTON_TAB_SPELLS);
+        } else if (type == Type.TRAP || type == Type.DOOR) {
+            this.playButtonSound(GlobalCategory.GUI_BUTTON_TAB_WORKSHOP);
         }
         state.interactionState.setInteractionState(type, Integer.parseInt(id));
     }
@@ -538,6 +560,52 @@ public final class PlayerScreenController implements IPlayerScreenController {
         String result = Utils.getMainTextResourceBundle().getString(bundleId);
 
         return state.getTooltipText(result);
+    }
+
+    /**
+     * The Call to Arms indicator, left click: take the banner down
+     */
+    public void cancelCallToArms() {
+        state.stateManager.getState(GameClientState.class).getGameClientService().cancelCallToArms();
+    }
+
+    /**
+     * The Call to Arms indicator, right click: zoom to the banner
+     */
+    public void zoomToCallToArms() {
+        Entity banner = getRaisedBanner();
+        if (banner != null) {
+            zoomToPosition(banner.get(Position.class).position);
+        }
+    }
+
+    /**
+     * Like the original, the indicator shows while our banner waves on the
+     * map, not while it rises, goes down or is in the hand
+     */
+    private void updateCallToArms() {
+        if (callToArmsBanners == null || screen == null) {
+            return;
+        }
+        callToArmsBanners.applyChanges();
+        Element indicator = screen.findElementById("callToArms");
+        boolean raised = getRaisedBanner() != null;
+        if (indicator != null && indicator.isVisible() != raised) {
+            indicator.setVisible(raised);
+        }
+    }
+
+    private Entity getRaisedBanner() {
+        if (callToArmsBanners == null) {
+            return null;
+        }
+        for (Entity banner : callToArmsBanners) {
+            if (banner.get(CallToArms.class).isUp()
+                    && banner.get(ObjectViewState.class).animState == ObjectViewState.GameObjectAnimState.ADDITIONAL_RESOURCE_1) {
+                return banner;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -944,6 +1012,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
+        callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
+                CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
+
+        // Keeper spell recharge, a cast that is already in the set is not tracked, the changes are
+        spellCasts = entityData.getEntities(new FieldFilter(KeeperSpellCast.class, "keeperId", state.getPlayer().getId()), KeeperSpellCast.class);
         // Rooms
 //        state.getRoomControl().addRoomAvailabilityListener(new PlayerRoomControl.IRoomAvailabilityListener() {
 //
@@ -996,6 +1069,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * @param gold the gold the player has
      */
     private void updateRoomAffordability(int gold) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         for (ResearchableEntity room : state.getAvailableRoomsToBuild()) {
             if (!room.isDiscovered()) {
@@ -1048,6 +1125,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     private void updateSpellAffordability(int availableMana) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
             if (!spell.isDiscovered()) {
@@ -1111,6 +1192,46 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
     }
 
+    /**
+     * Shows the recharge of the keeper spells the same way DK II does: a
+     * translucent white pie over the icon that shrinks as the spell recharges.
+     * The client has no game timer, so the time left is counted down from the
+     * moment a changed {@link KeeperSpellCast} arrives, not while paused.
+     *
+     * @param tpf time per frame
+     */
+    private void updateSpellRecharge(float tpf) {
+        if (spellCasts == null) {
+            return;
+        }
+        if (spellCasts.applyChanges()) {
+            for (Set<Entity> entities : List.of(spellCasts.getAddedEntities(), spellCasts.getChangedEntities())) {
+                for (Entity entity : entities) {
+                    short spellId = entity.get(KeeperSpellCast.class).keeperSpellId;
+                    spellRechargeLeft.put(spellId, state.getKwdFile().getKeeperSpellById(spellId).getRechargeTime());
+                }
+            }
+        }
+        boolean paused = state.isPaused();
+        for (Iterator<Map.Entry<Short, Float>> it = spellRechargeLeft.entrySet().iterator(); it.hasNext();) {
+            Map.Entry<Short, Float> entry = it.next();
+            float left = paused ? entry.getValue() : entry.getValue() - tpf;
+            setSpellRecharge(entry.getKey(), left);
+            if (left <= 0) {
+                it.remove();
+            } else {
+                entry.setValue(left);
+            }
+        }
+    }
+
+    private void setSpellRecharge(short spellId, float secondsLeft) {
+        Element recharge = nifty.getScreen(SCREEN_HUD_ID).findElementById("recharge_" + spellId);
+        if (recharge != null) {
+            recharge.getControl(ResearchEffectControl.class).setResearch(Math.max(0, secondsLeft) / state.getKwdFile().getKeeperSpellById(spellId).getRechargeTime());
+        }
+    }
+
     public void populateManufactureTab() {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         FlowLayoutControl contentPanel = hud.findElementById("tab-workshop-content").getControl(FlowLayoutControl.class);
@@ -1161,6 +1282,20 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     }
                 }.build(element).getControl(ResearchEffectControl.class);
                 researchControl.initJme(state.app);
+            }
+            KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
+            if (spell.isDiscovered() && keeperSpell.getRechargeTime() > 0) {
+                new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
+                    {
+                        id("recharge_" + keeperSpell.getKeeperSpellId());
+                        parameter("color", Integer.toString(RECHARGE_COLOR.getRGB()));
+                        parameter("image", "");
+                    }
+                }.build(element).getControl(ResearchEffectControl.class).initJme(state.app);
+                Float left = spellRechargeLeft.get(keeperSpell.getKeeperSpellId());
+                if (left != null) {
+                    setSpellRecharge(keeperSpell.getKeeperSpellId(), left);
+                }
             }
         }
         unaffordableSpells.clear();
@@ -1292,30 +1427,18 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     public void updateEntityResearch(ResearchableEntity researchableEntity) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
         String itemId = getItemTypeId(researchableEntity);
         Element researchableButton = nifty.getScreen(SCREEN_HUD_ID).findElementById(itemId);
         if (researchableButton != null) {
             ResearchEffectControl researchControl = researchableButton.getControl(ResearchEffectControl.class);
             if (researchControl != null) {
-                float percentage = (float) researchableEntity.getResearch() / getResearchTime(researchableEntity);
+                float percentage = (float) researchableEntity.getResearch() / PlayerResearchControl.getResearchPoints(state.getKwdFile(), researchableEntity);
                 researchControl.setResearch(percentage);
             }
-        }
-    }
-
-    private int getResearchTime(ResearchableEntity researchableEntity) {
-        switch (researchableEntity.getResearchableType()) {
-            case SPELL:
-                KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(researchableEntity.getId());
-                return researchableEntity.isDiscovered() ? keeperSpell.getBonusRTime() : keeperSpell.getResearchTime();
-            case TRAP:
-                return state.getKwdFile().getTrapById(researchableEntity.getId()).getResearchTime();
-            case DOOR:
-                return state.getKwdFile().getDoorById(researchableEntity.getId()).getResearchTime();
-            case ROOM:
-                return state.getKwdFile().getRoomById(researchableEntity.getId()).getResearchTime();
-            default:
-                throw new IllegalArgumentException("Invalid type!");
         }
     }
 

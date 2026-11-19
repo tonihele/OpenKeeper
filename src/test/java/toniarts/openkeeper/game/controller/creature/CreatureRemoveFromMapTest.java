@@ -21,6 +21,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Gold;
@@ -50,7 +51,7 @@ class CreatureRemoveFromMapTest {
         entityData.setComponent(entityId, new Owner((short) 3, (short) 3));
         entityData.setComponent(entityId, new Gold(100, 300));
 
-        new CreatureController(entityId, entityData, null, null, null, null, null, null, null, null, null,
+        new CreatureController(entityId, entityData, null, null, null, null, Map.of(), null, null, null, null,
                 objectsController, null, null).removeFromMap();
 
         assertNull(entityData.getComponent(entityId, Position.class));

@@ -17,25 +17,38 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Predicate;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.utils.Point;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -51,9 +64,12 @@ class WorkerTaskAssignmentTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final AtomicInteger targetLookups = new AtomicInteger();
+    private final AtomicInteger reachabilityChecks = new AtomicInteger();
+    private final Set<Point> land = new HashSet<>();
 
     @Test
     void choosingTasksDoesNotPathFindToEveryTask() {
+        addLand(0, 20, 10);
         TaskManager taskManager = taskManager();
         List<Task> tasks = new ArrayList<>();
         for (int i = 0; i < 10; i++) {
@@ -77,6 +93,7 @@ class WorkerTaskAssignmentTest {
 
     @Test
     void unreachableTaskIsSkippedForTheNextClosest() {
+        addLand(0, 20, 10);
         TaskManager taskManager = taskManager();
         Task unreachable = task(new Point(2, 10), creature -> false);
         Task reachable = task(new Point(5, 10), creature -> true);
@@ -92,6 +109,91 @@ class WorkerTaskAssignmentTest {
         assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
     }
 
+    @Test
+    void tasksOutOfTheWorkersReachAreNotPathFoundTo() {
+
+        // The imp's land and, past the rock at 8, an island of the keeper's land it can't walk to. The island's walls
+        // are closer than the job on the imp's own land
+        addLand(0, 7, 10);
+        addLand(9, 12, 10);
+        TaskManager taskManager = taskManager();
+        List<Task> islandTasks = new ArrayList<>();
+        for (int x = 9; x <= 13; x++) {
+            Task task = task(new Point(x, 10), creature -> false);
+            islandTasks.add(task);
+            taskManager.addTask(PLAYER_ID, task);
+        }
+        Task reachable = task(new Point(0, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, reachable);
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(7, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.TRUE), results);
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(reachable)).assignees.get());
+        assertEquals(1, reachabilityChecks.get(), "Reachability checks");
+        assertEquals(0, assignedCount(islandTasks));
+    }
+
+    @Test
+    void workerWithOnlyTasksOutOfReachStaysIdleWithoutPathFinding() {
+        addLand(0, 7, 10);
+        addLand(9, 12, 10);
+        TaskManager taskManager = taskManager();
+        for (int x = 10; x <= 13; x++) {
+            taskManager.addTask(PLAYER_ID, task(new Point(x, 10), creature -> false));
+        }
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(7, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.FALSE), results);
+        assertEquals(0, reachabilityChecks.get(), "Reachability checks");
+    }
+
+    @Test
+    void taskNextToTheWorkersLandIsConsidered() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        Task wall = task(new Point(8, 10), creature -> true);
+        taskManager.addTask(PLAYER_ID, wall);
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.TRUE), results);
+        assertEquals(1, ((TestTask) Proxy.getInvocationHandler(wall)).assignees.get());
+    }
+
+    @Test
+    void rescueOfACreatureThatIsGoneIsNotHandedOut() {
+        addLand(0, 7, 10);
+        TaskManager taskManager = taskManager();
+        EntityId knockedOut = entityData.createEntity();
+        entityData.setComponents(knockedOut, new CreatureComponent(), new Health(0, 100), new Owner(PLAYER_ID, PLAYER_ID),
+                new Unconscious(0), new Position(0, new Vector3f(5, 0, 10)));
+        taskManager.processTick(0.25f);
+
+        // Nobody came, it died and its body is gone. The rescue has no place to go to anymore
+        entityData.removeEntity(knockedOut);
+        taskManager.processTick(0.25f);
+        List<Boolean> results = new ArrayList<>();
+        taskManager.addToUnemployedWorkerQueue(imp(new Point(1, 10)), results::add);
+
+        taskManager.processUnemployedWorkerQueue();
+
+        assertEquals(List.of(Boolean.FALSE), results);
+    }
+
+    private void addLand(int fromX, int toX, int y) {
+        for (int x = fromX; x <= toX; x++) {
+            land.add(new Point(x, y));
+        }
+    }
+
     private static int assignedCount(List<Task> tasks) {
         int count = 0;
         for (Task task : tasks) {
@@ -101,12 +203,18 @@ class WorkerTaskAssignmentTest {
     }
 
     private TaskManager taskManager() {
-        IMapDataInformation<?> emptyMap = stub(IMapDataInformation.class, (name, args) -> switch (name) {
+        // No tiles to scan for tasks at the start, but every tile can be looked up
+        IMapDataInformation<?> map = stub(IMapDataInformation.class, (name, args) -> switch (name) {
             case "getWidth", "getHeight" -> 0;
+            case "getTile" -> args.length == 1 ? tile((Point) args[0]) : tile(new Point((int) args[0], (int) args[1]));
             default -> null;
         });
         IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
-            case "getMapData" -> emptyMap;
+            case "getMapData" -> map;
+            default -> null;
+        });
+        INavigationService navigationService = stub(INavigationService.class, (name, args) -> switch (name) {
+            case "isAccessible" -> land.contains(((IMapTileInformation) args[1]).getLocation());
             default -> null;
         });
         Keeper keeper = new Keeper(false, PLAYER_ID);
@@ -116,7 +224,23 @@ class WorkerTaskAssignmentTest {
         });
         IGameWorldController gameWorldController = stub(IGameWorldController.class, (name, args) -> null);
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> null);
-        return new TaskManager(entityData, gameWorldController, mapController, null, null, null, List.of(player), levelInfo, null, Map.of());
+        ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {
+            case "createController" -> knockedOutCreature((EntityId) args[0]);
+            default -> null;
+        });
+        return new TaskManager(entityData, gameWorldController, mapController, null, creaturesController, navigationService, List.of(player), levelInfo, null, Map.of());
+    }
+
+    private static IMapTileInformation tile(Point location) {
+        if (location.x < 0 || location.y < 0) {
+            return null;
+        }
+        return stub(IMapTileInformation.class, (name, args) -> switch (name) {
+            case "getLocation" -> location;
+            case "getX" -> location.x;
+            case "getY" -> location.y;
+            default -> null;
+        });
     }
 
     private ICreatureController imp(Point location) {
@@ -124,6 +248,15 @@ class WorkerTaskAssignmentTest {
         return stub(ICreatureController.class, (name, args) -> switch (name) {
             case "getCreatureCoordinates" -> location;
             case "getOwnerId" -> PLAYER_ID;
+            case "getEntityId" -> entityId;
+            default -> null;
+        });
+    }
+
+    private ICreatureController knockedOutCreature(EntityId entityId) {
+        return stub(ICreatureController.class, (name, args) -> switch (name) {
+            case "getPosition" -> EntityController.getPosition(entityData, entityId);
+            case "isUnconscious" -> entityData.getComponent(entityId, Unconscious.class) != null;
             case "getEntityId" -> entityId;
             default -> null;
         });
@@ -165,7 +298,10 @@ class WorkerTaskAssignmentTest {
                 case "getTaskCreated" -> created;
                 case "getAssigneeCount" -> assignees.get();
                 case "isFull" -> assignees.get() >= 3;
-                case "canAssign" -> assignees.get() < 3 && reachable.test((ICreatureController) args[0]);
+                case "canAssign" -> {
+                    reachabilityChecks.incrementAndGet();
+                    yield assignees.get() < 3 && reachable.test((ICreatureController) args[0]);
+                }
                 case "assign" -> {
                     assignees.incrementAndGet();
                     yield null;

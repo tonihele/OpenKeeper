@@ -47,6 +47,8 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int manaGain;
     private int manaLoose;
     private int maxMana;
+    private int attractedCreatures;
+    private int portalCreatureCapacity;
     private Point dungeonHeartLocation;
     private boolean possession;
     private List<ResearchableEntity> availableRooms = new ArrayList<>();
@@ -59,6 +61,8 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private transient Player player;
     private short id;
     private boolean destroyed = false;
+    private short killerId;
+    private transient boolean resultSet;
     private Set<Short> allies = HashSet.newHashSet(4);
 
     public Keeper() {
@@ -128,6 +132,46 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
      */
     public boolean isDestroyed() {
         return destroyed;
+    }
+
+    /**
+     * Mark the player destroyed, his Dungeon Heart is gone
+     *
+     * @param killerId the player who destroyed the heart, 0 if not known
+     */
+    public void setDestroyed(short killerId) {
+        this.destroyed = true;
+        this.killerId = killerId;
+    }
+
+    /**
+     * Get the player who destroyed this player
+     *
+     * @return the player id, 0 if not known or if the player is not destroyed
+     */
+    public short getKillerId() {
+        return killerId;
+    }
+
+    /**
+     * Check whether the player is destroyed by the given player
+     *
+     * @param playerId the player who destroyed this player, 0 for anyone
+     * @return is destroyed by the player
+     */
+    public boolean isKilledBy(short playerId) {
+        return destroyed && (playerId == 0 || playerId == killerId);
+    }
+
+    /**
+     * A player's game result is only ever set once. Claims the right to set it.
+     *
+     * @return true the first time, false when the result has already been set
+     */
+    public boolean claimResult() {
+        boolean first = !resultSet;
+        resultSet = true;
+        return first;
     }
 
     public AIType getAiType() {
@@ -210,6 +254,37 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setMaxMana(int maxMana) {
         this.maxMana = maxMana;
+    }
+
+    /**
+     * Get the creatures that came in through the portals, the ones that count
+     * towards the portal limit
+     *
+     * @return the number of attracted creatures
+     */
+    public int getAttractedCreatures() {
+        return attractedCreatures;
+    }
+
+    /**
+     * Get the number of creatures the portals can attract
+     *
+     * @return the portal limit
+     */
+    public int getPortalCreatureCapacity() {
+        return portalCreatureCapacity;
+    }
+
+    /**
+     * Set the portal numbers the server keeps for the keeper
+     *
+     * @param attractedCreatures the creatures that came in through the portals
+     * @param portalCreatureCapacity the number of creatures the portals can
+     * attract
+     */
+    public void setPortalCreatures(int attractedCreatures, int portalCreatureCapacity) {
+        this.attractedCreatures = attractedCreatures;
+        this.portalCreatureCapacity = portalCreatureCapacity;
     }
 
     public Point getDungeonHeartLocation() {
