@@ -40,6 +40,8 @@ import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.FootstepSounds;
+import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.game.state.AbstractPauseAwareState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.tools.convert.KmfModelLoader;
@@ -87,6 +89,12 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
      */
     private static final float FIELD_OF_VIEW = 45f;
     private static final float SNIPER_FIELD_OF_VIEW = 20f;
+    /**
+     * How far to the side of the head a footstep is heard, in tiles, walking
+     * and running (0x40E910)
+     */
+    private static final float STEP_DISTANCE = 3f;
+    private static final float RUNNING_STEP_DISTANCE = 0.125f;
 
     private Main app;
     private AppStateManager stateManager;
@@ -325,6 +333,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             boolean moving = axisValue(moveForward, moveBackward) != 0 || axisValue(moveLeft, moveRight) != 0;
             walkCycle.update(tpf, moving);
             updateCameraLocation();
+            playFootsteps(walkCycle.takeSteps());
             camera.setRoll(walkCycle.getRollDegrees());
             sendMovement(tpf);
             updateZoom();
@@ -334,6 +343,33 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
         // Update audio listener position
         app.getListener().setLocation(app.getCamera().getLocation());
         app.getListener().setRotation(app.getCamera().getRotation());
+    }
+
+    /**
+     * Plays the footsteps of the possessed creature. DK II (0x40E910) plays
+     * the left one to the left of the head and the right one to the right, 3
+     * tiles out, or an eighth of a tile while running, and the wading ones on
+     * water.
+     *
+     * @param steps the steps from {@link PossessionWalkCycle#takeSteps()}
+     */
+    private void playFootsteps(int steps) {
+        if (steps == 0) {
+            return;
+        }
+        Vector3f head = app.getCamera().getLocation();
+        Vector3f left = app.getCamera().getLeft().clone().setY(0).normalizeLocal()
+                .multLocal((run ? RUNNING_STEP_DISTANCE : STEP_DISTANCE) * WorldUtils.TILE_WIDTH);
+        PlayerEntityViewState entityViewState = stateManager.getState(GameClientState.class).getEntityViewState();
+        boolean inWater = entityViewState != null && entityViewState.isWater(targetSpatial.getWorldTranslation());
+        if ((steps & PossessionWalkCycle.LEFT_STEP) != 0) {
+            ThingSounds.play(creature.getSoundCategory(), FootstepSounds.getEvent(FootstepSounds.POSSESSED_LEFT, inWater),
+                    head.add(left));
+        }
+        if ((steps & PossessionWalkCycle.RIGHT_STEP) != 0) {
+            ThingSounds.play(creature.getSoundCategory(), FootstepSounds.getEvent(FootstepSounds.POSSESSED_RIGHT, inWater),
+                    head.subtract(left));
+        }
     }
 
     /**

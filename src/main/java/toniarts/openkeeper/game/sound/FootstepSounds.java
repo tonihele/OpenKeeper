@@ -30,6 +30,12 @@ public final class FootstepSounds {
     public static final int STEP_B = 0x315;
     public static final int WADING_A = 0x337;
     public static final int WADING_B = 0x338;
+    /**
+     * The possessed creature's own left and right steps (0x40E910), on water
+     * they are the wading ones
+     */
+    public static final int POSSESSED_LEFT = 0x332;
+    public static final int POSSESSED_RIGHT = 0x333;
     public static final int NO_STEP = -1;
 
     // The animation frames are 1/30 s apart
@@ -153,7 +159,7 @@ public final class FootstepSounds {
         if (!inWater) {
             return step;
         }
-        return step == STEP_B ? WADING_B : WADING_A;
+        return step == STEP_B || step == POSSESSED_RIGHT ? WADING_B : WADING_A;
     }
 
     private static boolean isCrossed(int[] marks, float from, float to) {
