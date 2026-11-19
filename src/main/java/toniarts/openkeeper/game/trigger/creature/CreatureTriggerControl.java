@@ -198,7 +198,9 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 break;
 
             case SET_FIGHT_FLAG:
-                available = trigger.getUserData("available", short.class) != 0; // 0 = Don`t Fight, !0 = Fight
+                if (instanceControl != null) {
+                    instanceControl.setWillFight(trigger.getUserData("available", short.class) == 1); // 1 = Fight (DK II 0x49AC80)
+                }
                 break;
 
             case ZOOM_TO:
