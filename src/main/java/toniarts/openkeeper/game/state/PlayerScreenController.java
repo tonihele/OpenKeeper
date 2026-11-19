@@ -109,6 +109,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     public static final float SCREEN_UPDATE_INTERVAL = 0.250f;
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
+    /**
+     * The Reaper Talisman's free one shot Reaper. It is never on the spell
+     * tab, the original casts it only from the Talisman
+     */
+    private static final short ONE_SHOT_REAPER_SPELL_ID = 14;
     
     public float lastUpdate = 0;
 
@@ -119,7 +124,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
-    private final Set<Element> unaffordableWorkshopItems = new HashSet<>();
+    private final Map<Element, String> workshopIconTints = new HashMap<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -157,6 +162,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 }
             }
             updateCallToArms();
+            if (state != null && screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
+                updateWorkshopAvailability();
+            }
             lastUpdate = 0;
         }
     }
@@ -1049,7 +1057,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
         updateRoomAffordability(gold);
-        updateWorkshopAffordability(gold);
+        if (state != null) {
+            updateWorkshopAvailability();
+        }
     }
 
     /**
@@ -1068,49 +1078,23 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (!room.isDiscovered()) {
                 continue;
             }
-            updateAffordability(hud.findElementById("room_" + room.getId()),
-                    state.getKwdFile().getRoomById(room.getId()).getCost() > gold, unaffordableRooms);
-        }
-    }
-
-    /**
-     * Darkens the door and trap icons that the player doesn't have enough gold
-     * to place a blueprint of, like DK II does (0x412FC0)
-     *
-     * @param gold the gold the player has
-     */
-    private void updateWorkshopAffordability(int gold) {
-        if (state == null) {
-            // The HUD has been taken down, the level has ended
-            return;
-        }
-        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
-        for (ResearchableEntity door : state.getAvailableDoors()) {
-            if (door.isDiscovered()) {
-                updateAffordability(hud.findElementById("door_" + door.getId()),
-                        state.getKwdFile().getDoorById(door.getId()).getGoldCost() > gold, unaffordableWorkshopItems);
+            Element icon = hud.findElementById("room_" + room.getId());
+            if (icon == null) {
+                continue;
             }
-        }
-        for (ResearchableEntity trap : state.getAvailableTraps()) {
-            if (trap.isDiscovered()) {
-                updateAffordability(hud.findElementById("trap_" + trap.getId()),
-                        state.getKwdFile().getTrapById(trap.getId()).getGoldCost() > gold, unaffordableWorkshopItems);
+            boolean unaffordable = state.getKwdFile().getRoomById(room.getId()).getCost() > gold;
+            if (unaffordable == unaffordableRooms.contains(icon)) {
+                continue;
             }
-        }
-    }
-
-    private void updateAffordability(Element icon, boolean unaffordable, Set<Element> unaffordableIcons) {
-        if (icon == null || unaffordable == unaffordableIcons.contains(icon)) {
-            return;
-        }
-        if (unaffordable) {
-            unaffordableIcons.add(icon);
-            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
-        } else {
-            unaffordableIcons.remove(icon);
-            icon.stopEffect(EffectEventId.onCustom);
-            if (icon == selectedButton) {
-                icon.startEffect(EffectEventId.onCustom, null, "select");
+            if (unaffordable) {
+                unaffordableRooms.add(icon);
+                icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else {
+                unaffordableRooms.remove(icon);
+                icon.stopEffect(EffectEventId.onCustom);
+                if (icon == selectedButton) {
+                    icon.startEffect(EffectEventId.onCustom, null, "select");
+                }
             }
         }
     }
@@ -1196,23 +1180,29 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         for (ResearchableEntity door : state.getAvailableDoors()) {
             if (door.isDiscovered()) {
-                reapplyIconEffects(hud.findElementById("door_" + door.getId()), unaffordableWorkshopItems);
+                Element icon = hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId());
+                reapplyIconEffects(icon, workshopIconTints.get(icon));
             }
         }
         for (ResearchableEntity trap : state.getAvailableTraps()) {
             if (trap.isDiscovered()) {
-                reapplyIconEffects(hud.findElementById("trap_" + trap.getId()), unaffordableWorkshopItems);
+                Element icon = hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId());
+                reapplyIconEffects(icon, workshopIconTints.get(icon));
             }
         }
     }
 
     private void reapplyIconEffects(Element icon, Set<Element> unaffordableIcons) {
+        reapplyIconEffects(icon, unaffordableIcons.contains(icon) ? "unaffordable" : null);
+    }
+
+    private void reapplyIconEffects(Element icon, String tint) {
         if (icon == null) {
             return;
         }
         icon.stopEffect(EffectEventId.onCustom);
-        if (unaffordableIcons.contains(icon)) {
-            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        if (tint != null) {
+            icon.startEffect(EffectEventId.onCustom, null, tint);
         } else if (icon == selectedButton) {
             icon.startEffect(EffectEventId.onCustom, null, "select");
         }
@@ -1227,11 +1217,60 @@ public final class PlayerScreenController implements IPlayerScreenController {
             setResearchEffect(door, element);
         }
         for (final ResearchableEntity trap : state.getAvailableTraps()) {
+
+            // DK II leaves out the traps that only doors fire (Magic Door, Spare Door), they are not built on their own
+            if (state.getKwdFile().getTrapById(trap.getId()).getFlags().contains(Trap.TrapFlag.DOOR_TRAP)) {
+                continue;
+            }
             Element element = contentPanel.addElement(createTrapIcon(trap));
             setResearchEffect(trap, element);
         }
-        unaffordableWorkshopItems.clear();
-        updateWorkshopAffordability(state.getPlayer().getGold());
+        workshopIconTints.clear();
+        updateWorkshopAvailability();
+    }
+
+    /**
+     * Tints the trap and door icons as DKII.EXE does (0x412FC0): 0x808080
+     * while the player has no Workshop to manufacture them in, and 0x646464
+     * while it doesn't have the gold a blueprint takes (door +0x8F, trap
+     * +0x92). The Workshop tint is set last, so it wins when both apply.
+     */
+    private void updateWorkshopAvailability() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        boolean hasWorkshop = state.hasWorkshop();
+        int gold = state.getPlayer().getGold();
+        for (ResearchableEntity door : state.getAvailableDoors()) {
+            if (door.isDiscovered()) {
+                Door data = state.getKwdFile().getDoorById(door.getId());
+                updateWorkshopIcon(hud.findElementById("door_" + data.getDoorId()), getWorkshopTint(hasWorkshop, data.getGoldCost() > gold));
+            }
+        }
+        for (ResearchableEntity trap : state.getAvailableTraps()) {
+            if (trap.isDiscovered()) {
+                Trap data = state.getKwdFile().getTrapById(trap.getId());
+                updateWorkshopIcon(hud.findElementById("trap_" + data.getTrapId()), getWorkshopTint(hasWorkshop, data.getGoldCost() > gold));
+            }
+        }
+    }
+
+    private static String getWorkshopTint(boolean hasWorkshop, boolean unaffordable) {
+        return !hasWorkshop ? "workshopless" : unaffordable ? "unaffordable" : null;
+    }
+
+    private void updateWorkshopIcon(Element icon, String tint) {
+        if (icon == null || Objects.equals(tint, workshopIconTints.get(icon))) {
+            return;
+        }
+        icon.stopEffect(EffectEventId.onCustom);
+        if (tint != null) {
+            workshopIconTints.put(icon, tint);
+            icon.startEffect(EffectEventId.onCustom, null, tint);
+        } else {
+            workshopIconTints.remove(icon);
+        }
+        if (icon == selectedButton) {
+            icon.startEffect(EffectEventId.onCustom, null, "select");
+        }
     }
 
     /**
@@ -1261,6 +1300,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.getId() == ONE_SHOT_REAPER_SPELL_ID) {
+                continue;
+            }
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
                 ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
@@ -1447,6 +1489,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             selectedButton.stopEffect(EffectEventId.onCustom);
             if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)) {
                 selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else if (workshopIconTints.containsKey(selectedButton)) {
+                selectedButton.startEffect(EffectEventId.onCustom, null, workshopIconTints.get(selectedButton));
             }
         }
 
