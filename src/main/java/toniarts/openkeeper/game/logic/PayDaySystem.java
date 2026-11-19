@@ -23,14 +23,17 @@ import com.simsilica.es.EntitySet;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreaturePay;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -62,7 +65,8 @@ public final class PayDaySystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IGameTimer gameTimer;
     private final Map<Short, IPlayerController> keepers = new HashMap<>();
-    private final Map<Short, Double> nextPayDays = new HashMap<>();
+    // Concurrent, the pay day can be called for from the cheat thread
+    private final Map<Short, Double> nextPayDays = new ConcurrentHashMap<>();
     private final double timeBeforeFirstPayDay;
     private final double payDayFrequency;
     private final double payDayCutOffTime;
@@ -196,9 +200,31 @@ public final class PayDaySystem implements IGameLogicUpdatable {
 
         Creature creature = kwdFile.getCreature(entity.get(CreatureComponent.class).creatureId);
         int anger = creature != null ? CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoPay()) : 0;
-        if (anger != 0) {
+        if (anger != 0 && !isTorturingItself(entity.getId())) {
             entityData.setComponent(entity.getId(), mood.add(CreatureMood.REASON_NO_PAY, anger));
         }
+    }
+
+    /**
+     * Makes the keeper's pay day come on the next tick. Does nothing before
+     * the keeper's pay day clock has started, since there is nobody to pay.
+     * The next pay days follow from this one as usual. For testing.
+     *
+     * @param keeperId the keeper
+     */
+    public void payDayNow(short keeperId) {
+        nextPayDays.replace(keeperId, 0.0);
+    }
+
+    /**
+     * A creature that is on a torture device because it likes it. DKII leaves
+     * the anger for unmet needs alone there (DKII.EXE 0x478D00 skips the
+     * states with state flag 2, and the on device state 0x83 has it)
+     */
+    private boolean isTorturingItself(EntityId entityId) {
+        TaskComponent task = entityData.getComponent(entityId, TaskComponent.class);
+        return task != null && task.taskType == TaskType.TORTURE && task.taskStarted
+                && (task.targetEntity == null || entityData.getComponent(task.targetEntity, CreatureComponent.class) == null);
     }
 
     @Override

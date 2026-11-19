@@ -73,7 +73,9 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.TreeMap;
+import java.util.stream.Collectors;
 
 /**
  * The game client state
@@ -111,6 +113,7 @@ public final class GameClientState extends AbstractPauseAwareState {
     private PlayerMapViewState playerMapViewState;
     private AmbienceState ambienceState;
     private RoomSoundState roomSoundState;
+    private volatile EntityId possessedCreature;
     private PlayerEntityViewState playerModelViewState;
     private MinimapPanelState minimapPanelState;
     private FullscreenMapState fullscreenMapState;
@@ -388,6 +391,13 @@ public final class GameClientState extends AbstractPauseAwareState {
         return kwdFile.getVariables().get(variable).getValue();
     }
 
+    private Set<Short> getGuardPostTrapIds() {
+        return kwdFile.getTraps().stream()
+                .filter(trap -> trap.getFlags().contains(Trap.TrapFlag.GUARD_POST))
+                .map(Trap::getTrapId)
+                .collect(Collectors.toSet());
+    }
+
     /**
      * Gets a text parser that can fill up the parameters in translations
      *
@@ -460,7 +470,9 @@ public final class GameClientState extends AbstractPauseAwareState {
                 playerMapViewState.addFogOfWarTilesDirtyListener(playerModelViewState::onTilesDirty);
                 minimapPanelState = new MinimapPanelState(app, mapInformation, fogOfWarInformation, playerMapViewState.getRoomsInformation(),
                         gameClientService.getEntityData(), GameClientState.this.players.get(playerId),
-                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES));
+                        getLevelVariable(Variable.MiscVariable.MiscType.DUNGEON_HEART_REPORTING_DISTANCE_TILES),
+                        getGuardPostTrapIds(),
+                        getLevelVariable(Variable.MiscVariable.MiscType.GUARD_POST_REPORTING_DISTANCE_TILES));
                 effectManagerState = new EffectManagerState(kwdFile, app.getAssetManager());
 
                 // Attach the states
@@ -897,9 +909,18 @@ public final class GameClientState extends AbstractPauseAwareState {
      * @param entityId the possessed creature, or {@code null} if possession has ended
      */
     public void setPossessedCreature(EntityId entityId) {
+        possessedCreature = entityId;
         if (playerMapViewState != null) {
             playerMapViewState.setPossessedCreature(entityId);
         }
+    }
+
+    /**
+     * @return the creature the viewer is currently possessing, or
+     * {@code null} if not possessing
+     */
+    public EntityId getPossessedCreature() {
+        return possessedCreature;
     }
 
     /**
