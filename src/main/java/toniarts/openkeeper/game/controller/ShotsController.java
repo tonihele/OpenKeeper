@@ -67,6 +67,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.WEB_AREA_EFFECT;
 
 /**
@@ -146,6 +147,8 @@ public final class ShotsController implements IShotsController {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
+        result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
+                request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         // Drain: the first value is how much of the shooter's full health it takes off the target, as a percentage,
         // but no more than the target has left. The shooter gets it
