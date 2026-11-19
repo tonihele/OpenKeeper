@@ -47,6 +47,7 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Teleport;
@@ -369,6 +370,18 @@ class CreatureSupportSpellTest {
         assertArrayEquals(new Object[]{HEAL_SHOT_ID, HEAL_AMOUNT, 0, KEEPER, new Vector3f(5, 0, 5), us, us}, shots.get(0));
         assertEquals(gameTime, entityData.getComponent(spell, CreatureSpell.class).attactStartTime);
         assertNull(entityData.getComponent(us, CastShot.class));
+    }
+
+    @Test
+    void anImpThatSpeedsItselfUpShowsTheSpeedBlurForThePercentageInGameTicks() {
+        entityData.setComponent(us, new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, false));
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.IS_DEFENSIVE, CreatureSpellFlag.IMP_HASTE, CreatureSpellFlag.CAST_ON_OTHERS),
+                AlternativeShot.NONE);
+
+        controller.navigateToAssignedTask();
+
+        // 0x4651A0 sets the blur timer to the spell's first value, 4 ticks a second here
+        assertEquals(gameTime + HEAL_AMOUNT / 4.0, entityData.getComponent(us, SpeedBlur.class).endTime);
     }
 
     @Test

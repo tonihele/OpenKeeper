@@ -17,38 +17,48 @@
 package toniarts.openkeeper.tools.convert.kmf;
 
 /**
- * KMF Anim Control wrapper<br>
- * Currently unknown purpose
+ * KMF Anim Control wrapper, a marked vertex of the animation. DK II draws its
+ * effects from these, e.g. the speed blur from the ids 1000 to 1999
+ * (0x5A3AA0)
  *
  * @author Toni Helenius <helenius.toni@gmail.com>
  */
 public final class AnimControl {
 
-    private int unknown1;
-    private int unknown2;
-    private int unknown3;
+    private int sprite;
+    private int vertex;
+    private int id;
 
-    public int getUnknown1() {
-        return unknown1;
+    /**
+     * @return the index of the sprite the vertex is in
+     */
+    public int getSprite() {
+        return sprite;
     }
 
-    protected void setUnknown1(int unknown1) {
-        this.unknown1 = unknown1;
+    protected void setSprite(int sprite) {
+        this.sprite = sprite;
     }
 
-    public int getUnknown2() {
-        return unknown2;
+    /**
+     * @return the index of the vertex in its sprite
+     */
+    public int getVertex() {
+        return vertex;
     }
 
-    protected void setUnknown2(int unknown2) {
-        this.unknown2 = unknown2;
+    protected void setVertex(int vertex) {
+        this.vertex = vertex;
     }
 
-    public int getUnknown3() {
-        return unknown3;
+    /**
+     * @return the id of the point, its thousands tell what the point is for
+     */
+    public int getId() {
+        return id;
     }
 
-    protected void setUnknown3(int unknown3) {
-        this.unknown3 = unknown3;
+    protected void setId(int id) {
+        this.id = id;
     }
 }

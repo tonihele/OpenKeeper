@@ -33,6 +33,7 @@ import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.sound.FootstepSounds;
@@ -79,6 +80,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
+    private SpeedBlurTrail speedBlurTrail;
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -90,6 +92,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
         components.add(CreatureImprisoned.class);
+        components.add(SpeedBlur.class);
         return components;
     }
 
@@ -118,6 +121,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     public void cleanup() {
         playResearchSound(null);
         digSound = SoundEngine.NO_HANDLE;
+        if (speedBlurTrail != null) {
+            speedBlurTrail.remove();
+        }
         super.cleanup();
     }
 
@@ -175,6 +181,15 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
         playDigSound();
         playFootsteps();
+
+        // The trail of a creature that was sped up
+        boolean blur = getEntity().get(SpeedBlur.class) != null;
+        if (blur && speedBlurTrail == null) {
+            speedBlurTrail = new SpeedBlurTrail(assetManager);
+        }
+        if (speedBlurTrail != null) {
+            speedBlurTrail.update(spatial, blur);
+        }
     }
 
     /**

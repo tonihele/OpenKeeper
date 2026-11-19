@@ -76,6 +76,7 @@ import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -740,7 +741,9 @@ public final class CreatureController extends EntityController implements ICreat
      * An Imp setting off to a job speeds itself up with its own speed spell
      * whenever the spell is recharged, without a cast (0x4651A0). The spell
      * does what its shot does, so a speed change that is still running is left
-     * as it is, but the spell recharges all the same
+     * as it is, but the spell recharges all the same. A speed-up shows the
+     * speed blur for as many game ticks as the spell's first value, the
+     * percentage
      */
     private void castImpHaste() {
         EntityId spellEntity = getRechargedSpell(CreatureSpellFlag.IMP_HASTE);
@@ -750,6 +753,10 @@ public final class CreatureController extends EntityController implements ICreat
             entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
             shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(),
                     getPosition(), entityId, entityId);
+            if (creatureSpell.getShotData1() > 100) {
+                entityData.setComponent(entityId, new SpeedBlur(gameTimer.getGameTime()
+                        + creatureSpell.getShotData1() / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+            }
         }
     }
 
@@ -2049,6 +2056,10 @@ public final class CreatureController extends EntityController implements ICreat
         Invisible invisible = entityData.getComponent(entityId, Invisible.class);
         if (invisible != null && invisible.endTime <= gameTimer.getGameTime()) {
             entityData.removeComponent(entityId, Invisible.class);
+        }
+        SpeedBlur speedBlur = entityData.getComponent(entityId, SpeedBlur.class);
+        if (speedBlur != null && speedBlur.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, SpeedBlur.class);
         }
 
         // A manual drop can already carry its target in AI, but no state may
