@@ -56,6 +56,7 @@ import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
 import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Effect;
 import toniarts.openkeeper.tools.convert.map.GameObject;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Light;
@@ -711,6 +712,9 @@ public class PlayerEntityViewState extends AbstractAppState {
         VisualEffect visual = stateManager.getState(EffectManagerState.class)
                 .load(root, effect.position(), effect.effectId(), false);
         if (visual != null) {
+            if (kwdFile.getEffect(effect.effectId()).getGenerationType() == Effect.GenerationType.CUBE_GEN) {
+                visual.generateThroughoutLifetime();
+            }
             visual.getEffectNode().rotate(0, effect.yaw(), 0);
         }
     }
