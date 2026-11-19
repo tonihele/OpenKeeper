@@ -19,6 +19,7 @@ package toniarts.openkeeper.tools.convert.map;
 import java.util.HashSet;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.sound.ThingSounds;
+import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.tools.convert.map.Creature.AnimationSlot;
 import toniarts.openkeeper.tools.convert.map.Creature.WorkerAnimation;
 import toniarts.openkeeper.tools.convert.map.Creature.FighterAnimation;
@@ -55,8 +56,8 @@ class CreatureAnimationSlotsTest {
         assertSame(FighterAnimation.SLEEP.getSlot(), WorkerAnimation.REINFORCE_WALL.getSlot());
         assertSame(FighterAnimation.EAT.getSlot(), WorkerAnimation.CLAIM_FLOOR.getSlot());
         assertSame(FighterAnimation.DRINK.getSlot(), WorkerAnimation.HAUL.getSlot());
-        assertSame(DIGGING, WorkerAnimation.DIG.getAnimationType());
-        assertSame(MELEE_ATTACK, FighterAnimation.MELEE_ATTACK.getAnimationType());
+        assertSame(DIGGING, new CreatureViewState((short) 1, 0, WorkerAnimation.DIG).state);
+        assertSame(MELEE_ATTACK, new CreatureViewState((short) 1, 0, FighterAnimation.MELEE_ATTACK).state);
     }
 
     @Test

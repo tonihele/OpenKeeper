@@ -35,6 +35,8 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Creature.WorkerAnimation;
+import toniarts.openkeeper.tools.convert.map.Creature.FighterAnimation;
 import toniarts.openkeeper.tools.convert.map.CreatureFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
@@ -129,7 +131,7 @@ class CreatureViewSystemTest {
         Creature bileDemon = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.MANUFACTURING,
                 ArtResource.ArtResourceType.ANIMATING_MESH);
 
-        assertEquals(Creature.AnimationType.MANUFACTURING, CreatureViewSystem.getManufactureAnimation(bileDemon));
+        assertEquals(FighterAnimation.MANUFACTURE, CreatureViewSystem.getManufactureAnimation(bileDemon));
     }
 
     @Test
@@ -139,7 +141,7 @@ class CreatureViewSystemTest {
         Creature troll = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.MANUFACTURING,
                 ArtResource.ArtResourceType.NONE);
 
-        assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(troll));
+        assertEquals(FighterAnimation.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(troll));
     }
 
     @Test
@@ -147,15 +149,15 @@ class CreatureViewSystemTest {
         Creature creature = CreatureFixtures.creatureWithAnimation(Creature.AnimationType.IDLE_1,
                 ArtResource.ArtResourceType.ANIMATING_MESH);
 
-        assertEquals(Creature.AnimationType.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(creature));
+        assertEquals(FighterAnimation.MELEE_ATTACK, CreatureViewSystem.getManufactureAnimation(creature));
     }
     @Test
     void workerTasksUseActionsRatherThanFighterNames() {
-        assertEquals(Creature.AnimationType.CLAIM_FLOOR, CreatureViewSystem.getAnimation(TaskType.CLAIM_TILE));
-        assertEquals(Creature.AnimationType.CLAIM_FLOOR, CreatureViewSystem.getAnimation(TaskType.CLAIM_ROOM));
-        assertEquals(Creature.AnimationType.REINFORCE_WALL, CreatureViewSystem.getAnimation(TaskType.CLAIM_WALL));
-        assertEquals(Creature.AnimationType.REINFORCE_WALL, CreatureViewSystem.getAnimation(TaskType.REPAIR_WALL));
-        assertEquals(Creature.AnimationType.DIGGING, CreatureViewSystem.getAnimation(TaskType.DIG_TILE));
+        assertEquals(WorkerAnimation.CLAIM_FLOOR, CreatureViewSystem.getAnimation(TaskType.CLAIM_TILE));
+        assertEquals(WorkerAnimation.CLAIM_FLOOR, CreatureViewSystem.getAnimation(TaskType.CLAIM_ROOM));
+        assertEquals(WorkerAnimation.REINFORCE_WALL, CreatureViewSystem.getAnimation(TaskType.CLAIM_WALL));
+        assertEquals(WorkerAnimation.REINFORCE_WALL, CreatureViewSystem.getAnimation(TaskType.REPAIR_WALL));
+        assertEquals(WorkerAnimation.DIG, CreatureViewSystem.getAnimation(TaskType.DIG_TILE));
     }
 
     @Test
@@ -174,6 +176,34 @@ class CreatureViewSystemTest {
             entityData.removeComponent(cargo, HauledBy.class);
             system.processTick(0.25f);
             assertEquals(Creature.AnimationType.WALK, entityData.getComponent(worker, CreatureViewState.class).state);
+        } finally {
+            system.stop();
+        }
+    }
+
+    @Test
+    void workerActionsAreConvertedOnlyAtTheViewStateBoundaryAndDoNotRestartEachTick() {
+        EntityId worker = entityData.createEntity();
+        entityData.setComponents(worker, new CreatureViewState((short) 1, 0, WorkerAnimation.STAND_STILL),
+                new Position(0, new Vector3f()),
+                new CreatureAi(0, CreatureState.WORK, (short) 1),
+                new TaskComponent(1, null, null, TaskType.DIG_TILE, 0, true));
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+        try {
+            system.processTick(0.25f);
+            CreatureViewState digging = entityData.getComponent(worker, CreatureViewState.class);
+            assertEquals(Creature.AnimationType.DIGGING, digging.state);
+            system.processTick(0.25f);
+            assertEquals(digging.stateStartTime,
+                    entityData.getComponent(worker, CreatureViewState.class).stateStartTime);
+
+            // The Dwarf can switch from digging to melee despite using the same slot.
+            entityData.removeComponent(worker, TaskComponent.class);
+            entityData.setComponent(worker, new CreatureAi(0, CreatureState.MELEE_ATTACK, (short) 1));
+            system.processTick(0.25f);
+            CreatureViewState melee = entityData.getComponent(worker, CreatureViewState.class);
+            assertEquals(Creature.AnimationType.MELEE_ATTACK, melee.state);
+            assertEquals(0.75, melee.stateStartTime, 0.001);
         } finally {
             system.stop();
         }
