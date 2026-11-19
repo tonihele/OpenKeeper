@@ -47,7 +47,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
-import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
@@ -55,6 +54,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.CancellationException;
+import java.util.concurrent.CompletionStage;
+import java.util.concurrent.Executor;
+import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.BooleanSupplier;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 import javax.imageio.ImageIO;
 import toniarts.openkeeper.Main;
@@ -77,7 +82,6 @@ public final class AssetUtils {
 
     private static final Logger logger = System.getLogger(AssetUtils.class.getName());
     
-    private final static Object ASSET_LOCK = new Object();
     // Store the context inside its manager: a global weak-key map would still
     // retain managers through MaterialDef -> AssetManager value references.
     private static final AssetKey<CacheContext> CONTEXT_KEY = new AssetKey<>("__OpenKeeper/AssetUtilsContext");
@@ -90,7 +94,8 @@ public final class AssetUtils {
         volatile boolean preWarmed;
         volatile toniarts.openkeeper.animation.AnimationDataCache animationData = new toniarts.openkeeper.animation.AnimationDataCache(0);
         boolean modelLoadingStarted;
-        int activeModelRequests;
+        int activeLoads;
+        final ReentrantLock prewarmLock = new ReentrantLock();
         final ConcurrentMap<ModelKey, LoadingModel> loadingModels = new ConcurrentHashMap<>();
     }
     private record LoadingModel(Thread owner, CompletableFuture<Spatial> result) { }
@@ -116,7 +121,7 @@ public final class AssetUtils {
         synchronized (manager) {
             CacheContext context = manager.getFromCache(CONTEXT_KEY);
             if (context != null) synchronized (context) {
-                if (context.activeModelRequests != 0) throw new IllegalStateException("Finish model requests before releasing the asset context");
+                if (context.activeLoads != 0) throw new IllegalStateException("Finish asset loads and queued prewarming before releasing the asset context");
             }
             manager.deleteFromCache(CONTEXT_KEY);
         }
@@ -169,7 +174,7 @@ public final class AssetUtils {
         CacheContext context;
         synchronized (assetManager) {
             context = context(assetManager);
-            synchronized (context) { context.modelLoadingStarted = true; context.activeModelRequests++; }
+            synchronized (context) { context.modelLoadingStarted = true; context.activeLoads++; }
         }
         try {
             Spatial result;
@@ -183,7 +188,7 @@ public final class AssetUtils {
             applyTextureAnimation(result, assetManager, artResource);
             return result;
         } finally {
-            synchronized (context) { context.activeModelRequests--; }
+            synchronized (context) { context.activeLoads--; }
         }
     }
 
@@ -781,48 +786,113 @@ public final class AssetUtils {
      * @param app the app
      */
     public static void prewarmAssets(IKwdFile kwdFile, AssetManager assetManager, Main app) {
-        CacheContext context = context(assetManager);
-        if (!context.preWarmed) {
-            synchronized (ASSET_LOCK) {
-                if (!context.preWarmed) {
+        prewarmAssets(kwdFile, assetManager, app, () -> true);
+    }
+
+    /** Cancellable CPU preparation followed by render-thread upload; completion includes the queued upload. */
+    public static CompletionStage<Boolean> prewarmAssets(IKwdFile kwdFile, AssetManager assetManager,
+            Main app, BooleanSupplier active) {
+        return prewarmAssets(kwdFile, assetManager, active, task -> app.enqueue(task),
+                spatial -> app.getRenderManager().preloadScene(spatial));
+    }
+
+    /** Injected renderer boundary for loading tools/tests. No scene or GL mutation occurs on the decoding thread. */
+    public static CompletionStage<Boolean> prewarmAssets(IKwdFile kwdFile, AssetManager assetManager,
+            BooleanSupplier active, Executor renderExecutor, Consumer<Spatial> upload) {
+        java.util.Objects.requireNonNull(kwdFile);
+        java.util.Objects.requireNonNull(active);
+        java.util.Objects.requireNonNull(renderExecutor);
+        java.util.Objects.requireNonNull(upload);
+        var completion = new CompletableFuture<Boolean>();
+        CacheContext context;
+        synchronized (assetManager) {
+            context = context(assetManager);
+            synchronized (context) { context.activeLoads++; }
+        }
+        boolean locked = false;
+        boolean queued = false;
+        boolean prepared = false;
+        Throwable failure = null;
+        try {
+            checkPrewarmActive(active);
+            context.prewarmLock.lockInterruptibly();
+            locked = true;
+            checkPrewarmActive(active);
+            if (context.preWarmed) {
+                prepared = true;
+            } else {
+                List<Spatial> models = new ArrayList<>();
+                prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, models, active);
+                prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, models, active);
+                for (var request : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadRequests(kwdFile.getCreatureList())) {
+                    checkPrewarmActive(active);
                     try {
-
-                        // Terrain
-                        prewarmArtResources(new ArrayList<>(kwdFile.getTerrainList()), assetManager, app);
-
-                        // Objects
-                        prewarmArtResources(new ArrayList<>(kwdFile.getObjectList()), assetManager, app);
-
-                        // Creatures
-                        List<Spatial> animationModels = new ArrayList<>();
-                        for (var request : toniarts.openkeeper.animation.CreatureAnimationCatalog.preloadRequests(kwdFile.getCreatureList())) {
-                            try {
-                                animationModels.add(loadModel(assetManager, request.name(), request.resource()));
-                            } catch (Exception e) {
-                                logger.log(Level.WARNING, "Could not prewarm creature model " + request.name(), e);
-                            }
-                        }
-                        app.enqueue(() -> animationModels.forEach(app.getRenderManager()::preloadScene));
-
-                        // Doors
-                        prewarmArtResources(kwdFile.getDoors(), assetManager, app);
-
-                        // Traps
-                        prewarmArtResources(kwdFile.getTraps(), assetManager, app);
-
-                        // Rooms
-                        prewarmArtResources(kwdFile.getRooms(), assetManager, app);
+                        models.add(loadModel(assetManager, request.name(), request.resource()));
+                    } catch (CancellationException cancelled) {
+                        throw cancelled;
                     } catch (Exception e) {
-                        logger.log(Level.ERROR, "Failed to prewarm assets!", e);
-                    } finally {
-                        context.preWarmed = true;
+                        logger.log(Level.WARNING, "Could not prewarm creature model " + request.name(), e);
                     }
                 }
+                prewarmArtResources(kwdFile.getDoors(), assetManager, models, active);
+                prewarmArtResources(kwdFile.getTraps(), assetManager, models, active);
+                prewarmArtResources(kwdFile.getRooms(), assetManager, models, active);
+                checkPrewarmActive(active);
+                renderExecutor.execute(() -> {
+                    boolean uploaded = false;
+                    Throwable uploadFailure = null;
+                    try {
+                        checkPrewarmActive(active);
+                        for (Spatial model : models) {
+                            checkPrewarmActive(active);
+                            upload.accept(model);
+                        }
+                        checkPrewarmActive(active);
+                        context.preWarmed = true;
+                        uploaded = true;
+                    } catch (CancellationException cancelled) {
+                        // An exited session must not warm or mark an incomplete generation as ready.
+                    } catch (Throwable error) {
+                        uploadFailure = error;
+                    } finally {
+                        finishPrewarm(context, completion, uploaded, uploadFailure);
+                    }
+                });
+                queued = true;
             }
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+        } catch (CancellationException cancelled) {
+            // Cancellation is an ordinary loading outcome, not a broken asset.
+        } catch (Throwable error) {
+            failure = error;
+        } finally {
+            if (locked) context.prewarmLock.unlock();
+            if (!queued) finishPrewarm(context, completion, prepared, failure);
+        }
+        return completion.minimalCompletionStage();
+    }
+
+    private static void checkPrewarmActive(BooleanSupplier active) {
+        if (!active.getAsBoolean() || Thread.currentThread().isInterrupted())
+            throw new CancellationException("Asset prewarming cancelled");
+    }
+
+    private static void finishPrewarm(CacheContext context, CompletableFuture<Boolean> completion,
+            boolean prepared, Throwable failure) {
+        // Release before completion: continuations may establish a new loading/root boundary.
+        synchronized (context) { context.activeLoads--; }
+        if (failure == null) completion.complete(prepared);
+        else {
+            logger.log(Level.ERROR, "Failed to prewarm assets!", failure);
+            completion.completeExceptionally(failure);
         }
     }
 
-    private static void prewarmArtResources(List<?> objects, AssetManager assetManager, Main app) throws IllegalArgumentException, IllegalAccessException, InvocationTargetException, Exception {
+    private static void prewarmArtResources(List<?> objects, AssetManager assetManager,
+            List<Spatial> models, BooleanSupplier active) throws Exception {
+
+        checkPrewarmActive(active);
 
         if (objects.isEmpty()) return;
 
@@ -837,10 +907,10 @@ public final class AssetUtils {
         }
 
         // Scan every object
-        List<Spatial> models = new ArrayList<>(methodsToScan.size() * objects.size());
         if (!methodsToScan.isEmpty()) {
             for (Object obj : objects) {
                 for (Method method : methodsToScan) {
+                    checkPrewarmActive(active);
                     ArtResource artResource = (ArtResource) method.invoke(obj);
                     if (artResource != null && artResource.getFlags().contains(ArtResource.ArtResourceFlag.PRELOAD)) {
 
@@ -859,8 +929,10 @@ public final class AssetUtils {
                                     models.add(loadModel(assetManager, artResource.getName(), artResource));
                                 } else if (terrain.getFlags().contains(Terrain.TerrainFlag.CONSTRUCTION_TYPE_QUAD)) {
                                     for (int i = 0; i < 5; i++) {
+                                        checkPrewarmActive(active);
                                         if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE)) {
                                             for (int y = 0; y < 7; y++) {
+                                                checkPrewarmActive(active);
                                                 models.add(loadModel(assetManager, artResource.getName() + y + "_" + i, artResource, true, false));
                                             }
                                         } else {
@@ -914,10 +986,13 @@ public final class AssetUtils {
                                     }
                                 }
                                 for (int i = start; i < count; i++) {
+                                    checkPrewarmActive(active);
                                     models.add(loadModel(assetManager, artResource.getName() + i, false));
                                 }
                             }
 
+                        } catch (CancellationException cancelled) {
+                            throw cancelled;
                         } catch (Exception e) {
                             throw new Exception("Failed to load " + artResource + " on object " + obj + "!", e);
                         }
@@ -926,18 +1001,6 @@ public final class AssetUtils {
             }
         }
 
-        // Enque the warming up, we need GL context
-        if (!models.isEmpty()) {
-            logger.log(Level.INFO, "Prewarming {0} objects!", models.size());
-            app.enqueue(() -> {
-
-                for (Spatial spatial : models) {
-                    app.getRenderManager().preloadScene(spatial);
-                }
-
-                return null;
-            });
-        }
     }
 
     /**

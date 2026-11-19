@@ -786,3 +786,16 @@ Validation: `build --rerun-tasks smokeCharacterMotion` **passes**: **1,520 tests
 - [x] Remove render-thread joins and stale completion/error publication from loading screens, including detach-before-initialize.
 - [ ] Integrate cancellation/ownership into GameClientState construction, asset-prewarm and map publication; this screen change alone does not close those distinct races.
 - [ ] Measure cold loads and ten-level complete residency before changing packed/retention defaults.
+
+Loading-screen commit: `3d5d0bf`.
+
+### N11b — Cancellable prewarm preparation and guarded upload ownership
+
+`AssetUtils.prewarmAssets()` previously serialized unrelated managers through a process-global lock and set its ready flag in `finally`, even when preparation failed or queued uploads never ran. Context release also did not account for queued prewarming.
+
+The compatible entry point now delegates to an injected, cancellable preparation/upload boundary. CPU preparation checks cancellation between resources and within terrain/room variants; waiting for the per-manager lock is interruptible. One queued render publication rechecks its owner before each preload. Cancelled generations and upload failures do not mark the context ready. Its completion stage includes execution of the render-preload callback (not a GPU completion fence), and context ownership remains held through that callback. Release happens before notifying continuations, permitting an actual completed loading/root boundary. Failed and cancelled attempts can retry using valid CPU templates. No new GPU synchronization is introduced.
+
+Five new regression tests cover cancellation before/during preparation and before upload, partial-ready poisoning/retry, release rejection during decoding/queued work, upload failure, executor rejection, continuation release and isolation from another manager's blocked decoder. These plus existing coalescing/isolation tests pass: **13 tests, zero failures/errors/skips**. Production/test compilation and the enhanced real local-game smoke pass again: **360 active frames / 48 sampled and paused owners / 7,217,144 packed primitive bytes** (`D:/Temp/animation-next-n11-prewarm-verified.txt`). This is load-lifetime correctness evidence, not a startup-time or FPS gain.
+
+- [x] Make prewarm ownership cancellable, guard queued uploads and ready state, and account for queued prewarming during cache release.
+- [ ] Supply the GameClientState lifetime token and move its state publication onto the render thread; the legacy Main/menu entry point intentionally remains supported.
