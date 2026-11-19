@@ -49,6 +49,7 @@ Installed-data commands use three explicit properties: `-Pdk2Root=<DK2 installat
 | `auditCreatureAnimationCatalog` | Availability inventory; optional `animationMetadataRoot` validates source/converter-bound semantic sidecars. Presence does not prove original behavior policy. |
 | `auditAnimationTopology` | Ordered geometry/UV/index, transform and material screen across representative action pairs. Does not certify anatomical correspondence. |
 | `bakeVertexAnimationClips` / `auditVertexAnimationCorpus` | Isolated source-bound Float32/UNORM16 data, exact/fractional/velocity comparison and source LOD index audit for eight examples / every catalog creature resource and segment. Existing converted data is never replaced. |
+| `auditVertexRepresentations` | Fresh full-corpus bake followed by binary16 component/velocity/bounds error and exact-frame deduplication primitive-size comparison. This is an offline experiment; no half/deduplicated runtime representation or texture format is enabled. |
 | `auditAnimationUpdateError` | Held-pose error across display/update rates, staggers and wrap seams. Fixed throttling is not enabled. |
 | `validateVertexTexturePlayback` | Test-only real-GL indexed/nonindexed numeric shader parity. Not a production VAT backend or FPS benchmark. |
 | `benchmarkSharedVertexClips` | Alternating-order sparse, packed array prototype and production packed PoseTrack CPU/output comparison; `animationRuns`. Primitive-payload accounting excludes full residency. |

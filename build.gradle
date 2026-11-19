@@ -151,6 +151,17 @@ tasks.register("auditVertexAnimationCorpus", JavaExec) {
     maxHeapSize = '2g'
 }
 
+tasks.register("auditVertexRepresentations", JavaExec) {
+    group = "verification"
+    description = "Offline full-corpus binary16 error/bounds and exact-frame deduplication storage comparison"
+    dependsOn tasks.named('auditVertexAnimationCorpus')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexRepresentationAudit'
+    args layout.buildDirectory.dir('vertex-clips-all').get().asFile.absolutePath,
+            layout.buildDirectory.file('vertex-representation-audit.csv').get().asFile.absolutePath
+    maxHeapSize = '2g'
+}
+
 tasks.register("auditAnimationUpdateError", JavaExec) {
     group = "verification"
     description = "Offline held-pose update error over wrap seams, display rates and stagger buckets"
