@@ -895,7 +895,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new Gamble(navigationService, mapController, entityPositionLookup, target, creature.getOwnerId(), room, this, entityData,
                         gameWorldController, objectsController, gameSettings,
                         room instanceof CasinoController casino ? casino::getPayOut : () -> Casino.PayOut.SMILES,
-                        FastMath.rand);
+                        FastMath.rand, levelInfo.getLevelData().getGameLevel().getTicksPerSec());
             }
             default -> {
                 logger.log(Level.DEBUG, "No task defined for " + objectType);

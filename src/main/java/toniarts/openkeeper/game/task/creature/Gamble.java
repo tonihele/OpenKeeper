@@ -52,9 +52,10 @@ import toniarts.openkeeper.utils.Point;
 /**
  * Gambles in the Casino, the room for the Drink job. Once a second the
  * gambler's mood and gold change by the pay out setting of the casino and it
- * may hit the jackpot. Every four seconds the keeper pays out the casino's
- * losses or gets its takings, and a gambler at a roulette table spins one of
- * its wheels.
+ * may hit the jackpot. DK II counts that second down from the ticks per second
+ * to 0, so it takes a tick more than a second (DKII.EXE 0x47ACB0, 0x47AD70).
+ * Every four seconds the keeper pays out the casino's losses or gets its
+ * takings, and a gambler at a roulette table spins one of its wheels.
  */
 public final class Gamble extends AbstractCapacityCriticalRoomTask {
 
@@ -82,7 +83,9 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
     private final int jackpotAmount;
     private final int jackpotPayTimeLimit;
     private final int maxGoldPile;
+    private final float gambleInterval;
     private int secondsGambled = 0;
+    private int sharesTaken = 0;
 
     /**
      * Gambling in the Casino
@@ -103,12 +106,13 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
      * @param gameSettings the level variables
      * @param payOut the pay out setting of the casino
      * @param random the random number generator
+     * @param ticksPerSecond the level's ticks per second
      */
     public Gamble(final INavigationService navigationService, final IMapController mapController,
             final IEntityPositionLookup entityPositionLookup, Point p, short playerId,
             IRoomController room, TaskManager taskManager, EntityData entityData, IGameWorldController gameWorldController,
             IObjectsController objectsController, Map<MiscType, MiscVariable> gameSettings, Supplier<PayOut> payOut,
-            RandomGenerator random) {
+            RandomGenerator random, int ticksPerSecond) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.entityPositionLookup = entityPositionLookup;
@@ -126,6 +130,7 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
         jackpotAmount = getSetting(gameSettings, MiscType.GAMBLING_JACKPOT_BASIC_AMOUNT);
         jackpotPayTimeLimit = getSetting(gameSettings, MiscType.GAMBLING_JACKPOT_PAY_TIME_LIMIT);
         maxGoldPile = getSetting(gameSettings, MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY);
+        gambleInterval = (ticksPerSecond + 1) / (float) ticksPerSecond;
     }
 
     @Override
@@ -154,9 +159,15 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
 
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-        while (secondsGambled + 1 <= executionDuration && canCoverStake(creature) && !isBigWinner(creature)) {
+        while ((secondsGambled + 1) * gambleInterval <= executionDuration && canCoverStake(creature) && !isBigWinner(creature)) {
             secondsGambled++;
             gamble(creature, payOut.get());
+        }
+
+        // The Casino takes its share on its own clock, every four seconds (0x4D6270, 0x456980)
+        while ((sharesTaken + 1) * CASINO_SHARE_INTERVAL_SECONDS <= executionDuration && canCoverStake(creature) && !isBigWinner(creature)) {
+            sharesTaken++;
+            takeShare(payOut.get() == PayOut.SMILES);
         }
     }
 
@@ -193,26 +204,25 @@ public final class Gamble extends AbstractCapacityCriticalRoomTask {
             creature.substractGold(Math.min(creature.getGold(), Math.abs(moneyGoldPerSecond)));
         }
 
-        // The casino's share
-        if (secondsGambled % CASINO_SHARE_INTERVAL_SECONDS == 0) {
-            if (smiles) {
-                gameWorldController.substractGold(CASINO_SHARE_INTERVAL_SECONDS * smilesGoldPerSecond, playerId);
-            } else {
-                Point centre = getRoom().getRoomInstance().getCenter();
-                objectsController.addLooseGold(centre.x, centre.y,
-                        CASINO_SHARE_INTERVAL_SECONDS * Math.abs(moneyGoldPerSecond), maxGoldPile);
-            }
-
-            // At a roulette table the gambler spins one of its wheels, as in the original (0x456980). The SpinSystem
-            // stops it
-            spinRouletteWheel();
-        }
-
         // The jackpot
         int chance = (smiles ? smilesJackpotChance : moneyJackpotChance);
         if (chance > 0 && random.nextInt(chance) == JACKPOT_NUMBER) {
             hitJackpot(creature);
         }
+    }
+
+    private void takeShare(boolean smiles) {
+        if (smiles) {
+            gameWorldController.substractGold(CASINO_SHARE_INTERVAL_SECONDS * smilesGoldPerSecond, playerId);
+        } else {
+            Point centre = getRoom().getRoomInstance().getCenter();
+            objectsController.addLooseGold(centre.x, centre.y,
+                    CASINO_SHARE_INTERVAL_SECONDS * Math.abs(moneyGoldPerSecond), maxGoldPile);
+        }
+
+        // At a roulette table the gambler spins one of its wheels, as in the original (0x456980). The SpinSystem
+        // stops it
+        spinRouletteWheel();
     }
 
     private void spinRouletteWheel() {
