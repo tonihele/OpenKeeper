@@ -115,7 +115,8 @@ tasks.register("captureCharacterAnimation", JavaExec) {
             providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
             layout.buildDirectory.dir('animation-capture').get().asFile.absolutePath,
             providers.gradleProperty('animationShadows').orElse('false').get(),
-            providers.gradleProperty('animationMotionTrace').orElse('false').get()
+            providers.gradleProperty('animationMotionTrace').orElse('false').get(),
+            providers.gradleProperty('animationPhaseVariation').orElse('false').get()
 }
 
 tasks.register("captureAnimationCoverage", JavaExec) {

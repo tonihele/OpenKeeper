@@ -160,6 +160,11 @@ public final class AnimationLoader {
         var playback = spatial.getControl(AnimationPlayback.class);
         return playback == null ? 0 : playback.startLength();
     }
+    /** Zero for static, one-shot or unverified CLAMP/cycle motion. */
+    public static double getWrapPeriod(Spatial spatial) {
+        var playback = spatial.getControl(AnimationPlayback.class);
+        return playback == null ? 0 : playback.wrapPeriod();
+    }
     public static boolean isPaused(Spatial spatial) {
         for (Spatial node = spatial; node != null; node = node.getParent())
             if (Boolean.TRUE.equals(node.getUserData(PAUSED))) return true;

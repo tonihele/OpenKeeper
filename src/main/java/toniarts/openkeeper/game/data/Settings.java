@@ -78,6 +78,7 @@ public final class Settings {
         ANIMATION_CACHE_CLIPS(Integer.class, 0, SettingCategory.GRAPHICS),
         ANIMATION_CACHE_KIB(Integer.class, 256, SettingCategory.GRAPHICS),
         ANIMATION_INTERPOLATION(Boolean.class, false, SettingCategory.GRAPHICS),
+        ANIMATION_PHASE_VARIATION(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO(Boolean.class, false, SettingCategory.GRAPHICS),
         SSAO_SAMPLE_RADIUS(Float.class, 5.94f, SettingCategory.GRAPHICS),
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),

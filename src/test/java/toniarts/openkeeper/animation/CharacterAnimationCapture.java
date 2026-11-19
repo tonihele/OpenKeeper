@@ -58,6 +58,8 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         var app = new CharacterAnimationCapture(args[0],args[1],shadows ? Path.of(args[2],"shadows") : Path.of(args[2]));
         app.shadows = shadows;
         app.motionTrace = args.length > 4 && Boolean.parseBoolean(args[4]);
+        toniarts.openkeeper.Main.getUserSettings().setSetting(toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_PHASE_VARIATION,
+                args.length > 5 && Boolean.parseBoolean(args[5]));
         app.traceRows.add("render_frame,creature,source_time,epoch,root_x,root_z,pose_age");
         Files.createDirectories(app.output);
         var settings = new AppSettings(true); settings.setResolution(1280,720);

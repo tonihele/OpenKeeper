@@ -83,6 +83,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private Predicate<Vector3f> waterCheck = position -> false;
     private CreatureAnimationRequest lastAttempt;
     private CreatureAnimationRequest activeRequest;
+    private double presentationOrigin;
     private Creature.AnimationType requestedState;
     private boolean visualRequestActive;
     private static final java.util.function.DoubleSupplier LOCAL_TIME = () -> Double.NaN;
@@ -99,7 +100,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     /** Silently re-seek after a presentation timeline policy change, retaining failed/paused holds. */
     public void synchronizePresentationClock() {
         if (spatial != null && visualRequestActive && activeRequest != null && !AnimationLoader.isPaused(spatial)) {
-            AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), activeRequest.startTime());
+            AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), presentationOrigin);
             previousMarkerAge = Double.NaN;
         }
     }
@@ -126,7 +127,12 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         }
         playStateSounds(state.state);
         activeRequest = request;
-        AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), request.startTime());
+        double offset = toniarts.openkeeper.view.animation.LocomotionVariation.offset(
+                toniarts.openkeeper.Main.getUserSettings().getBoolean(toniarts.openkeeper.game.data.Settings.Setting.ANIMATION_PHASE_VARIATION),
+                getEntityId().getId(), request.sequence(), state.creatureId, state.state, activeAnimation,
+                getPlaybackPolicy(), AnimationLoader.getWrapPeriod(spatial));
+        presentationOrigin = request.startTime() - offset;
+        AnimationLoader.bindPlaybackClock(spatial, () -> gameTime.getAsDouble(), presentationOrigin);
         previousStepTime = -1;
         return true;
     }

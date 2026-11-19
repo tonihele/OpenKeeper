@@ -50,6 +50,7 @@ final class AnimationPlayback extends AbstractControl {
     void holdCurrentPose() { stopped = true; }
     boolean isPlaying() { return !stopped && actions[1] != null; }
     double startLength() { return length(0); }
+    double wrapPeriod() { return loopMode == LoopMode.Loop ? length(1) : 0; }
     private double length(int index) { return actions[index] == null ? 0 : actions[index].getLength(); }
     private AnimationControl control() { return spatial.getControl(AnimationControl.class); }
     private AnimationControl.PlaybackPolicy policy() {
