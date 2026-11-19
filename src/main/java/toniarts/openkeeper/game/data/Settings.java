@@ -80,6 +80,11 @@ public final class Settings {
         SSAO_INTENSITY(Float.class, 3.92f, SettingCategory.GRAPHICS),
         SSAO_SCALE(Float.class, 0.33f, SettingCategory.GRAPHICS),
         SSAO_BIAS(Float.class, 0.1f, SettingCategory.GRAPHICS),
+        /**
+         * DK II's hidden Machine Spec Level, 10 unless set in the registry. The
+         * creature trails are drawn only over 3
+         */
+        MACHINE_SPEC_LEVEL(Integer.class, 10, SettingCategory.GRAPHICS),
         // Lighting
         AMBIENT_LIGHT(Float.class, 0f, SettingCategory.GRAPHICS),
         CHEAP_LIGHTING(Boolean.class, false, SettingCategory.GRAPHICS),

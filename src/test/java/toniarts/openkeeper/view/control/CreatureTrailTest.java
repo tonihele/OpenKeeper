@@ -27,15 +27,15 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 /**
- * DK II's speed blur strips (0x5A14E0)
+ * DK II's trail strips (0x5A14E0)
  */
-class SpeedBlurTrailTest {
+class CreatureTrailTest {
 
     @Test
     void eachRunIsAStripThroughItsPointsOverTheFrames() {
 
         // A run of three points and a run of two, over three frames
-        Mesh mesh = SpeedBlurTrail.createMesh(frames(3, 5), new int[]{3, 2});
+        Mesh mesh = CreatureTrail.createMesh(frames(3, 5), new int[]{3, 2}, CreatureTrail.SPEED_BLUR);
 
         // Two quads a frame step for the first run, one for the second, two frame steps
         assertEquals((2 + 1) * 2 * 2, mesh.getTriangleCount());
@@ -44,7 +44,7 @@ class SpeedBlurTrailTest {
 
     @Test
     void theNewestFrameIsTheBrightest() {
-        Mesh mesh = SpeedBlurTrail.createMesh(frames(SpeedBlurTrail.FRAMES, 2), new int[]{2});
+        Mesh mesh = CreatureTrail.createMesh(frames(CreatureTrail.FRAMES, 2), new int[]{2}, CreatureTrail.SPEED_BLUR);
         FloatBuffer colors = (FloatBuffer) mesh.getBuffer(VertexBuffer.Type.Color).getData();
 
         // (0, 0.35, 0.35) times half of (6 - age) / 6, nothing in red or alpha
@@ -52,18 +52,30 @@ class SpeedBlurTrailTest {
         assertEquals(0.35f * 0.5f, colors.get(1), 0.0001f);
         assertEquals(0.35f * 0.5f, colors.get(2), 0.0001f);
         assertEquals(0, colors.get(3));
-        int oldest = (SpeedBlurTrail.FRAMES - 1) * 2 * 4;
-        assertEquals(0.35f * 0.5f / SpeedBlurTrail.FRAMES, colors.get(oldest + 1), 0.0001f);
+        int oldest = (CreatureTrail.FRAMES - 1) * 2 * 4;
+        assertEquals(0.35f * 0.5f / CreatureTrail.FRAMES, colors.get(oldest + 1), 0.0001f);
+    }
+
+    @Test
+    void theAttackTrailIsMagenta() {
+        Mesh mesh = CreatureTrail.createMesh(frames(CreatureTrail.FRAMES, 2), new int[]{2}, CreatureTrail.ATTACK);
+        FloatBuffer colors = (FloatBuffer) mesh.getBuffer(VertexBuffer.Type.Color).getData();
+
+        // (0.5, 0, 0.35) times half of (6 - age) / 6
+        assertEquals(0.5f * 0.5f, colors.get(0), 0.0001f);
+        assertEquals(0, colors.get(1));
+        assertEquals(0.35f * 0.5f, colors.get(2), 0.0001f);
+        assertEquals(0, colors.get(3));
     }
 
     @Test
     void oneFrameIsNoTrailYet() {
-        assertEquals(0, SpeedBlurTrail.createMesh(frames(1, 4), new int[]{4}).getTriangleCount());
+        assertEquals(0, CreatureTrail.createMesh(frames(1, 4), new int[]{4}, CreatureTrail.SPEED_BLUR).getTriangleCount());
     }
 
     @Test
     void aRunOfOnePointIsNoStrip() {
-        assertEquals(2 * 2, SpeedBlurTrail.createMesh(frames(3, 3), new int[]{1, 2}).getTriangleCount());
+        assertEquals(2 * 2, CreatureTrail.createMesh(frames(3, 3), new int[]{1, 2}, CreatureTrail.SPEED_BLUR).getTriangleCount());
     }
 
     private static List<Vector3f[]> frames(int frames, int points) {

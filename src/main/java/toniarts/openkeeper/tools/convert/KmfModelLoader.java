@@ -113,6 +113,12 @@ public final class KmfModelLoader implements AssetLoader {
      * by ':'
      */
     public static final String SPEED_BLUR_POINTS = "SpeedBlurPoints";
+    /**
+     * User data key on an animation node, the vertices DK II draws the trail
+     * of a melee swing or a cast from, in the {@link #SPEED_BLUR_POINTS}
+     * format
+     */
+    public static final String ATTACK_TRAIL_POINTS = "AttackTrailPoints";
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
@@ -164,19 +170,22 @@ public final class KmfModelLoader implements AssetLoader {
     }
 
     /**
-     * DK II draws the speed blur from the control points with the ids 1000 to
-     * 1999, a strip along each run of consecutive ids (0x5A3AA0)
+     * DK II draws its trails from the control points of the animation, a strip
+     * along each run of consecutive ids (0x5A3AA0): the speed blur from the ids
+     * 1000 to 1999 and the trail of a melee swing or a cast from the ids 0 to
+     * 999
      *
      * @param controls the control points of the animation
      * @param spriteChildren the child index of each sprite's geometry
+     * @param firstId the first id of the thousand ids of the trail
      * @return the points in the {@link #SPEED_BLUR_POINTS} format, empty if
      * there are none
      */
-    private static String getSpeedBlurPoints(List<AnimControl> controls, Map<Integer, Integer> spriteChildren) {
+    private static String getTrailPoints(List<AnimControl> controls, Map<Integer, Integer> spriteChildren, int firstId) {
         StringBuilder points = new StringBuilder();
         int previousId = -2;
         for (AnimControl control : controls.stream()
-                .filter(c -> c.getId() >= 1000 && c.getId() < 2000 && spriteChildren.containsKey(c.getSprite()))
+                .filter(c -> c.getId() >= firstId && c.getId() < firstId + 1000 && spriteChildren.containsKey(c.getSprite()))
                 .sorted(Comparator.comparingInt(AnimControl::getId)).toList()) {
             if (!points.isEmpty()) {
                 points.append(control.getId() == previousId + 1 ? ',' : ';');
@@ -497,9 +506,13 @@ public final class KmfModelLoader implements AssetLoader {
             node.attachChild(geom);
             ++subMeshIndex;
         }
-        String speedBlurPoints = getSpeedBlurPoints(anim.getControls(), spriteChildren);
+        String speedBlurPoints = getTrailPoints(anim.getControls(), spriteChildren, 1000);
         if (!speedBlurPoints.isEmpty()) {
             node.setUserData(SPEED_BLUR_POINTS, speedBlurPoints);
+        }
+        String attackTrailPoints = getTrailPoints(anim.getControls(), spriteChildren, 0);
+        if (!attackTrailPoints.isEmpty()) {
+            node.setUserData(ATTACK_TRAIL_POINTS, attackTrailPoints);
         }
 
         // Create the animation itself and attach the animation

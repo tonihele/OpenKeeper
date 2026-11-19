@@ -19,6 +19,7 @@ package toniarts.openkeeper.view.control;
 import com.jme3.anim.AnimComposer;
 import com.jme3.anim.tween.action.Action;
 import com.jme3.asset.AssetManager;
+import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
@@ -27,20 +28,25 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.lang.System.Logger;
 import java.util.Collection;
+import java.util.EnumSet;
 import java.util.Objects;
+import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
+import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.data.Settings.Setting;
 import toniarts.openkeeper.game.sound.FootstepSounds;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Creature.CreatureFlag;
@@ -71,6 +77,18 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         new ArtResource("Electrocute6", ArtResource.ArtResourceType.ANIMATING_MESH)
     };
 
+    /**
+     * DK II draws the trails only at a machine spec level over this
+     * (0x5A3AA0)
+     */
+    private static final int TRAIL_MACHINE_SPEC_LEVEL = 3;
+    /**
+     * DK II's animations 5 and 6, the melee and the magic one, show the attack
+     * trail (0x48BE50). The Imp digs with its melee animation there
+     */
+    private static final Set<Creature.AnimationType> ATTACK_ANIMATIONS = EnumSet.of(Creature.AnimationType.MELEE_ATTACK,
+            Creature.AnimationType.CAST_SPELL, Creature.AnimationType.DIG);
+
     private long nextInHandSound;
     private int researchSound = SoundEngine.NO_HANDLE;
     private int digSound = SoundEngine.NO_HANDLE;
@@ -80,7 +98,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private float previousStepTime = -1;
     private boolean stepWarningLogged;
     private Predicate<Vector3f> waterCheck = position -> false;
-    private SpeedBlurTrail speedBlurTrail;
+    private CreatureTrail speedBlurTrail;
+    private CreatureTrail attackTrail;
 
     public CreatureViewControl(EntityId entityId, EntityData entityData, Creature data, Creature.AnimationType animation,
             AssetManager assetManager, EntityTextParser<Creature> textParser) {
@@ -123,6 +142,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         digSound = SoundEngine.NO_HANDLE;
         if (speedBlurTrail != null) {
             speedBlurTrail.remove();
+        }
+        if (attackTrail != null) {
+            attackTrail.remove();
         }
         super.cleanup();
     }
@@ -182,14 +204,25 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         playDigSound();
         playFootsteps();
 
-        // The trail of a creature that was sped up
+        // The trails behind the limbs, of a creature that was sped up and of a swing or a cast
         boolean blur = getEntity().get(SpeedBlur.class) != null;
-        if (blur && speedBlurTrail == null) {
-            speedBlurTrail = new SpeedBlurTrail(assetManager);
+        boolean attack = ATTACK_ANIMATIONS.contains(currentState);
+        if ((blur || attack) && Main.getUserSettings().getInteger(Setting.MACHINE_SPEC_LEVEL) <= TRAIL_MACHINE_SPEC_LEVEL) {
+            blur = false;
+            attack = false;
         }
-        if (speedBlurTrail != null) {
-            speedBlurTrail.update(spatial, blur);
+        speedBlurTrail = updateTrail(speedBlurTrail, blur, KmfModelLoader.SPEED_BLUR_POINTS, CreatureTrail.SPEED_BLUR);
+        attackTrail = updateTrail(attackTrail, attack, KmfModelLoader.ATTACK_TRAIL_POINTS, CreatureTrail.ATTACK);
+    }
+
+    private CreatureTrail updateTrail(CreatureTrail trail, boolean shown, String pointsKey, ColorRGBA color) {
+        if (shown && trail == null) {
+            trail = new CreatureTrail(assetManager, pointsKey, color);
         }
+        if (trail != null) {
+            trail.update(spatial, shown);
+        }
+        return trail;
     }
 
     /**
