@@ -1283,9 +1283,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
      * Fills the Player Information window (the I key) while it is shown, as
      * DK II's 0x423450 does: a row for each keeper with the stats of 0x4C2C30,
      * shown only for the player and its allies (0x4C2BC0) and "-" for the
-     * others, and 1000 or more in thousands ("12K"). The map area stays
-     * empty, DK II shows the kills again there (0x423450 asks 0x4C2C30 for
-     * stat 1 in that column).
+     * others, and 1000 or more in thousands ("12K"). The map area shows the
+     * share of the map the keeper owns, where DK II shows the kills again
+     * (0x423450 asks 0x4C2C30 for stat 1 in that column).
      */
     private void updatePlayerInformation() {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
@@ -1342,6 +1342,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             row[8] = formatPlayerStat(count > 0 ? levels / count : 0);
             row[9] = formatPlayerStat(keeper.getResearchCompleted());
             row[10] = formatPlayerStat(100 - (count > 0 ? anger / count : 0) * 100 / 0xFFFE);
+            row[11] = formatPlayerStat(gameState.getMapClientService().getMapData().getOwnedPercentage(keeper.getId()));
             rows.add(row);
         }
 
