@@ -881,11 +881,13 @@ public final class CreatureController extends EntityController implements ICreat
         // has when it finds none (0x45E9F0). Chasing a creature, it drops it and picks again every turn, so it only
         // chases on while it picks the same one (0x470E30). Fighting a creature or a heart's pillar in reach, it keeps
         // it: 0x45E9F0 does not pick in the fight states, and the fight state picks only when it has no target, between
-        // swings it just waits (0x45F030, 0x48C9B0)
+        // swings it just waits (0x45F030, 0x48C9B0). Hitting a heart with a spell from further away, it picks again on
+        // every turn its spell is still recharging (0x45F030 calls 0x45CB00 while 0x48C800 says the spell isn't ready)
         boolean inReach = target != null && isWithinAttackDistance(target);
         boolean chasing = target != null && !inReach && !DungeonHeartTarget.isDungeonHeart(entityData, target);
         boolean fighting = inReach && (stateMachine.isInState(CreatureState.FIGHT) || stateMachine.isInState(CreatureState.MELEE_ATTACK));
-        boolean picked = target == null || chasing || !fighting && isTimeToPickTarget(attackTarget);
+        boolean waitingToCast = target != null && !inReach && stateMachine.isInState(CreatureState.FIGHT) && isWaitingToCast(target);
+        boolean picked = target == null || chasing || waitingToCast || !fighting && isTimeToPickTarget(attackTarget);
         if (picked) {
             EntityId enemy = pickAttackTarget();
             if (enemy != null || chasing) {
@@ -1293,6 +1295,24 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return distanceNeeded;
+    }
+
+    /**
+     * Is the target in the range of one of our attack spells, with none of
+     * those that reach it recharged yet
+     */
+    private boolean isWaitingToCast(EntityId target) {
+        boolean inSpellRange = false;
+        for (CreatureSpell attack : getCreatureSpells()) {
+            if (levelInfo.getLevelData().getCreatureSpellById(attack.creatureSpellId).getFlags().contains(CreatureSpellFlag.IS_ATTACKING)
+                    && isInRange(attack.range, target)) {
+                if (isAttackRecharged(attack)) {
+                    return false;
+                }
+                inSpellRange = true;
+            }
+        }
+        return inSpellRange;
     }
 
     private Optional<Float> getShortestAttackSpellDistanceNeeded() {
