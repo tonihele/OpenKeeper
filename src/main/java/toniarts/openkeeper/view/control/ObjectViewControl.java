@@ -68,6 +68,8 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     private float spinTicks = -1;
     private float spinDirection;
     private float spinAngle;
+    private Vector3f normalScale;
+    private boolean storedSpecial;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
@@ -147,9 +149,6 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         ObjectViewControl other = (ObjectViewControl) obj;
         return Objects.equals(getEntityId(), other.getEntityId());
     }
-
-    private Vector3f normalScale;
-    private boolean storedSpecial;
 
     @Override
     public void setSpatial(Spatial spatial) {
