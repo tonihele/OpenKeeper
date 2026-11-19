@@ -120,3 +120,9 @@ The residency rerun observes first/second readiness at **5,494/827 ms**, with ma
 - [x] Keep unmet N01–N18 exit criteria unchecked and settings conservative.
 
 The publication target is the fork's `origin/feat/animation-next-generation` (`adrian-andrzjewski/OpenKeeper`), with a draft PR to `tonihele/OpenKeeper:master` and a maintainer review request. Remote SHA equality and PR state must be verified after publication; this local report does not substitute for that check. Full initiative approval remains withheld until the stated gates are satisfied.
+
+### Verified publication receipt
+
+The branch was pushed normally and its remote SHA verified as `bbcaeb642c8d55f11bfce6b7164b91d4b16f140e`. [Draft PR #1335](https://github.com/tonihele/OpenKeeper/pull/1335) is open against `tonihele/OpenKeeper:master`, with that exact head and the maintainer review request to `@tonihele` in its description. Formal reviewer assignment is left unset while the PR remains a draft. The [hosted build at this checkpoint](https://github.com/tonihele/OpenKeeper/actions/runs/44531703767/job/135586407921) succeeds; DeepSource is **skipped**, not a passed analysis. The connector could read the public PR but lacked creation permission; authenticated GitHub CLI creation succeeded. There was no forced push, history rewrite or merge.
+
+This receipt is a documentation-only follow-up to the verified checkpoint. Any later publication SHA must still be checked against the remote; no source/test result is inferred from editing this receipt. The validated source remains `c21e5af` and the strict residency limitation remains unresolved.
