@@ -244,6 +244,22 @@ class CreatureTorturingSystemTest {
     }
 
     @Test
+    void enemyIsConvertedAfterItsTortureTimeInStepsOfFiveTicks() {
+
+        // DK II counts the 4 ticks of a second down to 0 before each step, a second of torture is 5 ticks (0x47B590)
+        EntityId victim = victim(HERO_ID, 2);
+        entityData.setComponent(victim, new CreatureTortured(0, 0, 0));
+        for (int tick = 0; tick < 9; tick++) {
+            system.processTick(0.25f);
+        }
+        assertTrue(converted.isEmpty());
+        assertEquals(1, entityData.getComponent(victim, CreatureTortured.class).timeTortured);
+
+        system.processTick(0.25f);
+        assertEquals(KEEPER_ID, converted.get(victim));
+    }
+
+    @Test
     void mentorTellsBothKeepersOfTheConversion() {
         victim(HERO_ID, 2);
 
@@ -413,7 +429,7 @@ class CreatureTorturingSystemTest {
         gameSettings.put(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED,
                 CreatureSleepFixtures.variable(Variable.MiscVariable.MiscType.TORTURE_CHANCE_OF_DYING_WHEN_CONVERTED, chanceOfDyingWhenConverted));
         return new CreatureTorturingSystem(entityData, creaturesController(), mapController(), gameEventService,
-                gameSettings, random);
+                gameSettings, 4, random);
     }
 
     private void tick(int seconds) {

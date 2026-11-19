@@ -84,16 +84,30 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     private final EntitySet torturedEntities;
     private final EntitySet keeperInformation;
     private final Random random;
+    private final double tortureInterval;
     private final Map<EntityId, IRoomController> chambersByVictim = new HashMap<>();
 
+    /**
+     * The torture
+     *
+     * @param entityData the entity data
+     * @param creaturesController the creatures, for converting the victims
+     * @param mapController the map, for the chambers
+     * @param gameEventService the game events
+     * @param gameSettings the level variables
+     * @param ticksPerSecond the level's ticks per second
+     */
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
-            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
-        this(entityData, creaturesController, mapController, gameEventService, gameSettings, new Random());
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            int ticksPerSecond) {
+        this(entityData, creaturesController, mapController, gameEventService, gameSettings, ticksPerSecond, new Random());
     }
 
     CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
-            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, Random random) {
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            int ticksPerSecond, Random random) {
         this.random = random;
+        tortureInterval = getTortureInterval(ticksPerSecond);
         this.entityData = entityData;
         this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
@@ -121,20 +135,19 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
             if (chamber != null) {
                 playTortureSounds(entity, creatureTortured.device);
             }
-            if (creatureTortured.tortureCheckTime >= timeElapsed || chamber == null) {
+            // Like in DK II, the torture works once a second, and that second takes a tick more (0x47B590)
+            if (timeElapsed - creatureTortured.tortureCheckTime < tortureInterval || chamber == null) {
                 continue;
             }
 
             CreatureComponent creatureComponent = entity.get(CreatureComponent.class);
             Owner owner = entity.get(Owner.class);
             short playerId = chamber.getRoomInstance().getOwnerId();
+            double tortureCheckTime = creatureTortured.tortureCheckTime + tortureInterval;
 
-            // Like in DK II, the torture works once a second
-            if ((int) (creatureTortured.timeTortured + tpf) > (int) creatureTortured.timeTortured) {
-                tortureForASecond(entity.getId(), owner.ownerId == playerId);
-            }
+            tortureForASecond(entity.getId(), owner.ownerId == playerId);
 
-            if (creatureTortured.timeTortured + tpf >= creatureComponent.tortureTimeToConvert) {
+            if (creatureTortured.timeTortured + 1 >= creatureComponent.tortureTimeToConvert) {
                 if (owner.ownerId != playerId) {
 
                     // Some die instead, the torture starts over for them until death comes
@@ -143,7 +156,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                         if (health != null) {
                             EntityController.setDamage(entityData, entity.getId(), health.health);
                         }
-                        entity.set(new CreatureTortured(0, timeElapsed, creatureTortured.healthCheckTime, creatureTortured.device));
+                        entity.set(new CreatureTortured(0, tortureCheckTime, creatureTortured.healthCheckTime, creatureTortured.device));
                         continue;
                     }
 
@@ -159,8 +172,22 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                 }
             }
 
-            entity.set(new CreatureTortured(creatureTortured.timeTortured + tpf, timeElapsed, creatureTortured.healthCheckTime, creatureTortured.device));
+            entity.set(new CreatureTortured(creatureTortured.timeTortured + 1, tortureCheckTime, creatureTortured.healthCheckTime, creatureTortured.device));
         }
+    }
+
+    /**
+     * How long a second of torture takes. DK II counts a byte down from the
+     * ticks per second to 0 and only on the tick it finds 0 does it change the
+     * victim's health and mood and add a second to its torture time, so the
+     * second takes a tick more (DKII.EXE 0x47B590). The conversion comes after
+     * the victim's torture time to convert in these seconds.
+     *
+     * @param ticksPerSecond the level's ticks per second
+     * @return the length of a second of torture, in seconds
+     */
+    public static double getTortureInterval(int ticksPerSecond) {
+        return (ticksPerSecond + 1) / (double) ticksPerSecond;
     }
 
     /**
