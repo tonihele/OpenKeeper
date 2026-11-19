@@ -75,9 +75,36 @@ public final class AssetUtils {
     private static final Logger logger = System.getLogger(AssetUtils.class.getName());
     
     private final static Object ASSET_LOCK = new Object();
-    private final static AssetCache ASSET_CACHE = new SimpleAssetCache();
-    private final static AssetCache WEAK_ASSET_CACHE = new WeakRefAssetCache();
-    private final static ConcurrentMap<String, Boolean> TEXTURE_MAP_CACHE = new ConcurrentHashMap<>();
+    // Store the context inside its manager: a global weak-key map would still
+    // retain managers through MaterialDef -> AssetManager value references.
+    private static final AssetKey<CacheContext> CONTEXT_KEY = new AssetKey<>("__OpenKeeper/AssetUtilsContext");
+    private static final class CacheContext {
+        final AssetCache strong = new SimpleAssetCache();
+        final AssetCache weak = new WeakRefAssetCache();
+        final ConcurrentMap<String, Boolean> textureMaps = new ConcurrentHashMap<>();
+        volatile boolean preWarmed;
+    }
+
+    private static CacheContext context(AssetManager manager) {
+        synchronized (manager) {
+            CacheContext result = manager.getFromCache(CONTEXT_KEY);
+            if (result == null) {
+                result = new CacheContext();
+                manager.addToCache(CONTEXT_KEY, result);
+            }
+            return result;
+        }
+    }
+
+    /**
+     * Releases utility-owned templates and lookup state without invalidating
+     * live clones or clearing unrelated AssetManager entries. Call at a loading
+     * boundary after outstanding loads complete. Locator/root replacement also
+     * requires clearing that manager's ordinary asset cache (or a new manager).
+     */
+    public static void releaseCaches(AssetManager manager) {
+        synchronized (manager) { manager.deleteFromCache(CONTEXT_KEY); }
+    }
     private final static ColorRGBA FLASH_BASE = new ColorRGBA(1f, 0f, 0f, 1);
     private final static ColorRGBA FLASH_OVERLAY = new ColorRGBA(1f, 64 / 255f, 65 / 255f, 1);
 
@@ -85,7 +112,6 @@ public final class AssetUtils {
     public final static String USER_DATA_KEY_REMOVABLE = "Removable";
     private final static String USER_DATA_KEY_MATERIAL_BEFORE_BLUEPRINT = "MaterialBeforeBlueprint";
     
-    private static volatile boolean preWarmedAssets = false;
 
     private AssetUtils() {
         // Nope
@@ -113,7 +139,8 @@ public final class AssetUtils {
         if (useCache) {
 
             // Set the correct asset cache
-            final AssetCache cache = (useWeakCache) ? WEAK_ASSET_CACHE : ASSET_CACHE;
+            CacheContext context = context(assetManager);
+            final AssetCache cache = useWeakCache ? context.weak : context.strong;
 
             // Get the model from cache
             Spatial model = cache.getFromCache(assetKey);
@@ -431,11 +458,12 @@ public final class AssetUtils {
         }
 
         boolean found;
-        Boolean cachedFound = TEXTURE_MAP_CACHE.get(textureName);
+        var textureMaps = context(assetManager).textureMaps;
+        Boolean cachedFound = textureMaps.get(textureName);
         if (cachedFound == null) {
             AssetInfo assetInfo = assetManager.locateAsset(new TextureKey(textureName, false));
             found = (assetInfo != null);
-            Boolean cached = TEXTURE_MAP_CACHE.putIfAbsent(textureName, found);
+            Boolean cached = textureMaps.putIfAbsent(textureName, found);
             if (cached != null) {
                 found = cached;
             }
@@ -492,7 +520,8 @@ public final class AssetUtils {
         List<String> textures = texturesSupplier.get();
         MaterialKey assetKey = new MaterialKey("animated:" + name + ":" + hasAlpha + ":"
                 + (fps != null ? fps : 30) + ":" + textures);
-        Material mat = ASSET_CACHE.getFromCache(assetKey);
+        AssetCache cache = context(assetManager).strong;
+        Material mat = cache.getFromCache(assetKey);
         
         if (mat == null) {
             mat = new Material(assetManager, "MatDefs/LightingSprite.j3md");
@@ -518,7 +547,7 @@ public final class AssetUtils {
             }
 
             // Add to cache
-            ASSET_CACHE.addToCache(assetKey, mat);
+            cache.addToCache(assetKey, mat);
         }
         return mat.clone();
     }
@@ -536,7 +565,8 @@ public final class AssetUtils {
         MaterialKey assetKey = new MaterialKey("particle:" + resource.getName() + ":" + resource.getType()
                 + ":" + resource.getFlags() + ":" + resource.getData(ArtResource.KEY_FRAMES)
                 + ":" + resource.getData(ArtResource.KEY_WIDTH));
-        Material mat = ASSET_CACHE.getFromCache(assetKey);
+        AssetCache cache = context(assetManager).strong;
+        Material mat = cache.getFromCache(assetKey);
 
         if (mat == null) {
             mat = new Material(assetManager, "Common/MatDefs/Misc/Particle.j3md");
@@ -555,7 +585,7 @@ public final class AssetUtils {
             mat.getAdditionalRenderState().setDepthWrite(false);
 
             // Add to cache
-            ASSET_CACHE.addToCache(assetKey, mat);
+            cache.addToCache(assetKey, mat);
         }
         return mat.clone();
     }
@@ -672,9 +702,10 @@ public final class AssetUtils {
      * @param app the app
      */
     public static void prewarmAssets(IKwdFile kwdFile, AssetManager assetManager, Main app) {
-        if (!preWarmedAssets) {
+        CacheContext context = context(assetManager);
+        if (!context.preWarmed) {
             synchronized (ASSET_LOCK) {
-                if (!preWarmedAssets) {
+                if (!context.preWarmed) {
                     try {
 
                         // Terrain
@@ -705,7 +736,7 @@ public final class AssetUtils {
                     } catch (Exception e) {
                         logger.log(Level.ERROR, "Failed to prewarm assets!", e);
                     } finally {
-                        preWarmedAssets = true;
+                        context.preWarmed = true;
                     }
                 }
             }
