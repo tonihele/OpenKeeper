@@ -442,6 +442,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private boolean isWorkAnimation() {
+        // Requests/owner timeline run before the normal view-control update.
+        // Resolve completion policy from the latest replicated AI snapshot.
+        refreshEntity();
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         if (creatureAi != null) {
             CreatureState state = creatureAi.getCreatureState();

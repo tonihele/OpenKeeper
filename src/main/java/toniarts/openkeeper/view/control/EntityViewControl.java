@@ -94,6 +94,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
         return entity;
     }
 
+    /** Refreshes the owned watcher before decisions made outside the normal control update. */
+    protected final void refreshEntity() {
+        entity.applyChanges();
+    }
+
     private Class<EntityComponent>[] compileWatchedComponents() {
         Set<Class<? extends EntityComponent>> components = new HashSet<>();
         components.addAll(WATCHED_COMPONENTS);
@@ -118,7 +123,7 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
 
     @Override
     protected void controlUpdate(float tpf) {
-        entity.applyChanges();
+        refreshEntity();
         boolean hidden = toniarts.openkeeper.view.animation.AnimationLoader.isHidden(spatial);
         if (animationHidden && !hidden) toniarts.openkeeper.view.animation.AnimationLoader.refreshPendingPoses(spatial);
         animationHidden = hidden;
