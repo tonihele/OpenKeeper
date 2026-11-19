@@ -280,6 +280,16 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     }
 
     /**
+     * Set the gold the keeper has paid for building, as the server tells it
+     *
+     * @param goldSpentOnBuilding the gold spent on building
+     * @see #getGoldSpentOnBuilding()
+     */
+    public void setGoldSpentOnBuilding(int goldSpentOnBuilding) {
+        this.goldSpentOnBuilding = goldSpentOnBuilding;
+    }
+
+    /**
      * Get the creatures that came in through the portals, the ones that count
      * towards the portal limit
      *

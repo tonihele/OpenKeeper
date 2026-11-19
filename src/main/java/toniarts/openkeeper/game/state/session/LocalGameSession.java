@@ -495,9 +495,9 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void onGoldChange(short keeperId, int gold) {
+    public void onGoldChange(short keeperId, int gold, int goldSpentOnBuilding) {
         for (GameSessionListener listener : listeners.getArray()) {
-            listener.onGoldChange(keeperId, gold);
+            listener.onGoldChange(keeperId, gold, goldSpentOnBuilding);
         }
     }
 

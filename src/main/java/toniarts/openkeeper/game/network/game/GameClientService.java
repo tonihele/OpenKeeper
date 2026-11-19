@@ -331,9 +331,9 @@ public final class GameClientService extends AbstractClientService
         }
 
         @Override
-        public void onGoldChange(short keeperId, int gold) {
+        public void onGoldChange(short keeperId, int gold, int goldSpentOnBuilding) {
             for (GameSessionListener l : listeners.getArray()) {
-                l.onGoldChange(keeperId, gold);
+                l.onGoldChange(keeperId, gold, goldSpentOnBuilding);
             }
         }
 

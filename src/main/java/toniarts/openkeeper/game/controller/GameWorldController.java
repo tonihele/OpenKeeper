@@ -502,8 +502,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
-            substractGold(cost, playerId);
             players.get(playerId).addGoldSpentOnBuilding(cost);
+            substractGold(cost, playerId);
             return true;
         }
     }
@@ -1760,8 +1760,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
-            substractGold(cost, playerId);
             players.get(playerId).addGoldSpentOnBuilding(cost);
+            substractGold(cost, playerId);
             return true;
         }
     }
@@ -1822,8 +1822,8 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             if (cost > players.get(playerId).getGold()) {
                 return false;
             }
-            substractGold(cost, playerId);
             players.get(playerId).addGoldSpentOnBuilding(cost);
+            substractGold(cost, playerId);
             return true;
         }
     }
