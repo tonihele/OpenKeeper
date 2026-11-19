@@ -199,6 +199,28 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isTimeToReEvaluate();
 
+    /**
+     * Starts an idle animation for a creature that found nothing to do, when
+     * it is its turn for one. As in DK II (0x4776C0, for a worker 0x464240), a
+     * keeper's creature or a hero that has taken an idle walk since its last
+     * idle animation stands
+     * through its first idle animation one time in two and through its second
+     * one time in four. Otherwise, and after an idle animation, it is time
+     * for an idle walk.
+     *
+     * @return true if the creature now stands through an idle animation,
+     * false if it should take an idle walk
+     */
+    public boolean playIdleAnimation();
+
+    /**
+     * Is the creature standing through the idle animation it started with
+     * {@link #playIdleAnimation()}
+     *
+     * @return true while the animation plays
+     */
+    public boolean isPlayingIdleAnimation();
+
     public void resetReEvaluationTimer();
 
     public int getGold();
