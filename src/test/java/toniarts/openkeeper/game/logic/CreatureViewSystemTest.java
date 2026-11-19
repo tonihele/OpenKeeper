@@ -94,7 +94,7 @@ class CreatureViewSystemTest {
         EntityId creature = entityData.createEntity();
         entityData.setComponents(creature, new CreatureViewState((short) 1, 0, Creature.AnimationType.WALK),
                 new Position(0, new Vector3f()), new CreatureAi(0, CreatureState.IDLE, (short) 1),
-                new IdleAnimation(Creature.AnimationType.IDLE_2, 2));
+                new IdleAnimation(Creature.AnimationType.IDLE_2, 2, 0));
         CreatureViewSystem system = new CreatureViewSystem(entityData, null);
 
         system.processTick(1);

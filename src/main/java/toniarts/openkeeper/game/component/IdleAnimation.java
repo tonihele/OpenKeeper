@@ -31,14 +31,20 @@ public final class IdleAnimation implements EntityComponent {
      */
     public Creature.AnimationType animation;
     public double endTime;
+    /**
+     * When a worker that found no work looks for it again after an idle
+     * animation (0x463DF0)
+     */
+    public double lookForWorkTime;
 
     public IdleAnimation() {
         // For serialization
     }
 
-    public IdleAnimation(Creature.AnimationType animation, double endTime) {
+    public IdleAnimation(Creature.AnimationType animation, double endTime, double lookForWorkTime) {
         this.animation = animation;
         this.endTime = endTime;
+        this.lookForWorkTime = lookForWorkTime;
     }
 
 }
