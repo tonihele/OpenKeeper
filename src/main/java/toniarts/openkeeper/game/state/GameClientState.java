@@ -348,6 +348,10 @@ public final class GameClientState extends AbstractPauseAwareState {
             cs.disconnect();
         }
 
+        // Related roots have retired before this parent's deferred cleanup. Empty render-sort
+        // scratch must not retain their controls, source subscriptions and session through a Geometry.
+        toniarts.openkeeper.view.RenderQueueLifecycle.releaseEmptySortStorage(app.getRenderManager());
+
         super.cleanup();
     }
 
