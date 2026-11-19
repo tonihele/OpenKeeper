@@ -17,8 +17,6 @@
 package toniarts.openkeeper.game.state;
 
 import com.jme3.app.Application;
-import com.jme3.audio.AudioData.DataType;
-import com.jme3.audio.AudioNode;
 import com.jme3.input.RawInputListener;
 import com.jme3.input.event.JoyAxisEvent;
 import com.jme3.input.event.JoyButtonEvent;
@@ -29,6 +27,9 @@ import com.jme3.input.event.TouchEvent;
 import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import javax.annotation.Nonnull;
+import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.SoundManager;
 
 /**
  * State for handling cheats
@@ -53,8 +54,10 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
         UNLOCK_DOORS_TRAPS("fit the best"),
         REMOVE_FOW("now the rain has gone"),
         RESET_FOW("now the rain has come back"),
+        PAY_DAY("show me the wages"),
         LOOSE_LEVEL("fear the reaper"),
-        WIN_LEVEL("do not fear the reaper");
+        WIN_LEVEL("do not fear the reaper"),
+        JACKPOT("disco inferno");
         private final String cheatMessage;
 
         private CheatType(final String cheatMessage) {
@@ -90,11 +93,8 @@ public abstract class CheatState extends AbstractPauseAwareState implements RawI
     }
 
     private void playSound(boolean enabled) {
-        String file = String.format("Sounds/Global/MistressHW/ms_1ft0%s.mp2", enabled ? "1" : "2");
-        AudioNode sound = new AudioNode(app.getAssetManager(), file, DataType.Buffer);
-        sound.setLooping(false);
-        sound.setPositional(false);
-        sound.play();
+        SoundManager.playSound(GlobalCategory.OPTIONS,
+                enabled ? GlobalType.OPTIONS_CLICK_1.getId() : GlobalType.OPTIONS_CLICK_2.getId());
     }
 
     @Override

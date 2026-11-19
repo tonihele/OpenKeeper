@@ -21,40 +21,55 @@ import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.ChickenAi;
+import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.CreatureRecuperating;
+import toniarts.openkeeper.game.component.CreatureSpell;
+import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Death;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Frozen;
+import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.HealthGain;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Regeneration;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.GameTimeCounter;
+
+import java.util.Collection;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
 /**
  * Manages and monitors thing healthiness. Beeb... beeb... beeeeeeeeeeeeeeeeeeeb :)
@@ -63,7 +78,19 @@ import toniarts.openkeeper.utils.GameTimeCounter;
  */
 public final class HealthSystem extends GameTimeCounter {
 
+    /**
+     * The Frozen Body Explode effect. Not in the creature data: DKII.EXE names
+     * it by number where a frozen creature is removed (0x487C70)
+     */
+    private static final int FROZEN_BODY_EXPLODE_EFFECT_ID = 260;
+
+    /**
+     * The Hero Lair terrain, DK II tells it by its id (DKII.EXE 0x488930)
+     */
+    private static final short HERO_LAIR_TERRAIN_ID = 35;
+
     private final EntityData entityData;
+    private final IGameTimer gameTimer;
     private final SafeArrayList<EntityId> entityIds;
     private final IEntityPositionLookup entityPositionLookup;
     private final ICreaturesController creaturesController;
@@ -73,24 +100,29 @@ public final class HealthSystem extends GameTimeCounter {
     private final ILevelInfo levelInfo;
     private final Map<Short, IPlayerController> playerControllersById;
     private final IMapController mapController;
+    private final GameEventService gameEventService;
 
     private final EntitySet healthEntities;
     private final EntitySet damageEntities;
     private final EntitySet imprisonedEntities;
     private final EntitySet torturedEntities;
     private final EntitySet regeneratedEntities;
+    private final EntitySet healthGainEntities;
     private final EntitySet recuperatingEntities;
 
     public HealthSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             ICreaturesController creaturesController, ILevelInfo levelInfo,
-            Collection<IPlayerController> playerControllers, IMapController mapController) {
+            Collection<IPlayerController> playerControllers, IMapController mapController,
+            IGameTimer gameTimer, GameEventService gameEventService) {
 
         this.entityData = entityData;
+        this.gameTimer = gameTimer;
         this.entityPositionLookup = entityPositionLookup;
         this.creaturesController = creaturesController;
         this.levelInfo = levelInfo;
         this.mapController = mapController;
+        this.gameEventService = gameEventService;
         entityIds = new SafeArrayList<>(EntityId.class);
 
         playerControllersById = HashMap.newHashMap(playerControllers.size());
@@ -114,6 +146,7 @@ public final class HealthSystem extends GameTimeCounter {
         torturedEntities = entityData.getEntities(CreatureTortured.class, Health.class, CreatureComponent.class, Position.class);
 
         regeneratedEntities = entityData.getEntities(Health.class, Regeneration.class, Owner.class);
+        healthGainEntities = entityData.getEntities(Health.class, HealthGain.class);
         recuperatingEntities = entityData.getEntities(CreatureRecuperating.class, Health.class, CreatureComponent.class);
     }
 
@@ -132,6 +165,7 @@ public final class HealthSystem extends GameTimeCounter {
         imprisonedEntities.applyChanges();
         torturedEntities.applyChanges();
         regeneratedEntities.applyChanges();
+        healthGainEntities.applyChanges();
         recuperatingEntities.applyChanges();
 
         // Process special recuperating... event
@@ -139,13 +173,19 @@ public final class HealthSystem extends GameTimeCounter {
             entityData.removeComponent(entity.getId(), Unconscious.class);
         }
 
+        double gameTime = gameTimer.getGameTime();
+
         // Bring death to those unfortunate and increase the health of the fortunate
         for (EntityId entityId : entityIds.getArray()) {
             Unconscious unconscious = entityData.getComponent(entityId, Unconscious.class);
 
-            // From unconsciousness we start the countdown to death
+            // From unconsciousness we start the countdown to death. Like DK II, it
+            // stops while the creature is carried (DKII.EXE 0x4599D0 skips the
+            // tick when 0x4B5DE0 says it is being dragged)
             if (unconscious != null) {
-                if (timeElapsed - unconscious.startTime >= timeToDeath) {
+                if (entityData.getComponent(entityId, HauledBy.class) != null) {
+                    entityData.setComponent(entityId, new Unconscious(unconscious.startTime + tpf));
+                } else if (timeElapsed - unconscious.startTime >= timeToDeath) {
                     processDeath(entityId);
                 }
                 continue;
@@ -156,8 +196,9 @@ public final class HealthSystem extends GameTimeCounter {
             if (health == null) {
                 continue;
             }
+            delayAttacksWhenBadlyHurt(entityId, health, tpf);
 
-            int healthChange = calculateHealthChange(entityId, health, timeElapsed);
+            int healthChange = calculateHealthChange(entityId, health, timeElapsed, gameTime);
             if (healthChange == 0) {
                 continue;
             }
@@ -171,11 +212,43 @@ public final class HealthSystem extends GameTimeCounter {
         }
     }
 
+    /**
+     * A creature other than a worker attacks and casts slower below a fifth of
+     * its health. DK II pushes its last melee and spell times on by a tick
+     * every other tick, so here they are pushed on by half the tick
+     *
+     * @param entityId the entity
+     * @param health its health
+     * @param tpf the length of the tick
+     */
+    private void delayAttacksWhenBadlyHurt(EntityId entityId, Health health, float tpf) {
+        CreatureComponent creature = entityData.getComponent(entityId, CreatureComponent.class);
+        if (creature == null || creature.worker || health.health >= health.maxHealth * 20 / 100) {
+            return;
+        }
+        double delay = tpf / 2.0;
+        CreatureMeleeAttack melee = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+        if (melee != null && melee.attactStartTime != null) {
+            entityData.setComponent(entityId, new CreatureMeleeAttack(melee, melee.attactStartTime + delay));
+        }
+        CreatureSpells spells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (spells != null) {
+            for (EntityId spellId : spells.creatureSpells) {
+                CreatureSpell spell = entityData.getComponent(spellId, CreatureSpell.class);
+                if (spell != null && spell.attactStartTime != null) {
+                    entityData.setComponent(spellId, new CreatureSpell(spell, spell.attactStartTime + delay));
+                }
+            }
+        }
+    }
+
     private void processHealthDepleted(EntityId entityId, Health health) {
 
         // Death or destruction!!!!
         // No body, just vanish from the world
         if (!isLeaveDeadBody(entityId)) {
+            shatter(entityId);
+            triggerDestroyedEffect(entityId);
             entityPositionLookup.getEntityController(entityId).remove();
             return;
         }
@@ -198,6 +271,9 @@ public final class HealthSystem extends GameTimeCounter {
             Short creatureId = getRoomCreatureId(entityId);
             if (creatureId != null && !damageEntities.containsId(entityId) && canRiseAsSkeleton(owner, creatureId)) {
                 creaturesController.turnCreatureIntoAnother(entityId, owner.controlId, creatureId);
+
+                // The mentor tells the keeper of the Prison, like DK II (CRoom_sub_4E30F0, message 0x41)
+                gameEventService.emitToPlayer(GameEventType.PRISON_SKELETON_RISEN, owner.controlId);
                 return;
             }
             processDeath(entityId);
@@ -250,11 +326,50 @@ public final class HealthSystem extends GameTimeCounter {
 
     private void processUnconscious(EntityId entityId, Health health) {
         entityData.removeComponent(entityId, AttackTarget.class);
+
+        // A knocked out pit fighter is out of the fight and waits to be carried to its lair.
+        // One that was held in the pit is not held anymore, the imps may take it to the Prison again
+        if (entityData.removeComponent(entityId, CombatPitFighter.class)) {
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            entityData.setComponent(entityId, new Owner(owner.ownerId, owner.ownerId));
+        }
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));
         //entityData.setComponent(entityId, new CreatureAi(gameTime, CreatureState.UNCONSCIOUS, creatureComponent.creatureId)); // Hmm
         creaturesController.createController(entityId).getStateMachine().changeState(CreatureState.UNCONSCIOUS);
         entityData.removeComponent(entityId, Navigation.class);
+    }
+
+    /**
+     * A destroyed trap, door or object blows up with its death effect, like the
+     * Trap Explosion, the Wooden Door Group Explosion or the Heart Explosion
+     * Effect
+     *
+     * @param entityId the destroyed entity
+     */
+    private void triggerDestroyedEffect(EntityId entityId) {
+        Position position = entityData.getComponent(entityId, Position.class);
+        int effectId = getDestroyedEffectId(entityId);
+        if (position != null && effectId != 0) {
+            gameEventService.emitEffect(effectId, position.position, 0);
+        }
+    }
+
+    private int getDestroyedEffectId(EntityId entityId) {
+        TrapComponent trapComponent = entityData.getComponent(entityId, TrapComponent.class);
+        if (trapComponent != null) {
+            return levelInfo.getLevelData().getTrapById(trapComponent.trapId).getDeathEffectId();
+        }
+        DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+        if (doorComponent != null) {
+            return levelInfo.getLevelData().getDoorById(doorComponent.doorId).getDeathEffectId();
+        }
+        ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
+        if (objectComponent != null) {
+            return levelInfo.getLevelData().getObject(objectComponent.objectId).getDeathEffectId();
+        }
+
+        return 0;
     }
 
     private boolean isLeaveDeadBody(EntityId entityId) {
@@ -264,14 +379,28 @@ public final class HealthSystem extends GameTimeCounter {
                 .getFlags().contains(Creature.CreatureFlag.GENERATE_DEAD_BODY);
     }
 
-    private int calculateHealthChange(EntityId entityId, Health health, double gameTime) {
+    private boolean isHorny(EntityId entityId) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null && levelInfo.getLevelData()
+                .getCreature(creatureComponent.creatureId)
+                .getFlags().contains(Creature.CreatureFlag.IS_HORNY);
+    }
+
+    private int calculateHealthChange(EntityId entityId, Health health, double elapsedTime, double gameTime) {
         int delta = 0;
 
         // Damage (or healing)
         Entity entity = damageEntities.getEntity(entityId);
         if (entity != null) {
             Damage damage = entity.get(Damage.class);
-            delta -= damage.damage;
+
+            // The Horned Reaper can't be hurt, only healed
+            if (damage.damage < 0 || !isHorny(entityId)) {
+                delta -= damage.damage;
+                if (damage.damage > 0) {
+                    gameEventService.emit(GameEventType.CREATURE_HURT, entityId);
+                }
+            }
 
             // Remove the damage
             entityData.removeComponent(entityId, Damage.class);
@@ -281,7 +410,7 @@ public final class HealthSystem extends GameTimeCounter {
         entity = imprisonedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureImprisoned imprisoned = entity.get(CreatureImprisoned.class);
-            if (gameTime - imprisoned.healthCheckTime >= 1) {
+            if (elapsedTime - imprisoned.healthCheckTime >= 1) {
                 entityData.setComponent(entity.getId(), new CreatureImprisoned(imprisoned.startTime, imprisoned.healthCheckTime + 1));
                 delta += healthRegeneratePerSecondImprisoned;
 
@@ -293,17 +422,21 @@ public final class HealthSystem extends GameTimeCounter {
         entity = torturedEntities.getEntity(entityId);
         if (entity != null) {
             CreatureTortured tortured = entity.get(CreatureTortured.class);
-            if (gameTime - tortured.healthCheckTime >= 1) {
+            if (elapsedTime - tortured.healthCheckTime >= 1) {
                 int tortureHealthRegeneratePerSecond = levelInfo.getLevelData().getCreature(entity.get(CreatureComponent.class).creatureId).getAttributes().getTortureHpChange();
-                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureTortured(tortured.timeTortured, tortured.tortureCheckTime, tortured.healthCheckTime + 1, tortured.device));
                 delta += tortureHealthRegeneratePerSecond;
 
                 return delta; // Assume no other states can be
             }
         }
 
+        // A hero on the Hero Lair heals every turn, instead of regenerating on its own land (DK II 0x488930)
+        int heroLairHealing = health.health != health.maxHealth ? getHeroLairHealing(entityId) : 0;
+        delta += heroLairHealing;
+
         // Regeneration (with little bit optimization if already at full health)
-        if (health.health != health.maxHealth) {
+        if (health.health != health.maxHealth && heroLairHealing == 0) {
             entity = regeneratedEntities.getEntity(entityId);
             if (entity != null) {
                 Regeneration regeneration = entity.get(Regeneration.class);
@@ -314,8 +447,8 @@ public final class HealthSystem extends GameTimeCounter {
                     // In own land
                     Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
                     if (lastTimeOnOwnLand == null) {
-                        setTimeOwnOwnLand(regeneration, entityId, gameTime);
-                    } else if (gameTime - lastTimeOnOwnLand >= 1) {
+                        setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
+                    } else if (elapsedTime - lastTimeOnOwnLand >= 1) {
                         delta += regeneration.ownLandHealthIncrease;
                     }
                 } else {
@@ -326,12 +459,31 @@ public final class HealthSystem extends GameTimeCounter {
             }
         }
 
+        // Health gain, every second on a fixed beat that hits don't hold up (DKII.EXE's trap tick 0x4A84E0)
+        entity = healthGainEntities.getEntity(entityId);
+        if (entity != null) {
+            HealthGain healthGain = entity.get(HealthGain.class);
+            if (healthGain.nextGainTime == null) {
+                entityData.setComponent(entityId, new HealthGain(healthGain.healthGain, gameTime + 1));
+            } else if (gameTime >= healthGain.nextGainTime) {
+                entityData.setComponent(entityId, new HealthGain(healthGain.healthGain, healthGain.nextGainTime + 1));
+                if (health.health != health.maxHealth) {
+                    delta += healthGain.healthGain;
+                }
+            }
+        }
+
         // Recuperating
         entity = recuperatingEntities.getEntity(entityId);
         if (entity != null) {
             CreatureRecuperating creatureRecuperating = entity.get(CreatureRecuperating.class);
+            // Recovery uses the shared gameTime, matching lair mood recovery.
+            // The local elapsedTime used above is one update ahead in the loop.
             if (gameTime - creatureRecuperating.healthCheckTime >= 1) {
-                entityData.setComponent(entity.getId(), new CreatureRecuperating(creatureRecuperating.startTime, creatureRecuperating.healthCheckTime + 1));
+                entityData.setComponent(entity.getId(), new CreatureRecuperating(
+                        creatureRecuperating.startTime,
+                        creatureRecuperating.healthCheckTime + 1,
+                        creatureRecuperating.moodCheckTime));
                 delta += healthRegeneratePerSecond;
             }
         }
@@ -339,7 +491,34 @@ public final class HealthSystem extends GameTimeCounter {
         return delta;
     }
 
+    /**
+     * Gets how much a hero standing on the Hero Lair heals in a turn. The
+     * terrain's damage is negative there, a short in the level data
+     *
+     * @param entityId the entity
+     * @return the health gained, 0 if not a hero on the Hero Lair
+     */
+    private int getHeroLairHealing(EntityId entityId) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId != Player.GOOD_PLAYER_ID || entityData.getComponent(entityId, CreatureComponent.class) == null) {
+            return 0;
+        }
+        IMapTileInformation tile = entityPositionLookup.getEntityLocation(entityId);
+        if (tile == null || tile.getTerrainId() != HERO_LAIR_TERRAIN_ID) {
+            return 0;
+        }
+        return -(short) levelInfo.getLevelData().getTerrain(HERO_LAIR_TERRAIN_ID).getDamage();
+    }
+
     private void processDeath(EntityId entityId) {
+        if (entityData.getComponent(entityId, Death.class) == null
+                && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+            gameEventService.emit(GameEventType.CREATURE_DIE, entityId);
+        }
+        if (shatter(entityId)) {
+            entityPositionLookup.getEntityController(entityId).remove();
+            return;
+        }
         entityData.removeComponent(entityId, Health.class);
         entityData.removeComponent(entityId, CreatureAi.class);
         entityData.removeComponent(entityId, ChickenAi.class);
@@ -352,6 +531,24 @@ public final class HealthSystem extends GameTimeCounter {
         entityData.removeComponent(entityId, CreatureTortured.class);
         entityData.removeComponent(entityId, CreatureMood.class);
         entityData.setComponent(entityId, new Death(timeElapsed));
+    }
+
+    /**
+     * A creature that dies frozen shatters: DK II plays the Frozen Body Explode
+     * effect and leaves no body (DKII.EXE 0x487C70)
+     *
+     * @param entityId the dying entity
+     * @return whether it was frozen
+     */
+    private boolean shatter(EntityId entityId) {
+        if (entityData.getComponent(entityId, Frozen.class) == null) {
+            return false;
+        }
+        Position position = entityData.getComponent(entityId, Position.class);
+        if (position != null) {
+            gameEventService.emitEffect(FROZEN_BODY_EXPLODE_EFFECT_ID, position.position, 0);
+        }
+        return true;
     }
 
     private void processAddedEntities(Set<Entity> entities) {
@@ -397,6 +594,7 @@ public final class HealthSystem extends GameTimeCounter {
         imprisonedEntities.release();
         torturedEntities.release();
         regeneratedEntities.release();
+        healthGainEntities.release();
         recuperatingEntities.release();
         entityIds.clear();
     }
