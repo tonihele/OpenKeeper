@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.badlogic.gdx.ai.fsm.DefaultStateMachine;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -29,15 +30,20 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
@@ -45,6 +51,10 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.task.ITaskManager;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperDefeatFixtures;
@@ -91,6 +101,10 @@ class KeeperDefeatSystemTest {
     private Map<Short, Terrain> terrains;
     private Map<Point, String> alteredTiles;
     private List<String> transferredRooms;
+    private Map<EntityId, DefaultStateMachine<ICreatureController, CreatureState>> stateMachines;
+    private List<EntityId> leaving;
+    private List<EntityId> walking;
+    private List<EntityId> noWayOut;
 
     @BeforeEach
     void setUp() {
@@ -111,6 +125,10 @@ class KeeperDefeatSystemTest {
                 REINFORCED_WALL, KeeperDefeatFixtures.terrain(REINFORCED_WALL, ROCK, Terrain.TerrainFlag.SOLID, Terrain.TerrainFlag.OWNABLE));
         alteredTiles = new HashMap<>();
         transferredRooms = new ArrayList<>();
+        stateMachines = new HashMap<>();
+        leaving = new ArrayList<>();
+        walking = new ArrayList<>();
+        noWayOut = new ArrayList<>();
     }
 
     @Test
@@ -149,6 +167,61 @@ class KeeperDefeatSystemTest {
         assertEquals(300, entityData.getComponent(imp, Damage.class).damage);
         assertNull(entityData.getComponent(fighter, Damage.class));
         assertNull(entityData.getComponent(humansImp, Damage.class));
+    }
+
+    @Test
+    void defeatedKeepersOtherCreaturesLeaveTheDungeon() {
+        EntityId fighter = creature(RIVAL, false);
+        EntityId walledIn = creature(RIVAL, false);
+        noWayOut.add(walledIn);
+        EntityId prisoner = creature(RIVAL, false);
+        entityData.setComponent(prisoner, new CreatureImprisoned(0, 0));
+        EntityId imp = creature(RIVAL, true);
+        EntityId humans = creature(HUMAN, false);
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+
+        system.processTick(0.25f);
+        assertTrue(leaving.isEmpty());
+
+        entityData.removeEntity(hearts.get(RIVAL));
+        system.processTick(0.25f);
+
+        assertEquals(List.of(fighter), leaving);
+        assertEquals(CreatureState.WORK, stateMachines.get(fighter).getCurrentState());
+
+        // With no portal to get to, it walks about, and tries again when the walk ends
+        assertEquals(CreatureState.WANDER, stateMachines.get(walledIn).getCurrentState());
+        assertEquals(List.of(walledIn), walking);
+        system.processTick(0.25f);
+        assertEquals(List.of(walledIn), walking);
+        walking.clear();
+        noWayOut.clear();
+        system.processTick(0.25f);
+        assertEquals(List.of(fighter, walledIn), leaving);
+
+        // Prisoners, workers and the other keepers' creatures are left alone
+        assertNull(stateMachines.get(prisoner));
+        assertNull(stateMachines.get(imp));
+        assertNull(stateMachines.get(humans));
+    }
+
+    @Test
+    void defeatedKeepersCreatureIsSentAwayAgainWhenItTurnsToSomethingElse() {
+        EntityId fighter = creature(RIVAL, false);
+        KeeperDefeatSystem system = campaign(HUMAN, RIVAL);
+        entityData.removeEntity(hearts.get(RIVAL));
+        system.processTick(0.25f);
+
+        // In the middle of a swing it is left alone, back in the fight it is sent away again
+        leaving.clear();
+        stateMachines.get(fighter).changeState(CreatureState.MELEE_ATTACK);
+        system.processTick(0.25f);
+        assertTrue(leaving.isEmpty());
+
+        stateMachines.get(fighter).changeState(CreatureState.FIGHT);
+        system.processTick(0.25f);
+        assertEquals(List.of(fighter), leaving);
+        assertEquals(CreatureState.WORK, stateMachines.get(fighter).getCurrentState());
     }
 
     private EntityId creature(short ownerId, boolean worker) {
@@ -361,11 +434,27 @@ class KeeperDefeatSystemTest {
             case "getPlayers" -> players;
             default -> null;
         });
-        IGameController gameController = stub(IGameController.class, (name, args) -> {
-            if ("endGame".equals(name)) {
-                endings.add(args[0] + ((Boolean) args[1] ? " won" : " lost"));
+        ICreaturesController creaturesController = stub(ICreaturesController.class,
+                (name, args) -> "createController".equals(name) ? creatureController((EntityId) args[0]) : null);
+        IGameWorldController gameWorldController = stub(IGameWorldController.class,
+                (name, args) -> "getCreaturesController".equals(name) ? creaturesController : null);
+        ITaskManager taskManager = stub(ITaskManager.class, (name, args) -> {
+            if (!"assignTask".equals(name) || args[1] != Creature.JobType.LEAVE
+                    || noWayOut.contains(((ICreatureController) args[0]).getEntityId())) {
+                return null;
             }
-            return "getPlayerControllers".equals(name) ? playerControllers : null;
+            leaving.add(((ICreatureController) args[0]).getEntityId());
+            return true;
+        });
+        IGameController gameController = stub(IGameController.class, (name, args) -> switch (name) {
+            case "endGame" -> {
+                endings.add(args[0] + ((Boolean) args[1] ? " won" : " lost"));
+                yield null;
+            }
+            case "getPlayerControllers" -> playerControllers;
+            case "getGameWorldController" -> gameWorldController;
+            case "getTaskManager" -> taskManager;
+            default -> null;
         });
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (name, args) -> "iterator".equals(name) ? tiles.iterator() : null);
         IMapController mapController = stub(IMapController.class, (name, args) -> switch (name) {
@@ -391,6 +480,28 @@ class KeeperDefeatSystemTest {
         });
 
         return new KeeperDefeatSystem(entityData, levelInfo, gameController, mapController, objectsController, skirmish);
+    }
+
+    /**
+     * A creature with a real state machine that is on the leave job once the
+     * task manager gave it one, and walks about when it is told to
+     */
+    private ICreatureController creatureController(EntityId entity) {
+        Task leave = stub(Task.class, (name, args) -> "getTaskType".equals(name) ? TaskType.LEAVE : null);
+        ICreatureController[] creature = new ICreatureController[1];
+        creature[0] = stub(ICreatureController.class, (name, args) -> switch (name) {
+            case "getEntityId" -> entity;
+            case "getStateMachine" -> stateMachines.computeIfAbsent(entity,
+                    e -> new DefaultStateMachine<>(creature[0], CreatureState.IDLE));
+            case "getAssignedTask" -> leaving.contains(entity) ? leave : null;
+            case "isStopped" -> !walking.contains(entity);
+            case "navigateToRandomPoint" -> {
+                walking.add(entity);
+                yield null;
+            }
+            default -> null;
+        });
+        return creature[0];
     }
 
     private IRoomController heartRoom(Point tile) {

@@ -22,6 +22,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.ArrayList;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -29,14 +30,18 @@ import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.GameWorldController;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
@@ -44,6 +49,9 @@ import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -52,13 +60,22 @@ import toniarts.openkeeper.utils.Point;
 /**
  * Watches the Dungeon Hearts. A keeper whose heart is destroyed is defeated:
  * he is marked destroyed, loses the game, his heart room is left in ruins,
- * his land goes back to nobody and his imps die.
+ * his land goes back to nobody, his imps die and his other creatures leave.
  * In a skirmish or multiplayer game the last keeper standing wins. In the
  * campaign, a level can have the last enemy heart leave a Portal Gem.
  */
 public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     private static final short OBJECT_PORTAL_GEM_ID = 28;
+
+    /**
+     * A creature in these states is not in control of itself, or is in the
+     * middle of a swing or a cast, so it is sent away on a later turn
+     */
+    private static final Set<CreatureState> LEFT_ALONE = EnumSet.of(CreatureState.DEAD, CreatureState.ENTERING_DUNGEON,
+            CreatureState.PICKED_UP, CreatureState.UNCONSCIOUS, CreatureState.STUNNED, CreatureState.IMPRISONED,
+            CreatureState.TORTURED, CreatureState.DRAGGED, CreatureState.FALLEN, CreatureState.GETTING_UP,
+            CreatureState.SLAPPED, CreatureState.MELEE_ATTACK, CreatureState.CAST_SPELL, CreatureState.CHICKEN);
 
     private final EntityData entityData;
     private final ILevelInfo levelInfo;
@@ -96,16 +113,20 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
 
     @Override
     public void processTick(float tpf) {
-        if (!hearts.applyChanges()) {
-            return;
+        if (hearts.applyChanges()) {
+            processAddedHearts(hearts.getAddedEntities());
+            processChangedHearts(hearts.getChangedEntities());
+
+            // A removed entity has no components left, so we remember the owners
+            for (Entity heart : hearts.getRemovedEntities()) {
+                heartDestroyed(heart.getId());
+            }
         }
 
-        processAddedHearts(hearts.getAddedEntities());
-        processChangedHearts(hearts.getChangedEntities());
-
-        // A removed entity has no components left, so we remember the owners
-        for (Entity heart : hearts.getRemovedEntities()) {
-            heartDestroyed(heart.getId());
+        for (Keeper keeper : levelInfo.getPlayers().values()) {
+            if (keeper.isDestroyed()) {
+                sendCreaturesAway(keeper.getId());
+            }
         }
     }
 
@@ -225,6 +246,41 @@ public final class KeeperDefeatSystem implements IGameLogicUpdatable {
         for (EntityId creature : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class, Health.class)) {
             if (entityData.getComponent(creature, CreatureComponent.class).worker) {
                 EntityController.setDamage(entityData, creature, entityData.getComponent(creature, Health.class).health);
+            }
+        }
+    }
+
+    /**
+     * Like in DK II (0x4DAA10), on every turn the creatures of a defeated
+     * keeper, all but the workers, are sent out of the dungeon through the
+     * nearest portal, whatever they were doing. One already on its way, held
+     * in a Prison or not in control of itself is left alone. One that finds no
+     * portal to get to wanders about and tries again when its walk ends
+     *
+     * @param keeperId the defeated keeper
+     */
+    private void sendCreaturesAway(short keeperId) {
+        ICreaturesController creaturesController = gameController.getGameWorldController().getCreaturesController();
+        for (EntityId entity : entityData.findEntities(new FieldFilter(Owner.class, "ownerId", keeperId), Owner.class, CreatureComponent.class)) {
+            if (entityData.getComponent(entity, CreatureComponent.class).worker
+                    || entityData.getComponent(entity, CreatureImprisoned.class) != null) {
+                continue;
+            }
+
+            ICreatureController creature = creaturesController.createController(entity);
+            Task task = creature.getAssignedTask();
+            CreatureState state = creature.getStateMachine().getCurrentState();
+            if ((task != null && task.getTaskType() == TaskType.LEAVE) || LEFT_ALONE.contains(state)
+                    || (state == CreatureState.WANDER && !creature.isStopped())) {
+                continue;
+            }
+
+            // The state it leaves lets go of its task first, the wander state keeps the new one
+            creature.getStateMachine().changeState(CreatureState.WANDER);
+            if (gameController.getTaskManager().assignTask(creature, Creature.JobType.LEAVE)) {
+                creature.getStateMachine().changeState(CreatureState.WORK);
+            } else {
+                creature.navigateToRandomPoint();
             }
         }
     }
