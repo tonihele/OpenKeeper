@@ -103,6 +103,10 @@ public enum GameEventType {
     ROOM_SOLD,
     /** A completed room capture, delivered only to its new owner. */
     ROOM_CAPTURED,
+    /**
+     * The keeper has no mana left, only that keeper gets this. The subject is the Dungeon Heart room
+     */
+    NO_MANA,
     TERRAIN_DESTROYED,
 
     // Temple

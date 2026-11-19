@@ -41,14 +41,21 @@ public final class LowMana implements EntityComponent {
      */
     public int secondsToImpChoice;
 
+    /**
+     * Seconds to the next no mana alert, it sounds when this is 0 or less and
+     * the keeper has no mana
+     */
+    public int secondsToNoManaAlert;
+
     public LowMana() {
         // For serialization
     }
 
-    public LowMana(int stage, int secondsToWarning, int secondsToImpChoice) {
+    public LowMana(int stage, int secondsToWarning, int secondsToImpChoice, int secondsToNoManaAlert) {
         this.stage = stage;
         this.secondsToWarning = secondsToWarning;
         this.secondsToImpChoice = secondsToImpChoice;
+        this.secondsToNoManaAlert = secondsToNoManaAlert;
     }
 
 }

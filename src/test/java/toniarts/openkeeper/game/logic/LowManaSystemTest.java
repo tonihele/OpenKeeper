@@ -43,8 +43,12 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureAttractionFixtures;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -60,6 +64,7 @@ class LowManaSystemTest {
     private static final short PLAYER_ID = 3;
     private static final short IMP_ID = 1;
     private static final short FIGHTER_ID = 2;
+    private static final short HEART_ID = 5;
     private static final int PERIOD = 10;
     private static final int THRESHOLD = 100;
     private static final int MINIMUM_IMPS = 4;
@@ -68,6 +73,7 @@ class LowManaSystemTest {
     private final DefaultEntityData entityData = new DefaultEntityData();
     private final Keeper keeper = new Keeper(false, PLAYER_ID);
     private final List<Integer> speech = new ArrayList<>();
+    private int noManaAlerts;
     private final EntityId playerEntity;
     private final LowManaSystem system;
 
@@ -86,6 +92,7 @@ class LowManaSystemTest {
         IKwdFile kwdFile = stub(IKwdFile.class, (method, args) -> switch (method) {
             case "getImp" -> imp;
             case "getKeeperSpells" -> List.of(ShotFixtures.createImp(CREATE_IMP_COST));
+            case "getDungeonHeart" -> CreatureAttractionFixtures.room(HEART_ID);
             default -> null;
         });
         IPlayerController playerController = stub(IPlayerController.class, (method, args) -> switch (method) {
@@ -100,10 +107,16 @@ class LowManaSystemTest {
             }
             return null;
         });
+        GameEventService gameEventService = stub(GameEventService.class, (method, args) -> {
+            assertEquals(List.of(GameEventType.NO_MANA, ThingFlag.ROOM, (int) HEART_ID, PLAYER_ID), List.of(args));
+            noManaAlerts++;
+            return null;
+        });
 
         playerEntity = entityData.createEntity();
         entityData.setComponent(playerEntity, new KeeperComponent(PLAYER_ID));
-        system = new LowManaSystem(entityData, kwdFile, List.of(playerController), settings, playerService);
+        system = new LowManaSystem(entityData, kwdFile, List.of(playerController), settings, playerService,
+                gameEventService);
     }
 
     @Test
@@ -164,6 +177,24 @@ class LowManaSystemTest {
         runSeconds(1);
 
         assertNull(entityData.getComponent(playerEntity, LowMana.class));
+    }
+
+    @Test
+    void soundsTheNoManaAlertEveryPeriodWhileThereIsNoMana() {
+        addImps(6);
+        keeper.setMana(0);
+
+        // DK II's alert timer starts at 0, so it can sound every second early in a level, the period is kept from the start
+        runSeconds(1);
+        assertEquals(1, noManaAlerts, "The alert sounds as soon as the mana is gone");
+        runSeconds(PERIOD - 1);
+        assertEquals(1, noManaAlerts);
+        runSeconds(1);
+        assertEquals(2, noManaAlerts);
+
+        keeper.setMana(50);
+        runSeconds(PERIOD * 2);
+        assertEquals(2, noManaAlerts, "Only with no mana at all");
     }
 
     @Test

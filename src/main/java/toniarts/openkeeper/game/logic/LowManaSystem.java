@@ -41,6 +41,9 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
+import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
@@ -51,7 +54,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Warns a keeper whose mana runs low and, if it keeps running low, pops his
- * imps one by one. Runs once a second like the mana itself.
+ * imps one by one. A keeper with no mana at all also hears the no mana alert.
+ * Runs once a second like the mana itself.
  */
 public final class LowManaSystem implements IGameLogicUpdatable {
 
@@ -79,6 +83,8 @@ public final class LowManaSystem implements IGameLogicUpdatable {
     private float tick = 0;
     private final EntityData entityData;
     private final PlayerService playerService;
+    private final GameEventService gameEventService;
+    private final short heartId;
     private final Map<Short, Keeper> keepers;
     private final short impId;
     private final EntitySet creatures;
@@ -89,19 +95,24 @@ public final class LowManaSystem implements IGameLogicUpdatable {
     private final int createImpManaCost;
 
     /**
-     * The warnings and the imp choice are timed by the level's
-     * INSUFFICIENT_MANA_IMP_EVALUATION_PERIOD_SECONDS
+     * The warnings, the no mana alert and the imp choice are timed by the
+     * level's INSUFFICIENT_MANA_IMP_EVALUATION_PERIOD_SECONDS
      *
      * @param entityData the entity data
-     * @param kwdFile the level, for the imp and the Create Imp spell
+     * @param kwdFile the level, for the imp, the Create Imp spell and the
+     * Dungeon Heart
      * @param playerControllers the players, the ones with mana are warned
      * @param gameSettings the level variables
      * @param playerService for the mentor's messages
+     * @param gameEventService for the no mana alert
      */
     public LowManaSystem(EntityData entityData, IKwdFile kwdFile, Collection<IPlayerController> playerControllers,
-            Map<MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService) {
+            Map<MiscType, Variable.MiscVariable> gameSettings, PlayerService playerService,
+            GameEventService gameEventService) {
         this.entityData = entityData;
         this.playerService = playerService;
+        this.gameEventService = gameEventService;
+        heartId = kwdFile.getDungeonHeart().getId();
         keepers = HashMap.newHashMap(playerControllers.size());
         for (IPlayerController playerController : playerControllers) {
             if (playerController.getManaControl() != null) {
@@ -180,6 +191,13 @@ public final class LowManaSystem implements IGameLogicUpdatable {
         int stage = lowMana != null ? lowMana.stage : 0;
         int secondsToWarning = lowMana != null ? lowMana.secondsToWarning - 1 : 0;
         int secondsToImpChoice = lowMana != null ? lowMana.secondsToImpChoice - 1 : -1;
+        int secondsToNoManaAlert = lowMana != null ? lowMana.secondsToNoManaAlert - 1 : 0;
+
+        // With no mana the heart sounds its alert, again every period while the mana stays at 0 (0x4C10E0)
+        if (keeper.getMana() == 0 && secondsToNoManaAlert <= 0) {
+            gameEventService.emitToPlayer(GameEventType.NO_MANA, ThingFlag.ROOM, heartId, keeper.getId());
+            secondsToNoManaAlert = evaluationPeriod;
+        }
 
         // Warn while the mana isn't growing, the first warning comes one period after the mana went low
         if (stage < POPPING_STAGE && keeper.getManaGain() - keeper.getManaLoose() <= 0) {
@@ -204,7 +222,7 @@ public final class LowManaSystem implements IGameLogicUpdatable {
             secondsToImpChoice = evaluationPeriod;
         }
 
-        entityData.setComponent(playerEntity, new LowMana(stage, secondsToWarning, secondsToImpChoice));
+        entityData.setComponent(playerEntity, new LowMana(stage, secondsToWarning, secondsToImpChoice, secondsToNoManaAlert));
     }
 
     /**
