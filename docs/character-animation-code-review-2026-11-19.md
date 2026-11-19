@@ -463,3 +463,25 @@ The recording-backend test fails on the preceding code and passes for both direc
 Removed two unused imports and an obsolete commented-out pose-clone statement. The [maintenance guide](character-animation.md) describes the current pipeline, ownership, compatibility, opt-in retention, verification tools and acceptance boundaries. Historical assessment/review evidence is preserved and clearly revision-scoped rather than deleted. The maintained opt-in corpus, GL and benchmark tools are intentional regression/measurement infrastructure; one-off review probes, profiles and captures are not part of the repository diff.
 
 `build --rerun-tasks` passes with all nine tasks executed: **1,471 tests, zero failures/errors, four existing minimap asset skips** (`build/finalize-build.txt`). All four skipped tests pass separately against installed data (`build/finalize-installed-assets.txt`, separate `testInstalledMinimapAssets` report, zero skips). The strict installed corpus repeats **1,745,788 samples / zero nonfinite/outside** across 944 resources. Both GL tools pass; all 39 pose hashes match the previous validated run and pause PNGs remain identical. Hidden-voice fix: `98e5e6c`.
+
+### Final publication validation and scope
+
+The final source/maintenance cleanup is commit `44c2c1a`. All R1–R8 findings and four additional self-review/preflight defects are resolved; the original five incomplete checklist entries remain explicitly unresolved at their recorded scope. Client/server builds must match, model conversion version is 16 and prepared retention remains disabled by default. This publication does not include pending material/filtering/Dungeon Heart work from other branches.
+
+A real Alcatraz local session on this final source passes **1092 active frames / 48 creatures**, including a pause/resume request through the actual client/server service. After pause settles, **all 48 owner ages and the presentation clock remain exactly frozen for one second**; the resumed clock advances again. OpenAL starts and closes normally; no animation/shader execution error occurs (`build/finalize-game-smoke.txt`, `build/finalize-game.jfr`). The diagnostic's CPU submission observations are median/P95/P99 **5.600/7.927/11.192 ms**, 892 post-warmup frames, including the deliberate pause scenario and observer work. Last-frame scene counters are 165 objects / 16,951 vertices / 9,218 triangles. This is integration evidence, not a before/after FPS or GPU performance result.
+
+Standalone maintained benchmarks and one crowd repeat pass (`build/finalize-benchmarks.txt`, `build/finalize-benchmark-repeat.txt`; no overlapping game/GL/audit workload):
+
+| Workload | Publication run | Standalone crowd repeat | Previous remediation baseline |
+|---|---|---|---|
+| 500 visible owners, median / P95 / P99 ms | 1.7497 / 4.3004 / 4.6008 | 1.5232 / 3.6849 / 4.2016 | 1.5035 / 3.3541 / 4.2309 |
+| 500 explicitly hidden owners, median ms | 0.0718 | 0.0720 | 0.0715 |
+| 500 unchanged owners, median ms | 0.0356 | 0.0290 | 0.0293 |
+| 3000 transitions, retention off / three clips, ms | 137.643 / 55.075 | 173.756 / 50.869 | 116.772 / 46.363 |
+| Transition allocated bytes, off / three clips | 72,824,352 / 6,192,432 | 72,840,096 / 6,120,360 | 72,590,864 / 6,312,360 |
+
+At 500/1000, measured calling-thread steady-state allocation is zero; hidden/unchanged dirty bytes remain zero and the visible dirty-byte counts are unchanged. Retained position accounting stays **18,234,000 bytes** for 500 owners. Visible/tail and transition timing vary materially, while the paired allocation reduction is reproduced. The first publication burst is approximately 60% faster and allocates 91% less with opt-in retention; it does not justify default enablement or a whole-game speedup claim. The standalone repeat returns visible median near the preceding baseline; no new pose-update algorithm changed during preflight.
+
+The paired preload workload repeats **13 -> 7 requests**, median **4.676 -> 1.423 ms**, allocated **258342 -> 126536 bytes/pass**. The earlier run was 2.906 -> 0.967 ms: absolute timings vary, but duplicate work and allocation remain reduced. GPU preload and total startup are excluded.
+
+Publication cleanup archives the ignored one-off review sources/classes/settings under local Git preservation metadata, outside the feature worktree. Logs, JFRs and captures remain ignored build evidence; none is staged or pushed. Maintained `src/test` audits, fixtures and benchmarks are retained intentionally. Relative documentation links, finding-to-commit mappings, full diff/whitespace, tracked-file allowlist and unrelated-worktree preservation are checked before push. No force-push, squashing, shared-history rewriting or merge is performed. The feature branch is submitted for maintainer review against current upstream `master`; remaining original-DK2, B2/B3, remote-network/audio and representative GPU/residency acceptance is disclosed in the PR.
