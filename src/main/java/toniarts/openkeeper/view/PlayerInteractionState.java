@@ -951,7 +951,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
         boolean chicken = object instanceof CreatureViewControl creatureControl && creatureControl.isChicken();
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, manaCost);
+        boolean fullHealth = object instanceof CreatureViewControl creatureControl && creatureControl.isAtFullHealth();
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, fullHealth, manaCost);
     }
 
     private boolean isTrapPlacementValid(Point tile) {

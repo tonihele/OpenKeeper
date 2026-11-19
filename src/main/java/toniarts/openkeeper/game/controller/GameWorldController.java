@@ -1648,6 +1648,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         Creature targetCreature = null;
         Short targetOwner = null;
         boolean targetChicken = false;
+        boolean targetFullHealth = false;
         if (target != null) {
             CreatureComponent creatureComponent = entityData.getComponent(target, CreatureComponent.class);
             if (creatureComponent != null) {
@@ -1659,8 +1660,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             }
             CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
             targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+            Health health = entityData.getComponent(target, Health.class);
+            targetFullHealth = health != null && health.health == health.maxHealth;
         }
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)) {
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, targetFullHealth, manaCost)) {
             return;
         }
 

@@ -32,6 +32,7 @@ import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Predicate;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.controller.SlapRules;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -90,6 +91,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(CreatureAi.class);
         components.add(CreatureImprisoned.class);
+        components.add(Health.class);
         return components;
     }
 
@@ -316,6 +318,16 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     public boolean isChicken() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+    }
+
+    /**
+     * Whether the creature is at its full health
+     *
+     * @return true if the creature has all of its health
+     */
+    public boolean isAtFullHealth() {
+        Health health = getEntity().get(Health.class);
+        return health != null && health.health == health.maxHealth;
     }
 
     private boolean isWorkAnimation() {
