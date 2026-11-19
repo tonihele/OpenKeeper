@@ -535,10 +535,11 @@ class CreatureControllerTest {
             boolean withdrew = false;
             for (int i = 0; i < 20; i++) {
                 f.data.removeComponent(f.entity, Navigation.class);
-                f.controller.flee();
+                boolean fled = f.controller.flee();
                 Navigation navigation = f.data.getComponent(f.entity, Navigation.class);
 
-                // Picking the heart 3 times running, it finds nowhere to go
+                // Picking the heart 3 times running, it finds nowhere to go and doesn't withdraw
+                assertEquals(navigation != null, fled);
                 if (navigation != null) {
                     assertEquals(new Point(10, 4), navigation.target);
                     withdrew = true;
@@ -566,9 +567,15 @@ class CreatureControllerTest {
             f.keeper.setDungeonHeartLocation(new Point(3, 4));
             f.data.setComponent(f.bed, new Position(0, new Vector3f(8, WorldUtils.FLOOR_HEIGHT, 4)));
 
-            f.controller.flee();
+            assertTrue(f.controller.flee());
 
             assertEquals(new Point(8, 4), f.data.getComponent(f.entity, Navigation.class).target);
+
+            // Its lair out of reach, it doesn't withdraw at all, the heart isn't tried (0x4611D0)
+            f.data.removeComponent(f.entity, Navigation.class);
+            f.walkable = tile -> !tile.equals(new Point(8, 4));
+            assertFalse(f.controller.flee());
+            assertNull(f.data.getComponent(f.entity, Navigation.class));
         }
     }
 
@@ -595,6 +602,30 @@ class CreatureControllerTest {
                 }
             }
             assertTrue(withdrew);
+        }
+    }
+
+    @Test
+    void workerWithNowhereToWithdrawToKeepsWorking() {
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            EntityId hero = heroNextToWorker(f, 6, 20);
+            f.data.setComponent(hero, new AttackTarget(f.entity));
+            f.rooms = List.of(room((short) 3, new Point(20, 4), true));
+            f.walkable = tile -> false;
+
+            // DK II's withdraw finds nowhere to go (0x4611D0), so the worker isn't sent anywhere (0x45BDF0)
+            assertFalse(f.controller.shouldFleeOrAttack());
+            assertNull(f.state());
+            assertNull(f.data.getComponent(f.entity, Navigation.class));
+
+            // Already withdrawing, it goes back to work once it stops
+            f.walkable = tile -> true;
+            f.controller.shouldFleeOrAttack();
+            assertEquals(CreatureState.FLEE, f.state());
+            f.walkable = tile -> false;
+            f.data.removeComponent(f.entity, Navigation.class);
+            f.controller.getStateMachine().update();
+            assertEquals(CreatureState.IDLE, f.state());
         }
     }
 

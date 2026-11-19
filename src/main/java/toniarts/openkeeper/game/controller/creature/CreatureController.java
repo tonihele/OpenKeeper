@@ -301,11 +301,10 @@ public final class CreatureController extends EntityController implements ICreat
             IRoomController roomController = fighter ? mapController.getRoomControllerByCoordinates(getCreatureCoordinates()) : null;
             if (roomController == null || !roomController.isDungeonHeart()
                     || roomController.getOwnerId() != getOwnerId() || roomController.isDestroyed()) {
-                if (!stateMachine.isInState(CreatureState.FLEE)) {
-
-                    stateMachine.changeState(CreatureState.FLEE);
+                // With nowhere to withdraw to, it carries on as if nothing was after it (0x45BDF0, 0x45CB00)
+                if (stateMachine.isInState(CreatureState.FLEE) || flee()) {
+                    return true;
                 }
-                return true;
             }
         }
 
@@ -1796,36 +1795,53 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
-    public void flee() {
+    public boolean flee() {
 
-        // A creature with a lair withdraws to it first (0x4611D0 goes to the object in creature +0x3B7)
+        // A creature with a lair withdraws to it and nowhere else, failing when it can't get there (0x4611D0 goes to
+        // the object in creature +0x3B7)
         Point lair = getLairLocation();
-        if (lair != null && !createNavigation(getCreatureCoordinates(), lair, null)) {
-            return;
+        if (lair != null) {
+            if (navigationService.findPath(getCreatureCoordinates(), lair, this) == null) {
+                return false;
+            }
+            changeToFlee();
+            createNavigation(getCreatureCoordinates(), lair, null);
+            return true;
         }
         Keeper keeper = levelInfo.getPlayer(getOwnerId());
 
         // A creature without a heart to withdraw to runs away from its threat
         Point threat = keeper == null || keeper.getDungeonHeartLocation() == null ? findThreatLocation() : null;
         if (threat != null) {
+            changeToFlee();
             fleeFrom(threat);
-            return;
+            return true;
         }
 
         // A keeper's creature withdraws to a random point 2 tiles either way of its heart room's position (0x4611D0).
         // In DK II that position is a tile down and right of the heart's centre (room +0x27), so on level 5 the Imps
-        // end up on the corners of the centre 3x3
+        // end up on the corners of the centre 3x3. Finding nowhere, it doesn't withdraw at all
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point heart = keeper.getDungeonHeartLocation();
             Point destination = new Point(heart.x + 1 + (FastMath.rand.nextBoolean() ? 2 : -2), heart.y + 1 + (FastMath.rand.nextBoolean() ? 2 : -2));
             if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
                 destination = findWithdrawFallback();
             }
-            if (destination == null || createNavigation(getCreatureCoordinates(), destination, null)) {
-                navigateToRandomPoint();
+            if (destination == null) {
+                return false;
             }
+            changeToFlee();
+            createNavigation(getCreatureCoordinates(), destination, null);
         } else {
+            changeToFlee();
             navigateToRandomPoint();
+        }
+        return true;
+    }
+
+    private void changeToFlee() {
+        if (!stateMachine.isInState(CreatureState.FLEE)) {
+            stateMachine.changeState(CreatureState.FLEE);
         }
     }
 

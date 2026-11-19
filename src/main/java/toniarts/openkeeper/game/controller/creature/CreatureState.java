@@ -372,8 +372,8 @@ public enum CreatureState implements State<ICreatureController> {
                     entity.getStateMachine().changeState(HERO_RECUPERATING);
                     return;
                 }
-                if (entity.shouldWithdrawToHeart()) {
-                    entity.getStateMachine().changeState(FLEE);
+                // Finding nowhere to withdraw to, it goes on to weigh its fear (0x45F030)
+                if (entity.shouldWithdrawToHeart() && entity.flee()) {
                     return;
                 }
                 if (entity.isScared()) {
@@ -504,20 +504,20 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+
+            // ICreatureController.flee() picks where to go before it comes here, as DK II's 0x4611D0 does
             entity.unassingCurrentTask();
-            entity.flee();
         }
 
         @Override
         public void update(ICreatureController entity) {
 
             // A worker's withdraw ends once it gets there (DK II's 0xCA), then it goes back to
-            // work, or withdraws again if an enemy is still after it
+            // work, or withdraws again if an enemy is still after it and it finds somewhere to go
             if (entity.getCreature().getFightStyle() == Creature.FightStyle.NON_FIGHTER && entity.isStopped()) {
-                if (!entity.shouldFleeOrAttack()) {
+                if (!entity.shouldFleeOrAttack()
+                        || (entity.getStateMachine().isInState(FLEE) && !entity.flee())) {
                     entity.getStateMachine().changeState(IDLE);
-                } else if (entity.getStateMachine().isInState(FLEE)) {
-                    entity.flee();
                 }
                 return;
             }
@@ -546,15 +546,20 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
 
-            // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0)
+            // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0).
+            // Finding nowhere to withdraw to, we stay backing off and try again on the next tick
             if (entity.isBackOffOver()) {
-                entity.getStateMachine().changeState(FLEE);
+                entity.flee();
             } else if (!entity.isScared() || entity.getAttackTarget() == null) {
                 entity.getStateMachine().changeState(FIGHT);
             } else if (!entity.backOff()) {
 
                 // Cornered, with no way back, it fights on (0x4602E0)
-                entity.getStateMachine().changeState(entity.isCornered() ? FIGHT : FLEE);
+                if (entity.isCornered()) {
+                    entity.getStateMachine().changeState(FIGHT);
+                } else {
+                    entity.flee();
+                }
             }
         }
 
