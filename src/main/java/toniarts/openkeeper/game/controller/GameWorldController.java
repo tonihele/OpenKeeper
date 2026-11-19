@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.jme3.util.SafeArrayList;
@@ -89,6 +90,7 @@ import toniarts.openkeeper.tools.convert.map.Tile;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 
 import java.lang.System.Logger.Level;
@@ -1140,19 +1142,38 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     /**
-     * The "Receive imps" special: conjures new level 5 imps for the player on the special's spot. The original
-     * skips the spell for these, so there is no cast sound.
+     * The "Receive imps" special: conjures new level 5 imps for the player. Like DK II (0x4A4980) they stand
+     * in a ring round the player's Dungeon Heart, each facing a random way, or on the special's spot when
+     * the player has no heart. The original skips the spell for these, so there is no cast sound.
      *
      * @param playerId the player receiving the imps
      * @param position where the special was
      */
     private void receiveImps(short playerId, Position position) {
         short impId = kwdFile.getImp().getCreatureId();
-        Vector2f spot = WorldUtils.vector3fToVector2f(position.position);
+        IRoomController heart = playerControllers.get(playerId).getRoomControl().getDungeonHeart();
         int amount = (int) gameSettings.get(Variable.MiscVariable.MiscType.SPECIAL_RECEIVE_IMPS_AMOUNT).getValue();
         for (int i = 0; i < amount; i++) {
-            creaturesController.spawnCreature(impId, playerId, RECEIVE_IMPS_LEVEL, spot, ICreaturesController.SpawnType.CONJURE);
+            Vector2f spot = heart != null ? getReceivedImpSpot(heart.getRoomInstance().getCenter(), i, amount)
+                    : WorldUtils.vector3fToVector2f(position.position);
+            EntityId imp = creaturesController.spawnCreature(impId, playerId, RECEIVE_IMPS_LEVEL, spot, ICreaturesController.SpawnType.CONJURE);
+            Position impPosition = entityData.getComponent(imp, Position.class);
+            entityData.setComponent(imp, new Position(Utils.getRandom().nextFloat() * FastMath.TWO_PI, impPosition.position));
         }
+    }
+
+    /**
+     * Where a Receive Imps special puts one of its imps: like DK II (0x4A4980) 2 tiles from the middle of the
+     * Dungeon Heart, the ring split in whole steps of DK II's 2048 angle units, starting north
+     *
+     * @param heartCenter the middle tile of the Dungeon Heart
+     * @param index which of the imps
+     * @param amount how many imps the special gives
+     * @return the spot of the imp
+     */
+    static Vector2f getReceivedImpSpot(Point heartCenter, int index, int amount) {
+        float angle = (index * (2048 / amount) & 0x7FF) * FastMath.TWO_PI / 2048;
+        return new Vector2f(heartCenter.x + 2 * FastMath.sin(angle), heartCenter.y - 2 * FastMath.cos(angle));
     }
 
     private void putToKeeperHand(PlayerHandControl playerHandControl, EntityId entity, short playerId) {
