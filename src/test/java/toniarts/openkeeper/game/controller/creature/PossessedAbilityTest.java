@@ -279,9 +279,14 @@ class PossessedAbilityTest {
         PossessionFixtures.setEyeHeight(creature, 0.37f);
         EntityId worker = createWorker(KEEPER, new Vector3f(10, 0, 2.6f));
         CreatureController controller = createController();
+        HaulingSystem haulingSystem = new HaulingSystem(entityData, createCreaturesController());
         controller.usePossessedAbility(1);
+        haulingSystem.processTick(0.25f);
 
+        // The keeper's throw only marks the worker thrown (0x516EC0), it flies on the game logic tick (0x4831D0)
         controller.usePossessedAbility(1);
+        assertNull(entityData.getComponent(worker, CreatureFall.class));
+        haulingSystem.processTick(0.25f);
 
         assertNull(entityData.getComponent(us, PossessedAbility.class));
         assertEquals(new Vector3f(10, 0.37f, 2.5f), entityData.getComponent(worker, Position.class).position);
@@ -296,9 +301,14 @@ class PossessedAbilityTest {
         PossessionFixtures.setAbilities(creature, Creature.SpecialAbility.PICK_UP_WORKERS, Creature.SpecialAbility.NONE);
         EntityId worker = createWorker(KEEPER, new Vector3f(10, 0, 2.6f));
         CreatureController controller = createController();
+        HaulingSystem haulingSystem = new HaulingSystem(entityData, createCreaturesController());
         controller.usePossessedAbility(1);
+        haulingSystem.processTick(0.25f);
 
+        // It falls on the game logic tick, once its carrier is no longer possessed (0x4831D0)
         controller.setPossession(false);
+        assertNull(entityData.getComponent(worker, CreatureFall.class));
+        haulingSystem.processTick(0.25f);
 
         assertNull(entityData.getComponent(us, PossessedAbility.class));
         assertEquals(2.5f, entityData.getComponent(worker, Position.class).position.z);

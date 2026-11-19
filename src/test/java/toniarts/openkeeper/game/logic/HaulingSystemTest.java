@@ -24,6 +24,7 @@ import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.PossessedAbility;
@@ -127,7 +128,8 @@ class HaulingSystemTest {
     }
 
     @Test
-    void thrownWorkerIsNotHeldAnyMore() {
+    void thrownWorkerIsLetGoFromWhereItIsHeld() {
+        PossessionFixtures.setEyeHeight(bileDemon, BILE_DEMON_EYE_HEIGHT);
         EntityId demon = entityData.createEntity();
         EntityId worker = entityData.createEntity();
         entityData.setComponents(demon, new Position(0, new Vector3f(10, 0, 2)),
@@ -135,11 +137,33 @@ class HaulingSystemTest {
         entityData.setComponent(worker, new Position(0, new Vector3f(10, 0.5f, 2.5f)));
         haulingSystem.processTick(0.25f);
 
-        entityData.removeComponent(demon, PossessedAbility.class);
-        entityData.setComponent(worker, new Position(0, new Vector3f(10, 0.5f, 4.5f)));
+        // The keeper's throw from the session thread only marks it, the worker's own turn throws it (0x4831D0)
+        Vector3f velocity = new Vector3f(0, 0.25f, 2);
+        entityData.setComponent(demon, new PossessedAbility(Creature.SpecialAbility.PICK_UP_WORKERS, 0, worker, velocity));
         entityData.setComponent(demon, new Position(0, new Vector3f(12, 0, 2)));
         haulingSystem.processTick(0.25f);
 
-        assertEquals(new Vector3f(10, 0.5f, 4.5f), entityData.getComponent(worker, Position.class).position);
+        assertNull(entityData.getComponent(demon, PossessedAbility.class));
+        assertEquals(new Vector3f(10, BILE_DEMON_EYE_HEIGHT, 2.5f), entityData.getComponent(worker, Position.class).position);
+        CreatureFall fall = entityData.getComponent(worker, CreatureFall.class);
+        assertEquals(velocity, fall.velocity);
+        assertEquals(50, fall.damage);
+
+        // It isn't held any more
+        haulingSystem.processTick(0.25f);
+        assertEquals(new Vector3f(10, BILE_DEMON_EYE_HEIGHT, 2.5f), entityData.getComponent(worker, Position.class).position);
+    }
+
+    @Test
+    void workerTakenFromTheCarrierIsNotThrown() {
+        EntityId demon = entityData.createEntity();
+        EntityId worker = entityData.createEntity();
+        entityData.setComponents(demon, new Position(0, new Vector3f(10, 0, 2)),
+                new PossessedAbility(Creature.SpecialAbility.PICK_UP_WORKERS, 0, worker, new Vector3f()));
+
+        haulingSystem.processTick(0.25f);
+
+        assertNull(entityData.getComponent(demon, PossessedAbility.class));
+        assertNull(entityData.getComponent(worker, CreatureFall.class));
     }
 }

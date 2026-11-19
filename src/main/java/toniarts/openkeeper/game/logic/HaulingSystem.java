@@ -21,6 +21,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.Entity;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntitySet;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.PossessedAbility;
@@ -40,6 +41,11 @@ public final class HaulingSystem implements IGameLogicUpdatable {
      * A carried worker is held half a tile in front of the creature (0x4831D0)
      */
     private static final float CARRY_DISTANCE = WorldUtils.TILE_WIDTH / 2;
+
+    /**
+     * A thrown or dropped worker takes this much damage as it lands (0x4833C0)
+     */
+    private static final int THROWN_WORKER_DAMAGE = 50;
 
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
@@ -86,13 +92,28 @@ public final class HaulingSystem implements IGameLogicUpdatable {
 
     /**
      * Like DK II, the carried worker is put in front of the creature, at the
-     * creature's eye height, on every turn (0x4831D0)
+     * creature's eye height, on every turn (0x4831D0). A worker the keeper
+     * has thrown, or one whose carrier is no longer possessed, is let go
+     * instead, from where it was last held (0x4831D0)
      */
     private void holdCarriedWorker(Entity entity) {
 
-        // The keeper's throw comes from the session thread, a worker just thrown isn't held again
+        // The keeper's throw comes from the session thread, read it as it is now
         PossessedAbility possessedAbility = entityData.getComponent(entity.getId(), PossessedAbility.class);
-        if (possessedAbility == null || possessedAbility.entity == null || entityData.getComponent(possessedAbility.entity, Position.class) == null) {
+        if (possessedAbility == null || possessedAbility.entity == null) {
+            return;
+        }
+        boolean workerOnMap = entityData.getComponent(possessedAbility.entity, Position.class) != null;
+        if (possessedAbility.releaseVelocity != null) {
+            entityData.removeComponent(entity.getId(), PossessedAbility.class);
+
+            // The keeper's hand may have taken it, or it has died
+            if (workerOnMap) {
+                entityData.setComponent(possessedAbility.entity, new CreatureFall(possessedAbility.releaseVelocity, THROWN_WORKER_DAMAGE));
+            }
+            return;
+        }
+        if (!workerOnMap) {
             return;
         }
 
