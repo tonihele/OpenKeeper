@@ -25,6 +25,7 @@ import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
 import java.util.concurrent.ThreadLocalRandom;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
@@ -65,6 +66,12 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     private float spinTicks = -1;
     private float spinDirection;
     private float spinAngle;
+    private boolean hovered;
+    private boolean hoverWobbling;
+    private float hoverBaseYaw;
+    private float hoverPitch;
+    private float hoverYaw;
+    private float hoverRoll;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
@@ -106,6 +113,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(ObjectComponent.class);
         components.add(Position.class);
+        components.add(InHand.class);
         return components;
     }
 
@@ -118,6 +126,19 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
                         getEntity().get(Position.class),
                         playerId,
                         mapData));
+    }
+
+    @Override
+    public void onHoverStart(short playerId) {
+        super.onHoverStart(playerId);
+        hovered = true;
+    }
+
+    @Override
+    public void onHoverEnd(short playerId) {
+        super.onHoverEnd(playerId);
+        hovered = false;
+        resetHoverWobble();
     }
 
     @Override
@@ -176,6 +197,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
 
     @Override
     public void cleanup() {
+        resetHoverWobble();
         if (loopHandle != SoundEngine.NO_HANDLE) {
             SoundManager.stopSound(loopHandle);
             loopHandle = SoundEngine.NO_HANDLE;
@@ -259,6 +281,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     @Override
     protected void controlUpdate(float tpf) {
         super.controlUpdate(tpf);
+        updateHoverWobble();
 
         if (spinTicks >= 0) {
             float speed = SPIN_SPEED / ((int) spinTicks + 3) - SPIN_SLOW_DOWN;
@@ -276,6 +299,52 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         Position position = spinAngle != 0 ? getEntity().get(Position.class) : null;
         if (position != null) {
             spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(0, position.rotation + spinAngle, 0));
+        }
+    }
+
+    /**
+     * The native mouse handler (0x40C4AB) calls 0x4B4430 on a pointed-at special,
+     * before checking whether the player can pick it up. It shakes the static
+     * mesh on all three axes by random angles in [-25, 24] / 2048 of a turn;
+     * there is no separate jump animation resource. Stored specials use the
+     * same handler. The keeper's hand uses a separate presentation.
+     * The native mouse path has no game-tick gate, so sample a new pose on
+     * each view update rather than holding it until the next simulation tick.
+     */
+    private void updateHoverWobble() {
+        Position position = getEntity().get(Position.class);
+        if (!hovered || position == null
+                || getEntity().get(InHand.class) != null || !currentState.visible
+                || spatial.getCullHint() == Spatial.CullHint.Always
+                || !getDataObject().getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+            resetHoverWobble();
+            return;
+        }
+        hoverBaseYaw = position.rotation;
+        if (!hoverWobbling) {
+            hoverWobbling = true;
+        } else {
+            hoverPitch = randomHoverAngle();
+            hoverYaw = randomHoverAngle();
+            hoverRoll = randomHoverAngle();
+        }
+        spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(
+                hoverPitch, position.rotation + hoverYaw, hoverRoll));
+    }
+
+    private static float randomHoverAngle() {
+        return ThreadLocalRandom.current().nextInt(-25, 25) * FastMath.TWO_PI / 2048;
+    }
+
+    private void resetHoverWobble() {
+        if (hoverWobbling) {
+            Position position = getEntity().get(Position.class);
+            if (spatial != null) {
+                spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(0,
+                        position != null ? position.rotation : hoverBaseYaw, 0));
+            }
+            hoverWobbling = false;
+            hoverPitch = hoverYaw = hoverRoll = 0;
         }
     }
 
