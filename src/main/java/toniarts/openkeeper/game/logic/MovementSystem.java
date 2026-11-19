@@ -118,8 +118,16 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
             // Calculate steering acceleration
             SteeringAcceleration<Vector2> steeringOutput = steeringOutputsBySteeringBehaviors.get(steeringBehavior);
+            steeringBehavior.setUpdateInterval(tpf);
             steeringBehavior.calculateSteering(steeringOutput);
             Navigation navigation = movableEntities.getEntity(entityId).get(Navigation.class);
+            if (steeringOutput.linear.isZero() && !navigation.navigationPath.isEmpty()
+                    && steeringBehavior.isOnFinalPathSegment()
+                    && steerableEntity.getPosition().dst2(navigation.navigationPath.getLast()) <= .1f * .1f) {
+                // Arrival has finished linear travel. Residual velocity would
+                // drift out of tolerance and oscillate at the logic tick rate.
+                steerableEntity.getLinearVelocity().setZero();
+            }
             if (furnitureCollision != null && entityData.getComponent(entityId, CreatureComponent.class) != null
                     && navigation.navigationPath.size() > 1) {
                 furnitureCollision.constrain(steerableEntity, steeringOutput,
@@ -252,7 +260,15 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
         IMapController map = (IMapController) mapInformation;
         var destination = map.getMapData().getTile(to);
-        return destination != null && creaturesController.createController(id).getCost(
+        var controller = creaturesController.createController(id);
+        if (destination != null && positionLookup != null
+                && positionLookup.isTileBlocked(to, controller.getOwnerId())) {
+            // A route may include breaking this door, or predate its placement.
+            // Keep physical walking tile-based and let AI replan/attack it.
+            entityData.removeComponent(id, Navigation.class);
+            return false;
+        }
+        return destination != null && controller.getCost(
                 map.getMapData().getTile(from), destination, map, positionLookup) != null;
     }
 

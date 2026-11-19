@@ -156,6 +156,12 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
+                // Authoritative movement/contact belongs to the logic tick.
+                // The former steering thread required cross-thread entity access.
+                new MovementSystem(entityData, gameWorldController.getMapController(), levelInfo.getLevelData(),
+                        positionSystem, gameWorldController.getCreaturesController()),
+                new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
+                        positionSystem, gameWorldController.getCreaturesController()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
@@ -179,11 +185,7 @@ public final class GameLoopManager {
                 new CreatureFallSystem(entityData, gameController.getGameTimer(), gameEventService));
         loops.add(new GameLoop(gameAnimationThread, GameLoop.INTERVAL_FPS_60, "Animation"));
 
-        // Steering
-        loops.add(new GameLoop(new GameLogicManager(new MovementSystem(entityData, gameWorldController.getMapController(), levelInfo.getLevelData(),
-                positionSystem, gameWorldController.getCreaturesController()),
-                new PossessedMovementSystem(entityData, gameWorldController.getMapController(),
-                        positionSystem, gameWorldController.getCreaturesController())), GameLoop.INTERVAL_FPS_60, "Steering"));
+
     }
 
     public void pause() {

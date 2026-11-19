@@ -43,6 +43,7 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class FurnitureMovementTest {
     private float creatureWidth = 0.18f;
+    private float movementTpf = 1 / 60f;
     private boolean softFurniture;
     private boolean wallBelow;
     private float furnitureWidth = .6f;
@@ -158,6 +159,21 @@ class FurnitureMovementTest {
         trial("lifecycle", List.of(new Vector2(1, 5), new Vector2(9, 5)), null);
     }
 
+    @ParameterizedTest
+    @ValueSource(floats = {.25f, .125f})
+    void largeCreatureCrossesFurnitureAtTheLogicTickRate(float tick) throws Exception {
+        movementTpf = tick;
+        creatureWidth = .44f;
+        crossesADenselyFurnishedRoom();
+    }
+
+    @ParameterizedTest
+    @ValueSource(floats = {.25f, .125f})
+    void workPositionArrivalAndFacingCompleteAtTheLogicTickRate(float tick) throws Exception {
+        movementTpf = tick;
+        reachesAResearchPositionAndFacesTheFurniture();
+    }
+
     private void obstacle(int x, int y) {
         EntityId id = data.createEntity();
         data.setComponents(id, new ObjectComponent((short) 64, null), new Position(0, new Vector3f(x, 1, y)));
@@ -209,9 +225,9 @@ class FurnitureMovementTest {
         float minClearance = Float.POSITIVE_INFINITY;
         Vector2 progressPosition = new Vector2(start);
         int frames = 0;
-        for (; frames < 1800 && data.getComponent(id, Navigation.class) != null; frames++) {
+        for (; frames < Math.ceil(30 / movementTpf) && data.getComponent(id, Navigation.class) != null; frames++) {
             onFrame.accept(frames);
-            movement.processTick(1 / 60f);
+            movement.processTick(movementTpf);
             Vector3f pos = data.getComponent(id, Position.class).position;
             if (wallBelow) {
                 assertTrue(Math.round(pos.z) >= 5, "Furniture steering entered the wall: " + pos);
@@ -219,7 +235,8 @@ class FurnitureMovementTest {
             for (Vector2 object : furniture) {
                 minClearance = Math.min(minClearance, object.dst(pos.x, pos.z));
             }
-            if (frames > 0 && frames % 180 == 0 && data.getComponent(id, Navigation.class) != null) {
+            if (frames > 0 && frames % (int) Math.ceil(3 / movementTpf) == 0 && data.getComponent(id, Navigation.class) != null
+                    && goal.dst(pos.x, pos.z) > .1f) {
                 assertTrue(progressPosition.dst(pos.x, pos.z) > 0.02f,
                         "Stalled while navigating: " + pos);
                 progressPosition.set(pos.x, pos.z);

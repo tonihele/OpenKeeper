@@ -11,6 +11,11 @@ public final class CreatureSizing {
 
     /** Native pilots use half the definition width as their contact radius. */
     public static float getBodyRadius(Creature definition) {
-        return definition.getAttributes().getWidth() * 0.5f;
+        return getBodyWidth(definition) * 0.5f;
+    }
+    /** Full authored width, used by the native possession tile probe. */
+    public static float getBodyWidth(Creature definition) {
+        return definition.getAttributes().getWidth();
     }
 }
+

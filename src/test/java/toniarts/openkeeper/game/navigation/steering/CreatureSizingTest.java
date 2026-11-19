@@ -15,5 +15,6 @@ class CreatureSizingTest {
         field.setAccessible(true);
         field.setFloat(definition.getAttributes(), width);
         assertEquals(width / 2, CreatureSizing.getBodyRadius(definition));
+        assertEquals(width, CreatureSizing.getBodyWidth(definition));
     }
 }

@@ -102,3 +102,25 @@ solid bit; each object's response follows its own authored flags independently.
 The implementation uses that policy. DKII's behavior is retained here
 as an intentional difference. Reproducing native enumeration order solely to
 preserve this bug is not required for #1258. The remaining validation limits are listed above.
+
+## Logic-loop scheduling and walking door access
+
+Authoritative AI and possession movement now run in the existing logic loop,
+after door-view updates and before hauling. The separate Steering loop is
+removed; animation retains its existing loop. This follows the maintainer's
+instruction in #1330 to keep new work out of the legacy movement thread.
+Client prediction and rendering interpolation are not introduced here, so
+lower-frequency movement updates can remain visible.
+
+Arrival controllers use a response interval no shorter than the logic step.
+When the final path leg reports linear arrival within tolerance, residual
+linear velocity is stopped; facing still completes separately. This avoids
+coarse-step destination oscillation without treating an unfinished route as
+arrived. Regressions exercise dense furniture and work-position facing at
+four and eight logic updates per second as well as the existing finer steps.
+
+Walking continues to use tile access. A blocking door invalidates an old route
+for replanning/attack, even when path planning permits breaking it. No slab
+query is applied to ordinary walking. The native walking resolver's access
+calls through 0x006A11D0 resolve to edge rule 0x004C8BD0; the independently
+researched slab query belongs to the separate physics resolver 0x004B2030.
