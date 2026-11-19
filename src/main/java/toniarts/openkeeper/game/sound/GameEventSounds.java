@@ -58,7 +58,7 @@ public final class GameEventSounds {
      * The event is not restarted while the previous one of the same entity and type still plays
      */
     public static boolean isExclusive(GameEventType type) {
-        return type == GameEventType.CREATURE_HURT;
+        return type == GameEventType.CREATURE_HURT || type == GameEventType.TORTURE_WHEEL;
     }
 
     /**
@@ -72,10 +72,14 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_LEVEL_UP, event.position);
             case CREATURE_LAND ->
                 add(sounds, subject, ThingSounds.CREATURE_LAND, event.position);
+            case GRAVEYARD_VAMPIRE_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.GRAVE001.getId(), null);
             case CREATURE_HURT ->
                 add(sounds, subject, ThingSounds.CREATURE_HIT, event.position);
             case CREATURE_DIE ->
                 add(sounds, subject, ThingSounds.CREATURE_DIE, event.position);
+            case PRISON_SKELETON_RISEN ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.PRISN004.getId(), null);
             case CREATURE_CLAIM_TILE ->
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
@@ -104,14 +108,48 @@ public final class GameEventSounds {
                 addShotHit(sounds, event, kwdFile, subject);
             case IMPS_CREATED ->
                 add(sounds, ThingSounds.getCreateImpCategory(kwdFile), ThingSounds.SHOT_LAUNCH, event.position);
+            case CALL_TO_ARMS_UNREACHABLE ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC054.getId(), null);
+            case TORTURE_ELECTROCUTED -> {
+                add(sounds, subject, ThingSounds.ELECTRIC_CHAIR_ZAP, event.position);
+                add(sounds, getCategory(kwdFile, event.targetKind, event.targetId), ThingSounds.CREATURE_ELECTROCUTED,
+                        event.position);
+            }
+            case TORTURE_WHEEL ->
+                add(sounds, subject, ThingSounds.CREATURE_TORTURED, event.position);
+            case TORTURE_CONVERTED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC004.getId(), null);
+            case TORTURE_CONVERTED_BY_ENEMY ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TORTC006.getId(), null);
             case ROOM_TILES_LAID ->
                 add(sounds, subject, ThingSounds.ROOM_LAY_TILE, event.position);
             case ROOM_TILE_BUILT ->
                 add(sounds, subject, ThingSounds.OBJECT_CREATE, event.position);
             case ROOM_SOLD ->
                 add(sounds, subject, ThingSounds.ROOM_SELL, event.position);
+            case ROOM_CAPTURED -> {
+                if (event.subjectKind == ThingFlag.ROOM) {
+                    add(sounds, SoundCategory.SPEECH_MENTOR,
+                            RoomCaptureSpeech.forRoom(kwdFile.getRoomById(event.subjectId)).getId(), null);
+                }
+            }
             case TERRAIN_DESTROYED ->
                 add(sounds, subject, ThingSounds.DESTROYED, event.position);
+            case CASINO_JACKPOT_ANNOUNCED ->
+                add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.CASIN001.getId(), null);
+            case CASINO_DISCO_END ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_OVER, event.position);
+            case CASINO_FIREWORKS ->
+                add(sounds, GlobalCategory.EFFECTS, ThingSounds.FIREWORKS, event.position);
+            case CASINO_DISCO_START ->
+                add(sounds, subject, ThingSounds.ROOM_CASINO_DISCO_MUSIC, null); // Looped, DiscoViewState plays it and sets its volume
+            case CASINO_JACKPOT -> {
+                // The effect is the view's
+            }
+            case CREATURE_SACRIFICED ->
+                add(sounds, subject, ThingSounds.CREATURE_SACRIFICE, event.position);
+            case SACRIFICE_SPEECH ->
+                addSacrificeSpeech(sounds, event.subjectId);
         }
         return sounds;
     }
@@ -145,6 +183,18 @@ public final class GameEventSounds {
         }
         add(sounds, category, CombatSounds.getShotImpactEvent(getMaterial(kwdFile, event.targetKind, event.targetId)),
                 event.position);
+    }
+
+    /**
+     * DK II's message 0x47: speech 1 is the mentor's reply to a sacrifice that completed no recipe, speeches 2 to 46
+     * are the temple speeches the recipes name
+     */
+    private static void addSacrificeSpeech(List<Sound> sounds, int speechId) {
+        if (speechId == 1) {
+            add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.MISC075.getId(), null);
+        } else if (speechId >= 2 && speechId <= 46) {
+            add(sounds, SoundCategory.SPEECH_MENTOR, MentorType.TEMPL001.getId() + speechId - 2, null);
+        }
     }
 
     private static void add(List<Sound> sounds, @Nullable String category, int eventId, @Nullable Point position) {

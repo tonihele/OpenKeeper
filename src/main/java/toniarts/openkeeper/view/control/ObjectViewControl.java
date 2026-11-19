@@ -17,15 +17,22 @@
 package toniarts.openkeeper.view.control;
 
 import com.jme3.asset.AssetManager;
+import com.jme3.math.FastMath;
+import com.jme3.math.Vector3f;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityComponent;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import java.util.Collection;
 import java.util.Objects;
+import java.util.concurrent.ThreadLocalRandom;
+import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Stored;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.EntityPickupValidator;
 import toniarts.openkeeper.game.sound.SoundEngine;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -46,28 +53,58 @@ import toniarts.openkeeper.view.text.EntityTextParser;
  */
 public final class ObjectViewControl extends EntityViewControl<GameObject, ObjectViewState> {
 
+    /**
+     * A spin in the original (object state 18, 0x4A13F0) turns the object by
+     * 1536 / (ticks + 3) - 64 of the 2048ths of a turn per game tick, so it
+     * slows down and stops after 21 ticks
+     */
+    private static final float SPIN_SPEED = 1536;
+    private static final float SPIN_SLOW_DOWN = 64;
+
     private boolean initialized = false;
     private int loopHandle = SoundEngine.NO_HANDLE;
     private final IMapDataInformation<? extends IMapTileInformation> mapData;
     private final boolean uniqueCreatureBed;
+    private final int ticksPerSecond;
+    private float spinTicks = -1;
+    private float spinDirection;
+    private float spinAngle;
+    private Vector3f normalScale;
+    private boolean storedSpecial;
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser) {
-        this(entityId, entityData, data, state, assetManager, textParser, null, false);
+        this(entityId, entityData, data, state, assetManager, textParser, null, false, 0);
     }
 
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
             IMapDataInformation<? extends IMapTileInformation> mapData) {
-        this(entityId, entityData, data, state, assetManager, textParser, mapData, false);
+        this(entityId, entityData, data, state, assetManager, textParser, mapData, false, 0);
     }
 
+    /**
+     * Creates the view control of an object
+     *
+     * @param entityId the object
+     * @param entityData the entity data
+     * @param data the object's data
+     * @param state the object's view state
+     * @param assetManager the asset manager
+     * @param textParser the tooltip parser
+     * @param mapData the map, for where the object can be picked up
+     * @param uniqueCreatureBed whether the object is the bed of a unique
+     * creature
+     * @param ticksPerSecond the game ticks per second of the level, for the
+     * spin, or 0 when the object doesn't spin
+     */
     public ObjectViewControl(EntityId entityId, EntityData entityData, GameObject data, ObjectViewState state,
             AssetManager assetManager, EntityTextParser<GameObject> textParser,
-            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed) {
+            IMapDataInformation<? extends IMapTileInformation> mapData, boolean uniqueCreatureBed, int ticksPerSecond) {
         super(entityId, entityData, data, state, assetManager, textParser);
         this.mapData = mapData;
         this.uniqueCreatureBed = uniqueCreatureBed;
+        this.ticksPerSecond = ticksPerSecond;
     }
 
     @Override
@@ -75,6 +112,8 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         Collection<Class<? extends EntityComponent>> components = super.getWatchedComponents();
         components.add(ObjectComponent.class);
         components.add(Position.class);
+        components.add(LevelIndicator.class);
+        components.add(Stored.class);
         return components;
     }
 
@@ -83,6 +122,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         return super.isPickable(playerId)
                 && (mapData == null || EntityPickupValidator.isValidLocation(
                         getEntity().get(ObjectComponent.class),
+                        getEntity().get(Owner.class),
                         getEntity().get(Position.class),
                         playerId,
                         mapData));
@@ -115,6 +155,9 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
     @Override
     public void setSpatial(Spatial spatial) {
         super.setSpatial(spatial);
+        if (spatial != null) {
+            normalScale = spatial.getLocalScale().clone();
+        }
 
         // Play the starting animation
         if (spatial != null && !initialized) {
@@ -122,6 +165,7 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
             // Don't play for prison door nor the bar....?
             if (getDataObject().getObjectId() != 109 && getDataObject().getObjectId() != 116) {
                 playAnimation(currentState);
+                showLevel();
             }
             startSounds();
             initialized = true;
@@ -215,6 +259,77 @@ public final class ObjectViewControl extends EntityViewControl<GameObject, Objec
         if (!Objects.equals(currentState, targetState)) {
             playAnimation(state);
             currentState = targetState;
+
+            // Every spin starts over, one way or the other
+            if (state.state == GameObject.State.SPINNING && ticksPerSecond > 0) {
+                spinTicks = 0;
+                spinDirection = ThreadLocalRandom.current().nextBoolean() ? 1 : -1;
+            }
+        }
+    }
+
+    @Override
+    protected void controlUpdate(float tpf) {
+        super.controlUpdate(tpf);
+        Stored stored = getEntity().get(Stored.class);
+        boolean special = stored != null && stored.objectType == ObjectType.SPECIAL;
+        if (special != storedSpecial) {
+            // The native stored-special scale is 0x960 / 0x1000. Preserve the model's own scale.
+            spatial.setLocalScale(normalScale.mult(special ? 75f / 128 : 1));
+            storedSpecial = special;
+        }
+
+        if (spinTicks >= 0) {
+            float speed = SPIN_SPEED / ((int) spinTicks + 3) - SPIN_SLOW_DOWN;
+            if (speed > 0) {
+                float ticks = tpf * ticksPerSecond;
+                spinAngle = (spinAngle + spinDirection * speed * ticks * FastMath.TWO_PI / 2048) % FastMath.TWO_PI;
+                spinTicks += ticks;
+            } else {
+                spinTicks = -1;
+            }
+        }
+
+        // The spin turns the object from where it stands, an object that has just lost its place (sold, rebuilt)
+        // is left alone
+        Position position = spinAngle != 0 ? getEntity().get(Position.class) : null;
+        if (position != null) {
+            spatial.setLocalRotation(spatial.getLocalRotation().fromAngles(0, position.rotation + spinAngle, 0));
+        }
+    }
+
+    /**
+     * An object without a model of its own, like the Casino's pay out adjuster,
+     * shows an indicator that moves once to where it points and stays there.
+     * So does the My Pet Dungeon level indicator after a pull of its lever.
+     *
+     * @return true to hold the last frame
+     */
+    @Override
+    public boolean isHoldLastFrame() {
+        return getDataObject().getMeshResource() == null || isLevelIndicator();
+    }
+
+    private boolean isLevelIndicator() {
+        return getDataObject().getStartState() == GameObject.State.MY_PET_DUNGEON_LEVEL_INDICATOR;
+    }
+
+    /**
+     * The numbers of the My Pet Dungeon level indicator spin while its lever
+     * is pulled, then stop on the level (DKII.EXE 0x4A3910 and 0x4A3A00)
+     */
+    @Override
+    public void onAnimationCycleDone() {
+        showLevel();
+    }
+
+    private void showLevel() {
+        if (!isLevelIndicator()) {
+            return;
+        }
+        LevelIndicator levelIndicator = getEntity().get(LevelIndicator.class);
+        if (levelIndicator != null) {
+            LevelIndicatorTextures.apply(getSpatial(), levelIndicator.level, assetManager);
         }
     }
 
