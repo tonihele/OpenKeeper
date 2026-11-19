@@ -72,13 +72,13 @@ class PrayTest {
         keeper = new Keeper(false, PLAYER_ID);
         PlayerManaControl manaControl = new PlayerManaControl(keeper, gameSettings);
 
-        pray = new Pray(null, null, new Point(2, 3), PLAYER_ID, room(), null, entityData, gameSettings, manaControl);
+        pray = new Pray(null, null, new Point(2, 3), PLAYER_ID, room(), null, entityData, gameSettings, manaControl, 4);
         pray.assign(creature, false);
     }
 
     @Test
-    void prayingDoesNothingBeforeTheFirstSecond() {
-        pray.executeTask(creature, 0.75f);
+    void prayingDoesNothingBeforeTheFirstSecondAndATick() {
+        pray.executeTask(creature, 1.0f);
 
         assertEquals(80, entityData.getComponent(entity, Health.class).health);
         assertEquals(0, keeper.getMana());
@@ -87,7 +87,7 @@ class PrayTest {
 
     @Test
     void prayingCalmsEveryAngerOnceASecond() {
-        pray.executeTask(creature, 1.0f);
+        pray.executeTask(creature, 1.25f);
 
         CreatureMood mood = entityData.getComponent(entity, CreatureMood.class);
         assertEquals(1000 + ANGER_PER_SECOND, mood.general);
@@ -102,7 +102,7 @@ class PrayTest {
     void prayingHeals() {
         entityData.setComponent(entity, new Health(50, 100));
 
-        pray.executeTask(creature, 1.0f);
+        pray.executeTask(creature, 1.25f);
 
         assertEquals(50 + HEALTH_PER_SECOND, entityData.getComponent(entity, Health.class).health);
     }
@@ -111,22 +111,24 @@ class PrayTest {
     void prayingDoesNotHealPastTheMaximum() {
         entityData.setComponent(entity, new Health(90, 100));
 
-        pray.executeTask(creature, 1.0f);
+        pray.executeTask(creature, 1.25f);
 
         assertEquals(100, entityData.getComponent(entity, Health.class).health);
     }
 
     @Test
     void prayingGivesTheKeeperTheCreaturesPrayerMana() {
-        pray.executeTask(creature, 1.0f);
+        pray.executeTask(creature, 1.25f);
 
         assertEquals(MANA_PER_SECOND, keeper.getMana());
     }
 
     @Test
-    void prayingWorksOnceASecondEvenWhenExecutedEveryTick() {
-        for (float time = 0.25f; time <= 3.0f; time += 0.25f) {
-            pray.executeTask(creature, time);
+    void prayingWorksEveryFiveTicksEvenWhenExecutedEveryTick() {
+
+        // DK II counts the ticks of a second down to 0 before each prayer, 15 ticks are three prayers (0x47B970)
+        for (int tick = 1; tick <= 15; tick++) {
+            pray.executeTask(creature, tick * 0.25f);
         }
 
         assertEquals(3 * MANA_PER_SECOND, keeper.getMana());

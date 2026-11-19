@@ -40,7 +40,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Prays in the Temple. Like in DK II, once a second the prayer calms every
  * kind of anger the creature has, heals it and gives its keeper the creature's
- * prayer mana
+ * prayer mana. DK II counts that second down from the ticks per second to 0,
+ * so it takes a tick more than a second (DKII.EXE 0x47B8C0, 0x47B970)
  */
 public final class Pray extends AbstractCapacityCriticalRoomTask {
 
@@ -51,14 +52,30 @@ public final class Pray extends AbstractCapacityCriticalRoomTask {
     private final PlayerManaControl manaControl;
     private final int angerPerSecond;
     private final int healthPerSecond;
+    private final float prayerInterval;
 
+    /**
+     * Praying in the Temple
+     *
+     * @param navigationService the navigation service
+     * @param mapController the map controller
+     * @param p the spot to pray at
+     * @param playerId the owner of the Temple
+     * @param room the Temple
+     * @param taskManager the task manager
+     * @param entityData the entity data
+     * @param gameSettings the level variables
+     * @param manaControl the keeper's mana, for the prayer mana
+     * @param ticksPerSecond the level's ticks per second
+     */
     public Pray(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
             IRoomController room, TaskManager taskManager, EntityData entityData,
-            Map<MiscType, MiscVariable> gameSettings, PlayerManaControl manaControl) {
+            Map<MiscType, MiscVariable> gameSettings, PlayerManaControl manaControl, int ticksPerSecond) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.entityData = entityData;
         this.manaControl = manaControl;
+        prayerInterval = (ticksPerSecond + 1) / (float) ticksPerSecond;
 
         angerPerSecond = (int) gameSettings.get(MiscType.MODIFY_CREATURE_ANGER_WHILE_PRAYING_PER_SECOND).getValue();
         healthPerSecond = (int) gameSettings.get(MiscType.MODIFY_CREATURE_HEALTH_WHILE_PRAYING_PER_SECOND).getValue();
@@ -77,12 +94,12 @@ public final class Pray extends AbstractCapacityCriticalRoomTask {
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
 
-        // Once a second, timed from the start of the prayer
+        // Once a second and a tick, timed from the start of the prayer
         float lastPrayer = getExecutionDuration(creature);
-        if (executionDuration - lastPrayer < 1.0f) {
+        if (executionDuration - lastPrayer < prayerInterval) {
             return;
         }
-        setExecutionDuration(creature, lastPrayer + 1.0f);
+        setExecutionDuration(creature, lastPrayer + prayerInterval);
 
         EntityId entityId = creature.getEntityId();
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
