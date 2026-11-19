@@ -289,7 +289,7 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
         // trim speed if have no forces
         if (steering.linear.isZero() && !steerableEntity.getLinearVelocity().isZero()) {
-            steerableEntity.getLinearVelocity().scl(0.8f);
+            steerableEntity.getLinearVelocity().scl((float) Math.pow(.8f, tpf * 60));
         }
         // apply linear
         steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
@@ -302,7 +302,8 @@ public final class MovementSystem implements IGameLogicUpdatable {
                 || steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())) {
             // trim speed if have no forces
             if (steering.angular == 0 && steerableEntity.getAngularVelocity() != 0) {
-                steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity() * 0.7f);
+                steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity()
+                        * (float) Math.pow(.7f, tpf * 60));
             }
             // Update angular velocity. Velocity is trimmed to maximum speed
             steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity()

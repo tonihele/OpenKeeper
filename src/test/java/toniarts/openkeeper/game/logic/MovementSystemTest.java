@@ -72,6 +72,31 @@ class MovementSystemTest {
         movement.stop();
     }
 
+    @Test
+    void residualSpinSettlesAtTheSameRateOnLogicTicks() {
+        EntityData data = new DefaultEntityData();
+        EntityId id = data.createEntity();
+        data.setComponents(id, new Position(0, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), new Point(3, 4), new ArrayList<>()));
+        MovementSystem movement = new MovementSystem(data, map(false, false));
+        try {
+            var field = MovementSystem.class.getDeclaredField("steerableEntitiesByEntityId");
+            field.setAccessible(true);
+            @SuppressWarnings("unchecked")
+            var steerables = (java.util.Map<EntityId, toniarts.openkeeper.game.navigation.steering.ISteerableEntity>) field.get(movement);
+            // Synthetic residual yaw after arriving, already facing the target.
+            steerables.get(id).setAngularVelocity(.1f);
+            for (int tick = 0; tick < 4 && data.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertNull(data.getComponent(id, Navigation.class), "residual spin kept an arrived route alive");
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        } finally {
+            movement.stop();
+        }
+    }
+
     /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
      * (sin r, cos r) on x, z for the Position rotation r.
