@@ -74,7 +74,7 @@ class NavigationServiceTest {
     @Test
     void oneIdleWalkInEightGoesToTheKeepersOldestRoom() {
         Point oldest = new Point(28, 28);
-        List<IRoomController> rooms = List.of(room(9, 1, new Point(1, 1)), room(5, 6, oldest), room(2, 3, new Point(28, 1)));
+        List<IRoomController> rooms = List.of(room(9, 1, new Point(1, 1)), room(5, 26, oldest), room(2, 3, new Point(28, 1)));
         NavigationService navigation = navigation(p -> KEEPER, rooms);
         int toTheRoom = 0;
         for (int i = 0; i < 800; i++) {
@@ -86,7 +86,7 @@ class NavigationServiceTest {
             }
         }
 
-        // The Portal is older but isn't walked to, about 100 of the 800 walks go to the Library
+        // The Portal is older but isn't walked to, about 100 of the 800 walks go to the Crypt
         assertTrue(toTheRoom > 50 && toTheRoom < 150, "walks to the room: " + toTheRoom);
     }
 

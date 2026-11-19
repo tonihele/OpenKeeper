@@ -578,13 +578,20 @@ class CreatureControllerTest {
             assertTrue(first > 900 && first < 1100, "first idle animation: " + first);
             assertTrue(second > 420 && second < 580, "second idle animation: " + second);
 
-            // A worker and a neutral creature never do
-            f.data.setComponent(f.entity, new IdleAnimation(null, 0));
+            // A worker makes the same roll in its own idle state (0x464240)
             f.data.getComponent(f.entity, CreatureComponent.class).worker = true;
-            for (int i = 0; i < 50; i++) {
-                assertFalse(f.controller.playIdleAnimation());
+            int worker = 0;
+            for (int i = 0; i < 400; i++) {
+                f.data.setComponent(f.entity, new IdleAnimation(null, 0));
+                if (f.controller.playIdleAnimation()) {
+                    worker++;
+                }
             }
+            assertTrue(worker > 260 && worker < 340, "worker idle animations: " + worker);
+
+            // A neutral creature never does
             f.data.getComponent(f.entity, CreatureComponent.class).worker = false;
+            f.data.setComponent(f.entity, new IdleAnimation(null, 0));
             f.data.setComponent(f.entity, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
             for (int i = 0; i < 50; i++) {
                 assertFalse(f.controller.playIdleAnimation());

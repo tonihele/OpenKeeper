@@ -1787,13 +1787,14 @@ public final class CreatureController extends EntityController implements ICreat
     @Override
     public boolean playIdleAnimation() {
 
-        // A worker has its own idle state in DK II (0x464240), and a neutral creature its own pace
-        if (isWorker() || !isClaimed()) {
+        // A neutral creature has its own pace
+        if (!isClaimed()) {
             return false;
         }
 
         // DK II only lets an idle animation follow an idle walk (the flag at CState +0xA7), so the creature walks the
-        // first time and after each animation. A creature without the animation walks too
+        // first time and after each animation. A creature without the animation walks too. A worker makes the same
+        // roll inside its own idle state (0x464240)
         IdleAnimation last = entityData.getComponent(entityId, IdleAnimation.class);
         int roll = FastMath.rand.nextInt(100);
         if (last != null && last.animation == null && roll >= 25) {

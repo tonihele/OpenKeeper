@@ -49,10 +49,11 @@ public final class NavigationService implements INavigationService {
     /**
      * The rooms an idle creature may walk to (0x480A00): Treasury, Lair,
      * Hatchery, Library, Training Room, Guard Room, Work Shop, Prison, Torture
-     * Chamber, Temple, Graveyard, Casino and Combat Pit
+     * Chamber, Temple, Graveyard, Casino, Combat Pit and Crypt
      */
     private static final Set<Short> IDLE_WALK_ROOM_IDS = Set.of((short) 1, (short) 2, (short) 4, (short) 6, (short) 7,
-            (short) 9, (short) 10, (short) 11, (short) 12, (short) 13, (short) 14, (short) 15, (short) 16);
+            (short) 9, (short) 10, (short) 11, (short) 12, (short) 13, (short) 14, (short) 15, (short) 16,
+            (short) 26);
 
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
