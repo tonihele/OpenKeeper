@@ -60,6 +60,7 @@ import toniarts.openkeeper.animation.Pose;
 import toniarts.openkeeper.animation.PoseTrack;
 import toniarts.openkeeper.animation.PoseTrack.PoseFrame;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
+import toniarts.openkeeper.tools.convert.kmf.AnimControl;
 import toniarts.openkeeper.tools.convert.kmf.Grop;
 import toniarts.openkeeper.tools.convert.kmf.KmfFile;
 import toniarts.openkeeper.tools.convert.kmf.MeshVertex;
@@ -105,6 +106,13 @@ public final class KmfModelLoader implements AssetLoader {
      * is the resolved ".j3o" asset path, not the original name)
      */
     public static final String GROUP_PART_NAME = "GroupPartName";
+    /**
+     * User data key on an animation node, the vertices DK II draws the speed
+     * blur from: runs separated by ';', the points of a run by ',', and each
+     * point as the child index of its geometry and the vertex index, separated
+     * by ':'
+     */
+    public static final String SPEED_BLUR_POINTS = "SpeedBlurPoints";
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
@@ -153,6 +161,30 @@ public final class KmfModelLoader implements AssetLoader {
         }
 
         return root;
+    }
+
+    /**
+     * DK II draws the speed blur from the control points with the ids 1000 to
+     * 1999, a strip along each run of consecutive ids (0x5A3AA0)
+     *
+     * @param controls the control points of the animation
+     * @param spriteChildren the child index of each sprite's geometry
+     * @return the points in the {@link #SPEED_BLUR_POINTS} format, empty if
+     * there are none
+     */
+    private static String getSpeedBlurPoints(List<AnimControl> controls, Map<Integer, Integer> spriteChildren) {
+        StringBuilder points = new StringBuilder();
+        int previousId = -2;
+        for (AnimControl control : controls.stream()
+                .filter(c -> c.getId() >= 1000 && c.getId() < 2000 && spriteChildren.containsKey(c.getSprite()))
+                .sorted(Comparator.comparingInt(AnimControl::getId)).toList()) {
+            if (!points.isEmpty()) {
+                points.append(control.getId() == previousId + 1 ? ',' : ';');
+            }
+            points.append(spriteChildren.get(control.getSprite())).append(':').append(control.getVertex());
+            previousId = control.getId();
+        }
+        return points.toString();
     }
 
     /**
@@ -265,10 +297,14 @@ public final class KmfModelLoader implements AssetLoader {
         }
 
         int subMeshIndex = 0;
+        int sprite = -1;
+        Map<Integer, Integer> spriteChildren = new HashMap<>();
         for (var subMesh : anim.getSprites()) {
+            sprite++;
 
             if (subMesh.getTriangles().get(0).isEmpty())
                 continue; // FIXME: LODs are broken so we only take L0
+            spriteChildren.put(sprite, subMeshIndex);
 
             // Animation
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
@@ -460,6 +496,10 @@ public final class KmfModelLoader implements AssetLoader {
             //Attach the geometry to the node
             node.attachChild(geom);
             ++subMeshIndex;
+        }
+        String speedBlurPoints = getSpeedBlurPoints(anim.getControls(), spriteChildren);
+        if (!speedBlurPoints.isEmpty()) {
+            node.setUserData(SPEED_BLUR_POINTS, speedBlurPoints);
         }
 
         // Create the animation itself and attach the animation

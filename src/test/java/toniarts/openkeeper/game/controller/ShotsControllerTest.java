@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.SpeedBlur;
 import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -244,6 +245,32 @@ class ShotsControllerTest {
 
         assertEquals(1.5f, entityData.getComponent(creature, Mobile.class).maxSpeed);
         assertEquals(15.0, entityData.getComponent(creature, SpeedChange.class).endTime);
+    }
+
+    @Test
+    void aSpedUpCreatureShowsTheSpeedBlurForTheSecondValueInGameTicks() {
+        EntityId creature = createCreature(1f);
+
+        // Haste Creature: 150 % for 15 seconds, the blur for 15 ticks of the 4 a second (0x4AE000)
+        shotsController.createShot(SPEED_ID, 150, 15, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(3.75, entityData.getComponent(creature, SpeedBlur.class).endTime);
+
+        // The speed change is left as it is, the creature is still faster, so the blur starts again
+        shotsController.createShot(SPEED_ID, 150, 8, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(2.0, entityData.getComponent(creature, SpeedBlur.class).endTime);
+    }
+
+    @Test
+    void aSlowedCreatureLosesTheSpeedBlur() {
+        EntityId creature = createCreature(1f);
+        entityData.setComponent(creature, new SpeedBlur(10));
+
+        // Slow: 20 % for 15 seconds
+        shotsController.createShot(SPEED_ID, 20, 15, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertNull(entityData.getComponent(creature, SpeedBlur.class));
     }
 
     @Test
