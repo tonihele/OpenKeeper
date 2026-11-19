@@ -126,6 +126,18 @@ tasks.register("validateVertexTexturePlayback", JavaExec) {
     args layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath
 }
 
+tasks.register("auditVertexAnimationCorpus", JavaExec) {
+    group = "verification"
+    description = "Source-bound Float32/UNORM16 and LOD index audit for every catalog creature resource/segment"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.VertexClipBake'
+    workingDir providers.gradleProperty('animationWorkingDir').orElse(projectDir.absolutePath).get()
+    args providers.gradleProperty('dk2Root').orElse('').get(), providers.gradleProperty('convertedAssets').orElse('assets/Converted').get(),
+            layout.buildDirectory.dir('vertex-clips-all').get().asFile.absolutePath, '--all-creatures'
+    maxHeapSize = '2g'
+}
+
 tasks.register("auditAnimationUpdateError", JavaExec) {
     group = "verification"
     description = "Offline held-pose update error over wrap seams, display rates and stagger buckets"
