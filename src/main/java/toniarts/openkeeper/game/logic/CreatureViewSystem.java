@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Teleport;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import static toniarts.openkeeper.game.controller.creature.CreatureState.MELEE_ATTACK;
@@ -112,6 +113,8 @@ public final class CreatureViewSystem extends GameTimeCounter {
                 targetState = Creature.AnimationType.DEATH_POSE;
             } else if (entityData.getComponent(entityId, Unconscious.class) != null) {
                 targetState = Creature.AnimationType.DIE;
+            } else if (entityData.getComponent(entityId, Teleport.class) != null) {
+                targetState = Creature.AnimationType.SPECIAL_1; // The Imp's jump
             } else if (entityData.getComponent(entityId, Possessed.class) != null) {
                 targetState = getPossessedAnimation(entityId, state);
             } else {

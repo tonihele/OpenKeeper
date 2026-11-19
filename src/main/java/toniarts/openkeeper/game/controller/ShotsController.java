@@ -22,15 +22,23 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
+import toniarts.openkeeper.game.component.Mobile;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.SpeedChange;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -61,8 +69,13 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREA
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INSTANTANEOUS_HIT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVISIBLE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVUNERABLE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_SPEED;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 
 /**
@@ -137,12 +150,39 @@ public final class ShotsController implements IShotsController {
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        // Haste and Slow: the first value is the new speed as a percentage of the current one, the second how many
+        // seconds it lasts. The speed stays between a quarter of the creature's own and a tile a game tick, and a
+        // speed change that is still running is left as it is
+        result.put(MODIFY_SPEED, request -> {
+            Mobile mobile = entityData.getComponent(request.target(), Mobile.class);
+            CreatureComponent creature = entityData.getComponent(request.target(), CreatureComponent.class);
+            if (mobile != null && creature != null && entityData.getComponent(request.target(), SpeedChange.class) == null) {
+                float speed = FastMath.clamp(mobile.maxSpeed * request.shotData1() / 100, creature.speed / 4, kwdFile.getGameLevel().getTicksPerSec());
+                entityData.setComponents(request.target(), new Mobile(mobile.canFly, mobile.canWalkOnWater, mobile.canWalkOnLava, speed),
+                        new SpeedChange(gameTimer.getGameTime() + request.shotData2()));
+            }
+        });
+        // Cast Armour: the first value is how long the armour lasts, in game ticks
+        result.put(MODIFY_ARMOUR, request -> entityData.setComponent(request.target(),
+                new Armour(gameTimer.getGameTime() + (double) request.shotData1() / kwdFile.getGameLevel().getTicksPerSec())));
+        // Invisible: the first value is how long it lasts, in seconds
+        result.put(INVISIBLE, request -> entityData.setComponent(request.target(),
+                new Invisible(gameTimer.getGameTime() + request.shotData1())));
+        // Invulnerable: the first value is how long it lasts, in seconds
+        result.put(INVUNERABLE, request -> entityData.setComponent(request.target(),
+                new Invulnerable(gameTimer.getGameTime() + request.shotData1())));
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
+        // The shot is at its target at once and dies there, its death shot goes on with the same values
+        result.put(INSTANTANEOUS_HIT, request -> {
+            if (request.shot().getDeathShotId() != 0) {
+                createShot(request.shot().getDeathShotId(), request.shotData1(), request.shotData2(), request.playerId(), request.position(), request.target(), null);
+            }
+        });
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
@@ -154,12 +194,13 @@ public final class ShotsController implements IShotsController {
     public void createShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target, EntityId shooter) {
 
         // Creature attacks still apply their damage themselves, see CreatureController#executeAttack. Processing
-        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type)
-        if (shooter != null) {
+        // their shots here too would hit twice (Mistress and Fairy lightning share the keeper's process type).
+        // What a creature casts on its own side is no attack and is processed here
+        Shot shot = kwdFile.getShotById(shotTypeId);
+        if (shooter != null && shot.getCollideType() != Shot.CollideType.OWN_CREATURES) {
             return;
         }
 
-        Shot shot = kwdFile.getShotById(shotTypeId);
         ShotRequest request = new ShotRequest(shot, shotData1, shotData2, playerId, position, target);
         notifyShotHit(shot, target);
         damage(request);
@@ -177,14 +218,16 @@ public final class ShotsController implements IShotsController {
     }
 
     /**
-     * A shot that hits at once deals its damage by its damage type, whatever
-     * else the shot does (0x4AC3C0). The shot's data 1 is the damage:
+     * A shot deals its damage by its damage type, whatever else the shot does.
+     * A shot that hits at once does it once, a flying shot on every turn
+     * (0x4AC3C0). The shot's data 1 is the damage:
      * <ul>
      * <li>A shot that hits a thing (Magic Door) hurts its target.</li>
      * <li>A shot with constant damage (Spike Trap) hurts the creatures on its
      * tile.</li>
-     * <li>A shot with damage from its origin (Fireburst Trap, Gas Trap) hurts
-     * the creatures within shot data 2 tiles.</li>
+     * <li>A shot with damage from its origin (Fireburst Trap, Gas Trap, Gas
+     * Cloud) hurts the things within shot data 2 tiles, the less the further
+     * they are (0x4AC6D0).</li>
      * </ul>
      *
      * @param request the shot
@@ -195,8 +238,8 @@ public final class ShotsController implements IShotsController {
             EntityController.setDamage(entityData, request.target(), request.shotData1());
         } else if (damageType == Shot.DamageType.CONSTANT) {
             damageCreatures(request, 0);
-        } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN) {
-            damageCreatures(request, request.shotData2());
+        } else if (damageType == Shot.DamageType.RANGE_FROM_ORIGIN && request.shotData2() > 0) {
+            damageFromOrigin(request);
         }
     }
 
@@ -230,6 +273,58 @@ public final class ShotsController implements IShotsController {
                 }
             }
         }
+    }
+
+    /**
+     * Damage from the origin (0x4AC6D0). The tiles within the radius are gone
+     * through row by row, and each thing of another player on them that is
+     * within the radius takes damage x (radius - distance) / radius. That is
+     * then the damage for the next thing, so the damage runs down within the
+     * turn, and once it is 0 nothing more is hit. Creatures and objects are
+     * hit, and doors and traps too unless the shot is gas.
+     *
+     * @param request the shot
+     */
+    private void damageFromOrigin(ShotRequest request) {
+        IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+        boolean gas = request.shot().getAttackCategory() == Shot.AttackCategory.GAS;
+        int radius = request.shotData2();
+        int damage = request.shotData1();
+        Vector3f origin = request.position();
+        Point tile = WorldUtils.vectorToPoint(origin);
+        for (int y = tile.y - radius; y <= tile.y + radius; y++) {
+            for (int x = tile.x - radius; x <= tile.x + radius; x++) {
+                for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(x, y)) {
+                    if (!isHitFromOrigin(entityId, request.playerId(), gas)) {
+                        continue;
+                    }
+
+                    Vector3f position = EntityController.getPosition(entityData, entityId);
+                    float distance = FastMath.sqrt(FastMath.sqr(position.x - origin.x) + FastMath.sqr(position.z - origin.z));
+                    if (distance >= radius) {
+                        continue;
+                    }
+                    damage = (int) (damage * (radius - distance) / radius);
+                    if (damage == 0) {
+                        return;
+                    }
+                    EntityController.setDamage(entityData, entityId, damage);
+                }
+            }
+        }
+    }
+
+    private boolean isHitFromOrigin(EntityId entityId, short playerId, boolean gas) {
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (owner == null || owner.ownerId == playerId || entityData.getComponent(entityId, Health.class) == null) {
+            return false;
+        }
+        if (entityData.getComponent(entityId, CreatureComponent.class) != null
+                || entityData.getComponent(entityId, ObjectComponent.class) != null) {
+            return true;
+        }
+        return !gas && (entityData.getComponent(entityId, DoorComponent.class) != null
+                || entityData.getComponent(entityId, TrapComponent.class) != null);
     }
 
     /**
@@ -290,20 +385,29 @@ public final class ShotsController implements IShotsController {
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
             EntityId shooter, float maxRange) {
         Shot shot = kwdFile.getShotById(shotTypeId);
-        if (!ShotFlightRules.isFlying(shot) || targetPosition == null) {
+
+        // A trap's shot flies if it moves towards its target, a creature's whenever it has a speed, like the
+        // Bile Demon's Gas Cloud (0x4984D0)
+        boolean creatureShot = shooter != null && entityData.getComponent(shooter, CreatureComponent.class) != null;
+        boolean flying = creatureShot ? shot.getSpeed() > 0 : ShotFlightRules.isFlying(shot);
+        if (!flying || targetPosition == null) {
             return false;
         }
 
         Vector3f velocity = ShotFlightRules.aim(position, targetPosition, shot.getSpeed());
+        addShot(new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
+                shot.getHealth()));
+
+        return true;
+    }
+
+    private void addShot(ShotFlight flight) {
         int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         EntityId entity = entityData.createEntity();
         entityData.setComponents(entity,
-                new Position(FastMath.atan2(velocity.x, velocity.z), new Vector3f(position)),
-                new ShotViewState(shotTypeId, velocity.mult(ticksPerSecond)),
-                new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
-                        shot.getHealth()));
-
-        return true;
+                new Position(FastMath.atan2(flight.velocity.x, flight.velocity.z), new Vector3f(flight.start)),
+                new ShotViewState(flight.shotId, flight.velocity.mult(ticksPerSecond)),
+                flight);
     }
 
     /**
@@ -329,8 +433,10 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
-        // The shot's data 1 is its damage (0x4AC420)
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+        // The shot's data 1 is its damage. An invulnerable creature takes none
+        // and isn't set alight either (0x4AC420)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0
+                && entityData.getComponent(thing, Invulnerable.class) == null) {
             if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
                 setAlight(thing);
             }
@@ -339,6 +445,23 @@ public final class ShotsController implements IShotsController {
 
         process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
                 EntityController.getPosition(entityData, shotEntity), thing));
+    }
+
+    @Override
+    public void damageArea(EntityId shotEntity) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        damage(new ShotRequest(kwdFile.getShotById(flight.shotId), flight.shotData1, flight.shotData2, flight.ownerId,
+                EntityController.getPosition(entityData, shotEntity), null));
+    }
+
+    @Override
+    public void createChildShot(EntityId shotEntity, short shotTypeId, Vector3f position) {
+        ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
+
+        // The new shot keeps the old one's values, not its own (0x4AB180)
+        addShot(new ShotFlight(shotTypeId, flight.ownerId, flight.shooter, flight.shotData1, flight.shotData2, new Vector3f(),
+                new Vector3f(position), 0, kwdFile.getShotById(shotTypeId).getHealth()));
     }
 
     /**
