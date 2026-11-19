@@ -16,13 +16,20 @@
  */
 package toniarts.openkeeper.game.task.worker;
 
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.TileWork;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -30,6 +37,7 @@ import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * DK II's dig swing (0x496AA0, 0x496E00): one hit at the start of each swing,
@@ -103,6 +111,56 @@ class DigTileTaskTest {
         assertEquals(false, task.isValid(creature(dwarf)));
     }
 
+    @Test
+    void impStopsMiningOnAGoldPileOfMoreThanThePileOutsideATreasury() {
+
+        // DK II (0x465870): over MAX_GOLD_PILE_OUTSIDE_TREASURY (2000) at its feet the imp gives up the dig, at it it
+        // swings on
+        Creature imp = CreatureSleepFixtures.digger("Imp", 15, 20, 0, 8);
+        for (int pile : new int[]{2000, 2001}) {
+            Digging digging = new Digging(DIRT_HEALTH, 1);
+            EntityData entityData = new DefaultEntityData();
+            EntityId gold = entityData.createEntity();
+            entityData.setComponents(gold, new ObjectComponent((short) 1, AbstractRoomController.ObjectType.GOLD), new Gold(pile, 2000));
+            IEntityPositionLookup lookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(),
+                    new Class<?>[]{IEntityPositionLookup.class}, (proxy, method, args) -> switch (method.getName()) {
+                case "getEntitiesInLocation" ->
+                    new Point(1, 2).equals(args[0]) ? List.of(gold) : List.of();
+                default ->
+                    throw new UnsupportedOperationException(method.getName());
+            });
+            DigTileTask task = new DigTileTask(null, digging.mapController(), new Point(1, 1), PLAYER, entityData, lookup, 2000);
+            List<String> calls = new ArrayList<>();
+            ICreatureController digger = (ICreatureController) Proxy.newProxyInstance(ICreatureController.class.getClassLoader(),
+                    new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
+                case "getCreature" ->
+                    imp;
+                case "getCreatureCoordinates" ->
+                    new Point(1, 2);
+                case "addGold", "unassingCurrentTask" -> {
+                    calls.add(method.getName());
+                    yield null;
+                }
+                case "hashCode" ->
+                    System.identityHashCode(proxy);
+                case "equals" ->
+                    proxy == args[0];
+                default ->
+                    throw new UnsupportedOperationException(method.getName());
+            });
+            task.assign(digger, false);
+
+            task.executeTask(digger, 0);
+
+            assertEquals(pile > 2000 ? List.of("unassingCurrentTask") : List.of("addGold"), calls, "pile " + pile);
+            assertEquals(pile > 2000 ? List.of() : List.of(0), digging.hits, "pile " + pile);
+
+            // And DK II's search for a spot to dig from skips it (0x469AF0)
+            assertEquals(pile <= 2000, task.isWorkSpot(new Point(1, 2)), "pile " + pile);
+            assertTrue(task.isWorkSpot(new Point(0, 1)));
+        }
+    }
+
     /**
      * Ticks of the hits, and the tick the digger is done
      */
@@ -130,6 +188,8 @@ class DigTileTaskTest {
                 new Class<?>[]{ICreatureController.class}, (proxy, method, args) -> switch (method.getName()) {
             case "getCreature" ->
                 creature;
+            case "getCreatureCoordinates" ->
+                new Point(1, 2);
             case "addGold" ->
                 0;
             case "hashCode" ->

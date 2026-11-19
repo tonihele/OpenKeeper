@@ -17,9 +17,14 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
@@ -35,8 +40,33 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class DigTileTask extends AbstractTileTask {
 
+    private final EntityData entityData;
+    private final IEntityPositionLookup entityPositionLookup;
+    private final int maxGoldPile;
+
     public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        this(navigationService, mapController, p, playerId, null, null, 0);
+    }
+
+    /**
+     * A worker's dig task that minds the gold piling up at the diggers' feet,
+     * like DK II's mining (0x465870)
+     *
+     * @param navigationService the navigation service
+     * @param mapController the map controller
+     * @param p the tile to dig
+     * @param playerId the player that wants it dug
+     * @param entityData the entity data
+     * @param entityPositionLookup the entities by tile
+     * @param maxGoldPile the level's MAX_GOLD_PILE_OUTSIDE_TREASURY
+     */
+    public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
+            EntityData entityData, IEntityPositionLookup entityPositionLookup, int maxGoldPile) {
         super(navigationService, mapController, p, playerId);
+
+        this.entityData = entityData;
+        this.entityPositionLookup = entityPositionLookup;
+        this.maxGoldPile = maxGoldPile;
     }
 
     @Override
@@ -59,6 +89,24 @@ public class DigTileTask extends AbstractTileTask {
     @Override
     public boolean isReachable(ICreatureController creature) {
         return (getTarget(creature) != null); // To avoid multiple path finds
+    }
+
+    /**
+     * Like DK II's search for a spot to dig from (0x469AF0), a spot with a
+     * loose gold pile of more than the level's biggest pile outside a Treasury
+     * is skipped
+     */
+    @Override
+    protected boolean isWorkSpot(Point p) {
+        return !isFullGoldPile(p);
+    }
+
+    private boolean isFullGoldPile(Point p) {
+        if (entityData == null) {
+            return false;
+        }
+        EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, p);
+        return pile != null && entityData.getComponent(pile, Gold.class).gold > maxGoldPile;
     }
 
     @Override
@@ -108,6 +156,14 @@ public class DigTileTask extends AbstractTileTask {
         }
         if (!isTileToDig()) {
             setExecutionDuration(creature, 0);
+            return;
+        }
+
+        // Like DK II (0x465870), before each swing the digger looks at the loose gold at its feet: the gold it can't
+        // carry piles up there. When the pile holds more than a pile outside a Treasury may, it stops and looks for
+        // other work
+        if (isFullGoldPile(creature.getCreatureCoordinates())) {
+            creature.unassingCurrentTask();
             return;
         }
 
