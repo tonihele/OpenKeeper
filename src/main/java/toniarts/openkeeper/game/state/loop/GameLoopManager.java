@@ -164,7 +164,7 @@ public final class GameLoopManager {
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
-                        gameWorldController.getShotsController()),
+                        gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
