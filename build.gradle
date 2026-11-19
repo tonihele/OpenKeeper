@@ -113,6 +113,16 @@ tasks.register("validateVertexTexturePlayback", JavaExec) {
     args layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath
 }
 
+tasks.register("auditAnimationUpdateError", JavaExec) {
+    group = "verification"
+    description = "Offline held-pose update error over wrap seams, display rates and stagger buckets"
+    dependsOn tasks.named('bakeVertexAnimationClips')
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.animation.AnimationUpdateErrorAudit'
+    args layout.buildDirectory.dir('vertex-clips').get().asFile.absolutePath,
+            layout.buildDirectory.file('animation-update-error.csv').get().asFile.absolutePath
+}
+
 tasks.register("captureCharacterAnimation", JavaExec) {
     group = "verification"
     description = "Opt-in OpenGL playback/transition/pause capture using installed assets"

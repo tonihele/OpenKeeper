@@ -28,7 +28,7 @@ public final class VertexClipBake {
         for (String entry : wad.getWadFileEntries()) names.put(Path.of(entry).getFileName().toString(),entry);
         long full=0, quantized=0, sourceBytes=0, invalidIndices=0, lodLevels=0;
         double maxError=0; int parts=0;
-        var report=new ArrayList<String>(); report.add("resource,part,vertices,keys,float32_bytes,unorm16_bytes,max_local_error");
+        var report=new ArrayList<String>(); report.add("resource,part,vertices,keys,float32_bytes,unorm16_bytes,max_local_error,source_sha256");
         for (String name : List.of("Imp_Run","Goblin-Walk","Mis_Walk","Knight-Walk","Warlock-Walk","Bile_Demon-Walk","Fir-Walk","Skeleton-Walk")) {
             byte[] bytes=wad.getFileData(Objects.requireNonNull(names.get(name+".kmf"),name)); sourceBytes+=bytes.length;
             String hash=HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256").digest(bytes));
@@ -69,7 +69,7 @@ public final class VertexClipBake {
                     finally { Files.deleteIfExists(temporary); }
                 }
                 full+=encoded[0].length; quantized+=encoded[1].length; maxError=Math.max(maxError,error); parts++;
-                report.add(name+","+part+","+packed.vertexCount()+","+packed.keyCount()+","+encoded[0].length+","+encoded[1].length+","+error);
+                report.add(name+","+part+","+packed.vertexCount()+","+packed.keyCount()+","+encoded[0].length+","+encoded[1].length+","+error+","+hash);
             }
         }
         Files.write(output.resolve("report.csv"),report);
