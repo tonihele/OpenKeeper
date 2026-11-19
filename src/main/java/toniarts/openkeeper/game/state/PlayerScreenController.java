@@ -119,6 +119,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
+    private final Set<Element> unaffordableWorkshopItems = new HashSet<>();
     private Label tooltip;
     private boolean initHud = false;
     private String cinematicText;
@@ -1048,6 +1049,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
         updateRoomAffordability(gold);
+        updateWorkshopAffordability(gold);
     }
 
     /**
@@ -1066,23 +1068,49 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (!room.isDiscovered()) {
                 continue;
             }
-            Element icon = hud.findElementById("room_" + room.getId());
-            if (icon == null) {
-                continue;
+            updateAffordability(hud.findElementById("room_" + room.getId()),
+                    state.getKwdFile().getRoomById(room.getId()).getCost() > gold, unaffordableRooms);
+        }
+    }
+
+    /**
+     * Darkens the door and trap icons that the player doesn't have enough gold
+     * to place a blueprint of, like DK II does (0x412FC0)
+     *
+     * @param gold the gold the player has
+     */
+    private void updateWorkshopAffordability(int gold) {
+        if (state == null) {
+            // The HUD has been taken down, the level has ended
+            return;
+        }
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        for (ResearchableEntity door : state.getAvailableDoors()) {
+            if (door.isDiscovered()) {
+                updateAffordability(hud.findElementById("door_" + door.getId()),
+                        state.getKwdFile().getDoorById(door.getId()).getGoldCost() > gold, unaffordableWorkshopItems);
             }
-            boolean unaffordable = state.getKwdFile().getRoomById(room.getId()).getCost() > gold;
-            if (unaffordable == unaffordableRooms.contains(icon)) {
-                continue;
+        }
+        for (ResearchableEntity trap : state.getAvailableTraps()) {
+            if (trap.isDiscovered()) {
+                updateAffordability(hud.findElementById("trap_" + trap.getId()),
+                        state.getKwdFile().getTrapById(trap.getId()).getGoldCost() > gold, unaffordableWorkshopItems);
             }
-            if (unaffordable) {
-                unaffordableRooms.add(icon);
-                icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
-            } else {
-                unaffordableRooms.remove(icon);
-                icon.stopEffect(EffectEventId.onCustom);
-                if (icon == selectedButton) {
-                    icon.startEffect(EffectEventId.onCustom, null, "select");
-                }
+        }
+    }
+
+    private void updateAffordability(Element icon, boolean unaffordable, Set<Element> unaffordableIcons) {
+        if (icon == null || unaffordable == unaffordableIcons.contains(icon)) {
+            return;
+        }
+        if (unaffordable) {
+            unaffordableIcons.add(icon);
+            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        } else {
+            unaffordableIcons.remove(icon);
+            icon.stopEffect(EffectEventId.onCustom);
+            if (icon == selectedButton) {
+                icon.startEffect(EffectEventId.onCustom, null, "select");
             }
         }
     }
@@ -1147,8 +1175,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     /**
      * Nifty saves the effects of a tab when it is hidden and starts them again
      * when the tab is shown, even the ones that were stopped in between. Gives
-     * the room and spell icons their effects again so that an icon that was lit
-     * while its tab was hidden doesn't come back dark.
+     * the room, spell, door and trap icons their effects again so that an icon
+     * that was lit while its tab was hidden doesn't come back dark.
      */
     private void reapplyIconEffects() {
         if (state == null) {
@@ -1164,6 +1192,16 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (spell.isDiscovered()) {
                 KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
                 reapplyIconEffects(hud.findElementById("spell_" + keeperSpell.getKeeperSpellId()), unaffordableSpells);
+            }
+        }
+        for (ResearchableEntity door : state.getAvailableDoors()) {
+            if (door.isDiscovered()) {
+                reapplyIconEffects(hud.findElementById("door_" + door.getId()), unaffordableWorkshopItems);
+            }
+        }
+        for (ResearchableEntity trap : state.getAvailableTraps()) {
+            if (trap.isDiscovered()) {
+                reapplyIconEffects(hud.findElementById("trap_" + trap.getId()), unaffordableWorkshopItems);
             }
         }
     }
@@ -1192,6 +1230,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             Element element = contentPanel.addElement(createTrapIcon(trap));
             setResearchEffect(trap, element);
         }
+        unaffordableWorkshopItems.clear();
+        updateWorkshopAffordability(state.getPlayer().getGold());
     }
 
     /**
