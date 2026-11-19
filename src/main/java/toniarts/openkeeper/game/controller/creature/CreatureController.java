@@ -83,6 +83,7 @@ import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.controller.room.BridgeController;
 import toniarts.openkeeper.game.controller.room.CombatPitController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.ActionPoint;
@@ -1629,27 +1630,56 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        // A keeper's creature withdraws to a random point 2 tiles either way of its heart room's position, or to the
-        // position itself if it can't get there (0x4611D0). In DK II that position is a tile down and right of the
-        // heart's centre (room +0x27), so on level 5 the Imps end up on the corners of the centre 3x3
+        // A keeper's creature withdraws to a random point 2 tiles either way of its heart room's position (0x4611D0).
+        // In DK II that position is a tile down and right of the heart's centre (room +0x27), so on level 5 the Imps
+        // end up on the corners of the centre 3x3
         if (keeper != null && keeper.getDungeonHeartLocation() != null) {
             Point heart = keeper.getDungeonHeartLocation();
-            Point position = new Point(heart.x + 1, heart.y + 1);
-            Point destination = new Point(position.x + (FastMath.rand.nextBoolean() ? 2 : -2), position.y + (FastMath.rand.nextBoolean() ? 2 : -2));
+            Point destination = new Point(heart.x + 1 + (FastMath.rand.nextBoolean() ? 2 : -2), heart.y + 1 + (FastMath.rand.nextBoolean() ? 2 : -2));
             if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
-                destination = position;
-
-                // Where we can't stand on the position, stop next to it
-                if (navigationService.findPath(getCreatureCoordinates(), destination, this) == null) {
-                    destination = FastMath.rand.nextBoolean() ? new Point(destination.x + 1, destination.y) : new Point(destination.x, destination.y + 1);
-                }
+                destination = findWithdrawFallback();
             }
-            if (createNavigation(getCreatureCoordinates(), destination, null)) {
+            if (destination == null || createNavigation(getCreatureCoordinates(), destination, null)) {
                 navigateToRandomPoint();
             }
         } else {
             navigateToRandomPoint();
         }
+    }
+
+    /**
+     * Where a creature withdraws to when it can't get to its heart, as DK II's
+     * 0x4611D0 does: the position of one of its keeper's rooms, bridges left
+     * out, picked at random up to 3 times (0x4C63D0). Failing that, a nearby
+     * tile away from the creature it fights (5 tries, then 2 next to it), or
+     * one next to it (5 tries) when it fights nobody.
+     *
+     * @return the destination, null if there is none
+     */
+    private Point findWithdrawFallback() {
+        Point ourLocation = getCreatureCoordinates();
+        List<IRoomController> rooms = mapController.getRoomControllers().stream()
+                .filter(room -> room.getOwnerId() == getOwnerId() && !(room instanceof BridgeController))
+                .toList();
+        for (int i = 0; i < 3 && !rooms.isEmpty(); i++) {
+            IRoomController room = rooms.get(FastMath.rand.nextInt(rooms.size()));
+            Point position = room.getRoomInstance().getCenter();
+            if (room.isDungeonHeart()) {
+                position = new Point(position.x + 1, position.y + 1);
+            }
+            if (navigationService.findPath(ourLocation, position, this) != null) {
+                return position;
+            }
+        }
+
+        FleeDestinationFinder finder = createFleeDestinationFinder(ourLocation);
+        AttackTarget target = entityData.getComponent(entityId, AttackTarget.class);
+        Position targetPosition = target != null ? entityData.getComponent(target.entityId, Position.class) : null;
+        Optional<Point> destination = targetPosition != null
+                ? finder.findRunningFrom(ourLocation, WorldUtils.vectorToPoint(targetPosition.position), 5)
+                        .or(() -> finder.findAround(ourLocation, 1, 2))
+                : finder.findAround(ourLocation, 1, 5);
+        return destination.orElse(null);
     }
 
     /**
@@ -1678,14 +1708,18 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private void fleeFrom(Point threat) {
         Point ourLocation = getCreatureCoordinates();
-        FleeDestinationFinder finder = new FleeDestinationFinder(mapController.getMapData().getWidth(),
+        FleeDestinationFinder finder = createFleeDestinationFinder(ourLocation);
+        finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
+                .or(() -> finder.findAround(ourLocation))
+                .ifPresent(destination -> createNavigation(ourLocation, destination, null));
+    }
+
+    private FleeDestinationFinder createFleeDestinationFinder(Point ourLocation) {
+        return new FleeDestinationFinder(mapController.getMapData().getWidth(),
                 mapController.getMapData().getHeight(),
                 (x, y) -> navigationService.findPath(ourLocation, new Point(x, y), this) != null,
                 (x, y) -> mapController.getMapData().getTile(x, y).getOwnerId() == getOwnerId() && !mapController.isSolid(new Point(x, y)),
                 ThreadLocalRandom.current());
-        finder.findAwayFrom(ourLocation, threat, FLEE_DISTANCE)
-                .or(() -> finder.findAround(ourLocation))
-                .ifPresent(destination -> createNavigation(ourLocation, destination, null));
     }
 
     @Override
