@@ -18,6 +18,7 @@ class FailedCreatureDeathTest {
     @Test void unavailableDeathArtStillPresentsExactlyOneDeathAcrossPositionUpdates() throws Exception {
         var assets = new DesktopAssetManager(true) {
             @Override public Spatial loadModel(ModelKey key) { Node wrapper = new Node(); wrapper.attachChild(new Node()); return wrapper; }
+            @Override public com.jme3.texture.Texture loadTexture(TextureKey key) { return new com.jme3.texture.Texture2D(); }
         };
         var creature = new Creature();
         creature.getAnimations().put(Creature.AnimationType.IDLE_1,new ArtResource("failed-death-idle",ArtResource.ArtResourceType.MESH));

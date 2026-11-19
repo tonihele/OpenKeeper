@@ -47,6 +47,7 @@ public final class CharredOverlay {
 
     private static final String CHARRED_TEXTURE = "CharredTexture";
     private static final String USER_DATA_KEY_CHARRED = "charred";
+    private static final String SOURCE_TEXTURE = "CharredOverlay.sourceTexture";
     private static final String DIFFUSE_MAP = "DiffuseMap";
 
     // Baked textures by their source, only as long as the source lives
@@ -82,15 +83,27 @@ public final class CharredOverlay {
     }
 
     /**
-     * Forgets that the spatial was charred
+     * Restores owned diffuse maps and forgets the overlay, including retained clips.
      *
      * @param spatial the spatial
      */
     public static void clear(Spatial spatial) {
         spatial.setUserData(USER_DATA_KEY_CHARRED, null);
+        spatial.depthFirstTraversal(node -> {
+            if (node instanceof Geometry geometry) {
+                Texture source = geometry.getUserData(SOURCE_TEXTURE);
+                if (source != null) {
+                    Material material = geometry.getMaterial();
+                    if (material != null && material.getMaterialDef().getMaterialParam(DIFFUSE_MAP) != null)
+                        material.setTexture(DIFFUSE_MAP,source);
+                    geometry.setUserData(SOURCE_TEXTURE,null);
+                }
+            }
+        });
     }
 
     private static void charr(Geometry geometry, Texture charred) {
+        if (geometry.getUserData(SOURCE_TEXTURE) != null) return;
         Material material = geometry.getMaterial();
         if (material == null || material.getTextureParam(DIFFUSE_MAP) == null) {
             return;
@@ -102,6 +115,7 @@ public final class CharredOverlay {
         }
         Material charredMaterial = material.clone();
         charredMaterial.setTexture(DIFFUSE_MAP, baked);
+        geometry.setUserData(SOURCE_TEXTURE,diffuse);
         geometry.setMaterial(charredMaterial);
     }
 

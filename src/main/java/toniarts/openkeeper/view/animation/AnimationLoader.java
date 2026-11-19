@@ -94,6 +94,8 @@ public final class AnimationLoader {
             root.addControlAt(0,playback);
             root.setUserData(MODEL_REVISION,getModelRevision(root)+1);
             playback.seek(endFrame ? Double.MAX_VALUE : 0);
+            var control = root.getControl(AnimationControl.class);
+            if (control != null) control.onAnimationAttached();
             root.setUserData(LAST_FAILURE,null);
             return PlaybackResult.STARTED;
         } catch (Exception exception) {

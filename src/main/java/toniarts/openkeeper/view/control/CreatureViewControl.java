@@ -131,6 +131,12 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     /** Logical activity is independent of whether its art could replace the last valid visual. */
     public Creature.AnimationType getRequestedState() { return requestedState; }
 
+    @Override public void onAnimationAttached() {
+        // Retained clips may have been used as a corpse during an earlier logical state.
+        toniarts.openkeeper.view.CharredOverlay.clear(spatial);
+        super.onAnimationAttached();
+    }
+
     private void acceptLogicalState(Creature.AnimationType state) {
         requestedState = state;
         stopActivitySounds();

@@ -256,6 +256,11 @@ public abstract class EntityViewControl<T, S> extends AbstractControl implements
     }
 
     @Override
+    public void onAnimationAttached() {
+        AssetUtils.setModelHighlight(spatial, COLOR_FLASH, active);
+    }
+
+    @Override
     public void onAnimationCycleDone() {
 
     }

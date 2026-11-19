@@ -247,7 +247,7 @@ public final class AssetUtils {
             vertex.setFloat("AlphaDiscardThreshold", (Float) original.getParam("AlphaDiscardThreshold").getValue());
         }
         vertex.setTransparent(original.isTransparent());
-        for (String parameter : new String[]{"NumberOfTiles","Speed","AnimationFrame","UseAnimationFrame"}) {
+        for (String parameter : new String[]{"NumberOfTiles","Speed","AnimationFrame","UseAnimationFrame","Tint","TintOverlay"}) {
             var value = original.getParam(parameter);
             if (value != null) vertex.setParam(parameter,value.getVarType(),value.getValue());
         }

@@ -27,6 +27,9 @@ public interface AnimationControl extends Control {
 
     enum PlaybackPolicy { LOOP, ONCE, HOLD }
 
+    /** Reapply owner presentation state after a fresh or retained visual is attached. */
+    default void onAnimationAttached() { }
+
     /** Explicit policy with compatibility defaults for existing controls. */
     default PlaybackPolicy getPlaybackPolicy() {
         return isHoldLastFrame() ? PlaybackPolicy.HOLD

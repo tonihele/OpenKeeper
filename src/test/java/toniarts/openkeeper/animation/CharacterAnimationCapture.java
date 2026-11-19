@@ -92,6 +92,8 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         for(int i=0;i<examples.size();i++) {
             Creature creature = examples.get(i); var id = entities.createEntity();
             entities.setComponent(id,new CreatureAi(0,CreatureState.IDLE,creature.getCreatureId()));
+            var interaction = new toniarts.openkeeper.game.component.Interaction(); interaction.pickUppable = true;
+            entities.setComponent(id,interaction);
             var owner = new Node(creature.getName()); owner.addControl(new PreparedAnimationCache(3,256*1024));
             owner.setCullHint(Spatial.CullHint.Always);
             var control = new CreatureViewControl(id,entities,creature,null,assetManager,null);
@@ -113,6 +115,8 @@ public final class CharacterAnimationCapture extends SimpleApplication {
         frame++;
         if(frame < 450 || frame > 480) gameTime += 1.0/60;
         if(frame == 120) request(Creature.AnimationType.MELEE_ATTACK);
+        if(frame == 90) for(var control : controls) control.onHoverStart((short)1);
+        if(frame == 180) for(var control : controls) control.onHoverEnd((short)1);
         if(frame == 240) request(Creature.AnimationType.IDLE_1);
         if(frame == 270) rootNode.setCullHint(Spatial.CullHint.Always);
         if(frame == 330) rootNode.setCullHint(Spatial.CullHint.Dynamic);
@@ -143,6 +147,12 @@ public final class CharacterAnimationCapture extends SimpleApplication {
                 Screenshots.convertScreenShot(pixels,image);
                 ImageIO.write(image,"png",output.resolve(String.format(Locale.ROOT,"frame-%03d.png",frame)).toFile());
                 for(var control : controls) validateCurrentPose(control.getSpatial());
+                if(frame == 360) for(var control : controls) control.getSpatial().depthFirstTraversal(node -> {
+                    if(node instanceof Geometry geometry) {
+                        var tint = geometry.getMaterial().getParam("TintOverlay");
+                        if(tint != null && !ColorRGBA.BlackNoAlpha.equals(tint.getValue())) throw new AssertionError("Retained hover tint");
+                    }
+                });
                 long hash = poseHash();
                 if(frame == 450) pauseHash = hash;
                 if(frame == 465 && pauseHash != hash) throw new AssertionError("Paused pose changed");
