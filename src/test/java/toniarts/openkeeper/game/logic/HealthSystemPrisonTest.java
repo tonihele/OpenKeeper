@@ -89,8 +89,11 @@ class HealthSystemPrisonTest {
                 EnumSet.noneOf(Creature.CreatureFlag3.class));
         IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> method.equals("getCreature") ? prisoner : null);
         ILevelInfo levelInfo = proxy(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwdFile : null);
-        IMapTileInformation tile = proxy(IMapTileInformation.class,
-                (method, args) -> method.equals("getLocation") ? new Point(0, 0) : null);
+        IMapTileInformation tile = proxy(IMapTileInformation.class, (method, args) -> switch (method) {
+            case "getLocation" -> new Point(0, 0);
+            case "getTerrainId" -> (short) 0;
+            default -> null;
+        });
         IEntityPositionLookup positionLookup = proxy(IEntityPositionLookup.class,
                 (method, args) -> method.equals("getEntityLocation") ? tile : null);
         IRoomController prison = proxy(IRoomController.class,
