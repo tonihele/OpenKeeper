@@ -439,3 +439,13 @@ The final smoke's post-warmup `AppProfiler` BeginFrame-to-EndFrame wall measurem
 Final self-review covered the request/clock/segment path, detached preparation and rollback, retained presentation, authored coverage and preload compatibility. It produced and fixed the two additional defects above; all scene/material mutations remain on the rendering update path. Diff/whitespace and documentation-link checks pass. The feature tree is clean after the documentation commit; the original checkout remains at `a63005ab3` on `fix/dungeon-heart-startup` with exactly its three pre-existing untracked assessment documents. No push or PR was created.
 
 **Disposition:** the confirmed review defects are resolved with evidence. The entire original initiative is still **not approved as complete**: B1a/B1b/B4 reference acceptance and the explicitly split B2/B3/session/performance work remain. No blanket animation/DK2 fidelity or production-readiness claim is made.
+
+## Publication preflight (2026-11-19)
+
+Finalization starts from `b6aa1c450` on the existing feature branch. Fresh fetch confirms it contains current `upstream/master` (`cd78e5654`); no merge, rebase or shared-history rewrite is needed. The following additional corrections were found before publication.
+
+### Explicit atlas clock ownership
+
+An explicitly bound world atlas clock returning NaN previously advanced its own local time, even though the vertex owner waited for a valid snapshot. Atlas playback now retains its last phase until that clock becomes valid again. A separate local installation overload preserves hand/decorative playback and cloned controls without replicated time; creature controls distinguish that local mode from an explicitly supplied world clock.
+
+The unavailable-clock regression fails before the fix (`build/finalize-lifecycle-before.txt`). Eight focused atlas, recording-audio, request and retained-visual tests pass afterward (`build/finalize-lifecycle-tests.txt`), including local advance/pause, missing/recovered shared time, clone independence and material replacement. Full release checks are recorded after cleanup below.

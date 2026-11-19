@@ -8,6 +8,34 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 class TextureAnimationControlTest {
+    @Test void localOwnersWithoutASharedClockStillAdvanceAndPause() {
+        var material = new Material(new DesktopAssetManager(true),"MatDefs/LightingSprite.j3md");
+        material.setInt("NumberOfTiles",4);
+        var geometry = new Geometry("atlas",new Mesh()); geometry.setMaterial(material);
+        var root = new Node(); root.attachChild(geometry);
+        TextureAnimationControl.install(root,10);
+        root.updateLogicalState(.15f);
+        assertEquals(1,material.getParam("AnimationFrame").getValue());
+        AnimationLoader.pauseAnimations(root); root.updateLogicalState(1);
+        assertEquals(1,material.getParam("AnimationFrame").getValue());
+        AnimationLoader.resumeAnimations(root); root.updateLogicalState(.1f);
+        assertEquals(2,material.getParam("AnimationFrame").getValue());
+    }
+    @Test void anUnavailableSharedClockFreezesFramesInsteadOfFallingBackToLocalTime() {
+        var material = new Material(new DesktopAssetManager(true),"MatDefs/LightingSprite.j3md");
+        material.setInt("NumberOfTiles",4);
+        var geometry = new Geometry("atlas",new Mesh()); geometry.setMaterial(material);
+        var root = new Node(); root.attachChild(geometry); double[] time = {Double.NaN};
+        TextureAnimationControl.install(root,()->time[0],10);
+        root.updateLogicalState(.15f);
+        assertEquals(0,material.getParam("AnimationFrame").getValue());
+        time[0] = .25; root.updateLogicalState(0);
+        assertEquals(2,material.getParam("AnimationFrame").getValue());
+        time[0] = Double.NaN; root.updateLogicalState(.15f);
+        assertEquals(2,material.getParam("AnimationFrame").getValue());
+        var clone = (Node)root.deepClone(); clone.updateLogicalState(.1f);
+        assertEquals(3,((Geometry)clone.getChild(0)).getMaterial().getParam("AnimationFrame").getValue());
+    }
     @Test void textureFramesFollowSharedTimeAndPauseAndSurviveMaterialReplacement() {
         var assets = new DesktopAssetManager(true);
         var material = new Material(assets,"MatDefs/LightingSprite.j3md"); material.setInt("NumberOfTiles",4); material.setInt("Speed",10);

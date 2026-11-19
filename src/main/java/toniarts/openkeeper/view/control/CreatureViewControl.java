@@ -85,7 +85,8 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     private CreatureAnimationRequest activeRequest;
     private Creature.AnimationType requestedState;
     private boolean visualRequestActive;
-    private java.util.function.DoubleSupplier gameTime = () -> Double.NaN;
+    private static final java.util.function.DoubleSupplier LOCAL_TIME = () -> Double.NaN;
+    private java.util.function.DoubleSupplier gameTime = LOCAL_TIME;
     private ArtResource activeAnimation;
     private int[] stepMarks;
     private toniarts.openkeeper.view.animation.FootstepMarkers normalizedStepMarks;
@@ -235,8 +236,9 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
                 Spatial model = toniarts.openkeeper.utils.AssetUtils.loadModel(assetManager,name,art);
                 if (getDataObject().getFlags() != null && getDataObject().getFlags().contains(CreatureFlag.IS_UNIQUE))
                     CreatureVariantTextures.apply(model,assetManager);
-                toniarts.openkeeper.view.animation.TextureAnimationControl.install(model,()->gameTime.getAsDouble(),
-                        toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(art));
+                double fps = toniarts.openkeeper.animation.AnimationTiming.framesPerSecond(art);
+                if (gameTime == LOCAL_TIME) toniarts.openkeeper.view.animation.TextureAnimationControl.install(model,fps);
+                else toniarts.openkeeper.view.animation.TextureAnimationControl.install(model,()->gameTime.getAsDouble(),fps);
                 return model;
             }, false)
                 != AnimationLoader.PlaybackResult.STARTED) return false;

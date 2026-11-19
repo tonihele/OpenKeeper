@@ -19,6 +19,11 @@ public final class TextureAnimationControl extends AbstractControl {
     private double framesPerSecond = 30;
     private double elapsed;
 
+    /** Local playback for hand/decorative consumers without a replicated clock. */
+    public static void install(Spatial model, double fps) {
+        install(model,NO_CLOCK,fps);
+    }
+
     public static void install(Spatial model, DoubleSupplier clock, double fps) {
         model.depthFirstTraversal(node -> {
             if (!(node instanceof Geometry geometry)) return;
@@ -44,7 +49,9 @@ public final class TextureAnimationControl extends AbstractControl {
         if (material != previousMaterial) { previousMaterial = material; previousFrame = -1; material.setBoolean("UseAnimationFrame",true); }
         double time = clock.getAsDouble();
         if (!Double.isFinite(time)) {
-            if (Float.isFinite(tpf) && tpf > 0) elapsed += tpf;
+            // An explicitly bound clock may be waiting for its first snapshot or
+            // lose delivery. Keep its last phase; only local owners predict here.
+            if (clock == NO_CLOCK && Float.isFinite(tpf) && tpf > 0) elapsed += tpf;
             time = elapsed;
         } else elapsed = Math.max(0,time);
         int frame = Math.floorMod((long)Math.floor(Math.max(0,time)*framesPerSecond+1e-6),tiles);
