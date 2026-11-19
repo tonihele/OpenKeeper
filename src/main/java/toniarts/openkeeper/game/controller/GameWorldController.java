@@ -1746,16 +1746,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     }
 
     private boolean payForDoor(Door door, short playerId) {
-        // Keep shared gold operations atomic until player actions are processed by the game loop.
-        // skipcq: JAVA-E1061
-        synchronized (GOLD_LOCK) {
-            int cost = door.getGoldCost();
-            if (cost > players.get(playerId).getGold()) {
-                return false;
-            }
-            substractGold(cost, playerId);
-            return true;
+        int cost = door.getGoldCost();
+        if (cost > players.get(playerId).getGold()) {
+            return false;
         }
+        substractGold(cost, playerId);
+        return true;
     }
 
     @Override
