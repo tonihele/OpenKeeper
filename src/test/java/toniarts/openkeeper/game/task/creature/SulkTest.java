@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -27,6 +28,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.tools.convert.map.TempleFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
@@ -46,6 +48,8 @@ class SulkTest {
     private EntityId entity;
     private ICreatureController creature;
     private boolean hasLair;
+    private int sulkSounds;
+    private int steps;
     private Sulk sulk;
 
     @BeforeEach
@@ -61,6 +65,15 @@ class SulkTest {
                     case "getOwnerId" -> PLAYER_ID;
                     case "getLairLocation" -> new Point(2, 3);
                     case "hasLair" -> hasLair;
+                    case "fireEvent" -> {
+                        assertEquals(GameEventType.CREATURE_SULK, args[0]);
+                        sulkSounds++;
+                        yield null;
+                    }
+                    case "navigateToAssignedTask" -> {
+                        steps++;
+                        yield null;
+                    }
                     case "hashCode" -> System.identityHashCode(proxy);
                     case "equals" -> proxy == args[0];
                     case "toString" -> "creature " + entity;
@@ -139,10 +152,54 @@ class SulkTest {
     }
 
     @Test
+    void theCreatureStandsFiveToEightSecondsBeforeItStepsToANewSpot() {
+        for (int i = 0; i < 100; i++) {
+            float time = standUntilStep(i * 100.0f) - i * 100.0f;
+
+            assertTrue(time >= 5.0f && time <= 8.0f, "stood " + time);
+        }
+    }
+
+    @Test
+    void theNewSpotIsFourTenthsOfATileFromTheMiddleOfTheLair() {
+        Vector2f middle = sulk.getTarget(creature);
+        assertEquals(middle, sulk.getWorkPosition(creature));
+
+        for (int i = 0; i < 20; i++) {
+            standUntilStep(i * 100.0f);
+
+            assertEquals(0.4f, sulk.getWorkPosition(creature).distance(middle), 0.0001f);
+        }
+    }
+
+    @Test
+    void theCreatureSulksOutLoudAtTheStartFourSecondsBeforeTheStepAndAsItSteps() {
+        standUntilStep(0);
+
+        assertEquals(3, sulkSounds);
+    }
+
+    @Test
     void theSulkIsOverWhenTheLairIsGone() {
         hasLair = false;
 
         assertFalse(sulk.isValid(creature));
+    }
+
+    /**
+     * Executes the sulk every tick until the creature steps to a new spot
+     *
+     * @param start the time the stand starts
+     * @return the time of the step
+     */
+    private float standUntilStep(float start) {
+        int stepsBefore = steps;
+        float time = start;
+        while (steps == stepsBefore) {
+            sulk.executeTask(creature, time);
+            time += 0.25f;
+        }
+        return time - 0.25f;
     }
 
 }

@@ -49,6 +49,10 @@ public enum GameEventType {
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
     /**
+     * A creature sulks in its lair
+     */
+    CREATURE_SULK,
+    /**
      * The subject is the attacker's creature type, the target is the victim
      */
     MELEE_HIT,

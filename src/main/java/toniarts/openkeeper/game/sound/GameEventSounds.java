@@ -90,6 +90,8 @@ public final class GameEventSounds {
                 add(sounds, subject, ThingSounds.CREATURE_CLAIM, event.position);
             case CREATURE_REINFORCE_WALL ->
                 add(sounds, subject, ThingSounds.CREATURE_REINFORCE, event.position);
+            case CREATURE_SULK ->
+                add(sounds, subject, ThingSounds.CREATURE_SULK, event.position);
             case MELEE_HIT ->
                 addMeleeHit(sounds, event, kwdFile);
             case PICKED_UP ->

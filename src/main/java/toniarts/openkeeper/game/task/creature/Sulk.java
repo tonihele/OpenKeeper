@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.task.creature;
 
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -24,6 +25,7 @@ import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
@@ -34,13 +36,25 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Sulks in the lair. Like in DK II, once a second the lair calms the creature
  * and heals it as if it slept there, and the creature gets over it when the
- * anger the lair calms is gone
+ * anger the lair calms is gone.<br>
+ * Like DK II's sulking state (0x482F80), the creature stands for 5 to 8
+ * seconds, sulks out loud when it starts, every 4 seconds and when it is done,
+ * then steps to a new spot 0.4 tiles from the middle of its lair, in a random
+ * direction
  */
 public final class Sulk extends AbstractTileTask {
+
+    private static final int STAND_TIME = 5;
+    private static final int STAND_TIME_RANDOM = 4;
+    private static final int SOUND_INTERVAL = 4;
+    private static final float SPOT_DISTANCE = 0.4f;
 
     private final EntityData entityData;
     private final int angerPerSecond;
     private final int healthPerSecond;
+    private Vector2f spot;
+    private float standEnd = -1;
+    private float nextSound;
 
     public Sulk(final INavigationService navigationService, final IMapController mapController, ICreatureController creature,
             EntityData entityData, Map<MiscType, MiscVariable> gameSettings) {
@@ -64,7 +78,13 @@ public final class Sulk extends AbstractTileTask {
     }
 
     @Override
+    public Vector2f getWorkPosition(ICreatureController creature) {
+        return spot != null ? spot : getTarget(creature);
+    }
+
+    @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
+        sulk(creature, executionDuration);
         if (!isWorkStepDue(creature, executionDuration)) {
             return;
         }
@@ -79,6 +99,23 @@ public final class Sulk extends AbstractTileTask {
         if (health != null && health.health < health.maxHealth) {
             int heal = Math.min(healthPerSecond, health.maxHealth - health.health);
             entityData.setComponent(entityId, new Health(health.health + heal, health.maxHealth));
+        }
+    }
+
+    private void sulk(ICreatureController creature, float executionDuration) {
+        if (standEnd < 0) {
+            standEnd = executionDuration + STAND_TIME + FastMath.rand.nextInt(STAND_TIME_RANDOM);
+            nextSound = standEnd - SOUND_INTERVAL;
+            creature.fireEvent(GameEventType.CREATURE_SULK, getTaskLocation());
+        } else if (executionDuration >= standEnd) {
+            creature.fireEvent(GameEventType.CREATURE_SULK, getTaskLocation());
+            float angle = FastMath.rand.nextFloat() * FastMath.TWO_PI;
+            spot = getTarget(creature).addLocal(FastMath.cos(angle) * SPOT_DISTANCE, FastMath.sin(angle) * SPOT_DISTANCE);
+            standEnd = -1;
+            creature.navigateToAssignedTask();
+        } else if (executionDuration >= nextSound) {
+            creature.fireEvent(GameEventType.CREATURE_SULK, getTaskLocation());
+            nextSound = standEnd;
         }
     }
 
