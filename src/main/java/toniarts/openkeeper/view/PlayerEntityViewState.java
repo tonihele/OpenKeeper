@@ -457,11 +457,14 @@ public class PlayerEntityViewState extends AbstractAppState {
                 GameObject object = kwdFile.getObject(objectViewState.objectId);
                 var objectTextParser = textParser != null ? textParser.getObjectTextParser() : null;
                 int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
-                ObjectViewControl control = object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)
-                        ? new SpecialObjectViewControl(e.getId(), entityData, object, objectViewState,
-                                assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond)
-                        : new ObjectViewControl(e.getId(), entityData, object, objectViewState,
-                                assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                ObjectViewControl control;
+                if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+                    control = new SpecialObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                } else {
+                    control = new ObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                }
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
