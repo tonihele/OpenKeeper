@@ -36,6 +36,7 @@ import com.simsilica.es.WatchedEntity;
 import java.lang.System.Logger;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.PossessedAbility;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.data.Settings;
@@ -99,6 +100,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private PossessionWalkCycle walkCycle;
     private boolean inputRegistered = false;
     private WatchedEntity watchedTarget;
+    private CreatureViewState shownViewState;
     private Spatial swipe;
     private float swipeTimeLeft;
     private boolean secondSwipe;
@@ -173,7 +175,7 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
                 entityViewState.setHiddenEntity(target);
             }
             watchedTarget = stateManager.getState(GameClientState.class).getGameClientService().getEntityData()
-                    .watchEntity(target, CreatureViewState.class);
+                    .watchEntity(target, CreatureViewState.class, Frozen.class);
 
             resetMovement();
             registerInput();
@@ -278,6 +280,11 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
             return;
         }
 
+        // Like DK II (0x40E910), a frozen possessed creature can't look around either
+        if (watchedTarget != null && watchedTarget.get(Frozen.class) != null) {
+            return;
+        }
+
         switch (name) {
             case CAMERA_VIEW_LEFT -> {
                 camera.rotate(value, true);
@@ -337,7 +344,9 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     private void updateSwipe(float tpf) {
         if (watchedTarget != null && watchedTarget.applyChanges()) {
             CreatureViewState viewState = watchedTarget.get(CreatureViewState.class);
-            if (viewState != null && viewState.state == Creature.AnimationType.MELEE_ATTACK) {
+            boolean newViewState = viewState != shownViewState;
+            shownViewState = viewState;
+            if (newViewState && viewState != null && viewState.state == Creature.AnimationType.MELEE_ATTACK) {
                 boolean second = secondSwipe && creature.getMelee2Swipe() != Creature.Swipe.NONE;
                 secondSwipe = !second && creature.getMelee2Swipe() != Creature.Swipe.NONE;
                 showSwipe(second ? creature.getMelee2Swipe() : creature.getMelee1Swipe());
@@ -451,10 +460,12 @@ public final class PossessionCameraState extends AbstractPauseAwareState impleme
     }
 
     private byte getSpeedMode() {
-        if (run) {
-            return PossessedMovement.SPEED_RUN;
+
+        // DK II takes the run speed while the run key is held, then the creep speed while creeping (0x40E910)
+        if (creep) {
+            return PossessedMovement.SPEED_CREEP;
         }
-        return creep ? PossessedMovement.SPEED_CREEP : PossessedMovement.SPEED_WALK;
+        return run ? PossessedMovement.SPEED_RUN : PossessedMovement.SPEED_WALK;
     }
 
     /**
