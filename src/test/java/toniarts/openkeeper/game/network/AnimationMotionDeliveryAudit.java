@@ -157,14 +157,14 @@ public final class AnimationMotionDeliveryAudit {
         return row;
     }
 
-    private static Position position(double time) {
+    static Position position(double time) {
         var result = new Position((float) Math.toRadians(time < 2 ? 179 : -179),
                 (float) (time + (time >= 2 ? 100 : 0)), .25f, 0);
         result.motionEpoch = time >= 2 ? 12 : 11;
         return result;
     }
 
-    private static CreatureViewState request(double time) {
+    static CreatureViewState request(double time) {
         return new CreatureViewState((short) 1, time >= 3 ? 3 : time >= 2 ? 2 : 0,
                 time >= 2 ? AnimationType.RUN : AnimationType.WALK, time >= 3 ? 2 : time >= 2 ? 1 : 0);
     }

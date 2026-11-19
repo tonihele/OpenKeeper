@@ -250,6 +250,15 @@ tasks.named('check') {
     dependsOn tasks.named('auditAnimationMotionDelivery')
 }
 
+tasks.register("auditAnimationRemoteMotion", JavaExec) {
+    group = "verification"
+    description = "Opt-in localhost TCP/Zay-ES motion/coalescing/removal integration; no assets or desktop required"
+    dependsOn testClasses
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'toniarts.openkeeper.game.network.AnimationRemoteMotionAudit'
+    args layout.buildDirectory.file('animation-remote-motion.csv').get().asFile.absolutePath
+}
+
 tasks.register("benchmarkCeilingBuild", JavaExec) {
     group = "verification"
     description = "Compare cached and uncached ceiling mesh construction on a deterministic synthetic map"

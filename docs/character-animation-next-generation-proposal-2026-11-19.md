@@ -719,7 +719,7 @@ This is the current status of **every N01–N18 item**, following the implementa
 | Item | Verified delivery / decision | Exact remaining work and dependency | Status |
 |---|---|---|---|
 | N01 | Deterministic motion/gallery traces and repeatable CPU workloads (`e19fd86`); close-camera rendered attribution with asynchronous GPU queries (`94cacfe`); later classic/packed comparison in `632aaa7`. Actual local-session pause/resume is covered by N02. | Record version-bound original-executable action timelines; exercise controlled remote/possession/hand/action interruption scenarios; measure per-pass world cost and ten-level Java/direct/GPU residency. The supplied installation is source data, not those recordings. | Partial; data/reference and engineering open |
-| N02 | Coherent authoritative root/request publications, epochs, bounded history, shortest-arc yaw, pause/reset/fallback and opt-in settings (`13e79e6`); presented carrier following (`72e531c`); component-order fix (`8cd49d3`). Serialized/ECS delay/coalescing audit and exact payload measurements follow in section 16. Synthetic and actual local-game checks pass. | Real remote transport/coalescing and possession-camera/corner/collision/all-attachment acceptance, complete gameplay comparison and measured network traffic/residency cost. Payload sizes are not observed socket bandwidth. Local possession intentionally uses immediate presentation; new local prediction is not implemented. | Partial; integration/acceptance open |
+| N02 | Coherent authoritative root/request publications, epochs, bounded history, shortest-arc yaw, pause/reset/fallback and opt-in settings (`13e79e6`); presented carrier following (`72e531c`); component-order fix (`8cd49d3`). Serialized/ECS and actual localhost jME/Zay-ES delivery/coalescing diagnostics plus exact payload measurements follow in sections 16/19. Synthetic and actual local-game checks pass. | Full authenticated/cross-process remote gameplay, possession-camera/corner/collision/all-attachment acceptance, complete gameplay comparison and measured socket traffic/residency cost. Payload sizes/message counts are not observed bandwidth. Local possession intentionally uses immediate presentation; new local prediction is not implemented. | Partial; integration/acceptance open |
 | N03 | Immutable source/converter-bound sidecar schema, validation and installed catalog reporting (`dec3834`). Missing data keeps classic runtime policy. | Approved positive sidecars and runtime catalog loading/policy-consumer integration, including mismatch/absent/exception-priority tests against actual consumers. Offline validation alone is not runtime integration. | Partial; data prerequisite and engineering open |
 | N04 | N02 supplies a coherent presentation trajectory; classic gait rate and gameplay movement are retained. | Establish per-archetype contact/stride speed and turning references before calibrating visual rate/yaw lag/hysteresis. Implement and compare contact drift and responsiveness with N02/N03. No trustworthy calibration was found in the loose-file inventory. | Data/reference prerequisite; not implemented |
 | N05 | Maintained layout/material/transform screen (`e99cfd1`): 145 pairs, two structural candidates, zero WALK-compatible pairs. Array blending for mismatched layouts rejected. | Normalize/validate actor-space anatomical correspondence for a candidate; then implement phase-aligned transitions, interruptions and measured jump/contact bounds. Different transform descriptors prevent inferring compatibility from the two signature matches. | Partial; correspondence and engineering open |
@@ -1003,3 +1003,31 @@ Final `build testInstalledMinimapAssets -I D:/Temp/openkeeper-animation-installe
 - [x] Retire loops/listeners and admitted commands off the render thread with an actual completion boundary and observable failures.
 - [x] Exercise actual normal level retirement and cancellation during map loading, keeping the unresolved database-retention gate strict.
 - [ ] Resolve the N11d dependency/GPU-policy blockers and remaining preparation/transition attribution before default promotion.
+
+Server ownership/retirement commit: `d8ceabf`.
+
+## 19. Continued implementation: actual entity transport
+
+### N02c — Localhost jME/Zay-ES integration
+
+Added opt-in `auditAnimationRemoteMotion`, using actual asynchronous jME server/client connections, pinned EntityDataHostedService/EntityDataClientService, RemoteEntityData subscriptions, PresentationClock and MotionHistory. It selects a free local four-port range and matches OpenKeeper's base TCP/UDP registration plus three additional reliable channels and **ES channel 2**. ES updates use the reliable transport. There are no proprietary assets, scene/GL objects, new production services or sockets in ordinary `check`; the standalone integration fixture must be explicitly run.
+
+Two five-second cases publish analytical 20 Hz roots, requests, clock and immediate-mode flags: regular flush, and 120 ms flush coalescing with a 400 ms hold window. The fixture validates numerical roots through the 100-unit epoch cut, historical request timing, final authoritative placement and actual remote component removal. Publication counts include only successfully accepted sequence/time samples, not repeated EntitySet change views; message counts are decoded jME messages across connection/play/removal, not TCP packets or bytes. Generated reports stay in ignored `build/animation-remote-motion.csv`.
+
+The final production-channel invocation **passes** (`D:/Temp/animation-next-n02-remote-production-channels.txt`):
+
+| Case | Published / accepted motion | Received messages | Sampled steps / immediate steps | Max component error | Max observed source-to-sample lag |
+|---|---|---|---|---|---|
+| Regular flush | 81 / 81 | 86 | 591 / 32 | 0.000006088 | 0.065872 s |
+| Coalesced + hold | 81 / 32 | 37 | 593 / 30 | 0.000006104 | 0.456278 s |
+
+Lag includes the synthetic source schedule, deliberate delivery hold, presentation delay and observed scheduling; it is **not camera/input RTT or an animation CPU/GPU benchmark**. Counts/lag vary with host scheduling; deterministic protocol/order regressions remain in the 24-case N02b audit. The actual TCP connection stays established, and actor Position/Motion subscriptions become empty after removal in both cases.
+
+An initial stripped-down TCP-only attempt failed during jME connection registration: the pinned Connection string conversion assumes a second channel, and the attempted ES channel did not match OpenKeeper's additional-channel setup. It is excluded (`D:/Temp/animation-next-n02-remote-motion.txt`). The fixture now exercises the **actual application channel topology**; no engine reflection/transport workaround or jME production patch is installed.
+
+Both endpoints currently run in one standalone JVM, as reported by jME's locked local serializer registry message. This validates real sockets and asynchronous Zay-ES core transport, **not separate-process serializer deployment, authentication/lobby/interest policy, rendered remote gameplay, possession camera, audio or collision/corner behavior**. No socket-byte bandwidth or full remote-game acceptance is inferred. N02 remains partial and opt-in.
+
+Final `build auditAnimationRemoteMotion` **passes**, including compilation/packaging, **1,555 JUnit tests, zero failures/errors, four existing minimap skips**, all **24 deterministic delivery schedules** and both **real-socket cases** (`D:/Temp/animation-next-n02-remote-final-build.txt`). The rerun observes 81/81 and 81/32 accepted publications again, with max component errors 0.000006567 / 0.000006697 and max source/sample lags 0.068884 / 0.454672 s. Variation in step counts and lag is retained rather than presented as a deterministic performance baseline. No production code changes accompany this transport fixture.
+
+- [x] Exercise actual jME/Zay-ES channel transport with regular and coalesced/stalled publications, cuts and remote removal.
+- [ ] Complete authenticated/cross-process gameplay, camera/input and actual traffic/interest-policy acceptance before promoting N02.
