@@ -78,6 +78,7 @@ tasks.register("auditCreatureAnimationCatalog", JavaExec) {
     classpath = sourceSets.test.runtimeClasspath
     mainClass = 'toniarts.openkeeper.animation.CreatureCatalogAudit'
     args providers.gradleProperty('dk2Root').orElse('').get(), layout.buildDirectory.file('animation-catalog.csv').get().asFile.absolutePath
+    if (providers.gradleProperty('animationMetadataRoot').isPresent()) args providers.gradleProperty('animationMetadataRoot').get()
 }
 
 tasks.register("captureCharacterAnimation", JavaExec) {

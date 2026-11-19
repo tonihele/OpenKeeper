@@ -506,3 +506,28 @@ Confirmed defect: identical model/material names and texture-presence queries us
 Validation: three new cross-manager/clone/release/weak-cache regression tests plus existing animation texture-policy and catalog tests pass (`D:/Temp/animation-next-n11-test.txt`). Production/test compilation passes. The real GL `captureAnimationCoverage` task passes all four alpha/black-key color/shadow cases (`D:/Temp/animation-next-n11-gl.txt`). No cache retention setting changed. This is a correctness/lifetime-boundary fix; no memory or FPS reduction is claimed.
 
 **Still open:** shared immutable decoded frames, coalesced concurrent preparation and measured ten-level Java/native/GPU residency. Automatic level release is deliberately not inserted into `GameClientState.cleanup()`: its loading thread is asynchronous and currently has no join/cancellation boundary guaranteeing that loads have finished. The new explicit release API has that documented precondition. Adding a render-thread blocking join would violate the proposal. N11 remains partial until loading ownership and residency acceptance are implemented; manager isolation is independently verified and committed.
+
+Cache-isolation commit: `dcb9c78`.
+
+### N03 — Validated semantic sidecar schema and audit
+
+Added immutable `MotionMetadata` with conservative UNKNOWN/CUT defaults, explicit body plan, loop/one-shot classification, authored transition permission, layout identity, reference speed, named normalized contact windows and explicit loop-phase-variation permission. Sidecars are limited to 16 KiB, schema-versioned, source-SHA256/resource/model-converter-bound, and reject duplicate/unknown fields, invalid intervals, nonfinite speeds and one-shot phase variation. The schema contains no FPS override and cannot change authored timing. Lists are defensively copied.
+
+The maintained catalog audit accepts optional `-PanimationMetadataRoot=<directory>` and validates `<resource>.anim.properties` against the actual installed KMF SHA256 and current converter version before reporting its semantic kind. Missing files report ABSENT. Invalid present data fails the audit; it cannot silently certify an incompatible annotation. Example annotation syntax (identity fields must be replaced with verified source values):
+
+```properties
+schema=1
+resource=Example-Walk
+sourceSha256=0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef
+converterVersion=16
+bodyPlan=BIPED
+kind=LOOP
+transition=AUTHORED
+referenceSpeed=0.8
+contacts=left:0.1,0.3;right:0.6,0.9
+phaseVariation=false
+```
+
+Three regression tests pass after the final named-contact/schema changes (`D:/Temp/animation-next-n03-final.txt`). The installed catalog audit passed with 46 creatures / 2,208 action rows (`D:/Temp/animation-next-n03-test.txt`); no native semantic annotation was inferred from slot presence. This delivers a reusable validation seam and maintained inventory integration, not a new gameplay state machine.
+
+**Still open:** approved shipped sidecars and runtime enhanced-policy integration. None of the inspected assets supplies contact anchors, reference stride speeds or verified anatomical layout mappings. Inventing those values would fail N03's own validation/fidelity intent. The current runtime selection/interruption policy remains authoritative; no metadata-dependent feature is enabled. N03's full checklist entry remains unchecked pending those data and integration tests.
