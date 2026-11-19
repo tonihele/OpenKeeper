@@ -22,6 +22,7 @@ import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureGenerator;
 import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 
 /**
@@ -31,10 +32,16 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
  */
 public final class ThreeByThreeController extends AbstractRoomController implements ICreatureEntrance {
 
-    public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController) {
+    private final IGameTimer gameTimer;
+
+    public ThreeByThreeController(EntityId entityId, EntityData entityData, IKwdFile kwdFile, RoomInstance roomInstance, IObjectsController objectsController, IGameTimer gameTimer) {
         super(entityId, entityData, kwdFile, roomInstance, objectsController, null);
 
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
+        this.gameTimer = gameTimer;
+        // Start a new Portal clock, preserving existing state when rebuilding its controller.
+        if (entityData.getComponent(entityId, CreatureGenerator.class) == null) {
+            entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
+        }
     }
 
     @Override
@@ -57,12 +64,37 @@ public final class ThreeByThreeController extends AbstractRoomController impleme
 
     @Override
     public void onSpawn(double time, EntityId spawnedEntityId) {
-        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time));
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        entityData.setComponent(this.entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                generator.generatedCount + 1, generator.lastPreparationTime));
+    }
+
+    @Override
+    public int getGeneratedCount() {
+        return getEntityComponent(CreatureGenerator.class).generatedCount;
+    }
+
+    @Override
+    public boolean onPrepareSpawn(double preparationTime) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        if (generator.lastPreparationTime == preparationTime) {
+            return false;
+        }
+        entityData.setComponent(entityId, new CreatureGenerator(generator.entrance, generator.lastSpawnTime,
+                generator.generatedCount, preparationTime));
+        return true;
+    }
+
+    @Override
+    public void onGenerationCycle(double time) {
+        CreatureGenerator generator = getEntityComponent(CreatureGenerator.class);
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), time,
+                generator.generatedCount, generator.lastPreparationTime));
     }
 
     @Override
     public void captured(short playerId) {
         super.captured(playerId);
-        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), Double.MIN_VALUE));
+        entityData.setComponent(entityId, new CreatureGenerator(roomInstance.getCenter(), gameTimer.getGameTime()));
     }
 }

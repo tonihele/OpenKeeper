@@ -40,4 +40,19 @@ public class IconTextBuilder extends ControlBuilder {
         parameter("text", text);
         parameter("click", onClick);
     }
+
+    /**
+     * Build a new icon text that plays a sound when it is clicked
+     *
+     * @param soundCategory sound category of the click sound
+     * @param soundEvent sound event of the click sound
+     * @see #IconTextBuilder(String, String, String, String)
+     */
+    public IconTextBuilder(final String id, final String icon, final String text, final String onClick,
+            final String soundCategory, final int soundEvent) {
+        this(id, icon, text, onClick);
+
+        parameter(IconTextControl.PARAMETER_SOUND_CATEGORY, soundCategory);
+        parameter(IconTextControl.PARAMETER_SOUND_EVENT, String.valueOf(soundEvent));
+    }
 }
