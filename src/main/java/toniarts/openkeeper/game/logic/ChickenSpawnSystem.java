@@ -34,7 +34,6 @@ import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
-import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -54,11 +53,17 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public final class ChickenSpawnSystem extends GameTimeCounter {
 
+    /**
+     * Seconds between the chickens of a hatchery of 1-3, 4-6 and 7-9 tiles
+     * (DKII.EXE 0x4DE0E0)
+     */
+    private static final int[] SMALL_TILE_VALUES = {15, 13, 12};
+
     private final EntityData entityData;
     private final IObjectsController objectsController;
     private final IMapController mapController;
     private final int maximumFreerangeChickenCount;
-    private final int entranceCooldownTime;
+    private final int firstChickenDelay;
     private final Map<Short, IPlayerController> playerControllersById;
     private final SafeArrayList<IChickenGenerator> entrances = new SafeArrayList<>(IChickenGenerator.class);
     private final EntitySet freerangeChickenGenerators;
@@ -69,15 +74,15 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
     private final Map<EntityId, Short> freeRangeChickenOwners;
 
     public ChickenSpawnSystem(EntityData entityData, IObjectsController objectsController, Collection<IPlayerController> playerControllers,
-            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings, ILevelInfo levelInfo,
+            Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
             IMapController mapController) {
 
         this.entityData = entityData;
         this.objectsController = objectsController;
         this.mapController = mapController;
 
-        // We need the game state just for the variables
-        entranceCooldownTime = (int) gameSettings.get(Variable.MiscVariable.MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY).getValue() / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+        // The variable is in seconds, a new hatchery waits that long for its first chicken
+        firstChickenDelay = (int) gameSettings.get(Variable.MiscVariable.MiscType.CHICKEN_GENERATION_TIME_PER_HATCHERY).getValue();
         maximumFreerangeChickenCount = (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_FREE_RANGE_CHICKENS_PER_PLAYER).getValue();
 
         // Populate entrance list
@@ -144,7 +149,7 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
         double timeSinceLastSpawn = timeElapsed - entrance.getLastSpawnTime();
         boolean spawned = false;
         EntityId entityId = null;
-        if (timeSinceLastSpawn >= entranceCooldownTime) {
+        if (timeSinceLastSpawn >= getCooldown(entrance)) {
 
             if (!entrance.isFullCapacity()) {
                 // Spawn chicken
@@ -170,6 +175,39 @@ public final class ChickenSpawnSystem extends GameTimeCounter {
             // Reset spawn time
             entrance.onSpawn(timeElapsed, entityId);
         }
+    }
+
+    /**
+     * The time in seconds between the chickens of a hatchery. The first one
+     * takes the level variable, after that it depends on the size of the
+     * hatchery, like in the original
+     *
+     * @param entrance the hatchery
+     * @return the time to wait for the next chicken
+     */
+    private int getCooldown(IChickenGenerator entrance) {
+        if (!entrance.hasSpawned()) {
+            return firstChickenDelay;
+        }
+        return getCooldownByHatcherySize(entrance.getRoomInstance().getCoordinates().size());
+    }
+
+    /**
+     * The time in seconds between the chickens of a hatchery of the given size
+     * (the number of tiles). The bigger the hatchery, the faster it breeds, from
+     * 15 seconds for the smallest down to 3 seconds for 20 tiles and over
+     *
+     * @param tiles the number of tiles in the hatchery
+     * @return the time to wait for the next chicken
+     */
+    static int getCooldownByHatcherySize(int tiles) {
+        if (tiles < 1 || tiles >= 20) {
+            return 3;
+        }
+        if (tiles <= 9) {
+            return SMALL_TILE_VALUES[(tiles - 1) / 3];
+        }
+        return Math.max(4, 21 - tiles);
     }
 
     @Override

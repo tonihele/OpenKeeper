@@ -45,16 +45,22 @@ import toniarts.openkeeper.utils.Point;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.function.Predicate;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.console.ConsoleState;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.controller.DoorPlacementValidator;
+import toniarts.openkeeper.game.controller.DropValidator;
 import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.RoomPlacementValidator;
+import toniarts.openkeeper.game.controller.TrapPlacementValidator;
+import toniarts.openkeeper.game.controller.TrapSellRules;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.game.map.IMapTileInformation;
@@ -64,6 +70,7 @@ import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.PlayerScreenController;
 import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
@@ -74,10 +81,14 @@ import toniarts.openkeeper.utils.Utils;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState;
 import toniarts.openkeeper.view.PlayerInteractionState.InteractionState.Type;
+import toniarts.openkeeper.view.control.CreatureViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.fogofwar.IFogOfWarInformation;
+import toniarts.openkeeper.view.lighting.LightConstants;
+import toniarts.openkeeper.view.lighting.LightRules;
 import toniarts.openkeeper.view.selection.SelectionArea;
+import toniarts.openkeeper.view.map.TerrainDeformer;
 import toniarts.openkeeper.view.selection.SelectionHandler;
 import toniarts.openkeeper.view.text.TextParser;
 
@@ -93,6 +104,21 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private static final float CURSOR_UPDATE_INTERVAL = 0.25f;
 
+    /**
+     * The status texts DK II shows for these room types (by room ID) instead
+     * of the tooltip texts the room data has
+     */
+    private static final Map<Short, String> ROOM_STATUS_TEXT_IDS = Map.of(
+            (short) 1, "2581", // Treasury
+            (short) 4, "2580", // Hatchery
+            (short) 6, "2582", // Library
+            (short) 7, "2583", // Training Room
+            (short) 9, "2585", // Guard Room
+            (short) 10, "2584", // Workshop
+            (short) 11, "2586", // Prison
+            (short) 14, "2587", // Graveyard
+            (short) 15, "2781"); // Casino
+
     private Main app;
     private GameClientState gameClientState;
     private AssetManager assetManager;
@@ -105,9 +131,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     private final EntitySet constructionBlockingObjects;
     private final EntitySet constructionBlockingDoors;
     private final EntitySet constructionBlockingTraps;
+    private final ConstructionBlockingTiles constructionBlockingTiles = new ConstructionBlockingTiles();
     private final IMapInformation mapInformation;
     private final TextParser textParser;
     private SelectionHandler selectionHandler;
+    private CursorIcon cursorIcon;
+    private CursorIcon.Price cursorPrice;
     private final Vector2f mousePosition = new Vector2f(Vector2f.ZERO);
     private final InteractionState interactionState = new InteractionState();
     private float timeFromLastUpdate = CURSOR_UPDATE_INTERVAL;
@@ -139,8 +168,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         this.kwdFile = kwdFile;
         this.entityData = entityData;
         constructionBlockingObjects = entityData.getEntities(ObjectComponent.class, Position.class);
-        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class);
-        constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class);
+        constructionBlockingDoors = entityData.getEntities(DoorComponent.class, Position.class, Owner.class);
+        constructionBlockingTraps = entityData.getEntities(TrapComponent.class, Position.class, Owner.class);
+        constructionBlockingTiles.addAll(constructionBlockingObjects, this::isConstructionBlockingObject);
+        constructionBlockingTiles.addAll(constructionBlockingDoors, entity -> true);
+        constructionBlockingTiles.addAll(constructionBlockingTraps, entity -> true);
         this.mapInformation = mapInformation;
         this.textParser = textParser;
 
@@ -167,6 +199,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         // Init handler
         selectionHandler = new InteractionSelectionHandler();
+        cursorIcon = new CursorIcon(assetManager, this.app.getGuiNode(), this.app.getCamera());
 
         if (!gameClientState.isMultiplayer()) {
             this.stateManager.attach(new InteractionCheatState());
@@ -207,6 +240,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         app.getInputManager().removeRawInputListener(inputListener);
         keys.clear();
         selectionHandler.cleanup();
+        cursorIcon.cleanup();
         constructionBlockingObjects.release();
         constructionBlockingDoors.release();
         constructionBlockingTraps.release();
@@ -226,14 +260,23 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return;
         }
 
-        constructionBlockingObjects.applyChanges();
-        constructionBlockingDoors.applyChanges();
-        constructionBlockingTraps.applyChanges();
+        if (constructionBlockingObjects.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingObjects, this::isConstructionBlockingObject);
+        }
+        if (constructionBlockingDoors.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingDoors, entity -> true);
+        }
+        if (constructionBlockingTraps.applyChanges()) {
+            constructionBlockingTiles.applyChanges(constructionBlockingTraps, entity -> true);
+        }
 
         selectionHandler.update(mousePosition);
+        cursorIcon.update(mousePosition, interactionState.getType(), isOnMap && !isOnGui,
+                selectionHandler.getSelectionColor() != SelectionHandler.ColorIndicator.RED, cursorPrice);
         if (isOnMap && !isOnGui && !isTaggable) {
             updateInteractiveObjectOnCursor();
         }
+        updateCursorLight();
 
         if (reactionCursorTimeRemaining > 0) {
             reactionCursorTimeRemaining -= tpf;
@@ -354,7 +397,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         if (interactiveControl != null) {
 
             // Maybe a kinda hack, but set the tooltip here
-            tooltip.setText(interactiveControl.getTooltip(player.getPlayerId()));
+            String text = interactiveControl.getTooltip(player.getPlayerId());
+            if (text == null) {
+
+                // No tooltip of its own (creature beds), show the one of the tile it stands on
+                text = getTileTooltip(WorldUtils.vectorToPoint(((AbstractControl) interactiveControl).getSpatial().getWorldTranslation()));
+            }
+            tooltip.setText(text);
             interactiveControl.onHover(player.getPlayerId());
         } else if (isOnMap) {
             p = selectionHandler.getPointedTileIndex();
@@ -390,7 +439,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return getRoomTooltip(tile, terrain);
         }
 
-        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(terrain.getTooltipStringId())), tile);
+        // Text 0 is "Jelly", the terrains that have it have no tooltip
+        int textId = textParser.getMapTileTextParser().getTooltipTextId(tile, terrain, player.getPlayerId());
+        if (textId == 0) {
+            return "";
+        }
+
+        return textParser.getMapTileTextParser().parseText(Utils.getMainTextResourceBundle().getString(Integer.toString(textId)), tile);
     }
 
     private String getRoomTooltip(IMapTileInformation tile, Terrain terrain) {
@@ -398,9 +453,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             return Utils.getMainTextResourceBundle().getString("2471");
         }
 
-        // Override dungeon heart JELLY text
+        // Override dungeon heart JELLY text and the portal text, DK II ignores the stored ids
         Room room = kwdFile.getRoomByTerrain(terrain.getTerrainId());
-        String bundleKey = kwdFile.getDungeonHeart() == room ? "2579" : Integer.toString(room.getTooltipStringId());
+        String bundleKey = ROOM_STATUS_TEXT_IDS.getOrDefault(room.getRoomId(), Integer.toString(room.getTooltipStringId()));
+        if (kwdFile.getDungeonHeart() == room) {
+            bundleKey = "2579";
+        } else if (kwdFile.getPortal() == room) {
+            bundleKey = "2790";
+        }
 
         return textParser.getRoomTextParser().parseText(Utils.getMainTextResourceBundle().getString(bundleKey),
                 tile.getRoomId(), gameClientState.getPlayer(tile.getOwnerId()));
@@ -493,6 +553,49 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
         }
         return points;
+    }
+
+    /**
+     * The cursor light: follows
+     * the point on the world directly under the mouse (continuous, not
+     * snapped to tile centres -- see LightRules.updateCursorLight for the
+     * deviation), hidden in build mode / off the world / off the map,
+     * black (not hidden) over the map border or unexplored ground.
+     */
+    private void updateCursorLight() {
+        PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+        // The map loader thread mutates the light list until the map is loaded
+        if (mapViewState == null || !mapViewState.isMapLoaded()) {
+            return;
+        }
+        LightRules lightRules = mapViewState.getMapLoader().getLightRules();
+
+        boolean visible = isOnMap && !isOnGui && interactionState.getType() != Type.ROOM;
+        Point p = selectionHandler.getPointedTileIndex();
+        boolean onBorder = false;
+        if (visible) {
+            int width = mapInformation.getMapData().getWidth();
+            int height = mapInformation.getMapData().getHeight();
+            onBorder = p.x < 1 || p.y < 1 || p.x >= width - 1 || p.y >= height - 1;
+        }
+
+        // Over open ground the light is lowered to reach the things standing
+        // there. The mouse ray is cast to the light's own height, else the
+        // light sits off towards the camera, under the pointer
+        // Unexplored ground (incl. the perceived claim scan) is drawn as rock,
+        // so it gets the rock height even where the real tile is open
+        IFogOfWarInformation fogOfWar = gameClientState.getFogOfWarInformation();
+        boolean overSolid = !visible || mapInformation.isSolid(p)
+                || (fogOfWar != null && !fogOfWar.isExplored(p));
+        float height = overSolid ? LightConstants.CURSOR_LIGHT_HEIGHT : LightConstants.CURSOR_LIGHT_HEIGHT_OPEN;
+        Vector2f pointed = selectionHandler.getPointedPositionAtHeight(height);
+        Vector3f position = new Vector3f(pointed.x, height, pointed.y);
+
+        // Border tiles: light stays on but black. Over unexplored
+        // ground it stays white: the hand lights the fog it points at, which
+        // is otherwise completely black (a deviation from the original).
+        boolean explored = visible && !onBorder;
+         lightRules.updateCursorLight(visible, position, explored);
     }
 
     private boolean isOnMap() {
@@ -623,9 +726,15 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.SPELL) {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
             } else if (interactionState.getType() == Type.TRAP) {
-                //TODO put trap
+                Point p = selectionHandler.getPointedTileIndex();
+                if (isTrapPlacementValid(p)) {
+                    gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
+                }
             } else if (interactionState.getType() == Type.DOOR) {
-                //TODO put door
+                Point p = selectionHandler.getPointedTileIndex();
+                if (isDoorPlacementValid(p)) {
+                    gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(), p);
+                }
             } else if (interactionState.getType() == Type.NONE
                     && interactiveControl != null && !keeperHandState.isFull()
                     && interactiveControl.isPickable(player.getPlayerId())) {
@@ -669,16 +778,24 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 // The server only marks a tile selected if its real, hidden terrain is
                 // actually taggable - fog can't reach it to know any better. Locally,
                 // still-unexplored tiles in this drag should look tagged regardless,
-                // until exploration reveals whether that's really true (§8.5).
+                // until exploration reveals whether that's really true.
                 gameClientState.markPendingTaggedTiles(getRectPoints(selectionArea), select);
             } else if (interactionState.getType() == Type.ROOM
-                    && RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
+                    && RoomPlacementValidator.validate(kwdFile, mapInformation, constructionBlockingTiles,
                             selectionArea.getRealStart(), selectionArea.getRealEnd(), player.getPlayerId(),
                             (short) interactionState.getItemId(),
                             gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid()) {
                 gameClientState.getGameClientService().build(selectionArea.getRealStart(), selectionArea.getRealEnd(), (short) interactionState.getItemId());
             } else if (interactionState.getType() == Type.SELL) {
-                gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
+
+                // Started on a trap or a door: sell just that one, they are never sold together with rooms
+                Point realStart = WorldUtils.vectorToPoint(selectionArea.getRealStart());
+                if (hasSellableTrap(realStart) || hasSellableDoor(realStart)) {
+                    Vector2f tile = WorldUtils.pointToVector2f(realStart);
+                    gameClientState.getGameClientService().sell(tile, tile);
+                } else {
+                    gameClientState.getGameClientService().sell(selectionArea.getStart(), selectionArea.getEnd());
+                }
             }
 
             selectionHandler.setActive(false);
@@ -693,7 +810,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 IEntityViewControl entityViewControl = keeperHandState.getItem();
                 if (entityViewControl != null) {
                     IMapTileInformation mapTile = gameClientState.getMapClientService().getMapData().getTile(p);
-                    if (entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
+                    if (!isDropBlocked(entityViewControl, p)
+                            && entityViewControl.getDroppableStatus(mapTile, gameClientState.getMapClientService().getTerrain(mapTile), player.getPlayerId()) != IEntityViewControl.DroppableStatus.NOT_DROPPABLE) {
                         gameClientState.getGameClientService().drop(entityViewControl.getEntityId(), p, selectionHandler.getActualPointedPosition(), interactiveControl != null ? interactiveControl.getEntityId() : null);
 
                         // Show the hand letting go of it, the updateCursor() call below picks it up
@@ -829,15 +947,61 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
     }
 
     private boolean canCastSpell(KeeperSpell keeperSpell, IEntityViewControl object, Point tile) {
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, kwdFile, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), entityData, object != null ? object.getEntityId() : null);
+        int manaCost = stateManager.getState(PlayerState.class).getScreen().getSpellManaCost(keeperSpell);
+        Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
+        Short owner = object != null ? object.getControlId() : null;
+        boolean chicken = object instanceof CreatureViewControl creatureControl && creatureControl.isChicken();
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, manaCost);
     }
 
-    private Set<Point> getConstructionBlockingTiles() {
-        Set<Point> blockedTiles = new HashSet<>();
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingObjects, this::isConstructionBlockingObject);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingDoors, entity -> true);
-        addConstructionBlockingTiles(blockedTiles, constructionBlockingTraps, entity -> true);
-        return blockedTiles;
+    private boolean isTrapPlacementValid(Point tile) {
+        Set<Point> occupiedTiles = new HashSet<>();
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        boolean hasWorkshop = gameClientState.getRoomsInformation()
+                .getRoomCount(player.getPlayerId(), TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
+        return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
+                kwdFile.getTrapById(interactionState.getItemId()), hasWorkshop,
+                gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
+    }
+
+    private boolean hasSellableTrap(Point tile) {
+        for (Entity trap : constructionBlockingTraps) {
+            if (TrapSellRules.isSellable(trap.get(Owner.class).ownerId, player.getPlayerId())
+                    && WorldUtils.vectorToPoint(trap.get(Position.class).position).equals(tile)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isDropBlocked(IEntityViewControl item, Point tile) {
+        Set<Point> doorTiles = new HashSet<>();
+        addConstructionBlockingTiles(doorTiles, constructionBlockingDoors, door -> !door.get(DoorComponent.class).blueprint);
+        return DropValidator.isBlocked(kwdFile, mapInformation.getMapData(), doorTiles, tile,
+                item.getDataObject() instanceof Creature creature && !creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER));
+    }
+
+    private boolean isDoorPlacementValid(Point tile) {
+        Set<Point> occupiedTiles = new HashSet<>();
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
+        addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
+        return DoorPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
+                kwdFile.getDoorById(interactionState.getItemId()),
+                gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
+    }
+
+    /**
+     * A keeper sells its own doors, built or blueprints
+     */
+    private boolean hasSellableDoor(Point tile) {
+        for (Entity door : constructionBlockingDoors) {
+            if (door.get(Owner.class).ownerId == player.getPlayerId()
+                    && WorldUtils.vectorToPoint(door.get(Position.class).position).equals(tile)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private boolean isConstructionBlockingObject(Entity entity) {
@@ -906,6 +1070,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
     private final class InteractionSelectionHandler extends SelectionHandler {
 
+        private long roomCost;
+
         private InteractionSelectionHandler() {
             super(app);
         }
@@ -924,6 +1090,12 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 case SELL, ROOM, DOOR, TRAP -> true;
                 default -> false;
             };
+        }
+
+        @Override
+        protected TerrainDeformer getDeformer() {
+            PlayerMapViewState mapViewState = stateManager.getState(PlayerMapViewState.class);
+            return mapViewState != null ? mapViewState.getTerrainDeformer() : null;
         }
 
         @Override
@@ -946,6 +1118,8 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         @Override
         protected ColorIndicator getColorIndicator() {
+            roomCost = interactionState.getType() == Type.ROOM ? getRoomCost() : 0;
+            cursorPrice = getPrice();
             Point point = isActive()
                     ? WorldUtils.vectorToPoint(getSelectionArea().getRealStart())
                     : WorldUtils.vectorToPoint(getPointedTilePosition());
@@ -954,7 +1128,14 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             }
             if (interactionState.getType() == Type.SELL) {
                 return gameClientState.getMapClientService().isSellable(point, player.getPlayerId())
+                        || hasSellableTrap(point) || hasSellableDoor(point)
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
+            if (interactionState.getType() == Type.TRAP) {
+                return isTrapPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
+            }
+            if (interactionState.getType() == Type.DOOR) {
+                return isDoorPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;
@@ -964,7 +1145,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
 
         private ColorIndicator getDropColor(Point point) {
             IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
-            if (tile == null) {
+            if (tile == null || isDropBlocked(keeperHandState.getItem(), point)) {
                 return ColorIndicator.RED;
             }
             IEntityViewControl.DroppableStatus status = keeperHandState.getItem().getDroppableStatus(
@@ -979,12 +1160,70 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                     && !isRoomSelectionValid();
         }
 
+        /**
+         * The room can be built if it has tiles to build on and the keeper can pay for them
+         */
         private boolean isRoomSelectionValid() {
+            return roomCost > 0 && roomCost <= gameClientState.getPlayer(player.getPlayerId()).getGold();
+        }
+
+        /**
+         * What the room selection costs, validated with any amount of gold so that the price shows even when the
+         * keeper can't afford it
+         *
+         * @return the cost, 0 if nothing can be built there
+         */
+        private long getRoomCost() {
             SelectionArea area = getSelectionArea();
-            return RoomPlacementValidator.validate(kwdFile, mapInformation, getConstructionBlockingTiles(),
-                    area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
-                    (short) interactionState.getItemId(),
-                    gameClientState.getPlayer(player.getPlayerId()).getGold()).isValid();
+            RoomPlacementValidator.Result result = RoomPlacementValidator.validate(kwdFile, mapInformation,
+                    constructionBlockingTiles, area.getRealStart(), area.getRealEnd(), player.getPlayerId(),
+                    (short) interactionState.getItemId(), Integer.MAX_VALUE);
+            if (!result.isValid()) {
+                return 0;
+            }
+            return (long) result.plots().size() * kwdFile.getRoomById(interactionState.getItemId()).getCost();
+        }
+
+        /**
+         * The price the original shows next to the hand for the selection
+         *
+         * @return the price, {@code null} for none
+         */
+        private CursorIcon.Price getPrice() {
+            int gold = gameClientState.getPlayer(player.getPlayerId()).getGold();
+            return switch (interactionState.getType()) {
+                case ROOM ->
+                    CursorIcon.Price.cost(roomCost, gold);
+                case DOOR ->
+                    CursorIcon.Price.cost(kwdFile.getDoorById(interactionState.getItemId()).getGoldCost(), gold);
+                case TRAP ->
+                    CursorIcon.Price.cost(kwdFile.getTrapById(interactionState.getItemId()).getGoldCost(), gold);
+                case SELL ->
+                    CursorIcon.Price.sale(getSellValue());
+                default ->
+                    null;
+            };
+        }
+
+        /**
+         * What selling the own rooms in the selection gives back
+         *
+         * @return the gold
+         */
+        private int getSellValue() {
+            SelectionArea area = getSelectionArea();
+            float percentage = gameClientState.getLevelVariable(MiscType.ROOM_SELL_VALUE_PERCENTAGE_OF_COST);
+            int value = 0;
+            for (int x = (int) Math.min(area.getRealStart().x, area.getRealEnd().x); x <= (int) Math.max(area.getRealStart().x, area.getRealEnd().x); x++) {
+                for (int y = (int) Math.min(area.getRealStart().y, area.getRealEnd().y); y <= (int) Math.max(area.getRealStart().y, area.getRealEnd().y); y++) {
+                    Point point = new Point(x, y);
+                    if (gameClientState.getMapClientService().isSellable(point, player.getPlayerId())) {
+                        IMapTileInformation tile = gameClientState.getMapClientService().getMapData().getTile(point);
+                        value += (int) (kwdFile.getRoomByTerrain(tile.getTerrainId()).getCost() * (percentage / 100));
+                    }
+                }
+            }
+            return value;
         }
     }
 

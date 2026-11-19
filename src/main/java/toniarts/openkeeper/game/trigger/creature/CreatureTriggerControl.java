@@ -263,9 +263,9 @@ public final class CreatureTriggerControl extends AbstractThingTriggerControl<IC
                 return true;
 
             case SET_FIGHT_FLAG:
-                // STUB: 0 = don't fight, otherwise fight. Whether to fight is decided by the
-                // creature's AI, there is no flag to override it
-                logStub(trigger, "Whether to fight is decided by the creature's AI, there is no flag to override it");
+                if (instanceControl != null) {
+                    instanceControl.setWillFight(trigger.getUserData("available", short.class) == 1); // 1 = Fight (DK II 0x49AC80)
+                }
                 return true;
 
             case ZOOM_TO:

@@ -32,9 +32,11 @@ import com.jme3.math.ColorRGBA;
 import com.jme3.niftygui.NiftyJmeDisplay;
 import com.jme3.post.FilterPostProcessor;
 import com.jme3.post.ssao.SSAOFilter;
+import com.jme3.post.filters.TranslucentBucketFilter;
 import com.jme3.renderer.RenderManager;
 import com.jme3.renderer.opengl.GLRenderer;
 import com.jme3.system.AppSettings;
+import com.jme3.system.lwjgl.LwjglWindow;
 import com.jme3.system.JmeSystem;
 import de.lessvoid.nifty.Nifty;
 import de.lessvoid.nifty.render.batch.BatchRenderConfiguration;
@@ -65,11 +67,17 @@ import java.util.Queue;
 import java.util.ResourceBundle;
 import javax.imageio.ImageIO;
 import javax.swing.JFrame;
+import org.lwjgl.glfw.GLFW;
+import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
+ import toniarts.openkeeper.utils.WorldUtils;
+import toniarts.openkeeper.view.PlayerCameraState;
 import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
@@ -78,7 +86,6 @@ import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.PathUtils;
 import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.video.MovieState;
@@ -273,6 +280,29 @@ public final class Main extends SimpleApplication {
     }
 
     /**
+     * A minimised window reports a 0x0 framebuffer. Resizing the cameras, the
+     * post processors and Nifty to that breaks them (NaN aspect ratio, empty
+     * layouts), so keep the last real size until the window is restored.
+     * <p>
+     * jME 3.9 passes the 0x0 size on. jME 3.10 keeps the reported sizes at
+     * 16x16 or more, see jME issue
+     * <a href="https://github.com/jMonkeyEngine/jmonkeyengine/issues/2618">#2618</a>
+     * and its fix
+     * <a href="https://github.com/jMonkeyEngine/jmonkeyengine/pull/2619">#2619</a>.
+     * Remove this override once OpenKeeper is on jME 3.10 or later.
+     *
+     * @param w the new width
+     * @param h the new height
+     */
+    @Override
+    public void reshape(int w, int h) {
+        if (w <= 0 || h <= 0) {
+            return;
+        }
+        super.reshape(w, h);
+    }
+
+    /**
      * Sets SWING look and feel
      */
     private static void setLookNFeel() {
@@ -343,8 +373,44 @@ public final class Main extends SimpleApplication {
         t.join();
     }
 
+    /**
+     * Advances the sound engine once per frame, independent of the state that
+     * happens to be active.
+     */
+    @Override
+    public void update() {
+        super.update();
+
+        // The player camera sets the listener itself, it listens from where it looks at, not from where it hovers
+        if (getCamera() != null && stateManager.getState(PlayerCameraState.class) == null) {
+            SoundManager.setListener(WorldUtils.vectorToPoint(getCamera().getLocation()));
+        }
+        SoundManager.tick();
+    }
+
+    /**
+     * Turns the window into a borderless window that covers the primary
+     * monitor. The monitor's current mode is kept, so there is no video mode
+     * switch and the window is not minimised when it loses the focus.
+     */
+    private void setBorderless() {
+        long window = ((LwjglWindow) context).getWindowHandle();
+        GLFWVidMode mode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
+        if (mode == null) {
+            return;
+        }
+        GLFW.glfwSetWindowAttrib(window, GLFW.GLFW_DECORATED, GLFW.GLFW_FALSE);
+        GLFW.glfwSetWindowPos(window, 0, 0);
+        GLFW.glfwSetWindowSize(window, mode.width(), mode.height());
+    }
+
     @Override
     public void simpleInitApp() {
+
+        // Borderless fullscreen, a monitor sized window without decorations
+        if (Settings.getInstance().getBoolean(Settings.Setting.BORDERLESS)) {
+            setBorderless();
+        }
 
         // Escape opens the game menu (PAUSE_OR_OPTIONS), it must not quit the application
         if (inputManager.hasMapping(INPUT_MAPPING_EXIT)) {
@@ -374,6 +440,8 @@ public final class Main extends SimpleApplication {
                     // Asset loaders
                     // Sound
                     getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
+                    SoundManager.init(Main.this);
+                    applySoundSettings();
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);
 
@@ -395,7 +463,9 @@ public final class Main extends SimpleApplication {
                             folder = SCREENSHOTS_FOLDER;
                         }
 
-                        folder = PathUtils.fixFilePath(folder).concat(getSettings().getTitle()).concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
+                        // The global settings carry no title, the game's own app settings do
+                        String title = Settings.getInstance().getAppSettings().getTitle();
+                        folder = PathUtils.fixFilePath(folder).concat(title != null ? title : "OpenKeeper").concat("-").concat(String.valueOf(System.currentTimeMillis() / 1000)).concat(".avi");
                         recorder.setFile(new File(folder));
 
                         getStateManager().attach(recorder);
@@ -462,7 +532,7 @@ public final class Main extends SimpleApplication {
 
             private void loadSounds() {
                 for (String cat : GlobalCategory.getCategories()) {
-                    SoundsLoader.load(cat);
+                    SoundCategory.load(cat, true);
                 }
             }
 
@@ -488,6 +558,16 @@ public final class Main extends SimpleApplication {
         float musicVolume = s.getFloat(Settings.Setting.MASTER_VOLUME) * s.getFloat(Settings.Setting.MUSIC_VOLUME);
         nifty.getSoundSystem().setMusicVolume(s.getBoolean(Settings.Setting.VOICE_ENABLED) ? musicVolume : 0);
         nifty.getSoundSystem().setSoundVolume(s.getFloat(Settings.Setting.MASTER_VOLUME));
+    }
+
+    /**
+     * Feeds the sound engine with the volume settings of the game.
+     */
+    public static void applySoundSettings() {
+        Settings s = getUserSettings();
+
+        SoundManager.applyVolumes(s.getFloat(Settings.Setting.MASTER_VOLUME), s.getFloat(Settings.Setting.MUSIC_VOLUME),
+                s.getFloat(Settings.Setting.VOICE_VOLUME), s.getFloat(Settings.Setting.SFX_VOLUME));
     }
 
     public byte[] getGameUiXml() {
@@ -598,6 +678,8 @@ public final class Main extends SimpleApplication {
                     Settings.getInstance().getFloat(Settings.Setting.SSAO_SCALE),
                     Settings.getInstance().getFloat(Settings.Setting.SSAO_BIAS));
             fpp.addFilter(ssaoFilter);
+            // Render flames/particles after water, using the original scene depth.
+            fpp.addFilter(new TranslucentBucketFilter());
             viewPort.addProcessor(fpp);
         }
     }
