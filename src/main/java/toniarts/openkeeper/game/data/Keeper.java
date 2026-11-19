@@ -49,6 +49,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     private int maxMana;
     private int attractedCreatures;
     private int portalCreatureCapacity;
+    private int goldSpentOnBuilding;
     private Point dungeonHeartLocation;
     private boolean possession;
     private List<ResearchableEntity> availableRooms = new ArrayList<>();
@@ -257,6 +258,28 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     }
 
     /**
+     * Get the gold the keeper has paid for room tiles, doors and traps. It
+     * isn't given back when they are sold. DK II keeps it in CPlayer +0x177
+     * (added in 0x4C5C30 for room tiles, 0x4C33B0 for doors and 0x4C3860 for
+     * traps) and shows it with the gold as the Dungeon Value of the Player
+     * Information window (0x4C2C30)
+     *
+     * @return the gold spent on building
+     */
+    public int getGoldSpentOnBuilding() {
+        return goldSpentOnBuilding;
+    }
+
+    /**
+     * Add the price of a room, a door or a trap the keeper paid for
+     *
+     * @param gold the price paid
+     */
+    public void addGoldSpentOnBuilding(int gold) {
+        goldSpentOnBuilding += gold;
+    }
+
+    /**
      * Get the creatures that came in through the portals, the ones that count
      * towards the portal limit
      *
@@ -345,6 +368,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(maxMana, "maxMana", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
+        out.write(goldSpentOnBuilding, "goldSpentOnBuilding", 0);
         out.writeSavableArrayList(new ArrayList(availableRooms), "availableRooms", null);
         out.writeSavableArrayList(new ArrayList(availableSpells), "availableSpells", null);
         out.write(toPrimitiveShortArray(availableCreatures), "availableCreatures", new short[0]);
@@ -370,6 +394,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         int x = in.readInt("dungeonHeartLocationX", 0);
         int y = in.readInt("dungeonHeartLocationY", 0);
         dungeonHeartLocation = new Point(x, y);
+        goldSpentOnBuilding = in.readInt("goldSpentOnBuilding", goldSpentOnBuilding);
         availableRooms = in.readSavableArrayList("availableRooms", new ArrayList<>());
         availableSpells = in.readSavableArrayList("availableSpells", new ArrayList<>());
         availableCreatures = toReferenceList(in.readShortArray("availableCreatures", new short[0]));
