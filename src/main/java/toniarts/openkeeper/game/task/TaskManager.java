@@ -806,7 +806,19 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
             // Assign
             if (!coordinates.isEmpty()) {
-                Point target = Utils.getRandomItem(coordinates);
+                Point target;
+                if (objectType == ObjectType.SPECIAL || objectType == ObjectType.SPELL_BOOK) {
+                    Vector3f source = targetEntity != null ? EntityController.getPosition(entityData, targetEntity) : null;
+                    float originX = source != null ? source.x / WorldUtils.TILE_WIDTH : currentPosition.x;
+                    float originY = source != null ? source.z / WorldUtils.TILE_WIDTH : currentPosition.y;
+                    target = coordinates.stream().min(Comparator.comparingDouble(p -> {
+                        double dx = p.x - originX;
+                        double dy = p.y - originY;
+                        return dx * dx + dy * dy;
+                    })).orElseThrow();
+                } else {
+                    target = Utils.getRandomItem(coordinates);
+                }
                 GraphPath<IMapTileInformation> path = navigationService.findPath(creature.getCreatureCoordinates(), target, creature);
                 if (path != null || target == creature.getCreatureCoordinates()) {
 

@@ -39,14 +39,18 @@ import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.DropArea;
 import toniarts.openkeeper.game.component.FollowTarget;
+import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.HauledBy;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Interaction;
+import toniarts.openkeeper.game.component.KeeperSpellCast;
+import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.ObjectComponent;
+import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Slapped;
@@ -948,7 +952,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
     @Override
     public void pickUp(EntityId entity, short playerId) {
-        if (activateSpecialOnOwnLand(entity, playerId) || switchRoomFurniture(entity, playerId)) {
+        if (activateSpecialOnOwnLand(entity, playerId) || switchRoomFurniture(entity, playerId) || turnLevelIndicator(entity, 1)) {
             return;
         }
 
@@ -956,6 +960,35 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (!playerHandControl.isFull() && canPickUpEntity(entity, playerId, entityData)) {
             putToKeeperHand(playerHandControl, entity, playerId);
         }
+    }
+
+    /**
+     * The My Pet Dungeon level indicator never goes to the hand. Clicking it
+     * turns it one level up and slapping it one level down, round from 10 to
+     * 1 and back, and the Hero Toolbox creatures are set to its level
+     * (DKII.EXE 0x4075E0 sends action 0x82 instead of picking it up, handled at
+     * 0x514320; the slap is 0x49C2A0)
+     *
+     * @param entity the entity clicked on or slapped
+     * @param levels how many levels to turn, negative turns down
+     * @return {@code true} if the entity was a level indicator
+     */
+    private boolean turnLevelIndicator(EntityId entity, int levels) {
+        LevelIndicator levelIndicator = entityData.getComponent(entity, LevelIndicator.class);
+        if (levelIndicator == null) {
+            return false;
+        }
+
+        levelIndicator = levelIndicator.turn(levels);
+        entityData.setComponent(entity, levelIndicator);
+        creaturesController.levelUpTools(levelIndicator.level);
+
+        // Spin it, a new view state plays the animation again
+        ObjectViewState viewState = entityData.getComponent(entity, ObjectViewState.class);
+        if (viewState != null) {
+            entityData.setComponent(entity, new ObjectViewState(viewState.objectId, viewState.state, viewState.animState, viewState.visible, viewState.lairCreatureTypeId));
+        }
+        return true;
     }
 
     /**
@@ -1209,7 +1242,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         ObjectComponent objectComponent = entityData.getComponent(entityId, ObjectComponent.class);
         Owner owner = entityData.getComponent(entityId, Owner.class);
-        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId)) {
+        if (!EntityPickupValidator.isValidOwner(objectComponent, owner, playerId, isTool(entityId, entityData))) {
             return false;
         }
 
@@ -1267,6 +1300,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         if (objectComponent != null && interaction.slappable) {
             entityData.setComponent(entity, new Slapped(gameTimer.getGameTime()));
             notifySlap(entity, playerId);
+            turnLevelIndicator(entity, -1);
             return;
         }
     }
@@ -1296,8 +1330,13 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
                 // See if it is gold given to a creature or added to a room
                 ObjectComponent objectComponent = entityData.getComponent(entity, ObjectComponent.class);
+                CreatureComponent dropOnCreature = dropOnEntity != null ? entityData.getComponent(dropOnEntity, CreatureComponent.class) : null;
                 if (objectComponent != null && kwdFile.getObject(objectComponent.objectId).getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
                     dropGold(entity, dropOnEntity, roomController, playerId, tile, coordinates);
+                } else if (dropOnCreature != null && dropOnCreature.hungerFill > 0 && entityData.getComponent(entity, Food.class) != null) {
+
+                    // Like in DK II, a chicken dropped on a creature that eats chickens is eaten by it, whoever owns it
+                    creaturesController.createController(dropOnEntity).eat(objectsController.createController(entity));
                 } else {
                     Vector3f pos = new Vector3f(coordinates.x, 1, coordinates.y);
                     entityData.setComponent(entity, new Position(0, pos));
@@ -1561,7 +1600,21 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // The same rules as the client
         Interaction interaction = entityData.getComponent(entityId, Interaction.class);
-        return DropValidator.canDrop(interaction, tile, terrain, playerId);
+        return DropValidator.canDrop(interaction, isTool(entityId, entityData), tile, terrain, playerId);
+    }
+
+    /**
+     * A Hero Toolbox creature of My Pet Dungeon ("I am a tool") goes to the
+     * hand of any keeper, like DKII.EXE 0x48E6A0 lets anyone pick up a creature
+     * with the tool flag
+     *
+     * @param entityId the entity
+     * @param entityData the entity data
+     * @return {@code true} if the entity is a Hero Toolbox creature
+     */
+    private static boolean isTool(EntityId entityId, EntityData entityData) {
+        CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
+        return creatureComponent != null && creatureComponent.tool;
     }
 
     @Override
@@ -1667,12 +1720,25 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             CreatureAi creatureAi = entityData.getComponent(target, CreatureAi.class);
             targetChicken = creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
         }
-        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)) {
+        if (!KeeperSpellCastValidator.isValidCast(keeperSpell, mapController, mapTile, player, targetCreature, targetOwner, targetChicken, manaCost)
+                || !ReaperSummoner.checkReaperRule(keeperSpell, kwdFile, player, entityData)) {
+            return;
+        }
+
+        double gameTime = gameTimer.getGameTime();
+        if (!KeeperSpellCastValidator.isRecharged(keeperSpell, entityData, playerId, gameTime)) {
             return;
         }
 
         // Deduct the mana
         playerControllers.get(playerId).getManaControl().addMana(-manaCost);
+
+        // Start the recharge
+        EntityId lastCast = KeeperSpellCastValidator.findLastCast(entityData, playerId, keeperSpellId);
+        if (lastCast == null) {
+            lastCast = entityData.createEntity();
+        }
+        entityData.setComponent(lastCast, new KeeperSpellCast(playerId, keeperSpellId, gameTime));
 
         // Cast the spell
         boolean spellUpgraded = researchableEntity.isUpgraded();
