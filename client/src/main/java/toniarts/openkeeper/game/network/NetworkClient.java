@@ -60,8 +60,10 @@ public final class NetworkClient implements ChatSession {
 
         client.addClientStateListener(new ClientStateChangeListener(this));
 
+        // The server calls the client's listeners back during the login, so the client shares them on the login's
+        // channel: messages keep their order only within a channel (-1 is the RMI services' default id)
         client.getServices().addServices(new RpcClientService(),
-                new RmiClientService(),
+                new RmiClientService((short) -1, NetworkConstants.LOBBY_CHANNEL),
                 new StreamingClientService(),
                 new AccountClientService(),
                 new LobbyClientService(),
