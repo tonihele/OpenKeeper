@@ -23,41 +23,56 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
-import java.util.EnumSet;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
+import toniarts.openkeeper.game.component.CreatureHunger;
+import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.Food;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.tools.convert.map.CreatureMoodFixtures;
+import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * An idle prisoner now and then walks to a tile of the cage next to its own
- * (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0)
+ * (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0). A hungry one goes for the chickens
+ * in the Prison instead (0x473550, 0x473750)
  */
 class PrisonerIdleTest {
 
     private static final int TICKS = 4000;
+    private static final short ANGER_NO_FOOD = 400;
+    private static final int HP_FROM_CHICKEN = 250;
 
     private final EntityData entityData = new DefaultEntityData();
     private final EntityId prisoner = entityData.createEntity();
     private final Set<Point> prisonTiles = new HashSet<>();
     private final Set<Point> cageTiles = new HashSet<>();
+    private final Map<Point, List<EntityId>> thingsByTile = new HashMap<>();
+    private final List<EntityId> eaten = new ArrayList<>();
 
     PrisonerIdleTest() {
 
@@ -108,6 +123,76 @@ class PrisonerIdleTest {
     }
 
     @Test
+    void hungryPrisonerGoesToTheNearestFoodInThePrison() {
+        CreatureController controller = createController();
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 2));
+        placeChicken(new Point(13, 11));
+        placeChicken(new Point(14, 13));
+
+        for (int tick = 0; tick < TICKS && entityData.getComponent(prisoner, Navigation.class) == null; tick++) {
+            controller.idleInPrison();
+        }
+
+        assertEquals(new Point(13, 11), entityData.getComponent(prisoner, Navigation.class).target);
+        assertTrue(eaten.isEmpty());
+    }
+
+    @Test
+    void hungryPrisonerEatsTheChickenItStandsOnAndIsFull() {
+        CreatureController controller = createController();
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 2),
+                new CreatureMood(0, 1000, 0, 0, 0, 0));
+        EntityId chicken = placeChicken(new Point(11, 11));
+
+        controller.idleInPrison();
+
+        assertEquals(List.of(chicken), eaten);
+        assertEquals(0, entityData.getComponent(prisoner, CreatureHunger.class).amountNeeded);
+        assertEquals(-HP_FROM_CHICKEN, entityData.getComponent(prisoner, Damage.class).damage);
+        assertEquals(0, entityData.getComponent(prisoner, CreatureMood.class).noFood);
+    }
+
+    @Test
+    void prisonerThatIsNotHungryLeavesTheChickenAlone() {
+        CreatureController controller = createController();
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 0));
+        placeChicken(new Point(11, 11));
+
+        controller.idleInPrison();
+
+        assertTrue(eaten.isEmpty());
+    }
+
+    @Test
+    void hungryPrisonerWithNoFoodInThePrisonGetsAngryAboutIt() {
+        CreatureController controller = createController();
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 2),
+                new CreatureMood());
+        placeChicken(new Point(20, 20));
+
+        for (int tick = 0; tick < TICKS && entityData.getComponent(prisoner, CreatureMood.class).noFood == 0; tick++) {
+            controller.idleInPrison();
+        }
+
+        // It looked for food instead of moving on, and looks again only after a while
+        assertEquals(CreatureMood.toRuntimeValue(ANGER_NO_FOOD), entityData.getComponent(prisoner, CreatureMood.class).noFood);
+        assertNull(entityData.getComponent(prisoner, Navigation.class));
+        for (int tick = 0; tick < TICKS; tick++) {
+            controller.idleInPrison();
+            entityData.removeComponent(prisoner, Navigation.class);
+        }
+        assertEquals(CreatureMood.toRuntimeValue(ANGER_NO_FOOD), entityData.getComponent(prisoner, CreatureMood.class).noFood);
+        assertFalse(entityData.getComponent(prisoner, CreatureHunger.class).lastEatAttemptTime < 0);
+    }
+
+    private EntityId placeChicken(Point tile) {
+        EntityId chicken = entityData.createEntity();
+        entityData.setComponent(chicken, new Food());
+        thingsByTile.computeIfAbsent(tile, key -> new ArrayList<>()).add(chicken);
+        return chicken;
+    }
+
+    @Test
     void prisonerOnItsWayIsLeftAlone() {
         List<String> calls = new ArrayList<>();
         ICreatureController walking = proxy(ICreatureController.class, (method, args) -> {
@@ -127,8 +212,13 @@ class PrisonerIdleTest {
     }
 
     private CreatureController createController() {
-        IRoomController prison = proxy(IRoomController.class, (method, args) -> method.equals("isTileAccessible")
-                ? cageTiles.contains((Point) args[0]) == cageTiles.contains((Point) args[1]) : null);
+        RoomInstance roomInstance = new RoomInstance(new Room());
+        roomInstance.addCoordinates(prisonTiles);
+        IRoomController prison = proxy(IRoomController.class, (method, args) -> switch (method) {
+            case "isTileAccessible" -> cageTiles.contains((Point) args[0]) == cageTiles.contains((Point) args[1]);
+            case "getRoomInstance" -> roomInstance;
+            default -> null;
+        });
         IMapController mapController = proxy(IMapController.class, (method, args) -> method.equals("getRoomControllerByCoordinates")
                 && prisonTiles.contains((Point) args[0]) ? prison : null);
         INavigationService navigationService = proxy(INavigationService.class, (method, args) -> {
@@ -138,11 +228,22 @@ class PrisonerIdleTest {
             }
             return path;
         });
-        Creature creature = ShotFixtures.creature((short) 1, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
+        IEntityPositionLookup entityPositionLookup = proxy(IEntityPositionLookup.class, (method, args) -> switch (method) {
+            case "getEntitiesInLocation" -> thingsByTile.getOrDefault((Point) args[0], List.of());
+            case "getEntityController" -> proxy(IEntityController.class, (controllerMethod, controllerArgs) -> {
+                if (controllerMethod.equals("remove")) {
+                    eaten.add((EntityId) args[0]);
+                }
+                return null;
+            });
+            default -> null;
+        });
+        IKwdFile kwdFile = proxy(IKwdFile.class, (method, args) -> method.equals("getGameLevel") ? CreatureSleepFixtures.level(4) : null);
+        Creature creature = CreatureMoodFixtures.withAngerNoFood(CreatureSleepFixtures.sleeper(10), ANGER_NO_FOOD);
 
         return new CreatureController(prisoner, entityData, creature, navigationService, null, () -> 0, Map.of(), null,
-                proxy(IEntityPositionLookup.class, (method, args) -> null), mapController,
-                proxy(ILevelInfo.class, (method, args) -> null), null, null, null);
+                entityPositionLookup, mapController,
+                proxy(ILevelInfo.class, (method, args) -> method.equals("getLevelData") ? kwdFile : null), null, null, null);
     }
 
     @SuppressWarnings("unchecked")

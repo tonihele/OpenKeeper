@@ -74,7 +74,8 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     /**
      * A prisoner with nothing to do. Now and then it walks to a tile of the
-     * cage next to the one it stands on
+     * cage next to the one it stands on, or, when it is hungry, to the
+     * nearest chicken in the Prison to eat it
      */
     public void idleInPrison();
 
