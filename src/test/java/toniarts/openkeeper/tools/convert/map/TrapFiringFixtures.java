@@ -51,6 +51,23 @@ public final class TrapFiringFixtures {
         return trap;
     }
 
+    public static ArtResource animation(String name, int frames, int fps) {
+        ArtResource art = new ArtResource(name, ArtResource.ArtResourceType.ANIMATING_MESH);
+        art.setData(ArtResource.KEY_FRAMES, frames);
+        art.setData(ArtResource.KEY_FPS, fps);
+        return art;
+    }
+
+    public static Trap withAnimations(Trap trap, ArtResource idle, ArtResource fire) {
+        trap.setFireResource(fire);
+        return withIdleAnimation(trap, idle);
+    }
+
+    public static Trap withIdleAnimation(Trap trap, ArtResource idle) {
+        trap.setMeshResource(idle);
+        return trap;
+    }
+
     /**
      * Gives the trap the shot offset, in tiles
      *

@@ -46,8 +46,8 @@ public final class ServerGameEventService implements GameEventService {
     }
 
     @Override
-    public void emitEffect(int effectId, Vector3f position, float yaw) {
-        playerService.sendEffect(effectId, position, yaw);
+    public void emitEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime) {
+        playerService.sendEffect(effectId, position, yaw, throughoutLifetime);
     }
 
     @Override

@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.view.control;
 
+import com.jme3.anim.AnimComposer;
 import com.jme3.asset.AssetManager;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
@@ -25,11 +26,13 @@ import java.util.ResourceBundle;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.sound.ThingSounds;
 import toniarts.openkeeper.gui.CursorFactory;
+import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Trap;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.TextParameter;
 import toniarts.openkeeper.utils.Utils;
+import toniarts.openkeeper.view.animation.AnimationLoader;
 import toniarts.openkeeper.view.text.EntityTextParser;
 
 /**
@@ -40,6 +43,7 @@ import toniarts.openkeeper.view.text.EntityTextParser;
 public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState> {
 
     private boolean initialized = false;
+    private boolean firing;
 
     public TrapViewControl(EntityId entityId, EntityData entityData, Trap data, TrapViewState viewState,
             AssetManager assetManager, EntityTextParser<Trap> textParser) {
@@ -78,7 +82,52 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
 
     @Override
     public boolean isStopAnimation() {
-        return true;
+        return currentState.blueprint || (firing
+                && !getDataObject().getFlags().contains(Trap.TrapFlag.LOOP_FIRE_ANIMATION));
+    }
+
+    @Override
+    protected void controlUpdate(float tpf) {
+        super.controlUpdate(tpf);
+        // Wait until the animation callback has finished before replacing its model.
+        if (firing && !isAnimationPlaying) {
+            firing = false;
+            playAnimation();
+        }
+    }
+
+    private void playAnimation() {
+        ArtResource resource = getAnimationData(currentState);
+        AnimationLoader.playAnimation(spatial, resource, assetManager);
+        isAnimationPlaying = resource != null && resource.getType() == ArtResource.ArtResourceType.ANIMATING_MESH;
+        if (isAnimationPlaying) {
+            Number fps = resource.getData(ArtResource.KEY_FPS);
+            Number frames = resource.getData(ArtResource.KEY_FRAMES);
+            if (fps != null && fps.floatValue() > 0 && frames != null && frames.floatValue() > 0) {
+                spatial.depthFirstTraversal(model -> {
+                    AnimComposer composer = model.getControl(AnimComposer.class);
+                    if (composer != null) {
+                        // Converted clips use their own time base. Match the authored
+                        // duration without changing the shared clip or other instances.
+                        var clip = composer.getAnimClip(KmfModelLoader.DUMMY_ANIM_CLIP_NAME);
+                        if (clip != null) {
+                            composer.setGlobalSpeed((float) (clip.getLength() * fps.floatValue() / frames.floatValue()));
+                        }
+                    }
+                });
+            }
+        }
+        if (currentState.blueprint) {
+            spatial.depthFirstTraversal(model -> {
+                AnimComposer composer = model.getControl(AnimComposer.class);
+                if (composer != null) {
+                    composer.reset();
+                    composer.setEnabled(false);
+                }
+            });
+            isAnimationPlaying = false;
+            AssetUtils.setBlueprint(assetManager, spatial);
+        }
     }
 
     @Override
@@ -91,19 +140,20 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
     private void setState(TrapViewState current, TrapViewState target) {
         Objects.requireNonNull(target, "You need to give the target state!");
 
-        if (current == null || current.blueprint != target.blueprint) {
-            if (target.blueprint) {
-                AssetUtils.setBlueprint(assetManager, spatial);
-            } else if (current != null) {
-
-                // The trap got armed
-                AssetUtils.removeBlueprint(spatial);
-                if (spatial != null && spatial.getCullHint() != Spatial.CullHint.Always) {
-                    ThingSounds.play(getDataObject().getSoundCategory(), ThingSounds.MANUFACTURED, spatial.getWorldTranslation());
-                }
+        if (spatial == null) {
+            return;
+        }
+        boolean constructionChanged = current == null || current.blueprint != target.blueprint;
+        boolean shot = current != null && current.fireSequence != target.fireSequence;
+        currentState = target;
+        if (constructionChanged || (!target.blueprint && shot)) {
+            firing = !target.blueprint && shot && getDataObject().getFireResource() != null;
+            playAnimation();
+            if (constructionChanged && current != null && !target.blueprint
+                    && spatial.getCullHint() != Spatial.CullHint.Always) {
+                ThingSounds.play(getDataObject().getSoundCategory(), ThingSounds.MANUFACTURED, spatial.getWorldTranslation());
             }
         }
-        currentState = target;
     }
 
     @Override
@@ -113,7 +163,7 @@ public final class TrapViewControl extends EntityViewControl<Trap, TrapViewState
 
     @Override
     protected ArtResource getAnimationData(TrapViewState viewState) {
-        return getDataObject().getMeshResource();
+        return firing ? getDataObject().getFireResource() : getDataObject().getMeshResource();
     }
 
     @Override

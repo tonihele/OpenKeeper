@@ -18,8 +18,12 @@ package toniarts.openkeeper.game.event;
 
 import com.jme3.math.Vector3f;
 
-/** One finite effect emitted by a map generator; placement is chosen by the server. */
-public record GeneratedEffect(int effectId, Vector3f position, float yaw) {
+/** One finite effect emitted by the server, optionally generating throughout its lifetime. */
+public record GeneratedEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime) {
+    public GeneratedEffect(int effectId, Vector3f position, float yaw) {
+        this(effectId, position, yaw, false);
+    }
+
     public GeneratedEffect {
         position = position.clone();
     }

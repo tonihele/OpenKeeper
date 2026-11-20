@@ -56,6 +56,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -79,6 +80,7 @@ class ShotsControllerTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<Short, Shot> shotsById = new HashMap<>();
+    private final List<Object[]> emittedEffects = new ArrayList<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
     private final ShotsController shotsController;
@@ -121,7 +123,10 @@ class ShotsControllerTest {
                     case "isWater" -> waterTiles.contains((Point) args[0]);
                     default -> null;
                 });
-        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+            if (method.getName().equals("emitEffect")) emittedEffects.add(args);
+            return null;
+        });
 
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
                 (proxy, method, args) -> entityData.findEntities(null, Position.class).stream()
@@ -130,6 +135,39 @@ class ShotsControllerTest {
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
         shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
+    }
+
+    @Test
+    void pressureFearPublishesItsIndependentEffectWithoutApplyingDamage() {
+        short shotId = 118;
+        Shot shot = ShotFixtures.shot(shotId, Shot.ProcessType.FEAR, 3,
+                EnumSet.of(Shot.ShotProcessFlag.AT_START));
+        ShotFixtures.setGeneralEffect(shot, 981);
+        shotsById.put(shotId, shot);
+        Vector3f origin = new Vector3f(3.25f, 1, 7.5f);
+        EntityId target = createCreature();
+
+        shotsController.createShot(shotId, 600, 60, PLAYER_ID, origin, target, null);
+
+        assertEquals(1, emittedEffects.size());
+        assertArrayEquals(new Object[]{981, origin, 0f, true}, emittedEffects.getFirst());
+        assertNull(entityData.getComponent(target, Damage.class));
+        shotsController.createShot(shotId, 600, 60, PLAYER_ID, origin, target, null);
+        assertEquals(2, emittedEffects.size(), "Each activation has its own effect");
+    }
+
+    @Test
+    void oneTurnFlyingShotPublishesEffectWithoutDependingOnATransientViewEntity() {
+        short shotId = 119;
+        shotsById.put(shotId, ShotFixtures.briefFlyingShot(shotId, 981));
+        EntityId target = createCreature();
+        Vector3f origin = new Vector3f(3.25f, 1, 7.5f);
+
+        assertTrue(shotsController.fireShot(shotId, 0, 0, PLAYER_ID, origin, target, null, 0));
+
+        assertEquals(1, getShotFlight().health);
+        assertEquals(0, countShotEntities(), "No duplicate general effect from a transient view entity");
+        assertArrayEquals(new Object[]{981, origin, 0f, true}, emittedEffects.getFirst());
     }
 
     @Test

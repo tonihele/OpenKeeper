@@ -92,7 +92,9 @@ public abstract class EffectControl extends AbstractControl {
         float zySpeed = speed.getMinSpeedYz() + FastMath.nextRandomFloat() * (speed.getMaxSpeedYz() - speed.getMinSpeedYz());
         vel.y = zySpeed;
 
-        return vel;
+        // Native velocity has four more fractional bits than position and
+        // advances on the 20 Hz effect clock (0x435F20, 0x4476E0).
+        return vel.multLocal(20f / 16f);
     }
 
 //    public static Vector3f calculateVelocity(IEffect speed) {
@@ -163,40 +165,22 @@ public abstract class EffectControl extends AbstractControl {
     }
 
     /**
-     * Distance (tile) where the reference tangential speed is set
-     */
-    private static final float WHIRLPOOL_REF_D_TILE = 0.0884f;
-    /**
-     * Angular speed (1/2048-turn-per-tick, same unit as the file's rate
-     * field) per unit whirlpoolRate at WHIRLPOOL_REF_D_TILE
-     */
-    private static final float WHIRLPOOL_REF_ANGLE_PER_RATE = 8f;
-    private static final float WHIRLPOOL_ANGLE_UNITS_PER_TURN = 2048f;
-    private static final float WHIRLPOOL_ANGLE_CLAMP = 1024f;
-
-    /**
-     * The position-only impulse from the effect's whirlpool: for an element
-     * at horizontal offset (dx, dz) from the effect's own origin, how far
-     * its position should shift this frame, spiralling it around that
-     * origin. Velocity, facing and spin are left untouched - callers add the
-     * result directly to a position.
+     * Native CUBE_GEN whirlpool impulse (0x438520). Positions use 4096 units
+     * per tile, reduced by five bits for the squared-distance denominator;
+     * CUBE_GEN expands the signed file rate by four bits before this call
+     * (0x438732). Angles use 2048 units per turn; the clock runs at 20 Hz.
      */
     public static Vector3f whirlpoolDelta(int whirlpoolRate, float dx, float dz, float tpf) {
-        byte rate = (byte) whirlpoolRate; // editor value is a signed byte; 128..255 = reverse direction
-        if (rate == 0) {
-            return new Vector3f();
-        }
-        float dTile = FastMath.sqrt(dx * dx + dz * dz);
-        if (dTile <= 0f) {
-            return new Vector3f(); // no direction to rotate a zero-length offset in
-        }
-        float thetaRefTicks = rate * WHIRLPOOL_REF_ANGLE_PER_RATE;
-        float thetaTicks = FastMath.clamp(thetaRefTicks * WHIRLPOOL_REF_D_TILE / Math.max(dTile, WHIRLPOOL_REF_D_TILE),
-                -WHIRLPOOL_ANGLE_CLAMP, WHIRLPOOL_ANGLE_CLAMP);
-        float thetaFrame = thetaTicks * FastMath.TWO_PI / WHIRLPOOL_ANGLE_UNITS_PER_TURN * 20f * tpf;
-        float cos = FastMath.cos(thetaFrame);
-        float sin = FastMath.sin(thetaFrame);
-        return new Vector3f(dx * cos - dz * sin - dx, 0, dx * sin + dz * cos - dz);
+        int rate = ((byte) whirlpoolRate) * 16;
+        int x = ((int) (dx * 4096)) >> 5;
+        int z = ((int) (dz * 4096)) >> 5;
+        long denominator = (long) x * x + (long) z * z + 128;
+        int angle = (int) ((rate * 128L) / denominator);
+        angle = Math.max(-1024, Math.min(1023, angle));
+        float radians = angle * FastMath.TWO_PI / 2048f * 20f * tpf;
+        float cos = FastMath.cos(radians);
+        float sin = FastMath.sin(radians);
+        return new Vector3f(dx * cos + dz * sin - dx, 0, dz * cos - dx * sin - dz);
     }
 
     @Override

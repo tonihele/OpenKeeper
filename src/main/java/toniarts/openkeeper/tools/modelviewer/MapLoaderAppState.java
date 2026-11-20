@@ -273,7 +273,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         }
 
         @Override
-        public void sendEffect(int effectId, Vector3f position, float yaw) {
+        public void sendEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime) {
             // The static map viewer does not run effect generators.
         }
 

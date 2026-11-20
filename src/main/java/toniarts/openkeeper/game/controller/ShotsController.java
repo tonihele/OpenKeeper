@@ -60,6 +60,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
@@ -147,6 +148,8 @@ public final class ShotsController implements IShotsController {
                 request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
+        // Fear's gameplay threat belongs to the trap; its general effect supplies the eyes.
+        result.put(FEAR, request -> showIndependentShotEffect(request.shot(), request.position()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
 
@@ -167,6 +170,12 @@ public final class ShotsController implements IShotsController {
         notifyShotHit(shot, target);
         damage(request);
         process(request);
+    }
+
+    private void showIndependentShotEffect(Shot shot, Vector3f position) {
+        if (shot.getGeneralEffectId() != 0 && !shot.getFlags().contains(Shot.ShotFlag.KILL_EFFECTS_WHEN_DEAD)) {
+            gameEventService.emitEffect(shot.getGeneralEffectId(), position, 0, true);
+        }
     }
 
     private void process(ShotRequest request) {
@@ -295,9 +304,19 @@ public final class ShotsController implements IShotsController {
         Vector3f velocity = ShotFlightRules.aim(position, targetPosition, shot.getSpeed());
         int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
         EntityId entity = entityData.createEntity();
+        // TrapSystem runs before ShotSystem. A one-turn shot can be born and die
+        // before an entity snapshot reaches the client; its independent effect is an event.
+        boolean brief = shot.getHealth() <= 1 && shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME);
+        if (brief) {
+            showIndependentShotEffect(shot, position);
+            if (shot.getCreationEffectId() != 0) {
+                gameEventService.emitEffect(shot.getCreationEffectId(), position, 0);
+            }
+        } else {
+            entityData.setComponent(entity, new ShotViewState(shotTypeId, velocity.mult(ticksPerSecond)));
+        }
         entityData.setComponents(entity,
                 new Position(FastMath.atan2(velocity.x, velocity.z), new Vector3f(position)),
-                new ShotViewState(shotTypeId, velocity.mult(ticksPerSecond)),
                 new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
                         shot.getHealth()));
 

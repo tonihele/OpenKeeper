@@ -14,7 +14,12 @@ public interface GameEventService {
     short ALL_PLAYERS = -1;
 
     /** Emits one finite visual effect at an exact world position, seen by all players. */
-    void emitEffect(int effectId, Vector3f position, float yaw);
+    default void emitEffect(int effectId, Vector3f position, float yaw) {
+        emitEffect(effectId, position, yaw, false);
+    }
+
+    /** Emits a finite effect, optionally generating elements for its authored lifetime. */
+    void emitEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime);
 
     /**
      * An event about a thing type, seen by everyone

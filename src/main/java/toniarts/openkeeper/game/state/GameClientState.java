@@ -657,8 +657,8 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         @Override
-        public void onEffect(int effectId, Vector3f position, float yaw) {
-            EventBus.publish(ClientEvents.GENERATED_EFFECT, new GeneratedEffect(effectId, position, yaw));
+        public void onEffect(int effectId, Vector3f position, float yaw, boolean throughoutLifetime) {
+            EventBus.publish(ClientEvents.GENERATED_EFFECT, new GeneratedEffect(effectId, position, yaw, throughoutLifetime));
         }
 
         @Override

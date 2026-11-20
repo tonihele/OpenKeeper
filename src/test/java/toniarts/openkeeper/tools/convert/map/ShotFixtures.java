@@ -71,6 +71,18 @@ public final class ShotFixtures {
         return shot;
     }
 
+    public static Shot briefFlyingShot(short shotId, int effectId) {
+        Shot shot = shot(shotId, Shot.ProcessType.NONE, 1, EnumSet.noneOf(Shot.ShotProcessFlag.class));
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
+        shot.setSpeed(0.5f);
+        shot.setGeneralEffectId(effectId);
+        return shot;
+    }
+
+    public static void setGeneralEffect(Shot shot, int effectId) {
+        shot.setGeneralEffectId(effectId);
+    }
+
     public static GameLevel gameLevel(int ticksPerSecond) {
         GameLevel gameLevel = new GameLevel();
         gameLevel.setTicksPerSec(ticksPerSecond);
