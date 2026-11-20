@@ -179,7 +179,12 @@ public final class RoomAttackMessages {
          * "An Imp has become angry because it has no Lair" and the like,
          * message 0x12
          */
-        CREATURE_ANGRY(50, 0, Map.of(), false, CREATURE_TAB);
+        CREATURE_ANGRY(50, 0, Map.of(), false, CREATURE_TAB),
+        /**
+         * The advice for a keeper with a Horned Reaper and little mana,
+         * message 0x5F (0x4B9740)
+         */
+        REAPER_ADVICE(50, 1350, Map.of());
 
         private final double duration;
         private final int defaultSpeechId;
@@ -347,6 +352,15 @@ public final class RoomAttackMessages {
      */
     public void combatPitOver(short ownerId) {
         show(Message.COMBAT_PIT_OVER, ownerId, (short) 0, null);
+    }
+
+    /**
+     * The keeper has a Horned Reaper and little mana left
+     *
+     * @param ownerId the keeper
+     */
+    public void reaperAdvice(short ownerId) {
+        show(Message.REAPER_ADVICE, ownerId, (short) 0, null);
     }
 
     /**

@@ -53,6 +53,7 @@ import toniarts.openkeeper.game.logic.KeeperDefeatSystem;
 import toniarts.openkeeper.game.logic.LooseObjectSystem;
 import toniarts.openkeeper.game.logic.LowManaSystem;
 import toniarts.openkeeper.game.logic.ManaCalculatorLogic;
+import toniarts.openkeeper.game.logic.MentorHintSystem;
 import toniarts.openkeeper.game.logic.MovementSystem;
 import toniarts.openkeeper.game.logic.OnFireSystem;
 import toniarts.openkeeper.game.logic.PayDaySystem;
@@ -156,6 +157,7 @@ public final class GameLoopManager {
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
                 new LowManaSystem(entityData, level, playerControllers.values(), gameSettings, gameWorldController.getRoomAttackMessages(),
                         gameEventService),
+                new MentorHintSystem(entityData, level, playerControllers.values(), gameWorldController.getRoomAttackMessages()),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
                 new SummonedReaperSystem(entityData, playerControllers.values(), gameWorldController.getCreaturesController(),
