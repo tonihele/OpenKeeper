@@ -26,12 +26,15 @@ import com.simsilica.es.base.DefaultEntityData;
 import com.simsilica.es.filter.FieldFilter;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
@@ -72,6 +75,9 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
     private static final short HEAL_INSTANT_ID = 53;
+    private static final short ARMOUR_ID = 9;
+    private static final short INVULNERABLE_ID = 7;
+    private static final short INVISIBLE_ID = 22;
     private static final short CREATE_OBJECT_ID = 2;
     private static final short CREATE_CREATURE_ID = 10;
     private static final short SKELETON_ARMY_ID = 54;
@@ -111,6 +117,9 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         shotsById.put(HEAL_INSTANT_ID, ShotFixtures.healInstantShot(HEAL_INSTANT_ID, HEAL_ID));
+        addShot(ARMOUR_ID, Shot.ProcessType.MODIFY_ARMOUR);
+        addShot(INVULNERABLE_ID, Shot.ProcessType.INVUNERABLE);
+        addShot(INVISIBLE_ID, Shot.ProcessType.INVISIBLE);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
         shotsById.put(SKELETON_ARMY_ID, ShotFixtures.skeletonArmyShot(SKELETON_ARMY_ID, CREATE_CREATURE_ID));
@@ -250,6 +259,34 @@ class ShotsControllerTest {
     }
 
     @Test
+    void armourShotLastsItsFirstValueInTicks() {
+        EntityId creature = createCreature();
+
+        // Cast Armour: 80 ticks, which is 20 seconds at 4 ticks a second
+        shotsController.createShot(ARMOUR_ID, 80, 50, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(20.0, entityData.getComponent(creature, Armour.class).endTime);
+    }
+
+    @Test
+    void invulnerableShotLastsItsFirstValueInSeconds() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(INVULNERABLE_ID, 5, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(5.0, entityData.getComponent(creature, Invulnerable.class).endTime);
+    }
+
+    @Test
+    void invisibleShotLastsItsFirstValueInSeconds() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(INVISIBLE_ID, 15, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertEquals(15.0, entityData.getComponent(creature, Invisible.class).endTime);
+    }
+
+    @Test
     void objectShotCreatesTheObjectForThePlayer() {
         Vector3f position = new Vector3f(1.5f, 1f, 2.5f);
 
@@ -365,6 +402,19 @@ class ShotsControllerTest {
     }
 
     @Test
+    void fireballHitDoesAnInvulnerableCreatureNoHarm() {
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Invulnerable(30));
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+        EntityId shot = entityData.findEntity(null, ShotFlight.class);
+
+        shotsController.hit(shot, target);
+
+        assertNull(entityData.getComponent(target, Damage.class));
+    }
+
+    @Test
     void fireballSetsABadlyHurtCreatureAlightForTenTicks() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         entityData.setComponent(target, new Health(20, 100));
@@ -383,6 +433,18 @@ class ShotsControllerTest {
         hitWithFireball(target);
 
         assertNull(entityData.getComponent(target, OnFire.class));
+    }
+
+    @Test
+    void fireballDoesNotSetAnInvulnerableCreatureAlight() {
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+        entityData.setComponent(target, new Health(10, 100));
+        entityData.setComponent(target, new Invulnerable(30));
+
+        hitWithFireball(target);
+
+        assertNull(entityData.getComponent(target, OnFire.class));
+        assertNull(entityData.getComponent(target, Damage.class));
     }
 
     @Test

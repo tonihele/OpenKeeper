@@ -192,6 +192,20 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public boolean backOff();
 
+    /**
+     * A hero set to return to the hero lair withdraws there from a fight when
+     * it is badly hurt. Starts the walk to the hero lair if so
+     *
+     * @return true if we withdraw to the hero lair
+     */
+    public boolean withdrawToHeroLair();
+
+    /**
+     * Walks to a tile of our own land some way off, as a recuperating hero
+     * does until its health is back
+     */
+    public void wanderOnOwnLand();
+
     public boolean isAttacked();
 
     public boolean isEnoughSleep();
@@ -406,6 +420,14 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public void makeHungry();
 
     /**
+     * Sets whether the creature will fight. One that won't doesn't start or
+     * join a fight and drops the one it is in, but it can still be attacked
+     *
+     * @param willFight true if the creature may fight
+     */
+    public void setWillFight(boolean willFight);
+
+    /**
      * Get the research points the creature makes on this game tick in the
      * library. A slapped creature makes extra points on the first tick of
      * every second.
@@ -484,5 +506,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @param playerId the new player ID
      */
     public void convertCreature(short playerId);
+
+    /**
+     * Makes the creature fight for another player for a while, as by the
+     * Turncoat spell. It stays owned by its keeper. Creatures immune to the
+     * spell stay as they are
+     *
+     * @param playerId the player the creature fights for
+     * @param duration how long, in seconds
+     */
+    public void turncoat(short playerId, double duration);
 
 }

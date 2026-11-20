@@ -28,14 +28,18 @@ import java.util.HashSet;
 import java.util.List;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CastShot;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureFall;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
@@ -45,6 +49,7 @@ import toniarts.openkeeper.game.controller.IShotsController;
 import toniarts.openkeeper.game.controller.ShotsController;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.AlternativeShot;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -228,7 +233,93 @@ class CreatureSupportSpellTest {
     void spellsWithoutAnEffectYetAreNotCast() {
         createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
 
-        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.ARMOUR).castSupportSpell());
+        assertFalse(createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.HASTE).castSupportSpell());
+    }
+
+    @Test
+    void castsArmourOnABadlyHurtFriendWithoutArmour() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.ARMOUR);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(friend, getCastTarget());
+
+        entityData.setComponent(friend, new Armour(30));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void armourWearsOff() {
+        entityData.setComponents(us, new Armour(15), new CreatureFall());
+        CreatureController controller = createController();
+
+        controller.processTick(0.25f);
+        assertEquals(15, entityData.getComponent(us, Armour.class).endTime);
+
+        gameTime = 15;
+        controller.processTick(0.25f);
+        assertNull(entityData.getComponent(us, Armour.class));
+    }
+
+    @Test
+    void castsInvulnerableOnABadlyHurtFriendWithoutIt() {
+        EntityId friend = createFighter(KEEPER, new Vector3f(5, 0, 7), 100);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_OTHERS), AlternativeShot.INVULNERABLE);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(friend, getCastTarget());
+
+        entityData.setComponent(friend, new Invulnerable(30));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+    }
+
+    @Test
+    void theInvisibleShotLandsOnItsCaster() {
+
+        // The Thief's and the Rogue's Invisible, its shot flies
+        shot = ShotFixtures.flyingSupportShot(HEAL_SHOT_ID, Shot.ProcessType.INVISIBLE);
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE,
+                createShotsController(shot));
+        assertTrue(controller.castSupportSpell());
+
+        gameTime += SHOT_DELAY;
+        controller.releaseCastShot();
+
+        assertEquals(gameTime + HEAL_AMOUNT, entityData.getComponent(us, Invisible.class).endTime);
+    }
+
+    @Test
+    void turnsInvisibleInAFightUntilItWearsOff() {
+        CreatureController controller = createController(EnumSet.of(CreatureSpellFlag.CREATURE, CreatureSpellFlag.CAST_ON_SELF), AlternativeShot.INVISIBLE);
+
+        assertTrue(controller.castSupportSpell());
+        assertEquals(us, getCastTarget());
+
+        entityData.setComponents(us, new Invisible(30), new CreatureFall(), new CreatureAi(0, CreatureState.FIGHT, (short) 1));
+        gameTime += RECHARGE;
+        assertFalse(controller.castSupportSpell());
+
+        gameTime = 30;
+        controller.processTick(0.25f);
+        assertNull(entityData.getComponent(us, Invisible.class));
+    }
+
+    @Test
+    void hitsDoAnInvulnerableCreatureNoHarmUntilItWearsOff() {
+        EntityId enemy = createFighter(Player.KEEPER2_ID, new Vector3f(5, 0, 6), 1000);
+        entityData.setComponents(enemy, new Invulnerable(15), new CreatureFall());
+        CreatureController controller = createController();
+
+        controller.setDamage(enemy, 100);
+        assertNull(entityData.getComponent(enemy, Damage.class));
+
+        gameTime = 15;
+        new CreatureController(enemy, entityData, new Creature(), null, null, stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? gameTime : null),
+                new HashMap<>(), null, null, null, null, null, null, null).processTick(0.25f);
+        controller.setDamage(enemy, 100);
+        assertEquals(100, entityData.getComponent(enemy, Damage.class).damage);
     }
 
     private EntityId getCastTarget() {

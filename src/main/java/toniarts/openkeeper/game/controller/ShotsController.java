@@ -22,11 +22,14 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
@@ -34,6 +37,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -66,9 +70,15 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INSTANTANEOUS_HIT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVISIBLE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INVUNERABLE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_ARMOUR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -148,11 +158,33 @@ public final class ShotsController implements IShotsController {
         });
         result.put(POSSESS_CREATURE, request -> creaturesController.createController(request.target()).setPossession(true));
         result.put(MODIFY_HEALTH, request -> EntityController.setDamage(entityData, request.target(), -request.shotData1()));
+        // Cast Armour: the first value is how long the armour lasts, in game ticks
+        result.put(MODIFY_ARMOUR, request -> entityData.setComponent(request.target(),
+                new Armour(gameTimer.getGameTime() + (double) request.shotData1() / kwdFile.getGameLevel().getTicksPerSec())));
+        // Invisible: the first value is how long it lasts, in seconds
+        result.put(INVISIBLE, request -> entityData.setComponent(request.target(),
+                new Invisible(gameTimer.getGameTime() + request.shotData1())));
+        // Invulnerable: the first value is how long it lasts, in seconds
+        result.put(INVUNERABLE, request -> entityData.setComponent(request.target(),
+                new Invulnerable(gameTimer.getGameTime() + request.shotData1())));
         result.put(CHICKEN, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
+        result.put(TREMOR, request -> {
+
+            // Shot data 1 is the duration in seconds, shot data 2 the radius in tiles
+            double now = gameTimer.getGameTime();
+            entityData.setComponent(entityData.createEntity(), new Tremor(WorldUtils.vectorToPoint(request.position()), request.shotData2(), now, now + request.shotData1()));
+        });
+        result.put(TURNCOAT, request -> {
+            if (request.target() != null && creaturesController.isValidEntity(request.target())) {
+                creaturesController.createController(request.target()).turncoat(request.playerId(), request.shotData1());
+            }
+        });
+        result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
+                request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         // The shot is at its target at once and dies there, its death shot goes on with the same values
         result.put(INSTANTANEOUS_HIT, request -> {
@@ -417,8 +449,10 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
-        // The shot's data 1 is its damage (0x4AC420)
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+        // The shot's data 1 is its damage. An invulnerable creature takes none
+        // and isn't set alight either (0x4AC420)
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0
+                && entityData.getComponent(thing, Invulnerable.class) == null) {
             if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
                 setAlight(thing);
             }
