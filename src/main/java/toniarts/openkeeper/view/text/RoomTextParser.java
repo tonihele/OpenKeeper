@@ -98,8 +98,7 @@ public class RoomTextParser {
             case WORKSHOP_MAX_CAPACITY:
                 return Integer.toString(room.getMaxCapacity());
             case PRISON_STATUS:
-                // The Prison's door can't be switched in OpenKeeper yet, so it's always open, as a new Prison is in DK II
-                return Utils.getMainTextResourceBundle().getString("2454");
+                return Utils.getMainTextResourceBundle().getString(room.isPrisonOpen() ? "2454" : "2455"); // Open. / Closed.
             case CASINO_PAYOUT:
                 // The pay-out lever can't be pulled yet, so the Casino is a generous one
                 return Utils.getMainTextResourceBundle().getString("2508");
