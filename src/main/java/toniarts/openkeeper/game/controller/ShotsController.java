@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -67,6 +68,10 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -145,6 +150,26 @@ public final class ShotsController implements IShotsController {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
         });
+        result.put(SIGHT_OF_EVIL, request -> {
+
+            // Shot data 1 is the radius, the shot lifetime (in game ticks) the duration
+            if (request.shotData1() > 0) {
+                mapController.revealSightOfEvil(WorldUtils.vectorToPoint(request.position()), request.shotData1(), request.shot().getHealth(), request.playerId());
+            }
+        });
+        result.put(TREMOR, request -> {
+
+            // Shot data 1 is the duration in seconds, shot data 2 the radius in tiles
+            double now = gameTimer.getGameTime();
+            entityData.setComponent(entityData.createEntity(), new Tremor(WorldUtils.vectorToPoint(request.position()), request.shotData2(), now, now + request.shotData1()));
+        });
+        result.put(TURNCOAT, request -> {
+            if (request.target() != null && creaturesController.isValidEntity(request.target())) {
+                creaturesController.createController(request.target()).turncoat(request.playerId(), request.shotData1());
+            }
+        });
+        result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),
+                request.shotData1(), request.playerId(), WorldUtils.vector3fToVector2f(request.position())));
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
