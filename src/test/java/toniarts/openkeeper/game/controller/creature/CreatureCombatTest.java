@@ -29,6 +29,10 @@ import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
+import toniarts.openkeeper.game.component.Peaceful;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
@@ -119,6 +123,49 @@ class CreatureCombatTest {
 
         assertNull(controller.getAttackTarget());
         assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"false, false", "false, true", "true, false", "true, true"})
+    void attackabilityIsIndependentOfWillingnessToFight(boolean willFight, boolean willBeAttacked) {
+        EntityId enemy = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        if (!willFight) entityData.setComponent(enemy, new Peaceful());
+        if (!willBeAttacked) entityData.setComponent(enemy, new Unattackable());
+        sensed.put(us, Set.of(enemy));
+        sensed.put(enemy, Set.of(us));
+
+        var target = createController(us).getAttackTarget();
+        assertEquals(willBeAttacked ? enemy : null, target == null ? null : target.getEntityId());
+        var enemyTarget = createController(enemy).getAttackTarget();
+        assertEquals(willFight ? us : null, enemyTarget == null ? null : enemyTarget.getEntityId());
+    }
+
+    @Test
+    void dropsATargetThatBecomesUnattackableAndChoosesAnother() {
+        EntityId oldTarget = createCreature(HERO, FIGHTER, new Vector3f(6, 0, 4), 0);
+        EntityId other = createCreature(HERO, FIGHTER, new Vector3f(8, 0, 4), 0);
+        sensed.put(us, new LinkedHashSet<>(List.of(oldTarget, other)));
+        CreatureController controller = createController(us);
+        assertEquals(oldTarget, controller.getAttackTarget().getEntityId());
+
+        entityData.setComponent(oldTarget, new Unattackable());
+        entityData.setComponent(oldTarget, new AttackTarget(us));
+        assertEquals(other, controller.getAttackTarget().getEntityId());
+        assertEquals(other, entityData.getComponent(us, AttackTarget.class).entityId);
+
+        entityData.setComponent(other, new Unattackable());
+        assertNull(controller.getAttackTarget());
+        assertNull(entityData.getComponent(us, AttackTarget.class));
+    }
+
+    @Test
+    void unattackableDoesNotGrantDamageImmunity() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 5), 0);
+        entityData.setComponent(target, new Unattackable());
+
+        createController(us).executeAttack(target);
+
+        assertEquals(151, entityData.getComponent(target, Damage.class).damage);
     }
 
     @Test

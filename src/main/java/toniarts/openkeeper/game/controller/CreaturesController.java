@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Senses;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Trigger;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
@@ -259,6 +260,11 @@ public final class CreaturesController implements ICreaturesController {
         // The level may place a creature that won't fight (DK II 0x520180, 0x520460, 0x5208B0, 0x519F90)
         if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_FIGHT)) {
             entityData.setComponent(entityId, new Peaceful());
+        }
+
+        // Being eligible as a target is independent of being willing to fight.
+        if (flags != null && !flags.contains(Thing.Creature.CreatureFlag.WILL_BE_ATTACKED)) {
+            entityData.setComponent(entityId, new Unattackable());
         }
 
         // A hero may be set to withdraw to the hero lair when it is badly hurt

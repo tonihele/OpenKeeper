@@ -29,6 +29,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureImprisoned;
 import toniarts.openkeeper.game.component.CreatureTortured;
@@ -121,6 +124,22 @@ class TrapSystemTest {
         creatures.put(REAPER, TrapFiringFixtures.creature(REAPER, Creature.CreatureFlag.IS_HORNY));
         creatures.put(THIEF, TrapFiringFixtures.creature(THIEF, Creature.CreatureFlag.REVEALS_ADJACENT_TRAPS));
         keeper.setMana(1000);
+    }
+
+    @ParameterizedTest
+    @ValueSource(shorts = {SENTRY, SPIKE})
+    void unattackableCreatureDoesNotSetOffTrap(short trapId) {
+        addTrap(trapId, TRAP_TILE);
+        EntityId enemy = addCreature(IMP, ENEMY, 10, 10);
+        entityData.setComponent(enemy, new Unattackable());
+
+        tick();
+        assertTrue(shots.isEmpty());
+
+        entityData.removeComponent(enemy, Unattackable.class);
+        gameTime = 0.25;
+        tick();
+        assertEquals(List.of(new Fired(trapId, enemy)), shots);
     }
 
     @Test

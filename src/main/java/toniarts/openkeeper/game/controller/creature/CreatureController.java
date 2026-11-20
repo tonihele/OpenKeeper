@@ -71,6 +71,7 @@ import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -828,7 +829,8 @@ public final class CreatureController extends EntityController implements ICreat
         IEntityController attackTargetController = null;
 
         // A Horned Reaper picks his prey over the whole map and hunts it down even when it runs (DKII.EXE 0x45E1B0)
-        if (attackTarget == null || isIncapacitated(attackTarget.entityId)
+        if (attackTarget == null || entityData.getComponent(attackTarget.entityId, Unattackable.class) != null
+                || isIncapacitated(attackTarget.entityId)
                 || isFleeing(attackTarget.entityId) && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
                 || isCaptive(attackTarget.entityId)
                 || isUnreachable(attackTarget.entityId)) {
@@ -959,6 +961,7 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             if (creaturesController.isValidEntity(entity)
                     && isEnemy(entity)
+                    && entityData.getComponent(entity, Unattackable.class) == null
                     && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
                     && !(fightersOnly && creaturesController.createController(entity).isWorker())
                     && hasRoomForAttacker(entity)
