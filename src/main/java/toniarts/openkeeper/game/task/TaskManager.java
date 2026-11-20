@@ -71,6 +71,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.RoomAttackMessages;
 import toniarts.openkeeper.game.controller.TrapDeliveries;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.entity.EntityController;
@@ -745,7 +746,32 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     @Override
     public boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId target) {
-        return assignClosestRoomTask(creature, objectType, target, true);
+        boolean assigned = assignClosestRoomTask(creature, objectType, target, true);
+        if (!assigned && objectType == ObjectType.LAIR) {
+            tellLairTooSmall(creature.getOwnerId());
+        }
+        return assigned;
+    }
+
+    /**
+     * A creature that comes to make its bed and finds no free spot in the Lair
+     * tells its keeper that the Lair is too small (DKII.EXE 0x46F4F0, message
+     * 0x2A for the Lair). A keeper without a Lair isn't told here
+     *
+     * @param playerId the keeper
+     */
+    private void tellLairTooSmall(short playerId) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        List<IRoomController> lairs = mapController.getRoomsByFunction(ObjectType.LAIR, playerId);
+        if (messages == null || lairs.isEmpty()) {
+            return;
+        }
+        for (IRoomController lair : lairs) {
+            if (!lair.getObjectControl(ObjectType.LAIR).isFullCapacity()) {
+                return;
+            }
+        }
+        messages.roomTooSmall(playerId, lairs.get(0).getRoom());
     }
 
     /**

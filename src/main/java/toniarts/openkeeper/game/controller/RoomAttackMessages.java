@@ -140,16 +140,43 @@ public final class RoomAttackMessages {
          * "The battle in the Combat Pit is over", message 9, told when a
          * fight is down to one fighter standing (0x4D7A60). It has no tile
          */
-        COMBAT_PIT_OVER(50, 354, Map.of(), true, INFO_TAB);
+        COMBAT_PIT_OVER(50, 354, Map.of(), true, INFO_TAB),
+        /**
+         * "Your Lair is too small", message 0x2A. The Treasury's and the
+         * Hatchery's are held for 240 seconds and the Lair's for 90
+         */
+        TOO_SMALL(300, 213, Map.ofEntries(Map.entry(1, 198), Map.entry(2, 199), Map.entry(4, 200), Map.entry(6, 210),
+                Map.entry(7, 201), Map.entry(9, 211), Map.entry(10, 204), Map.entry(11, 209), Map.entry(12, 208),
+                Map.entry(13, 203), Map.entry(14, 206), Map.entry(15, 205), Map.entry(16, 202)),
+                Map.of(1, 240, 2, 90, 4, 240), 300);
 
         private final double duration;
         private final int defaultSpeechId;
         private final Map<Integer, Integer> speechIdsByRoom;
         private final boolean alwaysPosted;
         private final int graphic;
+        private final Map<Integer, Integer> durationsByRoom;
+        private final double otherRoomDuration;
 
         private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom) {
-            this(duration, defaultSpeechId, speechIdsByRoom, false, INFO_TAB);
+            this(duration, defaultSpeechId, speechIdsByRoom, Map.of(), 20);
+        }
+
+        /**
+         * @param durationsByRoom the room types whose message is held for a
+         * time of its own
+         * @param otherRoomDuration how long the message is held for a room
+         * type without an entry of its own, the table's last entry
+         */
+        private Message(double duration, int defaultSpeechId, Map<Integer, Integer> speechIdsByRoom,
+                Map<Integer, Integer> durationsByRoom, double otherRoomDuration) {
+            this.duration = duration;
+            this.defaultSpeechId = defaultSpeechId;
+            this.speechIdsByRoom = speechIdsByRoom;
+            this.alwaysPosted = false;
+            this.graphic = INFO_TAB;
+            this.durationsByRoom = durationsByRoom;
+            this.otherRoomDuration = otherRoomDuration;
         }
 
         /**
@@ -163,14 +190,19 @@ public final class RoomAttackMessages {
             this.speechIdsByRoom = speechIdsByRoom;
             this.alwaysPosted = alwaysPosted;
             this.graphic = graphic;
+            this.durationsByRoom = Map.of();
+            this.otherRoomDuration = 20;
         }
 
         /**
          * How long the queue holds the message. A room type without an entry
-         * of its own gets the table's last entry, 20 seconds
+         * of its own gets the table's last entry
          */
         private double getDuration(short roomId) {
-            return speechIdsByRoom.isEmpty() || speechIdsByRoom.containsKey((int) roomId) ? duration : 20;
+            if (speechIdsByRoom.isEmpty()) {
+                return duration;
+            }
+            return speechIdsByRoom.containsKey((int) roomId) ? durationsByRoom.getOrDefault((int) roomId, (int) duration) : otherRoomDuration;
         }
 
     }
@@ -284,6 +316,16 @@ public final class RoomAttackMessages {
      */
     public void combatPitOver(short ownerId) {
         show(Message.COMBAT_PIT_OVER, ownerId, (short) 0, null);
+    }
+
+    /**
+     * A creature found no free place in the keeper's rooms of the type
+     *
+     * @param ownerId the keeper
+     * @param room the room type
+     */
+    public void roomTooSmall(short ownerId, Room room) {
+        show(Message.TOO_SMALL, ownerId, room.getRoomId(), null);
     }
 
     /**
