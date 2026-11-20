@@ -30,16 +30,10 @@ import com.jme3.util.SafeArrayList;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.server.EntityDataHostedService;
-import toniarts.openkeeper.utils.Point;
-import java.lang.System.Logger;
-import java.lang.System.Logger.Level;
-import java.util.*;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import toniarts.openkeeper.game.event.GameEvent;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.network.NetworkConstants;
 import toniarts.openkeeper.game.network.message.GameLoadProgressData;
 import toniarts.openkeeper.game.state.CheatState;
@@ -50,6 +44,18 @@ import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.state.session.GameSessionServiceListener;
 import toniarts.openkeeper.tools.convert.map.TriggerAction;
 import toniarts.openkeeper.utils.GameLoop;
+import toniarts.openkeeper.utils.Point;
+
+import java.lang.System.Logger;
+import java.lang.System.Logger.Level;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Game server hosts lobby service for the game clients.
@@ -168,7 +174,7 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
-    public EntityData getEntityData() {
+    public EntityData getServerEntityData() {
         return getServiceManager().getService(EntityDataHostedService.class).getEntityData();
     }
 
@@ -328,6 +334,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
     }
 
     @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onSightOfEvil(centre, radius, durationTicks, playerId);
+                break;
+            }
+        }
+    }
+
+    @Override
     public void disableFogOfWar(short playerId) {
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
@@ -421,6 +437,23 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
             if (gameSession.getKey().getKeeper().getId() == playerId) {
                 gameSession.getValue().onGameEnded(win);
+                break;
+            }
+        }
+    }
+
+    @Override
+    public void sendEffect(int effectId, Vector3f position, float yaw) {
+        for (GameSessionImpl gameSession : players.values()) {
+            gameSession.onEffect(effectId, position, yaw);
+        }
+    }
+
+    @Override
+    public void sendEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position, Short playerId) {
+        for (Map.Entry<ClientInfo, GameSessionImpl> gameSession : players.entrySet()) {
+            if (playerId == null || gameSession.getKey().getKeeper().getId() == playerId) {
+                gameSession.getValue().onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
                 break;
             }
         }
@@ -591,6 +624,13 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void cancelCallToArms() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onCancelCallToArms(clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void transitionEnd() {
             playersInTransition.put(clientInfo, false);
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
@@ -634,9 +674,30 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void triggerAddGoldCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddGoldCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void triggerAddManaCheat(int amount) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddManaCheatTriggered(amount, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
         public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
                 listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void setPossessedAttack(boolean attacking) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onSetPossessedAttack(attacking, clientInfo.getKeeper().getId());
             }
         }
 
@@ -750,6 +811,11 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
+        public void onSightOfEvil(Point centre, int radius, int durationTicks, short keeperId) {
+            getCallback().onSightOfEvil(centre, radius, durationTicks, keeperId);
+        }
+
+        @Override
         public void onFogOfWarDisabled(short keeperId) {
             getCallback().onFogOfWarDisabled(keeperId);
         }
@@ -792,6 +858,16 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         @Override
         public void onGameEnded(boolean win) {
             getCallback().onGameEnded(win);
+        }
+
+        @Override
+        public void onEffect(int effectId, Vector3f position, float yaw) {
+            getCallback().onEffect(effectId, position, yaw);
+        }
+
+        @Override
+        public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
+            getCallback().onEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
         }
 
     }

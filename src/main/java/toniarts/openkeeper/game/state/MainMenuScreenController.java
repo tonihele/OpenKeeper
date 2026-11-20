@@ -16,8 +16,6 @@
  */
 package toniarts.openkeeper.game.state;
 
-import com.jme3.audio.AudioData;
-import com.jme3.audio.AudioNode;
 import com.jme3.input.KeyNames;
 import com.jme3.system.AppSettings;
 import de.lessvoid.nifty.Nifty;
@@ -54,7 +52,9 @@ import toniarts.openkeeper.game.network.chat.ChatClientService;
 import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
+import toniarts.openkeeper.game.sound.MentorType;
 import toniarts.openkeeper.game.sound.SoundCategory;
+import toniarts.openkeeper.game.sound.SoundManager;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.game.state.lobby.LobbySession;
 import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
@@ -72,11 +72,11 @@ import toniarts.openkeeper.tools.convert.map.AI;
 import toniarts.openkeeper.tools.convert.map.GameLevel;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.IKwdMap;
-import toniarts.openkeeper.tools.modelviewer.SoundsLoader;
 import toniarts.openkeeper.utils.AssetUtils;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
 import toniarts.openkeeper.utils.PathUtils;
+import toniarts.openkeeper.utils.SettingUtils;
 import toniarts.openkeeper.utils.Utils;
 
 import java.io.File;
@@ -99,9 +99,6 @@ public final class MainMenuScreenController implements IMainMenuScreenController
     private static final Logger logger = System.getLogger(MainMenuScreenController.class.getName());
 
     private static final String OBJECTIVE_IMAGE_URL = "Textures/Obj_Shots/%s-%d.png";
-    private static final String BRIEFING_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d001.mp2";
-    private static final String DEBRIEFING_WIN_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d002.mp2";
-    private static final String DEBRIEFING_DEFEAT_SPEECH_URL = "Sounds/speech_mentor/speech_mentorHD/lev%02d003.mp2";
 
     private final MainMenuState state;
     private Nifty nifty;
@@ -145,10 +142,32 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         this.state = state;
         this.nifty = nifty;
 
-        SoundCategory sc = SoundsLoader.load(GlobalCategory.FRONT_END);
-        String filename = sc.getGroup(GlobalType.FRONT_END_CKICK).getFiles().get(0).getFilename();
-        this.nifty.registerSound(SOUND_MENU_ID, AssetsConverter.SOUNDS_FOLDER + File.separator + filename);
-        this.nifty.registerSound(SOUND_BUTTON_ID, "Sounds/Global/FrontEndHD/FE BUTTON BIG 5.mp2");
+        String menuSound = SoundManager.getSoundAssetPath(GlobalCategory.FRONT_END, GlobalType.FRONT_END_CKICK);
+        if (menuSound != null) {
+            this.nifty.registerSound(SOUND_MENU_ID, menuSound);
+        }
+        String buttonSound = SoundManager.getSoundAssetPath(GlobalCategory.GUI_BUTTON_DEFAULT, GlobalType.GUI_BUTTON_CKICK);
+        if (buttonSound != null) {
+            this.nifty.registerSound(SOUND_BUTTON_ID, buttonSound);
+        }
+    }
+
+    /**
+     * Plays the mentor speech of a campaign level.
+     *
+     * @param level the 1-based level number
+     * @param index {@code 0} for the briefing, {@code 1} for winning and
+     * {@code 2} for losing
+     * @return a sound handle, {@code 0} if there is no such speech
+     */
+    private int playLevelSpeech(int level, int index) {
+        MentorType speech = MentorType.forLevel(level, index);
+        if (speech == null) {
+            logger.log(Logger.Level.WARNING, "No mentor speech {0} for level {1}", new Object[]{index, level});
+            return 0;
+        }
+
+        return SoundManager.playSound(SoundCategory.SPEECH_MENTOR, speech.getId());
     }
 
     @Override
@@ -281,6 +300,8 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         DropDown aa = screen.findNiftyControl("antialiasing", DropDown.class);
         DropDown af = screen.findNiftyControl("anisotropicFiltering", DropDown.class);
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
+        CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
+        CheckBox hdTextures = screen.findNiftyControl("hdTextures", CheckBox.class);
         DisplayMode mdm = (DisplayMode) res.getSelection();
 
         // TODO: See if we need a restart, but keep in mind that the settings are saved in the restart
@@ -294,6 +315,11 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         settings.getAppSettings().setSamples((Integer) aa.getSelection());
         settings.setSetting(Settings.Setting.ANISOTROPY, af.getSelection());
         settings.setSetting(Settings.Setting.SSAO, ssao.isChecked());
+        settings.getAppSettings().setGammaCorrection(gamma.isChecked());
+
+        // The asset conversion makes or deletes them at the next start
+        Main.getSettings().putBoolean(AssetsConverter.HD_TEXTURES_SETTING, hdTextures.isChecked());
+        SettingUtils.getInstance().saveSettings();
 
         // This fails and crashes on invalid settings
         if (needToRestart) {
@@ -379,6 +405,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Map<String, Runnable> handlers = new HashMap<>();
         handlers.put("selectCampaignLevel", this::showSelectCampaignLevelScreen);
         handlers.put("briefing", this::showBriefing);
+        handlers.put(SCREEN_DEBRIEFING_ID, this::fillDebriefingScreen);
         handlers.put("hiscores", this::generateHiscoreList);
         handlers.put("optionsGraphics", this::setGraphicsSettingsToGUI);
         handlers.put("optionsControl", this::setControlSettingsToGUI);
@@ -830,6 +857,14 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         // SSAO
         CheckBox ssao = screen.findNiftyControl("ssao", CheckBox.class);
         ssao.setChecked(Main.getUserSettings().getBoolean(Settings.Setting.SSAO));
+
+        // Gamma correction
+        CheckBox gamma = screen.findNiftyControl("gammaCorrection", CheckBox.class);
+        gamma.setChecked(settings.isGammaCorrection());
+
+        // HD textures
+        CheckBox hdTextures = screen.findNiftyControl("hdTextures", CheckBox.class);
+        hdTextures.setChecked(Main.getSettings().getBoolean(AssetsConverter.HD_TEXTURES_SETTING));
     }
 
     private void setControlSettingsToGUI() {
@@ -1323,30 +1358,37 @@ public final class MainMenuScreenController implements IMainMenuScreenController
                 }
 
                 // Play some tunes!!
-                AudioNode audioNode = new AudioNode(state.assetManager,
-                        AssetUtils.getCanonicalAssetKey(String.format(BRIEFING_SPEECH_URL, lvl.getLevel())),
-                        AudioData.DataType.Buffer);
-                audioNode.setLooping(false);
-                audioNode.setDirectional(false);
-                audioNode.setPositional(false);
-                audioNode.play();
-                state.setLevelBriefing(audioNode);
+                state.setLevelBriefing(playLevelSpeech(lvl.getLevel(), 0));
             }
         }
     }
 
+    /**
+     * Go to the debriefing screen, which fills itself in once it has started
+     */
     public void showDebriefing() {
-        Screen deScreen = nifty.getScreen(SCREEN_DEBRIEFING_ID);
+        goToScreen(SCREEN_DEBRIEFING_ID);
+    }
+
+    /**
+     * Fill in the debriefing screen. Nifty binds the controls of a screen only when the screen
+     * starts, a label set before that keeps its default text.
+     */
+    private void fillDebriefingScreen() {
+        IKwdFile level = state.getDebriefingLevel();
+        if (level == null) {
+            return;
+        }
+        Screen deScreen = screen;
 
         Label levelTitle = deScreen.findNiftyControl("dLevelTitle", Label.class);
 
         Element mainObjectiveImage = deScreen.findElementById("dMainObjectiveImage");
         Element subObjectiveImage = deScreen.findElementById("dSubObjectiveImage");
 
-        IKwdFile level = state.getDebriefingLevel();
         GameLevel gameLevel = level.getGameLevel();
         levelTitle.setText(gameLevel.getTitle());
-        boolean campaign = state.isDebriefingCampaign();
+        CampaignLevel playedLevel = state.getDebriefingCampaignLevel();
         String objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 0));
         try {
             NiftyImage img = nifty.createImage(objectiveImage, true);
@@ -1363,7 +1405,7 @@ public final class MainMenuScreenController implements IMainMenuScreenController
         Label specialsFound = deScreen.findNiftyControl("specialsFound", Label.class);
 
         subObjectiveImage.hide();
-        if (campaign && state.selectedLevel instanceof CampaignLevel lvl && lvl.getType().equals(LevelType.Level)) {
+        if (playedLevel != null && playedLevel.getType().equals(LevelType.Level)) {
             objectiveImage = AssetUtils.getCanonicalAssetKey(String.format(OBJECTIVE_IMAGE_URL, gameLevel.getName(), 1));
             try {
                 NiftyImage img = nifty.createImage(objectiveImage, true);
@@ -1375,25 +1417,15 @@ public final class MainMenuScreenController implements IMainMenuScreenController
             }
         }
 
-        // FIXME: GameResult has no data yet and also get it from the client state directly
-        boolean levelWon = true; // result.getData(GameResult.ResultType.LEVEL_WON);
+        // FIXME: GameResult has no other data yet and also get it from the client state directly
+        boolean levelWon = state.isDebriefingLevelWon();
         deScreen.findNiftyControl("levelWon", Label.class).setText(levelWon ? "${menu.21}" : "${menu.22}");
         int timeTaken = 0; //Math.round(result.getData(GameResult.ResultType.TIME_TAKEN));
         deScreen.findNiftyControl("timeTaken", Label.class).setText(Utils.timeToString(timeTaken));
 
         // Play debriefing narration
-        if (campaign && state.selectedLevel instanceof CampaignLevel lvl) {
-            String speech = AssetUtils.getCanonicalAssetKey(String.format(levelWon ? DEBRIEFING_WIN_SPEECH_URL : DEBRIEFING_DEFEAT_SPEECH_URL, lvl.getLevel()));
-            AudioNode audioNode = new AudioNode(state.assetManager,
-                    AssetUtils.getCanonicalAssetKey(speech),
-                    AudioData.DataType.Buffer);
-            audioNode.setLooping(false);
-            audioNode.setDirectional(false);
-            audioNode.setPositional(false);
-            audioNode.play();
-            state.setLevelDebriefing(audioNode);
+        if (playedLevel != null) {
+            state.setLevelDebriefing(playLevelSpeech(playedLevel.getLevel(), levelWon ? 1 : 2));
         }
-
-        goToScreen(SCREEN_DEBRIEFING_ID);
     }
 }
