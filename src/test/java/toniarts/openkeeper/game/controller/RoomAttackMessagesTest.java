@@ -17,12 +17,16 @@
 package toniarts.openkeeper.game.controller;
 
 import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.CreatureMoodFixtures;
 import toniarts.openkeeper.tools.convert.map.DestroyRoomsFixtures;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Room;
@@ -326,6 +330,57 @@ class RoomAttackMessagesTest {
         roomAttackMessages.heartAttacked(KEEPER, TILE);
         assertEquals(258, messages.size());
         assertEquals(message(346), messages.get(257));
+    }
+
+    /**
+     * DKII.EXE 0x478B80 and 0x4C4600: anger that turns a creature unhappy or
+     * angry is told to its keeper, messages 0x11 and 0x12. The speech is the
+     * creature type's first unhappy or angry speech + 1 + the reason: for the
+     * Imp 586 "An Imp has become unhappy because it has no Lair" and 858 "An
+     * Imp has become angry because it hasn't been paid". Each is held for 50
+     * seconds and has the creature icon
+     */
+    @Test
+    void tellsTheKeeperOfACreatureThatTurnsUnhappyOrAngry() {
+        Creature imp = CreatureMoodFixtures.creature((short) 1, "Imp", (short) 0, (short) 0, (short) 50, 585, 855);
+        CreatureMood content = new CreatureMood();
+        CreatureMood unhappy = content.add(CreatureMood.REASON_NO_LAIR, 16383);
+        CreatureMood angry = unhappy.add(CreatureMood.REASON_NO_PAY, 32768);
+
+        roomAttackMessages.creatureMoodWorsened(new EntityId(1), KEEPER, imp, content, unhappy, RoomAttackMessages.MOOD_REASON_NO_LAIR);
+        roomAttackMessages.creatureMoodWorsened(new EntityId(1), KEEPER, imp, unhappy, angry, RoomAttackMessages.MOOD_REASON_NO_PAY);
+
+        assertEquals(List.of("586@null>p" + KEEPER, "858@null>p" + KEEPER), messages);
+        assertEquals(List.of(50f, 50f), seconds);
+        assertEquals(List.of(2, 2), graphics);
+    }
+
+    @Test
+    void aMoodThatDoesNotGetWorseIsNotTold() {
+        Creature imp = CreatureMoodFixtures.creature((short) 1, "Imp", (short) 0, (short) 0, (short) 50, 585, 855);
+        CreatureMood unhappy = new CreatureMood().add(CreatureMood.REASON_NO_LAIR, 16383);
+
+        // Still unhappy, and calming down
+        roomAttackMessages.creatureMoodWorsened(new EntityId(1), KEEPER, imp, unhappy, unhappy.add(CreatureMood.REASON_NO_LAIR, 10), RoomAttackMessages.MOOD_REASON_NO_LAIR);
+        roomAttackMessages.creatureMoodWorsened(new EntityId(1), KEEPER, imp, unhappy, new CreatureMood(), RoomAttackMessages.MOOD_REASON_NO_LAIR);
+
+        assertTrue(messages.isEmpty());
+    }
+
+    @Test
+    void unhappyCreaturesAreToldOnceIn50Seconds() {
+        Creature imp = CreatureMoodFixtures.creature((short) 1, "Imp", (short) 0, (short) 0, (short) 50, 585, 855);
+        CreatureMood content = new CreatureMood();
+        CreatureMood unhappy = content.add(CreatureMood.REASON_OTHER, 16383);
+
+        roomAttackMessages.creatureMoodWorsened(new EntityId(1), KEEPER, imp, content, unhappy, RoomAttackMessages.MOOD_REASON_SLAPPED);
+        gameTime += 49;
+        roomAttackMessages.creatureMoodWorsened(new EntityId(2), KEEPER, imp, content, unhappy, RoomAttackMessages.MOOD_REASON_NO_LAIR);
+        assertEquals(List.of("590@null>p" + KEEPER), messages);
+
+        gameTime += 1;
+        roomAttackMessages.creatureMoodWorsened(new EntityId(2), KEEPER, imp, content, unhappy, RoomAttackMessages.MOOD_REASON_NO_LAIR);
+        assertEquals(List.of("590@null>p" + KEEPER, "586@null>p" + KEEPER), messages);
     }
 
     @Test

@@ -69,7 +69,7 @@ class SlapSystemTest {
     void setUp() {
         setting(MiscType.INCREASED_WORK_RATE_DURATION_FROM_SLAPPING_SECONDS, 25);
         setting(MiscType.MAX_GOLD_PILE_OUTSIDE_TREASURY, 2000);
-        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController());
+        slapSystem = new SlapSystem(entityData, kwdFile(), List.of(player()), gameSettings, objectsController(), null);
     }
 
     @Test

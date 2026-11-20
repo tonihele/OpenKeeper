@@ -21,8 +21,11 @@ import java.util.Map;
 import java.util.concurrent.ThreadLocalRandom;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
+import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.RoomMessageShown;
 import toniarts.openkeeper.game.state.session.PlayerService;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
@@ -47,6 +50,14 @@ import toniarts.openkeeper.utils.WorldUtils;
 public final class RoomAttackMessages {
 
     /**
+     * DK II's reasons for a creature's mood getting worse, which pick the
+     * speech (0x478B80)
+     */
+    public static final int MOOD_REASON_NO_LAIR = 0;
+    public static final int MOOD_REASON_NO_PAY = 2;
+    public static final int MOOD_REASON_SLAPPED = 4;
+
+    /**
      * How many messages the queue holds, for all the keepers together
      */
     private static final int QUEUE_SIZE = 256;
@@ -60,6 +71,7 @@ public final class RoomAttackMessages {
      * DK II's graphic ids of the tab icons the messages here use
      */
     private static final int INFO_TAB = 1;
+    private static final int CREATURE_TAB = 2;
     private static final int FIGHT_TAB = 3;
 
     private enum Message {
@@ -156,7 +168,18 @@ public final class RoomAttackMessages {
         NEEDED(300, 0, Map.ofEntries(Map.entry(1, 1307), Map.entry(2, 1308), Map.entry(4, 1309), Map.entry(6, 1506),
                 Map.entry(7, 1509), Map.entry(9, 1512), Map.entry(10, 1507), Map.entry(11, 1312), Map.entry(12, 1311),
                 Map.entry(13, 1511), Map.entry(14, 1310), Map.entry(15, 1508), Map.entry(16, 1510)),
-                Map.of(1, 420, 2, 180, 4, 180, 11, 600, 14, 600), 300);
+                Map.of(1, 420, 2, 180, 4, 180, 11, 600, 14, 600), 300),
+        /**
+         * "An Imp has become unhappy because it has no Lair" and the like,
+         * message 0x11. The speech is the creature type's own, by the reason
+         * (0x4C4600). It has the creature icon
+         */
+        CREATURE_UNHAPPY(50, 0, Map.of(), false, CREATURE_TAB),
+        /**
+         * "An Imp has become angry because it has no Lair" and the like,
+         * message 0x12
+         */
+        CREATURE_ANGRY(50, 0, Map.of(), false, CREATURE_TAB);
 
         private final double duration;
         private final int defaultSpeechId;
@@ -344,6 +367,32 @@ public final class RoomAttackMessages {
      */
     public void roomNeeded(short ownerId, Room room) {
         show(Message.NEEDED, ownerId, room.getRoomId(), null);
+    }
+
+    /**
+     * A creature's anger went up. The keeper is told when that turns the
+     * creature unhappy or angry (DKII.EXE 0x478B80, messages 0x11 and 0x12).
+     * The speech is the creature type's: its first unhappy or angry speech
+     * plus the reason (0x4C4600). The level data has the two speech numbers
+     * under the names of the lair and the food anger strings
+     *
+     * @param creatureId the creature
+     * @param ownerId the creature's keeper
+     * @param creature the creature type
+     * @param before the mood before the anger was added
+     * @param after the mood after
+     * @param reason DK II's reason, one of the MOOD_REASON values
+     */
+    public void creatureMoodWorsened(EntityId creatureId, short ownerId, Creature creature, CreatureMood before, CreatureMood after, int reason) {
+        int unhappyThreshold = CreatureMood.toRuntimeThreshold(creature.getAttributes().getUnhappyThreshold());
+        int state = after.getState(unhappyThreshold);
+        int firstSpeechId = state == 1 ? creature.getAngerStringIdLair() : creature.getAngerStringIdFood();
+        if (state <= before.getState(unhappyThreshold) || firstSpeechId == 0) {
+            return;
+        }
+        Position position = entityData.getComponent(creatureId, Position.class);
+        show(state == 1 ? Message.CREATURE_UNHAPPY : Message.CREATURE_ANGRY, ownerId, (short) 0,
+                position != null ? WorldUtils.vectorToPoint(position.position) : null, firstSpeechId + 1 + reason, (short) 0);
     }
 
     /**
