@@ -188,19 +188,15 @@ public final class HiScores implements Savable {
     }
 
     private boolean add(int score, String name, String level, boolean save) {
-        HiScoresEntry entry = new HiScoresEntry(score, name, level);
 
         // See do we even get to the list
-        if (!isEligibleToHiScores(entry)) {
+        int index = getIndex(score);
+        if (index >= NUMBER_OF_ENTRIES) {
             return false;
         }
 
         // Add and save
-        int index = Collections.binarySearch(entries, entry);
-        if (index < 0) {
-            index = ~index;
-        }
-        entries.add(index, entry);
+        entries.add(index, new HiScoresEntry(score, name, level));
         if (save) {
             save();
         }
@@ -215,14 +211,20 @@ public final class HiScores implements Savable {
      * @return moment of truth
      */
     public boolean isEligibleToHiScores(int score) {
-        return isEligibleToHiScores(new HiScoresEntry(score, null, null));
+        return getIndex(score) < NUMBER_OF_ENTRIES;
     }
 
-    private boolean isEligibleToHiScores(HiScoresEntry entry) {
-        int index = Collections.binarySearch(entries, entry);
-
-        // Nope if would go over or share the final position
-        return !(index == NUMBER_OF_ENTRIES - 1 || ~index >= NUMBER_OF_ENTRIES);
+    /**
+     * Like DK II (0x53E610) a score goes above the first entry that isn't
+     * higher, so above the equal scores, and a score equal to the last one
+     * still gets in
+     */
+    private int getIndex(int score) {
+        int index = 0;
+        while (index < entries.size() && entries.get(index).score > score) {
+            index++;
+        }
+        return index;
     }
 
     /**
