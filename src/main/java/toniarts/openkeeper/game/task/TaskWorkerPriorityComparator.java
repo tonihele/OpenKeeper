@@ -33,9 +33,9 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             return result;
         }
 
-        // Trap crates are brought to their blueprints before digging, claiming and the like, as in the original's imp
-        // work order (DKII.EXE 0x463DF0)
-        result = Boolean.compare(isArmingTrap(o2.task()), isArmingTrap(o1.task()));
+        // Trap and door crates are brought to their blueprints before digging, claiming and the like, as in the
+        // original's imp work order (DKII.EXE 0x463DF0). Both are one job there (0x46C1A0, and 0x468910 for a loose crate)
+        result = Boolean.compare(isCrateForBlueprint(o2.task()), isCrateForBlueprint(o1.task()));
         if (result != 0) {
             return result;
         }
@@ -78,8 +78,13 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
         return o1.task().getTaskCreated().compareTo(o2.task().getTaskCreated());
     }
 
-    private static boolean isArmingTrap(Task task) {
-        return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
+    private static boolean isCrateForBlueprint(Task task) {
+        return switch (task.getTaskType()) {
+            case FETCH_TRAP_CRATE, DELIVER_TRAP_CRATE, FETCH_DOOR_CRATE, DELIVER_DOOR_CRATE ->
+                true;
+            default ->
+                false;
+        };
     }
 
     private static boolean isDugFloorToClaim(Task task) {

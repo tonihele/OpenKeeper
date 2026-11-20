@@ -52,6 +52,20 @@ class TrapCrateOrderTest {
     }
 
     @Test
+    void doorCratesAreBroughtLikeTrapCrates() {
+
+        // One job in the original, for the blueprints of both (DKII.EXE 0x46C1A0, 0x468910)
+        TaskManager.TaskWorkerPriority fetchDoorCrate = pair(TaskType.FETCH_DOOR_CRATE, 0, 140);
+        TaskManager.TaskWorkerPriority deliverDoorCrate = pair(TaskType.DELIVER_DOOR_CRATE, 0, 150);
+        TaskManager.TaskWorkerPriority fetchTrapCrate = pair(TaskType.FETCH_TRAP_CRATE, 0, 145);
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 11);
+        TaskManager.TaskWorkerPriority looseCrateToWorkshop = pair(TaskType.FETCH_OBJECT, 0, 20);
+
+        assertEquals(List.of(fetchDoorCrate, fetchTrapCrate, deliverDoorCrate, dig, looseCrateToWorkshop),
+                sorted(looseCrateToWorkshop, dig, deliverDoorCrate, fetchTrapCrate, fetchDoorCrate));
+    }
+
+    @Test
     void cratesAmongThemselvesKeepTheUsualOrder() {
         TaskManager.TaskWorkerPriority farCrate = pair(TaskType.FETCH_TRAP_CRATE, 0, 160);
         TaskManager.TaskWorkerPriority nearCrate = pair(TaskType.FETCH_TRAP_CRATE, 0, 120);
