@@ -296,7 +296,12 @@ class HeroLairTest {
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (method, args) -> method.equals("getTile")
                 ? tile(PATH_TERRAIN, landOwner) : null);
         IMapController mapController = stub(IMapController.class, (method, args) -> method.equals("getMapData") ? mapData : null);
-        ILevelInfo levelInfo = stub(ILevelInfo.class, (method, args) -> method.equals("getActionPoints") ? actionPoints : null);
+        IKwdFile level = stub(IKwdFile.class, (method, args) -> method.equals("getImp") ? new Creature() : null);
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (method, args) -> switch (method) {
+            case "getActionPoints" -> actionPoints;
+            case "getLevelData" -> level;
+            default -> null;
+        });
         return new CreatureController(entity, data, CreatureSleepFixtures.sleeper(1), navigation, null, () -> 0,
                 new EnumMap<>(MiscType.class), null, null, mapController, levelInfo, null, null, null);
     }

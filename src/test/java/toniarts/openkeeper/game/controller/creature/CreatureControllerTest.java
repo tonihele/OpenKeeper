@@ -54,6 +54,7 @@ import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.component.WithdrawnFrom;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
@@ -611,6 +612,45 @@ class CreatureControllerTest {
         }
     }
 
+    @Test
+    void creatureGoesBackToWhereItWithdrewFromOnceItIsWellAgain() {
+        try (Fixture f = new Fixture(9)) {
+            f.keeper.setDungeonHeartLocation(new Point(20, 4));
+            assertTrue(f.controller.flee());
+
+            // DK II stores the tile as (x, x) (0x4611D0), we keep the intended (x, y)
+            assertEquals(new Point(3, 4), f.data.getComponent(f.entity, WithdrawnFrom.class).tile);
+
+            // By its heart with three quarters of its health, it stays (0x4773D0)
+            f.data.setComponents(f.entity, new Position(0, new Vector3f(21, WorldUtils.FLOOR_HEIGHT, 5)), new Health(750, 1000));
+            f.data.removeComponent(f.entity, Navigation.class);
+            assertFalse(f.controller.goBackToWhereWeFought());
+            assertNull(f.data.getComponent(f.entity, Navigation.class));
+
+            // With more, the idle creature walks back, once
+            f.data.setComponent(f.entity, new Health(751, 1000));
+            f.controller.getStateMachine().changeState(CreatureState.IDLE);
+            assertEquals(new Point(3, 4), f.data.getComponent(f.entity, Navigation.class).target);
+            assertFalse(f.controller.goBackToWhereWeFought());
+
+            // Up to 500 turns after the withdraw, 4 turns a second here
+            f.controller.flee();
+            f.time = 124.75;
+            assertTrue(f.controller.goBackToWhereWeFought());
+            f.controller.flee();
+            f.time += 125;
+            assertFalse(f.controller.goBackToWhereWeFought());
+            assertNull(f.data.getComponent(f.entity, WithdrawnFrom.class));
+        }
+
+        // An Imp doesn't remember where it withdrew from
+        try (Fixture f = new Fixture(CreatureSleepFixtures.worker())) {
+            f.keeper.setDungeonHeartLocation(new Point(20, 4));
+            assertTrue(f.controller.flee());
+            assertNull(f.data.getComponent(f.entity, WithdrawnFrom.class));
+        }
+    }
+
     private static IRoomController room(short owner, Point centre, boolean heart) {
         RoomInstance instance = new RoomInstance(new Room());
         instance.addCoordinate(centre);
@@ -909,6 +949,7 @@ class CreatureControllerTest {
             });
             IKwdFile kwd = proxy(IKwdFile.class, (method, args) -> switch (method) {
                 case "getCreature" -> definition;
+                case "getImp" -> CreatureSleepFixtures.worker();
                 case "getGameLevel" -> CreatureSleepFixtures.level(4);
                 case "getRoomById" -> new Room();
                 default -> throw new UnsupportedOperationException(method);
