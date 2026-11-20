@@ -21,6 +21,7 @@ import java.util.List;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -69,7 +70,7 @@ class ResearchRateTest {
         keeper.setCurrentResearch(door);
 
         // Make the door take forever so that it is never completed
-        PlayerResearchControl researchControl = new PlayerResearchControl(keeper, kwdFile(ResearchFixtures.door(DOOR_ID, Integer.MAX_VALUE)));
+        PlayerResearchControl researchControl = new PlayerResearchControl(keeper, kwdFile(ResearchFixtures.door(DOOR_ID, Integer.MAX_VALUE)), new PlayerStatsControl(keeper));
         Research research = new Research(null, null, new Point(0, 0), keeper.getId(), null, null, researchControl, null);
         ICreatureController creature = creature(researchPerTick);
         research.assign(creature, false);

@@ -222,12 +222,12 @@
                 <!-- second bottom layer -->
                 <panel childLayout="horizontal" width="100%" align="left" valign="top">
                     <!--The map-->
-                    <panel height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
+                    <panel id="minimapPanel" height="100%" width="230px" valign="top" childLayout="center" padding="0px,6px,6px,6px">
                         <panel padding="10px" childLayout="center">
                             <panel id="minimapImage" valign="center" width="180px" height="180px"/>
                             <panel backgroundImage="Textures/GUI/Map/Map-BG.png" />
                         </panel>
-                        <panel valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
+                        <panel id="minimapFrame" valign="center" backgroundImage="Textures/GUI/Map/map.png" childLayout="absolute-inside"
                                    imageMode="resize:0,112,0,0,0,112,0,110,0,112,0,0" filter="true">
                             <!-- Query pointer -->
                             <panel x="0" y="0" width="64px" height="64px" visibleToMouse="true">
@@ -391,6 +391,24 @@
                     </panel>
                 </panel>
             </panel>
+        </layer>
+        <!-- Optional level counters share a row above the bottom HUD. -->
+        <layer childLayout="vertical">
+            <panel height="*" width="100%" />
+            <panel id="levelCounters" height="64px" width="100%" childLayout="horizontal">
+                <panel id="heroKills" height="64px" width="230px" childLayout="overlay" visible="false">
+                    <panel childLayout="horizontal" width="100%" height="100%">
+                        <image filename="Textures/GUI/Windows/Kills-BG.png" width="128px" height="64px" />
+                        <image filename="Textures/GUI/Windows/Mana-Bg-01.png" width="*" height="64px"
+                               imageMode="resize:0,122,6,0,0,122,6,64,0,122,6,0" />
+                    </panel>
+                    <panel childLayout="center" padding="6px,16px,6px,74px">
+                        <control name="label" id="heroKillCount" text="0" style="textNormal" color="#ffffff" width="100%" textHAlign="right" />
+                    </panel>
+                </panel>
+            </panel>
+            <panel height="4px" width="100%" />
+            <panel height="220px" width="100%" />
         </layer>
         <!-- console layer-->
         <layer childLayout="vertical">

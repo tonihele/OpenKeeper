@@ -41,6 +41,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
+import toniarts.openkeeper.game.component.TrapTarget;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -130,6 +131,56 @@ class TrapSystemTest {
 
         tick();
 
+        assertEquals(List.of(new Fired(SENTRY, enemy)), shots);
+    }
+
+    @Test
+    void sentryKeepsItsVictimUntilAStrictlyNearerOneComes() {
+
+        // No mana for the shot, so the sentry aims every tick without firing
+        keeper.setMana(0);
+        EntityId sentry = addTrap(SENTRY, TRAP_TILE);
+        EntityId first = addCreature(IMP, ENEMY, 14, 10);
+        tick();
+        assertEquals(first, entityData.getComponent(sentry, TrapTarget.class).target);
+
+        // Like DK II (0x4A9400), one just as near doesn't take over, though it would be found first
+        EntityId second = addCreature(IMP, ENEMY, 6, 10);
+        gameTime += 0.25;
+        tick();
+        assertEquals(first, entityData.getComponent(sentry, TrapTarget.class).target);
+
+        // One strictly nearer does
+        entityData.setComponent(second, new Position(0, new Vector3f(7, WorldUtils.FLOOR_HEIGHT, 10)));
+        gameTime += 0.25;
+        tick();
+        assertEquals(second, entityData.getComponent(sentry, TrapTarget.class).target);
+        assertTrue(shots.isEmpty());
+    }
+
+    @Test
+    void sentryKeepsItsVictimAtTheEdgeOfItsRange() {
+        keeper.setMana(0);
+        EntityId sentry = addTrap(SENTRY, TRAP_TILE);
+
+        // A new victim has to be inside the range of 5 tiles
+        EntityId enemy = addCreature(IMP, ENEMY, 15, 10);
+        tick();
+        assertNull(entityData.getComponent(sentry, TrapTarget.class));
+
+        // The victim of the tick before may stand on its edge (0x4A9400)
+        entityData.setComponent(enemy, new Position(0, new Vector3f(14, WorldUtils.FLOOR_HEIGHT, 10)));
+        gameTime += 0.25;
+        tick();
+        entityData.setComponent(enemy, new Position(0, new Vector3f(15, WorldUtils.FLOOR_HEIGHT, 10)));
+        gameTime += 0.25;
+        tick();
+        assertEquals(enemy, entityData.getComponent(sentry, TrapTarget.class).target);
+
+        // And fires at it there
+        keeper.setMana(1000);
+        gameTime += 0.25;
+        tick();
         assertEquals(List.of(new Fired(SENTRY, enemy)), shots);
     }
 

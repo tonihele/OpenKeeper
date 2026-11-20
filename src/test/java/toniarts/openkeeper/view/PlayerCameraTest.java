@@ -20,12 +20,19 @@ import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import java.lang.reflect.Field;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.control.IContainer;
+import toniarts.openkeeper.game.control.IControl;
 import toniarts.openkeeper.tools.convert.map.Thing;
+import toniarts.openkeeper.view.camera.PlayerCameraControl;
 import toniarts.openkeeper.view.minimap.MinimapCoordinates;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class PlayerCameraTest {
 
@@ -136,5 +143,40 @@ class PlayerCameraTest {
 
             assertEquals(1f, FastMath.cos(MinimapCoordinates.cameraYawRadians(camera)), 1e-4f, "after turning by " + angle);
         }
+    }
+
+    @Test
+    void glideToAPlaceTakesLongerTheFurtherItGoes() throws ReflectiveOperationException {
+
+        // DK II (0x44A270): 25.6 ms for every squared tile of the distance, 2 tiles take 102.4 ms
+        PlayerCamera playerCamera = playerCamera(new Camera(800, 600));
+        playerCamera.setLookAt(10f, 10f);
+        List<IControl> removed = new ArrayList<>();
+        PlayerCameraControl glide = glide(playerCamera, new Vector3f(12f, 0, 10f), removed);
+
+        glide.update(0.0512f);
+        assertEquals(11f, playerCamera.getLookAt().x, 1e-3f);
+        assertTrue(removed.isEmpty());
+
+        glide.update(0.06f);
+        assertEquals(12f, playerCamera.getLookAt().x, 1e-3f);
+        assertEquals(List.of(glide), removed);
+
+        // A long jump takes half a second at most
+        playerCamera.setLookAt(10f, 10f);
+        removed.clear();
+        glide = glide(playerCamera, new Vector3f(10f, 0, 40f), removed);
+        glide.update(0.25f);
+        assertEquals(25f, playerCamera.getLookAt().z, 1e-3f);
+        glide.update(0.25f);
+        assertEquals(40f, playerCamera.getLookAt().z, 1e-3f);
+        assertEquals(List.of(glide), removed);
+    }
+
+    private static PlayerCameraControl glide(PlayerCamera playerCamera, Vector3f to, List<IControl> removed) {
+        PlayerCameraControl glide = new PlayerCameraControl(playerCamera, to);
+        glide.setParent((IContainer) Proxy.newProxyInstance(PlayerCameraTest.class.getClassLoader(), new Class<?>[]{IContainer.class},
+                (proxy, method, args) -> method.getName().equals("removeControl") ? removed.add((IControl) args[0]) : null));
+        return glide;
     }
 }

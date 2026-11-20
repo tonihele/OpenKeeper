@@ -163,7 +163,7 @@ public final class GameLoopManager {
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
-                new DoorViewSystem(entityData, positionSystem),
+                new DoorViewSystem(entityData, positionSystem, levelInfo),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
@@ -171,7 +171,7 @@ public final class GameLoopManager {
                         gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
-                        gameWorldController.getMapController(), playerControllers),
+                        gameWorldController.getMapController(), playerControllers, gameController.getGameTimer()),
                 new OnFireSystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(), gameEventService),
                 (IGameLogicUpdatable) taskManager);
 

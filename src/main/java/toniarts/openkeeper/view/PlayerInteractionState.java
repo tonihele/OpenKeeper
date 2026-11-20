@@ -726,13 +726,16 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
             if (interactionState.getType() == Type.SPELL) {
                 castSpell(kwdFile.getKeeperSpellById(interactionState.getItemId()), interactiveControl, selectionHandler.getPointedTileIndex(), selectionHandler.getActualPointedPosition());
             } else if (interactionState.getType() == Type.TRAP) {
+                // Without the gold the server tells the keeper so, like DK II (0x4C3860)
                 Point p = selectionHandler.getPointedTileIndex();
-                if (isTrapPlacementValid(p)) {
+                TrapPlacementValidator.Failure failure = getTrapPlacementFailure(p);
+                if (failure == TrapPlacementValidator.Failure.NONE || failure == TrapPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
                     gameClientState.getGameClientService().placeTrap((short) interactionState.getItemId(), p);
                 }
             } else if (interactionState.getType() == Type.DOOR) {
                 Point p = selectionHandler.getPointedTileIndex();
-                if (isDoorPlacementValid(p)) {
+                DoorPlacementValidator.Failure failure = getDoorPlacementFailure(p);
+                if (failure == DoorPlacementValidator.Failure.NONE || failure == DoorPlacementValidator.Failure.NOT_ENOUGH_GOLD) {
                     gameClientState.getGameClientService().placeDoor((short) interactionState.getItemId(), p);
                 }
             } else if (interactionState.getType() == Type.NONE
@@ -951,10 +954,11 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
         Creature creature = object != null && object.getDataObject() instanceof Creature targetCreature ? targetCreature : null;
         Short owner = object != null ? object.getControlId() : null;
         boolean chicken = object instanceof CreatureViewControl creatureControl && creatureControl.isChicken();
-        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, manaCost);
+        boolean fullHealth = object instanceof CreatureViewControl creatureControl && creatureControl.isAtFullHealth();
+        return KeeperSpellCastValidator.isValidCast(keeperSpell, mapInformation, mapInformation.getMapData().getTile(tile), gameClientState.getPlayer(), creature, owner, chicken, fullHealth, manaCost);
     }
 
-    private boolean isTrapPlacementValid(Point tile) {
+    private TrapPlacementValidator.Failure getTrapPlacementFailure(Point tile) {
         Set<Point> occupiedTiles = new HashSet<>();
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
@@ -962,7 +966,7 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 .getRoomCount(player.getPlayerId(), TrapPlacementValidator.WORKSHOP_ROOM_ID) > 0;
         return TrapPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
                 kwdFile.getTrapById(interactionState.getItemId()), hasWorkshop,
-                gameClientState.getPlayer(player.getPlayerId()).getGold()) == TrapPlacementValidator.Failure.NONE;
+                gameClientState.getPlayer(player.getPlayerId()).getGold());
     }
 
     private boolean hasSellableTrap(Point tile) {
@@ -982,13 +986,13 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                 item.getDataObject() instanceof Creature creature && !creature.getFlags().contains(Creature.CreatureFlag.IS_WORKER));
     }
 
-    private boolean isDoorPlacementValid(Point tile) {
+    private DoorPlacementValidator.Failure getDoorPlacementFailure(Point tile) {
         Set<Point> occupiedTiles = new HashSet<>();
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingDoors, entity -> true);
         addConstructionBlockingTiles(occupiedTiles, constructionBlockingTraps, entity -> true);
         return DoorPlacementValidator.validate(mapInformation, occupiedTiles, tile, player.getPlayerId(),
                 kwdFile.getDoorById(interactionState.getItemId()),
-                gameClientState.getPlayer(player.getPlayerId()).getGold()) == DoorPlacementValidator.Failure.NONE;
+                gameClientState.getPlayer(player.getPlayerId()).getGold());
     }
 
     /**
@@ -1132,10 +1136,10 @@ public abstract class PlayerInteractionState extends AbstractPauseAwareState {
                         ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (interactionState.getType() == Type.TRAP) {
-                return isTrapPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
+                return getTrapPlacementFailure(point) == TrapPlacementValidator.Failure.NONE ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (interactionState.getType() == Type.DOOR) {
-                return isDoorPlacementValid(point) ? ColorIndicator.BLUE : ColorIndicator.RED;
+                return getDoorPlacementFailure(point) == DoorPlacementValidator.Failure.NONE ? ColorIndicator.BLUE : ColorIndicator.RED;
             }
             if (isInvalidRoomSelection(point)) {
                 return ColorIndicator.RED;

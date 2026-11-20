@@ -43,12 +43,17 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     private int gold;
     private int goldMined;
+    private int enemyCreaturesKilled;
+    private int heroesDestroyed;
+    private int ownCreaturesKilled;
+    private int researchCompleted;
     private int mana;
     private int manaGain;
     private int manaLoose;
     private int maxMana;
     private int attractedCreatures;
     private int portalCreatureCapacity;
+    private int goldSpentOnBuilding;
     private Point dungeonHeartLocation;
     private boolean possession;
     private List<ResearchableEntity> availableRooms = new ArrayList<>();
@@ -98,6 +103,49 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
 
     public void setGoldMined(int goldMined) {
         this.goldMined = goldMined;
+    }
+
+    public int getEnemyCreaturesKilled() {
+        return enemyCreaturesKilled;
+    }
+
+    public void setEnemyCreaturesKilled(int enemyCreaturesKilled) {
+        this.enemyCreaturesKilled = enemyCreaturesKilled;
+    }
+
+    public int getHeroesDestroyed() {
+        return heroesDestroyed;
+    }
+
+    public void setHeroesDestroyed(int heroesDestroyed) {
+        this.heroesDestroyed = heroesDestroyed;
+    }
+
+    public int getOwnCreaturesKilled() {
+        return ownCreaturesKilled;
+    }
+
+    public void setOwnCreaturesKilled(int ownCreaturesKilled) {
+        this.ownCreaturesKilled = ownCreaturesKilled;
+    }
+
+    /**
+     * Get how many research items the keeper has finished, each once its book
+     * found room in a Library (DKII.EXE 0x4C2DC0, CPlayer +0x17B)
+     *
+     * @return the research items finished
+     */
+    public int getResearchCompleted() {
+        return researchCompleted;
+    }
+
+    /**
+     * Set how many research items the keeper has finished
+     *
+     * @param researchCompleted the research items finished
+     */
+    public void setResearchCompleted(int researchCompleted) {
+        this.researchCompleted = researchCompleted;
     }
 
     public void setManaGain(int manaGain) {
@@ -257,6 +305,38 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
     }
 
     /**
+     * Get the gold the keeper has paid for room tiles, doors and traps. It
+     * isn't given back when they are sold. DK II keeps it in CPlayer +0x177
+     * (added in 0x4C5C30 for room tiles, 0x4C33B0 for doors and 0x4C3860 for
+     * traps) and shows it with the gold as the Dungeon Value of the Player
+     * Information window (0x4C2C30)
+     *
+     * @return the gold spent on building
+     */
+    public int getGoldSpentOnBuilding() {
+        return goldSpentOnBuilding;
+    }
+
+    /**
+     * Add the price of a room, a door or a trap the keeper paid for
+     *
+     * @param gold the price paid
+     */
+    public void addGoldSpentOnBuilding(int gold) {
+        goldSpentOnBuilding += gold;
+    }
+
+    /**
+     * Set the gold the keeper has paid for building, as the server tells it
+     *
+     * @param goldSpentOnBuilding the gold spent on building
+     * @see #getGoldSpentOnBuilding()
+     */
+    public void setGoldSpentOnBuilding(int goldSpentOnBuilding) {
+        this.goldSpentOnBuilding = goldSpentOnBuilding;
+    }
+
+    /**
      * Get the creatures that came in through the portals, the ones that count
      * towards the portal limit
      *
@@ -339,12 +419,17 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         out.write(aiType, "aiType", null);
         out.write(gold, "gold", 0);
         out.write(goldMined, "goldMined", 0);
+        out.write(enemyCreaturesKilled, "enemyCreaturesKilled", 0);
+        out.write(heroesDestroyed, "heroesDestroyed", 0);
+        out.write(ownCreaturesKilled, "ownCreaturesKilled", 0);
+        out.write(researchCompleted, "researchCompleted", 0);
         out.write(mana, "mana", 0);
         out.write(manaGain, "manaGain", 0);
         out.write(manaLoose, "manaLoose", 0);
         out.write(maxMana, "maxMana", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.x : 0, "dungeonHeartLocationX", 0);
         out.write(dungeonHeartLocation != null ? dungeonHeartLocation.y : 0, "dungeonHeartLocationY", 0);
+        out.write(goldSpentOnBuilding, "goldSpentOnBuilding", 0);
         out.writeSavableArrayList(new ArrayList(availableRooms), "availableRooms", null);
         out.writeSavableArrayList(new ArrayList(availableSpells), "availableSpells", null);
         out.write(toPrimitiveShortArray(availableCreatures), "availableCreatures", new short[0]);
@@ -363,6 +448,10 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         aiType = in.readEnum("aiType", AIType.class, aiType);
         gold = in.readInt("gold", gold);
         goldMined = in.readInt("goldMined", goldMined);
+        enemyCreaturesKilled = in.readInt("enemyCreaturesKilled", enemyCreaturesKilled);
+        heroesDestroyed = in.readInt("heroesDestroyed", heroesDestroyed);
+        ownCreaturesKilled = in.readInt("ownCreaturesKilled", ownCreaturesKilled);
+        researchCompleted = in.readInt("researchCompleted", researchCompleted);
         mana = in.readInt("mana", mana);
         manaGain = in.readInt("manaGain", manaGain);
         manaLoose = in.readInt("manaLoose", manaLoose);
@@ -370,6 +459,7 @@ public final class Keeper implements Comparable<Keeper>, IIndexable, Savable {
         int x = in.readInt("dungeonHeartLocationX", 0);
         int y = in.readInt("dungeonHeartLocationY", 0);
         dungeonHeartLocation = new Point(x, y);
+        goldSpentOnBuilding = in.readInt("goldSpentOnBuilding", goldSpentOnBuilding);
         availableRooms = in.readSavableArrayList("availableRooms", new ArrayList<>());
         availableSpells = in.readSavableArrayList("availableSpells", new ArrayList<>());
         availableCreatures = toReferenceList(in.readShortArray("availableCreatures", new short[0]));

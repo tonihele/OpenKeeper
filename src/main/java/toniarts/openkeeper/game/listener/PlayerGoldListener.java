@@ -25,7 +25,15 @@ import com.jme3.network.service.rmi.Asynchronous;
  */
 public interface PlayerGoldListener {
 
+    /**
+     * The keeper's gold changed, or it paid for building
+     *
+     * @param keeperId the keeper
+     * @param gold the gold the keeper has
+     * @param goldSpentOnBuilding all the gold the keeper has paid for room
+     * tiles, doors and traps
+     */
     @Asynchronous
-    public void onGoldChange(short keeperId, int gold);
+    public void onGoldChange(short keeperId, int gold, int goldSpentOnBuilding);
 
 }

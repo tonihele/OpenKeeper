@@ -59,6 +59,23 @@ public interface IMapDataInformation<T extends IMapTileInformation> extends Iter
 
     int getWidth();
 
+    /**
+     * Get the share of the map a player owns, the tiles it owns out of all the
+     * tiles
+     *
+     * @param playerId the player
+     * @return the percentage of the map the player owns, rounded down
+     */
+    default int getOwnedPercentage(short playerId) {
+        int owned = 0;
+        for (T tile : this) {
+            if (tile.getOwnerId() == playerId) {
+                owned++;
+            }
+        }
+        return owned * 100 / getSize();
+    }
+
     void setTiles(List<T> mapTiles);
 
     @Override

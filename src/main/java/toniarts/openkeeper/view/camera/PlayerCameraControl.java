@@ -26,14 +26,20 @@ import toniarts.openkeeper.game.control.Control;
 import toniarts.openkeeper.view.PlayerCamera;
 
 /**
+ * Glides the camera to a place. Like DK II (0x44A270) the glide takes 25.6 milliseconds for every squared tile
+ * of the distance, at most half a second.
  *
  * @author ArchDemon
  */
 public final class PlayerCameraControl extends Control {
+
+    private static final float GLIDE_TIME_PER_SQUARED_TILE = 0.0256f;
+    private static final float MAX_GLIDE_TIME = 0.5f;
+
     private PlayerCamera camera;
     private Vector3f from, to;
     private float tick = 0;
-    public static final float SPEED = 1.5f;
+    private float glideTime;
 
     /**
      * Constructor used for Serialization.
@@ -45,6 +51,9 @@ public final class PlayerCameraControl extends Control {
         this.camera = camera;
         this.from = this.camera.getLookAt();
         this.to = to;
+        float dx = to.x - from.x;
+        float dz = to.z - from.z;
+        this.glideTime = Math.min(GLIDE_TIME_PER_SQUARED_TILE * (dx * dx + dz * dz), MAX_GLIDE_TIME);
     }
 
     public PlayerCamera getCamera() {
@@ -61,15 +70,12 @@ public final class PlayerCameraControl extends Control {
             return;
         }
 
-        if (tick > 1) {
+        tick += tpf;
+        float progress = tick < glideTime ? tick / glideTime : 1;
+        camera.setLookAt(FastMath.interpolateLinear(progress, from, to));
+        if (progress >= 1) {
             parent.removeControl(this);
-            return;
         }
-
-        Vector3f look = FastMath.interpolateLinear(tick, from, to);
-        camera.setLookAt(look);
-
-        tick += tpf * SPEED;
     }
 
     @Override

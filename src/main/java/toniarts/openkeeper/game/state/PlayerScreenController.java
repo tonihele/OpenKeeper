@@ -58,6 +58,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.GlobalType;
@@ -89,6 +90,7 @@ import java.lang.System.Logger;
 import java.lang.System.Logger.Level;
 import java.util.*;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  *
@@ -111,6 +113,19 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
     private static final java.awt.Color RECHARGE_COLOR = new java.awt.Color(1f, 1f, 1f, 0.7f);
 
+    /**
+     * The Reaper Talisman's free one shot Reaper. It is never on the spell
+     * tab, the original casts it only from the Talisman
+     */
+    private static final short ONE_SHOT_REAPER_SPELL_ID = 14;
+
+    /**
+     * The parameters of a row of the Player Information window, the player and
+     * its stats in DK II's order (texts 1518 to 1528)
+     */
+    private static final String[] PLAYER_INFORMATION_COLUMNS = {"player", "kill", "death", "value", "mana",
+        "creature", "imp", "trap", "training", "research", "happiness", "mapPercent"};
+
     public float lastUpdate = 0;
 
     private PlayerState state;
@@ -120,12 +135,18 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private Element selectedButton;
     private final Set<Element> unaffordableSpells = new HashSet<>();
     private final Set<Element> unaffordableRooms = new HashSet<>();
+    private final Map<Element, String> workshopIconTints = new HashMap<>();
     private Label tooltip;
+    private Label heroKillCount;
+    private int displayedHeroKills = -1;
     private boolean initHud = false;
     private String cinematicText;
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
+    private EntitySet keeperCreatures;
+    private EntitySet keeperTraps;
+    private String playerInformation;
     private int lastImpCount = -1;
     private EntitySet spellCasts;
     private final Map<Short, Float> spellRechargeLeft = new HashMap<>();
@@ -160,6 +181,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 }
             }
             updateCallToArms();
+            if (state != null && screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
+                updateWorkshopAvailability();
+                updatePlayerInformation();
+                updateHeroKills();
+            }
             lastUpdate = 0;
         }
     }
@@ -170,6 +196,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             spellCasts.release();
             spellCasts = null;
         }
+        heroKillCount = null;
+        displayedHeroKills = -1;
         spellRechargeLeft.clear();
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
@@ -178,6 +206,12 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (callToArmsBanners != null) {
             callToArmsBanners.release();
             callToArmsBanners = null;
+        }
+        if (keeperCreatures != null) {
+            keeperCreatures.release();
+            keeperCreatures = null;
+            keeperTraps.release();
+            keeperTraps = null;
         }
 
         // Remove the resource bundle so that we can actually put a new one here
@@ -1014,6 +1048,21 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 workerAmountControl, hud, state.getPlayer().getId());
         callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
                 CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
+        keeperCreatures = entityData.getEntities(CreatureComponent.class, CreatureExperience.class, CreatureMood.class, Owner.class);
+        keeperTraps = entityData.getEntities(TrapComponent.class, Owner.class);
+        playerInformation = null;
+
+        // This is a level option, including in maps outside My Pet Dungeon.
+        Element heroKills = hud.findElementById("heroKills");
+        boolean showHeroKills = state.getKwdFile().getGameLevel().getLvlFlags()
+                .contains(GameLevel.LevFlag.SHOW_HERO_KILLS);
+        heroKills.setVisible(showHeroKills);
+        heroKills.setConstraintWidth(showHeroKills
+                ? hud.findElementById("minimapPanel").getConstraintWidth() : new SizeValue("0px"));
+        heroKills.getParent().layoutElements();
+        heroKillCount = showHeroKills ? hud.findNiftyControl("heroKillCount", Label.class) : null;
+        displayedHeroKills = -1;
+        updateHeroKills();
 
         // Keeper spell recharge, a cast that is already in the set is not tracked, the changes are
         spellCasts = entityData.getEntities(new FieldFilter(KeeperSpellCast.class, "keeperId", state.getPlayer().getId()), KeeperSpellCast.class);
@@ -1060,6 +1109,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         hud.findNiftyControl("gold", Label.class).setText(Integer.toString(gold));
         updateRoomAffordability(gold);
+        if (state != null) {
+            updateWorkshopAvailability();
+        }
     }
 
     /**
@@ -1159,8 +1211,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     /**
      * Nifty saves the effects of a tab when it is hidden and starts them again
      * when the tab is shown, even the ones that were stopped in between. Gives
-     * the room and spell icons their effects again so that an icon that was lit
-     * while its tab was hidden doesn't come back dark.
+     * the room, spell, door and trap icons their effects again so that an icon
+     * that was lit while its tab was hidden doesn't come back dark.
      */
     private void reapplyIconEffects() {
         if (state == null) {
@@ -1178,15 +1230,31 @@ public final class PlayerScreenController implements IPlayerScreenController {
                 reapplyIconEffects(hud.findElementById("spell_" + keeperSpell.getKeeperSpellId()), unaffordableSpells);
             }
         }
+        for (ResearchableEntity door : state.getAvailableDoors()) {
+            if (door.isDiscovered()) {
+                Element icon = hud.findElementById("door_" + state.getKwdFile().getDoorById(door.getId()).getDoorId());
+                reapplyIconEffects(icon, workshopIconTints.get(icon));
+            }
+        }
+        for (ResearchableEntity trap : state.getAvailableTraps()) {
+            if (trap.isDiscovered()) {
+                Element icon = hud.findElementById("trap_" + state.getKwdFile().getTrapById(trap.getId()).getTrapId());
+                reapplyIconEffects(icon, workshopIconTints.get(icon));
+            }
+        }
     }
 
     private void reapplyIconEffects(Element icon, Set<Element> unaffordableIcons) {
+        reapplyIconEffects(icon, unaffordableIcons.contains(icon) ? "unaffordable" : null);
+    }
+
+    private void reapplyIconEffects(Element icon, String tint) {
         if (icon == null) {
             return;
         }
         icon.stopEffect(EffectEventId.onCustom);
-        if (unaffordableIcons.contains(icon)) {
-            icon.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        if (tint != null) {
+            icon.startEffect(EffectEventId.onCustom, null, tint);
         } else if (icon == selectedButton) {
             icon.startEffect(EffectEventId.onCustom, null, "select");
         }
@@ -1241,8 +1309,167 @@ public final class PlayerScreenController implements IPlayerScreenController {
             setResearchEffect(door, element);
         }
         for (final ResearchableEntity trap : state.getAvailableTraps()) {
+
+            // DK II leaves out the traps that only doors fire (Magic Door, Spare Door), they are not built on their own
+            if (state.getKwdFile().getTrapById(trap.getId()).getFlags().contains(Trap.TrapFlag.DOOR_TRAP)) {
+                continue;
+            }
             Element element = contentPanel.addElement(createTrapIcon(trap));
             setResearchEffect(trap, element);
+        }
+        workshopIconTints.clear();
+        updateWorkshopAvailability();
+    }
+
+    /**
+     * Tints the trap and door icons as DKII.EXE does (0x412FC0): 0x808080
+     * while the player has no Workshop to manufacture them in, and 0x646464
+     * while it doesn't have the gold a blueprint takes (door +0x8F, trap
+     * +0x92). The Workshop tint is set last, so it wins when both apply.
+     */
+    private void updateWorkshopAvailability() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        boolean hasWorkshop = state.hasWorkshop();
+        int gold = state.getPlayer().getGold();
+        for (ResearchableEntity door : state.getAvailableDoors()) {
+            if (door.isDiscovered()) {
+                Door data = state.getKwdFile().getDoorById(door.getId());
+                updateWorkshopIcon(hud.findElementById("door_" + data.getDoorId()), getWorkshopTint(hasWorkshop, data.getGoldCost() > gold));
+            }
+        }
+        for (ResearchableEntity trap : state.getAvailableTraps()) {
+            if (trap.isDiscovered()) {
+                Trap data = state.getKwdFile().getTrapById(trap.getId());
+                updateWorkshopIcon(hud.findElementById("trap_" + data.getTrapId()), getWorkshopTint(hasWorkshop, data.getGoldCost() > gold));
+            }
+        }
+    }
+
+    private static String getWorkshopTint(boolean hasWorkshop, boolean unaffordable) {
+        return !hasWorkshop ? "workshopless" : unaffordable ? "unaffordable" : null;
+    }
+
+    private void updateHeroKills() {
+        if (heroKillCount == null) {
+            return;
+        }
+        // Follow the visible frame, excluding the minimap container's padding.
+        Element frame = screen.findElementById("minimapFrame");
+        Element counter = screen.findElementById("heroKills");
+        if (frame.getWidth() > 0 && (counter.getWidth() != frame.getWidth() - 2
+                || counter.getX() != frame.getX())) {
+            counter.setConstraintWidth(new SizeValue(frame.getWidth() - 2, SizeValueType.Pixel));
+            counter.setMarginLeft(new SizeValue(frame.getX() - counter.getParent().getX(), SizeValueType.Pixel));
+            counter.getParent().layoutElements();
+        }
+        int kills = state.getPlayer().getHeroesDestroyed();
+        if (kills != displayedHeroKills) {
+            heroKillCount.setText(Integer.toString(kills));
+            displayedHeroKills = kills;
+        }
+    }
+
+    /**
+     * Fills the Player Information window (the I key) while it is shown, as
+     * DK II's 0x423450 does: a row for each keeper with the stats of 0x4C2C30,
+     * shown only for the player and its allies (0x4C2BC0) and "-" for the
+     * others, and 1000 or more in thousands ("12K"). The map area shows the
+     * share of the map the keeper owns, where DK II shows the kills again
+     * (0x423450 asks 0x4C2C30 for stat 1 in that column).
+     */
+    private void updatePlayerInformation() {
+        Screen hud = nifty.getScreen(SCREEN_HUD_ID);
+        Element window = hud.findElementById("statistics");
+        if (window == null || !window.isVisible() || keeperCreatures == null) {
+            return;
+        }
+        keeperCreatures.applyChanges();
+        keeperTraps.applyChanges();
+        GameClientState gameState = state.stateManager.getState(GameClientState.class);
+        short impId = state.getKwdFile().getImp().getCreatureId();
+        List<String[]> rows = new ArrayList<>();
+        for (Keeper keeper : gameState.getPlayers()) {
+            if (keeper.getId() == Player.GOOD_PLAYER_ID || keeper.getId() == Player.NEUTRAL_PLAYER_ID) {
+                continue;
+            }
+            String[] row = new String[PLAYER_INFORMATION_COLUMNS.length];
+            Arrays.fill(row, "");
+            row[0] = gameState.getPlayerName(keeper);
+            if (!state.getPlayer().isAlly(keeper.getId())) {
+                Arrays.fill(row, 1, row.length, "-");
+                rows.add(row);
+                continue;
+            }
+
+            // Creatures (stat 5) leave out the Imps (stat 6); the training is their average level (stat 8) and the
+            // happiness comes from their average anger, each creature's the average of its 6 kinds (stat 10)
+            int creatures = 0;
+            int imps = 0;
+            int levels = 0;
+            int anger = 0;
+            for (Entity creature : keeperCreatures) {
+                if (creature.get(Owner.class).ownerId != keeper.getId()) {
+                    continue;
+                }
+                if (creature.get(CreatureComponent.class).creatureId == impId) {
+                    imps++;
+                } else {
+                    creatures++;
+                }
+                levels += creature.get(CreatureExperience.class).level;
+                CreatureMood mood = creature.get(CreatureMood.class);
+                anger += (mood.general + mood.noFood + mood.noLair + mood.noWork + mood.noPay + mood.other) / 6;
+            }
+            int count = creatures + imps;
+            int traps = (int) keeperTraps.stream().filter(trap -> trap.get(Owner.class).ownerId == keeper.getId()).count();
+            row[1] = formatPlayerStat(keeper.getEnemyCreaturesKilled() + keeper.getHeroesDestroyed());
+            row[2] = formatPlayerStat(keeper.getOwnCreaturesKilled());
+            row[3] = formatPlayerStat(keeper.getGold() + keeper.getGoldSpentOnBuilding());
+            row[4] = formatPlayerStat(keeper.getMaxMana());
+            row[5] = formatPlayerStat(creatures);
+            row[6] = formatPlayerStat(imps);
+            row[7] = formatPlayerStat(traps);
+            row[8] = formatPlayerStat(count > 0 ? levels / count : 0);
+            row[9] = formatPlayerStat(keeper.getResearchCompleted());
+            row[10] = formatPlayerStat(100 - (count > 0 ? anger / count : 0) * 100 / 0xFFFE);
+            row[11] = formatPlayerStat(gameState.getMapClientService().getMapData().getOwnedPercentage(keeper.getId()));
+            rows.add(row);
+        }
+
+        // Build the rows again only when something changed
+        String shown = rows.stream().map(row -> String.join("|", row)).collect(Collectors.joining("\n"));
+        if (shown.equals(playerInformation)) {
+            return;
+        }
+        playerInformation = shown;
+        Element list = hud.findElementById("playerStatistics");
+        removeAllChildElements(list);
+        for (String[] row : rows) {
+            ControlBuilder entry = new ControlBuilder("statisticEntry");
+            for (int i = 0; i < row.length; i++) {
+                entry.parameter(PLAYER_INFORMATION_COLUMNS[i], row[i]);
+            }
+            entry.build(list);
+        }
+    }
+
+    private static String formatPlayerStat(int value) {
+        return value < 1000 ? Integer.toString(value) : value / 1000 + "K";
+    }
+
+    private void updateWorkshopIcon(Element icon, String tint) {
+        if (icon == null || Objects.equals(tint, workshopIconTints.get(icon))) {
+            return;
+        }
+        icon.stopEffect(EffectEventId.onCustom);
+        if (tint != null) {
+            workshopIconTints.put(icon, tint);
+            icon.startEffect(EffectEventId.onCustom, null, tint);
+        } else {
+            workshopIconTints.remove(icon);
+        }
+        if (icon == selectedButton) {
+            icon.startEffect(EffectEventId.onCustom, null, "select");
         }
     }
 
@@ -1273,6 +1500,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.getId() == ONE_SHOT_REAPER_SPELL_ID) {
+                continue;
+            }
             Element element = contentPanel.addElement(createSpellIcon(spell));
             if (!spell.isUpgraded()) {
                 ResearchEffectControl researchControl = new ControlBuilder(ResearchEffectControl.CONTROL_NAME) {
@@ -1473,6 +1703,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             selectedButton.stopEffect(EffectEventId.onCustom);
             if (unaffordableSpells.contains(selectedButton) || unaffordableRooms.contains(selectedButton)) {
                 selectedButton.startEffect(EffectEventId.onCustom, null, "unaffordable");
+            } else if (workshopIconTints.containsKey(selectedButton)) {
+                selectedButton.startEffect(EffectEventId.onCustom, null, workshopIconTints.get(selectedButton));
             }
         }
 

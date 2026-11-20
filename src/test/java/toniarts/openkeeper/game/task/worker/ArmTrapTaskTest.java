@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectTyp
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.storage.IRoomObjectControl;
 import toniarts.openkeeper.game.data.ResearchableType;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
@@ -61,6 +62,7 @@ class ArmTrapTaskTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final List<EntityId> armed = new ArrayList<>();
+    private final List<Object[]> events = new ArrayList<>();
     private final List<EntityId> takenFromStorage = new ArrayList<>();
     private final List<Task> queued = new ArrayList<>();
     private EntityId blueprint;
@@ -112,6 +114,11 @@ class ArmTrapTaskTest {
 
         assertEquals(List.of(blueprint), armed);
         assertNull(entityData.getComponent(crate, Crate.class));
+
+        // Like DK II, the worker makes the sound
+        assertEquals(1, events.size());
+        assertEquals(GameEventType.CREATURE_ARM_TRAP, events.get(0)[0]);
+        assertEquals(BLUEPRINT_TILE, events.get(0)[1]);
         assertTrue(assigned.isRemovable());
         assertTrue(task.isRemovable());
     }
@@ -188,6 +195,7 @@ class ArmTrapTaskTest {
                 assigned = (Task) args[0];
                 yield null;
             }
+            case "fireEvent" -> events.add(args);
             case "hashCode" -> System.identityHashCode(proxy);
             case "equals" -> proxy == args[0];
             default -> throw new UnsupportedOperationException(method.getName());

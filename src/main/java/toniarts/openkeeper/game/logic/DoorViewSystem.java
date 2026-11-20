@@ -24,13 +24,17 @@ import com.simsilica.es.EntitySet;
 import com.simsilica.es.filter.AndFilter;
 import com.simsilica.es.filter.FieldFilter;
 import java.util.Collections;
-import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -47,10 +51,12 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
     private final EntityData entityData;
     private final SafeArrayList<EntityId> doorEntityIds;
     private final IEntityPositionLookup entityPositionLookup;
+    private final ILevelInfo levelInfo;
 
-    public DoorViewSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup) {
+    public DoorViewSystem(EntityData entityData, IEntityPositionLookup entityPositionLookup, ILevelInfo levelInfo) {
         this.entityData = entityData;
         this.entityPositionLookup = entityPositionLookup;
+        this.levelInfo = levelInfo;
 
         doorEntities = entityData.getEntities(new AndFilter(DoorComponent.class,
                 new FieldFilter(DoorComponent.class, "locked", false), new FieldFilter(DoorComponent.class, "blueprint", false)),
@@ -70,28 +76,22 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
             processDeletedEntities(doorEntities.getRemovedEntities());
         }
 
-        // Basically we could also monitor movements, but I guess this is ok.
-        // And if somebody is just left standing on the door, the door will stay open
+        // Like DK II (0x4A55F0), a door stays open while a creature of its keeper or an ally stands in the
+        // doorway or on either tile of the passage through it. A Barricade never opens.
         for (EntityId doorEntityId : doorEntityIds.getArray()) {
             Entity doorEntity = doorEntities.getEntity(doorEntityId);
-            boolean shouldBeOpen = false;
             Position position = doorEntity.get(Position.class);
-            List<EntityId> entitiesInSameTile = entityPositionLookup.getEntitiesInLocation(WorldUtils.vectorToPoint(position.position));
-            if (entitiesInSameTile.size() > 1) {
-                Owner owner = doorEntity.get(Owner.class);
-                for (EntityId entityId : entitiesInSameTile) {
-                    if (doorEntityId != entityId) {
+            Point tile = WorldUtils.vectorToPoint(position.position);
+            Keeper owner = levelInfo.getPlayer(doorEntity.get(Owner.class).ownerId);
+            Door door = levelInfo.getLevelData().getDoorById(doorEntity.get(DoorComponent.class).doorId);
+            boolean shouldBeOpen = false;
+            if (owner != null && !door.getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
 
-                        // Should we open? Only to a creature of ours
-                        if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
-                            Owner creatureOwner = entityData.getComponent(entityId, Owner.class);
-                            if (creatureOwner.ownerId == owner.ownerId) {
-                                shouldBeOpen = true;
-                                break;
-                            }
-                        }
-                    }
-                }
+                // A door turned to stand between walls north and south has its passage east to west
+                boolean eastToWest = position.rotation != 0;
+                shouldBeOpen = hasFriendOn(tile, owner)
+                        || hasFriendOn(new Point(tile.x - (eastToWest ? 1 : 0), tile.y - (eastToWest ? 0 : 1)), owner)
+                        || hasFriendOn(new Point(tile.x + (eastToWest ? 1 : 0), tile.y + (eastToWest ? 0 : 1)), owner);
             }
 
             // Close if nobody there or open if somebody is
@@ -101,6 +101,22 @@ public final class DoorViewSystem implements IGameLogicUpdatable {
                         doorViewState.blueprint, shouldBeOpen));
             }
         }
+    }
+
+    /**
+     * Whether a creature that opens the keeper's doors stands on the tile: one of the keeper's own or an
+     * ally's, but not a neutral one
+     */
+    private boolean hasFriendOn(Point tile, Keeper owner) {
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            Owner creatureOwner = entityData.getComponent(entityId, Owner.class);
+            if (creatureOwner != null && creatureOwner.ownerId != Player.NEUTRAL_PLAYER_ID
+                    && owner.isAlly(creatureOwner.ownerId)
+                    && entityData.getComponent(entityId, CreatureComponent.class) != null) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private void processAddedEntities(Set<Entity> entities) {

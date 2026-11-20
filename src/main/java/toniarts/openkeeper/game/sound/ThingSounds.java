@@ -62,6 +62,8 @@ public final class ThingSounds {
     public static final int CREATURE_CLAIM = 0x10A; // claiming a tile, 0x109 sounds like digging
     public static final int CREATURE_REINFORCE = 0x33D; // reinforcing a wall, 0x10C is the repair
     public static final int CREATURE_ELECTROCUTED = 0x156; // on the Electric Chair
+    public static final int CREATURE_ARM_TRAP = 0x328;
+    public static final int CREATURE_BUILD_DOOR = 0x327;
 
     // Hand
     public static final int TAG = 0xEC;
