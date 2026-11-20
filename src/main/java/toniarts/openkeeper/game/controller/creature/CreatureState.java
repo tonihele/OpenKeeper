@@ -66,14 +66,14 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         /**
-         * Walks an idle creature that found nothing to do to a random spot. A
-         * hero stays where it is: in DK II a hero whose objective can't start
-         * does nothing until it tries again (hero idle state 0x477850)
+         * What an idle creature that found nothing to do does until it looks
+         * again: it stands through an idle animation or takes an idle walk,
+         * like DK II's doing nothing states (0x477680, 0x4776C0)
          *
          * @param entity the idle creature
          */
         private static void wander(ICreatureController entity) {
-            if (entity.getOwnerId() != Player.GOOD_PLAYER_ID) {
+            if (!entity.playIdleAnimation()) {
                 entity.navigateToRandomPoint();
             }
         }
@@ -190,8 +190,20 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            if (entity.isTimeToReEvaluate()) {
+            // A creature of a keeper or a hero thinks again as soon as its idle walk or its idle animation ends. In DK II
+            // the walk (state 87, 0x4808E0) goes on in state 1 (0x4773D0), which takes it straight back to its choice:
+            // state 10 (0x463DF0) for a worker, 89 (0x4778E0) for a keeper's other creatures and 90 (0x477850) for a
+            // hero. The doing nothing states (0x477680) stay while an idle animation plays. A neutral creature waits on
+            // its own re-evaluation timer
+            if (entity.getOwnerId() != Player.NEUTRAL_PLAYER_ID ? entity.isStopped() && !entity.isPlayingIdleAnimation()
+                    : entity.isTimeToReEvaluate()) {
                 entity.resetReEvaluationTimer();
+
+                // Except a worker that found no work: after an idle animation it walks on first (0x464240)
+                if (entity.isWaitingToLookForWork()) {
+                    wander(entity);
+                    return;
+                }
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
                         wander(entity);

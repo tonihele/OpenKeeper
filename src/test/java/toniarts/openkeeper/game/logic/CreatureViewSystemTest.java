@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.IdleAnimation;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -86,6 +87,21 @@ class CreatureViewSystemTest {
         Creature.AnimationType chair = Creature.AnimationType.TORTURED_CHAIR;
         assertArrayEquals(new Creature.AnimationType[]{skeleton, skeleton, skeleton, chair, chair, chair,
             skeleton, skeleton, skeleton, chair, chair, chair}, seconds);
+    }
+
+    @Test
+    void idleCreatureShowsTheIdleAnimationItStandsThrough() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new CreatureViewState((short) 1, 0, Creature.AnimationType.WALK),
+                new Position(0, new Vector3f()), new CreatureAi(0, CreatureState.IDLE, (short) 1),
+                new IdleAnimation(Creature.AnimationType.IDLE_2, 2, 0));
+        CreatureViewSystem system = new CreatureViewSystem(entityData, null);
+
+        system.processTick(1);
+        assertEquals(Creature.AnimationType.IDLE_2, entityData.getComponent(creature, CreatureViewState.class).state);
+
+        system.processTick(1);
+        assertEquals(Creature.AnimationType.IDLE_1, entityData.getComponent(creature, CreatureViewState.class).state);
     }
 
     @Test
