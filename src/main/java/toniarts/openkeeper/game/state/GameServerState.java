@@ -331,18 +331,34 @@ public final class GameServerState extends AbstractAppState {
         }
 
         @Override
-        public void onSetPossessedMovement(Vector2f direction, float rotation, byte speedMode, short playerId) {
+        public void onSetPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode, short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, speedMode);
+                gameWorldController.getCreaturesController().createController(possessed).setPossessedMovement(direction, rotation, pitch, speedMode);
             }
         }
 
         @Override
-        public void onSetPossessedAttack(boolean attacking, short playerId) {
+        public void onSetPossessedAttack(boolean attacking, int spell, short playerId) {
             EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
             if (possessed != null) {
-                gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking);
+                gameWorldController.getCreaturesController().createController(possessed).setPossessedAttack(attacking, spell);
+            }
+        }
+
+        @Override
+        public void onUsePossessedAbility(int ability, short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).usePossessedAbility(ability);
+            }
+        }
+
+        @Override
+        public void onAddPossessedFollower(short playerId) {
+            EntityId possessed = gameWorldController.getCreaturesController().getPossessedCreature(playerId);
+            if (possessed != null) {
+                gameWorldController.getCreaturesController().createController(possessed).addPossessedFollower();
             }
         }
 

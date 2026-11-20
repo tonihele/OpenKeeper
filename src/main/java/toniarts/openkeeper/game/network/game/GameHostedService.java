@@ -688,16 +688,30 @@ public final class GameHostedService extends AbstractHostedConnectionService imp
         }
 
         @Override
-        public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+        public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
-                listener.onSetPossessedMovement(direction, rotation, speedMode, clientInfo.getKeeper().getId());
+                listener.onSetPossessedMovement(direction, rotation, pitch, speedMode, clientInfo.getKeeper().getId());
             }
         }
 
         @Override
-        public void setPossessedAttack(boolean attacking) {
+        public void setPossessedAttack(boolean attacking, int spell) {
             for (GameSessionServiceListener listener : serverListeners.getArray()) {
-                listener.onSetPossessedAttack(attacking, clientInfo.getKeeper().getId());
+                listener.onSetPossessedAttack(attacking, spell, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void usePossessedAbility(int ability) {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onUsePossessedAbility(ability, clientInfo.getKeeper().getId());
+            }
+        }
+
+        @Override
+        public void addPossessedFollower() {
+            for (GameSessionServiceListener listener : serverListeners.getArray()) {
+                listener.onAddPossessedFollower(clientInfo.getKeeper().getId());
             }
         }
 

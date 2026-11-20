@@ -490,7 +490,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         return result;
     }
 
-    private boolean isWater(Vector3f position) {
+    boolean isWater(Vector3f position) {
         if (mapData == null) {
             return false;
         }

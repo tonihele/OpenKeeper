@@ -27,4 +27,11 @@ class FootstepSoundsTest {
         assertEquals(FootstepSounds.STEP_B, FootstepSounds.getStep(MARKS, 0.75f, 0.25f, LENGTH));
         assertEquals(FootstepSounds.NO_STEP, FootstepSounds.getStep(MARKS, 0.75f, 0.1f, LENGTH));
     }
+
+    @Test
+    void possessedStepsWadeOnWaterWithTheirOwnFoot() {
+        assertEquals(FootstepSounds.POSSESSED_LEFT, FootstepSounds.getEvent(FootstepSounds.POSSESSED_LEFT, false));
+        assertEquals(FootstepSounds.WADING_A, FootstepSounds.getEvent(FootstepSounds.POSSESSED_LEFT, true));
+        assertEquals(FootstepSounds.WADING_B, FootstepSounds.getEvent(FootstepSounds.POSSESSED_RIGHT, true));
+    }
 }

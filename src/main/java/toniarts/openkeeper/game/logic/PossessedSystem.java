@@ -92,7 +92,7 @@ public final class PossessedSystem extends GameTimeCounter {
                 // Keep the attack that the session thread may have written meanwhile
                 Possessed live = entityData.getComponent(entity.getId(), Possessed.class);
                 if (live != null) {
-                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime));
+                    entityData.setComponent(entity.getId(), new Possessed(possessed.manaDrain, timeElapsed, live.attackHeld, live.attackPressTime, live.attackSpell));
                 }
             }
         }

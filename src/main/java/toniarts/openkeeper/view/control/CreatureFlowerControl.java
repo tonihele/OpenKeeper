@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.Disguised;
 import toniarts.openkeeper.game.component.PlayerObjective;
 import toniarts.openkeeper.game.component.PortalGem;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -72,17 +73,23 @@ public final class CreatureFlowerControl extends UnitFlowerControl<Creature> {
         components.add(CreatureExperience.class);
         components.add(CreatureMood.class);
         components.add(Turncoat.class);
+        components.add(Disguised.class);
         return components;
     }
 
     /**
-     * Get the player whose color the flower shows. A turncoat blinks between
-     * its owner's and the caster's colors
+     * Get the player whose color the flower shows. A disguised creature shows
+     * the color of the keeper it looks like, a turncoat blinks between its
+     * owner's and the caster's colors
      *
      * @return the player id for the flower color
      */
     @Override
     protected short getOwnerId() {
+        Disguised disguised = getEntity().get(Disguised.class);
+        if (disguised != null) {
+            return disguised.ownerId;
+        }
         return getFlowerColorPlayerId(super.getOwnerId(), getEntity().get(Turncoat.class), System.currentTimeMillis());
     }
 

@@ -59,11 +59,47 @@ public interface IShotsController {
             EntityId shooter, float maxRange);
 
     /**
+     * A creature fires a shot towards a spot, as a possessed creature does
+     * when it has nothing to aim at
+     *
+     * @param shotTypeId shot type to fire
+     * @param shotData1 arbitrary value, interpreted per shot
+     * @param shotData2 arbitrary value, interpreted per shot
+     * @param playerId owner of the shot
+     * @param position where the shot starts
+     * @param targetPosition the spot aimed at
+     * @param shooter the creature firing the shot
+     * @param maxRange how far the creature's spell reaches, in tiles
+     * @return whether the shot flies, if not, nothing was fired
+     */
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
+            EntityId shooter, float maxRange);
+
+    /**
      * A flying shot hit a thing
      *
      * @param shot the shot entity
      * @param thing the thing hit
      */
     public void hit(EntityId shot, EntityId thing);
+
+    /**
+     * A flying shot hurts what is around it by its damage type, on every turn
+     * of its flight
+     *
+     * @param shot the shot entity
+     */
+    public void damageArea(EntityId shot);
+
+    /**
+     * A flying shot leaves another shot where it is, when it hits a thing or
+     * a wall or when it dies. The new shot has the values, the owner and the
+     * shooter of the old one and stays where it is.
+     *
+     * @param shot the shot entity
+     * @param shotTypeId the shot to leave
+     * @param position where to leave it
+     */
+    public void createChildShot(EntityId shot, short shotTypeId, Vector3f position);
 
 }
