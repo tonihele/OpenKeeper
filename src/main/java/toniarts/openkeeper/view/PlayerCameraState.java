@@ -35,6 +35,7 @@ import com.jme3.scene.Spatial;
 import toniarts.openkeeper.utils.Point;
 import java.util.HashSet;
 import java.util.Set;
+import javax.annotation.Nullable;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
 import toniarts.openkeeper.game.control.Container;
@@ -69,6 +70,7 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     private PlayerCamera camera;
     private Camera storedCamera;
     private final Player player;
+    private final PlayerState.ClientSave savedGame;
 
     private final Set<Integer> keys = new HashSet<>();
     private boolean mouseRotating = false;
@@ -130,8 +132,16 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         SPECIAL_KEY_ALT,
         SPECIAL_KEY_SHIFT};
 
-    public PlayerCameraState(Player player) {
+    /**
+     * The player camera
+     *
+     * @param player the player
+     * @param savedGame the client's part of a loaded game, the camera starts
+     * where it was saved. {@code null} for a new game
+     */
+    public PlayerCameraState(Player player, @Nullable PlayerState.ClientSave savedGame) {
         this.player = player;
+        this.savedGame = savedGame;
         this.container = new Container();
     }
 
@@ -215,9 +225,16 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     }
 
     /**
-     * Load the initial main menu camera position
+     * Load the initial main menu camera position, or where the camera was in a
+     * loaded game
      */
     private void loadCameraStartLocation() {
+        Thing.Camera savedMode = savedGame != null && savedGame.cameraMode != null ? getCameraPresets(savedGame.cameraMode) : null;
+        if (savedMode != null) {
+            camera.setView(savedMode, savedGame.cameraLocation, savedGame.cameraRotation);
+            return;
+        }
+
         Vector3f location = WorldUtils.pointToVector3f(player.getStartingCameraX(),
                 player.getStartingCameraY());
         camera.setLookAt(location);
@@ -608,11 +625,13 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     }
 
     /**
-     * The pitch / roll / yaw settings default to Ctrl + Home / End / Del / Page
-     * Down, which now do something else. Skip those so they don't act twice.
+     * The zoom settings default to Home / End and the pitch / roll / yaw
+     * settings to Ctrl + Home / End / Del / Page Down, which the fixed keys
+     * handle. Skip those so they don't act twice.
      */
     private static boolean isFixedCameraKey(String name) {
-        for (Setting s : new Setting[]{Setting.PITCH_CAMERA_UP, Setting.PITCH_CAMERA_DOWN,
+        for (Setting s : new Setting[]{Setting.CAMERA_ZOOM_IN, Setting.CAMERA_ZOOM_OUT,
+            Setting.PITCH_CAMERA_UP, Setting.PITCH_CAMERA_DOWN,
             Setting.ROLL_CAMERA_LEFT, Setting.ROLL_CAMERA_RIGHT,
             Setting.YAW_CAMERA_LEFT, Setting.YAW_CAMERA_RIGHT}) {
             if (name.equals(s.name())) {

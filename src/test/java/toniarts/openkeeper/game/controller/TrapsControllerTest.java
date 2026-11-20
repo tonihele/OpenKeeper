@@ -47,7 +47,7 @@ class TrapsControllerTest {
         traps.put((int) GAS, TrapFiringFixtures.trap(GAS, Trap.TriggerType.PRESSURE, 1, 4, (short) 58));
         traps.get((int) GAS).getFlags().add(Trap.TrapFlag.INVISIBLE);
         traps.put((int) SENTRY, TrapFiringFixtures.trap(SENTRY, Trap.TriggerType.LINE_OF_SIGHT, 5, 6, (short) 44));
-        trapsController = new TrapsController(kwdFile(), entityData, Collections.emptyMap(), null, null);
+        trapsController = new TrapsController(kwdFile(), entityData, Collections.emptyMap(), null, null, null);
     }
 
     @Test

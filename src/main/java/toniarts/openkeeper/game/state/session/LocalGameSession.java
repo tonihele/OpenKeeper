@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.state.CheatState;
 import toniarts.openkeeper.game.state.GameClientState;
 import toniarts.openkeeper.game.state.GameServerState;
+import toniarts.openkeeper.game.state.PlayerState;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.KwdFile;
@@ -52,13 +53,23 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     private static final short PLAYER_ID = Player.KEEPER1_ID;
 
     private boolean playerInTransition = false;
-    private final EntityData entityData = new DefaultEntityData();
-    private final EntityData clientEntityData = new ClientEntityData(entityData);
+    private final EntityData entityData;
+    private final EntityData clientEntityData;
     private final SafeArrayList<GameSessionListener> listeners = new SafeArrayList<>(GameSessionListener.class);
     private final SafeArrayList<GameSessionServiceListener> serverListeners = new SafeArrayList<>(GameSessionServiceListener.class);
 
     public LocalGameSession() {
+        this(new DefaultEntityData());
+    }
 
+    /**
+     * A local game session on the given entities
+     *
+     * @param entityData the server entities, those of a loaded game
+     */
+    public LocalGameSession(EntityData entityData) {
+        this.entityData = entityData;
+        this.clientEntityData = new ClientEntityData(entityData);
     }
 
     /**
@@ -97,18 +108,42 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
         // Player and server
         LocalGameSession gameSession = new LocalGameSession();
         Keeper keeper = new Keeper(false, PLAYER_ID);
-        ClientInfo clientInfo = new ClientInfo(0, null, 0);
-        clientInfo.setName(Utils.getMainTextResourceBundle().getString("58"));
-        clientInfo.setKeeper(keeper);
-        clientInfo.setReady(true);
 
         // The client
-        GameClientState gameClientState = new GameClientState(kwdFile, PLAYER_ID, List.of(clientInfo), gameSession, app, campaignLevel);
-        stateManager.attach(gameClientState);
+        stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(keeper)), gameSession, app, campaignLevel, null));
 
         // The game server
         GameServerState gameServerState = new GameServerState(kwdFile, campaign ? null : List.of(keeper), campaign, gameSession, campaignLevel);
         stateManager.attach(gameServerState);
+    }
+
+    /**
+     * Creates and starts a local game session from a saved game
+     *
+     * @param saveGame the saved game
+     * @param stateManager state manager instance for setting up the game
+     * @param app the main app
+     */
+    public static void createLocalGame(SaveGame saveGame, AppStateManager stateManager, Main app) {
+        IKwdFile kwdFile = KwdFile.load(saveGame.getLevel());
+        LocalGameSession gameSession = new LocalGameSession(saveGame.createEntityData());
+
+        // The client's own part stays on the client, the server gets the rest
+        PlayerState.ClientSave clientSave = saveGame.removeClient(PlayerState.ClientSave.class);
+        if (clientSave == null) {
+            clientSave = new PlayerState.ClientSave();
+        }
+        stateManager.attach(new GameClientState(kwdFile, PLAYER_ID, List.of(createClientInfo(new Keeper(false, PLAYER_ID))), gameSession, app,
+                saveGame.getCampaignLevel(), clientSave));
+        stateManager.attach(new GameServerState(kwdFile, saveGame, gameSession));
+    }
+
+    private static ClientInfo createClientInfo(Keeper keeper) {
+        ClientInfo clientInfo = new ClientInfo(0, null, 0);
+        clientInfo.setName(Utils.getMainTextResourceBundle().getString("58"));
+        clientInfo.setKeeper(keeper);
+        clientInfo.setReady(true);
+        return clientInfo;
     }
 
     @Override

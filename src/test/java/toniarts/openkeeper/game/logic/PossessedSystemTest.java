@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.logic;
 
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
@@ -26,12 +27,15 @@ import java.util.function.Function;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Possessed;
+import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
@@ -44,6 +48,7 @@ class PossessedSystemTest {
     private int swings;
     private int releases;
     private final List<String> possessions = new ArrayList<>();
+    private double gameTime;
 
     private <T> T stub(Class<T> type, Function<String, Object> answer) {
         return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[] {type},
@@ -66,6 +71,9 @@ class PossessedSystemTest {
                 new Class<?>[] {IGameController.class}, (proxy, method, args) -> {
                     if ("setPossession".equals(method.getName())) {
                         possessions.add(args[0] + "/" + args[1]);
+                    }
+                    if ("getGameTimer".equals(method.getName())) {
+                        return stub(IGameTimer.class, name -> gameTime);
                     }
                     return null;
                 });
@@ -123,11 +131,17 @@ class PossessedSystemTest {
     @Test
     void creatureAlreadyPossessedWhenTheSystemStartsIsReportedToTheGame() {
         EntityId creature = entityData.createEntity();
-        entityData.setComponents(creature, new Possessed(0, 0), new Owner((short) 2, (short) 2));
+        entityData.setComponents(creature, new Possessed(0, 0), new Owner((short) 2, (short) 2),
+                new PossessedMovement(new Vector2f(1, 0), 0, 1));
+        PossessedSystem system = system(() -> { });
 
-        system(() -> { });
+        // The clients aren't listening before the game starts
+        assertTrue(possessions.isEmpty());
+
+        system.start();
 
         assertEquals(List.of(creature + "/2"), possessions);
+        assertNull(entityData.getComponent(creature, PossessedMovement.class), "Nobody moves the creature yet");
     }
 
     @Test
@@ -152,11 +166,31 @@ class PossessedSystemTest {
         entityData.setComponents(creature, new Possessed(10, 0), new Owner((short) 2, (short) 2));
         PossessedSystem system = system(() -> { });
 
+        gameTime = 0.5;
         system.processTick(0.5f);
 
         assertEquals(0, releases);
 
+        gameTime = 1;
         system.processTick(0.5f);
+
+        assertEquals(1, releases);
+    }
+
+    @Test
+    void theManaIsCheckedByTheGameTimeInALoadedGame() {
+        EntityId creature = entityData.createEntity();
+        entityData.setComponents(creature, new Possessed(10, 1000), new Owner((short) 2, (short) 2));
+        PossessedSystem system = system(() -> { });
+        system.start();
+
+        gameTime = 1000.5;
+        system.processTick(0.25f);
+
+        assertEquals(0, releases);
+
+        gameTime = 1001;
+        system.processTick(0.25f);
 
         assertEquals(1, releases);
     }

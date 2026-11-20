@@ -81,6 +81,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileController;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.map.MapTileController;
+import toniarts.openkeeper.game.state.session.SaveGame;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.GameObject;
@@ -110,6 +111,7 @@ import java.util.Map;
 import java.util.OptionalInt;
 import java.util.Set;
 import java.util.stream.Collectors;
+import javax.annotation.Nullable;
 
 /**
  * Game world controller, controls the game world related actions
@@ -147,9 +149,23 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
     private final SafeArrayList<PlayerActionListener> listeners = new SafeArrayList<>(PlayerActionListener.class);
     private final SafeArrayList<SpecialListener> specialListeners = new SafeArrayList<>(SpecialListener.class);
 
+    /**
+     * Creates the game world, from the level for a new game or from the
+     * entities of a loaded game
+     *
+     * @param gameController the game controller
+     * @param levelInfo the level info
+     * @param entityData the entities
+     * @param gameSettings the game settings
+     * @param playerControllers the player controllers
+     * @param gameTimer the game timer
+     * @param gameEventService the game event service
+     * @param saveGame the loaded game, {@code null} for a new game
+     */
     public GameWorldController(IGameController gameController, ILevelInfo levelInfo, EntityData entityData,
             Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
-            Map<Short, IPlayerController> playerControllers, IGameTimer gameTimer, GameEventService gameEventService) {
+            Map<Short, IPlayerController> playerControllers, IGameTimer gameTimer, GameEventService gameEventService,
+            @Nullable SaveGame saveGame) {
 
         this.kwdFile = levelInfo.getLevelData();
         this.entityData = entityData;
@@ -159,25 +175,25 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
         this.players = levelInfo.getPlayers();
         this.gameEventService = gameEventService;
 
-        this.createNewGame(gameController, levelInfo);
+        this.createNewGame(gameController, levelInfo, saveGame);
     }
 
-    private void createNewGame(IGameController gameController, ILevelInfo levelInfo) {
+    private void createNewGame(IGameController gameController, ILevelInfo levelInfo, SaveGame saveGame) {
 
         // Load objects
-        objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo);
+        objectsController = new ObjectsController(kwdFile, entityData, gameSettings, gameTimer, gameController, levelInfo, saveGame);
 
         // Load the map
-        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService);
+        mapController = new MapController(kwdFile, objectsController, gameSettings, gameTimer, entityData, levelInfo, gameEventService, saveGame);
 
         // Load creatures
-        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo);
+        creaturesController = new CreaturesController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, saveGame);
 
         // Load the doors
-        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, levelInfo);
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, levelInfo, saveGame);
 
         // Load the traps
-        trapsController = new TrapsController(kwdFile, entityData, gameSettings, gameController, levelInfo);
+        trapsController = new TrapsController(kwdFile, entityData, gameSettings, gameController, levelInfo, saveGame);
 
         // Init handlers
         shotsController = new ShotsController(kwdFile, entityData, gameSettings, gameTimer, gameController, mapController, levelInfo, objectsController, creaturesController, gameEventService);
@@ -185,10 +201,10 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         // Setup player stuff, the rooms first since the starting gold goes to the Dungeon Heart
         initPlayerRooms();
-        initPlayerMoney();
+        initPlayerMoney(saveGame == null);
     }
 
-    private void initPlayerMoney() {
+    private void initPlayerMoney(boolean addStartingGold) {
 
         // The max money$$$
         for (IRoomController room : mapController.getRoomControllers()) {
@@ -198,6 +214,11 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
                     playerController.getGoldControl().setGoldMax(playerController.getGoldControl().getGoldMax() + room.getObjectControl(ObjectType.GOLD).getMaxCapacity());
                 }
             }
+        }
+
+        // A loaded game has its gold in the rooms already
+        if (!addStartingGold) {
+            return;
         }
 
         // Set up the money$$$, only the keepers get their starting gold. Like in the original, it goes

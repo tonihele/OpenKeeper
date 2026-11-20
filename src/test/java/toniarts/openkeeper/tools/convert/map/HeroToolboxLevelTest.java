@@ -141,7 +141,7 @@ class HeroToolboxLevelTest {
         IGameController gameController = stub(IGameController.class, (method, args)
                 -> method.equals("getGameEventService") ? stub(GameEventService.class, (m, a) -> null) : null);
         return new CreaturesController(kwdFile, entityData, Collections.emptyMap(), stub(IGameTimer.class, (method, args) -> null),
-                gameController, mapController(), null);
+                gameController, mapController(), null, null);
     }
 
     /**
