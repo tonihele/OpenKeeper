@@ -29,6 +29,11 @@ import toniarts.openkeeper.utils.Point;
  */
 public interface IDoorsController extends IEntityWrapper<IDoorController> {
 
+    enum DoorCountMode { ALL, BLUEPRINTS, BUILT }
+
+    /** Counts placed owned doors in the roster; type zero selects all types. */
+    int getDoorCount(short playerId, short doorId, DoorCountMode mode);
+
     /**
      * Places a door blueprint. The door isn't built, it waits for its crate
      * from the workshop
