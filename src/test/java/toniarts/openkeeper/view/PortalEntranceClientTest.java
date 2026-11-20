@@ -38,6 +38,7 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.utils.WorldUtils;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.effect.VisualEffect;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 import static org.junit.jupiter.api.Assertions.*;
 
 class PortalEntranceClientTest {
@@ -147,7 +148,7 @@ class PortalEntranceClientTest {
                 });
         var states = new AppStateManager(null);
         int[] plays = {0};
-        states.attach(new EffectManagerState(level, null) {
+        states.attach(new EffectManagerState(level, null, new EntityMaterialSetup((root, policy, previous) -> List.of(), true)) {
             @Override
             public VisualEffect load(Node node, Vector3f location, int effectId, boolean infinite, short ownerId) {
                 assertEquals(77, effectId);

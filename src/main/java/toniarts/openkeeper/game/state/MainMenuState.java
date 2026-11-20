@@ -27,6 +27,7 @@ import com.jme3.input.InputManager;
 import com.jme3.math.ColorRGBA;
 import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
+import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
 import com.jme3.scene.Spatial;
 import com.simsilica.es.EntityData;
@@ -77,6 +78,8 @@ import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.construction.HeroGateFrontEndConstructor;
 import toniarts.openkeeper.view.text.TextParser;
 import toniarts.openkeeper.view.text.TextParserService;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 import java.io.File;
 import java.io.IOException;
@@ -133,6 +136,8 @@ public final class MainMenuState extends AbstractAppState {
     private EffectManagerState effectManagerState;
     private GameController gameController;
     private volatile MapViewController mapViewController;
+    private EntityMaterialSetup menuMaterialSetup;
+    private Spatial litMpdCreature;
     private final MainMenuConnectionErrorListener connectionErrorListener = new MainMenuConnectionErrorListener();
 
     /**
@@ -170,6 +175,8 @@ public final class MainMenuState extends AbstractAppState {
         // state is attached and initialize() sets this field, yet refreshCampaignMap()
         // below already needs it
         this.assetManager = assetManager;
+        menuMaterialSetup = new EntityMaterialSetup(assetManager);
+        litMpdCreature = null;
 
         // Load the 3D Front end
         frontEndKwd = KwdFile.load("FrontEnd3DLevel");
@@ -249,9 +256,23 @@ public final class MainMenuState extends AbstractAppState {
 
             // Every animation change loads a new creature model, light them like creatures in the game
             Spatial mpdCreature = menuNode.getChild(HeroGateFrontEndConstructor.MPD_CREATURE_NODE_NAME);
-            if (mpdCreature != null) {
-                AssetUtils.applyVertexLight(assetManager, mpdCreature, controller.getLightRules(), false, false);
+            if (mpdCreature != litMpdCreature) {
+                menuMaterialSetup.unregister(litMpdCreature);
+                litMpdCreature = mpdCreature;
+                if (mpdCreature != null) {
+                    menuMaterialSetup.register(mpdCreature,
+                            MaterialSetupPolicy.CREATURE);
+                }
             }
+            menuMaterialSetup.update(controller.getLightRules());
+        }
+    }
+
+    @Override
+    public void render(RenderManager renderManager) {
+        MapViewController controller = mapViewController;
+        if (menuMaterialSetup != null && controller != null) {
+            menuMaterialSetup.flush(controller.getLightRules());
         }
     }
 
@@ -302,6 +323,10 @@ public final class MainMenuState extends AbstractAppState {
 
     @Override
     public void cleanup() {
+        if (menuMaterialSetup != null) {
+            menuMaterialSetup.close();
+            litMpdCreature = null;
+        }
         mapViewController = null;
         if (mainMenuEntityViewState != null) {
             stateManager.detach(mainMenuEntityViewState);

@@ -23,6 +23,7 @@ import com.jme3.scene.Geometry;
 import com.jme3.scene.Spatial;
 import com.jme3.texture.Texture;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 
 /** Applies DKII's optional {@code Unique_} textures to a reused model. */
 final class CreatureVariantTextures {
@@ -58,5 +59,6 @@ final class CreatureVariantTextures {
                 geometry.setMaterial(uniqueMaterial);
             }
         });
+        EntityMaterialSetup.materialsChanged(model);
     }
 }

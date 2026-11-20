@@ -21,11 +21,14 @@ import com.jme3.app.state.AbstractAppState;
 import com.jme3.app.state.AppStateManager;
 import com.jme3.asset.AssetManager;
 import com.jme3.math.Vector3f;
+import com.jme3.renderer.RenderManager;
 import com.jme3.scene.Node;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.view.PlayerMapViewState;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 import java.lang.System.Logger;
 import java.util.ArrayList;
@@ -48,10 +51,28 @@ public class EffectManagerState extends AbstractAppState {
     private final List<VisualEffect> activeEffects = new ArrayList<>();
     private AppStateManager stateManager;
     private Supplier<LightRules> lightRulesSupplier;
+    private final EntityMaterialSetup materialSetup;
+    private final MaterialSetupPolicy materialPolicy;
 
     public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager) {
+        this(kwdFile, assetManager, new EntityMaterialSetup(assetManager), MaterialSetupPolicy.WORLD);
+    }
+
+    /** Creates an effect scene with a fixed lighting policy (for example, a full-bright preview). */
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, MaterialSetupPolicy materialPolicy) {
+        this(kwdFile, assetManager, new EntityMaterialSetup(assetManager), materialPolicy);
+    }
+
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, EntityMaterialSetup materialSetup) {
+        this(kwdFile, assetManager, materialSetup, MaterialSetupPolicy.WORLD);
+    }
+
+    public EffectManagerState(IKwdFile kwdFile, AssetManager assetManager, EntityMaterialSetup materialSetup,
+            MaterialSetupPolicy materialPolicy) {
         this.kwdFile = kwdFile;
         this.assetManager = assetManager;
+        this.materialSetup = java.util.Objects.requireNonNull(materialSetup);
+        this.materialPolicy = java.util.Objects.requireNonNull(materialPolicy);
     }
 
     @Override
@@ -71,6 +92,28 @@ public class EffectManagerState extends AbstractAppState {
                 iterator.remove();
             }
         }
+        materialSetup.update(getLightRules());
+    }
+
+    @Override
+    public void render(RenderManager renderManager) {
+        materialSetup.flush(getLightRules());
+    }
+
+    @Override
+    public void cleanup() {
+        clearActiveEffects();
+        materialSetup.close();
+        stateManager = null;
+        super.cleanup();
+    }
+
+    public EntityMaterialSetup getMaterialSetup() {
+        return materialSetup;
+    }
+
+    public MaterialSetupPolicy getMaterialPolicy() {
+        return materialPolicy;
     }
 
     /**
@@ -94,7 +137,6 @@ public class EffectManagerState extends AbstractAppState {
         while (iterator.hasNext()) {
             VisualEffect visualEffect = iterator.next();
             visualEffect.removeEffect();
-            visualEffect.update(-1);
         }
         activeEffects.clear();
     }

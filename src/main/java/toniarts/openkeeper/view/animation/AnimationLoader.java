@@ -27,6 +27,7 @@ import toniarts.openkeeper.tools.convert.KmfModelLoader;
 import toniarts.openkeeper.tools.convert.kmf.Anim;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.utils.AssetUtils;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 
 /**
  * Static helpers to handle animations in our basic scene objects
@@ -137,6 +138,7 @@ public final class AnimationLoader {
             child.removeFromParent();
         }
         attachResource(root, root.getControl(AnimationControl.class), anim, assetManager);
+        EntityMaterialSetup.materialsChanged(root);
 
         if(anim == null) {
             logger.log(Level.WARNING, "Animation null!");

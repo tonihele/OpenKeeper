@@ -30,6 +30,7 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.view.effect.EffectManagerState;
 import toniarts.openkeeper.view.effect.EffectParticleInfluencer;
 import toniarts.openkeeper.view.effect.VisualEffect;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -107,7 +108,8 @@ class PortalParticleEmissionTest {
             definition.setElementsPerTurn((short) 6);
             definition.setMinHp(30);
             definition.setMaxHp(30);
-            effect = new VisualEffect(new EffectManagerState(null, null), root, definition);
+            effect = new VisualEffect(new EffectManagerState(null, null,
+                    new EntityMaterialSetup((model, policy, previous) -> List.of(), true)), root, definition);
             EffectElement element = new EffectElement();
             element.setMaxHp(40);
             // Inject a plain jME emitter to test lifecycle without a graphics context or converted DKII assets.

@@ -65,6 +65,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.view.lighting.LightRules;
+import toniarts.openkeeper.view.material.EntityMaterialSetup;
+import toniarts.openkeeper.view.material.JmeMaterialProvider;
+import toniarts.openkeeper.view.material.MaterialSetupPolicy;
 
 /**
  * Collection of asset related common functions
@@ -310,8 +313,8 @@ public final class AssetUtils {
      * Lights a model per vertex, like the floor it stands on: sets up its
      * {@code Vertex} materials for a thing (no rock floor) and hooks them
      * up to the shared light data. Materials still on {@code Flat} (old
-     * generated material files) are swapped once. Call once per frame, as the
-     * ambient map may only exist after the first call.
+     * generated material files) are swapped once. This uncached compatibility
+     * entry point performs a full walk; runtime views use EntityMaterialSetup.
      *
      * @param ignoreObjectLights true to leave out the lights carried by game
      * objects
@@ -328,34 +331,15 @@ public final class AssetUtils {
      */
     public static void applyVertexLight(AssetManager assetManager, Spatial spatial, LightRules lightRules,
             boolean ignoreObjectLights, boolean useTileAmbient) {
-        List<Material> materials = new ArrayList<>();
-        // Object lights are attenuated from the model's center, not per vertex
+        List<Material> materials = JmeMaterialProvider.prepare(
+                assetManager, spatial,
+                new MaterialSetupPolicy(ignoreObjectLights, useTileAmbient, false),
+                List.of(), false);
         BoundingVolume bound = spatial.getWorldBound();
         Vector3f meshCenter = bound != null ? bound.getCenter().clone() : spatial.getWorldTranslation().clone();
-        spatial.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial s) {
-                if (!(s instanceof Geometry geometry) || geometry.isBatched()) {
-                    return;
-                }
-                Material material = geometry.getMaterial();
-                if (!isVertexMaterial(material)) {
-                    if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
-                        return;
-                    }
-                    Material vertex = createVertexMaterial(assetManager, material, ColorRGBA.Black);
-                    vertex.getAdditionalRenderState().setFaceCullMode(material.getAdditionalRenderState().getFaceCullMode());
-                    vertex.getAdditionalRenderState().setBlendMode(material.getAdditionalRenderState().getBlendMode());
-                    geometry.setMaterial(vertex);
-                    material = vertex;
-                }
-                material.setFloat("MinLight", 0f);
-                material.setBoolean("IgnoreObjectLights", ignoreObjectLights);
-                material.setVector3("MeshCenter", meshCenter);
-                material.setFloat("AmbientScale", useTileAmbient ? 1f : 0f);
-                materials.add(material);
-            }
-        });
+        for (Material material : materials) {
+            material.setVector3("MeshCenter", meshCenter);
+        }
         lightRules.bindMaterials(materials);
     }
 
@@ -367,27 +351,7 @@ public final class AssetUtils {
      * @param spatial the model to light
      */
     public static void applyFullLight(Spatial spatial) {
-        spatial.depthFirstTraversal(new SceneGraphVisitor() {
-            @Override
-            public void visit(Spatial s) {
-                if (!(s instanceof Geometry geometry)) {
-                    return;
-                }
-                Material material = geometry.getMaterial();
-                if (isVertexMaterial(material)) {
-                    // MinLight only scales the (zero) global ambient floor, RockFloor
-                    // is the absolute one
-                    material.setFloat("MinLight", 1f);
-                    material.setFloat("RockFloor", 1f);
-                    return;
-                }
-                if (material.getMaterialDef().getMaterialParam("FlatLight") == null) {
-                    return;
-                }
-                material.setColor("FlatLight", ColorRGBA.White);
-                material.setColor("GlobalAmbient", ColorRGBA.BlackNoAlpha);
-            }
-        });
+        JmeMaterialProvider.prepare(null, spatial, MaterialSetupPolicy.FULL_BRIGHT, List.of(), false);
     }
 
     /**
@@ -910,6 +874,7 @@ public final class AssetUtils {
                 }
             }
         });
+        EntityMaterialSetup.materialsChanged(spatial);
     }
 
     /**
@@ -929,6 +894,7 @@ public final class AssetUtils {
                 }
             }
         });
+        EntityMaterialSetup.materialsChanged(spatial);
     }
 
     /**
