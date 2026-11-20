@@ -73,6 +73,8 @@ import org.lwjgl.opengl.*;
 import toniarts.openkeeper.audio.plugins.MP2Loader;
 import toniarts.openkeeper.cinematics.CameraSweepDataLoader;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.sound.AudioOutput;
+import toniarts.openkeeper.game.sound.AudioOutputMode;
 import toniarts.openkeeper.game.sound.SoundCategory;
 import toniarts.openkeeper.game.sound.GlobalCategory;
 import toniarts.openkeeper.game.sound.SoundManager;
@@ -441,6 +443,9 @@ public final class Main extends SimpleApplication {
                     // Sound
                     getAssetManager().registerLoader(MP2Loader.class, MP2Loader.FILE_EXTENSION);
                     SoundManager.init(Main.this);
+                    AudioOutput.apply(
+                            AudioOutputMode.fromSetting(
+                                    getUserSettings().getSetting(Settings.Setting.AUDIO_OUTPUT_MODE)));
                     applySoundSettings();
                     // Camera sweep files
                     getAssetManager().registerLoader(CameraSweepDataLoader.class, CameraSweepDataLoader.FILE_EXTENSION);

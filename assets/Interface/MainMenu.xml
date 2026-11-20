@@ -484,7 +484,13 @@
                         <control name="checkbox" id="sfxEnabled" />
                     </panel>
                 </panel>
-                <!-- <panel width="100%" height="15%" childLayout="center" backgroundColor="#f508" /> -->
+                <panel width="100%" height="*" childLayout="horizontal" align="center" valign="center">
+                    <text style="menuTextSmall" text="Spatial audio" width="33%" valign="center" />
+                    <control name="dropDown" id="audioOutputMode" width="40%" valign="center" />
+                </panel>
+                <panel width="100%" height="*" childLayout="center">
+                    <text id="audioOutputStatus" style="menuTextSmall" text="" width="95%" wrap="true" />
+                </panel>
             </panel>
 
             <panel childLayout="horizontal" align="right" valign="bottom">
