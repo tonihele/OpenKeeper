@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.network;
 import com.jme3.math.Vector3f;
 import com.jme3.network.Client;
 import com.jme3.network.ClientStateListener;
+import com.jme3.network.service.rmi.RmiHostedService;
+import com.jme3.network.service.rmi.RmiRegistry;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.client.EntityDataClientService;
@@ -36,9 +38,12 @@ import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.network.chat.ChatSessionListener;
 import toniarts.openkeeper.game.network.lobby.LobbyClientService;
 import toniarts.openkeeper.game.network.session.AccountClientService;
+import toniarts.openkeeper.game.network.session.AccountSessionListener;
 import toniarts.openkeeper.game.state.lobby.ClientInfo;
+import toniarts.openkeeper.game.state.lobby.LobbySessionListener;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
@@ -79,6 +84,12 @@ class NetworkLoopbackTest {
             });
             client.start();
             assertTrue(connected.await(30, TimeUnit.SECONDS), "The client connects");
+
+            // The client's listeners travel on other channels than the login, and the login needs them
+            RmiRegistry rmi = server.getService(RmiHostedService.class).getRmiRegistry(server.getServer().getConnections().iterator().next());
+            waitFor(() -> rmi.getRemoteObject(AccountSessionListener.class) != null
+                    && rmi.getRemoteObject(LobbySessionListener.class) != null
+                    && rmi.getRemoteObject(ChatSessionListener.class) != null);
 
             // The account service lets the player in and hands the connection to the lobby
             assertEquals("loopback", client.getService(AccountClientService.class).getServerInfo());
