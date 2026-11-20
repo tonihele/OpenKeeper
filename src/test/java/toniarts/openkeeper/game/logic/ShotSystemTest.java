@@ -60,12 +60,17 @@ class ShotSystemTest {
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
+    private final Map<Short, Shot> shotsById = Map.of(ShotFixtures.FIREBALL_ID, fireball,
+            ShotFixtures.GAS_MISSILE_ID, ShotFixtures.gasMissile(), ShotFixtures.GRENADE_ID, ShotFixtures.grenade(),
+            ShotFixtures.HAIL_STORM_ID, ShotFixtures.hailStorm());
     private final Creature imp = ShotFixtures.creature(IMP_ID, EnumSet.noneOf(Creature.CreatureFlag.class),
             EnumSet.noneOf(Creature.CreatureFlag3.class));
     private final List<EntityId> creatures = new ArrayList<>();
     private final Set<Point> solidTiles = new HashSet<>();
     private final List<EntityId[]> hits = new ArrayList<>();
     private final List<Object[]> effects = new ArrayList<>();
+    private final List<EntityId> areaDamages = new ArrayList<>();
+    private final List<Object[]> childShots = new ArrayList<>();
     private ShotSystem shotSystem;
 
     @BeforeEach
@@ -74,7 +79,7 @@ class ShotSystemTest {
         ShotFixtures.setSize(imp, 0.14f, 0.5f);
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
-            case "getShotById" -> fireball;
+            case "getShotById" -> shotsById.get((Short) args[0]);
             case "getCreature" -> imp;
             default -> throw new UnsupportedOperationException(method.getName());
         });
@@ -82,6 +87,14 @@ class ShotSystemTest {
                 new Class<?>[]{IShotsController.class}, (proxy, method, args) -> {
                     if (method.getName().equals("hit")) {
                         hits.add(new EntityId[]{(EntityId) args[0], (EntityId) args[1]});
+                        return null;
+                    }
+                    if (method.getName().equals("damageArea")) {
+                        areaDamages.add((EntityId) args[0]);
+                        return null;
+                    }
+                    if (method.getName().equals("createChildShot")) {
+                        childShots.add(args);
                         return null;
                     }
                     throw new UnsupportedOperationException(method.getName());
@@ -243,14 +256,138 @@ class ShotSystemTest {
 
         shotSystem.processTick(0.25f);
         assertNull(positionOf(shot));
+        assertTrue(childShots.isEmpty());
+    }
+
+    @Test
+    void shotDamagesAroundItOnEveryTurnItLives() {
+        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+
+        assertEquals(List.of(shot, shot), areaDamages);
+    }
+
+    @Test
+    void gasMissileLeavesItsCloudWhereItHitsACreature() {
+        createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shot = createShot(ShotFixtures.GAS_MISSILE_ID, new Vector3f(1.8f, 1.3f, 1), new Vector3f(0.5f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertChildShot(shot, ShotFixtures.GAS_MISSILE_CLOUD_ID, new Vector3f(1.8f, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void gasMissileLeavesItsCloudAtAWall() {
+        solidTiles.add(new Point(2, 1));
+        EntityId shot = createShot(ShotFixtures.GAS_MISSILE_ID, new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        // The last step before the wall
+        assertChildShot(shot, ShotFixtures.GAS_MISSILE_CLOUD_ID, new Vector3f(1.45f, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void grenadeExplodesWhenItsTimeRunsOut() {
+        EntityId shot = createShot(ShotFixtures.GRENADE_ID, new Vector3f(1, 1.3f, 1), new Vector3f(0.3f, 0, 0), 0);
+        entityData.setComponent(shot, new ShotFlight(entityData.getComponent(shot, ShotFlight.class), 1));
+
+        shotSystem.processTick(0.25f);
+
+        assertChildShot(shot, ShotFixtures.GRENADE_EXPLOSION_ID, new Vector3f(1.3f, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void grenadeOutOfTheSpellsRangeExplodesAtTheEndOfItsTurn() {
+        EntityId shot = createShot(ShotFixtures.GRENADE_ID, new Vector3f(1, 1.3f, 1), new Vector3f(0.3f, 0, 0), 0.5f);
+
+        shotSystem.processTick(0.25f);
+        shotSystem.processTick(0.25f);
+        assertTrue(childShots.isEmpty());
+
+        shotSystem.processTick(0.25f);
+        assertChildShot(shot, ShotFixtures.GRENADE_EXPLOSION_ID, new Vector3f(1.9f, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void hailStormGoesOntoItsTargetAndLeavesItsStormThere() {
+
+        // An enemy where the shot starts isn't hit, the shot hits its target
+        createCreature(ENEMY_ID, new Vector3f(1, 1, 1));
+        EntityId target = createCreature(ENEMY_ID, new Vector3f(4, 1, 1));
+        EntityId shot = createHailStorm(target);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(target, hits.get(0)[1]);
+        assertChildShot(shot, ShotFixtures.HAIL_STORM_CLOUD_ID, new Vector3f(4, 1, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void hailStormWithoutItsTargetLeavesItsStormWhereItIs() {
+        EntityId shot = createHailStorm(null);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
+        assertChildShot(shot, ShotFixtures.HAIL_STORM_CLOUD_ID, new Vector3f(1, 1.3f, 1));
+        assertNull(positionOf(shot));
+    }
+
+    @Test
+    void shotCastOnItsShooterHitsOnlyItsShooter() {
+        createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shooter = createCreature(ENEMY_ID, new Vector3f(2, 1, 1));
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot,
+                new Position(0, new Vector3f(2, 1.3f, 1)),
+                new ShotFlight(ShotFixtures.FIREBALL_ID, PLAYER_ID, shooter, shooter, 50, 0, new Vector3f(), new Vector3f(2, 1.3f, 1),
+                        0, fireball.getHealth()));
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(shooter, hits.get(0)[1]);
+    }
+
+    private EntityId createHailStorm(EntityId target) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot,
+                new Position(0, new Vector3f(1, 1.3f, 1)),
+                new ShotFlight(ShotFixtures.HAIL_STORM_ID, PLAYER_ID, null, target, 10, 2, new Vector3f(), new Vector3f(1, 1.3f, 1),
+                        4, 1));
+        return shot;
+    }
+
+    private void assertChildShot(EntityId shot, short shotTypeId, Vector3f position) {
+        assertEquals(1, childShots.size());
+        assertEquals(shot, childShots.get(0)[0]);
+        assertEquals(shotTypeId, childShots.get(0)[1]);
+        Vector3f childPosition = (Vector3f) childShots.get(0)[2];
+        assertEquals(position.x, childPosition.x, DELTA);
+        assertEquals(position.y, childPosition.y, DELTA);
+        assertEquals(position.z, childPosition.z, DELTA);
     }
 
     private EntityId createShot(Vector3f position, Vector3f velocity, float maxRange) {
+        return createShot(ShotFixtures.FIREBALL_ID, position, velocity, maxRange);
+    }
+
+    private EntityId createShot(short shotId, Vector3f position, Vector3f velocity, float maxRange) {
         EntityId shot = entityData.createEntity();
         entityData.setComponents(shot,
                 new Position(0, new Vector3f(position)),
-                new ShotFlight(ShotFixtures.FIREBALL_ID, PLAYER_ID, null, 50, 0, velocity, new Vector3f(position), maxRange,
-                        fireball.getHealth()));
+                new ShotFlight(shotId, PLAYER_ID, null, null, 50, 0, velocity, new Vector3f(position), maxRange,
+                        shotsById.get(shotId).getHealth()));
         return shot;
     }
 
