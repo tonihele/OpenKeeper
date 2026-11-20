@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.logic.ChickenSpawnSystem;
 import toniarts.openkeeper.game.logic.CreatureAiSystem;
 import toniarts.openkeeper.game.logic.CreatureExperienceSystem;
 import toniarts.openkeeper.game.logic.CreatureFallSystem;
+import toniarts.openkeeper.game.logic.CreatureLeaveSystem;
 import toniarts.openkeeper.game.logic.CreatureMoodSystem;
 import toniarts.openkeeper.game.logic.CreatureSleepSystem;
 import toniarts.openkeeper.game.logic.CreatureSpawnSystem;
@@ -158,6 +159,7 @@ public final class GameLoopManager {
                         gameController.getGameTimer(), gameController.getNavigationService()),
                 new CallToArmsSystem(entityData, level, playerControllers.values(),
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
+                new CreatureLeaveSystem(entityData, gameWorldController.getCreaturesController()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
                         gameWorldController.getMapController(), positionSystem, gameController.getGameTimer(), gameEventService, gameSettings),
