@@ -261,7 +261,11 @@ public final class ShotsController implements IShotsController {
                         continue;
                     }
 
+                    // One picked up this tick is still in the lookup, but not on the map
                     Vector3f position = EntityController.getPosition(entityData, entityId);
+                    if (position == null) {
+                        continue;
+                    }
                     float distance = FastMath.sqrt(FastMath.sqr(position.x - origin.x) + FastMath.sqr(position.z - origin.z));
                     if (distance >= radius) {
                         continue;

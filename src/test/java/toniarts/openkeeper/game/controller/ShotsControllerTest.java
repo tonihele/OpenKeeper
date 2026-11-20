@@ -410,6 +410,19 @@ class ShotsControllerTest {
     }
 
     @Test
+    void damageFromOriginPassesOverAThingPickedUpThisTick() {
+        EntityId held = createCreature(ENEMY_ID, 10, 10);
+        entityData.removeComponent(held, Position.class);
+        pickedUp.add(held);
+        EntityId target = createCreature(ENEMY_ID, 10, 10);
+
+        shotsController.createShot(FIREBURST_ID, 800, 1, PLAYER_ID, new Vector3f(10, 1, 10), null, null);
+
+        assertNull(entityData.getComponent(held, Damage.class));
+        assertEquals(800, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
     void gasSparesDoorsAndTraps() {
         EntityId object = createThing(ENEMY_ID, new ObjectComponent(CHICKEN_OBJECT_ID, null));
         EntityId door = createThing(ENEMY_ID, new DoorComponent(DOOR_ID, false, false));
