@@ -24,11 +24,18 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.Boulder;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Unconscious;
+import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.ObjectsController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.PrisonController;
@@ -56,6 +63,14 @@ import toniarts.openkeeper.utils.Utils;
  * It slows down as it wears out: of the level's boulder speed the share of
  * the speed to health ratio goes by the health it has left, and the rest
  * counts five times (0x4A0E30). It breaks when its health is gone.
+ * <br>
+ * Before it moves it runs over the creatures it touches on its tile and the
+ * eight around it, whoever they belong to: each loses half its full health
+ * divided by the level's boulder to creature damage percentage, 50 in nearly
+ * every level, so all of it, but no more than the boulder has health left.
+ * What the creature loses the boulder loses too, and the creature is knocked
+ * off its feet. Creatures that are out cold, in a hand or already down are
+ * left alone (0x4A0930).
  */
 public final class BoulderSystem implements IGameLogicUpdatable {
 
@@ -70,8 +85,10 @@ public final class BoulderSystem implements IGameLogicUpdatable {
     private final IKwdFile kwdFile;
     private final IMapController mapController;
     private final IEntityPositionLookup entityPositionLookup;
+    private final ICreaturesController creaturesController;
     private final int speed;
     private final int speedToHealthRatio;
+    private final int creatureDamagePercentage;
     private final EntitySet boulders;
 
     /**
@@ -79,19 +96,23 @@ public final class BoulderSystem implements IGameLogicUpdatable {
      *
      * @param entityData the entity data
      * @param kwdFile the level data
-     * @param gameSettings the level variables, for the boulder's speed
+     * @param gameSettings the level variables, for the boulder's speed and
+     * damage
      * @param mapController the map, for what blocks a boulder
      * @param entityPositionLookup finds the things on a tile
+     * @param creaturesController knocks the creatures down
      */
     public BoulderSystem(EntityData entityData, IKwdFile kwdFile, Map<MiscType, Variable.MiscVariable> gameSettings,
-            IMapController mapController, IEntityPositionLookup entityPositionLookup) {
+            IMapController mapController, IEntityPositionLookup entityPositionLookup, ICreaturesController creaturesController) {
         this.entityData = entityData;
         this.kwdFile = kwdFile;
         this.mapController = mapController;
         this.entityPositionLookup = entityPositionLookup;
+        this.creaturesController = creaturesController;
         speed = (int) (gameSettings.get(MiscType.BOULDER_SPEED_TILES_PER_SECOND).getValue() * TILE)
                 / kwdFile.getGameLevel().getTicksPerSec();
         speedToHealthRatio = (int) gameSettings.get(MiscType.BOULDER_SPEED_TO_HEALTH_RATIO).getValue();
+        creatureDamagePercentage = (int) gameSettings.get(MiscType.BOULDER_TO_CREATURE_DAMAGE_PERCENTAGE).getValue();
 
         boulders = entityData.getEntities(Boulder.class, Position.class, Health.class);
     }
@@ -151,6 +172,7 @@ public final class BoulderSystem implements IGameLogicUpdatable {
         }
 
         private void roll() {
+            hitThings();
             move();
 
             entityData.setComponents(entityId,
@@ -160,6 +182,50 @@ public final class BoulderSystem implements IGameLogicUpdatable {
             if (wear > 0) {
                 EntityController.setDamage(entityData, entityId, wear);
             }
+        }
+
+        private void hitThings() {
+            int tileX = Math.floorDiv(x, TILE);
+            int tileY = Math.floorDiv(y, TILE);
+            for (int tileOffsetX = -1; tileOffsetX <= 1; tileOffsetX++) {
+                for (int tileOffsetY = -1; tileOffsetY <= 1; tileOffsetY++) {
+                    for (EntityId thing : entityPositionLookup.getEntitiesInLocation(new Point(tileX + tileOffsetX, tileY + tileOffsetY))) {
+                        if (!thing.equals(entityId) && wear < healthLeft) {
+                            hitCreature(thing);
+                        }
+                    }
+                }
+            }
+        }
+
+        private void hitCreature(EntityId thing) {
+            CreatureComponent creature = entityData.getComponent(thing, CreatureComponent.class);
+            Health creatureHealth = entityData.getComponent(thing, Health.class);
+            CreatureAi creatureAi = entityData.getComponent(thing, CreatureAi.class);
+            if (creature == null || creatureHealth == null
+                    || entityData.getComponent(thing, Unconscious.class) != null
+                    || entityData.getComponent(thing, InHand.class) != null
+                    || (creatureAi != null && creatureAi.getCreatureState() == CreatureState.FALLEN)
+                    || !isTouching(thing, kwdFile.getCreature(creature.creatureId).getAttributes().getWidth())) {
+                return;
+            }
+
+            int damage = Math.min(creatureHealth.maxHealth / 2 * 100 / Math.max(1, creatureDamagePercentage), healthLeft - wear);
+            EntityController.setDamage(entityData, thing, damage);
+            wear += Math.min(damage, creatureHealth.health);
+            creaturesController.createController(thing).knockDown();
+        }
+
+        private boolean isTouching(EntityId thing, float thingWidth) {
+            Position thingPosition = entityData.getComponent(thing, Position.class);
+            if (thingPosition == null) {
+                return false;
+            }
+            float reach = (kwdFile.getObject(ObjectsController.OBJECT_BOULDER_ID).getWidth() + thingWidth) / 2;
+            float distanceX = thingPosition.position.x - position.position.x;
+            float distanceY = thingPosition.position.z - position.position.z;
+
+            return distanceX * distanceX + distanceY * distanceY < reach * reach;
         }
 
         private void move() {
