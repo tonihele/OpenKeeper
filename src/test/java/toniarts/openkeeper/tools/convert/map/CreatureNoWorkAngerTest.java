@@ -22,7 +22,9 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import org.junit.jupiter.api.Test;
@@ -30,6 +32,7 @@ import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CombatPitFighter;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMood;
+import toniarts.openkeeper.game.component.JobPicked;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -50,6 +53,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * lack of work.
  */
 class CreatureNoWorkAngerTest {
+
+    private final List<Creature.JobType> assigned = new ArrayList<>();
+    private double gameTime;
 
     @Test
     void creatureWithNoJobToDoGetsAngry() {
@@ -73,6 +79,33 @@ class CreatureNoWorkAngerTest {
 
         assertTrue(foundWork.get());
         assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noWork);
+    }
+
+    @Test
+    void creatureThatPickedAJobDoesNotPickAgainForFiveSeconds() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId entityId = createCreature(entityData);
+        AtomicBoolean foundWork = new AtomicBoolean(false);
+        gameTime = 100;
+        controller(entityData, entityId, true).findWork(foundWork::set);
+        assertEquals(List.of(Creature.JobType.RESEARCH), assigned);
+        assertEquals(100, entityData.getComponent(entityId, JobPicked.class).time);
+
+        // The job is over 4 seconds later: it doesn't pick from its jobs but goes on to its other choices, here
+        // training, and that doesn't anger it (0x4780E0)
+        gameTime = 104;
+        controller(entityData, entityId, true).findWork(foundWork::set);
+
+        assertEquals(List.of(Creature.JobType.RESEARCH, Creature.JobType.TRAIN), assigned);
+        assertEquals(0, entityData.getComponent(entityId, CreatureMood.class).noWork);
+        assertEquals(100, entityData.getComponent(entityId, JobPicked.class).time);
+
+        // After 5 seconds it picks again
+        gameTime = 105;
+        controller(entityData, entityId, true).findWork(foundWork::set);
+
+        assertEquals(List.of(Creature.JobType.RESEARCH, Creature.JobType.TRAIN, Creature.JobType.RESEARCH), assigned);
+        assertEquals(105, entityData.getComponent(entityId, JobPicked.class).time);
     }
 
     @Test
@@ -115,7 +148,7 @@ class CreatureNoWorkAngerTest {
         return entityId;
     }
 
-    private static CreatureController controller(EntityData entityData, EntityId entityId, boolean jobAvailable) {
+    private CreatureController controller(EntityData entityData, EntityId entityId, boolean jobAvailable) {
         Creature.JobPreference research = new Creature.JobPreference();
         research.setJobType(Creature.JobType.RESEARCH);
         research.setChance((short) 100);
@@ -126,10 +159,16 @@ class CreatureNoWorkAngerTest {
 
         ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(ITaskManager.class.getClassLoader(),
                 new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> switch (method.getName()) {
-            case "isTaskAvailable", "assignTask" -> jobAvailable;
+            case "isTaskAvailable" -> jobAvailable;
+            case "assignTask" -> {
+                if (jobAvailable) {
+                    assigned.add((Creature.JobType) args[1]);
+                }
+                yield jobAvailable;
+            }
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        return new CreatureController(entityId, entityData, mistress, null, taskManager, null, Map.of(),
+        return new CreatureController(entityId, entityData, mistress, null, taskManager, () -> gameTime, Map.of(),
                 null, null, null, null, null, null, null);
     }
 
