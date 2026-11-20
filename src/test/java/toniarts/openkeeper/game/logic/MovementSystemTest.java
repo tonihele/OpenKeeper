@@ -136,6 +136,38 @@ class MovementSystemTest {
     }
 
     /**
+     * A creature turning on the spot to face a heart pillar is sent to a spot
+     * inside its own tile, as an idle walk does (DKII.EXE 0x4808E0). The new
+     * walk has the same target tile, but it needs path following that the
+     * turning had none of.
+     */
+    @Test
+    void aWalkReplacingATurnOnTheSameTileFollowsItsPath() throws Exception {
+        EntityData entities = new DefaultEntityData();
+        var definition = new toniarts.openkeeper.tools.convert.map.Creature();
+        var level = (toniarts.openkeeper.tools.convert.map.IKwdFile) Proxy.newProxyInstance(
+                getClass().getClassLoader(), new Class<?>[]{toniarts.openkeeper.tools.convert.map.IKwdFile.class},
+                (proxy, method, args) -> method.getName().equals("getCreature") ? definition : null);
+        EntityId id = entities.createEntity();
+        entities.setComponents(id, new toniarts.openkeeper.game.component.CreatureComponent(),
+                new Position((float) Math.PI, new Vector3f(3, 0, 3)), new Mobile(false, false, false, 1),
+                new Navigation(new Point(3, 3), new Point(3, 4), new ArrayList<>()));
+        MovementSystem movement = new MovementSystem(entities, map(false, false), level);
+        try {
+            movement.processTick(.25f);
+            entities.setComponent(id, new Navigation(new Point(3, 3), null, List.of(new Vector2(3, 3), new Vector2(3.25f, 3.25f))));
+            for (int tick = 0; tick < 20 && entities.getComponent(id, Navigation.class) != null; tick++) {
+                movement.processTick(.25f);
+            }
+            assertNull(entities.getComponent(id, Navigation.class), "the walk never finished");
+            Vector3f position = entities.getComponent(id, Position.class).position;
+            assertTrue(position.x > 3.15f && position.z > 3.15f, "it never walked to the spot: " + position);
+        } finally {
+            movement.stop();
+        }
+    }
+
+    /**
      * A creature standing on 15,23 turns on the spot to face 16,25. Facing is
      * (sin r, cos r) on x, z for the Position rotation r.
      */

@@ -470,9 +470,12 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private void processChangedEntities(Set<Entity> changedEntities) {
         for (Entity entity : changedEntities) {
 
-            // Dirty trick to try to see if the navigation has changed
+            // Dirty trick to try to see if the navigation has changed. A walk
+            // to the tile the creature only turned on needs path following too
             Navigation navigation = entity.get(Navigation.class);
-            if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))) {
+            ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
+            if (!navigation.target.equals(targetPointsByEntityId.get(entity.getId()))
+                    || navigation.navigationPath.size() > 1 && steeringBehaviorsBySteerableEntity.get(steerableEntity).getPathFollowing() == null) {
                 deleteEntity(entity);
                 addEntity(entity);
                 continue;
@@ -481,8 +484,6 @@ public final class MovementSystem implements IGameLogicUpdatable {
             // We are only prepared for the changes in Mobile
             // Not the position, the position is managed by us only
             Mobile mobile = entity.get(Mobile.class);
-
-            ISteerableEntity steerableEntity = steerableEntitiesByEntityId.get(entity.getId());
             steerableEntity.setMaxLinearSpeed(mobile.maxSpeed);
         }
     }
