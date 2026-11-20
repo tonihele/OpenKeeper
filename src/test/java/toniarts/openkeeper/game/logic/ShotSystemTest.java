@@ -30,6 +30,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -40,6 +42,8 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -57,6 +61,8 @@ class ShotSystemTest {
     private static final short PLAYER_ID = 3;
     private static final short ENEMY_ID = 4;
     private static final short IMP_ID = 1;
+    private static final short WOODEN_DOOR = 1;
+    private static final short BARRICADE = 6;
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
@@ -76,6 +82,8 @@ class ShotSystemTest {
                 (proxy, method, args) -> switch (method.getName()) {
             case "getShotById" -> fireball;
             case "getCreature" -> imp;
+            case "getDoorById" -> (Integer) args[0] == BARRICADE
+                    ? DoorFixtures.door(BARRICADE, 0, Door.DoorFlag.IS_BARRICADE) : DoorFixtures.door(WOODEN_DOOR, 0);
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IShotsController shotsController = (IShotsController) Proxy.newProxyInstance(IShotsController.class.getClassLoader(),
@@ -149,6 +157,29 @@ class ShotSystemTest {
 
         assertTrue(hits.isEmpty());
         assertNotNull(positionOf(shot));
+    }
+
+    @Test
+    void shotHitsAClosedEnemyDoor() {
+        EntityId door = createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), false);
+        createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(door, hits.get(0)[1]);
+    }
+
+    @Test
+    void shotFliesThroughAnOpenDoorAndABarricade() {
+        createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), true);
+        createDoor(BARRICADE, ENEMY_ID, new Vector3f(5, 1, 1), false);
+        createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+        createShot(new Vector3f(4.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        shotSystem.processTick(0.25f);
+
+        assertTrue(hits.isEmpty());
     }
 
     @Test
@@ -277,6 +308,18 @@ class ShotSystemTest {
                 new Owner(ownerId, ownerId));
         creatures.add(trap);
         return trap;
+    }
+
+    private EntityId createDoor(short doorId, short ownerId, Vector3f position, boolean open) {
+        EntityId door = entityData.createEntity();
+        entityData.setComponents(door,
+                new Position(0, position),
+                new DoorComponent(doorId, false, false),
+                new DoorViewState(doorId, false, false, open),
+                new Health(100, 100),
+                new Owner(ownerId, ownerId));
+        creatures.add(door);
+        return door;
     }
 
     private List<EntityId> creaturesOn(Point tile) {
