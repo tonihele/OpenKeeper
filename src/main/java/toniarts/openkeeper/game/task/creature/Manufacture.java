@@ -23,6 +23,7 @@ import toniarts.openkeeper.game.controller.IObjectsController;
 import toniarts.openkeeper.game.controller.ManufactureOrders;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManufactureControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -41,14 +42,17 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
 
     private final PlayerManufactureControl manufactureControl;
     private final IObjectsController objectsController;
+    private final PlayerStatsControl statsControl;
     private Vector2f workPlace;
 
     public Manufacture(final INavigationService navigationService, final IMapController mapController, Point p, short playerId, IRoomController room,
-            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController) {
+            TaskManager taskManager, PlayerManufactureControl manufactureControl, IObjectsController objectsController,
+            PlayerStatsControl statsControl) {
         super(navigationService, mapController, p, playerId, room, taskManager);
 
         this.manufactureControl = manufactureControl;
         this.objectsController = objectsController;
+        this.statsControl = statsControl;
     }
 
     @Override
@@ -108,6 +112,9 @@ public final class Manufacture extends AbstractCapacityCriticalRoomTask {
         EntityId crate = objectsController.addRoomCrate(order.crateObjectId(), Player.NEUTRAL_PLAYER_ID, getTaskLocation().x, getTaskLocation().y,
                 order.type(), order.typeId());
         getRoomObjectControl().addItem(crate, null);
+
+        // DK II counts the item for the keeper either way (0x4F5240)
+        statsControl.itemManufactured();
     }
 
     @Override

@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
@@ -56,13 +57,16 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
     private final EntityData entityData;
     private final ICreaturesController creaturesController;
     private final IMapController mapController;
+    private final Map<Short, IPlayerController> playerControllers;
     private final GameEventService gameEventService;
     private final int chanceOfDyingWhenConverted;
     private final EntitySet torturedEntities;
     private final Map<EntityId, IRoomController> chambersByVictim = new HashMap<>();
 
     public CreatureTorturingSystem(EntityData entityData, ICreaturesController creaturesController, IMapController mapController,
-            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings) {
+            GameEventService gameEventService, Map<Variable.MiscVariable.MiscType, Variable.MiscVariable> gameSettings,
+            Map<Short, IPlayerController> playerControllers) {
+        this.playerControllers = playerControllers;
         this.entityData = entityData;
         this.gameEventService = gameEventService;
         this.creaturesController = creaturesController;
@@ -114,6 +118,7 @@ public final class CreatureTorturingSystem extends GameTimeCounter {
                     entityData.removeComponent(entity.getId(), CreatureTortured.class);
                     leaveDevice(entity.getId());
                     creaturesController.createController(entity.getId()).convertCreature(playerId);
+                    playerControllers.get(playerId).getStatsControl().creatureConverted();
 
                     // The mentor tells both keepers, like DK II (CRoom_sub_4F2800)
                     gameEventService.emitToPlayer(GameEventType.TORTURE_CONVERTED_BY_ENEMY, owner.ownerId);

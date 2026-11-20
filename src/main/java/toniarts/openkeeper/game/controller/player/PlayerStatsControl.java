@@ -18,6 +18,7 @@ package toniarts.openkeeper.game.controller.player;
 
 import java.util.HashMap;
 import java.util.Map;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.tools.convert.map.Creature;
 
 /**
@@ -31,6 +32,33 @@ public final class PlayerStatsControl {
     private final Map<Creature, Integer> slapsMap = new HashMap<>();
     private final Map<Creature, Integer> pickUpsMap = new HashMap<>();
     private final Map<Creature, Integer> dropsMap = new HashMap<>();
+    private final Keeper keeper;
+
+    public PlayerStatsControl(Keeper keeper) {
+        this.keeper = keeper;
+    }
+
+    /**
+     * The player has killed a creature, DK II counts the heroes apart from the
+     * other creatures (DKII.EXE 0x487C70, CPlayer +0x14A and +0x146)
+     *
+     * @param creature the creature that was killed
+     */
+    public void creatureKilled(Creature creature) {
+        if (creature.getFlags().contains(Creature.CreatureFlag.IS_GOOD)) {
+            keeper.setHeroesDestroyed(keeper.getHeroesDestroyed() + 1);
+        } else {
+            keeper.setEnemyCreaturesKilled(keeper.getEnemyCreaturesKilled() + 1);
+        }
+    }
+
+    /**
+     * One of the player's own creatures has died (DKII.EXE 0x487C70, CPlayer
+     * +0x173)
+     */
+    public void ownCreatureKilled() {
+        keeper.setOwnCreaturesKilled(keeper.getOwnCreaturesKilled() + 1);
+    }
 
     public boolean hasSlapped() {
         return !slapsMap.isEmpty();
@@ -91,6 +119,81 @@ public final class PlayerStatsControl {
 
     public void creatureDropped(Creature creature) {
         increaseMapCount(creature, dropsMap);
+    }
+
+    /**
+     * Get the number of the player's own creatures that have died
+     *
+     * @return own creatures killed
+     */
+    public int getOwnCreaturesKilled() {
+        return keeper.getOwnCreaturesKilled();
+    }
+
+    /**
+     * Get the number of enemy creatures, not heroes, killed
+     *
+     * @return enemy creatures killed
+     */
+    public int getEnemyCreaturesKilled() {
+        return keeper.getEnemyCreaturesKilled();
+    }
+
+    /**
+     * Get the number of heroes killed
+     *
+     * @return heroes destroyed
+     */
+    public int getHeroesDestroyed() {
+        return keeper.getHeroesDestroyed();
+    }
+
+    /**
+     * The player has activated a special
+     */
+    public void specialFound() {
+        keeper.setSpecialsFound(keeper.getSpecialsFound() + 1);
+    }
+
+    /**
+     * Get the number of specials the player has activated
+     *
+     * @return specials found
+     */
+    public int getSpecialsFound() {
+        return keeper.getSpecialsFound();
+    }
+
+    /**
+     * A workshop has finished a trap or a door for the player
+     */
+    public void itemManufactured() {
+        keeper.setItemsManufactured(keeper.getItemsManufactured() + 1);
+    }
+
+    /**
+     * Get the number of traps and doors the player's workshops have finished
+     *
+     * @return items manufactured
+     */
+    public int getItemsManufactured() {
+        return keeper.getItemsManufactured();
+    }
+
+    /**
+     * A creature has been converted to the player's side in the torture chamber
+     */
+    public void creatureConverted() {
+        keeper.setCreaturesConverted(keeper.getCreaturesConverted() + 1);
+    }
+
+    /**
+     * Get the number of creatures the player has converted by torturing
+     *
+     * @return creatures converted
+     */
+    public int getCreaturesConverted() {
+        return keeper.getCreaturesConverted();
     }
 
 }

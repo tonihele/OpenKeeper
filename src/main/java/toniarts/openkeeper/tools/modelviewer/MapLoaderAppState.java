@@ -35,6 +35,7 @@ import java.util.function.Supplier;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.controller.GameController;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
@@ -268,7 +269,7 @@ public final class MapLoaderAppState extends AbstractAppState {
         }
 
         @Override
-        public void endGame(boolean win, short playerId) {
+        public void endGame(GameResult result, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

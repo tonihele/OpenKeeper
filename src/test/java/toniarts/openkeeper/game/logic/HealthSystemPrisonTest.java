@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
+import toniarts.openkeeper.game.controller.player.PlayerStatsControl;
 import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -111,9 +112,11 @@ class HealthSystemPrisonTest {
         });
         Keeper keeper = new Keeper(false, KEEPER);
         PlayerCreatureControl creatureControl = new PlayerCreatureControl(keeper, null, List.of());
+        PlayerStatsControl stats = new PlayerStatsControl(keeper);
         IPlayerController player = proxy(IPlayerController.class, (method, args) -> switch (method) {
             case "getKeeper" -> keeper;
             case "getCreatureControl" -> creatureControl;
+            case "getStatsControl" -> stats;
             default -> null;
         });
         GameEventService gameEventService = proxy(GameEventService.class, (method, args) -> {

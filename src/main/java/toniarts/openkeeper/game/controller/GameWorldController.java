@@ -1015,6 +1015,7 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
             return false;
         }
 
+        playerControllers.get(playerId).getStatsControl().specialFound();
         // Also frees the room storage slot, if the special was stored in a room
         objectsController.createController(entity).remove();
         return true;

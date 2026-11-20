@@ -117,6 +117,7 @@ public final class MainMenuState extends AbstractAppState {
     private IKwdFile debriefingLevel;
     private CampaignLevel debriefingCampaignLevel;
     private boolean debriefingLevelWon;
+    private GameResult debriefingResult;
 
     /**
      * The campaign level that was just won and for which the level cutscene (mentor speech + movie)
@@ -729,6 +730,7 @@ public final class MainMenuState extends AbstractAppState {
         debriefingLevel = level != null ? level : (selectedLevel != null ? selectedLevel.getKwdMap().load() : null);
         debriefingCampaignLevel = campaignLevel != null ? campaignLevel
                 : (selectedLevel instanceof CampaignLevel lvl ? lvl : null);
+        debriefingResult = result;
         pendingDebriefing = result != null;
 
         // Only a won level gets the level-won cutscene and the winning debriefing
@@ -795,12 +797,22 @@ public final class MainMenuState extends AbstractAppState {
     }
 
     /**
+     * Get the result of the game for which the debriefing is shown
+     *
+     * @return the game result, or {@code null}
+     */
+    public GameResult getDebriefingResult() {
+        return debriefingResult;
+    }
+
+    /**
      * Clear the level used for the debriefing screen, called when leaving the debriefing
      */
     void clearDebriefing() {
         debriefingLevel = null;
         debriefingCampaignLevel = null;
         debriefingLevelWon = false;
+        debriefingResult = null;
     }
 
     /**
@@ -922,7 +934,7 @@ public final class MainMenuState extends AbstractAppState {
         }
 
         @Override
-        public void endGame(boolean win, short playerId) {
+        public void endGame(GameResult result, short playerId) {
             throw new UnsupportedOperationException("Not supported yet.");
         }
 

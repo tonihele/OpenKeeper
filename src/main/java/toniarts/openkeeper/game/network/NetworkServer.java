@@ -125,6 +125,7 @@ import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
+import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ObjectiveType;
 import toniarts.openkeeper.game.data.PlayerSpell;
@@ -194,6 +195,8 @@ public final class NetworkServer {
             Serializer.registerClass(ResearchableEntity.class, new FieldSerializer());
             Serializer.registerClass(PlayerSpell.class, new FieldSerializer());
             Serializer.registerClass(ResearchableType.class, new EnumSerializer());
+            Serializer.registerClass(GameResult.class, new FieldSerializer());
+            Serializer.registerClass(GameResult.ResultType.class, new EnumSerializer());
             Serializer.registerClass(Casino.PayOut.class, new EnumSerializer());
 
             // Events
