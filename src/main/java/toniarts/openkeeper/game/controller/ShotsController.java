@@ -24,6 +24,7 @@ import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.OnFire;
@@ -324,8 +325,8 @@ public final class ShotsController implements IShotsController {
         ShotFlight flight = entityData.getComponent(shotEntity, ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
 
-        // The shot's data 1 is its damage (0x4AC420)
-        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0) {
+        // The shot's data 1 is its damage (0x4AC420), which a door of the shot's own side doesn't take
+        if (shot.getDamageType() == Shot.DamageType.HIT_THING && flight.shotData1 > 0 && !isOwnDoor(thing, flight.ownerId)) {
             if (shot.getAttackCategory() == Shot.AttackCategory.FIRE) {
                 setAlight(thing);
             }
@@ -334,6 +335,11 @@ public final class ShotsController implements IShotsController {
 
         process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
                 EntityController.getPosition(entityData, shotEntity), thing));
+    }
+
+    private boolean isOwnDoor(EntityId thing, short ownerId) {
+        Owner owner = entityData.getComponent(thing, Owner.class);
+        return owner != null && owner.ownerId == ownerId && entityData.getComponent(thing, DoorComponent.class) != null;
     }
 
     /**

@@ -223,8 +223,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
         if (doorComponent != null) {
-            return isDoorHit(shot, flight, position, doorComponent, entityData.getComponent(entityId, DoorViewState.class),
-                    owner, thingPosition);
+            return isDoorHit(shot, position, doorComponent, entityData.getComponent(entityId, DoorViewState.class), thingPosition);
         }
         if (creatureComponent == null) {
             return isTrapHit(shot, flight, position, entityId, owner, thingPosition);
@@ -257,17 +256,15 @@ public final class ShotSystem implements IGameLogicUpdatable {
     }
 
     /**
-     * A closed enemy door that isn't a barricade is hit by the shots aimed at
-     * enemies, like a trap (0x4B5800: not the barricade flag 0x40 of the door
-     * data, not a blueprint at +0x109, not open at +0x10D). A door has no width
-     * nor height either (0x402AD0 for both in the door's vtable).
+     * A closed door that isn't a barricade stops every shot that hits things,
+     * whoever owns the door: the shots aimed at enemies (0x4B5800) and those
+     * aimed at our own (0x4B58E0) both take a door that isn't a barricade
+     * (flag 0x40 of the door data), a blueprint (+0x109) or open (+0x10D). A
+     * door has no width nor height (0x402AD0 for both in the door's vtable).
      */
-    private boolean isDoorHit(Shot shot, ShotFlight flight, Vector3f position, DoorComponent doorComponent,
-            DoorViewState doorViewState, Owner owner, Position doorPosition) {
-        boolean hitsEnemies = shot.getCollideType() == Shot.CollideType.ENEMY_CREATURES
-                || shot.getCollideType() == Shot.CollideType.ALL_CREATURES;
-        if (doorComponent.blueprint || doorViewState != null && doorViewState.open || !hitsEnemies
-                || !isEnemy(flight.ownerId, owner.ownerId)
+    private boolean isDoorHit(Shot shot, Vector3f position, DoorComponent doorComponent, DoorViewState doorViewState,
+            Position doorPosition) {
+        if (doorComponent.blueprint || doorViewState != null && doorViewState.open
                 || kwdFile.getDoorById(doorComponent.doorId).getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
             return false;
         }

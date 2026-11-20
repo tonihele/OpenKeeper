@@ -171,6 +171,18 @@ class ShotSystemTest {
     }
 
     @Test
+    void shotStopsAtAClosedDoorOfItsOwnSide() {
+        EntityId door = createDoor(WOODEN_DOOR, PLAYER_ID, new Vector3f(2, 1, 1), false);
+        createShot(new Vector3f(1.9f, 1.1f, 1), new Vector3f(0.9f, 0, 0), 0);
+
+        // 0x4B5800 and 0x4B58E0 take a closed door whoever owns it
+        shotSystem.processTick(0.25f);
+
+        assertEquals(1, hits.size());
+        assertEquals(door, hits.get(0)[1]);
+    }
+
+    @Test
     void shotFliesThroughAnOpenDoorAndABarricade() {
         createDoor(WOODEN_DOOR, ENEMY_ID, new Vector3f(2, 1, 1), true);
         createDoor(BARRICADE, ENEMY_ID, new Vector3f(5, 1, 1), false);

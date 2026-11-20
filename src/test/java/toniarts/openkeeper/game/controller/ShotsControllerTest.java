@@ -26,6 +26,7 @@ import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Decay;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.OnFire;
@@ -251,6 +252,18 @@ class ShotsControllerTest {
     }
 
     @Test
+    void shotDoesNotDamageADoorOfItsOwnSide() {
+        EntityId ownDoor = createDoor(PLAYER_ID);
+        EntityId enemyDoor = createDoor(ENEMY_ID);
+
+        hitWithFireball(ownDoor);
+        hitWithFireball(enemyDoor);
+
+        assertNull(entityData.getComponent(ownDoor, Damage.class));
+        assertEquals(50, entityData.getComponent(enemyDoor, Damage.class).damage);
+    }
+
+    @Test
     void fireballSetsABadlyHurtCreatureAlightForTenTicks() {
         EntityId target = createCreature(ENEMY_ID, 10, 10);
         entityData.setComponent(target, new Health(20, 100));
@@ -394,6 +407,13 @@ class ShotsControllerTest {
         entityData.setComponents(creature, new Position(0, new Vector3f(x, 1f, y)), new CreatureComponent(),
                 new Owner(ownerId, ownerId), new Health(100, 100));
         return creature;
+    }
+
+    private EntityId createDoor(short ownerId) {
+        EntityId door = entityData.createEntity();
+        entityData.setComponents(door, new Position(0, new Vector3f(10, 1f, 10)), new DoorComponent((short) 1, false, false),
+                new Owner(ownerId, ownerId), new Health(100, 100));
+        return door;
     }
 
     private void hitWithFireball(EntityId target) {
