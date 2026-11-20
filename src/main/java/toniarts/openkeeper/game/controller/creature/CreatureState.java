@@ -535,6 +535,11 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void enter(ICreatureController entity) {
+
+            // A scared creature leaves the possessed creature's group before it backs off (DK II 0x45F030)
+            if (entity.isInPossessedGroup()) {
+                entity.resetFollowTarget();
+            }
             entity.startBackOff();
         }
 

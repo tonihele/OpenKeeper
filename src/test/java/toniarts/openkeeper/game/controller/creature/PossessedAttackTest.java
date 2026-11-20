@@ -346,6 +346,32 @@ class PossessedAttackTest {
     }
 
     @Test
+    void scaredFollowerLeavesTheGroupBeforeItBacksOff() {
+        List<String> calls = new ArrayList<>();
+        ICreatureController follower = stub(ICreatureController.class, (name, args) -> {
+            calls.add(name);
+            return name.equals("isInPossessedGroup") ? true : null;
+        });
+
+        CreatureState.BACK_OFF.enter(follower);
+
+        assertEquals(List.of("isInPossessedGroup", "resetFollowTarget", "startBackOff"), calls);
+    }
+
+    @Test
+    void scaredCreatureOutsideAGroupKeepsWhatItFollows() {
+        List<String> calls = new ArrayList<>();
+        ICreatureController partyMember = stub(ICreatureController.class, (name, args) -> {
+            calls.add(name);
+            return null;
+        });
+
+        CreatureState.BACK_OFF.enter(partyMember);
+
+        assertEquals(List.of("isInPossessedGroup", "startBackOff"), calls);
+    }
+
+    @Test
     void theCreatureClosestToWhereItLooksJoins() {
         EntityId ahead = createCreature(KEEPER, new Vector3f(5, 0, 10));
         EntityId aside = createCreature(KEEPER, new Vector3f(5.3f, 0, 6.5f));
