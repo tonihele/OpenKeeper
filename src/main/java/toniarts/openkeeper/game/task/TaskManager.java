@@ -643,7 +643,9 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * from the room list update 0x4F04F0) and when the keeper places a door
      * or a trap (0x4C33B0, 0x4C3860). Workers are left alone, and so are
      * creatures on their way to make their lair: the original sends those back
-     * too, a mistake Flame's creatures_setup_lair_fix corrects.
+     * too, a mistake Flame's creatures_setup_lair_fix corrects. Creatures
+     * already in the room of their job carry on too: the original only resets
+     * the walk to a room (state 7).
      *
      * @param playerId the keeper whose rooms changed
      */
@@ -655,8 +657,15 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 continue;
             }
             ICreatureController creature = creaturesController.createController(entityId);
-            if (!creature.isWorker() && creature.getStateMachine().isInState(CreatureState.WORK)
-                    && !creature.isAtAssignedTaskTarget()) {
+            if (creature.isWorker() || !creature.getStateMachine().isInState(CreatureState.WORK)
+                    || creature.isAtAssignedTaskTarget()) {
+                continue;
+            }
+
+            // Only the walk to the job's room is broken off. A creature already in the room starts the job without
+            // that walk (0x471A70), and moving about inside the room is part of the job
+            IRoomController room = task.targetLocation != null ? mapController.getRoomControllerByCoordinates(task.targetLocation) : null;
+            if (room == null || room != mapController.getRoomControllerByCoordinates(creature.getCreatureCoordinates())) {
                 creature.getStateMachine().changeState(CreatureState.IDLE);
             }
         }
