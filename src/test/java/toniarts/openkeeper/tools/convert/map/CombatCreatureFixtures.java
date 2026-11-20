@@ -42,6 +42,11 @@ public final class CombatCreatureFixtures {
         return creature;
     }
 
+    public static Creature withSightDistance(Creature creature, float distance) {
+        creature.getAttributes().setDistanceCanSee(distance);
+        return creature;
+    }
+
     public static CreatureSpell attackSpell() {
         CreatureSpell spell = new CreatureSpell();
         spell.setFlags(EnumSet.of(CreatureSpell.CreatureSpellFlag.IS_ATTACKING));
