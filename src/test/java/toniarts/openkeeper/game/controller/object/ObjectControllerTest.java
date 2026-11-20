@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.ObjectViewState;
 import toniarts.openkeeper.game.component.Placeable;
 import toniarts.openkeeper.game.component.Position;
@@ -89,6 +90,13 @@ class ObjectControllerTest {
 
         // In the hand the object has no position
         assertFalse(controller.isPickableByPlayerCreature(PLAYER_ID));
+    }
+
+    @Test
+    void exposesTheObjectDefinitionIdFromItsEntityComponent() {
+        entityData.setComponent(object, new ObjectComponent((short) 74, null));
+
+        assertEquals((short) 74, controller.getObjectId());
     }
 
     @Test
