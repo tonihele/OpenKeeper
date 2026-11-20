@@ -1,3 +1,5 @@
+#import "Common/ShaderLib/GLSLCompat.glsllib"
+
 #if defined(DISCARD_ALPHA)
     uniform float m_AlphaDiscardThreshold;
 #endif

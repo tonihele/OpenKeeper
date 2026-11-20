@@ -24,7 +24,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.lang.System.Logger;
-import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -32,6 +31,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import toniarts.openkeeper.Main;
+import toniarts.openkeeper.utils.GraphicsBackend;
 import static toniarts.openkeeper.Main.TITLE;
 import static toniarts.openkeeper.Main.getApplicationIcons;
 import toniarts.openkeeper.game.data.CampaignLevel;
@@ -258,7 +258,12 @@ public final class Settings {
     private static final int MAX_FPS = 200;
     private static final Path USER_HOME_FOLDER = Paths.get(System.getProperty("user.home"), ".".concat(Main.TITLE));
     private static final Path USER_SETTINGS_FILE = USER_HOME_FOLDER.resolve("openkeeper.properties");
-    public static final List<String> OPENGL = Settings.getRenderers();
+    public static final List<String> RENDERERS = Settings.getRenderers();
+    /** @deprecated Use {@link #RENDERERS}. */
+    @Deprecated
+    public static final List<String> OPENGL = RENDERERS.stream()
+            .filter(renderer -> !GraphicsBackend.VULKAN_OPTION.equals(renderer))
+            .toList();
     public static final List<Integer> SAMPLES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 6, 8, 16}));
     public static final List<Integer> ANISOTROPHIES = new ArrayList<>(Arrays.asList(new Integer[]{0, 2, 4, 8, 16}));
     
@@ -272,6 +277,8 @@ public final class Settings {
 
         // Init the settings
         this.settings = settings;
+        // jME 3.10 defaults to ANGLE GLES3; retain OpenKeeper's prior LWJGL OpenGL default.
+        this.settings.setRenderer(AppSettings.LWJGL_OPENGL3);
 
         if (Files.exists(USER_SETTINGS_FILE)) {
             try (InputStream in = Files.newInputStream(USER_SETTINGS_FILE);
@@ -281,11 +288,17 @@ public final class Settings {
                 logger.log(Logger.Level.WARNING, "Settings file failed to load from " + USER_SETTINGS_FILE + "!", ex);
             }
         }
+        if (GraphicsBackend.isVulkan(this.settings) && !GraphicsBackend.isVulkanPlatformSupported()) {
+            this.settings.setRenderer(AppSettings.LWJGL_OPENGL3);
+            logger.log(Logger.Level.WARNING,
+                    "The saved Vulkan renderer is not available on this platform; using OpenGL");
+        }
         this.settings.setFrameRate(Math.max(MAX_FPS, settings.getFrequency()));
 
-        // Borderless is a window, the exclusive fullscreen would override it
+        // Ask jME for borderless fullscreen before it creates the SDL window.
         if (getBoolean(Setting.BORDERLESS)) {
-            settings.setFullscreen(false);
+            settings.setFullscreen(true);
+            settings.setFullscreenMode(AppSettings.FULLSCREEN_MODE_BORDERLESS_WINDOW);
         }
 
         // Assing some app level settings
@@ -318,19 +331,7 @@ public final class Settings {
      * @return list of available renderers
      */
     public static List<String> getRenderers() {
-        List<String> renderers = new ArrayList<>();
-
-        try {
-            for (Field f : AppSettings.class.getFields()) {
-                if (f.getName().startsWith("LWJGL_OPENGL") && f.getType().equals(String.class)) {
-                    renderers.add((String) f.get(AppSettings.class));
-                }
-            }
-        } catch (IllegalAccessException | IllegalArgumentException | SecurityException ex) {
-            logger.log(Logger.Level.ERROR, ex.getMessage());
-        }
-
-        return renderers;
+        return GraphicsBackend.getRendererOptions();
     }
 
     /**

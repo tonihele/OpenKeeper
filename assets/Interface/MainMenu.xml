@@ -404,8 +404,8 @@
                         <control width="100px" name="dropDown" id="antialiasing" />
                     </panel>
                     <panel childLayout="vertical" padding="10px">
-                        <text style="menuTextSmall" text="OpenGL: " />
-                        <control width="250px" name="dropDown" id="openGl" />
+                        <text style="menuTextSmall" text="Graphics renderer: " />
+                        <control width="250px" name="dropDown" id="graphicsRenderer" />
                     </panel>
                     <panel childLayout="horizontal" padding="10px">
                         <control name="checkbox" id="ssao" />
