@@ -749,7 +749,12 @@ public final class CreatureController extends EntityController implements ICreat
         }
         Position position = entityData.getComponent(entityId, Position.class);
         Point tile = position != null ? WorldUtils.vectorToPoint(position.position) : null;
-        EntityId door = DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
+
+        // The door we break stays our target while it is in our reach, also after we backed off from it (0x45F030)
+        DoorTarget doorTarget = entityData.getComponent(entityId, DoorTarget.class);
+        EntityId door = doorTarget != null && tile != null && canBreakDoor(doorTarget.door)
+                && isDoorInReach(doorTarget.door, WorldUtils.vector3fToVector2f(position.position))
+                ? doorTarget.door : DoorAttackTarget.findAdjacent(tile, this::getBlockingDoor, this::canBreakDoor);
         if (door == null) {
             entityData.removeComponent(entityId, DoorTarget.class);
             return false;
@@ -870,19 +875,52 @@ public final class CreatureController extends EntityController implements ICreat
      * @param door the door
      */
     private void attackDoor(EntityId door) {
-        if (!faceAttackTarget(door)) {
-            return;
+        Optional<CreatureSpell> spell = getDoorAttackSpell(door);
+        boolean waitingForSpell = spell.isPresent() && !isAttackRecharged(spell.get());
+        if (waitingForSpell && !isStopped() || !faceAttackTarget(door)) {
+            return; // Waiting for its spell, a support creature first finishes its step back
         }
 
-        Optional<CreatureSpell> spell = getDoorAttackSpell(door);
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
         if (spell.isPresent()) {
-            if (isAttackRecharged(spell.get())) {
+            if (waitingForSpell) {
+                backOffFromDoor(door, spell.get().range);
+            } else {
                 castAttackSpell(spell.get(), door);
             }
         } else if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
             stateMachine.changeState(CreatureState.MELEE_ATTACK);
             hitWithMelee(door, creatureMeleeAttack, creatureMeleeAttack.damage);
+        }
+    }
+
+    /**
+     * A support creature that waits for its spell nearer to the door than half
+     * the spell's range and half the distance it can see backs away from it,
+     * facing it. DK II shuffles it straight back, or else along the wall
+     * behind it (0x45F030, 0x460DA0). Here it steps back a tile.
+     *
+     * @param door the door
+     * @param range the range of the spell
+     */
+    private void backOffFromDoor(EntityId door, float range) {
+        Vector3f position = getPosition();
+        Vector2f away = WorldUtils.vector3fToVector2f(position).subtractLocal(WorldUtils.vector3fToVector2f(getPosition(entityData, door)));
+        float distance = away.length();
+        if (distance >= range / 2 || distance >= creature.getAttributes().getDistanceCanSee() / 2 || distance == 0) {
+            return;
+        }
+
+        Point tile = getCreatureCoordinates();
+        away.divideLocal(distance);
+        int x = Math.round(away.x);
+        int y = Math.round(away.y);
+        for (Point step : List.of(new Point(tile.x + x, tile.y + y), new Point(tile.x, tile.y + y), new Point(tile.x + x, tile.y))) {
+            if (!step.equals(tile) && navigationService.findPath(tile, step, this) != null) {
+                entityData.setComponent(entityId, new Navigation(step, getCreatureCoordinates(entityData, door), new ArrayList<>(List.of(
+                        new Vector2(position.x, position.z), WorldUtils.pointToVector2(step)))));
+                return;
+            }
         }
     }
 

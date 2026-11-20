@@ -304,6 +304,29 @@ class CreatureCombatTest {
         assertEquals(200, entityData.getComponent(door, Damage.class).damage);
     }
 
+    @Test
+    void supportCreatureBacksOffFromADoorWhileItsSpellRecharges() {
+        EntityId door = createDoor(WOODEN_DOOR, new Point(5, 5));
+        giveAttackSpells(us, castAt((short) 1, 5, 8.0));
+        creatures.put(FIGHTER, CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.SUPPORT));
+
+        // Nearer than half its spell's range of 5 and half its sight of 16, it steps back facing the door (0x45F030)
+        createController(us).attackAdjacentDoor();
+
+        Navigation navigation = entityData.getComponent(us, Navigation.class);
+        assertEquals(new toniarts.openkeeper.utils.Point(5, 3), navigation.target);
+        assertEquals(new toniarts.openkeeper.utils.Point(5, 5), navigation.faceTarget);
+
+        // Half its range away, the door no longer next to it, it waits there for its spell
+        entityData.removeComponent(us, Navigation.class);
+        entityData.setComponent(us, new Position(0, new Vector3f(5, 0, 2.4f)));
+
+        assertTrue(createController(us).attackAdjacentDoor());
+        assertNull(entityData.getComponent(us, Navigation.class));
+        assertNull(entityData.getComponent(us, CastShot.class));
+        assertNull(entityData.getComponent(door, Damage.class));
+    }
+
     private EntityId createDoor(short doorId, Point tile) {
         EntityId door = entityData.createEntity();
         entityData.setComponents(door, new DoorComponent(doorId, false, false), new Owner(HERO, HERO),
