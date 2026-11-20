@@ -654,6 +654,10 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
         for (Entry<Short, Set<Task>> entry : taskQueues.entrySet()) {
 
+            // A tile that was being dug and now can be claimed is floor the digging left (DKII.EXE 0x4655D0 and 0x465870
+            // leave job 0xE on it)
+            boolean dug = deleteObsolete && entry.getValue().contains(new DigTileTask(navigationService, mapController, tile, entry.getKey()));
+
             // Scan existing tasks that are they valid, should be only one tile task per tile?
             if (deleteObsolete) {
                 removeObsoleteTileTasks(entry.getValue());
@@ -664,7 +668,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             }
 
             // Perhaps we should have a store for these, since only one of such per player can exist, would save IDs
-            createTerrainTask(entry.getKey(), terrain, mapTile, tile);
+            createTerrainTask(entry.getKey(), terrain, mapTile, tile, dug);
         }
 
         // See the neighbours
@@ -688,7 +692,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
         }
     }
 
-    private void createTerrainTask(short playerId, Terrain terrain, IMapTileController mapTile, Point tile) {
+    private void createTerrainTask(short playerId, Terrain terrain, IMapTileController mapTile, Point tile, boolean dug) {
 
         // Dig
         if (mapController.isSelected(mapTile, playerId)) {
@@ -698,7 +702,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             addTask(playerId, new ClaimWallTileTask(navigationService, mapController, tile, playerId));
         } // Claim
         else if (mapController.isClaimableTile(mapTile, terrain, playerId)) {
-            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId));
+            addTask(playerId, new ClaimTileTask(navigationService, mapController, tile, playerId, dug));
         } // Repair wall
         else if (mapController.isRepairableWall(mapTile, terrain, playerId)) {
             addTask(playerId, new RepairWallTileTask(navigationService, mapController, tile, playerId));

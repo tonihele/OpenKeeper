@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import java.util.Comparator;
+import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 
 /**
  * The order in which the unemployed workers take the tasks
@@ -51,6 +52,13 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
             }
         }
 
+        // The floor that digging has left, with no digging tagged around it, is claimed before the other usual work. It
+        // is the first job on the original's work list (DKII.EXE 0x469600, list at 0x698658)
+        result = Boolean.compare(isDugFloorToClaim(o2.task()), isDugFloorToClaim(o1.task()));
+        if (result != 0) {
+            return result;
+        }
+
         // Walls are only worked on once there is nothing else to do, the floor is claimed first. Repairing goes with
         // reinforcing, in the original (DKII.EXE 0x46AEA0) both are one job that only comes after the usual work
         result = Boolean.compare(isWallWork(o1.task()), isWallWork(o2.task()));
@@ -72,6 +80,10 @@ final class TaskWorkerPriorityComparator implements Comparator<TaskManager.TaskW
 
     private static boolean isArmingTrap(Task task) {
         return task.getTaskType() == TaskType.FETCH_TRAP_CRATE || task.getTaskType() == TaskType.DELIVER_TRAP_CRATE;
+    }
+
+    private static boolean isDugFloorToClaim(Task task) {
+        return task instanceof ClaimTileTask claimTileTask && claimTileTask.isDugFloorToClaim();
     }
 
     private static boolean isWallWork(Task task) {

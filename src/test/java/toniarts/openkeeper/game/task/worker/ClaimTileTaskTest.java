@@ -19,6 +19,8 @@ package toniarts.openkeeper.game.task.worker;
 import com.badlogic.gdx.ai.pfa.GraphPath;
 import com.jme3.math.Vector3f;
 import java.lang.reflect.Proxy;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.controller.IMapController;
@@ -35,10 +37,13 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * A worker nearer to a tile takes its claim over from the one assigned to it
- * (0x46AB50)
+ * (0x46AB50). The floor that digging has left is claimed first, once no tile
+ * around it is tagged for digging anymore (0x469600)
  */
 class ClaimTileTaskTest {
 
+    private final Set<Point> tagged = new HashSet<>();
+    private final Set<Point> gold = new HashSet<>();
     private final ClaimTileTask task = new ClaimTileTask(navigationService(), mapController(), new Point(10, 10), (short) 3);
 
     @Test
@@ -73,6 +78,36 @@ class ClaimTileTaskTest {
         assertEquals(task, claiming.task.get());
     }
 
+    @Test
+    void floorLeftByDiggingIsClaimedFirst() {
+        assertTrue(dugFloor().isDugFloorToClaim());
+        assertFalse(task.isDugFloorToClaim(), "Other floor is claimed in its turn");
+    }
+
+    @Test
+    void floorLeftByDiggingWaitsWhileATileAroundItIsTaggedForDigging() {
+        tagged.add(new Point(11, 11));
+
+        assertFalse(dugFloor().isDugFloorToClaim());
+
+        // The digging around it is done
+        tagged.clear();
+
+        assertTrue(dugFloor().isDugFloorToClaim());
+    }
+
+    @Test
+    void tileTaggedForMiningGoldDoesNotHoldTheFloorUp() {
+        tagged.add(new Point(9, 10));
+        gold.add(new Point(9, 10));
+
+        assertTrue(dugFloor().isDugFloorToClaim());
+    }
+
+    private ClaimTileTask dugFloor() {
+        return new ClaimTileTask(navigationService(), mapController(), new Point(10, 10), (short) 3, true);
+    }
+
     /**
      * A worker that remembers the task it is given
      */
@@ -102,7 +137,7 @@ class ClaimTileTaskTest {
         }
     }
 
-    private static IMapController mapController() {
+    private IMapController mapController() {
         IMapDataInformation<?> mapData = stub(IMapDataInformation.class, (proxy, name, args) -> switch (name) {
             case "getTile" -> tile(args.length == 1 ? (Point) args[0] : new Point((int) args[0], (int) args[1]));
             case "getWidth", "getHeight" -> 20;
@@ -124,9 +159,11 @@ class ClaimTileTaskTest {
         });
     }
 
-    private static IMapTileInformation tile(Point location) {
+    private IMapTileInformation tile(Point location) {
         return stub(IMapTileInformation.class, (proxy, name, args) -> switch (name) {
             case "getLocation" -> location;
+            case "isSelected" -> tagged.contains(location);
+            case "getGold" -> gold.contains(location) ? 1 : 0;
             case "getX" -> location.x;
             case "getY" -> location.y;
             default -> null;

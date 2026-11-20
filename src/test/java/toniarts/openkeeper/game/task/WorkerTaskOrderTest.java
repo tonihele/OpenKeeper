@@ -21,6 +21,10 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.task.worker.ClaimTileTask;
 import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -144,6 +148,37 @@ class WorkerTaskOrderTest {
         TaskManager.TaskWorkerPriority gold = pair(TaskType.CARRY_GOLD_TO_TREASURY, 0, 5);
 
         assertEquals(nextDig, sorted(claim, gold, nextDig).getFirst());
+    }
+
+    @Test
+    void floorLeftByDiggingIsClaimedBeforeTheOtherUsualWork() {
+
+        // The first job on the original's work list (DKII.EXE 0x469600, list at 0x698658): before crates to carry,
+        // digging and the other claiming, however near they are. An imp that is digging still digs on first
+        TaskManager.TaskWorkerPriority dugFloor = new TaskManager.TaskWorkerPriority(dugFloorTask(), null, 108, Integer.MAX_VALUE, false, null);
+        TaskManager.TaskWorkerPriority dig = pair(TaskType.DIG_TILE, 0, 11);
+        TaskManager.TaskWorkerPriority claim = pair(TaskType.CLAIM_TILE, 0, 101);
+        TaskManager.TaskWorkerPriority crate = pair(TaskType.FETCH_OBJECT, 0, 101);
+        TaskManager.TaskWorkerPriority nextDig = sameWorkPair(TaskType.DIG_TILE, 0, 30);
+
+        assertEquals(List.of(nextDig, dugFloor, dig, claim, crate), sorted(claim, crate, dig, dugFloor, nextDig));
+    }
+
+    private static Task dugFloorTask() {
+        IMapTileInformation tile = (IMapTileInformation) Proxy.newProxyInstance(IMapTileInformation.class.getClassLoader(),
+                new Class<?>[]{IMapTileInformation.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isSelected" ->
+                false;
+            case "getLocation" ->
+                new Point(5, 5);
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(),
+                new Class<?>[]{IMapDataInformation.class}, (proxy, method, args) -> tile);
+        IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(),
+                new Class<?>[]{IMapController.class}, (proxy, method, args) -> mapData);
+        return new ClaimTileTask(null, mapController, new Point(5, 5), (short) 3, true);
     }
 
     @Test
