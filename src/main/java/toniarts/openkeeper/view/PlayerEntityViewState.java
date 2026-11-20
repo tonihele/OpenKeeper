@@ -76,6 +76,7 @@ import toniarts.openkeeper.view.control.EntityViewControl;
 import toniarts.openkeeper.view.control.IEntityViewControl;
 import toniarts.openkeeper.view.control.IUnitFlowerControl;
 import toniarts.openkeeper.view.control.ObjectViewControl;
+import toniarts.openkeeper.view.control.SpecialObjectViewControl;
 import toniarts.openkeeper.view.control.ShotFlightControl;
 import toniarts.openkeeper.view.control.TortureWheelSpinControl;
 import toniarts.openkeeper.view.control.TrapFlowerControl;
@@ -453,10 +454,17 @@ public class PlayerEntityViewState extends AbstractAppState {
                         ? kwdFile.getCreature(objectViewState.lairCreatureTypeId) : null;
                 boolean uniqueCreatureBed = lairCreatureType != null
                         && lairCreatureType.getFlags().contains(CreatureFlag.IS_UNIQUE);
-                EntityViewControl control = new ObjectViewControl(e.getId(), entityData,
-                        kwdFile.getObject(objectViewState.objectId), objectViewState, assetManager,
-                        textParser != null ? textParser.getObjectTextParser() : null, mapData,
-                        uniqueCreatureBed, kwdFile.getGameLevel().getTicksPerSec());
+                GameObject object = kwdFile.getObject(objectViewState.objectId);
+                var objectTextParser = textParser != null ? textParser.getObjectTextParser() : null;
+                int ticksPerSecond = kwdFile.getGameLevel().getTicksPerSec();
+                ObjectViewControl control;
+                if (object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_SPECIAL)) {
+                    control = new SpecialObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                } else {
+                    control = new ObjectViewControl(e.getId(), entityData, object, objectViewState,
+                            assetManager, objectTextParser, mapData, uniqueCreatureBed, ticksPerSecond);
+                }
                 result.addControl(control);
 
                 result.setCullHint(objectViewState.visible ? Spatial.CullHint.Inherit : Spatial.CullHint.Always);
