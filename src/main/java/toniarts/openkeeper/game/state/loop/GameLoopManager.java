@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.FreezeSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.GraveyardSystem;
+import toniarts.openkeeper.game.logic.HatedCompanySystem;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.InfernoSystem;
@@ -129,6 +130,8 @@ public final class GameLoopManager {
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer(), gameSettings),
                 payDaySystem,
+                new HatedCompanySystem(entityData, levelInfo.getLevelData(), gameSettings, gameWorldController.getMapController(),
+                        gameController.getGameTimer()),
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
