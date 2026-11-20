@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.BattleSystem;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
@@ -64,7 +65,10 @@ import toniarts.openkeeper.game.logic.PrisonOvercrowdingSystem;
 import toniarts.openkeeper.game.logic.ShotSystem;
 import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
+import toniarts.openkeeper.game.logic.SummonedReaperSystem;
+import toniarts.openkeeper.game.logic.TremorSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
+import toniarts.openkeeper.game.logic.TurncoatSystem;
 import toniarts.openkeeper.game.logic.VerminSystem;
 import toniarts.openkeeper.game.logic.WallDeteriorationSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
@@ -90,6 +94,8 @@ public final class GameLoopManager {
 
     private final IGameController gameController;
 
+    private final PayDaySystem payDaySystem;
+
     /**
      * Single use game states
      *
@@ -110,6 +116,9 @@ public final class GameLoopManager {
         final ITaskManager taskManager = gameController.getTaskManager();
         final GameEventService gameEventService = gameController.getGameEventService();
 
+        payDaySystem = new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
+                playerControllers.values(), gameSettings);
+
         // Game logic
         final GameLogicManager gameLogicThread = new GameLogicManager(
                 gameWorldController.getMapController(),
@@ -122,16 +131,17 @@ public final class GameLoopManager {
                         (int) gameController.getLevelVariable(Variable.MiscVariable.MiscType.WALL_DETERIORATION_DAMAGE)),
                 new VerminSystem(entityData, gameWorldController.getMapController(),
                         gameWorldController.getObjectsController(), playerControllers.values()),
+                new TremorSystem(entityData, gameController.getGameTimer(), gameWorldController.getMapController(), gameSettings),
                 new CreatureExperienceSystem(entityData, levelInfo.getLevelData(), gameSettings,
                         gameWorldController.getCreaturesController()),
                 new CreatureSleepSystem(entityData, levelInfo.getLevelData(),
                         gameController.getGameTimer()),
                 new CreatureMoodSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
                         gameController.getGameTimer(), gameSettings),
-                new PayDaySystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(),
-                        playerControllers.values(), gameSettings),
+                payDaySystem,
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
+                new TurncoatSystem(entityData, gameController.getGameTimer()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
@@ -146,7 +156,8 @@ public final class GameLoopManager {
                         gameWorldController.getMapController(), gameWorldController.getCreaturesController(), gameEventService),
                 new PlayerCreatureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
                 new PlayerSpellbookSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
-                new PlayerManufactureSystem(entityData, levelInfo.getLevelData(), playerControllers.values()),
+                new PlayerManufactureSystem(entityData, levelInfo.getLevelData(), playerControllers.values(),
+                        gameController.getGameTimer()),
                 (IGameLogicUpdatable) gameController,
                 new CreatureSpawnSystem(entityData, gameWorldController.getCreaturesController(), playerControllers.values(),
                         gameSettings, levelInfo, gameWorldController.getMapController(), gameEventService),
@@ -155,6 +166,8 @@ public final class GameLoopManager {
                 new ManaCalculatorLogic(playerControllers.values(), entityData),
                 new PossessedSystem(playerControllers.values(), entityData, gameController,
                         gameWorldController.getCreaturesController()),
+                new SummonedReaperSystem(entityData, playerControllers.values(), gameWorldController.getCreaturesController(),
+                        gameController.getGameTimer(), gameController.getNavigationService()),
                 new CallToArmsSystem(entityData, level, playerControllers.values(),
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
@@ -163,11 +176,12 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
+                new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),
                 new TrapSystem(entityData, level, gameController.getGameTimer(), positionSystem, playerControllers,
-                        gameWorldController.getShotsController()),
+                        gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
                         gameWorldController.getMapController(), playerControllers),
@@ -213,6 +227,10 @@ public final class GameLoopManager {
 
     public IGameController getGameController() {
         return gameController;
+    }
+
+    public PayDaySystem getPayDaySystem() {
+        return payDaySystem;
     }
 
 }
