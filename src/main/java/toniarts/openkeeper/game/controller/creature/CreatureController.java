@@ -167,6 +167,8 @@ public final class CreatureController extends EntityController implements ICreat
     private static final float POSSESSED_BACKWARD_SPEED_FACTOR = 0.5f;
     private static final float POSSESSED_STRAFE_SPEED_FACTOR = 0.667f;
     private static final float SPEED_MULTIPLIER = 2f;
+    // DK II's 0xD000, under 13 square tiles from the heart's centre
+    private static final float NEAR_OWN_HEART_DISTANCE_SQUARED = 13 * WorldUtils.TILE_WIDTH * WorldUtils.TILE_WIDTH;
     /**
      * How long the big winner of the Casino celebrates its jackpot, as in DK II (DKII.EXE 0x456EC0)
      */
@@ -266,12 +268,15 @@ public final class CreatureController extends EntityController implements ICreat
         checkSurroundings();
 
         // Check fleeing, TODO: Always flee?
+        boolean fighter = creature.getFightStyle() != Creature.FightStyle.NON_FIGHTER;
         boolean inDHeart = false;
         if (entityData.getComponent(entityId, Fearless.class) == null && !isCombatPitFighter() && isThreatTooHigh()) {
 
-            // No longer flee from DHeart
+            // No longer flee from DHeart, our own one that still stands. A non-fighter stands its ground
+            // near it, where DK II's take on an enemy in reach instead of withdrawing (0x45BDF0)
             IRoomController roomController = mapController.getRoomControllerByCoordinates(getCreatureCoordinates());
-            if (roomController == null || !roomController.isDungeonHeart()) {
+            if (fighter ? roomController == null || !roomController.isDungeonHeart()
+                    || roomController.getOwnerId() != getOwnerId() || roomController.isDestroyed() : !isNearOwnHeart()) {
                 if (!stateMachine.isInState(CreatureState.FLEE)) {
 
                     stateMachine.changeState(CreatureState.FLEE);
@@ -282,9 +287,10 @@ public final class CreatureController extends EntityController implements ICreat
             }
         }
 
-        // Should we attack, try to avoid i.e. imps engaging in a fight
-        if ((creature.getFightStyle()
-                != Creature.FightStyle.NON_FIGHTER || inDHeart) && getAttackTarget() != null
+        // Should we attack, try to avoid i.e. imps engaging in a fight. Near their own heart they
+        // only hit back at an enemy in reach, which DK II makes one tile, and otherwise keep working
+        IEntityController attackTarget = fighter || inDHeart ? getAttackTarget() : null;
+        if (attackTarget != null && (fighter || isInRange(WorldUtils.TILE_WIDTH, attackTarget.getEntityId()))
                 && (stateMachine.isInState(CreatureState.FIGHT) || isNearCallToArms())) {
             if (!stateMachine.isInState(CreatureState.FIGHT)) {
                 stateMachine.changeState(CreatureState.FIGHT);
@@ -293,6 +299,24 @@ public final class CreatureController extends EntityController implements ICreat
         }
 
         return false;
+    }
+
+    /**
+     * DK II's non-fighters fight an enemy in reach within 13 square tiles of the
+     * centre of their own Dungeon Heart (0xD000 in 0x45BDF0), as long as it stands
+     */
+    private boolean isNearOwnHeart() {
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        Point heart = keeper != null ? keeper.getDungeonHeartLocation() : null;
+        if (heart == null) {
+            return false;
+        }
+        IRoomController room = mapController.getRoomControllerByCoordinates(heart);
+        if (room == null || room.isDestroyed()) {
+            return false;
+        }
+        Vector3f position = getPosition();
+        return WorldUtils.pointToVector2f(heart).distanceSquared(position.x, position.z) < NEAR_OWN_HEART_DISTANCE_SQUARED;
     }
 
     /**
