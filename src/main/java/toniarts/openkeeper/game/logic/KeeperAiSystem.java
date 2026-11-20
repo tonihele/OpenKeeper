@@ -335,8 +335,6 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
                 keeperAi.failedTargetTicks[i]--;
             }
         }
-        battles.liftCallToArms(keeperAi, playerControllers, ai, ticksPerSecond);
-
         // An attack to answer takes the whole turn
         if (keeperAi.attackLookTicks > 0) {
             keeperAi.attackLookTicks--;
@@ -349,6 +347,12 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
         // Its creatures are called to arms against an enemy it invades
         if (actions > 0 && invasions.callToArms(keeperAi, playerControllers, ai)) {
             actions--;
+        }
+
+        // DK II only looks at lifting the flag with an action left: not while it answers an attack, nor on the
+        // turn it casts or moves the flag (0x500C20, 0x4FECE0)
+        if (actions > 0) {
+            battles.liftCallToArms(keeperAi, playerControllers, ai, ticksPerSecond);
         }
 
         // DK II reads the level a level's computer player trains its creatures to before the level's rules, as 0

@@ -1064,6 +1064,31 @@ class KeeperAiSystemTest {
     }
 
     @Test
+    void looksAtLiftingTheCallToArmsOnlyOnATurnWithoutAnAttackToAnswer() {
+        KeeperAiSystem system = createSystem(withCallToArms(ai(0, 0, 9, 1, 50, 0, List.of()), 50, 240, 1, 5, 1, 90), 1000);
+        system.processTick(0.25f);
+        EntityId entityId = entityData.findEntity(null, KeeperAi.class);
+        KeeperAi keeperAi = new KeeperAi(entityData.getComponent(entityId, KeeperAi.class));
+        keeperAi.callToArms = true;
+        keeperAi.callToArmsTile = new Point(8, 3);
+        keeperAi.callToArmsTicks = 240;
+        keeperAi.attacks = 1;
+        keeperAi.attackNeeds[0] = 100;
+        keeperAi.attackTiles[0] = new Point(5, 4);
+        entityData.setComponent(entityId, keeperAi);
+
+        // No enemy is near the flag, but the attack takes the whole turn (0x500C20)
+        system.processTick(0.25f);
+
+        assertEquals(0, callToArmsCancels);
+        assertEquals(0, getKeeperAi().attacks);
+
+        system.processTick(0.25f);
+
+        assertEquals(1, callToArmsCancels);
+    }
+
+    @Test
     void createsNoImpsWhileItsCreaturesFight() {
         KeeperAiSystem system = createSystem(ai(4, 10, 9, 1, 50, 0, List.of()), 1000);
         EntityId fighter = createCreature(PLAYER_ID, new Point(8, 3), 100, 100, CreatureState.FIGHT);
@@ -1715,6 +1740,34 @@ class KeeperAiSystemTest {
         Point moved = callToArmsCasts.getFirst();
         assertEquals(2, Math.abs(moved.x - 5) + Math.abs(moved.y - 6));
         assertEquals(moved, getKeeperAi().rallyTile);
+    }
+
+    @Test
+    void doesNotLookAtLiftingTheFlagOnTheTurnItMovesIt() {
+        KeeperAiSystem system = createSystem(withInvasion(ai(0, 0, 9, 1, 50, 0, List.of()), 5, 1,
+                AI.CallToArmsUsagePolicy.TOWARDS_HEART, 0), 1000);
+        spellControl.setTypeAvailable(callToArms, true, true);
+        enemyRoomControl.onBuild(createRoom(DUNGEON_HEART, new Point(13, 6)));
+        KeeperAiEnemy invaded = new KeeperAiEnemy(PLAYER_ID, ENEMY_ID, 0);
+        invaded.invaded = true;
+        entityData.setComponent(entityData.createEntity(), invaded);
+        createCreature(PLAYER_ID, new Point(4, 4), 100, 100, CreatureState.WORK);
+        createCreature(PLAYER_ID, new Point(4, 8), 100, 100, CreatureState.WORK);
+        reachable = true;
+        system.processTick(0.25f);
+        EntityId entityId = entityData.findEntity(null, KeeperAi.class);
+        KeeperAi keeperAi = new KeeperAi(entityData.getComponent(entityId, KeeperAi.class));
+        keeperAi.callToArms = true;
+        keeperAi.callToArmsTile = new Point(5, 6);
+        keeperAi.rallyTile = new Point(5, 6);
+        entityData.setComponent(entityId, keeperAi);
+
+        // The flag's time is up, but moving it takes the action and gives it its time again (0x4FECE0)
+        system.processTick(0.25f);
+
+        assertEquals(0, callToArmsCancels);
+        assertEquals(1, callToArmsCasts.size());
+        assertTrue(getKeeperAi().callToArms);
     }
 
     @Test
