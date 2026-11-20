@@ -64,7 +64,7 @@ public class CreateCreatureTileTest {
         ILevelInfo levelInfo = stub(ILevelInfo.class, "getLevelData", kwd, ignored);
         Object[][] spawn = new Object[1][];
         ICreaturesController creatures = stub(ICreaturesController.class, "spawnCreature", null, spawn);
-        TriggerControl control = new TriggerControl(null, levelInfo, null, null, creatures, 1);
+        TriggerControl control = new TriggerControl(null, levelInfo, null, null, creatures, null, 1);
 
         TriggerActionData action = new TriggerActionData(2, null, TriggerAction.ActionType.CREATE_CREATURE);
         action.setUserData("creatureId", (short) 1);
