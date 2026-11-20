@@ -823,7 +823,9 @@ class CreatureControllerTest {
 
         EntityId meleeTarget() {
             EntityId target = data.createEntity();
-            data.setComponents(target, new Position(0, new Vector3f(3.5f, WorldUtils.FLOOR_HEIGHT, 4)), new Health(500, 500));
+
+            // In front of the creature: DK II only swings at a target it faces (0x45F030)
+            data.setComponents(target, new Position(0, new Vector3f(3, WorldUtils.FLOOR_HEIGHT, 4.5f)), new Health(500, 500));
             data.setComponent(entity, new CreatureMeleeAttack(0, 30, 1.2f, 1));
             controller.getStateMachine().changeState(CreatureState.FIGHT);
             return target;
