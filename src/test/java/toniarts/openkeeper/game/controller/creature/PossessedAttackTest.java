@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureViewState;
@@ -329,6 +330,45 @@ class PossessedAttackTest {
         assertTrue(createController(friend).getStateMachine().isInState(CreatureState.FOLLOW));
         assertTrue(createController(friend).isInPossessedGroup());
         assertNull(entityData.getComponent(us, CreatureMeleeAttack.class).attactStartTime);
+    }
+
+    @Test
+    void theGroupAttacksWhatThePossessedCreatureHits() {
+        EntityId follower = createCreature(KEEPER, new Vector3f(5, 0, 4));
+        entityData.setComponent(follower, new FollowTarget(us));
+        EntityId bystander = createCreature(KEEPER, new Vector3f(4, 0, 4));
+        EntityId enemy = createCreature(HERO, new Vector3f(5, 0, 5.8f));
+
+        createController().executePossessedAttack();
+
+        assertEquals(enemy, entityData.getComponent(follower, AttackTarget.class).entityId);
+        assertNull(entityData.getComponent(bystander, AttackTarget.class));
+    }
+
+    @Test
+    void scaredFollowerLeavesTheGroupBeforeItBacksOff() {
+        List<String> calls = new ArrayList<>();
+        ICreatureController follower = stub(ICreatureController.class, (name, args) -> {
+            calls.add(name);
+            return name.equals("isInPossessedGroup") ? true : null;
+        });
+
+        CreatureState.BACK_OFF.enter(follower);
+
+        assertEquals(List.of("isInPossessedGroup", "resetFollowTarget", "startBackOff"), calls);
+    }
+
+    @Test
+    void scaredCreatureOutsideAGroupKeepsWhatItFollows() {
+        List<String> calls = new ArrayList<>();
+        ICreatureController partyMember = stub(ICreatureController.class, (name, args) -> {
+            calls.add(name);
+            return null;
+        });
+
+        CreatureState.BACK_OFF.enter(partyMember);
+
+        assertEquals(List.of("isInPossessedGroup", "startBackOff"), calls);
     }
 
     @Test
