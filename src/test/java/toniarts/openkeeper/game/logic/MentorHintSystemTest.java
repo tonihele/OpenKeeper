@@ -24,10 +24,12 @@ import java.util.EnumMap;
 import java.util.EnumSet;
 import java.util.List;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.KeeperComponent;
 import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.RoomAttackMessages;
@@ -37,10 +39,12 @@ import toniarts.openkeeper.game.state.session.PlayerService;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
+import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.tools.convert.map.VariableFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * The mentor's advice from the keeper's own tick (DKII.EXE 0x4B9740). The
@@ -52,6 +56,7 @@ class MentorHintSystemTest {
     private static final short ENEMY_ID = 4;
     private static final short REAPER_ID = 22;
     private static final short GOBLIN_ID = 3;
+    private static final short IMP_ID = 1;
     private static final int TICKS_PER_SECOND = 4;
     private static final int REAPER_ADVICE = 1350;
 
@@ -95,6 +100,87 @@ class MentorHintSystemTest {
         assertEquals(List.of(), speech);
     }
 
+    @Test
+    void keeperWithFewerThanFiveFightersIsToldItsDungeonIsEmptyAtFiftyMinutes() {
+        for (int i = 0; i < 4; i++) {
+            addCreature(GOBLIN_ID, PLAYER_ID);
+        }
+        for (int i = 0; i < 6; i++) {
+            entityData.getComponent(addCreature(IMP_ID, PLAYER_ID), CreatureComponent.class).worker = true;
+        }
+        addCreature(GOBLIN_ID, ENEMY_ID);
+
+        tickAt(3000 - 0.25);
+        tickAt(3000 + 0.25);
+        assertEquals(List.of(), speech);
+        // A quiet dungeon's hint follows on the same tick
+        tickAt(3000);
+        assertEquals(1168, speech.getFirst());
+        assertEquals(2, speech.size());
+    }
+
+    @Test
+    void keeperWithFiveFightersIsNotToldItsDungeonIsEmpty() {
+        for (int i = 0; i < 5; i++) {
+            addCreature(GOBLIN_ID, PLAYER_ID);
+        }
+
+        tickAt(3000);
+
+        assertEquals(1, speech.size());
+        assertTrue(speech.getFirst() >= 509 && speech.getFirst() <= 516, "Only the quiet dungeon's hint: " + speech);
+    }
+
+    @Test
+    void everyKeeperIsToldItShouldHaveWonByNowAtTwoHours() {
+
+        // The 40 minute hint comes on the same tick
+        tickAt(7200);
+
+        assertEquals(2, speech.size());
+        assertEquals(1197, speech.getFirst());
+        assertTrue(speech.getLast() >= 1182 && speech.getLast() <= 1195 && speech.getLast() != 1186, "One of the 13 general hints: " + speech);
+    }
+
+    @Test
+    void aQuietDungeonGetsAHintEveryTwentyFiveMinutes() {
+        addCreature(GOBLIN_ID, PLAYER_ID);
+
+        tickAt(1500);
+        tickAt(3000);
+
+        assertEquals(3, speech.size(), "Two quiet hints and the empty dungeon: " + speech);
+        assertTrue(speech.get(0) >= 509 && speech.get(0) <= 516);
+        assertEquals(1168, speech.get(1));
+        assertTrue(speech.get(2) >= 509 && speech.get(2) <= 516);
+    }
+
+    @Test
+    void aFightOrAKnockedOutCreatureHoldsTheQuietHintBack() {
+        EntityId fighter = addCreature(GOBLIN_ID, PLAYER_ID);
+        entityData.setComponent(fighter, new AttackTarget(addCreature(GOBLIN_ID, ENEMY_ID)));
+
+        tickAt(1500);
+        assertEquals(List.of(), speech);
+
+        entityData.removeComponent(fighter, AttackTarget.class);
+        entityData.setComponent(fighter, new Unconscious(0));
+        tickAt(4500);
+        assertEquals(List.of(), speech);
+    }
+
+    @Test
+    void noHintsAsTheLevelStarts() {
+        tickAt(0);
+
+        assertEquals(List.of(), speech);
+    }
+
+    private void tickAt(double time) {
+        gameTime = time;
+        system.processTick(1f / TICKS_PER_SECOND);
+    }
+
     private void tick() {
         system.processTick(1f / TICKS_PER_SECOND);
         gameTime += 1.0 / TICKS_PER_SECOND;
@@ -111,8 +197,12 @@ class MentorHintSystemTest {
     private MentorHintSystem createSystem() {
         Creature reaper = ShotFixtures.creature(REAPER_ID, EnumSet.of(Creature.CreatureFlag.IS_HORNY), EnumSet.noneOf(Creature.CreatureFlag3.class));
         Creature goblin = ShotFixtures.creature(GOBLIN_ID, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
-        IKwdFile kwdFile = stub(IKwdFile.class, (method, args) -> method.equals("getCreatureList") ? List.of(goblin, reaper) : null);
-        EnumMap<MiscType, toniarts.openkeeper.tools.convert.map.Variable.MiscVariable> settings = new EnumMap<>(MiscType.class);
+        IKwdFile kwdFile = stub(IKwdFile.class, (method, args) -> switch (method) {
+            case "getCreatureList" -> List.of(goblin, reaper);
+            case "getGameLevel" -> ShotFixtures.gameLevel(TICKS_PER_SECOND);
+            default -> null;
+        });
+        EnumMap<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
         settings.put(MiscType.MAXIMUM_MANA_THRESHOLD, VariableFixtures.miscVariable(MiscType.MAXIMUM_MANA_THRESHOLD, 200000));
         settings.put(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, VariableFixtures.miscVariable(MiscType.MAXIMUM_MANA_GAIN_PER_SECOND, 1000));
         PlayerManaControl manaControl = new PlayerManaControl(keeper, settings);
@@ -132,7 +222,7 @@ class MentorHintSystemTest {
         IGameTimer gameTimer = stub(IGameTimer.class, (method, args) -> gameTime);
 
         return new MentorHintSystem(entityData, kwdFile, List.of(playerController),
-                new RoomAttackMessages(entityData, playerService, gameTimer, TICKS_PER_SECOND));
+                new RoomAttackMessages(entityData, playerService, gameTimer, TICKS_PER_SECOND), gameTimer);
     }
 
     private static <T> T stub(Class<T> type, Calls calls) {
