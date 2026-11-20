@@ -690,7 +690,9 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public boolean attackVisibleTrap() {
-        if (!TrapAttackTarget.attacksTraps(creature.getFightStyle(), getOwnerId())) {
+        // Ordinary trap selection uses the same willingness gate as creature combat (DK II 0x45A6D0).
+        if (entityData.getComponent(entityId, Peaceful.class) != null
+                || !TrapAttackTarget.attacksTraps(creature.getFightStyle(), getOwnerId())) {
             return false;
         }
         EntityId trap = TrapAttackTarget.findNearest(entityPositionLookup.getSensedEntities(entityId), this::isTrapToAttack,
@@ -714,7 +716,9 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     public boolean attackAdjacentDoor() {
-        if (!DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
+        // The native idle door scan checks willingness before looking at adjacent tiles (0x481400).
+        if (entityData.getComponent(entityId, Peaceful.class) != null
+                || !DoorAttackTarget.attacksAdjacentWhenIdle(getOwnerId())) {
             return false;
         }
         Position position = entityData.getComponent(entityId, Position.class);
