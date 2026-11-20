@@ -165,9 +165,11 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
             ROOM_GUARD_ROOM, ROOM_STONE_BRIDGE, ROOM_HERO_STONE_BRIDGE);
 
     /**
-     * The rooms whose lack of space DK II tells its computer player about
+     * The rooms whose lack of space DK II tells its computer player about. For the Library, the Training Room and
+     * the Workshop that is when a creature that wants to work there finds them full (0x4E2500, 0x4F3560, 0x4F6200)
      */
-    private static final short[] ROOMS_TO_GROW = {ROOM_TREASURY, ROOM_LAIR, ROOM_PRISON, ROOM_GRAVEYARD};
+    private static final short[] ROOMS_TO_GROW = {ROOM_TREASURY, ROOM_LAIR, ROOM_PRISON, ROOM_GRAVEYARD, ROOM_LIBRARY,
+        ROOM_TRAINING_ROOM, ROOM_WORKSHOP};
 
     /**
      * The room DK II's computer player likes to have each room next to
@@ -941,8 +943,8 @@ public final class KeeperAiSystem implements IGameLogicUpdatable {
 
     /**
      * Lines a room up to be planned next when it needs more space: the Lair
-     * when a Portal was claimed, and a Treasury, Lair, Prison or Graveyard
-     * that is full. By its settings the room is grown or another one is
+     * when a Portal was claimed, and a Treasury, Lair, Prison, Graveyard,
+     * Library, Training Room or Workshop that is full. By its settings the room is grown or another one is
      * built. DK II's computer player is told by the messages a player gets;
      * here it looks at the rooms itself
      */

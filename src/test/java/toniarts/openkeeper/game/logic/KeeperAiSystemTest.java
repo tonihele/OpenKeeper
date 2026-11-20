@@ -218,7 +218,7 @@ class KeeperAiSystemTest {
             Map.entry(GUARD_ROOM, room(GUARD_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
             Map.entry(LIBRARY, room(LIBRARY, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(WORKSHOP, room(WORKSHOP, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
-            Map.entry(TRAINING_ROOM, room(TRAINING_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
+            Map.entry(TRAINING_ROOM, room(TRAINING_ROOM, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND, Room.RoomFlag.BUILDABLE)),
             Map.entry(TORTURE_CHAMBER, room(TORTURE_CHAMBER, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(TEMPLE, room(TEMPLE, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
             Map.entry(COMBAT_PIT, room(COMBAT_PIT, ROOM_COST, Room.RoomFlag.PLACEABLE_ON_LAND)),
@@ -2147,6 +2147,19 @@ class KeeperAiSystemTest {
         }
         assertEquals(11, built.size());
         assertTrue(built.contains(new Point(8, 2)) && built.contains(new Point(12, 5)) && !built.contains(new Point(10, 3)));
+    }
+
+    @Test
+    void growsAFullTrainingRoomToo() {
+        KeeperAiSystem system = createSystem(withMoreSpace(ai(0, 0, 9, 1, 50, 0, List.of(TRAINING_ROOM)), AI.RoomExpandPolicy.EXPAND_EXISTING, false), 1000);
+        roomControl.setTypeAvailable(rooms.get(TRAINING_ROOM), true, true);
+        roomControl.onBuild(createRoom(TRAINING_ROOM, new Point(9, 2), new Point(11, 4)));
+        fullRooms.add(TRAINING_ROOM);
+
+        system.processTick(0.25f);
+
+        assertEquals(KeeperAi.Task.TAG_ROOM, getKeeperAi().task);
+        assertEquals(TRAINING_ROOM, getKeeperAi().roomId);
     }
 
     @Test
