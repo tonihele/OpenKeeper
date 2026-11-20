@@ -566,6 +566,20 @@ public final class MapController extends Container implements IMapController {
         return returnedGold;
     }
 
+    @Override
+    public void applyTerrainDamage(Point point, int damage) {
+        IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            return;
+        }
+
+        Terrain terrain = getTerrain(tile);
+        if (applyDamage(tile, damage)) {
+            changeTerrain(tile, terrain.getDestroyedTypeTerrainId());
+            notifyTileChange(tile.getLocation());
+        }
+    }
+
     /**
      * Heal a tile
      *
@@ -817,6 +831,13 @@ public final class MapController extends Container implements IMapController {
     public void concealTiles(List<Point> points, short playerId) {
         for (MapListener mapListener : mapListeners.getArray()) {
             mapListener.onTilesReveal(points, false, playerId);
+        }
+    }
+
+    @Override
+    public void revealSightOfEvil(Point centre, int radius, int durationTicks, short playerId) {
+        for (MapListener mapListener : mapListeners.getArray()) {
+            mapListener.onSightOfEvil(centre, radius, durationTicks, playerId);
         }
     }
 
