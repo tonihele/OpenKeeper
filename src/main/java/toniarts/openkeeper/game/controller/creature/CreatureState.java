@@ -22,7 +22,6 @@ import java.util.function.Consumer;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
-import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -66,14 +65,14 @@ public enum CreatureState implements State<ICreatureController> {
         }
 
         /**
-         * Walks an idle creature that found nothing to do to a random spot. A
-         * hero stays where it is: in DK II a hero whose objective can't start
-         * does nothing until it tries again (hero idle state 0x477850)
+         * What an idle creature that found nothing to do does until it looks
+         * again: it stands through an idle animation or takes an idle walk,
+         * like DK II's doing nothing states (0x477680, 0x4776C0)
          *
          * @param entity the idle creature
          */
         private static void wander(ICreatureController entity) {
-            if (entity.getOwnerId() != Player.GOOD_PLAYER_ID) {
+            if (!entity.playIdleAnimation()) {
                 entity.navigateToRandomPoint();
             }
         }
@@ -190,8 +189,19 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
-            if (entity.isTimeToReEvaluate()) {
+            // An idle creature thinks again as soon as its idle walk or its idle animation ends. In DK II the walk (state
+            // 87, 0x4808E0) goes on in state 1 (0x4773D0), which takes it straight back to its choice: state 10 (0x463DF0)
+            // for a worker, 89 (0x4778E0) for a keeper's other creatures, 90 (0x477850) for a hero and 5 for a neutral
+            // creature. The doing nothing states (0x477680) stay while an idle animation plays, and the neutral one
+            // (0x4776B0) goes straight to the pick between an idle animation and a walk (0x4776C0)
+            if (entity.isStopped() && !entity.isPlayingIdleAnimation()) {
                 entity.resetReEvaluationTimer();
+
+                // Except a worker that found no work: after an idle animation it walks on first (0x464240)
+                if (entity.isWaitingToLookForWork()) {
+                    wander(entity);
+                    return;
+                }
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
                         wander(entity);

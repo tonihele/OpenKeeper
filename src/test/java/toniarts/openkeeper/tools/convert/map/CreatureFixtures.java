@@ -46,6 +46,20 @@ public final class CreatureFixtures {
     }
 
     /**
+     * An animation of the given length
+     *
+     * @param frames the number of frames
+     * @param fps the frames per second
+     * @return the animation
+     */
+    public static ArtResource animation(int frames, int fps) {
+        ArtResource resource = new ArtResource();
+        resource.setData("frames", frames);
+        resource.setData("fps", fps);
+        return resource;
+    }
+
+    /**
      * A creature that works in the workshop
      *
      * @param id the creature ID
