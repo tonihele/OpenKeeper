@@ -144,6 +144,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
 
     private static final Logger logger = System.getLogger(TaskManager.class.getName());
     private static final short GRAVEYARD_ROOM_ID = 14;
+    private static final short COMBAT_PIT_ROOM_ID = 16;
 
     private final IMapController mapController;
     private final IGameWorldController gameWorldController;
@@ -788,6 +789,36 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
     }
 
     /**
+     * A creature that would train but is too experienced for the Training
+     * Room, and not yet at the Combat Pit's top level, looks for a Combat Pit
+     * only to have its keeper told about it: it doesn't go there by itself
+     * (DKII.EXE 0x485240 calls the pit finder 0x4D8870 and drops the result).
+     * Told here is that a Combat Pit is needed (message 0x29), when the keeper
+     * has none and can build one
+     *
+     * @param creature the creature
+     */
+    private void tellCombatPitNeeded(ICreatureController creature) {
+        RoomAttackMessages messages = gameWorldController.getRoomAttackMessages();
+        short playerId = creature.getOwnerId();
+        if (messages == null || playerId < Player.KEEPER1_ID
+                || creature.getLevel() < gameSettings.get(Variable.MiscVariable.MiscType.TRAINING_ROOM_MAX_EXPERIENCE_LEVEL).getValue()
+                || creature.getLevel() >= gameSettings.get(Variable.MiscVariable.MiscType.COMBAT_PIT_MAX_EXPERIENCE_LEVEL).getValue()) {
+            return;
+        }
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (room.getOwnerId() == playerId && room.getRoom().getRoomId() == COMBAT_PIT_ROOM_ID) {
+                return;
+            }
+        }
+        for (Room room : playerControllers.get(playerId).getRoomControl().getTypesAvailable()) {
+            if (room.getRoomId() == COMBAT_PIT_ROOM_ID) {
+                messages.roomNeeded(playerId, room);
+            }
+        }
+    }
+
+    /**
      * A creature that comes to make its bed and finds no free spot in the Lair
      * tells its keeper that the Lair is too small (DKII.EXE 0x46F4F0, message
      * 0x2A for the Lair). A keeper without a Lair isn't told here
@@ -1091,7 +1122,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return assignClosestRoomTask(creature, ObjectType.RESEARCHER, null, assign);
             }
             case TRAIN: {
-                return assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign);
+                if (assignClosestRoomTask(creature, ObjectType.TRAINEE, null, assign)) {
+                    return true;
+                }
+                tellCombatPitNeeded(creature);
+                return false;
             }
             case TORTURE: {
 
