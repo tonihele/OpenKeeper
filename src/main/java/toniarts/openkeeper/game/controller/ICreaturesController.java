@@ -208,4 +208,13 @@ public interface ICreaturesController extends IEntityWrapper<ICreatureController
      */
     void stunImps(short playerId);
 
+    /**
+     * Counts the creatures in the group of the creature the player possesses
+     *
+     * @param playerId the player
+     * @return the number of creatures following the possessed creature, or -1
+     * when the player doesn't possess a creature
+     */
+    int getPossessedGroupSize(short playerId);
+
 }

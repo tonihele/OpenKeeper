@@ -39,6 +39,7 @@ import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
+import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Interaction;
@@ -893,6 +894,17 @@ public final class CreaturesController implements ICreaturesController {
             EntityId entityId = entity.getId();
             createController(entityId).getStateMachine().changeState(CreatureState.STUNNED);
         }
+    }
+
+    @Override
+    public int getPossessedGroupSize(short playerId) {
+        for (EntityId possessed : entityData.findEntities(null, Possessed.class)) {
+            Owner owner = entityData.getComponent(possessed, Owner.class);
+            if (owner != null && owner.ownerId == playerId) {
+                return entityData.findEntities(new FieldFilter<>(FollowTarget.class, "entityId", possessed), FollowTarget.class).size();
+            }
+        }
+        return -1;
     }
 
     private void setSpells(EntityId entityId, Creature creature, int level) {
