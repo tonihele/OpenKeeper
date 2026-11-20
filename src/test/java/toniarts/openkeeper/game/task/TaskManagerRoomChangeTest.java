@@ -1,0 +1,276 @@
+/*
+ * Copyright (C) 2014-2026 OpenKeeper
+ *
+ * OpenKeeper is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * OpenKeeper is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with OpenKeeper.  If not, see <http://www.gnu.org/licenses/>.
+ */
+package toniarts.openkeeper.game.task;
+
+import com.badlogic.gdx.ai.fsm.StateMachine;
+import com.jme3.math.Vector3f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
+import com.simsilica.es.base.DefaultEntityData;
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Function;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameWorldController;
+import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.IObjectsController;
+import toniarts.openkeeper.game.controller.IPlayerController;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
+import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.data.Keeper;
+import toniarts.openkeeper.game.listener.PlayerActionListener;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
+import toniarts.openkeeper.game.map.IMapDataInformation;
+import toniarts.openkeeper.game.map.IMapTileController;
+import toniarts.openkeeper.game.navigation.INavigationService;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
+import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.RoomFixtures;
+import toniarts.openkeeper.tools.convert.map.Terrain;
+import toniarts.openkeeper.tools.convert.map.TerrainFixtures;
+import toniarts.openkeeper.utils.Point;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+/**
+ * DK II sends the keeper's creatures that are on their way to a job, or idle,
+ * back to choose what to do whenever the keeper's rooms change (0x4E8D30)
+ */
+class TaskManagerRoomChangeTest {
+
+    private final EntityData entityData = new DefaultEntityData();
+    private final Map<EntityId, Boolean> atTaskTarget = new HashMap<>();
+    private final Map<EntityId, Point> coordinates = new HashMap<>();
+    private final Map<EntityId, CreatureState> states = new HashMap<>();
+    private final Map<EntityId, Boolean> workers = new HashMap<>();
+    private final Map<EntityId, Boolean> stopped = new HashMap<>();
+    private final List<EntityId> sentToIdle = new ArrayList<>();
+    private PlayerActionListener playerActions;
+    private TaskManager taskManager;
+    private EntityId walking;
+    private EntityId working;
+    private EntityId otherKeepers;
+    private EntityId goingToMakeLair;
+    private EntityId inTheRoom;
+
+    @BeforeEach
+    void setUp() {
+        walking = createCreature(Player.KEEPER1_ID, false, TaskType.TRAIN, new Point(1, 1));
+        working = createCreature(Player.KEEPER1_ID, true, TaskType.TRAIN, new Point(5, 5));
+        otherKeepers = createCreature(Player.KEEPER2_ID, false, TaskType.TRAIN, new Point(1, 1));
+        goingToMakeLair = createCreature(Player.KEEPER1_ID, false, TaskType.CLAIM_LAIR, new Point(1, 1));
+        inTheRoom = createCreature(Player.KEEPER1_ID, false, TaskType.TRAIN, new Point(6, 5));
+
+        // A room on land from x 5 on, where the tasks are, and no bridge for the tasks to look around
+        IRoomController room = stub(IRoomController.class, Map.of());
+        IMapController mapController = stub(IMapController.class, Map.of(
+                "getMapData", stub(IMapDataInformation.class, Map.of("getWidth", 0, "getHeight", 0,
+                        "getTile", stub(IMapTileController.class, Map.of("getOwnerId", Player.NEUTRAL_PLAYER_ID)))),
+                "getTerrain", TerrainFixtures.terrain((short) 1, TerrainFixtures.flags(Terrain.TerrainFlag.ROOM), 0, 0, 0, (short) 0)),
+                args -> ((Point) args[0]).x >= 5 ? room : null);
+        IGameWorldController gameWorldController = (IGameWorldController) Proxy.newProxyInstance(
+                IGameWorldController.class.getClassLoader(), new Class<?>[]{IGameWorldController.class},
+                (proxy, method, args) -> {
+                    if (args != null && args[0] instanceof PlayerActionListener listener) {
+                        playerActions = listener;
+                    }
+                    return null;
+                });
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(),
+                new Class<?>[]{ICreaturesController.class}, (proxy, method, args) -> createController((EntityId) args[0]));
+        taskManager = new TaskManager(entityData, gameWorldController, mapController, stub(IObjectsController.class, Map.of()),
+                creaturesController, stub(INavigationService.class, Map.of()),
+                List.of(stub(IPlayerController.class, Map.of("getKeeper", new Keeper(false, Player.KEEPER1_ID)))),
+                stub(ILevelInfo.class, Map.of("getLevelData", stub(IKwdFile.class, Map.of("getRoomByTerrain", RoomFixtures.room((short) 1, 0))))),
+                stub(IEntityPositionLookup.class, Map.of()), Map.of());
+    }
+
+    @Test
+    void buildingARoomSendsCreaturesOnTheirWayBackToIdle() {
+        playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertEquals(List.of(walking), sentToIdle);
+    }
+
+    @Test
+    void sellingARoomSendsCreaturesOnTheirWayBackToIdle() {
+        playerActions.onSold(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertEquals(List.of(walking), sentToIdle);
+    }
+
+    @Test
+    void buildingARoomSendsIdleCreaturesBackToChoose() {
+        EntityId standing = createIdleCreature(false, true);
+        EntityId onIdleWalk = createIdleCreature(false, false);
+
+        playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertEquals(Set.of(walking, standing, onIdleWalk), Set.copyOf(sentToIdle));
+    }
+
+    @Test
+    void anIdleWorkerOnlyChoosesAgainOnItsIdleWalk() {
+        EntityId standing = createIdleCreature(true, true);
+        EntityId onIdleWalk = createIdleCreature(true, false);
+
+        playerActions.onSold(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertEquals(Set.of(walking, onIdleWalk), Set.copyOf(sentToIdle));
+        assertFalse(sentToIdle.contains(standing));
+    }
+
+    @Test
+    void creaturesOnTheirWayToMakeTheirLairKeepGoing() {
+        playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertFalse(sentToIdle.contains(goingToMakeLair));
+    }
+
+    @Test
+    void creaturesAlreadyInTheRoomOfTheirJobCarryOn() {
+        playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertFalse(sentToIdle.contains(inTheRoom));
+    }
+
+    @Test
+    void placingATrapSendsCreaturesOnTheirWayBackToIdle() {
+        entityData.setComponents(entityData.createEntity(), new TrapComponent((short) 3), new TrapViewState((short) 3, true),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(3, 1, 3)));
+
+        taskManager.processTick(0.25f);
+
+        assertEquals(List.of(walking), sentToIdle);
+    }
+
+    @Test
+    void placingADoorSendsCreaturesOnTheirWayBackToIdle() {
+        entityData.setComponents(entityData.createEntity(), new DoorComponent((short) 1, false, true),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(3, 1, 3)));
+
+        taskManager.processTick(0.25f);
+
+        assertEquals(List.of(walking), sentToIdle);
+    }
+
+    @Test
+    void aTrapOrDoorThatIsNoBlueprintSendsNobodyBack() {
+        entityData.setComponents(entityData.createEntity(), new TrapComponent((short) 3), new TrapViewState((short) 3, false),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(3, 1, 3)));
+        entityData.setComponents(entityData.createEntity(), new DoorComponent((short) 1, false, false),
+                new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new Position(0, new Vector3f(4, 1, 3)));
+
+        taskManager.processTick(0.25f);
+
+        assertEquals(List.of(), sentToIdle);
+    }
+
+    private EntityId createCreature(short ownerId, boolean atTarget, TaskType taskType, Point tile) {
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, new Owner(ownerId, ownerId), new CreatureComponent(),
+                new TaskComponent(entityId.getId(), null, new Point(5, 5), taskType, 0, false));
+        atTaskTarget.put(entityId, atTarget);
+        coordinates.put(entityId, tile);
+        states.put(entityId, CreatureState.WORK);
+        workers.put(entityId, false);
+        stopped.put(entityId, false);
+        return entityId;
+    }
+
+    private EntityId createIdleCreature(boolean worker, boolean standing) {
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new CreatureComponent());
+        states.put(entityId, CreatureState.IDLE);
+        workers.put(entityId, worker);
+        stopped.put(entityId, standing);
+        return entityId;
+    }
+
+    private ICreatureController createController(EntityId entityId) {
+        StateMachine<?, ?> stateMachine = (StateMachine<?, ?>) Proxy.newProxyInstance(StateMachine.class.getClassLoader(),
+                new Class<?>[]{StateMachine.class}, (proxy, method, args) -> switch (method.getName()) {
+            case "isInState" ->
+                args[0] == states.get(entityId);
+            case "changeState" ->
+                sentToIdle.add(args[0] == CreatureState.IDLE ? entityId : null);
+            default ->
+                throw new UnsupportedOperationException(method.getName());
+        });
+        Map<String, Object> answers = new HashMap<>(Map.of("isWorker", workers.get(entityId), "isStopped", stopped.get(entityId),
+                "getStateMachine", stateMachine));
+        if (atTaskTarget.containsKey(entityId)) {
+            answers.put("isAtAssignedTaskTarget", atTaskTarget.get(entityId));
+            answers.put("getCreatureCoordinates", coordinates.get(entityId));
+        }
+        return stub(ICreatureController.class, answers);
+    }
+
+    /**
+     * Answers the given methods, void methods do nothing and anything else
+     * fails the test
+     */
+    private static <T> T stub(Class<T> type, Map<String, Object> answers) {
+        return stub(type, answers, null);
+    }
+
+    /**
+     * Like {@link #stub(Class, Map)}, with the room lookup by coordinates
+     * answered by the given function
+     */
+    private static <T> T stub(Class<T> type, Map<String, Object> answers, Function<Object[], Object> roomByCoordinates) {
+        return type.cast(Proxy.newProxyInstance(type.getClassLoader(), new Class<?>[]{type}, (proxy, method, args) -> {
+            if (answers.containsKey(method.getName())) {
+                return answers.get(method.getName());
+            }
+            if (roomByCoordinates != null && method.getName().equals("getRoomControllerByCoordinates")) {
+                return roomByCoordinates.apply(args);
+            }
+            return switch (method.getName()) {
+                case "hashCode" ->
+                    System.identityHashCode(proxy);
+                case "equals" ->
+                    proxy == args[0];
+                case "toString" ->
+                    type.getSimpleName();
+                default -> {
+                    if (method.getReturnType() == void.class) {
+                        yield null;
+                    }
+                    throw new UnsupportedOperationException(type.getSimpleName() + "." + method.getName());
+                }
+            };
+        }));
+    }
+
+}
