@@ -23,6 +23,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
 import java.lang.reflect.Proxy;
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.HashSet;
 import java.util.List;
@@ -31,6 +32,7 @@ import java.util.Set;
 import java.util.concurrent.atomic.AtomicReference;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
@@ -40,6 +42,8 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.IMapController;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
@@ -47,6 +51,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSleepFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Room;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable.MiscType;
 import toniarts.openkeeper.utils.Point;
@@ -70,6 +75,8 @@ class CreatureBackOffTest {
     private final Keeper keeper = new Keeper(false, Player.KEEPER1_ID);
     private final Map<MiscType, MiscVariable> settings = new EnumMap<>(MiscType.class);
     private final AtomicReference<Boolean> cornered = new AtomicReference<>(false);
+    private final AtomicReference<Boolean> enemyAtGuardRoom = new AtomicReference<>(false);
+    private final List<IRoomController> guardRooms = new ArrayList<>();
     private final AtomicReference<Boolean> withdraws = new AtomicReference<>(false);
     private final AtomicReference<Boolean> findsSomewhereToWithdrawTo = new AtomicReference<>(true);
     private final Set<Point> walkable = new HashSet<>();
@@ -324,6 +331,49 @@ class CreatureBackOffTest {
     }
 
     @Test
+    void scaredCreatureDoesNotWithdrawFromAnEnemyAtItsGuardRoom() {
+        AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.BACK_OFF);
+        AtomicReference<Boolean> scared = new AtomicReference<>(true);
+        ICreatureController creature = creature(state, scared, new AtomicReference<>(true), new AtomicReference<>(true),
+                new AtomicReference<>(true));
+        enemyAtGuardRoom.set(true);
+
+        // The back-off time is up, but it stays, and fights again once it isn't scared
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.BACK_OFF, state.get());
+
+        scared.set(false);
+        CreatureState.BACK_OFF.update(creature);
+        assertEquals(CreatureState.FIGHT, state.get());
+    }
+
+    @Test
+    void enemyIsAtOurGuardRoomWithinItsReportingDistanceOfTheRoomsBounds() {
+        settings.put(MiscType.GUARD_ROOM_REPORTING_DISTANCE_TILES, CreatureSleepFixtures.variable(MiscType.GUARD_ROOM_REPORTING_DISTANCE_TILES, 7));
+        EntityId goblin = creature(Player.KEEPER1_ID, 30, 100, 100, 1);
+        EntityId knight = creature(Player.GOOD_PLAYER_ID, 31, 100, 100, 1);
+        fight(goblin, knight);
+        fight(knight, goblin);
+        CreatureController controller = controller(goblin);
+        assertFalse(controller.isEnemyAtOurGuardRoom());
+
+        // A Guard Room from 20 to 24 across: the knight at 31 is just outside its bounds widened by 7
+        RoomInstance roomInstance = new RoomInstance(new Room());
+        roomInstance.addCoordinates(List.of(new Point(20, 8), new Point(24, 12)));
+        guardRooms.add(proxy(IRoomController.class, (method, args) -> switch (method) {
+            case "getRoomInstance" -> roomInstance;
+            default -> throw new UnsupportedOperationException(method);
+        }));
+        assertFalse(controller.isEnemyAtOurGuardRoom());
+
+        data.setComponent(knight, new Position(0, new Vector3f(30, WorldUtils.FLOOR_HEIGHT, 10)));
+        assertTrue(controller.isEnemyAtOurGuardRoom());
+
+        // The heroes have no Guard Rooms to hold
+        assertFalse(controller(knight).isEnemyAtOurGuardRoom());
+    }
+
+    @Test
     void corneredCreatureFightsOnInsteadOfBackingOff() {
         AtomicReference<CreatureState> state = new AtomicReference<>(CreatureState.FIGHT);
         ICreatureController creature = creature(state, new AtomicReference<>(true), new AtomicReference<>(false), new AtomicReference<>(false),
@@ -478,8 +528,12 @@ class CreatureBackOffTest {
             case "getLevelData" -> kwd;
             default -> throw new UnsupportedOperationException(method);
         });
+        IMapController mapController = proxy(IMapController.class, (method, args) -> switch (method) {
+            case "getRoomsByFunction" -> (Short) args[1] == Player.KEEPER1_ID ? guardRooms : List.of();
+            default -> throw new UnsupportedOperationException(method);
+        });
         return new CreatureController(entity, data, definition, navigation, null, () -> time,
-                settings, null, lookup, null, levelInfo, null, null, null);
+                settings, null, lookup, mapController, levelInfo, null, null, null);
     }
 
     private ICreatureController creature(AtomicReference<CreatureState> state, AtomicReference<Boolean> scared,
@@ -498,6 +552,7 @@ class CreatureBackOffTest {
             case "getAttackTarget" -> self.get();
             case "isScared" -> scared.get();
             case "isCornered" -> cornered.get();
+            case "isEnemyAtOurGuardRoom" -> enemyAtGuardRoom.get();
             case "isWithinAttackDistance" -> true;
             case "stopCreature", "executeAttack", "getEntityId" -> null;
             case "isStopped", "turnToAttackTarget" -> true;

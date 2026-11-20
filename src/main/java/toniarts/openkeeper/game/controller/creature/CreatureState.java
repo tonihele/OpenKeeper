@@ -81,6 +81,12 @@ public enum CreatureState implements State<ICreatureController> {
 
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
 
+            // Back to where we withdrew from, before anything else (DK II's idle state 0x4773D0)
+            if (entity.goBackToWhereWeFought()) {
+                workResult.accept(true);
+                return;
+            }
+
             // See if we should just follow
             if (entity.getParty() != null && !entity.getParty().isPartyLeader(entity)) {
                 entity.setFollowTarget(entity.getParty().getPartyLeader().getEntityId());
@@ -547,8 +553,9 @@ public enum CreatureState implements State<ICreatureController> {
         public void update(ICreatureController entity) {
 
             // We withdraw when our time is up or we can't back away, and fight again once we aren't scared (DK II 0x4602E0).
-            // Finding nowhere to withdraw to, we stay backing off and try again on the next tick
-            if (entity.isBackOffOver()) {
+            // Finding nowhere to withdraw to, we stay backing off and try again on the next tick.
+            // With the enemy at one of our Guard Rooms we don't withdraw at all (0x460B50)
+            if (entity.isBackOffOver() && !entity.isEnemyAtOurGuardRoom()) {
                 entity.flee();
             } else if (!entity.isScared() || entity.getAttackTarget() == null) {
                 entity.getStateMachine().changeState(FIGHT);

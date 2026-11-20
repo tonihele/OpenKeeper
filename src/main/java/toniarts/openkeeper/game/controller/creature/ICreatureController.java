@@ -175,6 +175,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean flee();
 
     /**
+     * After a withdraw, a creature other than an Imp walks back to where it
+     * withdrew from once it has over three quarters of its health, if that was
+     * less than 500 turns ago (DK II 0x4773D0). Starts the walk if so
+     *
+     * @return true if we walk back
+     */
+    public boolean goBackToWhereWeFought();
+
+    /**
      * Weighs the threat of the enemies we fight against our fear. Call once on
      * every turn of a fight, it takes a few turns in a row to scare us
      *
@@ -190,6 +199,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      * @return true if we are cornered
      */
     public boolean isCornered();
+
+    /**
+     * Tells whether the enemy creature we fight is in or near one of our
+     * keeper's Guard Rooms: inside the room's bounds widened by the level's
+     * guard room reporting distance. A scared creature doesn't withdraw from
+     * such an enemy when its back-off time runs out. Never so for neutral
+     * creatures and heroes (DK II 0x460B50)
+     *
+     * @return true if our target is at one of our Guard Rooms
+     */
+    public boolean isEnemyAtOurGuardRoom();
 
     /**
      * Starts backing off from the attack target, sets how long we back off
