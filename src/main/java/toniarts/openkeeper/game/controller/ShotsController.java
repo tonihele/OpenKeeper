@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Boulder;
+import toniarts.openkeeper.game.component.CreatureAi;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
@@ -33,12 +34,14 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.component.TrapComponent;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
 import toniarts.openkeeper.game.controller.shot.LightningShotProcessor;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.controller.shot.ShotRequest;
+import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -64,6 +67,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREA
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.JACK_IN_THE_BOX;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
@@ -94,6 +98,12 @@ public final class ShotsController implements IShotsController {
      * the original doesn't read it
      */
     private static final int ON_FIRE_TICKS = 10;
+
+    /**
+     * Jack, the creature in the Jack in the Box. DKII.EXE names it by number
+     * (0x4B02E0)
+     */
+    private static final short CREATURE_JACK_ID = 46;
 
     private final IKwdFile kwdFile;
     private final EntityData entityData;
@@ -153,6 +163,7 @@ public final class ShotsController implements IShotsController {
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
         result.put(BOULDER, this::rollBoulder);
+        result.put(JACK_IN_THE_BOX, this::releaseJack);
 
         return result;
     }
@@ -309,6 +320,37 @@ public final class ShotsController implements IShotsController {
         EntityId boulder = objectsController.loadObject(ObjectsController.OBJECT_BOULDER_ID, request.playerId(), tile.x, tile.y);
         entityData.setComponents(boulder, new Health(health, health),
                 new Boulder(directionX, directionY, (int) Math.signum(directionX), (int) Math.signum(directionY)));
+    }
+
+    /**
+     * The Jack in the Box goes off under an enemy: the enemy takes the shot's
+     * data 1 as damage, the trap is gone and Jack jumps out of it, a creature
+     * of the trap's owner that walks to its keeper's Dungeon Heart and dies
+     * there. Under anybody else nothing happens (0x4B02E0)
+     *
+     * @param request the shot
+     */
+    private void releaseJack(ShotRequest request) {
+        Owner owner = request.target() != null ? entityData.getComponent(request.target(), Owner.class) : null;
+        Keeper keeper = levelInfo.getPlayer(request.playerId());
+        if (owner == null || keeper == null || !keeper.isEnemy(owner.ownerId)) {
+            return;
+        }
+        EntityController.setDamage(entityData, request.target(), request.shotData1());
+
+        IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(WorldUtils.vectorToPoint(request.position()))) {
+            if (entityData.getComponent(entityId, TrapComponent.class) != null) {
+                entityPositionLookup.getEntityController(entityId).remove();
+                break;
+            }
+        }
+        EntityId jack = creaturesController.spawnCreature(CREATURE_JACK_ID, request.playerId(), 1,
+                WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.PLACE);
+        if (jack != null) {
+            creaturesController.createController(jack).getStateMachine().changeState(CreatureState.JACK_IN_THE_BOX);
+            entityData.setComponent(jack, new CreatureAi(gameTimer.getGameTime(), CreatureState.JACK_IN_THE_BOX, CREATURE_JACK_ID));
+        }
     }
 
     private void notifyShotHit(Shot shot, EntityId target) {

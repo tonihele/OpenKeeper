@@ -642,6 +642,22 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public void walkToHeartToDie() {
+        EntityController.setDamage(entityData, entityId, 1);
+        Keeper keeper = levelInfo.getPlayer(getOwnerId());
+        if (keeper == null || keeper.getDungeonHeartLocation() == null) {
+            return;
+        }
+
+        Point deathbed = new Point(keeper.getDungeonHeartLocation().x + 1, keeper.getDungeonHeartLocation().y + 1);
+        if (deathbed.equals(getCreatureCoordinates())) {
+            EntityController.setDamage(entityData, entityId, 50);
+        } else if (isStopped()) {
+            createNavigation(getCreatureCoordinates(), deathbed, null);
+        }
+    }
+
+    @Override
     public void navigateToAssignedTask() {
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {

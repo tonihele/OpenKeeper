@@ -333,6 +333,13 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
 
     public boolean isSlapped();
 
+    /**
+     * One tick of Jack out of its box: it loses 1 health and walks on to the
+     * tile diagonally past the middle of its keeper's Dungeon Heart, and once
+     * it stands there it loses 50 health a tick (DKII.EXE 0x46E820)
+     */
+    public void walkToHeartToDie();
+
     public boolean isPortalGemInPosession();
 
     /**
