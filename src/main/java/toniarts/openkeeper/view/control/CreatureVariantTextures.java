@@ -54,7 +54,8 @@ final class CreatureVariantTextures {
             TextureKey key = new TextureKey(uniqueName, false);
             if (assetManager.locateAsset(key) != null) {
                 Material uniqueMaterial = material.clone();
-                uniqueMaterial.setTexture("DiffuseMap", assetManager.loadTexture(key));
+                uniqueMaterial.setTexture("DiffuseMap",
+                        AssetUtils.enableWorldTextureMipmaps(assetManager.loadTexture(key)));
                 geometry.setMaterial(uniqueMaterial);
             }
         });
