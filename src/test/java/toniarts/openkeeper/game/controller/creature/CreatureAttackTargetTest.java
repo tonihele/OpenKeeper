@@ -92,11 +92,12 @@ class CreatureAttackTargetTest {
             case "createController" -> stub(ICreatureController.class, (method, params) -> null);
             default -> null;
         });
+        ILevelInfo levelInfo = stub(ILevelInfo.class,
+                (name, args) -> "getPlayer".equals(name) ? new Keeper(false, (Short) args[0]) : null);
         return new CreatureController(entity, entityData, creature, navigationService, null, () -> 0, Map.of(),
                 creaturesController, stub(IEntityPositionLookup.class,
                         (name, args) -> "getSensedEntities".equals(name) ? Set.of(enemy) : null),
-                null, stub(ILevelInfo.class, (name, args) -> "getPlayer".equals(name) ? new Keeper(false, (short) args[0]) : null),
-                null, null, null);
+                null, levelInfo, null, null, null);
     }
 
     @FunctionalInterface
