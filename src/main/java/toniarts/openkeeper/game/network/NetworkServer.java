@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
 import toniarts.openkeeper.game.component.CasinoDisco;
 import toniarts.openkeeper.game.component.CastShot;
+import toniarts.openkeeper.game.component.ChaseBackOff;
 import toniarts.openkeeper.game.component.ChickenAi;
 import toniarts.openkeeper.game.component.ChickenGenerator;
 import toniarts.openkeeper.game.component.CombatPitFighter;
@@ -126,6 +127,7 @@ import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
+import toniarts.openkeeper.game.component.WithdrawnFrom;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -212,6 +214,7 @@ public final class NetworkServer {
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
             Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CastShot.class, new FieldSerializer());
+            Serializer.registerClass(ChaseBackOff.class, new FieldSerializer());
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
@@ -300,6 +303,7 @@ public final class NetworkServer {
             Serializer.registerClass(TriggerWave.class, new FieldSerializer());
             Serializer.registerClass(Turncoat.class, new FieldSerializer());
             Serializer.registerClass(Unconscious.class, new FieldSerializer());
+            Serializer.registerClass(WithdrawnFrom.class, new FieldSerializer());
         }
     }
 

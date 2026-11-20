@@ -157,7 +157,6 @@ public final class HealthSystem extends GameTimeCounter {
         if (healthEntities.applyChanges()) {
             processAddedEntities(healthEntities.getAddedEntities());
             processDeletedEntities(healthEntities.getRemovedEntities());
-            processChangedEntities(healthEntities.getChangedEntities());
         }
 
         // Update other monitorable sets
@@ -444,11 +443,17 @@ public final class HealthSystem extends GameTimeCounter {
                 Owner owner = entity.get(Owner.class);
                 if (tile != null && owner != null && tile.getOwnerId() == owner.ownerId) {
 
-                    // In own land
+                    // In own land. Hits don't hold it up (DKII.EXE's creature tick 0x488930)
                     Double lastTimeOnOwnLand = regeneration.timeOnOwnLand;
-                    if (lastTimeOnOwnLand == null) {
+                    if (entityData.getComponent(entityId, CreatureComponent.class) != null) {
+
+                        // A creature regains it on every tick. DK II turns the value per second into one per tick,
+                        // rounded down, when it loads the creature (0x492320)
+                        delta += regeneration.ownLandHealthIncrease / levelInfo.getLevelData().getGameLevel().getTicksPerSec();
+                    } else if (lastTimeOnOwnLand == null) {
                         setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
                     } else if (elapsedTime - lastTimeOnOwnLand >= 1) {
+                        setTimeOwnOwnLand(regeneration, entityId, elapsedTime);
                         delta += regeneration.ownLandHealthIncrease;
                     }
                 } else {
@@ -562,17 +567,6 @@ public final class HealthSystem extends GameTimeCounter {
         for (Entity entity : entities) {
             int index = Collections.binarySearch(entityIds, entity.getId());
             entityIds.remove(index);
-        }
-    }
-
-    private void processChangedEntities(Set<Entity> entities) {
-        for (Entity entity : entities) {
-            // If the health is changed (either by us or damage)...
-            // Reset the health regen counter
-            Regeneration regeneration = entityData.getComponent(entity.getId(), Regeneration.class);
-            if (regeneration != null && regeneration.timeOnOwnLand != null) {
-                setTimeOwnOwnLand(regeneration, entity.getId(), null);
-            }
         }
     }
 

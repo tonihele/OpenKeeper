@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.ILevelInfo;
 import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.data.Keeper;
@@ -130,7 +131,12 @@ class CreatureTurncoatAllegianceTest {
             default -> null;
         });
 
-        return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), null, null, null, Map.of(),
+        IGameTimer gameTimer = proxy(IGameTimer.class, (method, args) -> switch (method) {
+            case "getGameTime" -> 0d;
+            default -> null;
+        });
+
+        return new CreatureController(entity, entityData, SpellTargetFixtures.creature((short) 1), null, null, gameTimer, Map.of(),
                 creaturesController, entityPositionLookup, null, levelInfo, null, null, null);
     }
 

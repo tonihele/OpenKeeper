@@ -125,13 +125,24 @@ public final class FleeDestinationFinder {
         if (!candidates.isEmpty()) {
             return Optional.of(candidates.get(random.nextInt(candidates.size())));
         }
-        return ownFloorFound ? Optional.empty() : findAwayFromCorner(creature, maxX, maxY);
+        return ownFloorFound ? Optional.empty() : findRunningFrom(creature, new Point(maxX, maxY), AWAY_TRIES);
     }
 
-    private Optional<Point> findAwayFromCorner(Point creature, int cornerX, int cornerY) {
-        int dx = nonZero(cornerX - creature.x);
-        int dy = nonZero(cornerY - creature.y);
-        for (int i = 0; i < AWAY_TRIES; i++) {
+    /**
+     * Picks a reachable tile on the far side of the creature from a point, a
+     * random number of tiles on each axis, less than four times the distance
+     * to the point on that axis. On an axis where the creature is level with
+     * the point, a random side counts as the point's.
+     *
+     * @param creature the creature's tile
+     * @param from the tile to run from
+     * @param tries how many random tiles to try
+     * @return the destination, empty if nothing was found
+     */
+    public Optional<Point> findRunningFrom(Point creature, Point from, int tries) {
+        int dx = nonZero(from.x - creature.x);
+        int dy = nonZero(from.y - creature.y);
+        for (int i = 0; i < tries; i++) {
             int x = creature.x - Integer.signum(dx) * random.nextInt(Math.abs(dx) * 4);
             int y = creature.y - Integer.signum(dy) * random.nextInt(Math.abs(dy) * 4);
             if (isReachable(x, y)) {
@@ -161,9 +172,22 @@ public final class FleeDestinationFinder {
      * @return the destination, empty if nothing was found
      */
     public Optional<Point> findAround(Point creature) {
-        for (int i = 0; i < AROUND_TRIES; i++) {
-            int x = creature.x + random.nextInt(AREA_SIZE) - AREA_SIZE / 2;
-            int y = creature.y + random.nextInt(AREA_SIZE) - AREA_SIZE / 2;
+        return findAround(creature, AREA_SIZE / 2, AROUND_TRIES);
+    }
+
+    /**
+     * Picks a random reachable tile at most the given number of tiles from the
+     * creature on each axis, the creature's own tile included
+     *
+     * @param creature the creature's tile
+     * @param radius how far from the creature on each axis
+     * @param tries how many random tiles to try
+     * @return the destination, empty if nothing was found
+     */
+    public Optional<Point> findAround(Point creature, int radius, int tries) {
+        for (int i = 0; i < tries; i++) {
+            int x = creature.x + random.nextInt(radius * 2 + 1) - radius;
+            int y = creature.y + random.nextInt(radius * 2 + 1) - radius;
             if (isReachable(x, y)) {
                 return Optional.of(new Point(x, y));
             }
