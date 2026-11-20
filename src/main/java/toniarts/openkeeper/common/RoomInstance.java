@@ -34,6 +34,7 @@ public final class RoomInstance extends EntityInstance<Room> {
     private boolean destroyed = false;
     private int health;
     private int maxHealth;
+    private final int initialHealth;
 
     public RoomInstance(Room room) {
         this(room, null);
@@ -43,8 +44,10 @@ public final class RoomInstance extends EntityInstance<Room> {
         super(room);
         if (thing != null) {
             this.direction = thing.getDirection();
+            this.initialHealth = thing.getInitialHealth();
         } else {
             this.direction = null;
+            this.initialHealth = 100;
         }
     }
 
@@ -99,6 +102,16 @@ public final class RoomInstance extends EntityInstance<Room> {
 
     public void setMaxHealth(int maxHealth) {
         this.maxHealth = maxHealth;
+    }
+
+    /**
+     * Get the health the room starts with, in percent. A room placed in the
+     * level editor can start damaged.
+     *
+     * @return the initial health percentage
+     */
+    public int getInitialHealth() {
+        return initialHealth;
     }
 
 }

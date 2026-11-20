@@ -117,6 +117,9 @@ class RoomTextParserTest {
                     if ("getOwnerId".equals(method.getName())) {
                         return OWNER;
                     }
+                    if ("isDungeonHeart".equals(method.getName())) {
+                        return false;
+                    }
                     throw new UnsupportedOperationException(method.getName());
                 });
         return (IRoomsInformation<IRoomInformation>) Proxy.newProxyInstance(RoomTextParserTest.class.getClassLoader(),
