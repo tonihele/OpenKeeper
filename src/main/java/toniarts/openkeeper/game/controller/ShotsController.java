@@ -31,6 +31,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -65,6 +66,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEALTH;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TREMOR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 
 /**
@@ -143,6 +145,12 @@ public final class ShotsController implements IShotsController {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
                 creaturesController.createController(request.target()).turnIntoChicken(request.shotData1());
             }
+        });
+        result.put(TREMOR, request -> {
+
+            // Shot data 1 is the duration in seconds, shot data 2 the radius in tiles
+            double now = gameTimer.getGameTime();
+            entityData.setComponent(entityData.createEntity(), new Tremor(WorldUtils.vectorToPoint(request.position()), request.shotData2(), now, now + request.shotData1()));
         });
         result.put(TURNCOAT, request -> {
             if (request.target() != null && creaturesController.isValidEntity(request.target())) {
