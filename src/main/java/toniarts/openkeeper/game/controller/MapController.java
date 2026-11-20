@@ -281,6 +281,9 @@ public final class MapController extends Container implements IMapController {
                 if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
                     continue;
                 }
+                if (select && !TileWork.canDamageTile(terrain, tile.getOwnerId(), playerId)) {
+                    continue;
+                }
                 tile.setSelected(select, playerId);
                 updatableTiles.add(tile.getLocation());
             }
@@ -491,7 +494,14 @@ public final class MapController extends Container implements IMapController {
     @Override
     public int damageTile(Point point, short playerId, ICreatureController creature) {
         IMapTileController tile = getMapData().getTile(point);
+        if (tile == null) {
+            throw new IllegalArgumentException("Cannot damage a missing tile at " + point + "!");
+        }
         Terrain terrain = getTerrain(tile);
+        if (!TileWork.canDamageTile(terrain, tile.getOwnerId(), playerId)) {
+            String terrainName = terrain != null ? terrain.getName() : "unknown terrain";
+            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrainName + " at " + point + "!");
+        }
 
         // Calculate the damage, the work variables are rates per game second
         float rate;
@@ -511,12 +521,10 @@ public final class MapController extends Container implements IMapController {
             } else {
                 rate = getLevelVariable(Variable.MiscVariable.MiscType.DIG_ROCK_HEALTH) * multiplier;
             }
-        } else if (terrain.getFlags().contains(Terrain.TerrainFlag.OWNABLE) && tile.getOwnerId() != playerId) {
+        } else {
 
             // Attack enemy tile
             rate = getLevelVariable(Variable.MiscVariable.MiscType.ATTACK_TILE_HEALTH);
-        } else {
-            throw new UnsupportedOperationException("Wat?! Tried to damage tile " + terrain.getName() + " at " + point + "!");
         }
         int damage = TileWork.perApplication(rate, getEfficiency(creature));
 
@@ -713,10 +721,20 @@ public final class MapController extends Container implements IMapController {
         }
 
         // If the terrain is not taggable anymore, reset the tagging data
-        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)) {
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER1_ID)) {
             tile.setSelected(false, Player.KEEPER1_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER2_ID)) {
             tile.setSelected(false, Player.KEEPER2_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER3_ID)) {
             tile.setSelected(false, Player.KEEPER3_ID);
+        }
+        if (!terrain.getFlags().contains(Terrain.TerrainFlag.TAGGABLE)
+                || !TileWork.canDamageTile(terrain, tile.getOwnerId(), Player.KEEPER4_ID)) {
             tile.setSelected(false, Player.KEEPER4_ID);
         }
 
