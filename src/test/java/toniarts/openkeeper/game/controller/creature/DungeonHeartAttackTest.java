@@ -242,6 +242,8 @@ class DungeonHeartAttackTest {
         entityData.setComponent(hero, new Position((float) Math.PI, inReach));
         createController(hero).executeAttack(heart);
 
+        // It turns before it swings (0x45F030)
+        assertNull(entityData.getComponent(heart, Damage.class));
         Navigation navigation = entityData.getComponent(hero, Navigation.class);
         assertEquals(WorldUtils.vectorToPoint(inReach), navigation.target);
         assertTurnsToFace(navigation, inReach, 10, 8.8f);

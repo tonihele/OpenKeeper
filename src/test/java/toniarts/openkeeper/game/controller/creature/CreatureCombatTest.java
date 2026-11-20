@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.creature;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.jme3.math.FastMath;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -38,6 +39,7 @@ import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.controller.ICreaturesController;
@@ -52,7 +54,9 @@ import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureCombatTest {
 
@@ -130,6 +134,57 @@ class CreatureCombatTest {
         createController(us).executeAttack(target);
 
         assertEquals(151, entityData.getComponent(target, Damage.class).damage);
+    }
+
+    @Test
+    void creatureTurnsToItsTargetBeforeItSwings() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 5), 0);
+
+        // In reach but facing away. DK II's fight state turns the creature first and only swings once no turn is
+        // left (0x45F030, 0x4B2AE0)
+        entityData.setComponent(us, new Position(FastMath.PI, new Vector3f(5, 0, 4)));
+        createController(us).executeAttack(target);
+
+        assertNull(entityData.getComponent(target, Damage.class));
+        assertTurnsTo(entityData.getComponent(us, Navigation.class), 0);
+
+        // Turned, it swings
+        entityData.removeComponent(us, Navigation.class);
+        entityData.setComponent(us, new Position(0, new Vector3f(5, 0, 4)));
+        createController(us).executeAttack(target);
+
+        assertEquals(151, entityData.getComponent(target, Damage.class).damage);
+        assertNull(entityData.getComponent(us, Navigation.class));
+    }
+
+    @Test
+    void creatureTurnsToItsTargetBeforeItCasts() {
+        EntityId target = createCreature(HERO, FIGHTER, new Vector3f(5, 0, 7), 0);
+        giveAttackSpells(us, castAt((short) 1, 5, null));
+
+        // The turn comes before the attack in DK II's fight state, a spell's too (0x45F030)
+        entityData.setComponent(us, new Position(FastMath.HALF_PI, new Vector3f(5, 0, 4)));
+        createController(us).executeAttack(target);
+
+        assertNull(entityData.getComponent(us, CastShot.class));
+        assertTurnsTo(entityData.getComponent(us, Navigation.class), 0);
+
+        entityData.removeComponent(us, Navigation.class);
+        entityData.setComponent(us, new Position(0, new Vector3f(5, 0, 4)));
+        createController(us).executeAttack(target);
+
+        assertEquals(1, entityData.getComponent(us, CastShot.class).creatureSpellId);
+    }
+
+    /**
+     * The steering turns the creature from the centre of the navigation's tile
+     * to the centre of its face target tile
+     */
+    private static void assertTurnsTo(Navigation navigation, double rotation) {
+        assertNotNull(navigation, "no turn");
+        double steered = Math.atan2(navigation.faceTarget.x - navigation.target.x, navigation.faceTarget.y - navigation.target.y);
+        assertTrue(Math.abs(Math.IEEEremainder(steered - rotation, 2 * Math.PI)) < 0.05,
+                "turns to " + Math.toDegrees(steered) + " degrees");
     }
 
     @Test
