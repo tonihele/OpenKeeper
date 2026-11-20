@@ -17,6 +17,8 @@
 package toniarts.openkeeper.game.navigation;
 
 import com.badlogic.gdx.ai.pfa.GraphPath;
+import com.badlogic.gdx.math.Vector2;
+import java.util.List;
 import toniarts.openkeeper.utils.Point;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.pathfinding.INavigable;
@@ -68,5 +70,21 @@ public interface INavigationService {
      * @return is accessible
      */
     boolean isAccessible(IMapTileInformation from, IMapTileInformation to, INavigable navigable);
+
+    /**
+     * Leaves out the points of a path that the entity can walk past in a
+     * straight line. DK II's paths have waypoints only where the way turns
+     * round something (its navigation mesh and funnel, 0x4CEF40, 0x4CF490).
+     * The straight lines keep the entity's radius off whatever it can't walk
+     * on, and cross nothing dearer than plain floor that the path doesn't
+     * cross.
+     *
+     * @param path the path, from where the entity is through tile centres
+     * @param radius the entity's radius
+     * @param navigable the entity
+     * @return the waypoints, the first and the last point of the path among
+     * them
+     */
+    List<Vector2> smoothPath(List<Vector2> path, float radius, INavigable navigable);
 
 }
