@@ -22,6 +22,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.base.DefaultEntityData;
+import java.awt.Point;
 import java.lang.reflect.Proxy;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +39,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.Damage;
+import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
@@ -50,6 +52,7 @@ import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.CombatCreatureFixtures;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 
@@ -64,10 +67,12 @@ class CreatureCombatTest {
     private static final short HORNY = 2;
     private static final short KEEPER = Player.KEEPER1_ID;
     private static final short HERO = Player.GOOD_PLAYER_ID;
+    private static final short WOODEN_DOOR = 1;
 
     private EntityData entityData;
     private Map<Short, Creature> creatures;
     private Map<EntityId, Set<EntityId>> sensed;
+    private Map<Point, EntityId> doors;
     private EntityId us;
 
     @BeforeEach
@@ -77,7 +82,8 @@ class CreatureCombatTest {
         creatures.put(FIGHTER, CombatCreatureFixtures.fighter(FIGHTER, Creature.FightStyle.BLOCKER));
         creatures.put(HORNY, CombatCreatureFixtures.fighter(HORNY, Creature.FightStyle.BLITZER, Creature.CreatureFlag.IS_HORNY));
         sensed = new HashMap<>();
-        us = createCreature(KEEPER, FIGHTER, new Vector3f(5, 0, 4), 0);
+        doors = new HashMap<>();
+        us =createCreature(KEEPER, FIGHTER, new Vector3f(5, 0, 4), 0);
     }
 
     @Test
@@ -174,6 +180,29 @@ class CreatureCombatTest {
         createController(us).executeAttack(target);
 
         assertEquals(1, entityData.getComponent(us, CastShot.class).creatureSpellId);
+    }
+
+    @Test
+    void creatureTurnsToADoorBeforeItHitsIt() {
+        EntityId door = entityData.createEntity();
+        entityData.setComponents(door, new DoorComponent(WOODEN_DOOR, false, false), new Owner(HERO, HERO),
+                new Health(1000, 1000), new Position(0, new Vector3f(5, 0, 5)));
+        doors.put(new Point(5, 5), door);
+
+        // A door is a target of the fight state like any other, so the creature turns to it before every hit
+        // too (0x481400 makes the door the target, 0x45F030 swings once 0x4B2AE0 leaves no turn)
+        entityData.setComponent(us, new Position(FastMath.PI, new Vector3f(5, 0, 4)));
+        createController(us).attackAdjacentDoor();
+
+        assertNull(entityData.getComponent(door, Damage.class));
+        assertTurnsTo(entityData.getComponent(us, Navigation.class), 0);
+
+        entityData.removeComponent(us, Navigation.class);
+        entityData.setComponent(us, new Position(0, new Vector3f(5, 0, 4)));
+        createController(us).attackAdjacentDoor();
+
+        assertEquals(100, entityData.getComponent(door, Damage.class).damage);
+        assertNull(entityData.getComponent(us, Navigation.class));
     }
 
     /**
@@ -303,6 +332,7 @@ class CreatureCombatTest {
         IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> switch (name) {
             case "getCreature" -> creatures.get((Short) args[0]);
             case "getCreatureSpellById" -> CombatCreatureFixtures.attackSpell();
+            case "getDoorById" -> DoorFixtures.door(WOODEN_DOOR, 0);
             default -> null;
         });
         ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
@@ -311,8 +341,11 @@ class CreatureCombatTest {
             default -> null;
         });
         IGameTimer gameTimer = stub(IGameTimer.class, (name, args) -> "getGameTime".equals(name) ? 10.0 : null);
-        IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class,
-                (name, args) -> "getSensedEntities".equals(name) ? sensed.getOrDefault((EntityId) args[0], Set.of()) : null);
+        IEntityPositionLookup positionLookup = stub(IEntityPositionLookup.class, (name, args) -> switch (name) {
+            case "getSensedEntities" -> sensed.getOrDefault((EntityId) args[0], Set.of());
+            case "getBlockingDoor" -> doors.get(new Point((Integer) args[0], (Integer) args[1]));
+            default -> null;
+        });
         ICreaturesController creaturesController = stub(ICreaturesController.class, (name, args) -> switch (name) {
             case "isValidEntity" -> true;
             case "createController" -> createController((EntityId) args[0]);

@@ -761,16 +761,17 @@ public final class CreatureController extends EntityController implements ICreat
 
     /**
      * Hits a door that is next to us with the melee attack, as often as the
-     * attack recharges
+     * attack recharges. The door is a target of the original's fight state
+     * like any other (0x481400), so the creature turns to it before every hit
+     * and the hit is a normal melee hit (0x45F030, 0x498E30).
      *
      * @param door the door
      */
     private void attackDoor(EntityId door) {
         CreatureMeleeAttack creatureMeleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
-        if (creatureMeleeAttack != null && isAttackRecharged(creatureMeleeAttack)) {
-            entityData.setComponent(entityId, new CreatureMeleeAttack(creatureMeleeAttack, gameTimer.getGameTime()));
+        if (creatureMeleeAttack != null && faceAttackTarget(door) && isAttackRecharged(creatureMeleeAttack)) {
             stateMachine.changeState(CreatureState.MELEE_ATTACK);
-            setDamage(door, creatureMeleeAttack.damage);
+            hitWithMelee(door, creatureMeleeAttack, creatureMeleeAttack.damage);
         }
     }
 
