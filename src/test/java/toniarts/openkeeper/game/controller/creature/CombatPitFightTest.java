@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.CreatureMeleeAttack;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Invisible;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -96,6 +97,17 @@ class CombatPitFightTest {
         EntityId friend = createFighter(KEEPER, 1, 7, pit);
 
         assertEquals(friend, createController(us).getAttackTarget().getEntityId());
+    }
+
+    @Test
+    void invisibleEnemyIsNoTarget() {
+        EntityId us = createFighter(KEEPER, 1, 5, null);
+        EntityId enemy = createFighter(ENEMY, 1, 6, null);
+        sensed.put(us, Set.of(enemy));
+        assertEquals(enemy, createController(us).getAttackTarget().getEntityId());
+
+        entityData.setComponent(enemy, new Invisible(30));
+        assertNull(createController(us).getAttackTarget());
     }
 
     @Test
