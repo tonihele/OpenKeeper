@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.controller.room.storage;
 
 import com.jme3.math.Vector3f;
+import com.jme3.math.Vector2f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
@@ -31,6 +32,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.CreatureAi;
+import toniarts.openkeeper.game.component.CreatureImprisoned;
+import toniarts.openkeeper.game.component.Owner;
+import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
@@ -54,9 +59,12 @@ import toniarts.openkeeper.utils.WorldUtils;
 public abstract class RoomTortureeControl extends AbstractRoomObjectControl<EntityId> {
 
     private static final short ELECTRIC_CHAIR_OBJECT_ID = 61;
+    private final IGameTimer gameTimer;
+    private boolean destroyed;
 
     public RoomTortureeControl(IKwdFile kwdFile, IRoomController parent, EntityData entityData, IGameTimer gameTimer) {
         super(kwdFile, parent, entityData, gameTimer, ObjectType.TORTUREE);
+        this.gameTimer = gameTimer;
     }
 
     @Override
@@ -75,9 +83,52 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
      * taken
      */
     @Override
-    public EntityId addItem(EntityId torturee, Point p) {
-        EntityId device = getFreeDevice(p);
+    public synchronized EntityId addItem(EntityId torturee, Point p) {
+        return reserveDevice(torturee, p == null ? null : WorldUtils.pointToVector2f(p), false);
+    }
+
+    /**
+     * Admits a drop only on the selected device's tile and within its native
+     * entry distance. Stores admission under the same room lock used for removal and
+     * reconstruction. Callers may notify scripts after success; device refresh
+     * and saved-game restoration do not call this method.
+     *
+     * @return the selected device, or null when admission is refused
+     */
+    public synchronized EntityId admit(EntityId victim, Vector2f dropPosition) {
+        if (dropPosition == null || !Float.isFinite(dropPosition.x) || !Float.isFinite(dropPosition.y)) {
+            return null;
+        }
+        CreatureComponent creature = entityData.getComponent(victim, CreatureComponent.class);
+        Health health = entityData.getComponent(victim, Health.class);
+        Owner owner = entityData.getComponent(victim, Owner.class);
+        if (creature == null || health == null || health.health <= 0 || owner == null || isVictim(victim)
+                || (owner.ownerId == parent.getOwnerId() && creature.creatureId == kwdFile.getImp().getCreatureId())) {
+            return null;
+        }
+        EntityId device = reserveDevice(victim, dropPosition, true);
         if (device == null) {
+            return null;
+        }
+        Position devicePosition = entityData.getComponent(device, Position.class);
+        CreatureTortured previous = entityData.getComponent(victim, CreatureTortured.class);
+        double now = gameTimer.getGameTime();
+        entityData.setComponents(victim,
+                new Position(devicePosition.rotation, new Vector3f(devicePosition.position.x,
+                        WorldUtils.FLOOR_HEIGHT, devicePosition.position.z)),
+                new CreatureAi(now, CreatureState.TORTURED, creature.creatureId),
+                new CreatureTortured(previous == null ? 0 : previous.timeTortured, now, now, device),
+                new Owner(owner.ownerId, parent.getOwnerId()));
+        entityData.removeComponent(victim, CreatureImprisoned.class);
+        return device;
+    }
+
+    private EntityId reserveDevice(EntityId torturee, Vector2f p, boolean dropped) {
+        if (destroyed || isVictim(torturee)) {
+            return null;
+        }
+        EntityId device = getFreeDevice(p);
+        if (device == null || (dropped && !canDropAtDevice(p, device))) {
             return null;
         }
 
@@ -89,13 +140,25 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return device;
     }
 
+    /** The native entry guard is separate from the nearest-device selector. */
+    private boolean canDropAtDevice(Vector2f dropPosition, EntityId device) {
+        if (!getDevicePoint(device).equals(WorldUtils.vectorToPoint(dropPosition))) {
+            return false;
+        }
+        Position position = entityData.getComponent(device, Position.class);
+        // DK II uses 12 fractional bits and truncates each squared axis separately.
+        long dx = Math.round((double) position.position.x * 4096) - Math.round((double) dropPosition.x * 4096);
+        long dy = Math.round((double) position.position.z * 4096) - Math.round((double) dropPosition.y * 4096);
+        return (dx * dx >> 12) + (dy * dy >> 12) < 4096;
+    }
+
     /**
      * Puts the victims on the devices again after the room has been constructed
      * again (e.g. extended), as the old devices are gone. A victim stays on the
      * tile it was on if there is a device there still. Otherwise it goes on the
      * closest free device, or is set free if there is none.
      */
-    public void refreshDevices() {
+    public synchronized void refreshDevices() {
         Map<Point, EntityId> devicesByPoint = new HashMap<>();
         for (EntityId device : getDevices()) {
             devicesByPoint.put(getDevicePoint(device), device);
@@ -117,7 +180,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         }
         for (Map.Entry<EntityId, Point> entry : moved.entrySet()) {
             EntityId victim = entry.getKey();
-            EntityId device = getFreeDevice(entry.getValue());
+            EntityId device = getFreeDevice(WorldUtils.pointToVector2f(entry.getValue()));
             if (device == null) {
                 entityData.removeComponent(victim, Stored.class);
                 entityData.removeComponent(victim, CreatureTortured.class);
@@ -142,7 +205,7 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     }
 
     @Override
-    public void removeItem(EntityId object) {
+    public synchronized void removeItem(EntityId object) {
         if (!isVictim(object)) {
             return;
         }
@@ -152,7 +215,8 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     }
 
     @Override
-    public void destroy() {
+    public synchronized void destroy() {
+        destroyed = true;
 
         // The victims are set free
         for (Collection<EntityId> victims : objectsByCoordinate.values()) {
@@ -166,6 +230,17 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         super.destroy();
     }
 
+    @Override
+    public synchronized Collection<EntityId> getItems(Point p) {
+        Collection<EntityId> items = super.getItems(p);
+        return items == null ? null : List.copyOf(items);
+    }
+
+    @Override
+    public synchronized Collection<EntityId> getItems() {
+        return List.copyOf(super.getItems());
+    }
+
     private boolean isVictim(EntityId object) {
         for (Collection<EntityId> victims : objectsByCoordinate.values()) {
             if (victims.contains(object)) {
@@ -175,19 +250,27 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
         return false;
     }
 
-    private EntityId getFreeDevice(Point p) {
+    private EntityId getFreeDevice(Vector2f p) {
         EntityId closest = null;
-        int closestDistance = Integer.MAX_VALUE;
+        double closestDistance = Double.POSITIVE_INFINITY;
+        boolean closestOnTile = false;
+        Point dropTile = p == null ? null : WorldUtils.vectorToPoint(p);
         for (EntityId device : getDevices()) {
             Point devicePoint = getDevicePoint(device);
             Collection<EntityId> victims = objectsByCoordinate.get(devicePoint);
             if (victims != null && !victims.isEmpty() || isTorturedVoluntarily(device)) {
                 continue;
             }
-            int distance = (p == null ? 0 : Math.abs(devicePoint.x - p.x) + Math.abs(devicePoint.y - p.y));
-            if (distance < closestDistance) {
+            Position position = entityData.getComponent(device, Position.class);
+            double dx = p == null ? 0 : position.position.x - p.x;
+            double dy = p == null ? 0 : position.position.z - p.y;
+            double distance = dx * dx + dy * dy;
+            boolean onTile = devicePoint.equals(dropTile);
+            if (closest == null || (onTile && !closestOnTile)
+                    || (onTile == closestOnTile && distance < closestDistance)) {
                 closest = device;
                 closestDistance = distance;
+                closestOnTile = onTile;
             }
         }
         return closest;
