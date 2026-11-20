@@ -28,10 +28,17 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
+import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.controller.ICreaturesController;
+import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.map.IMapInformation;
+import toniarts.openkeeper.game.map.IMapTileInformation;
+import toniarts.openkeeper.game.navigation.steering.FurnitureCollision;
+import toniarts.openkeeper.game.navigation.steering.CreatureSizing;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringBehavior;
 import toniarts.openkeeper.game.navigation.steering.EntitySteeringFactory;
 import toniarts.openkeeper.game.navigation.steering.ISteerableEntity;
@@ -64,10 +71,28 @@ public final class MovementSystem implements IGameLogicUpdatable {
     private final EntitySet movableEntities;
     private final EntityData entityData;
     private final IMapInformation mapInformation;
+    private final IKwdFile level;
+    private final FurnitureCollision furnitureCollision;
+    private final IEntityPositionLookup positionLookup;
+    private final ICreaturesController creaturesController;
+    private final CreatureMovementCollision movementCollision = new CreatureMovementCollision();
 
     public MovementSystem(EntityData entityData, IMapInformation mapInformation) {
+        this(entityData, mapInformation, null);
+    }
+
+    public MovementSystem(EntityData entityData, IMapInformation mapInformation, IKwdFile level) {
+        this(entityData, mapInformation, level, null, null);
+    }
+
+    public MovementSystem(EntityData entityData, IMapInformation mapInformation, IKwdFile level,
+            IEntityPositionLookup positionLookup, ICreaturesController creaturesController) {
         this.entityData = entityData;
         this.mapInformation = mapInformation;
+        this.positionLookup = positionLookup;
+        this.creaturesController = creaturesController;
+        this.level = level;
+        furnitureCollision = level == null ? null : new FurnitureCollision(entityData, level);
         movableEntities = entityData.getEntities(Position.class, Mobile.class, Navigation.class);
 
         processAddedEntities(movableEntities);
@@ -75,6 +100,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
     @Override
     public void processTick(float tpf) {
+        if (furnitureCollision != null) {
+            furnitureCollision.update();
+        }
         if (movableEntities.applyChanges()) {
             processDeletedEntities(movableEntities.getRemovedEntities());
 
@@ -91,7 +119,22 @@ public final class MovementSystem implements IGameLogicUpdatable {
 
             // Calculate steering acceleration
             SteeringAcceleration<Vector2> steeringOutput = steeringOutputsBySteeringBehaviors.get(steeringBehavior);
+            steeringBehavior.setUpdateInterval(tpf);
             steeringBehavior.calculateSteering(steeringOutput);
+            Navigation navigation = movableEntities.getEntity(entityId).get(Navigation.class);
+            if (steeringOutput.linear.isZero() && !navigation.navigationPath.isEmpty()
+                    && steeringBehavior.isOnFinalPathSegment()
+                    && steerableEntity.getPosition().dst2(navigation.navigationPath.getLast()) <= .1f * .1f) {
+                // Arrival has finished linear travel. Residual velocity would
+                // drift out of tolerance and oscillate at the logic tick rate.
+                steerableEntity.getLinearVelocity().setZero();
+            }
+            if (furnitureCollision != null && entityData.getComponent(entityId, CreatureComponent.class) != null
+                    && navigation.navigationPath.size() > 1) {
+                furnitureCollision.constrain(steerableEntity, steeringOutput,
+                        navigation.endInObstacle && steeringBehavior.isOnFinalPathSegment()
+                                ? navigation.navigationPath.getLast() : null, tpf);
+            }
 
             /*
              * Here you might want to add a motor control layer filtering steering accelerations.
@@ -138,7 +181,14 @@ public final class MovementSystem implements IGameLogicUpdatable {
         Position position = entity.get(Position.class);
 
         // Steering orientation is the rotation negated, as applySteering writes it back
-        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, 0.25f, position.position.x, position.position.z, -position.rotation);
+        ISteerableEntity steerableEntity = new SteerableEntity(entity.getId(), mobile.maxSpeed, getRadius(entity), position.position.x, position.position.z, -position.rotation);
+        CreatureComponent creature = entityData.getComponent(entity.getId(), CreatureComponent.class);
+        if (level != null && creature != null) {
+            var definition = level.getCreature(creature.creatureId);
+            if (definition != null) {
+                steerableEntity.setMaxAngularSpeed(definition.getTurnSpeed());
+            }
+        }
         EntitySteeringBehavior steeringBehavior = EntitySteeringFactory.navigateToPoint(navigation.navigationPath, navigation.faceTarget, steerableEntity, navigation.target);
         if (steeringBehavior == null) {
 
@@ -154,6 +204,12 @@ public final class MovementSystem implements IGameLogicUpdatable {
         steeringOutputsBySteeringBehaviors.put(steeringBehavior, new SteeringAcceleration<>(new Vector2()));
         entityIdsBySteeringBehavior.put(steeringBehavior, entity.getId());
         targetPointsByEntityId.put(entity.getId(), navigation.target);
+    }
+
+    private float getRadius(Entity entity) {
+        CreatureComponent creature = entityData.getComponent(entity.getId(), CreatureComponent.class);
+        return level != null && creature != null
+                ? CreatureSizing.getBodyRadius(level.getCreature(creature.creatureId)) : 0.25f;
     }
 
     private void processDeletedEntities(Set<Entity> removedEntities) {
@@ -195,30 +251,62 @@ public final class MovementSystem implements IGameLogicUpdatable {
         }
     }
 
+    private boolean canMoveTo(EntityId id, Vector2 fromPosition, Vector2 candidate) {
+        if (creaturesController == null || entityData.getComponent(id, CreatureComponent.class) == null) {
+            return true;
+        }
+        Point from = WorldUtils.vectorToPoint(fromPosition);
+        Point to = WorldUtils.vectorToPoint(candidate);
+        if (from.equals(to)) {
+            return true;
+        }
+        IMapController map = (IMapController) mapInformation;
+        IMapTileInformation destination = map.getMapData().getTile(to);
+        var controller = creaturesController.createController(id);
+        if (destination != null && positionLookup != null
+                && positionLookup.isTileBlocked(to, controller.getOwnerId())) {
+            // A route may include breaking this door, or predate its placement.
+            // Keep physical walking tile-based and let AI replan/attack it.
+            entityData.removeComponent(id, Navigation.class);
+            return false;
+        }
+        return destination != null && controller.getCost(
+                map.getMapData().getTile(from), destination, map, positionLookup) != null;
+    }
+
     private void applySteering(EntityId entityId, ISteerableEntity steerableEntity, SteeringAcceleration<Vector2> steering, float tpf) {
 
         // We are done
         if (steering.isZero()
                 && steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())
                 && isZeroAngular(steerableEntity.getAngularVelocity(), steerableEntity.getZeroLinearSpeedThreshold())) {
-            entityData.removeComponent(entityId, Navigation.class);
+            Navigation navigation = movableEntities.getEntity(entityId).get(Navigation.class);
+            // The factory creates no path follower for zero/one-point paths:
+            // those requests only face a target from the current position.
+            if (navigation.navigationPath.size() <= 1
+                    || steerableEntity.getPosition().dst2(navigation.navigationPath.getLast()) <= 0.1f * 0.1f) {
+                entityData.removeComponent(entityId, Navigation.class);
+            }
             return;
         }
 
         // trim speed if have no forces
         if (steering.linear.isZero() && !steerableEntity.getLinearVelocity().isZero()) {
-            steerableEntity.getLinearVelocity().scl(0.8f);
+            steerableEntity.getLinearVelocity().scl((float) Math.pow(.8f, tpf * 60));
         }
         // apply linear
         steerableEntity.getLinearVelocity().mulAdd(steering.linear, tpf).limit(steerableEntity.getMaxLinearSpeed());
-        steerableEntity.getPosition().add(steerableEntity.getLinearVelocity().x * tpf, steerableEntity.getLinearVelocity().y * tpf);
+        Vector2 position = steerableEntity.getPosition();
+        movementCollision.move(position, steerableEntity.getLinearVelocity(), tpf,
+                candidate -> canMoveTo(entityId, position, candidate));
 
         // Update orientation and angular velocity
         if (INDEPENDENT_FACING
                 || steerableEntity.getLinearVelocity().isZero(steerableEntity.getZeroLinearSpeedThreshold())) {
             // trim speed if have no forces
             if (steering.angular == 0 && steerableEntity.getAngularVelocity() != 0) {
-                steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity() * 0.7f);
+                steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity()
+                        * (float) Math.pow(.7f, tpf * 60));
             }
             // Update angular velocity. Velocity is trimmed to maximum speed
             steerableEntity.setAngularVelocity(steerableEntity.getAngularVelocity()
@@ -230,8 +318,13 @@ public final class MovementSystem implements IGameLogicUpdatable {
             }
         } else {
             float newOrientation = SteeringUtils.calculateVectorToAngle(steerableEntity.getLinearVelocity());
-            steerableEntity.setAngularVelocity(newOrientation - steerableEntity.getOrientation());
-            steerableEntity.setOrientation(newOrientation);
+            // DKII bounds body yaw independently of instantaneous movement
+            // direction. Convert the steering convention to body yaw for the
+            // circular turn, then convert back when applying the change.
+            float turn = -SteeringUtils.calculateTurnDelta(-steerableEntity.getOrientation(),
+                    -newOrientation, steerableEntity.getMaxAngularSpeed() * tpf);
+            steerableEntity.setAngularVelocity(tpf > 0 ? turn / tpf : 0);
+            steerableEntity.setOrientation((steerableEntity.getOrientation() + turn) % (float) (Math.PI * 2));
         }
 
         // Also update the real components
@@ -268,6 +361,9 @@ public final class MovementSystem implements IGameLogicUpdatable {
     @Override
     public void stop() {
         movableEntities.release();
+        if (furnitureCollision != null) {
+            furnitureCollision.release();
+        }
         steeringBehaviors.clear();
         steerableEntitiesByEntityId.clear();
         steerableEntitiesBySteeringBehavior.clear();

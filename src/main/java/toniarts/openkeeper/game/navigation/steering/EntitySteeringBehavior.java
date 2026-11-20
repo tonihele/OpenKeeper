@@ -17,6 +17,9 @@
 package toniarts.openkeeper.game.navigation.steering;
 
 import com.badlogic.gdx.ai.steer.behaviors.PrioritySteering;
+import com.badlogic.gdx.ai.steer.behaviors.FollowPath;
+import com.badlogic.gdx.ai.steer.behaviors.ReachOrientation;
+import com.badlogic.gdx.ai.steer.utils.paths.LinePath;
 import com.badlogic.gdx.math.Vector2;
 
 /**
@@ -35,6 +38,31 @@ public final class EntitySteeringBehavior extends PrioritySteering<Vector2> impl
         super(owner);
 
         this.steerableEntity = owner;
+    }
+
+    /** Do not ask arrival controllers to correct velocity faster than one update. */
+    public void setUpdateInterval(float tpf) {
+        for (var behavior : behaviors) {
+            if (behavior instanceof FollowPath<?, ?> path) {
+                path.setTimeToTarget(Math.max(.1f, tpf));
+            } else if (behavior instanceof ReachOrientation<?> orientation) {
+                orientation.setTimeToTarget(Math.max(.001f, tpf));
+                // Start braking before a full-speed turn can cross the target in one tick.
+                orientation.setDecelerationRadius(Math.max(.2f, steerableEntity.getMaxAngularSpeed() * tpf));
+            }
+        }
+    }
+
+    /** Whether the path follower has advanced to its final leg. */
+    public boolean isOnFinalPathSegment() {
+        for (var behavior : behaviors) {
+            if (behavior instanceof FollowPath<?, ?> followPath
+                    && followPath.getPath() instanceof LinePath<?> path
+                    && followPath.getPathParam() instanceof LinePath.LinePathParam param) {
+                return param.getSegmentIndex() == path.getSegments().size - 1;
+            }
+        }
+        return false;
     }
 
     @Override
