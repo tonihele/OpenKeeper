@@ -55,7 +55,9 @@ import de.lessvoid.nifty.tools.SizeValueType;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.component.*;
 import toniarts.openkeeper.game.controller.ILevelInfo;
+import toniarts.openkeeper.game.controller.KeeperSpellCastValidator;
 import toniarts.openkeeper.game.controller.KeeperSpellCost;
+import toniarts.openkeeper.game.controller.ReaperSummoner;
 import toniarts.openkeeper.game.controller.creature.CreatureState;
 import toniarts.openkeeper.game.controller.player.PlayerResearchControl;
 import toniarts.openkeeper.game.data.ResearchableEntity;
@@ -111,12 +113,6 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private static final java.awt.Color RESEARCH_COLOR = new java.awt.Color(0.569f, 0.106f, 0.31f, 0.6f);
     private static final java.awt.Color RECHARGE_COLOR = new java.awt.Color(1f, 1f, 1f, 0.7f);
 
-    /**
-     * The Reaper Talisman's free one shot Reaper. It is never on the spell
-     * tab, the original casts it only from the Talisman
-     */
-    private static final short ONE_SHOT_REAPER_SPELL_ID = 14;
-
     public float lastUpdate = 0;
 
     private PlayerState state;
@@ -135,6 +131,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private int battleIndex = -1;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
+    private EntitySet keeperCreatures;
+    private boolean reaperOwned;
+    private String reaperTalismanState;
     private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
     private EntitySet spellCasts;
@@ -174,6 +173,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
             }
             updatePossessionHealth();
             updateCallToArms();
+            if (keeperCreatures != null && isReaperOwned() != reaperOwned) {
+                updateReaperTalisman();
+            }
             if (state != null && screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
                 updateWorkshopAvailability();
             }
@@ -235,6 +237,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
             callToArmsBanners.release();
             callToArmsBanners = null;
         }
+        if (keeperCreatures != null) {
+            keeperCreatures.release();
+            keeperCreatures = null;
+        }
+        reaperTalismanState = null;
         if (possessedCreature != null) {
             possessedCreature.release();
             possessedCreature = null;
@@ -1114,6 +1121,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         showBattleButton();
         callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
                 CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
+        keeperCreatures = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
+                Owner.class, CreatureComponent.class);
 
         // Keeper spell recharge, a cast that is already in the set is not tracked, the changes are
         spellCasts = entityData.getEntities(new FieldFilter(KeeperSpellCast.class, "keeperId", state.getPlayer().getId()), KeeperSpellCast.class);
@@ -1231,7 +1240,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         Screen hud = nifty.getScreen(SCREEN_HUD_ID);
         for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
-            if (!spell.isDiscovered()) {
+
+            // DK II doesn't darken the Reaper Talisman for mana (0x424EC0)
+            if (!spell.isDiscovered() || isReaperTalismanSpell(spell)) {
                 continue;
             }
             KeeperSpell keeperSpell = state.getKwdFile().getKeeperSpellById(spell.getId());
@@ -1431,7 +1442,9 @@ public final class PlayerScreenController implements IPlayerScreenController {
         FlowLayoutControl contentPanel = hud.findElementById("tab-spell-content").getControl(FlowLayoutControl.class);
         contentPanel.removeAll();
         for (final ResearchableEntity spell : state.getAvailableKeeperSpells()) {
-            if (spell.getId() == ONE_SHOT_REAPER_SPELL_ID) {
+
+            // DK II casts the Reaper spells from the Reaper Talisman, never from the spell tab (0x412FC0)
+            if (isReaperTalismanSpell(spell)) {
                 continue;
             }
             Element element = contentPanel.addElement(createSpellIcon(spell));
@@ -1461,6 +1474,69 @@ public final class PlayerScreenController implements IPlayerScreenController {
         }
         unaffordableSpells.clear();
         updateSpellAffordability(state.getPlayer().getMana() - state.getPlayer().getManaLoose());
+        updateReaperTalisman();
+    }
+
+    private static boolean isReaperTalismanSpell(ResearchableEntity spell) {
+        return spell.getId() == ReaperSummoner.SUMMON_REAPER_SPELL_ID || spell.getId() == ReaperSummoner.ONE_SHOT_REAPER_SPELL_ID;
+    }
+
+    private boolean isReaperOwned() {
+        keeperCreatures.applyChanges();
+        return ReaperSummoner.hasReaper(state.getKwdFile(), keeperCreatures);
+    }
+
+    /**
+     * Shows the Reaper Talisman: the whole Talisman once Summon Reaper is
+     * researched, otherwise its pieces on the levels that have them. Clicking
+     * it picks the spell it casts, as a spell icon does. It is dimmed while it
+     * can't be used. Updated when the keeper's spells change, and when the
+     * keeper gets or loses a Reaper. The tooltips are DK II's (0x424FD0).
+     */
+    private void updateReaperTalisman() {
+        if (state == null || keeperCreatures == null) {
+            return;
+        }
+        reaperOwned = isReaperOwned();
+        KeeperSpell keeperSpell = KeeperSpellCastValidator.getReaperTalismanSpell(state.getKwdFile(), state.getPlayer(), reaperOwned);
+        boolean summonReaperResearched = false;
+        for (ResearchableEntity spell : state.getAvailableKeeperSpells()) {
+            if (spell.getId() == ReaperSummoner.SUMMON_REAPER_SPELL_ID && spell.isDiscovered()) {
+                summonReaperResearched = true;
+            }
+        }
+        String image = "reaper_talisman-00";
+        String activeImage = image;
+        if (summonReaperResearched) {
+            image = "reaper_talisman-02";
+            activeImage = "reaper_talisman-03";
+        } else if (state.getKwdFile().getGameLevel().getTalismanPieces() > 0) {
+            image = "reaper_talisman-01";
+            activeImage = "reaper_talisman-04";
+        }
+        String tooltipId = summonReaperResearched ? "2238" : keeperSpell != null ? "2239" : "2244";
+
+        String talismanState = image + "_" + tooltipId + "_" + (keeperSpell != null ? keeperSpell.getId() : "");
+        if (talismanState.equals(reaperTalismanState)) {
+            return;
+        }
+        reaperTalismanState = talismanState;
+
+        // The spell id lets the spell selection find the Talisman
+        Element panel = nifty.getScreen(SCREEN_HUD_ID).findElementById("reaper-talisman");
+        removeAllChildElements(panel);
+        String tooltip = Utils.getMainTextResourceBundle().getString(tooltipId);
+        ControlBuilder cb = new GuiIconBuilder(keeperSpell != null ? "spell_" + keeperSpell.getId() : "reaper-talisman-icon",
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Spells/" + image + ".png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Icons/hilight.png"),
+                AssetUtils.getCanonicalAssetKey(AssetsConverter.TEXTURES_FOLDER + File.separator + "GUI/Spells/" + activeImage + ".png"),
+                tooltip, tooltip, keeperSpell != null ? "select(spell, " + keeperSpell.getId() + ")" : "");
+        cb.width("128px");
+        cb.height("128px");
+        Element element = cb.build(panel);
+        if (keeperSpell == null) {
+            element.startEffect(EffectEventId.onCustom, null, "unaffordable");
+        }
     }
 
     /**

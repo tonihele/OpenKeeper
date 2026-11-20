@@ -346,11 +346,6 @@
         </panel>
     </controlDefinition>
 
-    <!-- Reaper -->
-    <controlDefinition style="nifty-panel-style" name="reaperTalisman" controller="de.lessvoid.nifty.controls.DefaultController">
-        <image align="center" valign="center" filename="Textures/GUI/Spells/reaper_talisman-00.png"/>
-    </controlDefinition>
-
     <!-- Fight Icon -->
     <controlDefinition style="nifty-panel-style" name="fight" controller="de.lessvoid.nifty.controls.DefaultController">
         <image filename="Textures/GUI/Icons/a-fight-00.png" valign="center">

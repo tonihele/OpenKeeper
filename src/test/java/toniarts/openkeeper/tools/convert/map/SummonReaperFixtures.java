@@ -31,6 +31,7 @@ public final class SummonReaperFixtures {
     public static KeeperSpell keeperSpell(short keeperSpellId, short shotTypeId, int shotData1, int manaCost, int manaDrain) {
         KeeperSpell keeperSpell = new KeeperSpell();
         keeperSpell.setKeeperSpellId(keeperSpellId);
+        keeperSpell.setOrderInEditor(keeperSpellId);
         keeperSpell.setName("Spell " + keeperSpellId);
         keeperSpell.setShotTypeId(shotTypeId);
         keeperSpell.setShotData1(shotData1);

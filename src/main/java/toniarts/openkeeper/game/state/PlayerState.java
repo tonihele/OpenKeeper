@@ -36,6 +36,7 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.console.ConsoleState;
+import toniarts.openkeeper.game.controller.ReaperSummoner;
 import toniarts.openkeeper.game.controller.TrapPlacementValidator;
 import toniarts.openkeeper.game.controller.player.PlayerCreatureControl;
 import toniarts.openkeeper.game.controller.player.PlayerGoldControl;
@@ -47,6 +48,7 @@ import toniarts.openkeeper.game.data.CampaignLevel;
 import toniarts.openkeeper.game.data.GameResult;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableEntity;
+import toniarts.openkeeper.game.data.ResearchableType;
 import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.game.listener.PlayerListener;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
@@ -696,6 +698,13 @@ public final class PlayerState extends AbstractAppState implements PlayerListene
     @Override
     public void onEntityRemoved(short keeperId, ResearchableEntity researchableEntity) {
         populateTab(researchableEntity);
+
+        // The Talisman's free Reaper is gone once it is cast, don't keep it picked
+        if (researchableEntity.getId() == ReaperSummoner.ONE_SHOT_REAPER_SPELL_ID
+                && researchableEntity.getResearchableType() == ResearchableType.SPELL
+                && interactionState != null) {
+            interactionState.setInteractionState(InteractionState.Type.NONE, 0);
+        }
     }
 
     @Override
