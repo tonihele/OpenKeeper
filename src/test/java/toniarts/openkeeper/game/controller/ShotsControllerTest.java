@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.controller;
 
+import com.jme3.math.Vector2f;
 import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
@@ -34,6 +35,7 @@ import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.event.GameEventType;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
@@ -64,6 +66,8 @@ class ShotsControllerTest {
 
     private static final short HEAL_ID = 4;
     private static final short CREATE_OBJECT_ID = 2;
+    private static final short CREATE_CREATURE_ID = 10;
+    private static final short IMP_ID = 1;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
     private static final short SPIKE_ID = 27;
@@ -71,6 +75,7 @@ class ShotsControllerTest {
     private static final short DOOR_FIREBALL_ID = 57;
     private static final short FREEZE_ID = 45;
     private static final short ALARM_ID = 13;
+    private static final short FEAR_ID = 25;
     private static final short REAPER_ID = 2;
     private static final short PLAYER_ID = 3;
     private static final short ENEMY_ID = 4;
@@ -81,6 +86,8 @@ class ShotsControllerTest {
     private final Map<Short, Shot> shotsById = new HashMap<>();
     private final List<Object[]> loadedObjects = new ArrayList<>();
     private final Set<Point> waterTiles = new HashSet<>();
+    private final List<Object[]> spawnedCreatures = new ArrayList<>();
+    private final List<List<Object>> playerEvents = new ArrayList<>();
     private final ShotsController shotsController;
     private double gameTime = 0;
 
@@ -89,12 +96,14 @@ class ShotsControllerTest {
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
+        addShot(CREATE_CREATURE_ID, Shot.ProcessType.CREATE_CREATURE);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
+        shotsById.put(FEAR_ID, TrapFiringFixtures.shot(FEAR_ID, Shot.ProcessType.FEAR, Shot.DamageType.NONE));
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
@@ -121,7 +130,12 @@ class ShotsControllerTest {
                     case "isWater" -> waterTiles.contains((Point) args[0]);
                     default -> null;
                 });
-        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> null);
+        GameEventService gameEventService = (GameEventService) Proxy.newProxyInstance(GameEventService.class.getClassLoader(), new Class<?>[]{GameEventService.class}, (proxy, method, args) -> {
+            if (method.getName().equals("emitToPlayer")) {
+                playerEvents.add(List.of(args));
+            }
+            return null;
+        });
 
         IEntityPositionLookup entityPositionLookup = (IEntityPositionLookup) Proxy.newProxyInstance(IEntityPositionLookup.class.getClassLoader(), new Class<?>[]{IEntityPositionLookup.class},
                 (proxy, method, args) -> entityData.findEntities(null, Position.class).stream()
@@ -129,7 +143,15 @@ class ShotsControllerTest {
                         .toList());
         IGameController gameController = (IGameController) Proxy.newProxyInstance(IGameController.class.getClassLoader(), new Class<?>[]{IGameController.class},
                 (proxy, method, args) -> method.getName().equals("getEntityLookupService") ? entityPositionLookup : null);
-        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, null, gameEventService);
+        ICreaturesController creaturesController = (ICreaturesController) Proxy.newProxyInstance(ICreaturesController.class.getClassLoader(), new Class<?>[]{ICreaturesController.class},
+                (proxy, method, args) -> {
+                    if (method.getName().equals("spawnCreature")) {
+                        spawnedCreatures.add(args);
+                        return null;
+                    }
+                    throw new UnsupportedOperationException(method.getName());
+                });
+        shotsController = new ShotsController(kwdFile, entityData, null, () -> gameTime, gameController, mapController, null, objectsController, creaturesController, gameEventService);
     }
 
     @Test
@@ -188,6 +210,34 @@ class ShotsControllerTest {
         assertEquals(4, args[2]);
         assertEquals(7, args[3]);
         assertEquals(1000, args[4]);
+    }
+
+    @Test
+    void creatureShotCreatesTheShotsNumberOfCreaturesAtLevelOne() {
+
+        // Create Imp: creature 1 (Imp), the second value is how many
+        shotsController.createShot(CREATE_CREATURE_ID, IMP_ID, 3, PLAYER_ID, new Vector3f(4.5f, 1f, 7.5f), null, null);
+
+        assertEquals(3, spawnedCreatures.size());
+        for (Object[] args : spawnedCreatures) {
+            assertEquals(IMP_ID, args[0]);
+            assertEquals(PLAYER_ID, args[1]);
+            assertEquals(1, args[2]);
+            assertEquals(new Vector2f(4.5f, 7.5f), args[3]);
+            assertEquals(ICreaturesController.SpawnType.CONJURE, args[4]);
+        }
+    }
+
+    @Test
+    void fearShotDoesNothingItself() {
+        EntityId creature = createCreature();
+
+        shotsController.createShot(FEAR_ID, 0, 0, PLAYER_ID, new Vector3f(), creature, null);
+
+        assertNull(entityData.getComponent(creature, Damage.class));
+        assertEquals(0, countShotEntities());
+        assertTrue(loadedObjects.isEmpty());
+        assertTrue(spawnedCreatures.isEmpty());
     }
 
     @Test
@@ -374,6 +424,7 @@ class ShotsControllerTest {
         assertEquals(position, entityData.getComponent(alarm, Position.class).position);
         assertEquals(5, entityData.getComponent(alarm, Decay.class).startTime);
         assertEquals(50, entityData.getComponent(alarm, Decay.class).duration);
+        assertEquals(List.of(List.of(GameEventType.ALARM_RAISED, PLAYER_ID)), playerEvents);
     }
 
     @Test
@@ -382,11 +433,13 @@ class ShotsControllerTest {
         shotsController.createShot(ALARM_ID, 0, 5, PLAYER_ID, new Vector3f(20, 1, 20), null, null);
 
         assertEquals(1, entityData.findEntities(null, Alarm.class).size());
+        assertEquals(1, playerEvents.size());
 
         // Another keeper's alarm doesn't hold back the alarm
         shotsController.createShot(ALARM_ID, 0, 5, ENEMY_ID, new Vector3f(20, 1, 20), null, null);
 
         assertEquals(2, entityData.findEntities(null, Alarm.class).size());
+        assertEquals(List.of(GameEventType.ALARM_RAISED, ENEMY_ID), playerEvents.get(1));
     }
 
     private EntityId createCreature(short ownerId, float x, float y) {

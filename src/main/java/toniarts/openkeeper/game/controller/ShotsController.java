@@ -59,6 +59,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.ALARM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FEAR;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
@@ -123,8 +124,14 @@ public final class ShotsController implements IShotsController {
 
     private Map<Shot.ProcessType, IShotProcessor> createProcessors() {
         Map<Shot.ProcessType, IShotProcessor> result = new EnumMap<>(Shot.ProcessType.class);
-        result.put(CREATE_CREATURE, request -> creaturesController.spawnCreature((short) request.shotData1(), request.playerId(),
-                request.shotData2(), WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE));
+        result.put(CREATE_CREATURE, request -> {
+
+            // The shot's second value is how many creatures to create, each at level 1 (0x4AD7A0)
+            for (int i = 0; i < request.shotData2(); i++) {
+                creaturesController.spawnCreature((short) request.shotData1(), request.playerId(), 1,
+                        WorldUtils.vector3fToVector2f(request.position()), ICreaturesController.SpawnType.CONJURE);
+            }
+        });
         result.put(CREATE_OBJECT, request -> {
             GameObject object = kwdFile.getObject(request.shotData1());
             if (object != null && object.getFlags().contains(GameObject.ObjectFlag.OBJECT_TYPE_GOLD)) {
@@ -149,6 +156,11 @@ public final class ShotsController implements IShotsController {
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
+
+        // The Fear Trap's shot does nothing itself: DK II's handler for it is empty (the FEAR entry of the shot table
+        // filled at 0x4AD1B0). The trap scares with the threat it makes after it fires, see TrapSystem
+        result.put(FEAR, request -> {
+        });
 
         return result;
     }
@@ -261,8 +273,8 @@ public final class ShotsController implements IShotsController {
     }
 
     /**
-     * Raises an alarm for the player where the shot was fired, unless the
-     * player's last alarm still lasts
+     * Raises an alarm for the player where the shot was fired and tells the
+     * player of it, unless the player's last alarm still lasts
      *
      * @param request the shot
      */
@@ -274,6 +286,7 @@ public final class ShotsController implements IShotsController {
         EntityId alarm = entityData.createEntity();
         entityData.setComponents(alarm, new Alarm(), new Owner(request.playerId(), request.playerId()),
                 new Position(0, new Vector3f(request.position())), new Decay(gameTimer.getGameTime(), ALARM_DURATION));
+        gameEventService.emitToPlayer(GameEventType.ALARM_RAISED, request.playerId());
     }
 
     private void notifyShotHit(Shot shot, EntityId target) {
