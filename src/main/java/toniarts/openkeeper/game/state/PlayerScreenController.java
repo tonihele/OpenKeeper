@@ -137,6 +137,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private final Set<Element> unaffordableRooms = new HashSet<>();
     private final Map<Element, String> workshopIconTints = new HashMap<>();
     private Label tooltip;
+    private Label heroKillCount;
+    private int displayedHeroKills = -1;
     private boolean initHud = false;
     private String cinematicText;
     private EntityData entityData;
@@ -182,6 +184,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
             if (state != null && screen != null && SCREEN_HUD_ID.equals(screen.getScreenId())) {
                 updateWorkshopAvailability();
                 updatePlayerInformation();
+                updateHeroKills();
             }
             lastUpdate = 0;
         }
@@ -193,6 +196,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
             spellCasts.release();
             spellCasts = null;
         }
+        heroKillCount = null;
+        displayedHeroKills = -1;
         spellRechargeLeft.clear();
         if (creatureCardManager != null) {
             creatureCardManager.cleanup();
@@ -1047,6 +1052,18 @@ public final class PlayerScreenController implements IPlayerScreenController {
         keeperTraps = entityData.getEntities(TrapComponent.class, Owner.class);
         playerInformation = null;
 
+        // This is a level option, including in maps outside My Pet Dungeon.
+        Element heroKills = hud.findElementById("heroKills");
+        boolean showHeroKills = state.getKwdFile().getGameLevel().getLvlFlags()
+                .contains(GameLevel.LevFlag.SHOW_HERO_KILLS);
+        heroKills.setVisible(showHeroKills);
+        heroKills.setConstraintWidth(showHeroKills
+                ? hud.findElementById("minimapPanel").getConstraintWidth() : new SizeValue("0px"));
+        heroKills.getParent().layoutElements();
+        heroKillCount = showHeroKills ? hud.findNiftyControl("heroKillCount", Label.class) : null;
+        displayedHeroKills = -1;
+        updateHeroKills();
+
         // Keeper spell recharge, a cast that is already in the set is not tracked, the changes are
         spellCasts = entityData.getEntities(new FieldFilter(KeeperSpellCast.class, "keeperId", state.getPlayer().getId()), KeeperSpellCast.class);
         // Rooms
@@ -1330,6 +1347,26 @@ public final class PlayerScreenController implements IPlayerScreenController {
 
     private static String getWorkshopTint(boolean hasWorkshop, boolean unaffordable) {
         return !hasWorkshop ? "workshopless" : unaffordable ? "unaffordable" : null;
+    }
+
+    private void updateHeroKills() {
+        if (heroKillCount == null) {
+            return;
+        }
+        // Follow the visible frame, excluding the minimap container's padding.
+        Element frame = screen.findElementById("minimapFrame");
+        Element counter = screen.findElementById("heroKills");
+        if (frame.getWidth() > 0 && (counter.getWidth() != frame.getWidth() - 2
+                || counter.getX() != frame.getX())) {
+            counter.setConstraintWidth(new SizeValue(frame.getWidth() - 2, SizeValueType.Pixel));
+            counter.setMarginLeft(new SizeValue(frame.getX() - counter.getParent().getX(), SizeValueType.Pixel));
+            counter.getParent().layoutElements();
+        }
+        int kills = state.getPlayer().getHeroesDestroyed();
+        if (kills != displayedHeroKills) {
+            heroKillCount.setText(Integer.toString(kills));
+            displayedHeroKills = kills;
+        }
     }
 
     /**
