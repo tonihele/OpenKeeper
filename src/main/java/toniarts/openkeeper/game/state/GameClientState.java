@@ -648,7 +648,7 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onSetWidescreen(boolean enable) {
-            playerState.setWideScreen(enable);
+            app.enqueue(() -> playerState.setWideScreen(enable));
         }
 
         @Override
@@ -665,7 +665,8 @@ public final class GameClientState extends AbstractPauseAwareState {
         public void onEvent(GameEventType type, GameEvent.ThingFlag subjectKind, int subjectId, GameEvent.ThingFlag targetKind, int targetId, EntityId entity, Point position) {
             GameEvent event = new GameEvent(type, subjectKind, subjectId, targetKind, targetId, entity, position);
             logger.log(Level.DEBUG, "Event {0} at {1}", event.type, event.position);
-            EventBus.publish(ClientEvents.GAME_EVENT, event);
+            // We are called from the game loops' threads (or the network), the listeners are view code
+            app.enqueue(() -> EventBus.publish(ClientEvents.GAME_EVENT, event));
         }
 
         @Override
@@ -720,40 +721,42 @@ public final class GameClientState extends AbstractPauseAwareState {
 
         @Override
         public void onFlashButton(TriggerAction.MakeType buttonType, short targetId, TriggerAction.ButtonType targetButtonType, boolean enabled, int time) {
-            playerState.flashButton(buttonType, targetId, targetButtonType, enabled, time);
+            app.enqueue(() -> playerState.flashButton(buttonType, targetId, targetButtonType, enabled, time));
         }
 
         @Override
         public void onRotateViewAroundPoint(Vector3f point, boolean relative, int angle, int time) {
-            playerState.rotateViewAroundPoint(point, relative, angle, time);
+            app.enqueue(() -> playerState.rotateViewAroundPoint(point, relative, angle, time));
         }
 
         @Override
         public void onShowMessage(int textId) {
-            playerState.showMessage(textId);
+            app.enqueue(() -> playerState.showMessage(textId));
         }
 
         @Override
         public void onZoomViewToPoint(Vector3f point) {
-            playerState.zoomToPoint(point);
+            app.enqueue(() -> playerState.zoomToPoint(point));
         }
 
         @Override
         public void onTileFlash(List<Point> points, boolean enabled, short keeperId) {
-            PlayerMapViewState mapViewState = playerMapViewState;
-            if (mapViewState != null) {
-                mapViewState.onTileFlash(points, enabled, keeperId);
-            }
+            app.enqueue(() -> {
+                PlayerMapViewState mapViewState = playerMapViewState;
+                if (mapViewState != null) {
+                    mapViewState.onTileFlash(points, enabled, keeperId);
+                }
+            });
         }
 
         @Override
         public void onZoomViewToEntity(EntityId entityId) {
-            playerState.zoomToEntity(entityId, true);
+            app.enqueue(() -> playerState.zoomToEntity(entityId, true));
         }
 
         @Override
         public void onShowUnitFlower(EntityId entityId, int interval) {
-            playerModelViewState.showUnitFlower(entityId, interval);
+            app.enqueue(() -> playerModelViewState.showUnitFlower(entityId, interval));
         }
 
         @Override
@@ -764,13 +767,16 @@ public final class GameClientState extends AbstractPauseAwareState {
         }
 
         private void setResearchableEntity(short keeperId, ResearchableEntity researchableEntity, Runnable notifier) {
-            Keeper keeper = getPlayer(keeperId);
-            setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
 
-            // FIXME: See in what thread we are
-            if (notifier != null && playerState != null && playerState.getPlayerId() == keeperId) {
-                app.enqueue(notifier);
-            }
+            // The HUD reads the lists on the render thread, so they are changed there as well
+            app.enqueue(() -> {
+                Keeper keeper = getPlayer(keeperId);
+                setResearchableEntity(researchableEntity, getResearchableEntitiesList(keeper, researchableEntity));
+
+                if (notifier != null && playerState != null && playerState.getPlayerId() == keeperId) {
+                    notifier.run();
+                }
+            });
         }
 
         @Override
