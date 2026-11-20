@@ -32,6 +32,7 @@ public final class HeartAttackFixtures {
         creature.setCreatureId(creatureId);
         creature.setName("Creature " + creatureId);
         creature.setFightStyle(fightStyle);
+        creature.setTurnSpeed(0.25f);
         creature.setFlags(EnumSet.noneOf(Creature.CreatureFlag.class));
         return creature;
     }

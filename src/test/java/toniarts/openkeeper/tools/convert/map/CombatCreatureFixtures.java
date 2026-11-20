@@ -38,6 +38,7 @@ public final class CombatCreatureFixtures {
         creature.setName("Fighter " + creatureId);
         creature.setFightStyle(fightStyle);
         creature.setFlags(set);
+        creature.getAttributes().setDistanceCanSee(4);
         return creature;
     }
 

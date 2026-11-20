@@ -38,6 +38,7 @@ import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,7 +60,7 @@ class CreatureAttackTargetTest {
         entityData.setComponent(attacker, new AttackTarget(target));
 
         // Diagonally past two walls: out of reach, and there is no path
-        assertNull(createController(attacker, false).getAttackTarget());
+        assertNull(createController(attacker, target, false).getAttackTarget());
         assertNull(entityData.getComponent(attacker, AttackTarget.class));
     }
 
@@ -69,7 +70,7 @@ class CreatureAttackTargetTest {
         EntityId attacker = createCreature((short) 1, 13, 22);
         entityData.setComponent(attacker, new AttackTarget(target));
 
-        createController(attacker, true).getAttackTarget();
+        createController(attacker, target, true).getAttackTarget();
 
         assertEquals(target, entityData.getComponent(attacker, AttackTarget.class).entityId);
     }
@@ -83,7 +84,7 @@ class CreatureAttackTargetTest {
         return entity;
     }
 
-    private CreatureController createController(EntityId entity, boolean pathExists) {
+    private CreatureController createController(EntityId entity, EntityId enemy, boolean pathExists) {
         Creature creature = ShotFixtures.creature((short) 14, EnumSet.noneOf(Creature.CreatureFlag.class), EnumSet.noneOf(Creature.CreatureFlag3.class));
         INavigationService navigationService = stub(INavigationService.class,
                 (name, args) -> "findPath".equals(name) && pathExists ? new DefaultGraphPath<>() : null);
@@ -92,11 +93,15 @@ class CreatureAttackTargetTest {
             case "createController" -> stub(ICreatureController.class, (method, params) -> null);
             default -> null;
         });
-        ILevelInfo levelInfo = stub(ILevelInfo.class,
-                (name, args) -> "getPlayer".equals(name) ? new Keeper(false, (Short) args[0]) : null);
+        IKwdFile kwdFile = stub(IKwdFile.class, (name, args) -> "getCreature".equals(name) ? creature : null);
+        ILevelInfo levelInfo = stub(ILevelInfo.class, (name, args) -> switch (name) {
+            case "getPlayer" -> new Keeper(false, (short) args[0]);
+            case "getLevelData" -> kwdFile;
+            default -> null;
+        });
         return new CreatureController(entity, entityData, creature, navigationService, null, () -> 0, Map.of(),
                 creaturesController, stub(IEntityPositionLookup.class,
-                        (name, args) -> "getSensedEntities".equals(name) ? Set.of() : null),
+                        (name, args) -> "getSensedEntities".equals(name) ? Set.of(enemy) : null),
                 null, levelInfo, null, null, null);
     }
 
