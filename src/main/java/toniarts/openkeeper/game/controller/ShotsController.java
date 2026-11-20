@@ -60,6 +60,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_SINGLE_CREATURE;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.DECKEM;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.FREEZE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.INFERNO;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.LIGHTNING;
@@ -153,6 +154,7 @@ public final class ShotsController implements IShotsController {
         result.put(LIGHTNING, new LightningShotProcessor(entityData, gameTimer, kwdFile, mapController, creaturesController));
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
+        result.put(DECKEM, this::knockDown);
         result.put(ALARM, this::raiseAlarm);
 
         return result;
@@ -263,6 +265,27 @@ public final class ShotsController implements IShotsController {
         }
 
         entityData.setComponent(target, new Frozen(gameTimer.getGameTime(), request.shotData1()));
+    }
+
+    /**
+     * The Reaper Fireball knocks the creature it hits off its feet, on top of
+     * its damage. Not a creature that is out cold already, nor a Horned Reaper
+     * (0x4AF610)
+     *
+     * @param request the shot
+     */
+    private void knockDown(ShotRequest request) {
+        EntityId target = request.target();
+        CreatureComponent creatureComponent = target != null ? entityData.getComponent(target, CreatureComponent.class) : null;
+        if (creatureComponent == null) {
+            return;
+        }
+        Creature creature = kwdFile.getCreature(creatureComponent.creatureId);
+        if (creature != null && creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)) {
+            return;
+        }
+
+        creaturesController.createController(target).knockDown();
     }
 
     /**
