@@ -33,7 +33,9 @@ import com.jme3.math.Vector3f;
 import com.jme3.renderer.Camera;
 import com.jme3.scene.Spatial;
 import toniarts.openkeeper.utils.Point;
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.cinematics.Cinematic;
@@ -69,6 +71,8 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     private PlayerCamera camera;
     private Camera storedCamera;
     private final Player player;
+    // Camera moves asked for before the state is initialized, done in initialize()
+    private final List<Runnable> waitingForCamera = new ArrayList<>();
 
     private final Set<Integer> keys = new HashSet<>();
     private boolean mouseRotating = false;
@@ -149,6 +153,22 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         // Add listener
         if (isEnabled()) {
             setEnabled(true);
+        }
+
+        waitingForCamera.forEach(Runnable::run);
+        waitingForCamera.clear();
+    }
+
+    /**
+     * Does the camera move now, or in initialize() if the state is not
+     * initialized yet. A level script can start a camera path or a zoom on the
+     * same frame the state is attached.
+     */
+    private void whenInitialized(Runnable cameraMove) {
+        if (isInitialized()) {
+            cameraMove.run();
+        } else {
+            waitingForCamera.add(cameraMove);
         }
     }
 
@@ -259,7 +279,19 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
         this.doTransition(sweepFileId, WorldUtils.ActionPointToVector3f(point), null);
     }
 
+    /**
+     * Plays a camera path. If the state is not initialized yet, the path
+     * starts when it is.
+     *
+     * @param sweepFileId the camera path (EnginePath) number
+     * @param start where the path starts
+     * @param listener told when the path plays and stops, can be null
+     */
     public void doTransition(int sweepFileId, final Vector3f start, final CinematicEventListener listener) {
+        whenInitialized(() -> playTransition(sweepFileId, start, listener));
+    }
+
+    private void playTransition(int sweepFileId, final Vector3f start, final CinematicEventListener listener) {
         String sweepFile = "EnginePath" + sweepFileId;
 
         // Do cinematic transition
@@ -297,11 +329,11 @@ public final class PlayerCameraState extends AbstractPauseAwareState implements 
     }
 
     public void zoomToPoint(Vector3f point) {
-        container.addControl(new PlayerCameraControl(camera, point));
+        whenInitialized(() -> container.addControl(new PlayerCameraControl(camera, point)));
     }
 
     public void rotateAroundPoint(Vector3f point, boolean relative, int angle, int time) {
-        container.addControl(new PlayerCameraRotateControl(camera, relative, angle, time));
+        whenInitialized(() -> container.addControl(new PlayerCameraRotateControl(camera, relative, angle, time)));
     }
 
     @Override
