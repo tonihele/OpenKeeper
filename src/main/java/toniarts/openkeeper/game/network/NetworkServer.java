@@ -122,6 +122,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapTarget;
 import toniarts.openkeeper.game.component.TrapViewState;
+import toniarts.openkeeper.game.component.Tremor;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.TriggerWave;
 import toniarts.openkeeper.game.component.Turncoat;
@@ -292,6 +293,7 @@ public final class NetworkServer {
             Serializer.registerClass(Spellbook.class, new FieldSerializer());
             Serializer.registerClass(Spin.class, new FieldSerializer());
             Serializer.registerClass(TaskComponent.class, new FieldSerializer());
+            Serializer.registerClass(Tremor.class, new FieldSerializer());
             Serializer.registerClass(WoodenBridgeDecay.class, new FieldSerializer());
             Serializer.registerClass(Threat.class, new FieldSerializer());
             Serializer.registerClass(TrapComponent.class, new FieldSerializer());
