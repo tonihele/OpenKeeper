@@ -90,6 +90,22 @@ public abstract class RoomTortureeControl extends AbstractRoomObjectControl<Enti
     }
 
     /**
+     * The victims of a loaded game are creatures, not objects, so the base class
+     * does not find them. Put them back on the devices they were on.
+     */
+    @Override
+    public void restore() {
+        super.restore();
+        for (EntityId victim : entityData.findEntities(new FieldFilter(Stored.class, "room", parent.getEntityId()),
+                Stored.class, CreatureTortured.class)) {
+            EntityId device = entityData.getComponent(victim, CreatureTortured.class).device;
+            if (device != null && entityData.getComponent(victim, Stored.class).objectType == ObjectType.TORTUREE) {
+                objectsByCoordinate.computeIfAbsent(getDevicePoint(device), point -> new ArrayList<>()).add(victim);
+            }
+        }
+    }
+
+    /**
      * Puts the victims on the devices again after the room has been constructed
      * again (e.g. extended), as the old devices are gone. A victim stays on the
      * tile it was on if there is a device there still. Otherwise it goes on the

@@ -108,7 +108,7 @@ class ActAsDroppedTest {
         IMapController mapController = stub(IMapController.class, (method, args) -> room);
         IGameTimer gameTimer = stub(IGameTimer.class, (method, args) -> 0.0);
 
-        return new CreaturesController(kwdFile, entityData, null, gameTimer, null, mapController, null);
+        return new CreaturesController(kwdFile, entityData, null, gameTimer, null, mapController, null, null);
     }
 
     @SuppressWarnings("unchecked")

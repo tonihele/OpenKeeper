@@ -21,6 +21,7 @@ public final class GameObjectFixtures {
         GameObject object = new GameObject();
         object.setName(name);
         object.setFlags(set);
+        object.setAdditionalResources(List.of());
         return object;
     }
 

@@ -73,7 +73,7 @@ class RoomCaptureAnnouncementTest {
                 var attack = Variable.MiscVariable.MiscType.ATTACK_ROOM_HEALTH;
                 var controller = new MapController(data, null,
                         Map.of(convert, CreatureSleepFixtures.variable(convert, 450),
-                                attack, CreatureSleepFixtures.variable(attack, 450)), null, entities, level, events);
+                                attack, CreatureSleepFixtures.variable(attack, 450)), null, entities, level, events, null);
                 var roomEntity = entities.createEntity();
                 var registry = MapController.class.getDeclaredField("roomControllers");
                 registry.setAccessible(true);

@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.trigger.party;
 
 import com.jme3.util.SafeArrayList;
+import java.util.List;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -42,6 +43,15 @@ public final class PartyTriggerLogicController implements IGameLogicUpdatable {
         }
 
         // TODO: get notified on new parties (a.k.a. parties re-spawned)
+    }
+
+    /**
+     * Get the party trigger controls
+     *
+     * @return the trigger controls
+     */
+    public List<PartyTriggerControl> getTriggerControls() {
+        return partyControllers;
     }
 
     @Override

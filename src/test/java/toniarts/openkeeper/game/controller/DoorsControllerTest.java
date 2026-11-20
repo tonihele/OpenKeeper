@@ -113,7 +113,7 @@ class DoorsControllerTest {
             case "getEntityLookupService" -> entityPositionLookup;
             default -> throw new UnsupportedOperationException(method.getName());
         });
-        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, null);
+        doorsController = new DoorsController(kwdFile, entityData, gameSettings, mapController, gameController, null, null);
     }
 
     @Test

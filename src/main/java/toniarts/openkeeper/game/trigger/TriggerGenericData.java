@@ -64,6 +64,10 @@ public final class TriggerGenericData extends TriggerData {
         this.target = target;
     }
 
+    public short getRepeatTimes() {
+        return repeatTimes;
+    }
+
     protected void setRepeatTimes(short repeatTimes) {
         this.repeatTimes = repeatTimes;
     }

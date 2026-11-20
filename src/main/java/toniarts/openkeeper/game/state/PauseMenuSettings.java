@@ -37,6 +37,7 @@ import de.lessvoid.nifty.screen.Screen;
 import org.bushe.swing.event.EventTopicSubscriber;
 import toniarts.openkeeper.Main;
 import toniarts.openkeeper.game.data.Settings;
+import toniarts.openkeeper.game.state.session.AutoSave;
 import toniarts.openkeeper.gui.nifty.table.TableRow;
 import toniarts.openkeeper.utils.DisplayMode;
 import toniarts.openkeeper.utils.DisplayModeUtils;
@@ -49,7 +50,8 @@ import java.util.List;
 
 /**
  * The graphics, sound and control option pages of the in-game pause menu. They
- * offer the same options as the main menu.
+ * offer the same options as the main menu. The save page has the auto-save
+ * interval.
  */
 @SuppressWarnings({"unchecked", "rawtypes"})
 final class PauseMenuSettings {
@@ -64,6 +66,7 @@ final class PauseMenuSettings {
 
     private final EventTopicSubscriber<DropDownSelectionChangedEvent> resolutionSubscriber = this::onResolutionChanged;
     private final EventTopicSubscriber<CheckBoxStateChangedEvent> fullscreenSubscriber = this::onFullscreenChanged;
+    private final EventTopicSubscriber<DropDownSelectionChangedEvent> autoSaveSubscriber = this::onAutoSaveChanged;
 
     PauseMenuSettings(Nifty nifty, Main app, Screen screen) {
         this.nifty = nifty;
@@ -271,11 +274,32 @@ final class PauseMenuSettings {
         find("invertMouse", CheckBox.class).setChecked((boolean) Settings.Setting.MOUSE_INVERT.getDefaultValue());
     }
 
+    // ----------------------------------------------------------- auto-save
+
+    void buildAutoSave(Element parent) {
+        addDropDown(parent, "Auto-save", "autoSave", "150px");
+
+        DropDown<String> autoSave = find("autoSave", DropDown.class);
+        for (int interval : AutoSave.INTERVALS) {
+            autoSave.addItem(interval == 0 ? "Off" : interval + " minutes");
+        }
+        autoSave.selectItemByIndex(Math.max(0, AutoSave.INTERVALS.indexOf(Main.getUserSettings().getInteger(Settings.Setting.AUTO_SAVE_INTERVAL))));
+
+        nifty.unsubscribe("autoSave", autoSaveSubscriber);
+        nifty.subscribe(screen, "autoSave", DropDownSelectionChangedEvent.class, autoSaveSubscriber);
+    }
+
+    private void onAutoSaveChanged(String id, DropDownSelectionChangedEvent event) {
+        Main.getUserSettings().setSetting(Settings.Setting.AUTO_SAVE_INTERVAL, AutoSave.INTERVALS.get(event.getSelectionItemIndex()));
+        save();
+    }
+
     // ------------------------------------------------------------- helpers
 
     void cleanup() {
         nifty.unsubscribe("resolution", resolutionSubscriber);
         nifty.unsubscribe("fullscreen", fullscreenSubscriber);
+        nifty.unsubscribe("autoSave", autoSaveSubscriber);
     }
 
     private void save() {
