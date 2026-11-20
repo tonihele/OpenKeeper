@@ -2835,6 +2835,11 @@ public final class CreatureController extends EntityController implements ICreat
             if (hypnotised != null) {
                 entityData.setComponent(hypnotised, new AttackTarget(target));
             }
+
+            // So do the creatures of our group, a follower takes its leader's target over its own (0x45CB00)
+            for (EntityId follower : getPossessedFollowers()) {
+                entityData.setComponent(follower, new AttackTarget(target));
+            }
         } else if (isWorker() && digTileInFront(position)) {
             entityData.setComponent(entityId, new CreatureMeleeAttack(meleeAttack, gameTimer.getGameTime()));
         } else {
