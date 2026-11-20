@@ -45,6 +45,7 @@ import toniarts.openkeeper.game.logic.DungeonHeartConstruction;
 import toniarts.openkeeper.game.logic.FreezeSystem;
 import toniarts.openkeeper.game.logic.GameLogicManager;
 import toniarts.openkeeper.game.logic.GraveyardSystem;
+import toniarts.openkeeper.game.logic.GuardPostSystem;
 import toniarts.openkeeper.game.logic.HaulingSystem;
 import toniarts.openkeeper.game.logic.HealthSystem;
 import toniarts.openkeeper.game.logic.InfernoSystem;
@@ -152,6 +153,8 @@ public final class GameLoopManager {
                 new CallToArmsSystem(entityData, level, playerControllers.values(),
                         gameWorldController.getCreaturesController(), gameController.getGameTimer(), gameEventService),
                 new DungeonHeartCallSystem(entityData, gameSettings, levelInfo, positionSystem,
+                        gameWorldController.getCreaturesController(), gameController.getGameTimer()),
+                new GuardPostSystem(entityData, gameSettings, levelInfo, gameWorldController.getMapController(), positionSystem,
                         gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new CreatureAiSystem(entityData, gameWorldController.getCreaturesController(), taskManager),
                 new CasinoSystem(entityData, gameWorldController.getCreaturesController(),
