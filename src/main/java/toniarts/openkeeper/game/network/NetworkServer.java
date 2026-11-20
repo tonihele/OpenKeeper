@@ -65,6 +65,7 @@ import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.DoorViewState;
+import toniarts.openkeeper.game.component.DroppedJob;
 import toniarts.openkeeper.game.component.DungeonHeart;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
@@ -211,6 +212,7 @@ public final class NetworkServer {
             Serializer.registerClass(CreatureGenerator.class, new FieldSerializer());
             Serializer.registerClass(CreatureSpells.class, new FieldSerializer());
             Serializer.registerClass(CreatureTypeAttraction.class, new FieldSerializer());
+            Serializer.registerClass(DroppedJob.class, new FieldSerializer());
             Serializer.registerClass(DungeonHeart.class, new FieldSerializer());
             Serializer.registerClass(ImpGenerator.class, new FieldSerializer());
             Serializer.registerClass(Portal.class, new FieldSerializer());
