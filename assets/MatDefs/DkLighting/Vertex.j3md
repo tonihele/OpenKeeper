@@ -70,6 +70,31 @@ MaterialDef DK Terrain Lighting {
         // equally wide frames, stepped Speed times a second. Unset = static.
         Int NumberOfTiles
         Int Speed
+
+        // Original DKII enhanced-liquid inputs. These are supplied only by
+        // Water when the user opts into G400-style EMBM.
+        Texture2D EmbmBaseMap
+        Texture2D EmbmBumpMap
+        TextureArray EmbmBumpFrames
+        Texture2D EmbmEnvironmentMap
+        Vector4 EmbmBumpMatrix
+        Float EmbmReflectionIntensity
+        Float EmbmBumpAnimationSpeed
+        Int EmbmBumpFrameCount
+        Float EmbmLuminanceScale
+        Float EmbmLuminanceOffset
+        Float EmbmBaseAlpha
+        Float EmbmBaseColorMix
+        Boolean EmbmUseLuminance
+        Boolean EmbmUseHeightMap
+        Boolean EmbmUseSphereEnvironmentUv
+        Boolean EmbmUseSurfaceLighting
+        Boolean EmbmEnabled
+
+        // GPU equivalent of the existing lava sway; parameters are
+        // (amplitude A, amplitude B, wavelength, world-units-per-second speed).
+        Vector4 LavaWaveParameters
+        Boolean LavaWavesEnabled
     }
 
     Technique {
@@ -81,6 +106,7 @@ MaterialDef DK Terrain Lighting {
             WorldMatrix
             WorldNormalMatrix
             Time
+            ViewMatrix
         }
 
         Defines {
@@ -90,6 +116,10 @@ MaterialDef DK Terrain Lighting {
             LIGHT_DATA : LightData
             IGNORE_OBJECT_LIGHTS : IgnoreObjectLights
             MESH_CENTER : MeshCenter
+            EMBM_ENABLED : EmbmEnabled
+            EMBM_BUMP_MAP : EmbmBumpMap
+            EMBM_BUMP_FRAMES : EmbmBumpFrames
+            LAVA_WAVES : LavaWavesEnabled
         }
     }
 }

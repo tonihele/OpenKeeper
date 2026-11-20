@@ -38,6 +38,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import toniarts.openkeeper.common.EntityInstance;
+import toniarts.openkeeper.game.data.Settings;
 import toniarts.openkeeper.tools.convert.AssetsConverter;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Terrain;
@@ -92,13 +93,17 @@ public final class Water {
     public static Spatial construct(AssetManager assetManager, List<EntityInstance<Terrain>> entityInstances,
             TerrainDeformer deformer) {
         boolean water = entityInstances.get(0).getEntity().getFlags().contains(Terrain.TerrainFlag.WATER);
+        Dk2EmbmResources.Liquid liquid = water ? Dk2EmbmResources.Liquid.WATER : Dk2EmbmResources.Liquid.LAVA;
+        Dk2EmbmResources embmResources = Settings.getInstance().getBoolean(Settings.Setting.EMBM_ENABLED)
+                ? Dk2EmbmResources.load(assetManager, liquid).orElse(null) : null;
+        boolean enhanced = embmResources != null;
         Mesh mesh = createMesh(entityInstances, (water && WATER_TYPE == WaterType.SIMPLE), deformer);
 
         // Create the geometry
         Geometry geo = new Geometry((water ? "Water" : "Lava"), mesh);
 
         // Lava gets animated sine waves
-        if (!water) {
+        if (!water && !enhanced) {
             geo.addControl(new LavaWaveControl());
         }
 
@@ -140,6 +145,9 @@ public final class Water {
         // the scene lights)
         if (mat != null && !(water && WATER_TYPE == WaterType.SIMPLE)) {
             mat = AssetUtils.createDkSurfaceMaterial(assetManager, mat);
+            if (enhanced) {
+                embmResources.apply(mat);
+            }
         }
 
         // Set it all
