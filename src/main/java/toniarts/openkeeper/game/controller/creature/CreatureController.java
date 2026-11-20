@@ -655,10 +655,18 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
-        return createNavigation(currentLocation, destination, faceTarget, null);
+        return createNavigation(currentLocation, destination, faceTarget, null, false);
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition) {
+        return createNavigation(currentLocation, destination, faceTarget, workPosition, false);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, boolean pursuingAttackTarget) {
+        return createNavigation(currentLocation, destination, faceTarget, null, pursuingAttackTarget);
+    }
+
+    private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget, Vector2f workPosition, boolean pursuingAttackTarget) {
         GraphPath<IMapTileInformation> path = navigationService.findPath(currentLocation, destination, this);
         if (path == null) {
             logger.log(Level.WARNING, "No path from {0} to {1}", getCreatureCoordinates(), destination);
@@ -684,7 +692,7 @@ public final class CreatureController extends EntityController implements ICreat
             Vector3f position = getPosition();
             SteeringUtils.pathToPosition(navigationPath, new Vector2(position.x, position.z), new Vector2(workPosition.x, workPosition.y));
         }
-        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath));
+        entityData.setComponent(entityId, new Navigation(destination, faceTarget, navigationPath, pursuingAttackTarget));
         return false;
     }
 
@@ -1417,14 +1425,18 @@ public final class CreatureController extends EntityController implements ICreat
             // Check if we are already going there
             Point destination = WorldUtils.vectorToPoint(targetPosition);
             Navigation currentNavigation = entityData.getComponent(entityId, Navigation.class);
-            if (currentNavigation != null && currentNavigation.target.equals(destination)) {
+            boolean continuingPursuit = currentNavigation != null && currentNavigation.pursuingAttackTarget;
+            if (continuingPursuit && currentNavigation.target.equals(destination)) {
                 return;
             }
 
             // Just now simply go where the target currently is
             Point ourPosition = getCreatureCoordinates();
             if (destination != null && !destination.equals(ourPosition)) {
-                createNavigation(ourPosition, destination, null);
+                boolean failed = createNavigation(ourPosition, destination, null, true);
+                if (!failed && !continuingPursuit) {
+                    gameEventService.emit(GameEventType.CREATURE_CHARGE, entityId, getPosition());
+                }
             }
         }
     }

@@ -8,6 +8,7 @@ MaterialDef UnitFlower {
         Boolean VertexColor (UseVertexColor)
         Float Experience
         Boolean FlashColors : false
+        Boolean PulseBrightness : false
         Float FlashInterval : 2.0
         Color Color1
         Color Color2

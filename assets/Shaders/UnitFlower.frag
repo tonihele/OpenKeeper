@@ -17,6 +17,7 @@ varying vec2 texCoord;
 #endif
 
 uniform bool m_FlashColors;
+uniform bool m_PulseBrightness;
 uniform float m_FlashInterval;
 varying vec4 color1;
 varying vec4 color2;
@@ -90,6 +91,12 @@ void main() {
         finalColor -= vec4(0.2, 0.2, 0.2, 0.0); // Darken a bit
     }
 #endif
+
+    // Native critical-health flowers modulate RGB over 333 ms, preserving alpha.
+    if (m_PulseBrightness) {
+        float phase = fract(g_Time / 0.333);
+        finalColor.rgb *= 1.0 - abs(2.0 * phase - 1.0);
+    }
 
     gl_FragColor = finalColor;
 }

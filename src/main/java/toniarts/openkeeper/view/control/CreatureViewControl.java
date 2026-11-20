@@ -154,7 +154,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     public boolean isStopAnimation() {
-        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
+        return super.isStopAnimation() || (currentState != Creature.AnimationType.WALK && currentState != Creature.AnimationType.RUN && currentState != Creature.AnimationType.IN_HAND && !isWorkAnimation());
     }
 
     private void playAnimation(Creature.AnimationType animation) {
@@ -210,7 +210,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
      * A walking or running creature steps when the animation passes a footstep mark
      */
     private void playFootsteps() {
-        int[] marks = FootstepSounds.getMarks(getDataObject(), currentState);
+        int[] marks = FootstepSounds.getMarks(getDataObject(), getAvailableAnimation(currentState));
         if (marks == null || spatial == null || spatial.getCullHint() == Spatial.CullHint.Always) {
             previousStepTime = -1;
             return;
@@ -248,7 +248,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     }
 
     private AnimComposer getAnimComposer() {
-        ArtResource animation = getDataObject().getAnimation(currentState);
+        ArtResource animation = getAnimationData(currentState);
         if (animation == null || !(spatial instanceof Node node)) {
             return null;
         }
@@ -313,7 +313,7 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
 
     @Override
     protected ArtResource getAnimationData(Creature.AnimationType state) {
-        ArtResource animation = getDataObject().getAnimation(state);
+        ArtResource animation = getDataObject().getAnimation(getAvailableAnimation(state));
         if (animation == null && state == Creature.AnimationType.TORTURED_CHAIR_SKELETON) {
             return ELECTROCUTE_SKELETONS[ThreadLocalRandom.current().nextInt(ELECTROCUTE_SKELETONS.length)];
         }
@@ -328,6 +328,13 @@ public final class CreatureViewControl extends EntityViewControl<Creature, Creat
     public boolean isChicken() {
         CreatureAi creatureAi = getEntity().get(CreatureAi.class);
         return creatureAi != null && creatureAi.getCreatureState() == CreatureState.CHICKEN;
+    }
+
+    private Creature.AnimationType getAvailableAnimation(Creature.AnimationType state) {
+        if (state == Creature.AnimationType.RUN && getDataObject().getAnimation(state) == null) {
+            return Creature.AnimationType.WALK;
+        }
+        return state;
     }
 
     private boolean isWorkAnimation() {

@@ -41,6 +41,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
+import java.util.function.IntFunction;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.utils.AssetUtils;
@@ -69,12 +70,19 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     private final WatchedEntity entity;
     private final AssetManager assetManager;
     private final T data;
+    private final IntFunction<ColorRGBA> playerColors;
 
     protected UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager) {
+        this(entityId, entityData, data, assetManager, ownerId -> getPlayerColor((short) ownerId));
+    }
+
+    protected UnitFlowerControl(EntityId entityId, EntityData entityData, T data, AssetManager assetManager,
+            IntFunction<ColorRGBA> playerColors) {
         super();
         this.entityId = entityId;
         this.data = data;
         this.assetManager = assetManager;
+        this.playerColors = playerColors;
 
         // Subscribe to the entity changes
         entity = entityData.watchEntity(entityId, compileWatchedComponents());
@@ -357,7 +365,11 @@ public abstract class UnitFlowerControl<T> extends BillboardControl implements I
     }
 
     protected final ColorRGBA getPlayerColor() {
-        return getPlayerColor(getOwnerId());
+        return getPaletteColor(getOwnerId());
+    }
+
+    protected final ColorRGBA getPaletteColor(short ownerId) {
+        return playerColors.apply(ownerId);
     }
 
     protected static ColorRGBA getPlayerColor(short ownerId) {

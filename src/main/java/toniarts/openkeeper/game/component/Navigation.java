@@ -32,14 +32,22 @@ public final class Navigation implements EntityComponent {
     public Point faceTarget;
     public List<Vector2> navigationPath;
 
+    /** Combat pursuit; refreshing its route must not restart the battle call. */
+    public boolean pursuingAttackTarget;
+
     public Navigation() {
         // For serialization
     }
 
     public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath) {
+        this(target, faceTarget, navigationPath, false);
+    }
+
+    public Navigation(Point target, Point faceTarget, List<Vector2> navigationPath, boolean pursuingAttackTarget) {
         this.target = target;
         this.faceTarget = faceTarget;
         this.navigationPath = navigationPath;
+        this.pursuingAttackTarget = pursuingAttackTarget;
     }
 
 }
