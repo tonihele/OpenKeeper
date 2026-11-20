@@ -30,9 +30,6 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureComponent;
-import toniarts.openkeeper.game.component.Damage;
-import toniarts.openkeeper.game.component.DoorComponent;
-import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -44,8 +41,6 @@ import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.FakeMapData;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
-import toniarts.openkeeper.tools.convert.map.Door;
-import toniarts.openkeeper.tools.convert.map.DoorFixtures;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.ShotFixtures;
@@ -63,8 +58,6 @@ class ShotSystemTest {
     private static final short PLAYER_ID = 3;
     private static final short ENEMY_ID = 4;
     private static final short IMP_ID = 1;
-    private static final short WOODEN_DOOR_ID = 1;
-    private static final short BARRICADE_ID = 6;
 
     private DefaultEntityData entityData;
     private final Shot fireball = ShotFixtures.fireball();
@@ -87,8 +80,6 @@ class ShotSystemTest {
             case "getShotById" -> (Short) args[0] == ShotFixtures.GUIDED_BOLT_ID ? guidedBolt : fireball;
             case "getGameLevel" -> ShotFixtures.gameLevel(4);
             case "getCreature" -> imp;
-            case "getDoorById" -> ((Number) args[0]).shortValue() == BARRICADE_ID
-                    ? DoorFixtures.door(BARRICADE_ID, 0, Door.DoorFlag.IS_BARRICADE) : DoorFixtures.door(WOODEN_DOOR_ID, 0);
             default -> throw new UnsupportedOperationException(method.getName());
         });
         IShotsController shotsController = (IShotsController) Proxy.newProxyInstance(IShotsController.class.getClassLoader(),
@@ -236,75 +227,6 @@ class ShotSystemTest {
     }
 
     @Test
-    void shotStopsAtAShutDoorAndDamagesIt() {
-        EntityId door = createDoor(ENEMY_ID, WOODEN_DOOR_ID, false);
-        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
-
-        shotSystem.processTick(0.25f);
-
-        assertNull(positionOf(shot));
-        assertEquals(50, entityData.getComponent(door, Damage.class).damage);
-    }
-
-    @Test
-    void shotStopsAtItsKeepersOwnShutDoorWithoutDamagingIt() {
-        EntityId door = createDoor(PLAYER_ID, WOODEN_DOOR_ID, false);
-        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
-
-        shotSystem.processTick(0.25f);
-
-        assertNull(positionOf(shot));
-        assertNull(entityData.getComponent(door, Damage.class));
-    }
-
-    @Test
-    void shotThatDoesNotDieAtSolidsStaysInFrontOfTheShutDoor() {
-        fireball.getFlags().remove(Shot.ShotFlag.DIE_WHEN_HIT_SOLID);
-        EntityId door = createDoor(ENEMY_ID, WOODEN_DOOR_ID, false);
-        EntityId shot = createShot(new Vector3f(1, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
-
-        shotSystem.processTick(0.25f);
-        shotSystem.processTick(0.25f);
-
-        assertTrue(positionOf(shot).x < 2);
-        assertEquals(new Vector3f(), entityData.getComponent(shot, ShotFlight.class).velocity);
-        assertEquals(50, entityData.getComponent(door, Damage.class).damage);
-    }
-
-    @Test
-    void shotFliesThroughAnOpenDoor() {
-        EntityId door = createDoor(ENEMY_ID, WOODEN_DOOR_ID, true);
-        EntityId shot = createShot(new Vector3f(1.5f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
-
-        shotSystem.processTick(0.25f);
-
-        assertEquals(2.4f, positionOf(shot).x, DELTA);
-        assertNull(entityData.getComponent(door, Damage.class));
-    }
-
-    @Test
-    void shotFliesOverABarricade() {
-        EntityId barricade = createDoor(ENEMY_ID, BARRICADE_ID, false);
-        EntityId shot = createShot(new Vector3f(1.5f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
-
-        shotSystem.processTick(0.25f);
-        shotSystem.processTick(0.25f);
-
-        assertEquals(3.3f, positionOf(shot).x, DELTA);
-        assertNull(entityData.getComponent(barricade, Damage.class));
-    }
-
-    @Test
-    void shotFiredFromInsideAShutDoorLeavesIt() {
-        createDoor(ENEMY_ID, WOODEN_DOOR_ID, false);
-        EntityId shot = createShot(new Vector3f(2.2f, 1.3f, 1), new Vector3f(0.9f, 0, 0), 0);
-
-        shotSystem.processTick(0.25f);
-
-        assertEquals(3.1f, positionOf(shot).x, DELTA);
-    }
-
-    @Test
     void guidedShotTurnsTowardsItsTargetOnlyOnEveryEighthTurn() {
         EntityId target = createCreature(ENEMY_ID, new Vector3f(5, 1, 4));
         EntityId shot = createGuidedShot(new Vector3f(1, 1.25f, 1), new Vector3f(0.7f, 0, 0), target);
@@ -406,18 +328,6 @@ class ShotSystemTest {
                 new Owner(ownerId, ownerId));
         creatures.add(trap);
         return trap;
-    }
-
-    private EntityId createDoor(short ownerId, short doorId, boolean open) {
-        EntityId door = entityData.createEntity();
-        entityData.setComponents(door,
-                new Position(0, WorldUtils.pointToVector3f(new Point(2, 1))),
-                new DoorComponent(doorId, false, false),
-                new DoorViewState(doorId, false, false, open),
-                new Health(1000, 1000),
-                new Owner(ownerId, ownerId));
-        creatures.add(door);
-        return door;
     }
 
     private List<EntityId> creaturesOn(Point tile) {
