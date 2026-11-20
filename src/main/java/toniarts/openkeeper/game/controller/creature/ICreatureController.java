@@ -364,6 +364,15 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean goGambling();
 
     /**
+     * Sends the creature that has just taken its pay gambling, from the
+     * training or research duty it is on (DKII.EXE 0x472740). The wish
+     * is used up whether it succeeds or not.
+     *
+     * @return {@code true} if the creature was given a place to gamble
+     */
+    public boolean goGamblingAfterPay();
+
+    /**
      * Sends the creature to collect the pay it is owed, if it is owed any and
      * it is time to try. A try that finds no gold to collect is counted
      *

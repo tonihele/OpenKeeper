@@ -293,6 +293,12 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // A creature that has just taken its pay goes gambling with it, as in the original
+            if (entity.goGamblingAfterPay()) {
+                entity.navigateToAssignedTask();
+                return;
+            }
+
             // Native hunger and fatigue can interrupt compatible room work, including travel to it.
             Task task = entity.getAssignedTask();
             if (task != null && (task.getTaskType() == TaskType.TRAIN

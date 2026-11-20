@@ -23,6 +23,7 @@ import java.lang.reflect.Proxy;
 import java.util.Map;
 import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreaturePay;
+import toniarts.openkeeper.game.component.GamblingAfterPay;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.controller.IGameWorldController;
 import toniarts.openkeeper.game.controller.creature.CreatureController;
@@ -37,6 +38,7 @@ import toniarts.openkeeper.utils.Point;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -83,6 +85,17 @@ class CollectPayTest {
         assertEquals(100, entityData.getComponent(goblin, Gold.class).gold);
         assertEquals(300, pay().unpaid);
         assertEquals(0, pay().attempts);
+    }
+
+    @Test
+    void creatureThatTookItsPayWishesToGambleButOneThatGotNothingDoesNot() {
+        goldInRoom = 0;
+        task().executeTask(creature(), 0);
+        assertNull(entityData.getComponent(goblin, GamblingAfterPay.class));
+
+        goldInRoom = 1000;
+        task().executeTask(creature(), 0);
+        assertNotNull(entityData.getComponent(goblin, GamblingAfterPay.class));
     }
 
     @Test
