@@ -137,6 +137,10 @@ public final class CreatureViewSystem extends GameTimeCounter {
                         targetState = getTortureAnimation(tortured != null ? tortured.device : null, state);
                     } else if (aiState != null) {
                         targetState = getAnimation(aiState.getCreatureState());
+                        CreatureMeleeAttack meleeAttack = entityData.getComponent(entityId, CreatureMeleeAttack.class);
+                        if (aiState.getCreatureState() == MELEE_ATTACK && meleeAttack != null && meleeAttack.swipe) {
+                            targetState = Creature.AnimationType.SWIPE;
+                        }
                     }
                 }
             }
