@@ -23,6 +23,8 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.DoorComponent;
+import toniarts.openkeeper.game.component.DoorViewState;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -30,10 +32,12 @@ import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.IShotsController;
+import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.ShotFlightRules;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.map.IMapInformation;
 import toniarts.openkeeper.tools.convert.map.Creature;
+import toniarts.openkeeper.tools.convert.map.Door;
 import toniarts.openkeeper.tools.convert.map.IKwdFile;
 import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.Shot;
@@ -105,6 +109,9 @@ public final class ShotSystem implements IGameLogicUpdatable {
             velocity = velocity.mult(0.5f);
         }
         Move move = move(position, velocity);
+        if (move.door() != null) {
+            flight = hitDoor(entity.getId(), shot, flight, move.door());
+        }
         if (move.hitWall()) {
             triggerEffect(shot.getHitSolidEffectId(), move.position());
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
@@ -133,14 +140,17 @@ public final class ShotSystem implements IGameLogicUpdatable {
      *
      * @param position the new position, the last one before the wall if the
      * shot hit one
-     * @param hitWall whether the shot hit a wall
+     * @param hitWall whether the shot hit a wall or a shut door
+     * @param door the shut door the shot hit, {@code null} if none
      */
-    private record Move(Vector3f position, boolean hitWall) {
+    private record Move(Vector3f position, boolean hitWall, EntityId door) {
 
     }
 
     /**
-     * Moves the shot in steps, so that it doesn't fly through a wall
+     * Moves the shot in steps, so that it doesn't fly through a wall or a shut
+     * door. A shot that starts its move in a door isn't stopped by that door
+     * (0x4B2030).
      *
      * @param position where the shot is
      * @param velocity the shot's velocity
@@ -150,14 +160,68 @@ public final class ShotSystem implements IGameLogicUpdatable {
         int steps = ShotFlightRules.getSteps(velocity);
         Vector3f step = velocity.divide(steps);
         Vector3f result = new Vector3f(position);
+        boolean inDoor = getShutDoor(position) != null;
         for (int i = 0; i < steps; i++) {
             result.addLocal(step);
             if (isSolid(result)) {
-                return new Move(result.subtractLocal(step), true);
+                return new Move(result.subtractLocal(step), true, null);
+            }
+            EntityId door = getShutDoor(result);
+            if (door != null && !inDoor) {
+                return new Move(result.subtractLocal(step), true, door);
+            }
+            inDoor = door != null;
+        }
+
+        return new Move(result, false, null);
+    }
+
+    /**
+     * Looks for a built, shut door at the shot. Shots fly over a Barricade,
+     * whoever it belongs to (0x4529A0, 0x4B2030).
+     *
+     * @param position where the shot is
+     * @return the door in the way, {@code null} if none
+     */
+    private EntityId getShutDoor(Vector3f position) {
+        Point tile = WorldUtils.vectorToPoint(position);
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile.x, tile.y)) {
+            DoorComponent doorComponent = entityData.getComponent(entityId, DoorComponent.class);
+            if (doorComponent == null || doorComponent.blueprint
+                    || kwdFile.getDoorById(doorComponent.doorId).getFlags().contains(Door.DoorFlag.IS_BARRICADE)) {
+                continue;
+            }
+            DoorViewState doorViewState = entityData.getComponent(entityId, DoorViewState.class);
+            if (doorViewState == null || !doorViewState.open) {
+                return entityId;
             }
         }
 
-        return new Move(result, false);
+        return null;
+    }
+
+    /**
+     * A shot stopped by a shut door stays where it is, and unless it bounces
+     * it does its damage, the shot's data 1, to the door. The doors of the
+     * shot's own keeper take no damage (0x4B2030, 0x4AC420).
+     *
+     * @param shotEntity the shot
+     * @param shot the shot's type
+     * @param flight the shot's flight
+     * @param door the door hit
+     * @return the flight of the stopped shot
+     */
+    private ShotFlight hitDoor(EntityId shotEntity, Shot shot, ShotFlight flight, EntityId door) {
+        Owner owner = entityData.getComponent(door, Owner.class);
+        if (!shot.getFlags().contains(Shot.ShotFlag.BOUNCE) && flight.shotData1 > 0
+                && (owner == null || owner.ownerId != flight.ownerId)) {
+            EntityController.setDamage(entityData, door, flight.shotData1);
+        }
+        ShotFlight stopped = new ShotFlight(flight.shotId, flight.ownerId, flight.shooter, flight.shotData1, flight.shotData2,
+                new Vector3f(0, flight.velocity.y, 0), flight.start, flight.maxRange, flight.health);
+        entityData.setComponent(shotEntity, stopped);
+
+        return stopped;
     }
 
     /**
