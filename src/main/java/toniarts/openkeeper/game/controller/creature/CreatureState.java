@@ -19,8 +19,10 @@ package toniarts.openkeeper.game.controller.creature;
 import com.badlogic.gdx.ai.fsm.State;
 import com.badlogic.gdx.ai.msg.Telegram;
 import java.util.function.Consumer;
+import toniarts.openkeeper.game.controller.entity.IEntityController;
 import toniarts.openkeeper.game.task.Task;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.Player;
 
 /**
  * State machine for creature AI. TODO: needs to be hierarchial so that this
@@ -44,13 +46,36 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // An enemy trap in sight, when there is no enemy creature to fight
+            if (entity.attackVisibleTrap()) {
+                return;
+            }
+
+            // An enemy door right next to us
+            if (entity.attackAdjacentDoor()) {
+                return;
+            }
+
             // Idling is the last resort
             entity.unassingCurrentTask();
             findStuffToDo(entity, (foundWork) -> {
                 if (!foundWork) {
-                    entity.navigateToRandomPoint();
+                    wander(entity);
                 }
             });
+        }
+
+        /**
+         * Walks an idle creature that found nothing to do to a random spot. A
+         * hero stays where it is: in DK II a hero whose objective can't start
+         * does nothing until it tries again (hero idle state 0x477850)
+         *
+         * @param entity the idle creature
+         */
+        private static void wander(ICreatureController entity) {
+            if (entity.getOwnerId() != Player.GOOD_PLAYER_ID) {
+                entity.navigateToRandomPoint();
+            }
         }
 
         private static void findStuffToDo(ICreatureController entity, Consumer<Boolean> workResult) {
@@ -143,6 +168,16 @@ public enum CreatureState implements State<ICreatureController> {
                 return;
             }
 
+            // An enemy trap in sight, when there is no enemy creature to fight
+            if (entity.attackVisibleTrap()) {
+                return;
+            }
+
+            // An enemy door right next to us
+            if (entity.attackAdjacentDoor()) {
+                return;
+            }
+
             // Native hunger is checked every tick, not only when re-evaluating
             if (entity.isHungry() && entity.goToEat()) {
                 entity.getStateMachine().changeState(CreatureState.WORK);
@@ -159,7 +194,7 @@ public enum CreatureState implements State<ICreatureController> {
                 entity.resetReEvaluationTimer();
                 findStuffToDo(entity, (foundWork) -> {
                     if (!foundWork && entity.isStopped()) {
-                        entity.navigateToRandomPoint();
+                        wander(entity);
                     }
                 });
             }
@@ -321,9 +356,15 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-            ICreatureController attackTarget = entity.getAttackTarget();
+            IEntityController attackTarget = entity.getAttackTarget();
             if (attackTarget == null) {
                 entity.getStateMachine().changeState(entity.isCombatPitFighter() ? COMBAT_PIT : IDLE); // Nothing to do
+                return;
+            }
+
+            // A badly hurt hero may withdraw to the hero lair, before fear is weighed (DK II 0x45F030)
+            if (entity.withdrawToHeroLair()) {
+                entity.getStateMachine().changeState(HERO_RECUPERATING);
                 return;
             }
 
@@ -409,6 +450,7 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void update(ICreatureController entity) {
             if (entity.isStateTimeExceeded()) {
+                entity.completeDungeonEntrance();
                 entity.getStateMachine().changeState(IDLE);
             }
         }
@@ -948,6 +990,39 @@ public enum CreatureState implements State<ICreatureController> {
         @Override
         public void exit(ICreatureController entity) {
             entity.resetFollowTarget();
+        }
+
+        @Override
+        public boolean onMessage(ICreatureController entity, Telegram telegram) {
+            return true;
+        }
+    }, HERO_RECUPERATING {
+
+        @Override
+        public void enter(ICreatureController entity) {
+
+        }
+
+        @Override
+        public void update(ICreatureController entity) {
+
+            // A wounded hero walks to the hero lair, then about its own land until its health is back,
+            // and fights what it meets on the way (DK II state 0x10A, 0x461B50)
+            if (entity.shouldFleeOrAttack()) {
+                return;
+            }
+            if (entity.isStopped()) {
+                if (entity.isFullHealth()) {
+                    entity.getStateMachine().changeState(IDLE);
+                } else {
+                    entity.wanderOnOwnLand();
+                }
+            }
+        }
+
+        @Override
+        public void exit(ICreatureController entity) {
+
         }
 
         @Override

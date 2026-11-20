@@ -165,6 +165,7 @@ public class PlayerEntityViewState extends AbstractAppState {
     private final DoorModelContainer doorModelContainer;
     private final TrapModelContainer trapModelContainer;
     private final RoomEffectContainer roomEffectContainer;
+    private final PortalEffectState portalEffects;
     private final ShotModelContainer shotModelContainer;
     private final EventListener<GameEvent> gameEventListener = this::onGameEvent;
     private final EventListener<GeneratedEffect> generatedEffectListener = (type, effect) ->
@@ -244,6 +245,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer = new DoorModelContainer(entityData);
         trapModelContainer = new TrapModelContainer(entityData);
         roomEffectContainer = new RoomEffectContainer(entityData);
+        portalEffects = new PortalEffectState(kwdFile, entityData, rootNode, fogOfWarInformation);
         shotModelContainer = new ShotModelContainer(entityData);
     }
 
@@ -263,9 +265,16 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.start();
         trapModelContainer.start();
         roomEffectContainer.start();
+        stateManager.attach(portalEffects);
         shotModelContainer.start();
         EventBus.addListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.addListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
+    }
+
+    @Override
+    public void setEnabled(boolean enabled) {
+        super.setEnabled(enabled);
+        portalEffects.setEnabled(enabled);
     }
 
     @Override
@@ -343,6 +352,7 @@ public class PlayerEntityViewState extends AbstractAppState {
         doorModelContainer.stop();
         trapModelContainer.stop();
         roomEffectContainer.stop();
+        stateManager.detach(portalEffects);
         shotModelContainer.stop();
         EventBus.removeListener(ClientEvents.GAME_EVENT, gameEventListener);
         EventBus.removeListener(ClientEvents.GENERATED_EFFECT, generatedEffectListener);
