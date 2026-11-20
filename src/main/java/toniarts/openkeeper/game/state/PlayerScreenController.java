@@ -126,6 +126,7 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private EntityData entityData;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
+    private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
     private EntitySet spellCasts;
     private final Map<Short, Float> spellRechargeLeft = new HashMap<>();
@@ -159,9 +160,45 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
+            updatePossessionHealth();
             updateCallToArms();
             lastUpdate = 0;
         }
+    }
+
+    /**
+     * Sizes the possession HUD health bar by the possessed creature's health.
+     * The creature is watched for its health while the possession screen is
+     * up, and released when the possession ends. Called from the render
+     * thread, like the rest of the screen update.
+     */
+    private void updatePossessionHealth() {
+        EntityId target = screen != null && SCREEN_POSSESSION_ID.equals(screen.getScreenId())
+                ? state.stateManager.getState(PossessionInteractionState.class).getTarget() : null;
+        if (possessedCreature != null && !possessedCreature.getId().equals(target)) {
+            possessedCreature.release();
+            possessedCreature = null;
+        }
+        if (target == null) {
+            return;
+        }
+
+        boolean watchStarted = possessedCreature == null;
+        if (watchStarted) {
+            possessedCreature = entityData.watchEntity(target, Health.class);
+        }
+        if (!possessedCreature.applyChanges() && !watchStarted) {
+            return;
+        }
+
+        Health health = possessedCreature.get(Health.class);
+        Element bar = screen.findElementById("creature-health");
+        if (health == null || bar == null || health.maxHealth <= 0) {
+            return;
+        }
+        int percent = Math.clamp(Math.round(100f * health.health / health.maxHealth), 0, 100);
+        bar.setConstraintWidth(new SizeValue(percent, SizeValueType.Percent));
+        bar.getParent().layoutElements();
     }
 
     @Override
@@ -178,6 +215,10 @@ public final class PlayerScreenController implements IPlayerScreenController {
         if (callToArmsBanners != null) {
             callToArmsBanners.release();
             callToArmsBanners = null;
+        }
+        if (possessedCreature != null) {
+            possessedCreature.release();
+            possessedCreature = null;
         }
 
         // Remove the resource bundle so that we can actually put a new one here
