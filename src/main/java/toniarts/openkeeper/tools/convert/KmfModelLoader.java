@@ -120,6 +120,19 @@ public final class KmfModelLoader implements AssetLoader {
      * control point.
      */
     public static final String ANIM_FRONT_POINT = "AnimFrontPoint";
+    /**
+     * User data key on an animation node, the vertices DK II draws the speed
+     * blur from: runs separated by ';', the points of a run by ',', and each
+     * point as the child index of its geometry and the vertex index, separated
+     * by ':'
+     */
+    public static final String SPEED_BLUR_POINTS = "SpeedBlurPoints";
+    /**
+     * User data key on an animation node, the vertices DK II draws the trail
+     * of a melee swing or a cast from, in the {@link #SPEED_BLUR_POINTS}
+     * format
+     */
+    public static final String ATTACK_TRAIL_POINTS = "AttackTrailPoints";
     /* Already saved materials are stored here */
     private static final Map<toniarts.openkeeper.tools.convert.kmf.Material, String> materialCache = new HashMap<>();
     private static final TextureSorter TEXTURE_SORTER = new TextureSorter();
@@ -168,6 +181,33 @@ public final class KmfModelLoader implements AssetLoader {
         }
 
         return root;
+    }
+
+    /**
+     * DK II draws its trails from the control points of the animation, a strip
+     * along each run of consecutive ids (0x5A3AA0): the speed blur from the ids
+     * 1000 to 1999 and the trail of a melee swing or a cast from the ids 0 to
+     * 999
+     *
+     * @param controls the control points of the animation
+     * @param spriteChildren the child index of each sprite's geometry
+     * @param firstId the first id of the thousand ids of the trail
+     * @return the points in the {@link #SPEED_BLUR_POINTS} format, empty if
+     * there are none
+     */
+    private static String getTrailPoints(List<AnimControl> controls, Map<Integer, Integer> spriteChildren, int firstId) {
+        StringBuilder points = new StringBuilder();
+        int previousId = -2;
+        for (AnimControl control : controls.stream()
+                .filter(c -> c.getId() >= firstId && c.getId() < firstId + 1000 && spriteChildren.containsKey(c.getSprite()))
+                .sorted(Comparator.comparingInt(AnimControl::getId)).toList()) {
+            if (!points.isEmpty()) {
+                points.append(control.getId() == previousId + 1 ? ',' : ';');
+            }
+            points.append(spriteChildren.get(control.getSprite())).append(':').append(control.getVertex());
+            previousId = control.getId();
+        }
+        return points.toString();
     }
 
     /**
@@ -283,13 +323,17 @@ public final class KmfModelLoader implements AssetLoader {
         List<Integer> geometryIndices = new ArrayList<>(anim.getSprites().size());
         float frontY = Float.MAX_VALUE;
         String frontPoint = null;
+        int sprite = -1;
+        Map<Integer, Integer> spriteChildren = new HashMap<>();
         for (var subMesh : anim.getSprites()) {
+            sprite++;
 
             if (subMesh.getTriangles().get(0).isEmpty()) {
                 geometryIndices.add(-1);
                 continue; // FIXME: LODs are broken so we only take L0
             }
             geometryIndices.add(subMeshIndex);
+            spriteChildren.put(sprite, subMeshIndex);
 
             // Animation
             // Poses for each key frame (aproximate that every 1/3 is a key frame, pessimistic)
@@ -486,13 +530,21 @@ public final class KmfModelLoader implements AssetLoader {
             node.attachChild(geom);
             ++subMeshIndex;
         }
+        String speedBlurPoints = getTrailPoints(anim.getControls(), spriteChildren, 1000);
+        if (!speedBlurPoints.isEmpty()) {
+            node.setUserData(SPEED_BLUR_POINTS, speedBlurPoints);
+        }
+        String attackTrailPoints = getTrailPoints(anim.getControls(), spriteChildren, 0);
+        if (!attackTrailPoints.isEmpty()) {
+            node.setUserData(ATTACK_TRAIL_POINTS, attackTrailPoints);
+        }
 
         // The control points follow a vertex of a sprite, an id may be listed more than once, the first one counts
         for (AnimControl control : anim.getControls()) {
-            String key = ANIM_CONTROL_POINT + control.getUnknown3();
-            int sprite = control.getUnknown1();
-            if (sprite < geometryIndices.size() && geometryIndices.get(sprite) >= 0 && node.getUserData(key) == null) {
-                node.setUserData(key, geometryIndices.get(sprite) + " " + control.getUnknown2());
+            String key = ANIM_CONTROL_POINT + control.getId();
+            int controlSprite = control.getSprite();
+            if (controlSprite < geometryIndices.size() && geometryIndices.get(controlSprite) >= 0 && node.getUserData(key) == null) {
+                node.setUserData(key, geometryIndices.get(controlSprite) + " " + control.getVertex());
             }
         }
         if (frontPoint != null) {

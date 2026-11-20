@@ -42,8 +42,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 
 /**
  * Moves the flying shots, one move a turn, and lets them hit. The order is
- * DKII.EXE's shot turn (0x4AB180): the range, a hit on a thing, the move with
- * a hit on a wall, then the shot's lifetime.
+ * DKII.EXE's shot turn (0x4AB180): the range, a hit on a thing, the damage
+ * around the shot, the move with a hit on a wall, then the shot's lifetime.
  */
 public final class ShotSystem implements IGameLogicUpdatable {
 
@@ -83,20 +83,24 @@ public final class ShotSystem implements IGameLogicUpdatable {
         ShotFlight flight = entity.get(ShotFlight.class);
         Shot shot = kwdFile.getShotById(flight.shotId);
         Vector3f position = entity.get(Position.class).position;
+
+        // A shot out of its range, or one that dies when it hits a thing, has the rest of its turn and dies at the end
+        // of it, it leaves its death shot (0x4AB180)
+        int health = flight.health;
         if (ShotFlightRules.isOutOfRange(flight.start, position, flight.maxRange)) {
-            entityData.removeEntity(entity.getId());
-            return;
+            health = 0;
         }
 
         EntityId thing = findThingHit(shot, flight, position);
         if (thing != null) {
             triggerEffect(shot.getHitThingEffectId(), position);
+            createChildShot(entity.getId(), shot.getHitThingShotId(), position);
             shotsController.hit(entity.getId(), thing);
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_THING)) {
-                entityData.removeEntity(entity.getId());
-                return;
+                health = 0;
             }
         }
+        shotsController.damageArea(entity.getId());
 
         Vector3f velocity = flight.velocity;
         if (thing == null && findThingHit(shot, flight, halfway.set(velocity).multLocal(0.5f).addLocal(position)) != null) {
@@ -107,20 +111,23 @@ public final class ShotSystem implements IGameLogicUpdatable {
         Move move = move(position, velocity);
         if (move.hitWall()) {
             triggerEffect(shot.getHitSolidEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getHitSolidShotId(), move.position());
             if (shot.getFlags().contains(Shot.ShotFlag.DIE_WHEN_HIT_SOLID)) {
                 entityData.removeEntity(entity.getId());
                 return;
             }
         }
 
-        int health = flight.health;
         if (shot.getFlags().contains(Shot.ShotFlag.DIE_OVER_TIME)) {
             health--;
-            if (health < 1) {
-                triggerEffect(shot.getDeathEffectId(), move.position());
-                entityData.removeEntity(entity.getId());
-                return;
-            }
+        }
+        if (health < 1) {
+            triggerEffect(shot.getDeathEffectId(), move.position());
+            createChildShot(entity.getId(), shot.getDeathShotId(), move.position());
+            entityData.removeEntity(entity.getId());
+            return;
+        }
+        if (health != flight.health) {
             entityData.setComponent(entity.getId(), new ShotFlight(flight, health));
         }
         if (!move.hitWall()) {
@@ -170,6 +177,20 @@ public final class ShotSystem implements IGameLogicUpdatable {
     private void triggerEffect(int effectId, Vector3f position) {
         if (effectId != 0) {
             gameEventService.emitEffect(effectId, position, 0);
+        }
+    }
+
+    /**
+     * The shot leaves its hit or death shot where it is, like the cloud of the
+     * Gas Missile (0x4ABD60, 0x4AB180)
+     *
+     * @param shot the shot entity
+     * @param shotTypeId the shot to leave, 0 for none
+     * @param position where to leave it
+     */
+    private void createChildShot(EntityId shot, short shotTypeId, Vector3f position) {
+        if (shotTypeId != 0) {
+            shotsController.createChildShot(shot, shotTypeId, position);
         }
     }
 

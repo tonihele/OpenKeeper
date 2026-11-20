@@ -26,6 +26,7 @@ import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
+import toniarts.openkeeper.game.component.Armour;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.BackOff;
@@ -54,6 +55,8 @@ import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
+import toniarts.openkeeper.game.component.Invisible;
+import toniarts.openkeeper.game.component.Invulnerable;
 import toniarts.openkeeper.game.component.Mana;
 import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.Navigation;
@@ -68,8 +71,11 @@ import toniarts.openkeeper.game.component.Possessed;
 import toniarts.openkeeper.game.component.PossessedMovement;
 import toniarts.openkeeper.game.component.ReturnToHeroLair;
 import toniarts.openkeeper.game.component.Slapped;
+import toniarts.openkeeper.game.component.SpeedBlur;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
+import toniarts.openkeeper.game.component.Teleport;
 import toniarts.openkeeper.game.component.Threat;
 import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
@@ -98,6 +104,7 @@ import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.navigation.steering.SteeringUtils;
 import toniarts.openkeeper.game.task.ITaskManager;
 import toniarts.openkeeper.game.task.Task;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.ArtResource;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
@@ -177,6 +184,20 @@ public final class CreatureController extends EntityController implements ICreat
      * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
      */
     private static final int HERO_IDLE_TICKS = 12;
+
+    /**
+     * An Imp teleports to a job more than this many tiles away on either axis
+     */
+    private static final int IMP_TELEPORT_DISTANCE = 2;
+    private static final int IMP_TELEPORT_OUT_EFFECT = 321;
+    private static final int IMP_TELEPORT_IN_EFFECT = 322;
+    private static final int TELEPORT_OUT_TICKS = 4;
+    private static final int TELEPORT_IN_TICKS = 2;
+    /**
+     * The jobs that take something somewhere, an Imp walks these (0x4651A0)
+     */
+    private static final Set<TaskType> CARRY_TASKS = EnumSet.of(TaskType.CARRY_CREATURE_TO_LAIR, TaskType.CARRY_CREATURE_TO_JAIL,
+            TaskType.CARRY_OBJECT_TO_STORAGE, TaskType.CARRY_CORPSE_TO_GRAVEYARD, TaskType.DELIVER_TRAP_CRATE, TaskType.DELIVER_DOOR_CRATE);
 
     /**
      * The possessed melee attack hits what is at most 341/2048 of a full
@@ -638,6 +659,8 @@ public final class CreatureController extends EntityController implements ICreat
     public void navigateToAssignedTask() {
         Task assignedTask = getAssignedTask();
         if (assignedTask != null) {
+            castImpHaste();
+
             Vector2f loc = assignedTask.getTarget(this);
             Vector2f workPosition = assignedTask.getWorkPosition(this);
             if (workPosition != null && workPosition.equals(loc)) {
@@ -650,9 +673,106 @@ public final class CreatureController extends EntityController implements ICreat
                 //workNavigationRequired = false;
 
                 Point destination = WorldUtils.vectorToPoint(loc);
-                createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+                if (!teleport(assignedTask.getTaskType(), destination, workPosition != null ? workPosition : loc)) {
+                    createNavigation(getCreatureCoordinates(), destination, assignedTask.isFaceTarget() ? assignedTask.getTaskLocation() : null, workPosition);
+                }
             }
         }
+    }
+
+    /**
+     * An Imp setting off to a job speeds itself up with its own speed spell
+     * whenever the spell is recharged, without a cast (0x4651A0). The spell
+     * does what its shot does, so a speed change that is still running is left
+     * as it is, but the spell recharges all the same. A speed-up shows the
+     * speed blur for as many game ticks as the spell's first value, the
+     * percentage
+     */
+    private void castImpHaste() {
+        EntityId spellEntity = getRechargedSpell(CreatureSpellFlag.IMP_HASTE);
+        if (spellEntity != null) {
+            CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+            shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(),
+                    getPosition(), entityId, entityId);
+            if (creatureSpell.getShotData1() > 100) {
+                entityData.setComponent(entityId, new SpeedBlur(gameTimer.getGameTime()
+                        + creatureSpell.getShotData1() / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec()));
+            }
+        }
+    }
+
+    /**
+     * An Imp with its teleport spell recharged jumps to a job more than 2 tiles
+     * away on either axis instead of walking there, if it can walk there. Not
+     * when it takes something somewhere, but gold to the Treasury is no such
+     * trip (0x4651A0). The spell has no shot and costs no mana
+     *
+     * @param taskType the job
+     * @param destination the tile the Imp would walk to
+     * @param target the spot it lands on, the one it would walk to
+     * @return true if the Imp teleports
+     */
+    private boolean teleport(TaskType taskType, Point destination, Vector2f target) {
+        Point location = getCreatureCoordinates();
+        if (CARRY_TASKS.contains(taskType)
+                || (Math.abs(destination.x - location.x) <= IMP_TELEPORT_DISTANCE && Math.abs(destination.y - location.y) <= IMP_TELEPORT_DISTANCE)) {
+            return false;
+        }
+        EntityId spellEntity = getRechargedSpell(CreatureSpellFlag.IMP_TELEPORT);
+        if (spellEntity == null || navigationService.findPath(location, destination, this) == null) {
+            return false;
+        }
+
+        double now = gameTimer.getGameTime();
+        Position position = entityData.getComponent(entityId, Position.class);
+        entityData.setComponent(spellEntity, new CreatureSpell(entityData.getComponent(spellEntity, CreatureSpell.class), now));
+        entityData.removeComponent(entityId, Navigation.class);
+        entityData.setComponent(entityId, new Teleport(now, new Vector3f(target.x, position.position.y, target.y)));
+        gameEventService.emitEffect(IMP_TELEPORT_OUT_EFFECT, position.position, position.rotation);
+        gameEventService.emit(GameEventType.CREATURE_TELEPORT_OUT, ThingFlag.CREATURE, creature.getCreatureId(), position.position);
+        return true;
+    }
+
+    /**
+     * The Imp jumps out, then lands on the job and jumps in. Each half lasts as
+     * long as the jump animation, but at least 4 ticks out and 2 ticks in
+     * (0x499B80 and 0x499BE0)
+     */
+    private void continueTeleport(Teleport teleport) {
+        double now = gameTimer.getGameTime();
+        int ticks = teleport.destination != null ? TELEPORT_OUT_TICKS : TELEPORT_IN_TICKS;
+        if (now - teleport.startTime < Math.max(ticks / (double) levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
+                getAnimationTime(creature, Creature.AnimationType.SPECIAL_1))) {
+            return;
+        }
+        if (teleport.destination == null) {
+            entityData.removeComponent(entityId, Teleport.class);
+            return;
+        }
+
+        Position position = entityData.getComponent(entityId, Position.class);
+        entityData.setComponents(entityId, new Position(position.rotation, teleport.destination), new Teleport(now, null));
+        gameEventService.emitEffect(IMP_TELEPORT_IN_EFFECT, teleport.destination, position.rotation);
+        gameEventService.emit(GameEventType.CREATURE_TELEPORT_IN, ThingFlag.CREATURE, creature.getCreatureId(), teleport.destination);
+    }
+
+    /**
+     * @param flag the flag of the spell
+     * @return our spell with the flag if it is recharged, null if there is none
+     */
+    private EntityId getRechargedSpell(CreatureSpellFlag flag) {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells != null) {
+            for (EntityId spellEntity : creatureSpells.creatureSpells) {
+                CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+                if (levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId).getFlags().contains(flag) && isAttackRecharged(spell)) {
+                    return spellEntity;
+                }
+            }
+        }
+        return null;
     }
 
     private boolean createNavigation(Point currentLocation, Point destination, Point faceTarget) {
@@ -835,7 +955,7 @@ public final class CreatureController extends EntityController implements ICreat
         // A Horned Reaper picks his prey over the whole map and hunts it down even when it runs (DKII.EXE 0x45E1B0)
         if (attackTarget == null || isIncapacitated(attackTarget.entityId)
                 || isFleeing(attackTarget.entityId) && !creature.getFlags().contains(Creature.CreatureFlag.IS_HORNY)
-                || isCaptive(attackTarget.entityId)
+                || isCaptive(attackTarget.entityId) || isInvisible(attackTarget.entityId)
                 || !isEnemy(attackTarget.entityId)
                 || isUnreachable(attackTarget.entityId)) {
 
@@ -965,7 +1085,7 @@ public final class CreatureController extends EntityController implements ICreat
         for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
             if (creaturesController.isValidEntity(entity)
                     && isEnemy(entity)
-                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity))
+                    && !(isIncapacitated(entity) || isFleeing(entity) || isCaptive(entity) || isInvisible(entity))
                     && !(fightersOnly && creaturesController.createController(entity).isWorker())
                     && hasRoomForAttacker(entity)
                     && (hasPathToEntity(entity) || isWithinAttackDistance(entity))) {
@@ -1236,6 +1356,121 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean castSupportSpell() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return false;
+        }
+
+        // Of the spells for our own creatures, the last one that is ready gets its go
+        EntityId spellEntity = null;
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            if (isAttackRecharged(spell) && levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId).getFlags().contains(CreatureSpellFlag.CREATURE)) {
+                spellEntity = creatureSpellEntity;
+            }
+        }
+        if (spellEntity == null) {
+            return false;
+        }
+
+        CreatureSpell spell = entityData.getComponent(spellEntity, CreatureSpell.class);
+        toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+        EntityId target = getSupportSpellTarget(spell, creatureSpell);
+        if (target == null) {
+            return false;
+        }
+
+        entityData.setComponent(spellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+        stateMachine.changeState(CreatureState.CAST_SPELL);
+
+        // Cast like an attack spell, the shot leaves after the spell's shot delay (0x45F030, 0x498870)
+        entityData.setComponent(entityId, new CastShot(spell.creatureSpellId, target, spell.range,
+                gameTimer.getGameTime() + getShotDelay(spell.creatureSpellId)));
+
+        return true;
+    }
+
+    /**
+     * Gets the creature to cast a spell for our own creatures on. A spell for
+     * the caster itself needs the caster to fight. The others go to the nearest
+     * of our fighters in the spell's range that has less than a quarter of its
+     * health left, and that can be the caster too
+     *
+     * @param spell the spell we have
+     * @param creatureSpell the spell's data
+     * @return the creature to cast on, or {@code null} if nobody needs it
+     */
+    private EntityId getSupportSpellTarget(CreatureSpell spell, toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        if (creatureSpell.getFlags().contains(CreatureSpellFlag.CAST_ON_SELF)) {
+            return isFighting(entityId) && isSupportSpellNeeded(entityId, creatureSpell) ? entityId : null;
+        }
+        if (isSupportSpellTarget(entityId, creatureSpell)) {
+            return entityId;
+        }
+
+        EntityId nearestTarget = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            float distance = getDistanceToCreature(entity);
+            if (distance < nearestDistance && distance <= spell.range && isSupportSpellTarget(entity, creatureSpell)) {
+                nearestDistance = distance;
+                nearestTarget = entity;
+            }
+        }
+
+        return nearestTarget;
+    }
+
+    private boolean isSupportSpellTarget(EntityId entity, toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        Health health = entityData.getComponent(entity, Health.class);
+        Owner owner = entityData.getComponent(entity, Owner.class);
+
+        return health != null && owner != null && owner.ownerId == getOwnerId() && health.health < health.maxHealth / 4
+                && isFighting(entity) && !isIncapacitated(entity) && !isCaptive(entity) && isSupportSpellNeeded(entity, creatureSpell);
+    }
+
+    private boolean isFighting(EntityId entity) {
+        CreatureAi creatureAi = entityData.getComponent(entity, CreatureAi.class);
+        if (creatureAi == null) {
+            return false;
+        }
+        CreatureState state = creatureAi.getCreatureState();
+
+        return state == CreatureState.FIGHT || state == CreatureState.MELEE_ATTACK || state == CreatureState.CAST_SPELL;
+    }
+
+    private boolean isInvisible(EntityId entity) {
+        return entityData.getComponent(entity, Invisible.class) != null;
+    }
+
+    /**
+     * The spell's own condition on the creature it would be cast on
+     *
+     * @param entity the creature to cast on
+     * @param creatureSpell the spell's data
+     * @return true if the spell is of use to the creature
+     */
+    private boolean isSupportSpellNeeded(EntityId entity, toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell) {
+        Health health = entityData.getComponent(entity, Health.class);
+
+        return switch (creatureSpell.getAlternativeShot()) {
+            case HEAL ->
+                health != null && health.health < health.maxHealth / 2;
+            case ARMOUR ->
+                isFighting(entity) && entityData.getComponent(entity, Armour.class) == null;
+            case INVULNERABLE ->
+                isFighting(entity) && entityData.getComponent(entity, Invulnerable.class) == null;
+            case INVISIBLE ->
+                isFighting(entity) && !isInvisible(entity);
+            case HASTE ->
+                entityData.getComponent(entity, SpeedChange.class) == null;
+            default ->
+                false;
+        };
+    }
+
+    @Override
     public void releaseCastShot() {
         CastShot castShot = entityData.getComponent(entityId, CastShot.class);
         if (castShot == null || gameTimer.getGameTime() < castShot.releaseTime) {
@@ -1246,13 +1481,20 @@ public final class CreatureController extends EntityController implements ICreat
 
         // TODO: What is the alternative shot all about?
         toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(castShot.creatureSpellId);
-        if (!shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
+
+        // A shot that flies, cast on its own caster, hits it at once: it starts on the caster, the only thing such a
+        // shot hits (0x451570). An instant shot, like Heal, is fired like any other
+        boolean flyingOnCaster = entityId.equals(castShot.target)
+                && levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId()).getSpeed() > 0;
+        if (flyingOnCaster || !shotsController.fireShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(),
                 getOwnerId(), getShotPosition(castShot.creatureSpellId, castShot.target), castShot.target, entityId, castShot.range)) {
             shotsController.createShot(creatureSpell.getShotTypeId(), creatureSpell.getShotData1(), creatureSpell.getShotData2(), getOwnerId(), getPosition(), castShot.target, entityId);
 
             // TODO: Of course not like that, the shot is created and it does what it does
-            // Set the damage
-            setDamage(castShot.target, creatureSpell.getShotData1());
+            // Set the damage, a spell for our own creatures does them none
+            if (!creatureSpell.getFlags().contains(CreatureSpellFlag.CREATURE)) {
+                setDamage(castShot.target, creatureSpell.getShotData1());
+            }
         }
     }
 
@@ -1740,9 +1982,33 @@ public final class CreatureController extends EntityController implements ICreat
 
     @Override
     public void processTick(float tpf) {
+        Armour armour = entityData.getComponent(entityId, Armour.class);
+        if (armour != null && armour.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Armour.class);
+        }
+        Invulnerable invulnerable = entityData.getComponent(entityId, Invulnerable.class);
+        if (invulnerable != null && invulnerable.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Invulnerable.class);
+        }
+        Invisible invisible = entityData.getComponent(entityId, Invisible.class);
+        if (invisible != null && invisible.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, Invisible.class);
+        }
+        SpeedBlur speedBlur = entityData.getComponent(entityId, SpeedBlur.class);
+        if (speedBlur != null && speedBlur.endTime <= gameTimer.getGameTime()) {
+            entityData.removeComponent(entityId, SpeedBlur.class);
+        }
+
         // A manual drop can already carry its target in AI, but no state may
         // enter or advance until the fall system has finished landing.
         if (entityData.getComponent(entityId, CreatureFall.class) != null) {
+            return;
+        }
+
+        // A teleporting Imp does nothing else until it has landed (states 51 and 52)
+        Teleport teleport = entityData.getComponent(entityId, Teleport.class);
+        if (teleport != null) {
+            continueTeleport(teleport);
             return;
         }
 
