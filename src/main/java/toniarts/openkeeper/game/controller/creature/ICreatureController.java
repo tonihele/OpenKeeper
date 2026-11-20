@@ -192,6 +192,17 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
     public boolean isCornered();
 
     /**
+     * Tells whether the enemy creature we fight is in or near one of our
+     * keeper's Guard Rooms: inside the room's bounds widened by the level's
+     * guard room reporting distance. A scared creature doesn't withdraw from
+     * such an enemy when its back-off time runs out. Never so for neutral
+     * creatures and heroes (DK II 0x460B50)
+     *
+     * @return true if our target is at one of our Guard Rooms
+     */
+    public boolean isEnemyAtOurGuardRoom();
+
+    /**
      * Starts backing off from the attack target, sets how long we back off
      */
     public void startBackOff();

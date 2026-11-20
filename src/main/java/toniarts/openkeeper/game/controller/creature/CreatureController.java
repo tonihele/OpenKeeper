@@ -2321,6 +2321,40 @@ public final class CreatureController extends EntityController implements ICreat
     }
 
     @Override
+    public boolean isEnemyAtOurGuardRoom() {
+        short ownerId = getOwnerId();
+        AttackTarget attackTarget = entityData.getComponent(entityId, AttackTarget.class);
+        if (ownerId == Player.NEUTRAL_PLAYER_ID || ownerId == Player.GOOD_PLAYER_ID || attackTarget == null
+                || entityData.getComponent(attackTarget.entityId, CreatureComponent.class) == null) {
+            return false;
+        }
+        Vector3f targetPosition = getPosition(entityData, attackTarget.entityId);
+        if (targetPosition == null) {
+            return false;
+        }
+
+        Point target = WorldUtils.vectorToPoint(targetPosition);
+        int distance = (int) gameSettings.get(Variable.MiscVariable.MiscType.GUARD_ROOM_REPORTING_DISTANCE_TILES).getValue();
+        for (IRoomController guardRoom : mapController.getRoomsByFunction(AbstractRoomController.ObjectType.GUARD, ownerId)) {
+            int minX = Integer.MAX_VALUE;
+            int maxX = Integer.MIN_VALUE;
+            int minY = Integer.MAX_VALUE;
+            int maxY = Integer.MIN_VALUE;
+            for (Point tile : guardRoom.getRoomInstance().getCoordinates()) {
+                minX = Math.min(minX, tile.x);
+                maxX = Math.max(maxX, tile.x);
+                minY = Math.min(minY, tile.y);
+                maxY = Math.max(maxY, tile.y);
+            }
+            if (minX - distance < target.x && target.x < maxX + distance && minY - distance < target.y && target.y < maxY + distance) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    @Override
     public boolean isCornered() {
         Point location = getCreatureCoordinates();
         for (int x = -1; x <= 1; x++) {
