@@ -57,6 +57,7 @@ import toniarts.openkeeper.view.map.MapTileEffectTracker;
 import toniarts.openkeeper.view.map.MapViewController;
 import toniarts.openkeeper.view.map.TerrainDeformer;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
@@ -94,6 +95,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
     // Tile updates (the fog seeding, fog changes from the server) that came
     // while the map was still loading. Render thread only
     private final Set<Point> pendingTileUpdates = new HashSet<>();
+
+    // Scripted reveals/conceals (action point triggers) that arrive before the fog has been seeded
+    // would be wiped by the seeding, so they wait for it and are applied right after
+    private final Object fogSeedLock = new Object();
+    private boolean fogSeeded = false;
+    private final List<Runnable> pendingFogChanges = new ArrayList<>();
 
     // Takes in the map entities until the map is complete, see initialize()
     private final AppState mapEntityLoader = new AbstractAppState() {
@@ -134,7 +141,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
                 // Fog must be seeded before the initial geometry is built, since
                 // the renderer consults it while assembling the map
-                fogOfWarController.seedLevelStart();
+                synchronized (fogSeedLock) {
+                    fogOfWarController.seedLevelStart();
+                    fogSeeded = true;
+                    pendingFogChanges.forEach(Runnable::run);
+                    pendingFogChanges.clear();
+                }
 
                 // Snapshot terrain and ownership before rendering any transitions.
                 tileEffects = new MapTileEffectTracker(this, kwdFile, fogOfWarController,
@@ -369,6 +381,12 @@ public abstract class PlayerMapViewState extends AbstractAppState implements Map
 
     @Override
     public void onTilesReveal(List<Point> points, boolean explore, short keeperId) {
+        synchronized (fogSeedLock) {
+            if (!fogSeeded) {
+                pendingFogChanges.add(() -> fogOfWarController.revealActionPointTiles(points, explore));
+                return;
+            }
+        }
         fogOfWarController.revealActionPointTiles(points, explore);
     }
 
