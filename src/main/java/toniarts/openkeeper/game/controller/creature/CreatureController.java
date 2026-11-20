@@ -2393,7 +2393,7 @@ public final class CreatureController extends EntityController implements ICreat
             case ENTERING_DUNGEON -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.ENTRANCE);
             }
-            case MELEE_ATTACK -> {
+            case MELEE_ATTACK, TELLING_OFF -> {
                 stateTargetTime = getAnimationTime(creature, Creature.AnimationType.MELEE_ATTACK);
             }
             case CAST_SPELL -> {
