@@ -28,11 +28,13 @@ import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
 import toniarts.openkeeper.game.component.Health;
+import toniarts.openkeeper.game.component.Mobile;
 import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.SpeedChange;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapDataInformation;
@@ -66,6 +68,7 @@ class ShotsControllerTest {
     private static final short CREATE_OBJECT_ID = 2;
     private static final short GOLD_OBJECT_ID = 1;
     private static final short SIGHT_OF_EVIL_ID = 33;
+    private static final short DRAIN_ID = 42;
     private static final short SPIKE_ID = 27;
     private static final short GAS_CLOUD_ID = 58;
     private static final short DOOR_FIREBALL_ID = 57;
@@ -90,11 +93,14 @@ class ShotsControllerTest {
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(SIGHT_OF_EVIL_ID, Shot.ProcessType.SIGHT_OF_EVIL);
+        // Drain does its process when it hits, as in the original data
+        shotsById.put(DRAIN_ID, ShotFixtures.shot(DRAIN_ID, Shot.ProcessType.DRAIN, 0, EnumSet.of(Shot.ShotProcessFlag.HIT_COLLIDE_THING)));
         shotsById.put(SPIKE_ID, TrapFiringFixtures.shot(SPIKE_ID, Shot.ProcessType.NONE, Shot.DamageType.CONSTANT));
         shotsById.put(GAS_CLOUD_ID, TrapFiringFixtures.shot(GAS_CLOUD_ID, Shot.ProcessType.GAS, Shot.DamageType.RANGE_FROM_ORIGIN));
         shotsById.put(DOOR_FIREBALL_ID, TrapFiringFixtures.shot(DOOR_FIREBALL_ID, Shot.ProcessType.NONE, Shot.DamageType.HIT_THING));
         shotsById.put(FREEZE_ID, TrapFiringFixtures.shot(FREEZE_ID, Shot.ProcessType.FREEZE, Shot.DamageType.NONE));
         shotsById.put(ALARM_ID, TrapFiringFixtures.shot(ALARM_ID, Shot.ProcessType.ALARM, Shot.DamageType.NONE));
+        shotsById.put(ShotFixtures.WEB_ID, ShotFixtures.web());
         IKwdFile kwdFile = (IKwdFile) Proxy.newProxyInstance(IKwdFile.class.getClassLoader(), new Class<?>[]{IKwdFile.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getShotById" -> shotsById.get((Short) args[0]);
@@ -112,9 +118,12 @@ class ShotsControllerTest {
                     throw new UnsupportedOperationException(method.getName());
                 });
 
-        // A map without tiles, no strike lands on water. To a fire shot only the tiles in waterTiles are water
+        // A 32 x 32 map without tiles, no strike lands on water. To a fire shot only the tiles in waterTiles are water
         IMapDataInformation<?> mapData = (IMapDataInformation<?>) Proxy.newProxyInstance(IMapDataInformation.class.getClassLoader(), new Class<?>[]{IMapDataInformation.class},
-                (proxy, method, args) -> null);
+                (proxy, method, args) -> switch (method.getName()) {
+                    case "getWidth", "getHeight" -> 32;
+                    default -> null;
+                });
         IMapController mapController = (IMapController) Proxy.newProxyInstance(IMapController.class.getClassLoader(), new Class<?>[]{IMapController.class},
                 (proxy, method, args) -> switch (method.getName()) {
                     case "getMapData" -> mapData;
@@ -387,6 +396,89 @@ class ShotsControllerTest {
         shotsController.createShot(ALARM_ID, 0, 5, ENEMY_ID, new Vector3f(20, 1, 20), null, null);
 
         assertEquals(2, entityData.findEntities(null, Alarm.class).size());
+    }
+
+    @Test
+    void webSlowsEveryCreatureNearItButTheMaiden() {
+        EntityId maiden = createWalker(PLAYER_ID, 10, 9);
+        EntityId target = createWalker(ENEMY_ID, 10, 10.5f);
+        EntityId own = createWalker(PLAYER_ID, 11, 11);
+        EntityId farAway = createWalker(ENEMY_ID, 12.1f, 10);
+        gameTime = 5;
+
+        // Maiden Web: 15 seconds, 2 tiles. There is no owner check, the Maiden's own creatures are caught too
+        hitWithWeb(maiden, target);
+
+        assertSlowed(target);
+        assertSlowed(own);
+        assertEquals(2f, entityData.getComponent(maiden, Mobile.class).maxSpeed, DELTA);
+        assertNull(entityData.getComponent(maiden, SpeedChange.class));
+        assertEquals(2f, entityData.getComponent(farAway, Mobile.class).maxSpeed, DELTA);
+        assertNull(entityData.getComponent(farAway, SpeedChange.class));
+    }
+
+    @Test
+    void webLeavesARunningSpeedChangeAsItIs() {
+        EntityId target = createWalker(ENEMY_ID, 10, 10.5f);
+        entityData.setComponents(target, new Mobile(false, false, false, 3f), new SpeedChange(100));
+
+        hitWithWeb(createWalker(PLAYER_ID, 10, 8), target);
+
+        assertEquals(3f, entityData.getComponent(target, Mobile.class).maxSpeed, DELTA);
+        assertEquals(100, entityData.getComponent(target, SpeedChange.class).endTime, DELTA);
+    }
+
+    private void hitWithWeb(EntityId maiden, EntityId target) {
+        shotsController.fireShot(ShotFixtures.WEB_ID, 15, 2, PLAYER_ID, new Vector3f(10, 1, 10), target, maiden, 8);
+
+        shotsController.hit(entityData.findEntity(null, ShotFlight.class), target);
+    }
+
+    private void assertSlowed(EntityId creature) {
+        assertEquals(0.5f, entityData.getComponent(creature, Mobile.class).maxSpeed, DELTA);
+        assertEquals(20, entityData.getComponent(creature, SpeedChange.class).endTime, DELTA);
+    }
+
+    private EntityId createWalker(short ownerId, float x, float y) {
+        EntityId creature = createCreature(ownerId, x, y);
+        CreatureComponent creatureComponent = new CreatureComponent();
+        creatureComponent.speed = 2f;
+        entityData.setComponents(creature, creatureComponent, new Mobile(false, false, false, 2f));
+        return creature;
+    }
+
+    @Test
+    void drainGivesTheShooterAQuarterOfItsFullHealthFromTheTarget() {
+        EntityId vampire = createCreature();
+        entityData.setComponent(vampire, new Health(500, 2000));
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Health(900, 1000));
+
+        // Drain: 25 % of the Vampire's 2000
+        shotsController.hit(createDrainShot(vampire), target);
+
+        assertEquals(500, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(-500, entityData.getComponent(vampire, Damage.class).damage);
+    }
+
+    @Test
+    void drainTakesNoMoreThanTheTargetHasLeft() {
+        EntityId vampire = createCreature();
+        entityData.setComponent(vampire, new Health(500, 2000));
+        EntityId target = createCreature();
+        entityData.setComponent(target, new Health(120, 1000));
+
+        shotsController.hit(createDrainShot(vampire), target);
+
+        assertEquals(120, entityData.getComponent(target, Damage.class).damage);
+        assertEquals(-120, entityData.getComponent(vampire, Damage.class).damage);
+    }
+
+    private EntityId createDrainShot(EntityId shooter) {
+        EntityId shot = entityData.createEntity();
+        entityData.setComponents(shot, new Position(0, new Vector3f(1.5f, 1f, 1.5f)),
+                new ShotFlight(DRAIN_ID, PLAYER_ID, shooter, 25, 0, new Vector3f(), new Vector3f(), 3, 128));
+        return shot;
     }
 
     private EntityId createCreature(short ownerId, float x, float y) {
