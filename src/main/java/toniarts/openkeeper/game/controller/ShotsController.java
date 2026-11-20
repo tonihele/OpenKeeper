@@ -66,6 +66,7 @@ import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.MODIFY_HEAL
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.POSSESS_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SIGHT_OF_EVIL;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.SUMMON_REAPER;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.TURNCOAT;
 
 /**
  * Fires shots. What a shot does is decided by its process type, each
@@ -149,6 +150,11 @@ public final class ShotsController implements IShotsController {
             // Shot data 1 is the radius, the shot lifetime (in game ticks) the duration
             if (request.shotData1() > 0) {
                 mapController.revealSightOfEvil(WorldUtils.vectorToPoint(request.position()), request.shotData1(), request.shot().getHealth(), request.playerId());
+            }
+        });
+        result.put(TURNCOAT, request -> {
+            if (request.target() != null && creaturesController.isValidEntity(request.target())) {
+                creaturesController.createController(request.target()).turncoat(request.playerId(), request.shotData1());
             }
         });
         result.put(SUMMON_REAPER, request -> new ReaperSummoner(kwdFile, entityData, gameTimer, creaturesController).summon(request.shot().getShotId(),

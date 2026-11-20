@@ -25,6 +25,7 @@ import toniarts.openkeeper.game.controller.IPlayerController;
 import toniarts.openkeeper.game.controller.room.FiveByFiveRotatedController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEventService;
+import toniarts.openkeeper.game.logic.BattleSystem;
 import toniarts.openkeeper.game.logic.CallToArmsSystem;
 import toniarts.openkeeper.game.logic.CasinoSystem;
 import toniarts.openkeeper.game.logic.ChickenAiSystem;
@@ -66,6 +67,7 @@ import toniarts.openkeeper.game.logic.SlapSystem;
 import toniarts.openkeeper.game.logic.SpinSystem;
 import toniarts.openkeeper.game.logic.SummonedReaperSystem;
 import toniarts.openkeeper.game.logic.TrapSystem;
+import toniarts.openkeeper.game.logic.TurncoatSystem;
 import toniarts.openkeeper.game.logic.WoodenBridgeDecaySystem;
 import toniarts.openkeeper.game.state.session.GameSessionServerService;
 import toniarts.openkeeper.game.task.ITaskManager;
@@ -130,6 +132,7 @@ public final class GameLoopManager {
                 payDaySystem,
                 new SlapSystem(entityData, levelInfo.getLevelData(), playerControllers.values(), gameSettings,
                         gameWorldController.getObjectsController()),
+                new TurncoatSystem(entityData, gameController.getGameTimer()),
                 new HealthSystem(entityData, positionSystem, gameSettings, gameWorldController.getCreaturesController(),
                         levelInfo, playerControllers.values(), gameWorldController.getMapController(),
                         gameController.getGameTimer(), gameEventService),
@@ -164,6 +167,7 @@ public final class GameLoopManager {
                 new ChickenAiSystem(entityData, gameWorldController.getObjectsController()),
                 new CreatureViewSystem(entityData, levelInfo.getLevelData()),
                 new DoorViewSystem(entityData, positionSystem),
+                new BattleSystem(entityData, gameController.getGameTimer()),
                 new SpinSystem(entityData, gameController.getGameTimer()),
                 new LooseObjectSystem(entityData, gameWorldController.getMapController(), playerControllers, positionSystem),
                 new HaulingSystem(entityData),

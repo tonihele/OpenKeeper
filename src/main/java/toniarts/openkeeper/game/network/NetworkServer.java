@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.Alarm;
 import toniarts.openkeeper.game.component.Attack;
 import toniarts.openkeeper.game.component.AttackTarget;
 import toniarts.openkeeper.game.component.BackOff;
+import toniarts.openkeeper.game.component.Battle;
 import toniarts.openkeeper.game.component.CallToArms;
 import toniarts.openkeeper.game.component.Casino;
 import toniarts.openkeeper.game.component.CasinoBigWinner;
@@ -121,6 +122,7 @@ import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.TriggerWave;
+import toniarts.openkeeper.game.component.Turncoat;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
@@ -205,6 +207,7 @@ public final class NetworkServer {
             Serializer.registerClass(Attack.class, new FieldSerializer());
             Serializer.registerClass(AttackTarget.class, new FieldSerializer());
             Serializer.registerClass(BackOff.class, new FieldSerializer());
+            Serializer.registerClass(Battle.class, new FieldSerializer());
             Serializer.registerClass(CallToArms.class, new FieldSerializer());
             Serializer.registerClass(Casino.class, new FieldSerializer());
             Serializer.registerClass(CastShot.class, new FieldSerializer());
@@ -293,6 +296,7 @@ public final class NetworkServer {
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
             Serializer.registerClass(TriggerWave.class, new FieldSerializer());
+            Serializer.registerClass(Turncoat.class, new FieldSerializer());
             Serializer.registerClass(Unconscious.class, new FieldSerializer());
         }
     }
