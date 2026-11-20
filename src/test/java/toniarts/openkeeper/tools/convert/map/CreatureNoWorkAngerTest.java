@@ -55,6 +55,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class CreatureNoWorkAngerTest {
 
     private final List<Creature.JobType> assigned = new ArrayList<>();
+    private Creature.JobType unavailable;
     private double gameTime;
 
     @Test
@@ -109,6 +110,21 @@ class CreatureNoWorkAngerTest {
     }
 
     @Test
+    void creatureThatTrainsForLackOfAJobGetsAngryFirst() {
+        EntityData entityData = new DefaultEntityData();
+        EntityId entityId = createCreature(entityData);
+        AtomicBoolean foundWork = new AtomicBoolean(false);
+        unavailable = Creature.JobType.RESEARCH;
+
+        // None of its own jobs can start: that angers it, and only then does it go on to train (0x4780E0, 0x478680)
+        controller(entityData, entityId, true).findWork(foundWork::set);
+
+        assertTrue(foundWork.get());
+        assertEquals(List.of(Creature.JobType.TRAIN), assigned);
+        assertEquals(50 / 4, entityData.getComponent(entityId, CreatureMood.class).noWork);
+    }
+
+    @Test
     void pitFighterWaitingForAnOpponentGetsAngry() {
         EntityData entityData = new DefaultEntityData();
         EntityId entityId = createCreature(entityData);
@@ -159,7 +175,7 @@ class CreatureNoWorkAngerTest {
 
         ITaskManager taskManager = (ITaskManager) Proxy.newProxyInstance(ITaskManager.class.getClassLoader(),
                 new Class<?>[]{ITaskManager.class}, (proxy, method, args) -> switch (method.getName()) {
-            case "isTaskAvailable" -> jobAvailable;
+            case "isTaskAvailable" -> jobAvailable && args[1] != unavailable;
             case "assignTask" -> {
                 if (jobAvailable) {
                     assigned.add((Creature.JobType) args[1]);

@@ -583,6 +583,12 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // DKII angers a creature each time it looks for a job and finds none, before it goes on to its other
+        // choices (0x4780E0, then 0x478680)
+        if (!pickedLately) {
+            addNoWorkAnger();
+        }
+
         // With none of its own jobs to start, the creature trains, like in DK II. The Casino comes after this
         if (!creature.getFlags().contains(Creature.CreatureFlag.NOT_TRAIN_WHEN_IDLE)
                 && taskManager.isTaskAvailable(this, Creature.JobType.TRAIN)
@@ -591,10 +597,6 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
-        // DKII angers a creature each time it looks for a job and finds none
-        if (!pickedLately) {
-            addNoWorkAnger();
-        }
         workResult.accept(false);
     }
 
