@@ -142,8 +142,11 @@ public final class PlayerScreenController implements IPlayerScreenController {
     private boolean initHud = false;
     private String cinematicText;
     private EntityData entityData;
+    private EntitySet battles;
+    private int battleIndex = -1;
     private CreatureCardManager creatureCardManager;
     private EntitySet callToArmsBanners;
+    private WatchedEntity possessedCreature;
     private int lastImpCount = -1;
     private EntitySet spellCasts;
     private final Map<Short, Float> spellRechargeLeft = new HashMap<>();
@@ -177,9 +180,48 @@ public final class PlayerScreenController implements IPlayerScreenController {
                     populateSpellTab();
                 }
             }
+            if (battles != null && battles.applyChanges()) {
+                showBattleButton();
+            }
+            updatePossessionHealth();
             updateCallToArms();
             lastUpdate = 0;
         }
+    }
+
+    /**
+     * Sizes the possession HUD health bar by the possessed creature's health.
+     * The creature is watched for its health while the possession screen is
+     * up, and released when the possession ends. Called from the render
+     * thread, like the rest of the screen update.
+     */
+    private void updatePossessionHealth() {
+        EntityId target = screen != null && SCREEN_POSSESSION_ID.equals(screen.getScreenId())
+                ? state.stateManager.getState(PossessionInteractionState.class).getTarget() : null;
+        if (possessedCreature != null && !possessedCreature.getId().equals(target)) {
+            possessedCreature.release();
+            possessedCreature = null;
+        }
+        if (target == null) {
+            return;
+        }
+
+        boolean watchStarted = possessedCreature == null;
+        if (watchStarted) {
+            possessedCreature = entityData.watchEntity(target, Health.class);
+        }
+        if (!possessedCreature.applyChanges() && !watchStarted) {
+            return;
+        }
+
+        Health health = possessedCreature.get(Health.class);
+        Element bar = screen.findElementById("creature-health");
+        if (health == null || bar == null || health.maxHealth <= 0) {
+            return;
+        }
+        int percent = Math.clamp(Math.round(100f * health.health / health.maxHealth), 0, 100);
+        bar.setConstraintWidth(new SizeValue(percent, SizeValueType.Percent));
+        bar.getParent().layoutElements();
     }
 
     @Override
@@ -193,13 +235,18 @@ public final class PlayerScreenController implements IPlayerScreenController {
             creatureCardManager.cleanup();
             creatureCardManager = null;
         }
+        if (battles != null) {
+            battles.release();
+            battles = null;
+        }
         if (callToArmsBanners != null) {
             callToArmsBanners.release();
             callToArmsBanners = null;
         }
-
-        // Remove the resource bundle so that we can actually put a new one here
-        nifty.getResourceBundles().remove("level");
+        if (possessedCreature != null) {
+            possessedCreature.release();
+            possessedCreature = null;
+        }
 
         // The screen controller might sometimes stay in memory
         // So make sure we clean these up or we end up cumulating a lot of uncollectable garbage (memory-leak)
@@ -792,6 +839,47 @@ public final class PlayerScreenController implements IPlayerScreenController {
     }
 
     /**
+     * Battle tab right click: zoom to the next battle of our creatures. Each
+     * click moves on to the next battle.
+     */
+    public void zoomToBattle() {
+        List<Entity> playerBattles = getPlayerBattles();
+        if (!playerBattles.isEmpty()) {
+            battleIndex = (battleIndex + 1) % playerBattles.size();
+            zoomToPosition(playerBattles.get(battleIndex).get(Battle.class).position);
+        }
+    }
+
+    private List<Entity> getPlayerBattles() {
+        short playerId = state.getPlayer().getId();
+        List<Entity> playerBattles = new ArrayList<>();
+        for (Entity battle : battles) {
+            if (battle.get(Battle.class).playerIds.contains(playerId)) {
+                playerBattles.add(battle);
+            }
+        }
+        playerBattles.sort(Comparator.comparing(Entity::getId));
+        return playerBattles;
+    }
+
+    /**
+     * The Battle tab, the flashing crossed blades, shows while our creatures
+     * fight. DK II flies an icon to the tab with two sounds when the first of
+     * our creatures joins a battle, we just play the sounds.
+     */
+    private void showBattleButton() {
+        Element battleButton = nifty.getScreen(SCREEN_HUD_ID).findElementById("battleButton");
+        boolean visible = !getPlayerBattles().isEmpty();
+        if (battleButton != null && battleButton.isVisible() != visible) {
+            battleButton.setVisible(visible);
+            if (visible) {
+                playSound(GlobalCategory.GUI_BUTTON_TAB_NEW_COMBAT, String.valueOf(GlobalType.GUI_BUTTON_TABSLAB.getId()));
+                playSound(GlobalCategory.GUI_BUTTON_TAB_NEW_COMBAT, String.valueOf(GlobalType.GUI_BUTTON_SPINNING.getId()));
+            }
+        }
+    }
+
+    /**
      * The Call to Arms indicator, left click: take the banner down
      */
     public void cancelCallToArms() {
@@ -1241,6 +1329,8 @@ public final class PlayerScreenController implements IPlayerScreenController {
         creatureCardManager = new CreatureCardManager(this, state.getKwdFile(), entityData, creaturePanel,
                 creatureTab.findControl("tab-creature-scroll", CreaturePortraitScrollControl.class),
                 workerAmountControl, hud, state.getPlayer().getId());
+        battles = entityData.getEntities(Battle.class);
+        showBattleButton();
         callToArmsBanners = entityData.getEntities(new FieldFilter(Owner.class, "ownerId", state.getPlayer().getId()),
                 CallToArms.class, ObjectViewState.class, Position.class, Owner.class);
 
