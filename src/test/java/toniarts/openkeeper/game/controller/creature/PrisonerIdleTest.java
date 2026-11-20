@@ -34,6 +34,7 @@ import toniarts.openkeeper.game.component.CreatureHunger;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Damage;
 import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.FoodHunt;
 import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -59,7 +60,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 /**
  * An idle prisoner now and then walks to a tile of the cage next to its own
  * (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0). A hungry one goes for the chickens
- * in the Prison instead (0x473550, 0x473750)
+ * in the Prison instead, and so does every prisoner when food is dropped into
+ * the cage (0x473550, 0x473750)
  */
 class PrisonerIdleTest {
 
@@ -138,10 +140,10 @@ class PrisonerIdleTest {
     }
 
     @Test
-    void hungryPrisonerEatsTheChickenItStandsOnAndIsFull() {
+    void prisonerAfterFoodEatsTheChickenItStandsOnAndIsFull() {
         CreatureController controller = createController();
         entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 2),
-                new CreatureMood(0, 1000, 0, 0, 0, 0));
+                new CreatureMood(0, 1000, 0, 0, 0, 0), new FoodHunt());
         EntityId chicken = placeChicken(new Point(11, 11));
 
         controller.idleInPrison();
@@ -158,9 +160,36 @@ class PrisonerIdleTest {
         entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 0));
         placeChicken(new Point(11, 11));
 
-        controller.idleInPrison();
+        for (int tick = 0; tick < TICKS; tick++) {
+            controller.idleInPrison();
+            entityData.removeComponent(prisoner, Navigation.class);
+        }
 
         assertTrue(eaten.isEmpty());
+    }
+
+    @Test
+    void prisonerSentAfterDroppedFoodEatsItAllThoughItIsNotHungry() {
+        CreatureController controller = createController();
+        entityData.setComponents(prisoner, new Position(0, new Vector3f(11, 1, 11)), new CreatureHunger(0, 0),
+                new CreatureMood(), new FoodHunt());
+        EntityId near = placeChicken(new Point(11, 11));
+        EntityId far = placeChicken(new Point(13, 12));
+
+        // Eats the one it stands on, then sets off at once for the other
+        controller.idleInPrison();
+        controller.idleInPrison();
+        assertEquals(List.of(near), eaten);
+        assertEquals(new Point(13, 12), entityData.getComponent(prisoner, Navigation.class).target);
+
+        // There it eats that one too. With no food left the hunt is over, and it is angry about it
+        entityData.removeComponent(prisoner, Navigation.class);
+        entityData.setComponent(prisoner, new Position(0, new Vector3f(13, 1, 12)));
+        controller.idleInPrison();
+        assertEquals(List.of(near, far), eaten);
+        controller.idleInPrison();
+        assertNull(entityData.getComponent(prisoner, FoodHunt.class));
+        assertEquals(CreatureMood.toRuntimeValue(ANGER_NO_FOOD), entityData.getComponent(prisoner, CreatureMood.class).noFood);
     }
 
     @Test
@@ -233,6 +262,7 @@ class PrisonerIdleTest {
             case "getEntityController" -> proxy(IEntityController.class, (controllerMethod, controllerArgs) -> {
                 if (controllerMethod.equals("remove")) {
                     eaten.add((EntityId) args[0]);
+                    thingsByTile.values().forEach(things -> things.remove((EntityId) args[0]));
                 }
                 return null;
             });

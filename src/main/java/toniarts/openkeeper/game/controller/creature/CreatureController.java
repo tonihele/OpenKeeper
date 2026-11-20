@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.FoodHunt;
 import toniarts.openkeeper.game.component.Gold;
 import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Health;
@@ -459,12 +460,14 @@ public final class CreatureController extends EntityController implements ICreat
      * plays two to four times, which is not built: OpenKeeper's prisoners show
      * that animation all the time they stand.
      * <br>
-     * A hungry prisoner looks for food instead of moving on, no more often
-     * than a free creature tries to eat: it walks to the nearest food in the
-     * Prison, and with none there it gets its anger for having no food
-     * (0x4731F0, 0x473550). Standing on food it eats it: one chicken fills a
-     * prisoner, gives it the health a chicken gives and takes its anger about
-     * food away (0x473750)
+     * A hungry prisoner goes after food instead of moving on, no more often
+     * than a free creature tries to eat (0x4731F0), and so does every
+     * prisoner when food is dropped into the cage. A prisoner after food
+     * walks to the nearest food in the Prison (0x473550) and eats it when it
+     * stands on its tile: one chicken fills a prisoner, gives it the health a
+     * chicken gives and takes its anger about food away (0x473750). Then it
+     * goes for the next one, and when no food is left it gets its anger for
+     * having no food and is idle again
      */
     @Override
     public void idleInPrison() {
@@ -473,8 +476,8 @@ public final class CreatureController extends EntityController implements ICreat
         if (prison == null) {
             return;
         }
-        boolean hungry = isHungry();
-        if (hungry && eatInPrison(tile)) {
+        if (entityData.getComponent(entityId, FoodHunt.class) != null) {
+            huntFoodInPrison(prison, tile);
             return;
         }
 
@@ -482,8 +485,9 @@ public final class CreatureController extends EntityController implements ICreat
         if (roll < PRISONER_ANIMATION_ROLL || roll >= PRISONER_MOVE_ROLL) {
             return;
         }
-        if (hungry && startEatAttempt()) {
-            goToFoodInPrison(prison, tile);
+        if (isHungry() && startEatAttempt()) {
+            entityData.setComponent(entityId, new FoodHunt());
+            huntFoodInPrison(prison, tile);
             return;
         }
         int first = Utils.getRandom().nextInt(NEIGHBOUR_TILES.length);
@@ -497,23 +501,19 @@ public final class CreatureController extends EntityController implements ICreat
         }
     }
 
-    private boolean eatInPrison(Point tile) {
-        EntityId food = getFood(tile);
-        if (food == null) {
-            return false;
-        }
-
-        entityPositionLookup.getEntityController(food).remove();
-        entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
-        setDamage(-creature.getAttributes().getHpFromChicken());
+    private void huntFoodInPrison(IRoomController prison, Point tile) {
         CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
-        if (mood != null) {
-            entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_FOOD));
+        EntityId food = getFood(tile);
+        if (food != null) {
+            entityPositionLookup.getEntityController(food).remove();
+            entityData.setComponent(entityId, new CreatureHunger(gameTimer.getGameTime(), 0));
+            setDamage(-creature.getAttributes().getHpFromChicken());
+            if (mood != null) {
+                entityData.setComponent(entityId, mood.clear(CreatureMood.REASON_NO_FOOD));
+            }
+            return;
         }
-        return true;
-    }
 
-    private void goToFoodInPrison(IRoomController prison, Point tile) {
         Point nearest = null;
         int nearestDistance = Integer.MAX_VALUE;
         for (Point p : prison.getRoomInstance().getCoordinates()) {
@@ -523,13 +523,13 @@ public final class CreatureController extends EntityController implements ICreat
                 nearestDistance = distance;
             }
         }
-        if (nearest != null) {
-            createNavigation(tile, nearest, null);
+        if (nearest != null && !createNavigation(tile, nearest, null)) {
             return;
         }
 
-        CreatureMood mood = entityData.getComponent(entityId, CreatureMood.class);
-        if (mood != null) {
+        // No food left, or no way to it
+        entityData.removeComponent(entityId, FoodHunt.class);
+        if (nearest == null && mood != null) {
             entityData.setComponent(entityId, mood.add(CreatureMood.REASON_NO_FOOD,
                     CreatureMood.toRuntimeValue(creature.getAttributes().getAngerNoFood())));
         }
