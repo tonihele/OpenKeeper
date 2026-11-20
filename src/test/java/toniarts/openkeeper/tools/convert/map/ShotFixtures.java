@@ -41,6 +41,11 @@ public final class ShotFixtures {
      */
     public static final int FIREBALL_HIT_EFFECT_ID = 234;
 
+    /**
+     * The Boulder Trap's shot in the original data
+     */
+    public static final short BOULDER_ID = 26;
+
     private ShotFixtures() {
     }
 
@@ -68,6 +73,19 @@ public final class ShotFixtures {
         shot.setHitThingEffectId(FIREBALL_HIT_EFFECT_ID);
         shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_WHEN_HIT_SOLID, Shot.ShotFlag.DIE_WHEN_HIT_THING, Shot.ShotFlag.DIE_OVER_TIME,
                 Shot.ShotFlag.MOVE_TOWARDS_TARGET, Shot.ShotFlag.RECOIL));
+        return shot;
+    }
+
+    /**
+     * The Boulder Trap's shot, with the values of the original data
+     */
+    public static Shot boulder() {
+        Shot shot = shot(BOULDER_ID, Shot.ProcessType.BOULDER, 1, EnumSet.of(Shot.ShotProcessFlag.AT_START));
+        shot.setSpeed(0.5f);
+        shot.setRadius(0.2f);
+        shot.setCollideType(Shot.CollideType.ALL_CREATURES);
+        shot.setDamageType(Shot.DamageType.NONE);
+        shot.setFlags(EnumSet.of(Shot.ShotFlag.DIE_OVER_TIME, Shot.ShotFlag.MOVE_TOWARDS_TARGET));
         return shot;
     }
 

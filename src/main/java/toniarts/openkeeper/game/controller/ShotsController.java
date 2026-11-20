@@ -22,6 +22,7 @@ import com.simsilica.es.EntityData;
 import com.simsilica.es.EntityId;
 import com.simsilica.es.filter.FieldFilter;
 import toniarts.openkeeper.game.component.Alarm;
+import toniarts.openkeeper.game.component.Boulder;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Decay;
 import toniarts.openkeeper.game.component.Frozen;
@@ -31,6 +32,7 @@ import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
 import toniarts.openkeeper.game.component.ShotViewState;
+import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
 import toniarts.openkeeper.game.controller.shot.InfernoShotProcessor;
@@ -56,6 +58,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.ALARM;
+import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.BOULDER;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CHICKEN;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_CREATURE;
 import static toniarts.openkeeper.tools.convert.map.Shot.ProcessType.CREATE_OBJECT;
@@ -149,6 +152,7 @@ public final class ShotsController implements IShotsController {
         result.put(INFERNO, new InfernoShotProcessor(entityData, gameTimer, () -> kwdFile.getGameLevel().getTicksPerSec()));
         result.put(FREEZE, this::freeze);
         result.put(ALARM, this::raiseAlarm);
+        result.put(BOULDER, this::rollBoulder);
 
         return result;
     }
@@ -276,6 +280,37 @@ public final class ShotsController implements IShotsController {
                 new Position(0, new Vector3f(request.position())), new Decay(gameTimer.getGameTime(), ALARM_DURATION));
     }
 
+    /**
+     * The Boulder Trap turns into a boulder: the trap is gone and a boulder
+     * with the level's boulder health sets off for the tile of the trap's
+     * victim. It belongs to the trap's owner. {@code BoulderSystem} rolls it
+     * (0x4AEBD0)
+     *
+     * @param request the shot
+     */
+    private void rollBoulder(ShotRequest request) {
+        IEntityPositionLookup entityPositionLookup = gameController.getEntityLookupService();
+        Point tile = WorldUtils.vectorToPoint(request.position());
+        for (EntityId entityId : entityPositionLookup.getEntitiesInLocation(tile)) {
+            if (entityData.getComponent(entityId, TrapComponent.class) != null) {
+                entityPositionLookup.getEntityController(entityId).remove();
+                break;
+            }
+        }
+
+        // DK II turns the tiles between the two into an angle that points up the map at 0
+        Vector3f targetPosition = request.target() != null ? EntityController.getPosition(entityData, request.target()) : null;
+        Point targetTile = targetPosition != null ? WorldUtils.vectorToPoint(targetPosition) : tile;
+        float distance = FastMath.sqrt(FastMath.sqr(targetTile.x - tile.x) + FastMath.sqr(targetTile.y - tile.y));
+        float directionX = distance > 0 ? (targetTile.x - tile.x) / distance : 0;
+        float directionY = distance > 0 ? (targetTile.y - tile.y) / distance : -1;
+
+        int health = (int) gameSettings.get(Variable.MiscVariable.MiscType.BOULDER_INITIAL_HEALTH).getValue();
+        EntityId boulder = objectsController.loadObject(ObjectsController.OBJECT_BOULDER_ID, request.playerId(), tile.x, tile.y);
+        entityData.setComponents(boulder, new Health(health, health),
+                new Boulder(directionX, directionY, (int) Math.signum(directionX), (int) Math.signum(directionY)));
+    }
+
     private void notifyShotHit(Shot shot, EntityId target) {
         Position targetPosition = target != null ? entityData.getComponent(target, Position.class) : null;
         if (targetPosition != null) {
@@ -290,6 +325,11 @@ public final class ShotsController implements IShotsController {
         Vector3f targetPosition = getAimPoint(target);
         if (!ShotFlightRules.isFlying(shot) || targetPosition == null) {
             return false;
+        }
+
+        // A shot that does its work as it appears, like the Boulder, does it where it is fired from
+        if (isProcessedAtStartOnly(shot)) {
+            process(new ShotRequest(shot, shotData1, shotData2, playerId, position, target));
         }
 
         Vector3f velocity = ShotFlightRules.aim(position, targetPosition, shot.getSpeed());
@@ -335,8 +375,14 @@ public final class ShotsController implements IShotsController {
             EntityController.setDamage(entityData, thing, flight.shotData1);
         }
 
-        process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
-                EntityController.getPosition(entityData, shotEntity), thing));
+        if (!isProcessedAtStartOnly(shot)) {
+            process(new ShotRequest(shot, flight.shotData1, flight.shotData2, flight.ownerId,
+                    EntityController.getPosition(entityData, shotEntity), thing));
+        }
+    }
+
+    private static boolean isProcessedAtStartOnly(Shot shot) {
+        return shot.getShotProcessFlags().equals(EnumSet.of(Shot.ShotProcessFlag.AT_START));
     }
 
     /**
