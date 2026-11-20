@@ -173,6 +173,14 @@ public final class CreatureController extends EntityController implements ICreat
      */
     private static final float BIG_WINNER_CELEBRATION_SECONDS = 10f;
     private static final int EAT_ATTEMPT_INTERVAL_TICKS = 4;
+
+    /**
+     * Out of 100 each tick an idle prisoner rolls: below the first it plays
+     * an animation, below the second it moves on (DKII.EXE 0x473350)
+     */
+    private static final int PRISONER_ANIMATION_ROLL = 10;
+    private static final int PRISONER_MOVE_ROLL = 20;
+    private static final Point[] NEIGHBOUR_TILES = {new Point(0, -1), new Point(1, 0), new Point(0, 1), new Point(-1, 0)};
     /**
      * How long an idle hero does nothing before it tries its objective again, as in DK II (DKII.EXE 0x477850)
      */
@@ -439,6 +447,37 @@ public final class CreatureController extends EntityController implements ICreat
         CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
         if (pitFighter != null && mapController.getRoomController(pitFighter.pit) instanceof CombatPitController pit) {
             createNavigation(getCreatureCoordinates(), pit.getRandomFightingTile(), null);
+        }
+    }
+
+    /**
+     * Like in DK II (DKII.EXE 0x473350, 0x4731F0, 0x4E50F0), an idle prisoner
+     * rolls 100 every tick. One in ten it moves on: starting from a random
+     * one, it takes the first of the four tiles next to it that is in the cage
+     * with it and walks there. Another one in ten goes to an animation DK II
+     * plays two to four times, which is not built: OpenKeeper's prisoners show
+     * that animation all the time they stand
+     */
+    @Override
+    public void idleInPrison() {
+        int roll = Utils.getRandom().nextInt(100);
+        if (roll < PRISONER_ANIMATION_ROLL || roll >= PRISONER_MOVE_ROLL) {
+            return;
+        }
+
+        Point tile = getCreatureCoordinates();
+        IRoomController prison = mapController.getRoomControllerByCoordinates(tile);
+        if (prison == null) {
+            return;
+        }
+        int first = Utils.getRandom().nextInt(NEIGHBOUR_TILES.length);
+        for (int i = 0; i < NEIGHBOUR_TILES.length; i++) {
+            Point offset = NEIGHBOUR_TILES[(first + i) % NEIGHBOUR_TILES.length];
+            Point next = new Point(tile.x + offset.x, tile.y + offset.y);
+            if (mapController.getRoomControllerByCoordinates(next) == prison && prison.isTileAccessible(tile, next)) {
+                createNavigation(tile, next, null);
+                return;
+            }
         }
     }
 

@@ -72,6 +72,12 @@ public interface ICreatureController extends IGameLogicUpdatable, INavigable, IE
      */
     public void navigateToRandomPointInCombatPit();
 
+    /**
+     * A prisoner with nothing to do. Now and then it walks to a tile of the
+     * cage next to the one it stands on
+     */
+    public void idleInPrison();
+
     public IPartyController getParty();
 
     public StateMachine<ICreatureController, CreatureState> getStateMachine();

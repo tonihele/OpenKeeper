@@ -595,7 +595,9 @@ public enum CreatureState implements State<ICreatureController> {
 
         @Override
         public void update(ICreatureController entity) {
-
+            if (entity.isStopped()) {
+                entity.idleInPrison();
+            }
         }
 
         @Override
