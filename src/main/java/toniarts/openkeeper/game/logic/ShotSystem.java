@@ -23,6 +23,7 @@ import com.simsilica.es.EntityId;
 import com.simsilica.es.EntitySet;
 import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureComponent;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -181,7 +182,7 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
     /**
      * Looks for a thing the shot touches, on the tiles under the shot. For now
-     * the shots hit creatures and traps.
+     * the shots hit creatures, dead bodies and traps.
      *
      * @param shot the shot
      * @param flight the shot's flight
@@ -210,18 +211,19 @@ public final class ShotSystem implements IGameLogicUpdatable {
     }
 
     private boolean isHit(Shot shot, ShotFlight flight, Vector3f position, EntityId entityId) {
-        Health health = entityData.getComponent(entityId, Health.class);
-        Owner owner = entityData.getComponent(entityId, Owner.class);
         Position thingPosition = entityData.getComponent(entityId, Position.class);
-        if (health == null || health.health <= 0 || owner == null || thingPosition == null) {
+        if (thingPosition == null) {
             return false;
         }
 
         CreatureComponent creatureComponent = entityData.getComponent(entityId, CreatureComponent.class);
         if (creatureComponent == null) {
-            return isTrapHit(shot, flight, position, entityId, owner, thingPosition);
+            Health health = entityData.getComponent(entityId, Health.class);
+            Owner owner = entityData.getComponent(entityId, Owner.class);
+            return health != null && health.health > 0 && owner != null
+                    && isTrapHit(shot, flight, position, entityId, owner, thingPosition);
         }
-        if (!collidesWith(shot.getCollideType(), flight.ownerId, owner.ownerId)) {
+        if (!collidesWith(shot.getCollideType(), flight.ownerId, entityId)) {
             return false;
         }
 
@@ -229,6 +231,30 @@ public final class ShotSystem implements IGameLogicUpdatable {
 
         return ShotFlightRules.touches(position, shot.getRadius(), thingPosition.position,
                 creature.getAttributes().getWidth(), creatureComponent.height);
+    }
+
+    private boolean collidesWith(Shot.CollideType collideType, short shotOwnerId, EntityId entityId) {
+        if (collideType == Shot.CollideType.DEAD_BODIES) {
+            return entityData.getComponent(entityId, Death.class) != null;
+        }
+
+        Health health = entityData.getComponent(entityId, Health.class);
+        Owner owner = entityData.getComponent(entityId, Owner.class);
+        if (health == null || health.health <= 0 || owner == null) {
+            return false;
+        }
+
+        short creatureOwnerId = owner.ownerId;
+        return switch (collideType) {
+            case OWN_CREATURES ->
+                creatureOwnerId == shotOwnerId;
+            case ENEMY_CREATURES ->
+                isEnemy(shotOwnerId, creatureOwnerId);
+            case ALL_CREATURES ->
+                creatureOwnerId == shotOwnerId || isEnemy(shotOwnerId, creatureOwnerId);
+            default ->
+                false;
+        };
     }
 
     /**
@@ -246,19 +272,6 @@ public final class ShotSystem implements IGameLogicUpdatable {
         }
 
         return ShotFlightRules.touches(position, shot.getRadius(), trapPosition.position, 0, 0);
-    }
-
-    private boolean collidesWith(Shot.CollideType collideType, short shotOwnerId, short creatureOwnerId) {
-        return switch (collideType) {
-            case OWN_CREATURES ->
-                creatureOwnerId == shotOwnerId;
-            case ENEMY_CREATURES ->
-                isEnemy(shotOwnerId, creatureOwnerId);
-            case ALL_CREATURES ->
-                creatureOwnerId == shotOwnerId || isEnemy(shotOwnerId, creatureOwnerId);
-            default ->
-                false;
-        };
     }
 
     private boolean isEnemy(short shotOwnerId, short creatureOwnerId) {

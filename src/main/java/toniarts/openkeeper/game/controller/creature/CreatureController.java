@@ -49,6 +49,7 @@ import toniarts.openkeeper.game.component.CreatureSpell;
 import toniarts.openkeeper.game.component.CreatureSpells;
 import toniarts.openkeeper.game.component.CreatureTortured;
 import toniarts.openkeeper.game.component.CreatureViewState;
+import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
@@ -103,6 +104,7 @@ import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.CreatureSpell.CreatureSpellFlag;
 import toniarts.openkeeper.tools.convert.map.KeeperSpell;
 import toniarts.openkeeper.tools.convert.map.Player;
+import toniarts.openkeeper.tools.convert.map.Shot;
 import toniarts.openkeeper.tools.convert.map.Terrain;
 import toniarts.openkeeper.tools.convert.map.Thing;
 import toniarts.openkeeper.tools.convert.map.Variable;
@@ -293,7 +295,62 @@ public final class CreatureController extends EntityController implements ICreat
             return true;
         }
 
+        // With nobody to fight, a dead body is worth a spell
+        return castCorpseSpell();
+    }
+
+    /**
+     * Casts our spell for dead bodies, Raise Dead, on the nearest dead body we
+     * sense within the spell's range (0x45CB00)
+     *
+     * @return true if we cast the spell
+     */
+    private boolean castCorpseSpell() {
+        CreatureSpells creatureSpells = entityData.getComponent(entityId, CreatureSpells.class);
+        if (creatureSpells == null) {
+            return false;
+        }
+
+        for (EntityId creatureSpellEntity : creatureSpells.creatureSpells) {
+            CreatureSpell spell = entityData.getComponent(creatureSpellEntity, CreatureSpell.class);
+            toniarts.openkeeper.tools.convert.map.CreatureSpell creatureSpell = levelInfo.getLevelData().getCreatureSpellById(spell.creatureSpellId);
+            if (!isAttackRecharged(spell) || !creatureSpell.getFlags().contains(CreatureSpellFlag.IS_DEFENSIVE)) {
+                continue;
+            }
+
+            // The Imp's Teleport is defensive too, but it has no shot
+            Shot shot = levelInfo.getLevelData().getShotById(creatureSpell.getShotTypeId());
+            if (shot == null || shot.getCollideType() != Shot.CollideType.DEAD_BODIES) {
+                continue;
+            }
+
+            EntityId deadBody = getNearestDeadBody(spell.range);
+            if (deadBody != null) {
+                entityData.setComponent(creatureSpellEntity, new CreatureSpell(spell, gameTimer.getGameTime()));
+                stopCreature();
+                stateMachine.changeState(CreatureState.CAST_SPELL);
+                entityData.setComponent(entityId, new CastShot(spell.creatureSpellId, deadBody, spell.range,
+                        gameTimer.getGameTime() + getShotDelay(spell.creatureSpellId)));
+
+                return true;
+            }
+        }
+
         return false;
+    }
+
+    private EntityId getNearestDeadBody(float range) {
+        EntityId nearestDeadBody = null;
+        float nearestDistance = range;
+        for (EntityId entity : entityPositionLookup.getSensedEntities(entityId)) {
+            if (entityData.getComponent(entity, Death.class) != null && entityData.getComponent(entity, CreatureComponent.class) != null
+                    && getDistanceToCreature(entity) <= nearestDistance) {
+                nearestDistance = getDistanceToCreature(entity);
+                nearestDeadBody = entity;
+            }
+        }
+
+        return nearestDeadBody;
     }
 
     /**
