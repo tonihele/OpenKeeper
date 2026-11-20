@@ -51,6 +51,21 @@ public final class TileWork {
     }
 
     /**
+     * How much one dig or mining swing does. The original keeps the work
+     * variables divided by the ticks per second as whole numbers (0x51CB80),
+     * and each swing lands one tick's worth scaled by the worker's efficiency,
+     * rounded up (0x496E00, 0x4971D0).
+     *
+     * @param ratePerTick the work variable divided by the ticks per second,
+     * the sign is ignored
+     * @param efficiencyPercentage the worker's efficiency
+     * @return the health change of one swing, never negative
+     */
+    public static int perSwing(int ratePerTick, int efficiencyPercentage) {
+        return (Math.abs(ratePerTick) * efficiencyPercentage + 99) / 100;
+    }
+
+    /**
      * The gold a seam has released by the time its health has fallen to the
      * given value. Mining damages the seam's health like any dig, and the
      * gold comes out in proportion. Gold per swing is the difference of two

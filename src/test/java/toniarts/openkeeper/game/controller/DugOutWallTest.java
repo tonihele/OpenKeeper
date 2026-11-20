@@ -69,6 +69,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 (short) args[0] == WALL_ID ? wall : rock;
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
             default ->
                 throw new UnsupportedOperationException(name);
         });
@@ -100,6 +102,8 @@ class DugOutWallTest {
                 map;
             case "getTerrain" ->
                 gems;
+            case "getGameLevel" ->
+                CreatureSleepFixtures.level(4);
             default ->
                 throw new UnsupportedOperationException(name);
         });

@@ -17,13 +17,20 @@
 package toniarts.openkeeper.game.task.worker;
 
 import com.jme3.math.Vector2f;
+import com.simsilica.es.EntityData;
+import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.controller.GameWorldController;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
+import toniarts.openkeeper.game.logic.IEntityPositionLookup;
 import toniarts.openkeeper.game.map.IMapTileInformation;
 import toniarts.openkeeper.game.navigation.INavigationService;
 import toniarts.openkeeper.game.task.AbstractTileTask;
 import toniarts.openkeeper.game.task.TaskType;
+import toniarts.openkeeper.tools.convert.map.ArtResource;
+import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.utils.WorldUtils;
 
 /**
@@ -33,8 +40,33 @@ import toniarts.openkeeper.utils.WorldUtils;
  */
 public class DigTileTask extends AbstractTileTask {
 
+    private final EntityData entityData;
+    private final IEntityPositionLookup entityPositionLookup;
+    private final int maxGoldPile;
+
     public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId) {
+        this(navigationService, mapController, p, playerId, null, null, 0);
+    }
+
+    /**
+     * A worker's dig task that minds the gold piling up at the diggers' feet,
+     * like DK II's mining (0x465870)
+     *
+     * @param navigationService the navigation service
+     * @param mapController the map controller
+     * @param p the tile to dig
+     * @param playerId the player that wants it dug
+     * @param entityData the entity data
+     * @param entityPositionLookup the entities by tile
+     * @param maxGoldPile the level's MAX_GOLD_PILE_OUTSIDE_TREASURY
+     */
+    public DigTileTask(final INavigationService navigationService, final IMapController mapController, Point p, short playerId,
+            EntityData entityData, IEntityPositionLookup entityPositionLookup, int maxGoldPile) {
         super(navigationService, mapController, p, playerId);
+
+        this.entityData = entityData;
+        this.entityPositionLookup = entityPositionLookup;
+        this.maxGoldPile = maxGoldPile;
     }
 
     @Override
@@ -59,8 +91,37 @@ public class DigTileTask extends AbstractTileTask {
         return (getTarget(creature) != null); // To avoid multiple path finds
     }
 
+    /**
+     * Like DK II's search for a spot to dig from (0x469AF0), a spot with a
+     * loose gold pile of more than the level's biggest pile outside a Treasury
+     * is skipped
+     */
+    @Override
+    protected boolean isWorkSpot(Point p) {
+        return !isFullGoldPile(p);
+    }
+
+    private boolean isFullGoldPile(Point p) {
+        if (entityData == null) {
+            return false;
+        }
+        EntityId pile = GameWorldController.findLooseGoldPile(entityData, entityPositionLookup, p);
+        return pile != null && entityData.getComponent(pile, Gold.class).gold > maxGoldPile;
+    }
+
     @Override
     public boolean isValid(ICreatureController creature) {
+        return isTileToDig() || getExecutionDuration(creature) > 0;
+    }
+
+    /**
+     * Whether the tile still stands to be dug. A digger that has started
+     * swinging keeps the task after the tile gives way, until its swing has
+     * played out.
+     *
+     * @return true if the tile is still there to dig
+     */
+    protected boolean isTileToDig() {
         IMapTileInformation tile = mapController.getMapData().getTile(getTaskLocation());
         return tile.isSelected(playerId);
     }
@@ -75,16 +136,66 @@ public class DigTileTask extends AbstractTileTask {
         return "Dig tile at " + getTaskLocation();
     }
 
+    /**
+     * Digs in swings, as DK II's dig action does (0x496AA0, 0x496E00). Each
+     * swing hits the tile once, at its start, and then plays out. The first
+     * swing also plays the start of the animation. The swing that brings the
+     * tile down also plays the end of the animation, and only then does the
+     * digger move on. The stored execution duration is the time on the task
+     * when the current swing ends, 0 before the first swing and once the
+     * digger is done.
+     *
+     * @param creature the digger
+     * @param executionDuration the time the digger has spent on the task
+     */
     @Override
     public void executeTask(ICreatureController creature, float executionDuration) {
-//        if (creature.getMeleeAttack().execute()) {
-        // TODO: is this a general case or even smart to do this like this...?
-        if (executionDuration - getExecutionDuration(creature) >= 1.0f) {
-            setExecutionDuration(creature, executionDuration - getExecutionDuration(creature));
-
-            creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
+        float swingEnd = getExecutionDuration(creature);
+        if (executionDuration < swingEnd) {
+            return;
         }
-//        }
+        if (!isTileToDig()) {
+            setExecutionDuration(creature, 0);
+            return;
+        }
+
+        // Like DK II (0x465870), before each swing the digger looks at the loose gold at its feet: the gold it can't
+        // carry piles up there. When the pile holds more than a pile outside a Treasury may, it stops and looks for
+        // other work
+        if (isFullGoldPile(creature.getCreatureCoordinates())) {
+            creature.unassingCurrentTask();
+            return;
+        }
+
+        creature.addGold(mapController.damageTile(getTaskLocation(), playerId, creature));
+        setExecutionDuration(creature, executionDuration + getSwingDuration(creature.getCreature(), swingEnd == 0, !isTileToDig()));
+    }
+
+    /**
+     * The length of one dig swing in seconds. DK II's dig action plays the
+     * creature's melee animation (the imp's is called Imp_Dig), frames / fps.
+     *
+     * @param creature the digger
+     * @param first whether this is the first swing, which plays the start of
+     * the animation
+     * @param last whether this swing brought the tile down and plays the end of
+     * the animation
+     * @return the swing length in seconds
+     */
+    private static float getSwingDuration(Creature creature, boolean first, boolean last) {
+        ArtResource animation = creature.getAnimation(Creature.AnimationType.MELEE_ATTACK);
+        Number fps = animation != null ? animation.getData(ArtResource.KEY_FPS) : null;
+        if (fps == null || fps.intValue() <= 0) {
+            return 1f;
+        }
+        int frames = animation.<Number>getData(ArtResource.KEY_FRAMES).intValue();
+        if (first && animation.getFlags().contains(ArtResource.ArtResourceFlag.HAS_START_ANIMATION)) {
+            frames += animation.<Number>getData(ArtResource.KEY_START_AF).intValue();
+        }
+        if (last && animation.getFlags().contains(ArtResource.ArtResourceFlag.HAS_END_ANIMATION)) {
+            frames += animation.<Number>getData(ArtResource.KEY_END_AF).intValue();
+        }
+        return (float) frames / fps.intValue();
     }
 
     @Override
