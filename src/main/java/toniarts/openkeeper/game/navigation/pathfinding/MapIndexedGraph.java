@@ -184,6 +184,11 @@ public final class MapIndexedGraph implements IndexedGraph<IMapTileInformation> 
 
                 // Get room obstacles
                 IRoomController room = mapController.getRoomControllerByCoordinates(to.getLocation());
+                if (room == null) {
+
+                    // The room is being built or rebuilt on another thread, try again on the next search (#670)
+                    return null;
+                }
                 return room.isTileAccessible(from != null ? from.getLocation() : null, to.getLocation()) ? DEFAULT_COST : null;
             } else if (navigable.canFly()) {
                 return DEFAULT_COST;

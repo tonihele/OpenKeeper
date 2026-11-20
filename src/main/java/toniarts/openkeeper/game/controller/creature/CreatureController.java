@@ -1744,6 +1744,12 @@ public final class CreatureController extends EntityController implements ICreat
             return;
         }
 
+        // A creature picked up into the keeper's hand has no position, and no AI while it's there. The pick up
+        // runs on the render thread, so the creature can still be in this tick's list (#670)
+        if (entityData.getComponent(entityId, Position.class) == null) {
+            return;
+        }
+
         /**
          * Hmm, I'm not sure how to do this, this is not ideal either, how to
          * control the state machine outside the controller. Should it be

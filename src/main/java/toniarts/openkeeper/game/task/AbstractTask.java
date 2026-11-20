@@ -17,6 +17,7 @@
 package toniarts.openkeeper.game.task;
 
 import com.jme3.math.Vector2f;
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityId;
 import toniarts.openkeeper.utils.Point;
 import java.lang.System.Logger;
@@ -171,6 +172,13 @@ public abstract class AbstractTask implements Task {
      * @return is the task reachable
      */
     protected boolean isReachable(ICreatureController creature, Vector2f target) {
+        Vector3f position = creature.getPosition();
+        if (position == null) {
+
+            // Picked up into the hand, possibly while its AI is still running (#670)
+            return false;
+        }
+
         Point targetTile = WorldUtils.vectorToPoint(target);
         boolean hasAccessibleNeighbour = false;
         for (Point p : WorldUtils.getSurroundingTiles(mapController.getMapData(), targetTile, false)) {
@@ -184,7 +192,7 @@ public abstract class AbstractTask implements Task {
         }
 
         // Path find
-        return (navigationService.findPath(WorldUtils.vectorToPoint(creature.getPosition()), targetTile, creature) != null);
+        return (navigationService.findPath(WorldUtils.vectorToPoint(position), targetTile, creature) != null);
     }
 
     /**
