@@ -26,9 +26,11 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
@@ -61,14 +63,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 
 /**
- * DK II sends the keeper's creatures that are on their way to a job back to
- * idle whenever the keeper's rooms change (0x4E8D30)
+ * DK II sends the keeper's creatures that are on their way to a job, or idle,
+ * back to choose what to do whenever the keeper's rooms change (0x4E8D30)
  */
 class TaskManagerRoomChangeTest {
 
     private final EntityData entityData = new DefaultEntityData();
     private final Map<EntityId, Boolean> atTaskTarget = new HashMap<>();
     private final Map<EntityId, Point> coordinates = new HashMap<>();
+    private final Map<EntityId, CreatureState> states = new HashMap<>();
+    private final Map<EntityId, Boolean> workers = new HashMap<>();
+    private final Map<EntityId, Boolean> stopped = new HashMap<>();
     private final List<EntityId> sentToIdle = new ArrayList<>();
     private PlayerActionListener playerActions;
     private TaskManager taskManager;
@@ -125,6 +130,27 @@ class TaskManagerRoomChangeTest {
     }
 
     @Test
+    void buildingARoomSendsIdleCreaturesBackToChoose() {
+        EntityId standing = createIdleCreature(false, true);
+        EntityId onIdleWalk = createIdleCreature(false, false);
+
+        playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertEquals(Set.of(walking, standing, onIdleWalk), Set.copyOf(sentToIdle));
+    }
+
+    @Test
+    void anIdleWorkerOnlyChoosesAgainOnItsIdleWalk() {
+        EntityId standing = createIdleCreature(true, true);
+        EntityId onIdleWalk = createIdleCreature(true, false);
+
+        playerActions.onSold(Player.KEEPER1_ID, List.of(new Point(1, 1)));
+
+        assertEquals(Set.of(walking, onIdleWalk), Set.copyOf(sentToIdle));
+        assertFalse(sentToIdle.contains(standing));
+    }
+
+    @Test
     void creaturesOnTheirWayToMakeTheirLairKeepGoing() {
         playerActions.onBuild(Player.KEEPER1_ID, List.of(new Point(1, 1)));
 
@@ -172,10 +198,22 @@ class TaskManagerRoomChangeTest {
 
     private EntityId createCreature(short ownerId, boolean atTarget, TaskType taskType, Point tile) {
         EntityId entityId = entityData.createEntity();
-        entityData.setComponents(entityId, new Owner(ownerId, ownerId),
+        entityData.setComponents(entityId, new Owner(ownerId, ownerId), new CreatureComponent(),
                 new TaskComponent(entityId.getId(), null, new Point(5, 5), taskType, 0, false));
         atTaskTarget.put(entityId, atTarget);
         coordinates.put(entityId, tile);
+        states.put(entityId, CreatureState.WORK);
+        workers.put(entityId, false);
+        stopped.put(entityId, false);
+        return entityId;
+    }
+
+    private EntityId createIdleCreature(boolean worker, boolean standing) {
+        EntityId entityId = entityData.createEntity();
+        entityData.setComponents(entityId, new Owner(Player.KEEPER1_ID, Player.KEEPER1_ID), new CreatureComponent());
+        states.put(entityId, CreatureState.IDLE);
+        workers.put(entityId, worker);
+        stopped.put(entityId, standing);
         return entityId;
     }
 
@@ -183,14 +221,19 @@ class TaskManagerRoomChangeTest {
         StateMachine<?, ?> stateMachine = (StateMachine<?, ?>) Proxy.newProxyInstance(StateMachine.class.getClassLoader(),
                 new Class<?>[]{StateMachine.class}, (proxy, method, args) -> switch (method.getName()) {
             case "isInState" ->
-                args[0] == CreatureState.WORK;
+                args[0] == states.get(entityId);
             case "changeState" ->
                 sentToIdle.add(args[0] == CreatureState.IDLE ? entityId : null);
             default ->
                 throw new UnsupportedOperationException(method.getName());
         });
-        return stub(ICreatureController.class, Map.of("isWorker", false, "getStateMachine", stateMachine,
-                "isAtAssignedTaskTarget", atTaskTarget.get(entityId), "getCreatureCoordinates", coordinates.get(entityId)));
+        Map<String, Object> answers = new HashMap<>(Map.of("isWorker", workers.get(entityId), "isStopped", stopped.get(entityId),
+                "getStateMachine", stateMachine));
+        if (atTaskTarget.containsKey(entityId)) {
+            answers.put("isAtAssignedTaskTarget", atTaskTarget.get(entityId));
+            answers.put("getCreatureCoordinates", coordinates.get(entityId));
+        }
+        return stub(ICreatureController.class, answers);
     }
 
     /**
