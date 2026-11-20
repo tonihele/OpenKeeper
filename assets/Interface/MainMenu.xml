@@ -71,7 +71,7 @@
     <screen id="start" controller="toniarts.openkeeper.game.state.MainMenuScreenController">
         <layer childLayout="vertical">
             <panel height="20%" childLayout="center" valign="center" align="center">
-                <image filename="Textures/Logo.png" align="center" />
+                <image filename="Textures/Logo.png" width="327px" height="123px" align="center" />
             </panel>
 
             <panel childLayout="center" height="*" align="center" valign="center">

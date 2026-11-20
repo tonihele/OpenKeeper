@@ -82,7 +82,6 @@ import toniarts.openkeeper.game.state.MainMenuState;
 import toniarts.openkeeper.game.state.SoundState;
 import toniarts.openkeeper.game.state.loading.TitleScreenState;
 import toniarts.openkeeper.game.state.session.LocalGameSession;
-import toniarts.openkeeper.gui.nifty.jme.HdImageNiftyJmeDisplay;
 import toniarts.openkeeper.setup.DKConverter;
 import toniarts.openkeeper.setup.DKFolderSelector;
 import toniarts.openkeeper.setup.IFrameClosingBehavior;
@@ -793,11 +792,11 @@ public final class Main extends SimpleApplication {
             config.disposeImagesBetweenScreens = false;
             config.useHighQualityTextures = true;
 
-            // Init Nifty, HD copies of the interface images are laid out at their original's size
-            niftyDisplay = new HdImageNiftyJmeDisplay(assetManager,
+            // Init Nifty
+            niftyDisplay = NiftyJmeDisplay.newNiftyJmeDisplay(assetManager,
                     inputManager,
                     getAudioRenderer(),
-                    getGuiViewPort(), config, Paths.get(AssetsConverter.getAssetsFolder()));
+                    getGuiViewPort(), config);
 
             // Attach the nifty display to the gui view port as a processor
             getGuiViewPort().addProcessor(niftyDisplay);

@@ -107,6 +107,8 @@ public final class TableControl<T extends TableRow> extends ListBoxControl<T> {
                             image(new ImageBuilder("#headerCol-" + i) {
                                 {
                                     filename("Textures/Tick-0.png");
+                                    width("18px");
+                                    height("13px");
                                 }
                             });
                         }
