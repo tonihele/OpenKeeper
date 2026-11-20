@@ -40,6 +40,7 @@ import toniarts.openkeeper.game.component.TrapComponent;
 import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.TriggerWave;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.controller.IGameTimer;
 import toniarts.openkeeper.game.controller.IPlayerController;
@@ -620,7 +621,7 @@ public final class TrapSystem implements IGameLogicUpdatable {
     /**
      * Whether the creature can set off a trap. Creatures out of the world
      * (dead, knocked out or in a keeper's hand) don't, nor do prisoners and
-     * creatures being tortured, as in DK II (0x45A8B0, 0x4A9400). Neither does
+     * creatures being tortured or placed without WILL_BE_ATTACKED, as in DK II (0x45A8B0, 0x4A9400). Neither does
      * a creature type with the data flag OpenKeeper calls {@code IS_HORNY}, the
      * Horned Reaper
      *
@@ -630,7 +631,8 @@ public final class TrapSystem implements IGameLogicUpdatable {
      */
     private boolean canSetOffTraps(Entity creatureEntity, boolean checkCreatureType) {
         EntityId entityId = creatureEntity.getId();
-        if (creatureEntity.get(Health.class).health <= 0
+        if (entityData.getComponent(entityId, Unattackable.class) != null
+                || creatureEntity.get(Health.class).health <= 0
                 || entityData.getComponent(entityId, Unconscious.class) != null
                 || entityData.getComponent(entityId, InHand.class) != null
                 || entityData.getComponent(entityId, Death.class) != null

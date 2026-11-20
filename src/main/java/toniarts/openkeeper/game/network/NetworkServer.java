@@ -77,8 +77,8 @@ import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.HealthGain;
 import toniarts.openkeeper.game.component.ImpGenerator;
 import toniarts.openkeeper.game.component.InHand;
-import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.InfernoArea;
+import toniarts.openkeeper.game.component.Interaction;
 import toniarts.openkeeper.game.component.KeeperSpellCast;
 import toniarts.openkeeper.game.component.LevelIndicator;
 import toniarts.openkeeper.game.component.Mana;
@@ -121,6 +121,7 @@ import toniarts.openkeeper.game.component.TrapFiring;
 import toniarts.openkeeper.game.component.TrapViewState;
 import toniarts.openkeeper.game.component.Trigger;
 import toniarts.openkeeper.game.component.TriggerWave;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.Unconscious;
 import toniarts.openkeeper.game.component.ViewType;
 import toniarts.openkeeper.game.component.WoodenBridgeDecay;
@@ -293,6 +294,7 @@ public final class NetworkServer {
             Serializer.registerClass(TrapViewState.class, new FieldSerializer());
             Serializer.registerClass(Trigger.class, new FieldSerializer());
             Serializer.registerClass(TriggerWave.class, new FieldSerializer());
+            Serializer.registerClass(Unattackable.class, new FieldSerializer());
             Serializer.registerClass(Unconscious.class, new FieldSerializer());
         }
     }

@@ -44,6 +44,8 @@ import toniarts.openkeeper.game.component.Navigation;
 import toniarts.openkeeper.game.component.Objective;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.Peaceful;
+import toniarts.openkeeper.game.component.Unattackable;
 import toniarts.openkeeper.game.component.Slapped;
 import toniarts.openkeeper.game.component.Stored;
 import toniarts.openkeeper.game.component.TaskComponent;
@@ -82,6 +84,26 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class CreatureControllerTest {
+
+    @Test
+    void neutralConversionPreservesWillingnessToFightAndAttackability() {
+        for (boolean willFight : new boolean[]{false, true}) {
+            for (boolean willBeAttacked : new boolean[]{false, true}) {
+                try (Fixture f = new Fixture(9)) {
+                    f.data.removeComponent(f.entity, CreatureSleep.class);
+                    f.data.setComponent(f.entity, new Owner(Player.NEUTRAL_PLAYER_ID, Player.NEUTRAL_PLAYER_ID));
+                    if (!willFight) f.data.setComponent(f.entity, new Peaceful());
+                    if (!willBeAttacked) f.data.setComponent(f.entity, new Unattackable());
+
+                    f.controller.convertCreature(Player.KEEPER1_ID);
+
+                    assertEquals(Player.KEEPER1_ID, f.data.getComponent(f.entity, Owner.class).ownerId);
+                    assertEquals(!willFight, f.data.getComponent(f.entity, Peaceful.class) != null);
+                    assertEquals(!willBeAttacked, f.data.getComponent(f.entity, Unattackable.class) != null);
+                }
+            }
+        }
+    }
 
     @Test
     void lowHealthWithoutDebtDoesNotAutonomouslyStartSleep() {
