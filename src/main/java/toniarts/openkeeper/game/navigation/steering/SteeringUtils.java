@@ -39,6 +39,20 @@ public final class SteeringUtils {
         return (float) Math.atan2(-vector.x, vector.y);
     }
 
+    /** Signed, bounded change toward a yaw, using the shortest circular arc. */
+    public static float calculateTurnDelta(float current, float target, float maxChange) {
+        float fullTurn = (float) (Math.PI * 2);
+        current = (current % fullTurn + fullTurn) % fullTurn;
+        target = (target % fullTurn + fullTurn) % fullTurn;
+        float difference = target - current;
+        if (difference > fullTurn * 0.5f) {
+            difference -= fullTurn;
+        } else if (difference < -fullTurn * 0.5f) {
+            difference += fullTurn;
+        }
+        return Math.copySign(Math.min(Math.abs(difference), maxChange), difference);
+    }
+
     public static Vector2 calculateAngleToVector(Vector2 outVector, float angle) {
         outVector.x = -(float) Math.sin(angle);
         outVector.y = (float) Math.cos(angle);
