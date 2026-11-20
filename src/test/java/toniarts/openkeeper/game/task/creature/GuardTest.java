@@ -114,7 +114,7 @@ class GuardTest {
             }
             throw new UnsupportedOperationException(method.getName());
         });
-        return new Guard(null, null, roomTiles.get(0), (short) 3, room, null, TICKS_PER_SECOND, MAX_EXTRA_TICKS, random);
+        return new Guard(null, null, roomTiles.get(0), (short) 3, room, null, null, TICKS_PER_SECOND, MAX_EXTRA_TICKS, random);
     }
 
     private static ICreatureController creatureAt(Point p) {

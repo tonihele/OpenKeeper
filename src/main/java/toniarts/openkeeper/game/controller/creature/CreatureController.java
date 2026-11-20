@@ -52,6 +52,7 @@ import toniarts.openkeeper.game.component.CreatureViewState;
 import toniarts.openkeeper.game.component.Fearless;
 import toniarts.openkeeper.game.component.FollowTarget;
 import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.InHand;
 import toniarts.openkeeper.game.component.Mana;
@@ -540,6 +541,13 @@ public final class CreatureController extends EntityController implements ICreat
         // See if we have some available work
         if (isWorker()) {
             taskManager.addToUnemployedWorkerQueue(this, workResult);
+            return;
+        }
+
+        // DKII sends a creature that has stood guard back to guard duty before it picks from its jobs. Guard duty is the
+        // only job it returns to like that (0x4778E0 tries the job 0x462850 has set)
+        if (entityData.getComponent(entityId, GuardedRoom.class) != null && taskManager.assignTask(this, Creature.JobType.GUARD)) {
+            workResult.accept(true);
             return;
         }
 

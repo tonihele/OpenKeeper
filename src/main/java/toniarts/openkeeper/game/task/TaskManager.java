@@ -55,6 +55,7 @@ import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.Death;
 import toniarts.openkeeper.game.component.DoorComponent;
 import toniarts.openkeeper.game.component.Food;
+import toniarts.openkeeper.game.component.GuardedRoom;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.ObjectComponent;
 import toniarts.openkeeper.game.component.Owner;
@@ -758,8 +759,11 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
      * @return true if the task was assigned
      */
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign) {
-        return assignClosestRoomTask(creature, objectType, targetEntity, assign,
-                room -> room.getObjectControl(objectType).isFullCapacity() ? Collections.emptyList() : room.getObjectControl(objectType).getAvailableCoordinates());
+        return assignClosestRoomTask(creature, objectType, targetEntity, assign, room -> getFreeSpots(room, objectType));
+    }
+
+    private static Collection<Point> getFreeSpots(IRoomController room, ObjectType objectType) {
+        return room.getObjectControl(objectType).isFullCapacity() ? Collections.emptyList() : room.getObjectControl(objectType).getAvailableCoordinates();
     }
 
     private boolean assignClosestRoomTask(ICreatureController creature, ObjectType objectType, EntityId targetEntity, boolean assign,
@@ -898,7 +902,7 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return new Pray(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData, gameSettings, playerControllers.get(creature.getOwnerId()).getManaControl());
             }
             case GUARD -> {
-                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this,
+                return new Guard(navigationService, mapController, target, creature.getOwnerId(), room, this, entityData,
                         levelInfo.getLevelData().getGameLevel().getTicksPerSec(),
                         (int) gameSettings.get(Variable.MiscVariable.MiscType.MAX_TIME_IN_GUARD_ROOM_BEFORE_WANDERING_TO_GUARD_POST_SECONDS).getValue(),
                         FastMath.rand);
@@ -1045,7 +1049,13 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
                 return assignClosestRoomTask(creature, ObjectType.WORSHIPPER, null, assign);
             }
             case GUARD: {
-                return assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
+
+                // As in the original (0x462850), back to the Guard Room it guarded last while that is still its keeper's
+                // and has space, otherwise to the nearest one
+                GuardedRoom guardedRoom = entityData.getComponent(creature.getEntityId(), GuardedRoom.class);
+                return (guardedRoom != null && assignClosestRoomTask(creature, ObjectType.GUARD, null, assign,
+                        room -> room.getEntityId().equals(guardedRoom.room) ? getFreeSpots(room, ObjectType.GUARD) : Collections.emptyList()))
+                        || assignClosestRoomTask(creature, ObjectType.GUARD, null, assign);
             }
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
