@@ -30,13 +30,17 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.common.RoomInstance;
 import toniarts.openkeeper.game.component.CreatureComponent;
 import toniarts.openkeeper.game.component.CreatureExperience;
+import toniarts.openkeeper.game.component.Gold;
+import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.controller.player.PlayerManaControl;
+import toniarts.openkeeper.game.controller.room.IRoomController;
 import toniarts.openkeeper.game.controller.room.TempleController;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.event.GameEvent.ThingFlag;
 import toniarts.openkeeper.game.event.GameEventService;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.tools.convert.map.Player;
 import toniarts.openkeeper.tools.convert.map.TempleFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -206,6 +210,56 @@ class SacrificeControllerTest {
         sacrificeController.sacrificeCreature(temple, creature(TROLL, 1));
 
         assertEquals(5000, keeper.getMana());
+    }
+
+    @Test
+    void workerDroppedOntoTheMiddleTileOfTheDungeonHeartIsTurnedBackIntoMana() {
+        EntityId imp = worker(OWNER);
+        entityData.setComponent(imp, new Gold(200, 250));
+
+        assertTrue(sacrificeController.returnWorkerToHeart(heart(false), imp, new Point(12, 22), 1500));
+
+        // Gone with its gold, nothing is left to drop
+        assertNull(entityData.getComponent(imp, CreatureComponent.class));
+        assertNull(entityData.getComponent(imp, Gold.class));
+        assertEquals(1500, keeper.getMana());
+    }
+
+    @Test
+    void onlyAKeepersWorkerOnTheMiddleTileOfALivingHeartGoesIntoIt() {
+        IRoomController heart = heart(false);
+
+        // The heart's edge, a tile next to the middle one, a fighter, a hero's worker, a destroyed heart, another
+        // room and bare land
+        assertFalse(sacrificeController.returnWorkerToHeart(heart, worker(OWNER), new Point(10, 22), 1500));
+        assertFalse(sacrificeController.returnWorkerToHeart(heart, worker(OWNER), new Point(11, 23), 1500));
+        EntityId fighter = worker(OWNER);
+        entityData.getComponent(fighter, CreatureComponent.class).worker = false;
+        assertFalse(sacrificeController.returnWorkerToHeart(heart, fighter, new Point(12, 22), 1500));
+        assertFalse(sacrificeController.returnWorkerToHeart(heart, worker(Player.GOOD_PLAYER_ID), new Point(12, 22), 1500));
+        assertFalse(sacrificeController.returnWorkerToHeart(heart(true), worker(OWNER), new Point(12, 22), 1500));
+        assertFalse(sacrificeController.returnWorkerToHeart(temple, worker(OWNER), new Point(12, 22), 1500));
+        assertFalse(sacrificeController.returnWorkerToHeart(null, worker(OWNER), new Point(12, 22), 1500));
+
+        assertEquals(0, keeper.getMana());
+    }
+
+    private EntityId worker(short ownerId) {
+        EntityId entity = creature(IMP, 1);
+        entityData.getComponent(entity, CreatureComponent.class).worker = true;
+        entityData.setComponent(entity, new Owner(ownerId, ownerId));
+        return entity;
+    }
+
+    private IRoomController heart(boolean destroyed) {
+        return (IRoomController) Proxy.newProxyInstance(IRoomController.class.getClassLoader(),
+                new Class<?>[]{IRoomController.class}, (proxy, method, args) -> switch (method.getName()) {
+                    case "isDungeonHeart" -> true;
+                    case "isDestroyed" -> destroyed;
+                    case "getRoomInstance" -> temple.getRoomInstance();
+                    case "getOwnerId" -> OWNER;
+                    default -> throw new UnsupportedOperationException(method.getName());
+                });
     }
 
     private void assertOnTempleFloor(Point p) {

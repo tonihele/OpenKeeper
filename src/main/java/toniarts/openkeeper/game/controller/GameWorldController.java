@@ -1371,6 +1371,12 @@ public final class GameWorldController implements IGameWorldController, IPlayerA
 
         CreatureState targetState = null;
 
+        // A worker dropped onto the middle tile of a Dungeon Heart is turned back into mana
+        KeeperSpell createImp = kwdFile.getKeeperSpellById(SacrificeController.CREATE_IMP_SPELL_ID);
+        if (createImp != null && sacrificeController.returnWorkerToHeart(roomController, entity, tile, createImp.getManaCost())) {
+            return;
+        }
+
         // Creatures dropped into a temple's pool are sacrificed
         if (roomController instanceof TempleController temple && temple.isSacrificePool(tile)) {
             entityData.setComponent(entity, new Position(0, new Vector3f(coordinates.x, WorldUtils.FLOOR_HEIGHT, coordinates.y)));
