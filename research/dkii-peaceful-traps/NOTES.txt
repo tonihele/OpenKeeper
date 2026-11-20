@@ -1,0 +1,57 @@
+Peaceful trap targeting (#1358)
+===============================
+Reference checked on 2026-11-20 using the user's DKII installation.
+These are behavior notes; original assets, maps, debugger captures and
+executable/decompilation output are not included.
+
+Reproduction
+------------
+A placed good-player Knight with WILL_BE_ATTACKED set and WILL_FIGHT
+cleared triggered a Fear Trap without destroying it in DKII. In OpenKeeper
+it attacked and destroyed the trap. The loader already represents the
+cleared WILL_FIGHT flag with the Peaceful component.
+
+Native selection and retention
+------------------------------
+Consulted the IDA symbol catalogs before examining the routines. The
+ordinary willingness check in 0x45A6D0 tests creature offset 0x46F bit 0.
+The ordinary branch of target selection at 0x45CB00 checks this gate before
+looking for targets, including traps. The worker restriction on trap range
+is downstream of this common willingness gate, not an exemption from it.
+The combat update at 0x45F030 also rejects an ordinary creature whose fight
+bit is cleared, before continuing its current target. Native special modes
+have separate branches; this fix does not add a global damage prohibition.
+
+OpenKeeper's getAttackTarget() already rejects Peaceful and clears its
+AttackTarget, including a retained trap target. However, IDLE calls
+attackVisibleTrap() independently. That method could attack immediately
+or navigate towards a trap without consulting ordinary target selection.
+Check the existing component at that entry point, before any selection,
+movement or attack. Read it on every call so scripted setWillFight changes
+apply without reconstructing the creature controller.
+
+Door audit
+----------
+The idle door scan at 0x481400 calls 0x45A6D0 with the ordinary argument
+before scanning adjacent tiles. OpenKeeper's attackAdjacentDoor() bypassed
+that check as well; guard this idle entry point with Peaceful.
+
+Path-blocking doors are a distinct policy. Native 0x471890 delegates to
+navigation setup, and 0x4D0E60/0x4C8BD0 use explicit path flags for permitted
+doors. The inspected lower-level path routines do not themselves establish
+that willingness disables door traversal/breaking. This is insufficient
+evidence to change canBreakDoor(), path costs or all attack execution.
+Those behaviors remain unchanged and need a dedicated native path-blocking
+comparison before extending this fix. In particular, do not infer a global
+ban on direct, possessed, scripted or Combat Pit attacks from an idle
+selection rule.
+
+Validation
+----------
+Synthetic controller regressions cover a nearby enemy trap, distant trap
+navigation, a worker within the existing trap reach, ordinary fighter
+attacks, scripted willingness changes and dropping a retained target.
+A separate controller regression checks the verified idle-door gate and
+that enabling fighting restores normal attacks. Existing helper tests
+continue to cover ownership, trap visibility, blueprint, range and door
+eligibility rules. No trap health, damage or animation values are changed.
