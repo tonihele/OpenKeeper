@@ -445,16 +445,30 @@ public final class LocalGameSession implements GameSessionServerService, GameSes
     }
 
     @Override
-    public void setPossessedMovement(Vector2f direction, float rotation, byte speedMode) {
+    public void setPossessedMovement(Vector2f direction, float rotation, float pitch, byte speedMode) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onSetPossessedMovement(direction, rotation, speedMode, PLAYER_ID);
+            listener.onSetPossessedMovement(direction, rotation, pitch, speedMode, PLAYER_ID);
         }
     }
 
     @Override
-    public void setPossessedAttack(boolean attacking) {
+    public void setPossessedAttack(boolean attacking, int spell) {
         for (GameSessionServiceListener listener : serverListeners.getArray()) {
-            listener.onSetPossessedAttack(attacking, PLAYER_ID);
+            listener.onSetPossessedAttack(attacking, spell, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void usePossessedAbility(int ability) {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onUsePossessedAbility(ability, PLAYER_ID);
+        }
+    }
+
+    @Override
+    public void addPossessedFollower() {
+        for (GameSessionServiceListener listener : serverListeners.getArray()) {
+            listener.onAddPossessedFollower(PLAYER_ID);
         }
     }
 

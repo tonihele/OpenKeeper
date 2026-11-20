@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.component;
 
+import com.jme3.math.Vector3f;
 import com.simsilica.es.EntityComponent;
 
 /**
@@ -26,8 +27,23 @@ import com.simsilica.es.EntityComponent;
  */
 public final class CreatureFall implements EntityComponent {
 
+    public Vector3f velocity; // Tiles per turn, null when just dropped
+    public int damage; // Taken on landing
+
     public CreatureFall() {
         // For serialization
+    }
+
+    /**
+     * A creature thrown through the air, it flies with gravity and bounces off
+     * the walls
+     *
+     * @param velocity tiles per turn
+     * @param damage the damage it takes as it lands
+     */
+    public CreatureFall(Vector3f velocity, int damage) {
+        this.velocity = velocity;
+        this.damage = damage;
     }
 
 }

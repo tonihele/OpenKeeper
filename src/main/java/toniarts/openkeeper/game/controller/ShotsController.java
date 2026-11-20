@@ -308,8 +308,13 @@ public final class ShotsController implements IShotsController {
     @Override
     public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, EntityId target,
             EntityId shooter, float maxRange) {
+        return fireShot(shotTypeId, shotData1, shotData2, playerId, position, getAimPoint(target), shooter, maxRange);
+    }
+
+    @Override
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
+            EntityId shooter, float maxRange) {
         Shot shot = kwdFile.getShotById(shotTypeId);
-        Vector3f targetPosition = getAimPoint(target);
         if (!ShotFlightRules.isFlying(shot) || targetPosition == null) {
             return false;
         }

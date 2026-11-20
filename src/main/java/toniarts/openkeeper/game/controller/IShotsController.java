@@ -59,6 +59,23 @@ public interface IShotsController {
             EntityId shooter, float maxRange);
 
     /**
+     * A creature fires a shot towards a spot, as a possessed creature does
+     * when it has nothing to aim at
+     *
+     * @param shotTypeId shot type to fire
+     * @param shotData1 arbitrary value, interpreted per shot
+     * @param shotData2 arbitrary value, interpreted per shot
+     * @param playerId owner of the shot
+     * @param position where the shot starts
+     * @param targetPosition the spot aimed at
+     * @param shooter the creature firing the shot
+     * @param maxRange how far the creature's spell reaches, in tiles
+     * @return whether the shot flies, if not, nothing was fired
+     */
+    public boolean fireShot(short shotTypeId, int shotData1, int shotData2, short playerId, Vector3f position, Vector3f targetPosition,
+            EntityId shooter, float maxRange);
+
+    /**
      * A flying shot hit a thing
      *
      * @param shot the shot entity

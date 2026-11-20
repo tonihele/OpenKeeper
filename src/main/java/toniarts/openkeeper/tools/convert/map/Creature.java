@@ -386,40 +386,52 @@ public final class Creature implements Comparable<Creature>, ISoundable, IIndexa
 
     public enum Swipe implements IValueEnum {
 
-        NONE(0),
-        BITE(1),
-        CLAW_SLASH(2),
-        CLUB_SMASH(3),
-        DARK_FGBS_SLASH(4),
-        KING_FGBS_SLASH(5),
-        LEFT_PUNCH(6),
-        RIGHT_PUNCH(7),
-        LEFT_SCYTHE_SLASH(8),
-        RIGHT_SCYTHE_SLASH(9),
-        MISTRESS_SLASH(10),
-        SMALL_SLASH(11),
-        STAFF_STRIKE(12),
-        SWORD_SLASH(13),
-        LIGHT_ARROW(14),
-        DARK_ARROW(15),
-        LEFT_BILE_SMASH(16),
-        RIGHT_BILE_SMASH(17),
-        HYPNOTISE(18),
-        LEFT_SMALL_PUNCH(19),
-        RIGHT_SMALL_PUNCH(20),
-        LEFT_KING_FGBS_SLASH(21),
-        RIGHT_KING_FGBS_SLASH(22),
-        UNK_36(36); // FIXME
+        NONE(0, null),
+        BITE(1, "Bite"),
+        CLAW_SLASH(2, "Claw_Slash"),
+        CLUB_SMASH(3, "Club_Smash"),
+        DARK_FGBS_SLASH(4, "Dark-FGBS_Slash"),
+        KING_FGBS_SLASH(5, "King-FGBS_Slash"),
+        LEFT_PUNCH(6, "L-Punch"),
+        RIGHT_PUNCH(7, "R-Punch"),
+        LEFT_SCYTHE_SLASH(8, "L-Scythe_Slash"),
+        RIGHT_SCYTHE_SLASH(9, "R-Scythe_Slash"),
+        MISTRESS_SLASH(10, "Mistress_Slash"),
+        SMALL_SLASH(11, "Small_Slash"),
+        STAFF_STRIKE(12, "Staff_Strike"),
+        SWORD_SLASH(13, "Sword_Slash"),
+        LIGHT_ARROW(14, "Light_Arrow"),
+        DARK_ARROW(15, "Dark_Arrow"),
+        LEFT_BILE_SMASH(16, "L-Bile_Smash"),
+        RIGHT_BILE_SMASH(17, "R-Bile_Smash"),
+        HYPNOTISE(18, "Hypnotise"),
+        LEFT_SMALL_PUNCH(19, "L-Small_Punch"),
+        RIGHT_SMALL_PUNCH(20, "R-Small_Punch"),
+        LEFT_KING_FGBS_SLASH(21, "L-King-FGBS_Slash"),
+        RIGHT_KING_FGBS_SLASH(22, "R-King-FGBS_Slash"),
+        UNK_36(36, null); // FIXME
 
-        private Swipe(int id) {
+        private Swipe(int id, String modelName) {
             this.id = id;
+            this.modelName = modelName;
         }
 
         @Override
         public int getValue() {
             return id;
         }
+
+        /**
+         * The mesh DKII.EXE shows in front of the first person camera for the
+         * swipe, its table is at 0x6A4668
+         *
+         * @return the model name, or null if there is none
+         */
+        public String getModelName() {
+            return modelName;
+        }
         private final int id;
+        private final String modelName;
     }
 
     public enum SpecialAbility implements IValueEnum {
