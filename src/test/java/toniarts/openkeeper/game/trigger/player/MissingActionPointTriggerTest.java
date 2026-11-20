@@ -102,6 +102,6 @@ class MissingActionPointTriggerTest {
                     return null;
                 });
         // The player service is never reached for a missing action point
-        return new PlayerTriggerControl(null, level, null, map, creatures, 1, (short) 1, null);
+        return new PlayerTriggerControl(null, level, null, map, creatures, 1, (short) 1, null, null);
     }
 }

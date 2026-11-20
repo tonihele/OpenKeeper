@@ -401,7 +401,7 @@ class PortalSpawnCooldownTest {
         void generateScriptedGoblin() {
             IGameController game = stub(IGameController.class, (method, args) -> player);
             new PlayerTriggerControl(game, stub(ILevelInfo.class, (method, args) -> level),
-                    timer, null, spawner, 1, (short) 3, null) {
+                    timer, null, spawner, 1, (short) 3, null, null) {
                 void generate() {
                     TriggerActionData action = new TriggerActionData(2, null, TriggerAction.ActionType.GENERATE_CREATURE);
                     action.setUserData("creatureId", (short) 7);

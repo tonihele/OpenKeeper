@@ -37,7 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 class SetFightFlagTriggerTest {
 
     @Test
-    void setsWillFightOnlyForOne() {
+    void setsWillFightOnlyForOne() throws ReflectiveOperationException {
         IKwdFile kwd = proxy(IKwdFile.class, (p, m, a) -> Map.of(1, new TriggerGeneric(null)));
         ILevelInfo level = proxy(ILevelInfo.class, (p, m, a) -> kwd);
         List<Object> calls = new ArrayList<>();
@@ -46,8 +46,12 @@ class SetFightFlagTriggerTest {
             calls.add(a[0]);
             return null;
         });
-        CreatureTriggerControl creatureControl = new CreatureTriggerControl(null, level, null, null, null, 1, (short) 3, null);
-        creatureControl.setThing(creature);
+        CreatureTriggerControl creatureControl = new CreatureTriggerControl(null, level, null, null, null, 1, (short) 3, null,
+                null, false);
+        // The thing is set when the creature spawns, setThing is not visible from here
+        var setThing = CreatureTriggerControl.class.getDeclaredMethod("setThing", ICreatureController.class);
+        setThing.setAccessible(true);
+        setThing.invoke(creatureControl, creature);
         TriggerControl control = creatureControl;
 
         for (short available : new short[]{0, 1, 2}) {

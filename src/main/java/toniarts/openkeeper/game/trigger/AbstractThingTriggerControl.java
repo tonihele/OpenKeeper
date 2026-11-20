@@ -16,6 +16,7 @@
  */
 package toniarts.openkeeper.game.trigger;
 
+import com.simsilica.es.EntityData;
 import toniarts.openkeeper.game.controller.ICreaturesController;
 import toniarts.openkeeper.game.controller.IGameController;
 import toniarts.openkeeper.game.controller.IGameTimer;
@@ -36,16 +37,30 @@ public abstract class AbstractThingTriggerControl<T> extends PlayerTriggerContro
 
     public AbstractThingTriggerControl(final IGameController gameController, final ILevelInfo levelInfo, final IGameTimer gameTimer, final IMapController mapController,
             final ICreaturesController creaturesController, final int triggerId, final short playerId,
-            final PlayerService playerService) {
-        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService);
+            final PlayerService playerService, final EntityData entityData) {
+        super(gameController, levelInfo, gameTimer, mapController, creaturesController, triggerId, playerId, playerService, entityData);
     }
 
     /**
-     * Set the actual thing instance to this trigger control
+     * Set the actual thing instance to this trigger control. The thing may be
+     * replaced by a new one, e.g. when a hero party is spawned again.
      *
      * @param thingInstance the thing instance
      */
     protected void setThing(T thingInstance) {
         instanceControl = thingInstance;
+    }
+
+    @Override
+    protected boolean isPlayerScope() {
+        return false;
+    }
+
+    /**
+     * A thing's tree is dormant until the thing itself exists in the world
+     */
+    @Override
+    protected boolean isArmed() {
+        return instanceControl != null && super.isArmed();
     }
 }
