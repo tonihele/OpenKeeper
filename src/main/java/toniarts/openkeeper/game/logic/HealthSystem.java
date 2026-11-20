@@ -372,9 +372,18 @@ public final class HealthSystem extends GameTimeCounter {
 
         // A knocked out pit fighter is out of the fight and waits to be carried to its lair.
         // One that was held in the pit is not held anymore, the imps may take it to the Prison again
-        if (entityData.removeComponent(entityId, CombatPitFighter.class)) {
+        CombatPitFighter pitFighter = entityData.getComponent(entityId, CombatPitFighter.class);
+        if (pitFighter != null) {
+            entityData.removeComponent(entityId, CombatPitFighter.class);
             Owner owner = entityData.getComponent(entityId, Owner.class);
             entityData.setComponent(entityId, new Owner(owner.ownerId, owner.ownerId));
+
+            // With one fighter left standing over it the fight is over, and the
+            // mentor tells the keeper of the pit (DKII.EXE 0x4D7A60, message 9)
+            if (roomAttackMessages != null && entityData.findEntities(
+                    new FieldFilter(CombatPitFighter.class, "pit", pitFighter.pit), CombatPitFighter.class).size() == 1) {
+                roomAttackMessages.combatPitOver(mapController.getRoomController(pitFighter.pit).getOwnerId());
+            }
         }
         entityData.setComponent(entityId, new Health(0, health.maxHealth));
         entityData.setComponent(entityId, new Unconscious(timeElapsed));

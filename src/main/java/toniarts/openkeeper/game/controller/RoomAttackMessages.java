@@ -135,7 +135,12 @@ public final class RoomAttackMessages {
          * "You do not have enough Mana to maintain your Imps", message 0x35
          * variant 3 (0x4C1BC0)
          */
-        NOT_ENOUGH_MANA_FOR_IMPS(20, 1333, Map.of());
+        NOT_ENOUGH_MANA_FOR_IMPS(20, 1333, Map.of()),
+        /**
+         * "The battle in the Combat Pit is over", message 9, told when a
+         * fight is down to one fighter standing (0x4D7A60). It has no tile
+         */
+        COMBAT_PIT_OVER(50, 354, Map.of(), true, INFO_TAB);
 
         private final double duration;
         private final int defaultSpeechId;
@@ -270,6 +275,15 @@ public final class RoomAttackMessages {
      */
     public void notEnoughManaForImps(short ownerId) {
         show(Message.NOT_ENOUGH_MANA_FOR_IMPS, ownerId, (short) 0, null);
+    }
+
+    /**
+     * A fight in the keeper's Combat Pit is down to one fighter standing
+     *
+     * @param ownerId the owner of the Combat Pit
+     */
+    public void combatPitOver(short ownerId) {
+        show(Message.COMBAT_PIT_OVER, ownerId, (short) 0, null);
     }
 
     /**
