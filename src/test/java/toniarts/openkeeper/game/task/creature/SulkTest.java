@@ -32,8 +32,10 @@ import org.junit.jupiter.api.Test;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.event.GameEventType;
+import toniarts.openkeeper.game.task.TaskType;
 import toniarts.openkeeper.tools.convert.map.Creature;
 import toniarts.openkeeper.tools.convert.map.TempleFixtures;
 import toniarts.openkeeper.tools.convert.map.Variable.MiscVariable;
@@ -153,7 +155,21 @@ class SulkTest {
     }
 
     @Test
+    void aCreatureUnhappyForAnotherReasonWalksToItsLairAndGivesUpThere() {
+        entityData.setComponent(entity, new CreatureMood(0, 0, 0, 0, 3000, 0));
+        entityData.setComponent(entity, new TaskComponent(sulk.getId(), null, sulk.getTaskLocation(), TaskType.SULK, 0, false));
+
+        assertTrue(sulk.isValid(creature));
+
+        // The creature got to its lair
+        entityData.setComponent(entity, new TaskComponent(sulk.getId(), null, sulk.getTaskLocation(), TaskType.SULK, 0, true));
+
+        assertFalse(sulk.isValid(creature));
+    }
+
+    @Test
     void theSulkIsOverWhenTheAngerIsGone() {
+        entityData.setComponent(entity, new TaskComponent(sulk.getId(), null, sulk.getTaskLocation(), TaskType.SULK, 0, true));
         assertTrue(sulk.isValid(creature));
 
         for (float time = 1.0f; time <= 3.0f; time += 1.0f) {

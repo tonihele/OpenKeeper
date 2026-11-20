@@ -24,6 +24,7 @@ import java.util.Map;
 import toniarts.openkeeper.game.component.CreatureMood;
 import toniarts.openkeeper.game.component.Health;
 import toniarts.openkeeper.game.component.Position;
+import toniarts.openkeeper.game.component.TaskComponent;
 import toniarts.openkeeper.game.controller.IMapController;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.event.GameEventType;
@@ -38,7 +39,8 @@ import toniarts.openkeeper.utils.WorldUtils;
 /**
  * Sulks in the lair. Like in DK II, once a second the lair calms the creature
  * and heals it as if it slept there, and the creature gets over it when the
- * anger the lair calms is gone.<br>
+ * anger the lair calms is gone. A creature that is unhappy for another reason
+ * walks to its lair all the same and gives up when it gets there.<br>
  * Like DK II's sulking state (0x482F80), the creature stands for 5 to 8
  * seconds, sulks out loud when it starts, every 4 seconds and when it is done,
  * then steps to a new spot 0.4 tiles from the middle of its lair, in a random
@@ -75,7 +77,14 @@ public final class Sulk extends AbstractTileTask {
     @Override
     public boolean isValid(ICreatureController creature) {
         CreatureMood mood = entityData.getComponent(creature.getEntityId(), CreatureMood.class);
-        return creature.hasLair() && mood != null && mood.other > 0;
+        if (!creature.hasLair() || mood == null) {
+            return false;
+        }
+
+        // Like in DK II, a creature unhappy for any reason walks to its lair to sulk (0x482EF0),
+        // and the anger the lair calms is only asked for once it is there (0x476FC0, 0x47AC70)
+        TaskComponent task = entityData.getComponent(creature.getEntityId(), TaskComponent.class);
+        return mood.other > 0 || task == null || !task.taskStarted;
     }
 
     @Override
