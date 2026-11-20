@@ -165,6 +165,7 @@ public final class CreatureController extends EntityController implements ICreat
     private static final int OWN_LAND_WANDER_DISTANCE = 10;
 
     private static final float FACING_TOLERANCE = 0.2f; // Radians
+    private static final int FACE_DISTANCE = 32; // Tiles
     /**
      * Possessed movement speed relative to walking forward
      */
@@ -1485,19 +1486,27 @@ public final class CreatureController extends EntityController implements ICreat
     /**
      * Turns the creature on the spot to face the pillar of the heart it is
      * hitting, the nearest one, as the original does (0x45CB00, 0x4B2AE0).
-     * Facing is steered through a navigation that only has the tile to face
-     * from, and it is only made when the creature isn't already facing the
+     * Like the original, it faces from where it stands to where the pillar
+     * stands. Facing is steered through a navigation that only has the tile to
+     * face from, and it is only made when the creature isn't already facing the
      * pillar.
      *
      * @param heart the heart being hit
      */
     private void faceHeart(EntityId heart) {
         Position position = entityData.getComponent(entityId, Position.class);
-        Point pillar = DungeonHeartTarget.getNearestPillarTile(WorldUtils.vector3fToVector2f(position.position), getHeartTile(heart));
+        Vector2f standing = WorldUtils.vector3fToVector2f(position.position);
+        Vector2f toPillar = DungeonHeartTarget.getNearestPillar(standing, getHeartTile(heart)).subtractLocal(standing);
         double turn = Math.IEEEremainder(-position.rotation - SteeringUtils.calculateVectorToAngle(
-                new Vector2(pillar.x * WorldUtils.TILE_WIDTH - position.position.x, pillar.y * WorldUtils.TILE_WIDTH - position.position.z)), 2 * Math.PI);
+                new Vector2(toPillar.x, toPillar.y)), 2 * Math.PI);
         if (Math.abs(turn) > FACING_TOLERANCE) {
-            entityData.setComponent(entityId, new Navigation(getCreatureCoordinates(), pillar, new ArrayList<>()));
+
+            // The steering faces from the centre of a tile to the centre of another, the creature is often on the
+            // pillar's own tile. A tile far along the way to the pillar gives that way to within a degree or so.
+            Point tile = getCreatureCoordinates();
+            toPillar.normalizeLocal().multLocal(FACE_DISTANCE);
+            entityData.setComponent(entityId, new Navigation(tile,
+                    new Point(tile.x + Math.round(toPillar.x), tile.y + Math.round(toPillar.y)), new ArrayList<>()));
         }
     }
 

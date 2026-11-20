@@ -72,6 +72,26 @@ public final class DungeonHeartTarget {
     }
 
     /**
+     * Finds the Arch Pillar of the heart nearest to the given position
+     *
+     * @param from the position, in world coordinates
+     * @param heartTile the tile at the centre of the heart
+     * @return the pillar's position, in world coordinates
+     */
+    public static Vector2f getNearestPillar(Vector2f from, Point heartTile) {
+        Vector2f centre = WorldUtils.pointToVector2f(heartTile);
+        Vector2f nearest = null;
+        for (Vector2f offset : PILLARS) {
+            Vector2f pillar = centre.add(offset.mult(WorldUtils.TILE_WIDTH));
+            if (nearest == null || pillar.distanceSquared(from) < nearest.distanceSquared(from)) {
+                nearest = pillar;
+            }
+        }
+
+        return nearest;
+    }
+
+    /**
      * Can a creature standing here hit the heart. It has to be within its melee
      * range and half a tile of a pillar (0x45CB00, 0x45E8F0).
      *
@@ -90,27 +110,6 @@ public final class DungeonHeartTarget {
         }
 
         return false;
-    }
-
-    /**
-     * The tile of the pillar nearest to the creature. The original picks the
-     * nearest Arch Pillar of the heart as the target (0x45CB00) and turns to
-     * face its target before it swings (0x45F030 calls 0x4B2AE0).
-     *
-     * @param position where the creature stands
-     * @param heartTile the tile at the centre of the heart
-     * @return the tile of the nearest pillar
-     */
-    public static Point getNearestPillarTile(Vector2f position, Point heartTile) {
-        Vector2f nearest = null;
-        for (Vector2f pillar : PILLARS) {
-            Vector2f pillarPosition = new Vector2f(heartTile.x * WorldUtils.TILE_WIDTH + pillar.x, heartTile.y * WorldUtils.TILE_WIDTH + pillar.y);
-            if (nearest == null || position.distanceSquared(pillarPosition) < position.distanceSquared(nearest)) {
-                nearest = pillarPosition;
-            }
-        }
-
-        return WorldUtils.vectorToPoint(nearest);
     }
 
     /**
