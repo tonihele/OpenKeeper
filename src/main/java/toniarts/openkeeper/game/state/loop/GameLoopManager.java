@@ -171,7 +171,7 @@ public final class GameLoopManager {
                         gameWorldController.getShotsController(), gameEventService),
                 new FreezeSystem(entityData, gameWorldController.getCreaturesController(), gameController.getGameTimer()),
                 new ShotSystem(entityData, level, gameEventService, gameWorldController.getShotsController(), positionSystem,
-                        gameWorldController.getMapController(), playerControllers),
+                        gameWorldController.getMapController(), playerControllers, gameController.getGameTimer()),
                 new OnFireSystem(entityData, levelInfo.getLevelData(), gameController.getGameTimer(), gameEventService),
                 (IGameLogicUpdatable) taskManager);
 

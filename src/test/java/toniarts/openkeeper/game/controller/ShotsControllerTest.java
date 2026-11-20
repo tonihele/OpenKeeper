@@ -32,6 +32,7 @@ import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotTarget;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.controller.creature.ICreatureController;
 import toniarts.openkeeper.game.event.GameEventService;
@@ -93,6 +94,7 @@ class ShotsControllerTest {
     ShotsControllerTest() {
         shotsById.put(ShotFixtures.THUNDERBOLT_ID, ShotFixtures.thunderbolt());
         shotsById.put(ShotFixtures.FIREBALL_ID, ShotFixtures.fireball());
+        shotsById.put(ShotFixtures.GUIDED_BOLT_ID, ShotFixtures.guidedBolt());
         addShot(HEAL_ID, Shot.ProcessType.MODIFY_HEALTH);
         addShot(CREATE_OBJECT_ID, Shot.ProcessType.CREATE_OBJECT);
         addShot(CREATE_SINGLE_CREATURE_ID, Shot.ProcessType.CREATE_SINGLE_CREATURE);
@@ -274,6 +276,21 @@ class ShotsControllerTest {
                 entityData.createEntity(), 4);
 
         assertEquals(0, getShotFlight().velocity.y, DELTA);
+    }
+
+    @Test
+    void guidedBoltRemembersItsTargetAndAFireballDoesNot() {
+        EntityId target = createCreature();
+        shotsController.fireShot(ShotFixtures.GUIDED_BOLT_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+
+        assertEquals(target, entityData.getComponent(entityData.findEntity(null, ShotFlight.class), ShotTarget.class).target);
+
+        entityData.removeEntity(entityData.findEntity(null, ShotFlight.class));
+        shotsController.fireShot(ShotFixtures.FIREBALL_ID, 50, 0, PLAYER_ID, new Vector3f(1.5f, 1f, 4.5f), target,
+                entityData.createEntity(), 4);
+
+        assertNull(entityData.getComponent(entityData.findEntity(null, ShotFlight.class), ShotTarget.class));
     }
 
     @Test

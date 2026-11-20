@@ -30,6 +30,7 @@ import toniarts.openkeeper.game.component.OnFire;
 import toniarts.openkeeper.game.component.Owner;
 import toniarts.openkeeper.game.component.Position;
 import toniarts.openkeeper.game.component.ShotFlight;
+import toniarts.openkeeper.game.component.ShotTarget;
 import toniarts.openkeeper.game.component.ShotViewState;
 import toniarts.openkeeper.game.controller.entity.EntityController;
 import toniarts.openkeeper.game.controller.shot.IShotProcessor;
@@ -328,6 +329,9 @@ public final class ShotsController implements IShotsController {
                 new ShotViewState(shotTypeId, velocity.mult(ticksPerSecond)),
                 new ShotFlight(shotTypeId, playerId, shooter, shotData1, shotData2, velocity, new Vector3f(position), maxRange,
                         shot.getHealth()));
+        if (shot.getProcessType() == Shot.ProcessType.GUIDED) {
+            entityData.setComponent(entity, new ShotTarget(target));
+        }
 
         return true;
     }
