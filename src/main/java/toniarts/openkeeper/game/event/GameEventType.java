@@ -26,9 +26,17 @@ public enum GameEventType {
     CREATURE_LEVEL_UP,
     CREATURE_LAND,
     /**
+     * A creature turned on its keeper, only that keeper gets this
+     */
+    CREATURE_REBELLED,
+    /**
      * A Vampire rose in a Graveyard, only the keeper of the Graveyard gets this
      */
     GRAVEYARD_VAMPIRE_RISEN,
+    /**
+     * A creature left the dungeon for good, only its keeper gets this
+     */
+    CREATURE_LEFT,
     /**
      * The creature took damage. Not restarted while the previous one of the same creature still goes on.
      */
@@ -40,6 +48,10 @@ public enum GameEventType {
     PRISON_SKELETON_RISEN,
     CREATURE_CLAIM_TILE,
     CREATURE_REINFORCE_WALL,
+    /**
+     * A creature sulks in its lair
+     */
+    CREATURE_SULK,
     /**
      * The subject is the attacker's creature type, the target is the victim
      */

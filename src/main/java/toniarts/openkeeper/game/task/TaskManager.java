@@ -78,6 +78,7 @@ import toniarts.openkeeper.game.controller.object.IObjectController;
 import toniarts.openkeeper.game.controller.room.AbstractRoomController.ObjectType;
 import toniarts.openkeeper.game.controller.room.CasinoController;
 import toniarts.openkeeper.game.controller.room.IRoomController;
+import toniarts.openkeeper.game.controller.room.ThreeByThreeController;
 import toniarts.openkeeper.game.data.ActionPoint;
 import toniarts.openkeeper.game.data.Keeper;
 import toniarts.openkeeper.game.data.ResearchableType;
@@ -97,9 +98,12 @@ import toniarts.openkeeper.game.task.creature.Gamble;
 import toniarts.openkeeper.game.task.creature.GoToEat;
 import toniarts.openkeeper.game.task.creature.GoToSleep;
 import toniarts.openkeeper.game.task.creature.Guard;
+import toniarts.openkeeper.game.task.creature.Leave;
 import toniarts.openkeeper.game.task.creature.Manufacture;
 import toniarts.openkeeper.game.task.creature.Pray;
+import toniarts.openkeeper.game.task.creature.Rebel;
 import toniarts.openkeeper.game.task.creature.Research;
+import toniarts.openkeeper.game.task.creature.Sulk;
 import toniarts.openkeeper.game.task.creature.Torture;
 import toniarts.openkeeper.game.task.creature.Train;
 import toniarts.openkeeper.game.task.objective.AbstractObjectiveTask;
@@ -1055,9 +1059,80 @@ public final class TaskManager implements ITaskManager, IGameLogicUpdatable {
             case DRINK: {
                 return assignClosestRoomTask(creature, ObjectType.GAMBLER, null, assign);
             }
+            case SULK: {
+
+                // Like in DK II, only a creature that sleeps and has a lair it can get to sulks
+                if (!creature.hasLair() || creature.getCreature().getAttributes().getTimeSleep() <= 0) {
+                    return false;
+                }
+                Sulk task = new Sulk(navigationService, mapController, creature, entityData, gameSettings);
+                if (!task.isReachable(creature)) {
+                    return false;
+                }
+                if (assign) {
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
+            }
+            case LEAVE: {
+                return assignLeaveTask(creature, false, assign);
+            }
+            case REBEL: {
+
+                // Like in DK II, a rebel walks out through a portal, and turns on its keeper when it can't get to one
+                if (assignLeaveTask(creature, true, assign)) {
+                    return true;
+                }
+                if (creature.getOwnerId() == Player.GOOD_PLAYER_ID) {
+                    return false;
+                }
+                if (assign) {
+                    Rebel task = new Rebel(navigationService, mapController, creature,
+                            levelInfo.getLevelData().getGameLevel().getTicksPerSec());
+                    task.assign(creature, true);
+                    tasksByIds.put(task.getId(), task);
+                }
+                return true;
+            }
             default:
                 return false;
         }
+    }
+
+    /**
+     * Like in DK II, a creature that leaves walks out through the portal
+     * nearest in a straight line, whoever owns it, even when another portal is
+     * a shorter walk or it can't get to that one at all (0x459DE0). A rebel
+     * takes the nearest of its own keeper's portals, and only when it can get
+     * to it (0x475170)
+     */
+    private boolean assignLeaveTask(ICreatureController creature, boolean rebel, boolean assign) {
+        ThreeByThreeController nearest = null;
+        float nearestDistance = Float.MAX_VALUE;
+        for (IRoomController room : mapController.getRoomControllers()) {
+            if (!(room instanceof ThreeByThreeController portal) || (rebel && portal.getOwnerId() != creature.getOwnerId())) {
+                continue;
+            }
+
+            // DK II compares the squared distance to the middle of each portal
+            float distance = WorldUtils.pointToVector2f(portal.getEntranceCoordinate())
+                    .distanceSquared(creature.getPosition().x, creature.getPosition().z);
+            if (distance < nearestDistance) {
+                nearest = portal;
+                nearestDistance = distance;
+            }
+        }
+        Leave task = nearest == null ? null
+                : new Leave(navigationService, mapController, nearest.getEntranceCoordinate(), creature.getOwnerId(), nearest, entityData);
+        if (task != null && rebel && !task.isReachable(creature)) {
+            return false;
+        }
+        if (task != null && assign) {
+            task.assign(creature, true);
+            tasksByIds.put(task.getId(), task);
+        }
+        return task != null;
     }
 
     @Override
